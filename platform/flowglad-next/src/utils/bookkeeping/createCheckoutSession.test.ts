@@ -109,7 +109,7 @@ describe('createCheckoutSessionTransaction', () => {
         )
       )
     ).rejects.toThrow(
-      'Customer not found for externalId: non-existent-customer'
+      `Required customer not found for Product checkout (anonymous=false). externalId='non-existent-customer', organization='${organization.id}'.`
     )
   })
 
@@ -268,5 +268,143 @@ describe('createCheckoutSessionTransaction', () => {
         )
       )
     ).rejects.toThrow('Invalid checkout session, type: InvalidType')
+  })
+
+  describe('Anonymous checkout sessions', () => {
+    it('should create an anonymous product checkout session without a customer', async () => {
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        type: CheckoutSessionType.Product,
+        anonymous: true,
+        customerExternalId: null,
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+        priceId: singlePaymentPrice.id,
+      }
+
+      const { checkoutSession, url } = await adminTransaction(
+        async (tx) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            tx.transaction
+          )
+      )
+
+      expect(checkoutSession.customerId).toBeNull()
+      expect(checkoutSession.customerEmail).toBeNull()
+      expect(checkoutSession.customerName).toBeNull()
+      expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
+      expect(url).toBe(
+        `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      )
+    })
+
+    it('should throw error when non-anonymous product checkout has missing customerExternalId', async () => {
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        type: CheckoutSessionType.Product,
+        anonymous: false,
+        customerExternalId: 'non-existent-customers',
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+        priceId: singlePaymentPrice.id,
+      }
+
+      await expect(
+        adminTransaction(async (tx) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            tx.transaction
+          )
+        )
+      ).rejects.toThrow(
+        `Required customer not found for Product checkout (anonymous=false). externalId='non-existent-customers', organization='${organization.id}'.`
+      )
+    })
+
+    it('should populate customer fields correctly for non-anonymous checkout with valid customer', async () => {
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        type: CheckoutSessionType.Product,
+        customerExternalId: customer.externalId,
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+        priceId: singlePaymentPrice.id,
+      }
+
+      const { checkoutSession } = await adminTransaction(async (tx) =>
+        createCheckoutSessionTransaction(
+          {
+            checkoutSessionInput,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          tx.transaction
+        )
+      )
+
+      expect(checkoutSession.customerId).toBe(customer.id)
+      expect(checkoutSession.customerEmail).toBe(customer.email)
+      expect(checkoutSession.customerName).toBe(customer.name)
+    })
+
+    it('should require customer for AddPaymentMethod checkout even with anonymous flag', async () => {
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        type: CheckoutSessionType.AddPaymentMethod,
+        // @ts-expect-error - testing that anonymous is ignored
+        anonymous: true,
+        customerExternalId: 'non-existent-customer',
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+      }
+
+      await expect(
+        adminTransaction(async (tx) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            tx.transaction
+          )
+        )
+      ).rejects.toThrow(
+        'Customer is required for add payment method checkout sessions'
+      )
+    })
+
+    it('should require customer for ActivateSubscription checkout even with anonymous flag', async () => {
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        type: CheckoutSessionType.ActivateSubscription,
+        // @ts-expect-error - testing that anonymous is ignored
+        anonymous: true,
+        customerExternalId: 'non-existent-customer',
+        priceId: subscriptionPrice.id,
+        targetSubscriptionId: 'sub_123',
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+      }
+
+      await expect(
+        adminTransaction(async (tx) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            tx.transaction
+          )
+        )
+      ).rejects.toThrow(
+        'Customer is required for activate subscription checkout sessions'
+      )
+    })
   })
 })

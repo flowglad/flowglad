@@ -72,6 +72,24 @@ export const updateCustomer = createUpdateFunction(
   config
 )
 
+export const selectCustomerByExternalIdAndOrganizationId = async (
+  params: { externalId: string; organizationId: string },
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select()
+    .from(customersTable)
+    .where(
+      and(
+        eq(customersTable.externalId, params.externalId),
+        eq(customersTable.organizationId, params.organizationId)
+      )
+    )
+    .limit(1)
+  const [row] = result
+  return row ? customersSelectSchema.parse(row) : null
+}
+
 export const selectCustomerAndCustomerTableRows = async (
   whereConditions: Partial<Customer.Record>,
   transaction: DbTransaction

@@ -717,7 +717,7 @@ const coreCheckoutSessionSchema = z.object({
     ),
 })
 
-export const productCheckoutSessionSchema =
+export const identifiedProductCheckoutSessionSchema =
   coreCheckoutSessionSchema.extend({
     type: z.literal(CheckoutSessionType.Product),
     priceId: z
@@ -729,8 +729,23 @@ export const productCheckoutSessionSchema =
       .describe(
         'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
       ),
+    anonymous: z.literal(false).optional(),
     preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
   })
+
+export const anonymousProductCheckoutSessionSchema =
+  identifiedProductCheckoutSessionSchema.extend({
+    anonymous: z.literal(true),
+    customerExternalId: z.null().optional(),
+  })
+
+export const productCheckoutSessionSchema = z.discriminatedUnion(
+  'anonymous',
+  [
+    identifiedProductCheckoutSessionSchema,
+    anonymousProductCheckoutSessionSchema,
+  ]
+)
 
 export const addPaymentMethodCheckoutSessionSchema =
   coreCheckoutSessionSchema.extend({
@@ -757,6 +772,31 @@ export const activateSubscriptionCheckoutSessionSchema =
     preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
   })
 
+// Customer-billing variants (omit successUrl and cancelUrl)
+
+const urlFields = { cancelUrl: true, successUrl: true } as const
+
+export const customerBillingIdentifiedProductCheckoutSessionSchema =
+  identifiedProductCheckoutSessionSchema.omit(urlFields)
+
+export const customerBillingAnonymousProductCheckoutSessionSchema =
+  anonymousProductCheckoutSessionSchema.omit(urlFields)
+
+export const customerBillingProductCheckoutSessionSchema =
+  z.discriminatedUnion('anonymous', [
+    customerBillingIdentifiedProductCheckoutSessionSchema,
+    customerBillingAnonymousProductCheckoutSessionSchema,
+  ])
+
+export const customerBillingActivateSubscriptionCheckoutSessionSchema =
+  activateSubscriptionCheckoutSessionSchema.omit(urlFields)
+
+export const customerBillingCreatePricedCheckoutSessionSchema =
+  z.discriminatedUnion('type', [
+    customerBillingProductCheckoutSessionSchema,
+    customerBillingActivateSubscriptionCheckoutSessionSchema,
+  ])
+
 const createCheckoutSessionObject = z.discriminatedUnion('type', [
   productCheckoutSessionSchema,
   activateSubscriptionCheckoutSessionSchema,
@@ -775,9 +815,31 @@ export const singleCheckoutSessionOutputSchema = z.object({
 })
 
 export const createCheckoutSessionSchema = z
-  .object({
-    checkoutSession: createCheckoutSessionObject,
-  })
+  /*
+    If the session is Product and 'anonymous' is missing, set it to false
+    before validating. This ensures the discriminated union on 'anonymous'
+    can parse. Other session types are unchanged.
+  */
+  .preprocess(
+    (val) => {
+      const valueWithCheckoutSession = val as any
+      const checkoutSession =
+        valueWithCheckoutSession?.checkoutSession
+      if (
+        checkoutSession?.type === CheckoutSessionType.Product &&
+        checkoutSession.anonymous === undefined
+      ) {
+        return {
+          ...valueWithCheckoutSession,
+          checkoutSession: { ...checkoutSession, anonymous: false },
+        }
+      }
+      return valueWithCheckoutSession
+    },
+    z.object({
+      checkoutSession: createCheckoutSessionObject,
+    })
+  )
   .describe('Use this schema for new checkout sessions.')
 
 export type CreateCheckoutSessionInput = z.infer<

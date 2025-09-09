@@ -1,5 +1,4 @@
 import {
-  adminTransaction,
   comprehensiveAdminTransaction,
   eventfulAdminTransaction,
 } from '@/db/adminTransaction'
@@ -15,17 +14,10 @@ import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 import { logger, task } from '@trigger.dev/sdk'
 import Stripe from 'stripe'
 import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
-import {
-  FlowgladEventType,
-  EventNoun,
-  InvoiceStatus,
-  LedgerTransactionType,
-} from '@/types'
+import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
-import { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { Event } from '@/db/schema/events'
-import { constructPaymentSucceededEventHash } from '@/utils/eventHelpers'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -57,7 +49,10 @@ export const stripePaymentIntentSucceededTask = task({
       customer,
       payment,
     } = await eventfulAdminTransaction(async ({ transaction }) => {
-      const { payment } = await processPaymentIntentStatusUpdated(
+      const {
+        result: { payment },
+        eventsToLog,
+      } = await processPaymentIntentStatusUpdated(
         payload.data.object,
         transaction
       )
@@ -104,27 +99,7 @@ export const stripePaymentIntentSucceededTask = task({
         membersForOrganization,
         payment,
       }
-      const timestamp = new Date()
-      const eventInserts: Event.Insert[] = [
-        {
-          type: FlowgladEventType.PaymentSucceeded,
-          occurredAt: timestamp,
-          organizationId: payment.organizationId,
-          livemode: payment.livemode,
-          payload: {
-            object: EventNoun.Payment,
-            id: payment.id,
-            customer: {
-              id: customer.id,
-              externalId: customer.externalId,
-            },
-          },
-          submittedAt: timestamp,
-          hash: constructPaymentSucceededEventHash(payment),
-          metadata: {},
-          processedAt: null,
-        },
-      ]
+      const eventInserts: Event.Insert[] = [...(eventsToLog ?? [])]
 
       return [result, eventInserts]
     }, {})

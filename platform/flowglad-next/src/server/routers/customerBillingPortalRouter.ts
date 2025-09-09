@@ -12,7 +12,6 @@ import {
   setUserIdForCustomerRecords,
 } from '@/db/tableMethods/customerMethods'
 import {
-  createPricedCheckoutSessionSchema,
   customerBillingCreateAddPaymentMethodSession,
   customerBillingCreatePricedCheckoutSession,
   customerBillingTransaction,
@@ -67,6 +66,7 @@ import {
   checkoutSessionClientSelectSchema,
   createCheckoutSessionSchema,
   productCheckoutSessionSchema,
+  customerBillingCreatePricedCheckoutSessionSchema,
 } from '@/db/schema/checkoutSessions'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
@@ -481,7 +481,8 @@ const createCheckoutSessionWithPriceProcedure =
   customerProtectedProcedure
     .input(
       z.object({
-        checkoutSession: createPricedCheckoutSessionSchema,
+        checkoutSession:
+          customerBillingCreatePricedCheckoutSessionSchema,
       })
     )
     .output(
