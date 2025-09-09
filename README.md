@@ -42,6 +42,8 @@
   </p>
 </div>
 
+![nav-demo](/./public/nat-lang-demo.gif)
+
 ## Features
 
 - **Default Stateless** Say goodbye to webhooks, `"subscriptions"` db tables, `customer_id` columns, `PRICE_ID` env variables, or manually mapping your plans to prices to features and back.
