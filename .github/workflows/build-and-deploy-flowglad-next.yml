@@ -100,5 +100,5 @@ jobs:
         run: |
           curl --fail-with-body --request POST \
             --url https://api.mintlify.com/v1/project/update/${{ secrets.MINTLIFY_PROJECT_ID }} \
-            --header "Authorization: Bearer ${{ secrets.MINTLIFY_API_KEY }}"
+            --header 'Authorization: Bearer ${{ secrets.MINTLIFY_API_KEY }}'
         working-directory: platform/flowglad-next
