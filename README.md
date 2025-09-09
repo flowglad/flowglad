@@ -33,16 +33,20 @@
     <img src="https://img.shields.io/badge/Backed%20by%20YC-FF4000" alt="Backed by YC" />
   </a>
 </p>
-
-The payment processor for natural language programming.
-
-Infinite pricing models, one source of truth, zero webhooks.
+<div align="center">
+  <p>
+    The payment processor for natural language programming.
+  </p>
+  <p>
+    Infinite pricing models, one source of truth, zero webhooks.
+  </p>
+</div>
 
 ## Features
 
-- **Stateless By Default:** Say goodbye to webhooks, `"subscriptions"` db tables, `customer_id` columns, `PRICE_ID` env variables, or manually mapping your plans to prices to features.
+- **Default Stateless** Say goodbye to webhooks, `"subscriptions"` db tables, `customer_id` columns, `PRICE_ID` env variables, or manually mapping your plans to prices to features and back.
 - **Single Source of Truth:** Read your latest customer billing state from Flowglad, including feature access and usage meter credits
-- **Access Data Using Your Ids:** Identify customers according to your auth. Define the slugs you use to refer to features, meters, prices, and products
+- **Access Data Using Your Ids:** Query customer state by your auth's user ids. Refer to prices, features, and usage meters via slugs you define.
 - **Full-Stack SDK:** Access your customer's data on the backend using `flowgladServer.getBilling()`, or in your React frontend using our `useBilling()` hook
 - **Adaptable:** Iterate on new pricing models in testmode, and push them to prod in a click. Seamlessly rotate pricing models in your app without any redeployment.
 
