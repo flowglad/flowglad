@@ -159,7 +159,3 @@ export const featureFlaggedProcedure = (featureFlag: FeatureFlag) => {
     return next({ ctx })
   })
 }
-
-export const usageProcedure = featureFlaggedProcedure(
-  FeatureFlag.Usage
-)

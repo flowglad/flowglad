@@ -108,8 +108,9 @@ const TrialFields = () => {
                   <FormControl>
                     <NumberInput
                       {...field}
-                      onChange={(e) => {
-                        field.onChange(Number(e.target.value))
+                      onChange={undefined}
+                      onValueChange={({ floatValue }) => {
+                        field.onChange(floatValue ?? undefined)
                       }}
                       min={1}
                       max={365}

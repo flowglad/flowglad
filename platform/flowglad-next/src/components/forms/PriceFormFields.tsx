@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { CurrencyInput } from '@/components/ui/currency-input'
-import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
+import { IntervalUnit, PriceType } from '@/types'
 import { Switch } from '@/components/ui/switch'
 import {
   Select,
@@ -25,7 +25,6 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form'
-import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import UsageMetersSelect from './UsageMetersSelect'
 import { cn, core } from '@/utils/core'
@@ -229,7 +228,6 @@ const PriceFormFields = ({
 
   let typeFields = <></>
   const { organization } = useAuthenticatedContext()
-  const hasUsage = hasFeatureFlag(organization, FeatureFlag.Usage)
   if (!core.IS_PROD) {
     const price = watch('price')
     console.log('===price', price)
@@ -347,11 +345,9 @@ const PriceFormFields = ({
                   <SelectItem value={PriceType.Subscription}>
                     Subscription
                   </SelectItem>
-                  {hasUsage && (
-                    <SelectItem value={PriceType.Usage}>
-                      Usage
-                    </SelectItem>
-                  )}
+                  <SelectItem value={PriceType.Usage}>
+                    Usage
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </FormControl>
