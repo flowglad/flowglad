@@ -243,6 +243,8 @@ export default function Billing() {
 
 <details>
 <summary><strong>Next Auth</strong></summary>
+
+```txt
 Please set up billing for our app according to the following instructions. Note that this assumes a Next.js application. If our project uses a different stack, you will need to adapt it accordingly. Specifically, you will need to change the following:
 `bash
 # replace @flowglad/nextjs with @flowglad/react and @flowglad/server
@@ -331,6 +333,7 @@ export default function Billing() {
   return <BillingPage />
 }
 `
+```
 </details>
 
 ## Demo: Integrating Flowglad in <40 seconds
@@ -374,7 +377,6 @@ If you have a custom auth setup or need to support team-based billing, you can t
 | Clerk                  | ✅      |
 | NextAuth               | ✅      |
 | Better Auth            | 🟡      |
-| Stack Auth             | 🟡      |
 | Firebase Auth          | 🟡      |
 
 
