@@ -61,6 +61,7 @@ import { checkoutSessions } from '@/db/schema/checkoutSessions'
 import { purchases } from '@/db/schema/purchases'
 import { eq } from 'drizzle-orm'
 import Stripe from 'stripe'
+import { selectEvents } from '@/db/tableMethods/eventMethods'
 
 // Mock helper functions
 const createMockStripeCharge = (
@@ -434,15 +435,16 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch_no_pi',
+        // Stripe.Charge expects string | PI object; use any to force null
         payment_intent: null,
         created: 123456,
         status: 'succeeded',
         metadata,
-        billing_details: { address: { country: 'US' } },
-      }
-      const fakeMetadata: any = {
+        billing_details: { address: { country: 'US' } } as any,
+      })
+      const fakeMetadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
@@ -460,13 +462,13 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('throws an error if payment intent metadata is missing', async () => {
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
         created: 123456,
         status: 'succeeded',
-        billing_details: { address: { country: 'US' } },
-      }
+        billing_details: { address: { country: 'US' } } as any,
+      })
       await expect(
         adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
@@ -481,7 +483,7 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('throws an error if metadata does not contain any of billingRunId or checkoutSessionId', async () => {
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
         created: 123456,
@@ -490,8 +492,8 @@ describe('Process payment intent status updated', async () => {
           _: 'some_value',
           type: 'unknown_type',
         },
-        billing_details: { address: { country: 'US' } },
-      }
+        billing_details: { address: { country: 'US' } } as any,
+      })
       const fakeMetadata: any = {}
       await expect(
         adminTransaction(async ({ transaction }) =>
@@ -507,13 +509,13 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('throws an error if the checkout session cannot be found', async () => {
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
         created: 123456,
         status: 'succeeded',
-        billing_details: { address: { country: 'US' } },
-      }
+        billing_details: { address: { country: 'US' } } as any,
+      })
       const fakeMetadata: any = {
         checkoutSessionId: 'chckt_session_missing',
         type: IntentMetadataType.CheckoutSession,
@@ -550,7 +552,7 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
         created: 1610000000,
@@ -560,9 +562,9 @@ describe('Process payment intent status updated', async () => {
         payment_method_details: {
           id: paymentMethod.stripePaymentMethodId,
           type: paymentMethod.type,
-        },
-        billing_details: { address: { country: 'US' } },
-      }
+        } as any,
+        billing_details: { address: { country: 'US' } } as any,
+      })
       const fakeMetadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
@@ -600,7 +602,7 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         invoiceId: invoice.id,
       })
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
         created: 1610000000,
@@ -609,9 +611,9 @@ describe('Process payment intent status updated', async () => {
         payment_method_details: {
           id: paymentMethod.stripePaymentMethodId,
           type: paymentMethod.type,
-        },
-        billing_details: { address: { country: 'US' } },
-      }
+        } as any,
+        billing_details: { address: { country: 'US' } } as any,
+      })
       const fakeMetadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
@@ -660,7 +662,7 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         invoiceId: invoice.id,
       })
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch_zero',
         payment_intent: 'pi_zero',
         created: 1610000000,
@@ -669,9 +671,9 @@ describe('Process payment intent status updated', async () => {
         payment_method_details: {
           id: paymentMethod.stripePaymentMethodId,
           type: paymentMethod.type,
-        },
-        billing_details: { address: { country: 'US' } },
-      }
+        } as any,
+        billing_details: { address: { country: 'US' } } as any,
+      })
       const fakeMetadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
@@ -686,14 +688,14 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('handles charges with missing billing details gracefully', async () => {
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch_nobilling',
         payment_intent: 'pi_nobilling',
         created: 1610000000,
         amount: 3000,
         status: 'succeeded',
-        billing_details: {}, // missing address
-      }
+        billing_details: {} as any, // missing address
+      })
       const fakeMetadata: any = { invoiceId: 'inv_nobilling' }
       await expect(
         adminTransaction(async ({ transaction }) =>
@@ -728,7 +730,7 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch_partial',
         payment_intent: 'pi_partial',
         created: 1610000000,
@@ -738,9 +740,9 @@ describe('Process payment intent status updated', async () => {
         payment_method_details: {
           id: paymentMethod.stripePaymentMethodId,
           type: paymentMethod.type,
-        },
-        billing_details: { address: { country: 'US' } },
-      }
+        } as any,
+        billing_details: { address: { country: 'US' } } as any,
+      })
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
@@ -778,7 +780,7 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: `ch_paid_${core.nanoid()}`,
         payment_intent: `pi_paid_${core.nanoid()}`,
         created: new Date().getTime() / 1000,
@@ -788,8 +790,8 @@ describe('Process payment intent status updated', async () => {
         payment_method_details: {
           id: paymentMethod.stripePaymentMethodId,
           type: paymentMethod.type,
-        },
-      }
+        } as any,
+      })
       const fakeMetadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
@@ -826,9 +828,13 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('throws an error when the PaymentIntent has no latest_charge', async () => {
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: 'inv_test',
+        type: IntentMetadataType.CheckoutSession,
+      }
       const fakePI: any = {
         id: 'pi_test',
-        metadata: { invoiceId: 'inv_test' },
+        metadata,
         latest_charge: null,
         status: 'succeeded',
       }
@@ -873,31 +879,32 @@ describe('Process payment intent status updated', async () => {
           customerId: customer.id,
           priceId: price.id,
         })
+        const metadata: StripeIntentMetadata = {
+          billingRunId: billingRun.id,
+          billingPeriodId: billingPeriod.id,
+          type: IntentMetadataType.BillingRun,
+        }
         const fakePI: any = {
           id: 'pi_br',
-          metadata: {
-            billingRunId: billingRun.id,
-            billingPeriodId: billingPeriod.id,
-            type: IntentMetadataType.BillingRun,
-          },
+          metadata,
           latest_charge: 'ch_br',
           status: 'succeeded',
         }
-        const fakeCharge: any = {
+        const fakeCharge = createMockStripeCharge({
           id: 'ch_br',
           payment_intent: 'pi_br',
           created: 1610000000,
           amount: 6000,
           status: 'succeeded',
-          billing_details: { address: { country: 'US' } },
+          billing_details: { address: { country: 'US' } } as any,
           payment_method_details: {
             type: 'card',
             card: {
               brand: 'visa',
               last4: '4242',
             },
-          },
-        }
+          } as any,
+        })
         const fakeBillingRun = {
           id: 'br_123',
           subscriptionId: 'sub_br',
@@ -928,32 +935,33 @@ describe('Process payment intent status updated', async () => {
         expect(result.result.payment).toBeDefined()
       })
       it('throws an error when no invoice exists for the billing run', async () => {
+        const metadata: StripeIntentMetadata = {
+          billingRunId: 'br_err',
+          billingPeriodId: 'bp_br_err',
+          type: IntentMetadataType.BillingRun,
+        }
         const fakePI: any = {
           id: 'pi_br_err',
-          metadata: {
-            billingRunId: 'br_err',
-            billingPeriodId: 'bp_br_err',
-            type: IntentMetadataType.BillingRun,
-          },
+          metadata,
           currency: CurrencyCode.USD,
           latest_charge: 'ch_br_err',
           status: 'succeeded',
         }
-        const fakeCharge: any = {
+        const fakeCharge = createMockStripeCharge({
           id: 'ch_br_err',
           payment_intent: 'pi_br_err',
           created: 1610000000,
           amount: 6000,
           status: 'succeeded',
-          billing_details: { address: { country: 'US' } },
+          billing_details: { address: { country: 'US' } } as any,
           payment_method_details: {
             type: 'card',
             card: {
               brand: 'visa',
               last4: '4242',
             },
-          },
-        }
+          } as any,
+        })
         const fakeBillingRun = {
           id: 'br_err',
           subscriptionId: 'sub_br_err',
@@ -994,30 +1002,50 @@ describe('Process payment intent status updated', async () => {
           livemode: true,
           invoiceId: invoice.id,
         })
+        const metadata: StripeIntentMetadata = {
+          checkoutSessionId: checkoutSession.id,
+          type: IntentMetadataType.CheckoutSession,
+        }
         const fakePI: any = {
           id: 'pi_inv',
-          metadata: {
-            checkoutSessionId: checkoutSession.id,
-            type: IntentMetadataType.CheckoutSession,
-          },
+          metadata,
           latest_charge: 'ch_inv',
           status: 'succeeded',
         }
-        const fakeCharge: any = {
+        const fakeCharge = createMockStripeCharge({
           id: 'ch_inv',
           payment_intent: 'pi_inv',
           created: 1610000000,
           amount: 7000,
           status: 'succeeded',
-          billing_details: { address: { country: 'CA' } },
-        }
+          billing_details: { address: { country: 'US' } } as any,
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+            },
+          } as any,
+        })
+        vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
+
         // Note: This test requires mocking the Stripe API calls
+<<<<<<< HEAD
         // const result = await adminTransaction(
         //   async ({ transaction }) =>
         //     processPaymentIntentStatusUpdated(fakePI, transaction)
         // )
         // expect(result.payment).toBeDefined()
         // expect(result.payment.taxCountry).toBe('CA')
+=======
+        const {
+          result: { payment },
+        } = await adminTransaction(async ({ transaction }) =>
+          processPaymentIntentStatusUpdated(fakePI, transaction)
+        )
+        expect(payment).toBeDefined()
+        expect(payment.taxCountry).toBe('US')
+>>>>>>> 27a4531f (build and deploy flowglad next)
       })
     })
 
@@ -1116,16 +1144,17 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         invoiceId: invoice.id,
       })
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const fakePI: any = {
         id: 'pi_other',
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata,
         latest_charge: 'ch_other',
         status: 'processing',
       }
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch_other',
         payment_intent: 'pi_other',
         created: 1610000000,
@@ -1135,13 +1164,33 @@ describe('Process payment intent status updated', async () => {
           checkoutSessionId: checkoutSession.id,
           type: IntentMetadataType.CheckoutSession,
         },
-        billing_details: { address: { country: 'US' } },
-      }
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
+        } as any,
+        billing_details: { address: { country: 'US' } } as any,
+      })
+      vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
       // Note: This test requires mocking the Stripe API calls
-      // const result = await adminTransaction(async ({ transaction }) =>
-      //   processPaymentIntentStatusUpdated(fakePI, transaction)
-      // )
-      // expect(result.payment).toBeDefined()
+      const {
+        result: { payment },
+      } = await adminTransaction(async ({ transaction }) =>
+        processPaymentIntentStatusUpdated(fakePI, transaction)
+      )
+      expect(payment).toBeDefined()
+      const events = await adminTransaction(async ({ transaction }) =>
+        selectEvents(
+          {
+            organizationId: organization.id,
+            objectEntity: EventNoun.Payment,
+          },
+          transaction
+        )
+      )
+      expect(events).toHaveLength(0)
     })
 
     it('is idempotent when processing the same PaymentIntent update more than once, returning a consistent payment record', async () => {
@@ -1159,16 +1208,17 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
         invoiceId: invoice.id,
       })
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const fakePI: any = {
         id: 'pi_idempotent',
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata,
         latest_charge: 'ch_idemp',
         status: 'succeeded',
       }
-      const fakeCharge: any = {
+      const fakeCharge = createMockStripeCharge({
         id: 'ch_idemp',
         payment_intent: 'pi_idempotent',
         created: 1610000000,
@@ -1178,18 +1228,28 @@ describe('Process payment intent status updated', async () => {
           checkoutSessionId: checkoutSession.id,
           type: IntentMetadataType.CheckoutSession,
         },
-        billing_details: { address: { country: 'US' } },
-      }
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
+        } as any,
+        billing_details: { address: { country: 'US' } } as any,
+      })
+      vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
       // Note: This test requires mocking the Stripe API calls
-      // const result1 = await adminTransaction(
-      //   async ({ transaction }) =>
-      //     processPaymentIntentStatusUpdated(fakePI, transaction)
-      // )
-      // const result2 = await adminTransaction(
-      //   async ({ transaction }) =>
-      //     processPaymentIntentStatusUpdated(fakePI, transaction)
-      // )
-      // expect(result1.payment.id).toEqual(result2.payment.id)
+      const {
+        result: { payment: payment1 },
+      } = await adminTransaction(async ({ transaction }) =>
+        processPaymentIntentStatusUpdated(fakePI, transaction)
+      )
+      const {
+        result: { payment: payment2 },
+      } = await adminTransaction(async ({ transaction }) =>
+        processPaymentIntentStatusUpdated(fakePI, transaction)
+      )
+      expect(payment1.id).toEqual(payment2.id)
     })
   })
 
@@ -1307,6 +1367,10 @@ describe('Process payment intent status updated', async () => {
         },
       } as any)
 
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const paymentIntent: any = {
         id: paymentIntentId,
         object: 'payment_intent',
@@ -1316,10 +1380,7 @@ describe('Process payment intent status updated', async () => {
         currency: 'usd',
         status: 'succeeded' as const,
         latest_charge: chargeId,
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata,
       }
 
       const result = await comprehensiveAdminTransaction(
@@ -1449,6 +1510,11 @@ describe('Process payment intent status updated', async () => {
         priceId: price.id,
       })
 
+      const brMetadata: StripeIntentMetadata = {
+        billingRunId: billingRun.id,
+        billingPeriodId: billingPeriod.id,
+        type: IntentMetadataType.BillingRun,
+      }
       const paymentIntent: any = {
         id: paymentIntentId,
         object: 'payment_intent',
@@ -1458,11 +1524,7 @@ describe('Process payment intent status updated', async () => {
         currency: 'usd',
         status: 'succeeded' as const,
         latest_charge: chargeId,
-        metadata: {
-          billingRunId: billingRun.id,
-          billingPeriodId: billingPeriod.id,
-          type: IntentMetadataType.BillingRun,
-        },
+        metadata: brMetadata,
       }
 
       const result = await comprehensiveAdminTransaction(
@@ -1538,6 +1600,10 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
       })
 
+      const processingMetadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const paymentIntent: any = {
         id: paymentIntentId,
         object: 'payment_intent',
@@ -1547,10 +1613,7 @@ describe('Process payment intent status updated', async () => {
         currency: 'usd',
         status: 'processing' as const,
         latest_charge: chargeId,
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata: processingMetadata,
       }
 
       const result = await comprehensiveAdminTransaction(
@@ -1624,6 +1687,10 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
       })
 
+      const successMetadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const paymentIntent: any = {
         id: paymentIntentId,
         object: 'payment_intent',
@@ -1633,10 +1700,7 @@ describe('Process payment intent status updated', async () => {
         currency: 'usd',
         status: 'succeeded' as const,
         latest_charge: chargeId,
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata: successMetadata,
       }
 
       const result = await comprehensiveAdminTransaction(
@@ -1737,20 +1801,19 @@ describe('Process payment intent status updated', async () => {
         billing_details: { address: { country: 'US' } } as any,
       })
 
+      const csMetadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const mockPaymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
         status: 'succeeded',
         latest_charge: stripeCharge,
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata: csMetadata,
       })
 
       // Mock getStripeCharge to return our charge
-      vi.mocked(getStripeCharge).mockResolvedValue(
-        stripeCharge as any
-      )
+      vi.mocked(getStripeCharge).mockResolvedValue(stripeCharge)
 
       // Process the payment intent
       const { result, eventsToLog } = await adminTransaction(
@@ -1812,14 +1875,15 @@ describe('Process payment intent status updated', async () => {
         payment_method_details: { type: 'card' } as any,
       })
 
+      const csMetadata2: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const mockPaymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
         status: 'succeeded',
         latest_charge: stripeCharge,
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata: csMetadata2,
       })
 
       // Mock charge retrieval
@@ -1906,14 +1970,15 @@ describe('Process payment intent status updated', async () => {
         payment_method_details: { type: 'card' } as any,
       })
 
+      const canceledMetadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
       const mockPaymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
         status: 'canceled',
         latest_charge: stripeCharge,
-        metadata: {
-          checkoutSessionId: checkoutSession.id,
-          type: IntentMetadataType.CheckoutSession,
-        },
+        metadata: canceledMetadata,
       })
 
       // Mock charge retrieval
