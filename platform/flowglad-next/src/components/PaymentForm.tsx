@@ -42,30 +42,147 @@ export const PaymentLoadingForm = ({
 }: {
   disableAnimation?: boolean
 }) => {
+  const lightModeSkeleton = 'bg-[#f3f4f6] animate-pulse rounded-[8px]'
+  const lightModeSkeletonLabel =
+    'bg-[#e5e7eb] animate-pulse rounded-[4px]'
+
   return (
     <>
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <div className="flex gap-4">
-          <Skeleton className="h-10 w-1/2" />
-          <Skeleton className="h-10 w-1/2" />
+      <div className="space-y-5">
+        {/* Email Section */}
+        <div className="space-y-3">
+          <div className={cn('h-4 w-16', lightModeSkeletonLabel)} />{' '}
+          {/* Email label */}
+          <div
+            className={cn('h-[44px] w-full', lightModeSkeleton)}
+          />{' '}
+          {/* Email input */}
         </div>
-        <Skeleton className="h-10 w-full" />
-        <div className="flex gap-4">
-          <Skeleton className="h-10 w-1/2" />
-          <Skeleton className="h-10 w-1/2" />
+
+        {/* Payment Method Section */}
+        <div className="space-y-3">
+          <div className={cn('h-4 w-24', lightModeSkeletonLabel)} />{' '}
+          {/* Payment method label */}
+          <div className="space-y-3">
+            <div
+              className={cn('h-[44px] w-full', lightModeSkeleton)}
+            />{' '}
+            {/* Card number */}
+            <div className="flex gap-3">
+              <div
+                className={cn('h-[44px] w-1/2', lightModeSkeleton)}
+              />{' '}
+              {/* Expiry */}
+              <div
+                className={cn('h-[44px] w-1/2', lightModeSkeleton)}
+              />{' '}
+              {/* CVC */}
+            </div>
+            <div
+              className={cn('h-[44px] w-full', lightModeSkeleton)}
+            />{' '}
+            {/* Cardholder name */}
+          </div>
+        </div>
+
+        {/* Billing Address Section */}
+        <div className="space-y-3">
+          <div className={cn('h-4 w-28', lightModeSkeletonLabel)} />{' '}
+          {/* Billing address label */}
+          <div className="space-y-3">
+            <div
+              className={cn('h-[44px] w-full', lightModeSkeleton)}
+            />{' '}
+            {/* Full name */}
+            <div
+              className={cn('h-[44px] w-full', lightModeSkeleton)}
+            />{' '}
+            {/* Address line 1 */}
+            <div
+              className={cn('h-[44px] w-full', lightModeSkeleton)}
+            />{' '}
+            {/* Address line 2 */}
+            <div className="flex gap-3">
+              <div
+                className={cn('h-[44px] w-1/2', lightModeSkeleton)}
+              />{' '}
+              {/* City */}
+              <div
+                className={cn('h-[44px] w-1/4', lightModeSkeleton)}
+              />{' '}
+              {/* State */}
+              <div
+                className={cn('h-[44px] w-1/4', lightModeSkeleton)}
+              />{' '}
+              {/* ZIP */}
+            </div>
+            <div
+              className={cn('h-[44px] w-full', lightModeSkeleton)}
+            />{' '}
+            {/* Country */}
+          </div>
         </div>
       </div>
-      <div className="flex flex-col gap-4 py-3">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-      </div>
-      <div className="flex flex-col gap-4 py-3">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+
+      {/* Form Footer */}
+      <div className="space-y-6 pt-1">
+        {/* Discount Code */}
+        <div className="space-y-3">
+          <div className={cn('h-4 w-24', lightModeSkeletonLabel)} />{' '}
+          {/* Discount code label */}
+          <div className="flex gap-2">
+            <div
+              className={cn('h-[44px] flex-1', lightModeSkeleton)}
+            />{' '}
+            {/* Discount input */}
+            <div
+              className={cn('h-[44px] w-16', lightModeSkeleton)}
+            />{' '}
+            {/* Apply button */}
+          </div>
+        </div>
+
+        {/* Order Summary */}
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <div
+                className={cn('h-4 w-16', lightModeSkeletonLabel)}
+              />{' '}
+              {/* Subtotal label */}
+              <div
+                className={cn('h-4 w-12', lightModeSkeletonLabel)}
+              />{' '}
+              {/* Subtotal amount */}
+            </div>
+            <div className="flex justify-between">
+              <div
+                className={cn('h-4 w-12', lightModeSkeletonLabel)}
+              />{' '}
+              {/* Tax label */}
+              <div
+                className={cn('h-4 w-10', lightModeSkeletonLabel)}
+              />{' '}
+              {/* Tax amount */}
+            </div>
+            <div className="flex justify-between items-center pt-2">
+              <div
+                className={cn('h-5 w-20', lightModeSkeletonLabel)}
+              />{' '}
+              {/* Total due label */}
+              <div
+                className={cn('h-6 w-16', lightModeSkeletonLabel)}
+              />{' '}
+              {/* Total due amount */}
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <div className="pt-2">
+          <div className={cn('h-[52px] w-full', lightModeSkeleton)} />{' '}
+          {/* Pay button - matches the actual button style */}
+        </div>
       </div>
     </>
   )
@@ -156,6 +273,15 @@ const paymentFormButtonLabel = ({
   } else if (flowType === CheckoutFlowType.Subscription) {
     return `Start Subscription`
   }
+
+  // Fallback case - include amount if available
+  if (totalDueAmount && !core.isNil(totalDueAmount)) {
+    return `Pay ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      currency,
+      totalDueAmount
+    )}`
+  }
+
   return 'Pay'
 }
 
@@ -219,7 +345,11 @@ const PaymentForm = () => {
     flowType === CheckoutFlowType.AddPaymentMethod
   return (
     <form
-      className="w-[380px] relative"
+      className={cn(
+        'w-full relative', // Remove fixed width
+        'flex flex-col gap-2', // Reduced gap pattern
+        'max-w-[496px]' // LS form max-width
+      )}
       onSubmit={async (event: FormEvent<HTMLFormElement>) => {
         // We don't want to let default form submission happen here,
         // which would refresh the page.
@@ -321,111 +451,136 @@ const PaymentForm = () => {
         setIsSubmitting(false)
       }}
     >
+      {/* Loading overlay */}
       {
         <div
           className={cn(
-            'absolute inset-0 z-10 transition-opacity duration-300',
+            'absolute inset-0 z-10 transition-opacity duration-300 rounded-[8px]',
             embedsReady
               ? 'opacity-0 pointer-events-none'
-              : 'opacity-100'
+              : 'opacity-100',
+            'bg-background/95 backdrop-blur-sm'
           )}
         >
           <PaymentLoadingForm />
         </div>
       }
+      {/* Main form content */}
       <div
         className={cn(
-          'transition-opacity duration-300',
+          'transition-opacity duration-300 space-y-5', // LS spacing pattern
           !embedsReady && 'opacity-0'
         )}
       >
-        <AuthenticationElement
-          readonlyCustomerEmail={readonlyCustomerEmail}
-          onChange={async (event) => {
-            if (readonlyCustomerEmail) {
-              return
-            }
-            if (event.complete) {
-              const parseResult = z
-                .string()
-                .email()
-                .safeParse(event.value.email)
-              if (parseResult.success) {
-                await editCheckoutSessionCustomerEmail({
-                  id: checkoutSession.id,
-                  customerEmail: parseResult.data,
-                })
-                setEmailComplete(true)
-                setEmailError(undefined)
-                router.refresh()
-              } else {
-                setEmailError(
-                  JSON.parse(parseResult.error.message)[0].message
-                )
+        {/* Email Section */}
+        <div className="space-y-3">
+          {' '}
+          {/* LS label spacing */}
+          <AuthenticationElement
+            readonlyCustomerEmail={readonlyCustomerEmail}
+            onChange={async (event) => {
+              if (readonlyCustomerEmail) {
+                return
               }
-            }
-          }}
-          onReady={() => {
-            setEmailEmbedReady(true)
-          }}
-          className={cn('pb-3', !embedsReady && 'opacity-0')}
-        />
-        {emailError && (
-          <ErrorLabel error={emailError} className="pb-4" />
-        )}
-        <PaymentElement
-          onReady={() => {
-            // setTimeout(() => {
-            setPaymentEmbedReady(true)
-            // }, 300)
-          }}
-          options={{
-            fields: {
-              billingDetails: {
-                email: readonlyCustomerEmail ? 'never' : undefined,
-                address: 'never',
+              if (event.complete) {
+                const parseResult = z
+                  .string()
+                  .email()
+                  .safeParse(event.value.email)
+                if (parseResult.success) {
+                  await editCheckoutSessionCustomerEmail({
+                    id: checkoutSession.id,
+                    customerEmail: parseResult.data,
+                  })
+                  setEmailComplete(true)
+                  setEmailError(undefined)
+                  router.refresh()
+                } else {
+                  setEmailError(
+                    JSON.parse(parseResult.error.message)[0].message
+                  )
+                }
+              }
+            }}
+            onReady={() => {
+              setEmailEmbedReady(true)
+            }}
+            className={cn('w-full', !embedsReady && 'opacity-0')}
+          />
+          {emailError && (
+            <ErrorLabel error={emailError} className="mt-2" />
+          )}
+        </div>
+
+        {/* Payment Method Section */}
+        <div className="space-y-3">
+          <PaymentElement
+            onReady={() => {
+              setPaymentEmbedReady(true)
+            }}
+            options={{
+              fields: {
+                billingDetails: {
+                  email: readonlyCustomerEmail ? 'never' : undefined,
+                  address: 'never',
+                },
               },
-            },
-          }}
-          onChange={async (e) => {
-            if (e.complete) {
-              await editCheckoutSessionPaymentMethodType({
-                id: checkoutSession.id,
-                paymentMethodType: e.value.type as PaymentMethodType,
-              })
-              setPaymentInfoComplete(true)
-            }
-          }}
-          className={!embedsReady ? 'opacity-0' : ''}
-        />
-        <AddressElement
-          options={{
-            mode: 'billing',
-            defaultValues:
-              checkoutSession?.billingAddress ?? undefined,
-          }}
-          onReady={() => {
-            // setTimeout(() => {
-            setAddressEmbedReady(true)
-            // }, 300)
-          }}
-          onChange={async (event) => {
-            if (event.complete) {
-              await editCheckoutSessionBillingAddress({
-                id: checkoutSession.id,
-                billingAddress: event.value,
-              })
-            }
-          }}
-          className={!embedsReady ? 'py-3 opacity-0' : 'py-3'}
-        />
+            }}
+            onChange={async (e) => {
+              if (e.complete) {
+                await editCheckoutSessionPaymentMethodType({
+                  id: checkoutSession.id,
+                  paymentMethodType: e.value
+                    .type as PaymentMethodType,
+                })
+                setPaymentInfoComplete(true)
+              }
+            }}
+            className={!embedsReady ? 'opacity-0' : ''}
+          />
+        </div>
+
+        {/* Billing Address Section */}
+        <div className="space-y-3">
+          <AddressElement
+            options={{
+              mode: 'billing',
+              defaultValues:
+                checkoutSession?.billingAddress ?? undefined,
+            }}
+            onReady={() => {
+              setAddressEmbedReady(true)
+            }}
+            onChange={async (event) => {
+              if (event.complete) {
+                await editCheckoutSessionBillingAddress({
+                  id: checkoutSession.id,
+                  billingAddress: event.value,
+                })
+              }
+            }}
+            className={!embedsReady ? 'opacity-0' : ''}
+          />
+        </div>
       </div>
+      {/* Form Footer - Order Summary & Actions */}
       {embedsReady && (
-        <>
-          {showDiscountCodeInput && <DiscountCodeInput />}
-          <TotalBillingDetails />
+        <div className="space-y-6 pt-1">
+          {' '}
+          {/* LS spacing */}
+          {/* Discount Code */}
+          {showDiscountCodeInput && (
+            <div className="space-y-3">
+              <DiscountCodeInput />
+            </div>
+          )}
+          {/* Order Summary */}
+          <div className="space-y-4">
+            <TotalBillingDetails />
+          </div>
+          {/* Auto Update Subscriptions */}
           {showAutomaticallyUpdateCurrentSubscriptions && (
-            <div className="py-4">
+            <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <Switch
                   id="auto-update-subscriptions"
@@ -451,9 +606,19 @@ const PaymentForm = () => {
               </div>
             </div>
           )}
-          <div className="py-8">
+          {/* Primary Action Button */}
+          <div className="pt-2">
+            {' '}
+            {/* LS button spacing */}
             <Button
-              className="w-full"
+              className={cn(
+                'w-full h-[52px]', // LS button height
+                'bg-gray-950 hover:bg-gray-950/90', // LS button color (darker, closer to black)
+                'text-slate-50 font-normal', // LS button text (fixed light mode foreground)
+                'rounded-[8px]', // LS border radius
+                'text-[16px] leading-[28px]', // LS typography
+                'disabled:!bg-gray-950 disabled:!text-slate-50/30 disabled:!opacity-100' // LS disabled state (force same bg, muted text)
+              )}
               disabled={
                 !paymentInfoComplete ||
                 !emailComplete ||
@@ -469,18 +634,74 @@ const PaymentForm = () => {
               )}
               {buttonLabel}
             </Button>
-            {errorMessage && <ErrorLabel error={errorMessage} />}
+            {errorMessage && (
+              <ErrorLabel error={errorMessage} className="mt-3" />
+            )}
             {!checkoutSession.livemode && (
-              <div className="p-2 bg-yellow-500 dark:bg-yellow-600 justify-center items-center text-center w-full flex mt-4 rounded-md">
-                <div className="text-white dark:text-black text-sm">
+              <div className="p-4 bg-gray-50 border border-gray-200 justify-center items-center text-center w-full flex mt-6 rounded-[8px]">
+                <div className="text-gray-600 text-sm">
                   <p>This is a test mode checkout.</p>
                   <p>No payments will be processed.</p>
                 </div>
               </div>
             )}
-            <PoweredByFlowglad />
           </div>
-        </>
+          {/* Security Notice */}
+          <div
+            className={cn(
+              'bg-gray-50 border border-gray-200', // Light background for white theme
+              'rounded-[8px] p-4',
+              'flex items-center justify-center gap-2'
+            )}
+          >
+            <div className="w-6 h-6 text-gray-500">
+              {/* Security icon */}
+              <svg
+                className="w-full h-full"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            </div>
+            <span className="text-[13px] text-gray-600 leading-[24px]">
+              Payments are secure and encrypted
+            </span>
+          </div>
+          {/* Footer Links */}
+          <div className="flex flex-col items-center gap-4 pt-4">
+            <PoweredByFlowglad />
+
+            <div className="flex items-center gap-2.5 text-[13px] text-gray-600">
+              <a
+                href="/terms"
+                className="hover:text-gray-800 transition-colors"
+              >
+                Terms
+              </a>
+              <span>·</span>
+              <a
+                href="/privacy"
+                className="hover:text-gray-800 transition-colors"
+              >
+                Privacy
+              </a>
+              <span>·</span>
+              <a
+                href="/help"
+                className="hover:text-gray-800 transition-colors"
+              >
+                Help
+              </a>
+            </div>
+          </div>
+        </div>
       )}
     </form>
   )
