@@ -15,16 +15,20 @@ export const CheckoutDetails = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn(
-        'items-center lg:items-end flex flex-col lg:w-[444px] max-w-[380px] m-auto lg:m-0',
-        className
-      )}
+      className={cn('flex flex-col gap-8', 'w-full', className)}
       {...props}
     >
-      <SellerInfo data-testid="seller-info" />
-      <div className="w-full relative flex flex-col items-start gap-8">
-        <BillingHeader data-testid="billing-header" />
-      </div>
+      {/* Seller Info */}
+      <SellerInfo
+        data-testid="seller-info"
+        className="flex items-center gap-3"
+      />
+
+      {/* Billing Header with Product Details */}
+      <BillingHeader
+        data-testid="billing-header"
+        className="w-full"
+      />
     </div>
   )
 })

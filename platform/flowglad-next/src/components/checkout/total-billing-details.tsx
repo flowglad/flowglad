@@ -3,8 +3,6 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
-import { Card, CardContent } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   CheckoutFlowType,
@@ -52,11 +50,14 @@ const BillingLine = ({
     <div
       className={cn('flex justify-between items-center', className)}
     >
-      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm text-gray-600">{label}</span>
       {isLoading ? (
         <Skeleton className="h-5 w-16" />
       ) : (
-        <span className="text-sm font-medium" data-testid={testId}>
+        <span
+          className="text-sm font-medium text-gray-900"
+          data-testid={testId}
+        >
           {stripeCurrencyAmountToHumanReadableCurrencyAmount(
             currency,
             amount
@@ -204,76 +205,80 @@ export const TotalBillingDetails = React.forwardRef<
     checkoutPageContext.price.type === PriceType.Usage
 
   return (
-    <Card ref={ref} className={cn('', className)} {...props}>
-      <CardContent className="p-6 space-y-4">
-        {!hideTotalLabels && (
-          <BillingLine
-            label="Subtotal"
-            amount={baseAmount}
-            currency={currency}
-            isLoading={editCheckoutSessionLoading}
-            testId="billing-info-subtotal-amount"
-            className="text-base"
-          />
-        )}
+    <div
+      ref={ref}
+      className={cn(
+        'bg-white text-gray-900 space-y-4 pt-4',
+        className
+      )}
+      {...props}
+    >
+      {!hideTotalLabels && (
+        <BillingLine
+          label="Subtotal"
+          amount={baseAmount}
+          currency={currency}
+          isLoading={editCheckoutSessionLoading}
+          testId="billing-info-subtotal-amount"
+          className="text-base"
+        />
+      )}
 
-        {discount && (
-          <BillingLine
-            label="Discount"
-            amount={discountAmount ?? 0}
-            currency={currency}
-            isLoading={editCheckoutSessionLoading}
-          />
-        )}
+      {discount && (
+        <BillingLine
+          label="Discount"
+          amount={discountAmount ?? 0}
+          currency={currency}
+          isLoading={editCheckoutSessionLoading}
+        />
+      )}
 
-        {taxAmount && (
-          <BillingLine
-            label="Tax"
-            amount={taxAmount}
-            currency={currency}
-            isLoading={editCheckoutSessionLoading}
-          />
-        )}
+      {taxAmount && (
+        <BillingLine
+          label="Tax"
+          amount={taxAmount}
+          currency={currency}
+          isLoading={editCheckoutSessionLoading}
+        />
+      )}
 
-        {afterwardsTotal && (
-          <BillingLine
-            label={afterwardsTotalLabel}
-            amount={afterwardsTotal}
-            currency={currency}
-            testId="billing-info-total-afterwards-amount"
-          />
-        )}
+      {afterwardsTotal && (
+        <BillingLine
+          label={afterwardsTotalLabel}
+          amount={afterwardsTotal}
+          currency={currency}
+          testId="billing-info-total-afterwards-amount"
+        />
+      )}
 
-        {!hideTotalLabels && (
-          <>
-            <Separator />
-            <div className="flex justify-between items-center pt-2">
+      {!hideTotalLabels && (
+        <>
+          <div className="flex justify-between items-center pt-2">
+            <span
+              className="text-lg font-semibold text-gray-900"
+              data-testid="billing-info-total-due-label"
+            >
+              {`Total Due${flowType === CheckoutFlowType.Subscription ? ' Today' : ''}`}
+            </span>
+            {editCheckoutSessionLoading ? (
+              <Skeleton className="h-6 w-24" />
+            ) : (
               <span
-                className="text-lg font-semibold"
-                data-testid="billing-info-total-due-label"
+                className="text-lg font-bold text-gray-900"
+                data-testid="billing-info-total-due-amount"
               >
-                {`Total Due${flowType === CheckoutFlowType.Subscription ? ' Today' : ''}`}
+                {totalDueAmount == null
+                  ? ''
+                  : stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                      currency,
+                      totalDueAmount
+                    )}
               </span>
-              {editCheckoutSessionLoading ? (
-                <Skeleton className="h-6 w-24" />
-              ) : (
-                <span
-                  className="text-lg font-bold"
-                  data-testid="billing-info-total-due-amount"
-                >
-                  {totalDueAmount == null
-                    ? ''
-                    : stripeCurrencyAmountToHumanReadableCurrencyAmount(
-                        currency,
-                        totalDueAmount
-                      )}
-                </span>
-              )}
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   )
 })
 

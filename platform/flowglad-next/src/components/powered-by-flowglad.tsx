@@ -22,7 +22,7 @@ export function PoweredByFlowglad({
         Powered by
       </div>
       <Link href="https://flowglad.com">
-        <FlowgladWordmark fill="rgba(255, 255, 255, 0.5)" />
+        <FlowgladWordmark fill="hsl(var(--muted-foreground))" />
       </Link>
     </div>
   )

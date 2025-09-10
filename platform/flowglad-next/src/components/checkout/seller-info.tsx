@@ -17,27 +17,37 @@ export const SellerInfo = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        'h-7 flex items-center lg:items-start w-full lg:w-auto lg:absolute lg:left-4 lg:top-4 lg:ml-3 lg:mt-3',
+        'flex items-center gap-3',
+        'h-auto', // Remove fixed height
         className
       )}
       {...props}
     >
-      <div className="flex items-center">
-        {sellerOrganization.logoURL && (
-          <div className="bg-white h-7 w-7 flex justify-center items-center rounded-full shadow-[0_1px_1px_0_rgba(0,0,0,0.07),0_2px_5px_0_rgba(50,50,93,0.1)] mr-2">
-            <Image
-              src={sellerOrganization.logoURL ?? ''}
-              alt={sellerOrganization.name}
-              className="h-7 w-7 rounded-full"
-              width={28}
-              height={28}
-            />
-          </div>
-        )}
-        <div className="text-sm text-white opacity-90">
-          {sellerOrganization.name}
+      {sellerOrganization.logoURL && (
+        <div
+          className={cn(
+            'bg-background border border-border/50', // Adaptive background
+            'h-6 w-6 flex justify-center items-center', // LS size
+            'rounded-full shadow-sm' // Subtle shadow
+          )}
+        >
+          <Image
+            src={sellerOrganization.logoURL ?? ''}
+            alt={sellerOrganization.name}
+            className="h-6 w-6 rounded-full object-cover"
+            width={24}
+            height={24}
+          />
         </div>
-      </div>
+      )}
+      <span
+        className={cn(
+          'text-[14px] font-medium', // LS typography
+          'text-foreground dark:text-white' // Adaptive color
+        )}
+      >
+        {sellerOrganization.name}
+      </span>
     </div>
   )
 })

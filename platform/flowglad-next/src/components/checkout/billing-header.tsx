@@ -106,27 +106,44 @@ export const BillingHeader = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn('flex flex-col justify-center', className)}
+      className={cn('flex flex-col gap-4', className)} // Better spacing
       {...props}
     >
-      <div className="bg-card w-full flex justify-center rounded-lg px-6 py-4 relative border border-border shadow">
-        <div className="w-full flex flex-col items-center gap-4">
-          <div className="text-2xl font-normal text-foreground w-full text-center">
+      {/* Product Title & Price Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <h1
+            className={cn(
+              'text-[24px] font-medium leading-[32px]', // LS typography
+              'text-foreground dark:text-white', // Adaptive color
+              'mb-1'
+            )}
+          >
             {product.name}
-          </div>
-          <div className="text-lg text-muted-foreground text-center w-full">
-            {mainTitleSuffix}
-          </div>
-          {product.description && (
-            <div className="w-full">
-              <CheckoutMarkdownView
-                data-testid="product-description"
-                source={product.description}
-              />
-            </div>
+          </h1>
+          {mainTitleSuffix && (
+            <p className="text-[20px] leading-[30px] text-muted-foreground dark:text-gray-400">
+              {mainTitleSuffix}
+            </p>
           )}
         </div>
       </div>
+
+      {/* Product Description */}
+      {product.description && (
+        <div
+          className={cn(
+            'text-[14px] leading-[24px]', // LS typography
+            'text-foreground dark:text-[#cccccc]', // LS description color
+            'space-y-4'
+          )}
+        >
+          <CheckoutMarkdownView
+            data-testid="product-description"
+            source={product.description}
+          />
+        </div>
+      )}
     </div>
   )
 })
