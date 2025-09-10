@@ -853,6 +853,119 @@ describe('createPricingModelBookkeeping', () => {
         result.result.pricingModel.id
       )
     })
+
+    it('should not affect default pricing models across livemode boundaries', async () => {
+      // First, create a test mode (livemode: false) default pricing model
+      const testModeDefaultPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Test Mode Default Pricing Model',
+                isDefault: true,
+              },
+            },
+            {
+              transaction,
+              organizationId,
+              livemode: false,
+            }
+          )
+          return output.result.pricingModel
+        }
+      )
+
+      // Get the existing live mode default (from setupOrg)
+      const liveModeDefaultPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const defaultPM = await selectDefaultPricingModel(
+            { organizationId, livemode: true },
+            transaction
+          )
+          return defaultPM
+        }
+      )
+
+      // Verify we have two defaults - one for each livemode
+      expect(testModeDefaultPricingModel.isDefault).toBe(true)
+      expect(testModeDefaultPricingModel.livemode).toBe(false)
+      expect(liveModeDefaultPricingModel).toBeDefined()
+      expect(liveModeDefaultPricingModel?.isDefault).toBe(true)
+      expect(liveModeDefaultPricingModel?.livemode).toBe(true)
+
+      // Create a new live mode default pricing model
+      const newLiveModeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'New Live Mode Default Pricing Model',
+                isDefault: true,
+              },
+            },
+            {
+              transaction,
+              organizationId,
+              livemode: true,
+            }
+          )
+          return output.result.pricingModel
+        }
+      )
+
+      // Verify the new live mode pricing model is default
+      expect(newLiveModeDefault.isDefault).toBe(true)
+      expect(newLiveModeDefault.livemode).toBe(true)
+
+      // Check that the test mode default is still the default for test mode
+      const refreshedTestModeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          const pm = await selectPricingModelById(
+            testModeDefaultPricingModel.id,
+            transaction
+          )
+          return pm
+        }
+      )
+      expect(refreshedTestModeDefault.isDefault).toBe(true)
+      expect(refreshedTestModeDefault.livemode).toBe(false)
+
+      // Check that the old live mode default is no longer default
+      const refreshedOldLiveModeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          const pm = await selectPricingModelById(
+            liveModeDefaultPricingModel!.id,
+            transaction
+          )
+          return pm
+        }
+      )
+      expect(refreshedOldLiveModeDefault.isDefault).toBe(false)
+      expect(refreshedOldLiveModeDefault.livemode).toBe(true)
+
+      // Verify we still have exactly one default per livemode
+      const allPricingModels = await adminTransaction(
+        async ({ transaction }) => {
+          const pricingModels = await selectPricingModels(
+            { organizationId },
+            transaction
+          )
+          return pricingModels
+        }
+      )
+
+      const liveDefaults = allPricingModels.filter(
+        (pm) => pm.livemode && pm.isDefault
+      )
+      const testDefaults = allPricingModels.filter(
+        (pm) => !pm.livemode && pm.isDefault
+      )
+
+      expect(liveDefaults).toHaveLength(1)
+      expect(liveDefaults[0].id).toBe(newLiveModeDefault.id)
+      expect(testDefaults).toHaveLength(1)
+      expect(testDefaults[0].id).toBe(testModeDefaultPricingModel.id)
+    })
   })
 
   describe('currency handling for different organizations', () => {

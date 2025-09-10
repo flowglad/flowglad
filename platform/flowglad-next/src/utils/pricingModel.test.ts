@@ -1510,6 +1510,112 @@ describe('clonePricingModelTransaction', () => {
       expect(clonedUsageMeters).toHaveLength(1)
       expect(clonedUsageMeters[0].livemode).toBe(false)
     })
+
+    it('should not affect default pricing models across livemode boundaries when cloning', async () => {
+      // Create a livemode default pricing model
+      const livemodeDefaultPricingModel = await setupPricingModel({
+        organizationId: organization.id,
+        name: 'Livemode Default',
+        livemode: true,
+        isDefault: true,
+      })
+
+      // Create a testmode default pricing model
+      const testmodeDefaultPricingModel = await setupPricingModel({
+        organizationId: organization.id,
+        name: 'Testmode Default',
+        livemode: false,
+        isDefault: true,
+      })
+
+      // Verify both are default for their respective livemodes
+      expect(livemodeDefaultPricingModel.isDefault).toBe(true)
+      expect(livemodeDefaultPricingModel.livemode).toBe(true)
+      expect(testmodeDefaultPricingModel.isDefault).toBe(true)
+      expect(testmodeDefaultPricingModel.livemode).toBe(false)
+
+      // Clone the livemode default pricing model
+      const clonedLivemodePricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          return clonePricingModelTransaction(
+            {
+              id: livemodeDefaultPricingModel.id,
+              name: 'Cloned Livemode PM',
+            },
+            transaction
+          )
+        }
+      )
+
+      // The cloned pricing model should NOT be default
+      expect(clonedLivemodePricingModel.isDefault).toBe(false)
+      expect(clonedLivemodePricingModel.livemode).toBe(true)
+
+      // Verify the original livemode default is still default
+      const refreshedLivemodeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelById(
+            livemodeDefaultPricingModel.id,
+            transaction
+          )
+        }
+      )
+      expect(refreshedLivemodeDefault.isDefault).toBe(true)
+      expect(refreshedLivemodeDefault.livemode).toBe(true)
+
+      // Verify the testmode default is still default
+      const refreshedTestmodeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelById(
+            testmodeDefaultPricingModel.id,
+            transaction
+          )
+        }
+      )
+      expect(refreshedTestmodeDefault.isDefault).toBe(true)
+      expect(refreshedTestmodeDefault.livemode).toBe(false)
+
+      // Clone testmode to livemode with destinationEnvironment
+      const clonedCrossEnvironment = await adminTransaction(
+        async ({ transaction }) => {
+          return clonePricingModelTransaction(
+            {
+              id: testmodeDefaultPricingModel.id,
+              name: 'Cloned Cross Environment',
+              destinationEnvironment: DestinationEnvironment.Livemode,
+            },
+            transaction
+          )
+        }
+      )
+
+      // The cloned pricing model should NOT be default
+      expect(clonedCrossEnvironment.isDefault).toBe(false)
+      expect(clonedCrossEnvironment.livemode).toBe(true)
+
+      // Verify both original defaults are still default
+      const finalLivemodeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelById(
+            livemodeDefaultPricingModel.id,
+            transaction
+          )
+        }
+      )
+      expect(finalLivemodeDefault.isDefault).toBe(true)
+      expect(finalLivemodeDefault.livemode).toBe(true)
+
+      const finalTestmodeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelById(
+            testmodeDefaultPricingModel.id,
+            transaction
+          )
+        }
+      )
+      expect(finalTestmodeDefault.isDefault).toBe(true)
+      expect(finalTestmodeDefault.livemode).toBe(false)
+    })
   })
 
   describe('Parent Association Validation', () => {
