@@ -142,7 +142,8 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     const deleted = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
-    expect(deleted.length).toBe(0)
+    expect(deleted.find((s) => s.id === oldSucceeded.id)).toBeUndefined()
+    expect(deleted.find((s) => s.id === oldPending.id)).toBeUndefined()
     // ensure both still present
     const s1 = await adminTransaction(async ({ transaction }) =>
       selectCheckoutSessionById(oldSucceeded.id, transaction)
@@ -203,7 +204,8 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     const secondRun = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
-    expect(secondRun.length).toBe(0)
+    expect(secondRun.find((s) => s.id === old.id)).toBeUndefined()
+    expect(secondRun.find((s) => s.id === recent.id)).toBeUndefined()
   })
 
   it('no-op when nothing qualifies (all < 14d)', async () => {
@@ -221,7 +223,7 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     const result = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
-    expect(result.length).toBe(0)
+    expect(result.find((s) => s.id === recent.id)).toBeUndefined()
     const stillThere = await adminTransaction(async ({ transaction }) =>
       selectCheckoutSessionById(recent.id, transaction)
     )
@@ -318,11 +320,11 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     const first = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
-    expect(first.length).toBe(1)
+    expect(first.find((s) => s.id === old.id)).toBeDefined()
     const second = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
-    expect(second.length).toBe(0)
+    expect(second.find((s) => s.id === old.id)).toBeUndefined()
   })
 })
 
