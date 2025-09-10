@@ -30,14 +30,7 @@ export const middlewareLogic = (
     customerBillingPortalOrganizationId,
   } = params
   if (!sessionCookie && isProtectedRoute) {
-    console.log(
-      'sessionCookie is not set and isProtectedRoute is true'
-    )
     if (pathName.startsWith('/billing-portal/')) {
-      console.log(
-        'redirecting to billing portal sign-in because sessionCookie is not set and pathName starts with /billing-portal/${customerBillingPortalOrganizationId}'
-      )
-
       const organizationId = pathName.split('/')[2]
       return {
         proceed: false,
@@ -47,9 +40,6 @@ export const middlewareLogic = (
         },
       }
     }
-    console.log(
-      'redirecting to sign-in because sessionCookie is not set and pathName does not start with /billing-portal/${customerBillingPortalOrganizationId}'
-    )
 
     return {
       proceed: false,
@@ -68,9 +58,6 @@ export const middlewareLogic = (
     isProtectedRoute &&
     !pathName.startsWith('/api/trpc/customerBillingPortal.')
   ) {
-    console.log(
-      'redirecting to billing portal because customerBillingPortalOrganizationId is set and pathName does not start with /billing-portal/${customerBillingPortalOrganizationId}'
-    )
     return {
       proceed: false,
       redirect: {
