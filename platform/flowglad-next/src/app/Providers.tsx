@@ -25,9 +25,7 @@ export default function Providers({
   isPublicRoute?: boolean
 }) {
   const pathname = usePathname()
-  const isBillingPortal = Boolean(
-    pathname && (pathname === '/billing-portal' || pathname.startsWith('/billing-portal/'))
-  )
+  const isBillingPortal = Boolean(pathname?.startsWith('/billing-portal'))
   return (
     <TrpcProvider>
       <AuthProvider values={authContext}>
