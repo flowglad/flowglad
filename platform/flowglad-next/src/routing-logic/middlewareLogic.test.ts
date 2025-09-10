@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { middlewareLogic } from './middleware'
+import { middlewareLogic } from './middlewareLogic'
 
 describe('middlewareLogic', () => {
   describe('no session cookie scenarios', () => {
