@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { middlewareLogic } from './middleware'
+import { middlewareLogic } from './middlewareLogic'
 
 describe('middlewareLogic', () => {
   describe('no session cookie scenarios', () => {
@@ -722,6 +722,7 @@ describe('middlewareLogic', () => {
           '/handler/callback',
           '/handler/webhook',
           '/handler/oauth/return',
+          '/api/trpc/utils.logout',
         ]
         paths.forEach((path) => {
           const result = middlewareLogic({

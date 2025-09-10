@@ -213,6 +213,7 @@ const clonePricingModelProcedure = protectedProcedure
         apiKey: ctx.apiKey,
       }
     )
+
     if (!pricingModel) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -220,11 +221,13 @@ const clonePricingModelProcedure = protectedProcedure
           'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
       })
     }
+
     const clonedPricingModel = await adminTransaction(
       async ({ transaction }) => {
         return await clonePricingModelTransaction(input, transaction)
       }
     )
+
     return { pricingModel: clonedPricingModel }
   })
 
