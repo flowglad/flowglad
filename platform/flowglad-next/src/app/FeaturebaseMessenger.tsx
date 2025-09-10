@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react'
 import Script from 'next/script'
-import { usePathname } from 'next/navigation'
 
 declare global {
   interface Window {
@@ -12,13 +11,9 @@ declare global {
 
 export default function FeaturebaseMessenger() {
   const appId = process.env.NEXT_PUBLIC_FEATUREBASE_APP_ID
-  const pathname = usePathname()
-  const isBillingPortal = Boolean(
-    pathname && (pathname === '/billing-portal' || pathname.startsWith('/billing-portal/'))
-  )
 
   useEffect(() => {
-    if (!appId || isBillingPortal) {
+    if (!appId) {
       // Silently no-op if not configured in this environment
       return
     }
@@ -44,9 +39,9 @@ export default function FeaturebaseMessenger() {
       // theme: 'light',
       // language: 'en',
     })
-  }, [appId, isBillingPortal])
+  }, [appId])
 
-  if (!appId || isBillingPortal) {
+  if (!appId) {
     return null
   }
 
