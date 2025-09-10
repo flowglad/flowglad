@@ -1,4 +1,7 @@
 import { defineConfig } from '@trigger.dev/sdk'
+import { esbuildPlugin } from '@trigger.dev/build/extensions'
+import { sentryEsbuildPlugin } from '@sentry/esbuild-plugin'
+import * as Sentry from '@sentry/node'
 import { puppeteer } from '@trigger.dev/build/extensions/puppeteer'
 import {
   additionalFiles,
@@ -36,9 +39,32 @@ export default defineConfig({
     extensions: [
       syncVercelEnvVars(),
       puppeteer(),
+      esbuildPlugin(
+        sentryEsbuildPlugin({
+          org: process.env.SENTRY_ORG as string,
+          project: process.env.SENTRY_PROJECT as string,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+        }),
+        { placement: 'last', target: 'deploy' }
+      ),
       additionalFiles({
         files: ['./public/fonts/**'],
       }),
     ],
+  },
+  init: async () => {
+    Sentry.init({
+      defaultIntegrations: false,
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+    })
+  },
+  onFailure: async ({ payload, error, ctx }) => {
+    Sentry.captureException(error, {
+      extra: {
+        payload,
+        ctx,
+      },
+    })
   },
 })
