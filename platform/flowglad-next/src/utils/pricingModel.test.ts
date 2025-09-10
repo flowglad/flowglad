@@ -1512,13 +1512,9 @@ describe('clonePricingModelTransaction', () => {
     })
 
     it('should not affect default pricing models across livemode boundaries when cloning', async () => {
-      // Create a livemode default pricing model
-      const livemodeDefaultPricingModel = await setupPricingModel({
-        organizationId: organization.id,
-        name: 'Livemode Default',
-        livemode: true,
-        isDefault: true,
-      })
+      // Note: sourcePricingModel from beforeEach is already a livemode=true, isDefault=true pricing model
+      // So we'll use that as our livemode default
+      const livemodeDefaultPricingModel = sourcePricingModel
 
       // Create a testmode default pricing model
       const testmodeDefaultPricingModel = await setupPricingModel({
@@ -1547,11 +1543,11 @@ describe('clonePricingModelTransaction', () => {
         }
       )
 
-      // The cloned pricing model should NOT be default
+      // The cloned pricing model should NOT be default (cloning never sets isDefault=true)
       expect(clonedLivemodePricingModel.isDefault).toBe(false)
       expect(clonedLivemodePricingModel.livemode).toBe(true)
 
-      // Verify the original livemode default is still default
+      // Verify the original livemode default is still default (unchanged by cloning)
       const refreshedLivemodeDefault = await adminTransaction(
         async ({ transaction }) => {
           return selectPricingModelById(
@@ -1563,7 +1559,7 @@ describe('clonePricingModelTransaction', () => {
       expect(refreshedLivemodeDefault.isDefault).toBe(true)
       expect(refreshedLivemodeDefault.livemode).toBe(true)
 
-      // Verify the testmode default is still default
+      // Verify the testmode default is still default (unchanged by livemode cloning)
       const refreshedTestmodeDefault = await adminTransaction(
         async ({ transaction }) => {
           return selectPricingModelById(
