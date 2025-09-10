@@ -14,13 +14,10 @@ import {
   DbTransaction,
 } from '@/db/types'
 import {
-  CountryCode,
   InvoiceStatus,
-  InvoiceType,
   PaymentStatus,
   PriceType,
   PurchaseStatus,
-  SubscriptionItemType,
   IntervalUnit,
   CurrencyCode,
 } from '@/types'
@@ -47,6 +44,7 @@ import {
 import {
   selectDefaultPricingModel,
   insertPricingModel,
+  safelyInsertPricingModel,
 } from '@/db/tableMethods/pricingModelMethods'
 import {
   selectProducts,
@@ -511,7 +509,7 @@ export const createPricingModelBookkeeping = async (
   }>
 > => {
   // 1. Create the pricing model
-  const pricingModel = await insertPricingModel(
+  const pricingModel = await safelyInsertPricingModel(
     {
       ...payload.pricingModel,
       organizationId,

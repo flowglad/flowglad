@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { middlewareLogic } from './middleware'
+import { middlewareLogic } from './middlewareLogic'
 
 describe('middlewareLogic - public routes coverage', () => {
   describe('authentication routes', () => {
