@@ -9,6 +9,7 @@ import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscri
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
+import { RevenueChart } from '@/components/RevenueChart'
 
 const ChartContainer = ({
   children,
@@ -35,7 +36,7 @@ function InternalDashboardPage({
     from: new Date(organizationCreatedAt),
     to: new Date(),
   })
-
+  console.log('state hook range', range)
   return (
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
@@ -50,6 +51,7 @@ function InternalDashboardPage({
             minDate={new Date(organizationCreatedAt)}
             maxDate={new Date()}
             onSelect={(newRange) => {
+              console.log('newRange', newRange)
               if (newRange) {
                 setRange({
                   from:
@@ -62,11 +64,7 @@ function InternalDashboardPage({
         </div>
         <div className="grid grid-cols-1 gap-6">
           <ChartContainer>
-            <DateRangeRevenueChart
-              organizationCreatedAt={organizationCreatedAt}
-              fromDate={range.from}
-              toDate={range.to}
-            />
+            <RevenueChart fromDate={range.from} toDate={range.to} />
           </ChartContainer>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ChartContainer>
