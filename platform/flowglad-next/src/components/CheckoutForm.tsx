@@ -7,39 +7,41 @@ import { ChevronRight, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
+import { cn } from '@/lib/utils'
 
 const CheckoutFormDisabled = () => {
   const router = useRouter()
   return (
-    <div className="relative w-full h-full max-w-[420px] rounded-md">
-      <div className="p-4">
+    <div className="relative w-full h-full sm:max-w-[420px] lg:max-w-[496px] rounded-md">
+      <div className="p-4 lg:p-6">
+        {' '}
+        {/* Progressive padding */}
         <PaymentLoadingForm disableAnimation />
       </div>
       <div className="absolute top-0 left-0 right-0 bottom-0 backdrop-blur-sm rounded-md mb-20">
         <div className="flex flex-col gap-4 items-center justify-center h-full bg-background/95 backdrop-blur-sm rounded-md">
-          <div className="flex flex-col gap-2 items-center justify-center bg-card p-4 rounded-md border border-border">
-            <TriangleAlert className="w-8 h-8" />
-            <p className="text-lg font-semibold">
+          <div className="flex flex-col gap-2 items-center justify-center bg-card p-6 lg:p-8 rounded-md border border-border w-full sm:max-w-[320px] lg:max-w-[400px]">
+            <TriangleAlert className="w-8 h-8 text-destructive" />
+            <p className="text-lg font-semibold text-center">
               Checkout is disabled
             </p>
-            <p className="text-center text-sm text-muted-foreground font-medium m-auto max-w-[300px]">
+            <p className="text-center text-sm text-muted-foreground font-medium">
               This is likely because the organization does not have
               payouts enabled.
             </p>
-            <div className="flex flex-row gap-2 items-center justify-center">
-              <Button
-                onClick={() => {
-                  router.push('/onboarding')
-                }}
-              >
-                Enable Payouts
-                <ChevronRight
-                  className="w-4 h-4 ml-2"
-                  size={16}
-                  strokeWidth={4}
-                />
-              </Button>
-            </div>
+            <Button
+              onClick={() => {
+                router.push('/onboarding')
+              }}
+              className="mt-4 w-full lg:w-auto"
+            >
+              Enable Payouts
+              <ChevronRight
+                className="w-4 h-4 ml-2"
+                size={16}
+                strokeWidth={4}
+              />
+            </Button>
           </div>
         </div>
       </div>
@@ -81,7 +83,14 @@ function CheckoutForm() {
     return <CheckoutFormDisabled />
   }
   return (
-    <div className="flex flex-col gap-4 flex-1 h-full pt-8 pb-16 lg:pt-0 items-center lg:items-start">
+    <div
+      className={cn(
+        'w-full h-full',
+        'flex flex-col gap-6', // Consistent spacing like LS
+        'pt-0 pb-0', // Remove default padding
+        'items-stretch lg:items-start' // Full width on mobile
+      )}
+    >
       <Elements
         stripe={stripePromise}
         options={{
@@ -89,87 +98,64 @@ function CheckoutForm() {
           appearance: {
             disableAnimations: true,
             variables: {
-              colorText: 'hsl(var(--foreground))',
-              colorBackground: 'hsl(var(--background))',
-              colorPrimary: 'hsl(var(--primary))',
-              tabIconColor: 'hsl(var(--muted-foreground))',
-              tabIconHoverColor: 'hsl(var(--foreground))',
-              colorTextSecondary: 'hsl(var(--muted-foreground))',
-              borderRadius: '12px', // rounded-xl to match Input and Select components
+              // Fixed colors that work well on white background
+              colorText: '#0a0a0a', // Always dark text
+              colorBackground: '#ffffff', // Always white background
+              colorPrimary: 'hsl(var(--primary))', // Keep primary color
+              tabIconColor: '#6b7280', // Gray for icons
+              tabIconHoverColor: '#0a0a0a', // Dark on hover
+              colorTextSecondary: '#6b7280', // Gray for secondary text
+              borderRadius: '8px', // Match LS border radius
             },
             rules: {
+              // Enhanced styling for white background
               '.Input, .CodeInput, .p-Input, .p-LinkAuth, .p-Input-input, .p-Fieldset-input':
                 {
-                  border: '1px solid hsl(var(--input)) !important',
-                  color: 'hsl(var(--foreground)) !important',
-                  backgroundColor:
-                    'hsl(var(--background)) !important',
-                  borderRadius: '12px !important', // rounded-xl
+                  border: '1px solid #e5e7eb !important', // Light gray border
+                  color: '#0a0a0a !important', // Always dark text
+                  backgroundColor: '#ffffff !important', // Always white background
+                  borderRadius: '8px !important', // LS border radius
+                  padding: '16px 16px !important', // LS field padding
+                  fontSize: '14px !important', // LS font size
+                  minHeight: '40px !important', // LS field height
+                  boxShadow:
+                    '0px 1px 1px 0px rgba(10,10,11,0.06) !important', // LS shadow
                 },
               '.Input:focus, .CodeInput:focus, .p-Input:focus, .p-LinkAuth:focus, .p-Input-input:focus, .p-Fieldset-input:focus':
                 {
-                  borderColor: 'hsl(var(--foreground)) !important',
+                  borderColor: '#3b82f6 !important', // Blue focus border
                   outline: 'none !important',
                   boxShadow:
-                    '0 0 0 2px hsl(var(--foreground) / 0.2) !important',
+                    '0px 0px 0px 1px inset rgba(59,130,246,0.16) !important', // Blue focus shadow
                 },
               '.Block': {
-                color: 'hsl(var(--foreground))',
-              },
-              '.Tab, .p-Tab, .p-TabButton, .p-PaymentMethodSelector-tab':
-                {
-                  color: 'hsl(var(--muted-foreground)) !important',
-                  border: '1px solid hsl(var(--input)) !important',
-                  backgroundColor:
-                    'hsl(var(--background)) !important',
-                  borderRadius: '12px !important', // rounded-xl
-                },
-              '.Tab--selected, .p-Tab--selected, .p-TabButton--selected, .p-PaymentMethodSelector-tab--selected':
-                {
-                  color: 'hsl(var(--foreground)) !important',
-                  border:
-                    '1px solid hsl(var(--foreground)) !important',
-                  backgroundColor:
-                    'hsl(var(--background)) !important',
-                  borderRadius: '12px !important', // rounded-xl
-                },
-              '.Tab:hover, .p-Tab:hover, .p-TabButton:hover, .p-PaymentMethodSelector-tab:hover':
-                {
-                  color: 'hsl(var(--foreground)) !important',
-                  backgroundColor: 'hsl(var(--accent)) !important',
-                  borderColor: 'hsl(var(--foreground)) !important',
-                },
-              '.PickerItem': {
-                color: 'hsl(var(--muted-foreground))',
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--input))',
-                borderRadius: '12px', // rounded-xl
-              },
-              '.PickerItem:hover': {
-                color: 'hsl(var(--foreground))',
-                border: '1px solid hsl(var(--foreground))',
-                backgroundColor: 'hsl(var(--accent))',
+                color: '#0a0a0a', // Always dark text
               },
               '.Label': {
-                color: 'hsl(var(--muted-foreground))',
+                color: '#0a0a0a', // Always dark text
+                fontSize: '14px',
+                fontWeight: '500', // LS label weight
+                marginBottom: '8px', // LS label spacing
               },
+              // Enhanced dropdown styling for white background
               '.Dropdown': {
-                color: 'hsl(var(--foreground))',
-                border: '1px solid hsl(var(--input))',
-                backgroundColor: 'hsl(var(--popover))',
-                borderRadius: '12px', // rounded-xl
+                color: '#0a0a0a', // Always dark text
+                border: '1px solid #e5e7eb', // Light gray border
+                backgroundColor: '#ffffff', // Always white background
+                borderRadius: '8px',
                 boxShadow:
-                  'hsl(var(--foreground) / 0.1) 0px 4px 6px -1px, hsl(var(--foreground) / 0.1) 0px 2px 4px -2px',
+                  '0px 1px 1px 0px rgba(10,10,11,0.06), 0px 3px 6px 0px rgba(0,0,0,0.02)',
               },
               '.DropdownItem': {
-                color: 'hsl(var(--foreground))',
+                color: '#0a0a0a', // Always dark text
                 backgroundColor: 'transparent',
-                borderRadius: '8px', // rounded-lg for items
+                borderRadius: '6px',
                 border: 'none',
+                padding: '8px 12px',
               },
               '.DropdownItem:hover': {
-                color: 'hsl(var(--accent-foreground))',
-                backgroundColor: 'hsl(var(--accent))',
+                color: '#0a0a0a', // Keep dark text on hover
+                backgroundColor: '#f3f4f6', // Light gray hover
               },
             },
           },

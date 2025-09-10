@@ -348,7 +348,7 @@ const PaymentForm = () => {
       className={cn(
         'w-full relative', // Remove fixed width
         'flex flex-col gap-2', // Reduced gap pattern
-        'max-w-[496px]' // LS form max-width
+        'sm:max-w-[496px]' // LS form max-width from 640px+
       )}
       onSubmit={async (event: FormEvent<HTMLFormElement>) => {
         // We don't want to let default form submission happen here,
