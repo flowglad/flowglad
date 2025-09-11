@@ -98,8 +98,9 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
         selectCheckoutSessionById(old.id, transaction)
       )
     ).rejects.toThrow()
-    const recentStillThere = await adminTransaction(async ({ transaction }) =>
-      selectCheckoutSessionById(recent.id, transaction)
+    const recentStillThere = await adminTransaction(
+      async ({ transaction }) =>
+        selectCheckoutSessionById(recent.id, transaction)
     )
     expect(recentStillThere.id).toBe(recent.id)
   })
@@ -142,8 +143,12 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     const deleted = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
-    expect(deleted.find((s) => s.id === oldSucceeded.id)).toBeUndefined()
-    expect(deleted.find((s) => s.id === oldPending.id)).toBeUndefined()
+    expect(
+      deleted.find((s) => s.id === oldSucceeded.id)
+    ).toBeUndefined()
+    expect(
+      deleted.find((s) => s.id === oldPending.id)
+    ).toBeUndefined()
     // ensure both still present
     const s1 = await adminTransaction(async ({ transaction }) =>
       selectCheckoutSessionById(oldSucceeded.id, transaction)
@@ -201,8 +206,9 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     )
     expect(deleted.find((s) => s.id === old.id)).toBeDefined()
     // Verify feeCalculation for old is gone by attempting to re-delete returns empty
-    const secondRun = await adminTransaction(async ({ transaction }) =>
-      deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
+    const secondRun = await adminTransaction(
+      async ({ transaction }) =>
+        deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
     expect(secondRun.find((s) => s.id === old.id)).toBeUndefined()
     expect(secondRun.find((s) => s.id === recent.id)).toBeUndefined()
@@ -224,8 +230,9 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
     expect(result.find((s) => s.id === recent.id)).toBeUndefined()
-    const stillThere = await adminTransaction(async ({ transaction }) =>
-      selectCheckoutSessionById(recent.id, transaction)
+    const stillThere = await adminTransaction(
+      async ({ transaction }) =>
+        selectCheckoutSessionById(recent.id, transaction)
     )
     expect(stillThere.id).toBe(recent.id)
   })
@@ -255,7 +262,9 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     const sOpen = await createOld(CheckoutSessionStatus.Open)
     const sFailed = await createOld(CheckoutSessionStatus.Failed)
     const sExpired = await createOld(CheckoutSessionStatus.Expired)
-    const sSucceeded = await createOld(CheckoutSessionStatus.Succeeded)
+    const sSucceeded = await createOld(
+      CheckoutSessionStatus.Succeeded
+    )
     const sPending = await createOld(CheckoutSessionStatus.Pending)
 
     const deleted = await adminTransaction(async ({ transaction }) =>
@@ -282,7 +291,9 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       livemode: true,
     })
     // set createdAt to now - 14d + 60s ⇒ not older than cutoff
-    const backdate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000 + 60 * 1000)
+    const backdate = new Date(
+      Date.now() - 14 * 24 * 60 * 60 * 1000 + 60 * 1000
+    )
     await adminTransaction(async ({ transaction }) => {
       await transaction
         .update(checkoutSessions)
@@ -327,5 +338,3 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     expect(second.find((s) => s.id === old.id)).toBeUndefined()
   })
 })
-
-

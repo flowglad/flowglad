@@ -2,7 +2,14 @@
 
 import React from 'react'
 import { useForm } from 'react-hook-form'
-import Modal from '@/components/ion/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -33,23 +40,14 @@ const DemoModal: React.FC = () => {
   }
 
   return (
-    <>
-      <Button onClick={() => setIsOpen(true)}>Open Demo Modal</Button>
-      <Modal
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        title="Hello World Modal"
-        showClose
-        footer={
-          <Button
-            type="submit"
-            form="helloWorldForm"
-            disabled={form.formState.isSubmitting}
-          >
-            {form.formState.isSubmitting ? 'Submitting...' : 'Submit'}
-          </Button>
-        }
-      >
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button>Open Demo Modal</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Hello World Modal</DialogTitle>
+        </DialogHeader>
         <form
           id="helloWorldForm"
           onSubmit={form.handleSubmit(onSubmit)}
@@ -68,8 +66,17 @@ const DemoModal: React.FC = () => {
             )}
           />
         </form>
-      </Modal>
-    </>
+        <DialogFooter>
+          <Button
+            type="submit"
+            form="helloWorldForm"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? 'Submitting...' : 'Submit'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

@@ -1,10 +1,18 @@
-import { ChartColumnIncreasing, Plus } from 'lucide-react'
-import Badge from '@/components/ion/Badge'
+import {
+  ChartColumnIncreasing,
+  Plus,
+  Pencil,
+  Copy,
+  Archive,
+  ArchiveRestore,
+  Star,
+  Trash2,
+} from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RotateCw, Check } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
-import Table from '@/components/ion/Table'
+import { DataTable } from '@/components/ui/data-table'
 import { Price } from '@/db/schema/prices'
 import core from '@/utils/core'
 import {
@@ -17,8 +25,7 @@ import ArchivePriceModal from '@/components/forms/ArchivePriceModal'
 import SetPriceAsDefaultModal from '@/components/forms/SetPriceAsDefaultModal'
 import PricingCellView from '@/components/PricingCellView'
 import { PriceType } from '@/types'
-import TableTitle from '@/components/ion/TableTitle'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { TableHeader } from '@/components/ui/table-header'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
@@ -43,10 +50,12 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Edit price',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
       label: 'Copy purchase link',
+      icon: <Copy />,
       handler: copyTextHandler,
     },
   ]
@@ -57,12 +66,14 @@ const MoreMenuCell = ({
   if (!price.active) {
     items.push({
       label: 'Unarchive price',
+      icon: <ArchiveRestore />,
       handler: () => setIsArchiveOpen(true),
     })
   }
   if (!price.isDefault && otherPrices.some((p) => p.isDefault)) {
     items.push({
       label: 'Make default',
+      icon: <Star />,
       handler: () => setIsSetDefaultOpen(true),
     })
   }
@@ -82,6 +93,7 @@ const MoreMenuCell = ({
     }
     items.push({
       label: 'Archive price',
+      icon: <Archive />,
       handler: () => setIsArchiveOpen(true),
       disabled: !canDelist,
       helperText,
@@ -89,6 +101,7 @@ const MoreMenuCell = ({
   }
   items.push({
     label: 'Delete price',
+    icon: <Trash2 />,
     state: PopoverMenuItemState.Danger,
     disabled: !canDelist,
     handler: () => {
@@ -122,7 +135,7 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
       return (
         <div className="flex items-center gap-3">
           <RotateCw size={16} strokeWidth={2} />
-          <div className="w-fit flex flex-col justify-center text-sm font-medium text-foreground">
+          <div className="w-fit flex flex-col justify-center text-sm font-normal text-foreground">
             Subscription
           </div>
         </div>
@@ -130,7 +143,7 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
     case PriceType.SinglePayment:
       return (
         <div className="flex items-center gap-3">
-          <div className="w-fit flex flex-col justify-center text-sm font-medium text-foreground">
+          <div className="w-fit flex flex-col justify-center text-sm font-normal text-foreground">
             Single Payment
           </div>
         </div>
@@ -139,7 +152,7 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
       return (
         <div className="flex items-center gap-3">
           <ChartColumnIncreasing size={16} strokeWidth={2} />
-          <div className="w-fit flex flex-col justify-center text-sm font-medium text-foreground">
+          <div className="w-fit flex flex-col justify-center text-sm font-normal text-foreground">
             Usage
           </div>
         </div>
@@ -189,36 +202,28 @@ const PaginatedPricesTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Price" column={column} />
-          ),
+          header: 'Price',
           accessorKey: 'price',
           cell: ({ row: { original: cellData } }) => (
             <>{cellData.price.name}</>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Type" column={column} />
-          ),
+          header: 'Type',
           accessorKey: 'type',
           cell: ({ row: { original: cellData } }) => (
             <PriceTypeCellView type={cellData.price.type} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Pricing" column={column} />
-          ),
+          header: 'Pricing',
           accessorKey: 'pricing',
           cell: ({ row: { original: cellData } }) => (
             <PricingCellView prices={[cellData.price]} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.price.active} />
@@ -237,18 +242,14 @@ const PaginatedPricesTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.price.createdAt)}</>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'price.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.price.id}>
@@ -284,10 +285,10 @@ const PaginatedPricesTable = ({
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
-            <Table
+            <DataTable
               columns={columns}
               data={tableData}
-              className="bg-nav"
+              className="bg-background"
               bordered
               pagination={{
                 pageIndex,

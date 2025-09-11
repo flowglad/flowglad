@@ -8,10 +8,11 @@ import {
   LinkAuthenticationElementProps,
 } from '@stripe/react-stripe-js'
 import { FormEvent, useState } from 'react'
-import core, { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
+import core from '@/utils/core'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { trpc } from '@/app/_trpc/client'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
 import {
   CheckoutFlowType,
@@ -21,8 +22,8 @@ import {
 } from '@/types'
 import { LoaderCircle } from 'lucide-react'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import TotalBillingDetails from './ion/TotalBillingDetails'
-import PoweredByFlowgladText from './ion/PoweredByFlowgladText'
+import { TotalBillingDetails } from './checkout/total-billing-details'
+import { PoweredByFlowglad } from './powered-by-flowglad'
 import DiscountCodeInput from './DiscountCodeInput'
 import {
   SubscriptionCheckoutDetails,
@@ -34,79 +35,6 @@ import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
 import { Switch } from '@/components/ui/switch'
-
-export const PaymentLoadingForm = ({
-  disableAnimation,
-}: {
-  disableAnimation?: boolean
-}) => {
-  return (
-    <>
-      <div className="flex flex-col gap-4">
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <div className="flex gap-4">
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
-        </div>
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <div className="flex gap-4">
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
-        </div>
-      </div>
-      <div className="flex flex-col gap-4 py-3">
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-      </div>
-      <div className="flex flex-col gap-4 py-3">
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-      </div>
-    </>
-  )
-}
 
 const AuthenticationElement = ({
   readonlyCustomerEmail,
@@ -193,6 +121,15 @@ const paymentFormButtonLabel = ({
   } else if (flowType === CheckoutFlowType.Subscription) {
     return `Start Subscription`
   }
+
+  // Fallback case - include amount if available
+  if (totalDueAmount && !core.isNil(totalDueAmount)) {
+    return `Pay ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      currency,
+      totalDueAmount
+    )}`
+  }
+
   return 'Pay'
 }
 
@@ -256,7 +193,11 @@ const PaymentForm = () => {
     flowType === CheckoutFlowType.AddPaymentMethod
   return (
     <form
-      className="w-[380px] relative"
+      className={cn(
+        'w-full relative', // Remove fixed width
+        'flex flex-col gap-2', // Reduced gap pattern
+        'sm:max-w-[496px]' // LS form max-width from 640px+
+      )}
       onSubmit={async (event: FormEvent<HTMLFormElement>) => {
         // We don't want to let default form submission happen here,
         // which would refresh the page.
@@ -358,131 +299,155 @@ const PaymentForm = () => {
         setIsSubmitting(false)
       }}
     >
-      {
-        <div
-          className={core.cn(
-            'absolute inset-0 z-10 transition-opacity duration-300',
-            embedsReady
-              ? 'opacity-0 pointer-events-none'
-              : 'opacity-100'
-          )}
-        >
-          <PaymentLoadingForm />
-        </div>
-      }
-      <div
-        className={core.cn(
-          'transition-opacity duration-300',
-          !embedsReady && 'opacity-0'
-        )}
-      >
-        <AuthenticationElement
-          readonlyCustomerEmail={readonlyCustomerEmail}
-          onChange={async (event) => {
-            if (readonlyCustomerEmail) {
-              return
-            }
-            if (event.complete) {
-              const parseResult = z
-                .string()
-                .email()
-                .safeParse(event.value.email)
-              if (parseResult.success) {
-                await editCheckoutSessionCustomerEmail({
-                  id: checkoutSession.id,
-                  customerEmail: parseResult.data,
-                })
-                setEmailComplete(true)
-                setEmailError(undefined)
-                router.refresh()
-              } else {
-                setEmailError(
-                  JSON.parse(parseResult.error.message)[0].message
-                )
+      {/* Main form content */}
+      <div className="space-y-5">
+        {/* Email Section */}
+        <div className="space-y-3">
+          {' '}
+          {/* LS label spacing */}
+          <AuthenticationElement
+            readonlyCustomerEmail={readonlyCustomerEmail}
+            onChange={async (event) => {
+              if (readonlyCustomerEmail) {
+                return
               }
-            }
-          }}
-          onReady={() => {
-            setEmailEmbedReady(true)
-          }}
-          className={core.cn('pb-3', !embedsReady && 'opacity-0')}
-        />
-        {emailError && (
-          <ErrorLabel error={emailError} className="pb-4" />
-        )}
-        <PaymentElement
-          onReady={() => {
-            // setTimeout(() => {
-            setPaymentEmbedReady(true)
-            // }, 300)
-          }}
-          options={{
-            fields: {
-              billingDetails: {
-                email: readonlyCustomerEmail ? 'never' : undefined,
-                address: 'never',
-              },
-            },
-          }}
-          onChange={async (e) => {
-            if (e.complete) {
-              await editCheckoutSessionPaymentMethodType({
-                id: checkoutSession.id,
-                paymentMethodType: e.value.type as PaymentMethodType,
-              })
-              setPaymentInfoComplete(true)
-            }
-          }}
-          className={!embedsReady ? 'opacity-0' : ''}
-        />
-        <AddressElement
-          options={{
-            mode: 'billing',
-            defaultValues:
-              checkoutSession?.billingAddress ?? undefined,
-          }}
-          onReady={() => {
-            // setTimeout(() => {
-            setAddressEmbedReady(true)
-            // }, 300)
-          }}
-          onChange={async (event) => {
-            if (event.complete) {
-              await editCheckoutSessionBillingAddress({
-                id: checkoutSession.id,
-                billingAddress: event.value,
-              })
-            }
-          }}
-          className={!embedsReady ? 'py-3 opacity-0' : 'py-3'}
-        />
-      </div>
-      {embedsReady && (
-        <>
-          {showDiscountCodeInput && <DiscountCodeInput />}
-          <TotalBillingDetails />
-          {showAutomaticallyUpdateCurrentSubscriptions && (
-            <div className="py-4">
-              <Switch
-                label="Set as default method for existing subscriptions"
-                checked={
-                  checkoutSession.automaticallyUpdateSubscriptions ??
-                  false
-                }
-                onCheckedChange={async (checked) => {
-                  await editCheckoutSessionAutomaticallyUpdateSubscriptions(
-                    {
-                      id: checkoutSession.id,
-                      automaticallyUpdateSubscriptions: checked,
-                    }
+              if (event.complete) {
+                const parseResult = z
+                  .string()
+                  .email()
+                  .safeParse(event.value.email)
+                if (parseResult.success) {
+                  await editCheckoutSessionCustomerEmail({
+                    id: checkoutSession.id,
+                    customerEmail: parseResult.data,
+                  })
+                  setEmailComplete(true)
+                  setEmailError(undefined)
+                  router.refresh()
+                } else {
+                  setEmailError(
+                    JSON.parse(parseResult.error.message)[0].message
                   )
-                }}
-              />
+                }
+              }
+            }}
+            onReady={() => {
+              setEmailEmbedReady(true)
+            }}
+            className={cn('w-full', !embedsReady && 'opacity-0')}
+          />
+          {emailError && (
+            <ErrorLabel error={emailError} className="mt-2" />
+          )}
+        </div>
+
+        {/* Payment Method Section */}
+        <div className="space-y-3">
+          <PaymentElement
+            onReady={() => {
+              setPaymentEmbedReady(true)
+            }}
+            options={{
+              fields: {
+                billingDetails: {
+                  email: readonlyCustomerEmail ? 'never' : undefined,
+                  address: 'never',
+                },
+              },
+            }}
+            onChange={async (e) => {
+              if (e.complete) {
+                await editCheckoutSessionPaymentMethodType({
+                  id: checkoutSession.id,
+                  paymentMethodType: e.value
+                    .type as PaymentMethodType,
+                })
+                setPaymentInfoComplete(true)
+              }
+            }}
+            className={!embedsReady ? 'opacity-0' : ''}
+          />
+        </div>
+
+        {/* Billing Address Section */}
+        <div className="space-y-3">
+          <AddressElement
+            options={{
+              mode: 'billing',
+              defaultValues:
+                checkoutSession?.billingAddress ?? undefined,
+            }}
+            onReady={() => {
+              setAddressEmbedReady(true)
+            }}
+            onChange={async (event) => {
+              if (event.complete) {
+                await editCheckoutSessionBillingAddress({
+                  id: checkoutSession.id,
+                  billingAddress: event.value,
+                })
+              }
+            }}
+            className={!embedsReady ? 'opacity-0' : ''}
+          />
+        </div>
+      </div>
+      {/* Form Footer - Order Summary & Actions */}
+      {embedsReady && (
+        <div className="space-y-6 pt-1">
+          {' '}
+          {/* LS spacing */}
+          {/* Discount Code */}
+          {showDiscountCodeInput && (
+            <div className="space-y-3">
+              <DiscountCodeInput />
             </div>
           )}
-          <div className="py-8">
+          {/* Order Summary */}
+          <div className="space-y-4">
+            <TotalBillingDetails />
+          </div>
+          {/* Auto Update Subscriptions */}
+          {showAutomaticallyUpdateCurrentSubscriptions && (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="auto-update-subscriptions"
+                  checked={
+                    checkoutSession.automaticallyUpdateSubscriptions ??
+                    false
+                  }
+                  onCheckedChange={async (checked) => {
+                    await editCheckoutSessionAutomaticallyUpdateSubscriptions(
+                      {
+                        id: checkoutSession.id,
+                        automaticallyUpdateSubscriptions: checked,
+                      }
+                    )
+                  }}
+                />
+                <Label
+                  htmlFor="auto-update-subscriptions"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Set as default method for existing subscriptions
+                </Label>
+              </div>
+            </div>
+          )}
+          {/* Primary Action Button */}
+          <div className="pt-2">
+            {' '}
+            {/* LS button spacing */}
             <Button
-              className="justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 w-full h-[45px]"
+              className={cn(
+                'w-full h-[52px]', // LS button height
+                'bg-gray-950 hover:bg-gray-950/90', // LS button color (darker, closer to black)
+                'text-slate-50 font-normal', // LS button text (fixed light mode foreground)
+                'rounded-[8px]', // LS border radius
+                'text-[16px] leading-[28px]', // LS typography
+                'disabled:!bg-gray-950 disabled:!text-slate-50/30 disabled:!opacity-100' // LS disabled state (force same bg, muted text)
+              )}
               disabled={
                 !paymentInfoComplete ||
                 !emailComplete ||
@@ -492,24 +457,80 @@ const PaymentForm = () => {
             >
               {isSubmitting && (
                 <LoaderCircle
-                  className="animate-spin-slow"
+                  className="animate-spin-slow w-4 h-4 mr-2"
                   size={16}
                 />
               )}
               {buttonLabel}
             </Button>
-            {errorMessage && <ErrorLabel error={errorMessage} />}
+            {errorMessage && (
+              <ErrorLabel error={errorMessage} className="mt-3" />
+            )}
             {!checkoutSession.livemode && (
-              <div className="p-2 bg-orange-600 justify-center items-center text-center w-full flex mt-4 rounded-md">
-                <div className="text-white text-sm">
+              <div className="p-4 bg-gray-50 border border-gray-200 justify-center items-center text-center w-full flex mt-6 rounded-[8px]">
+                <div className="text-gray-600 text-sm">
                   <p>This is a test mode checkout.</p>
                   <p>No payments will be processed.</p>
                 </div>
               </div>
             )}
-            <PoweredByFlowgladText />
           </div>
-        </>
+          {/* Security Notice */}
+          <div
+            className={cn(
+              'bg-gray-50 border border-gray-200', // Light background for white theme
+              'rounded-[8px] p-4',
+              'flex items-center justify-center gap-2'
+            )}
+          >
+            <div className="w-6 h-6 text-gray-500">
+              {/* Security icon */}
+              <svg
+                className="w-full h-full"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            </div>
+            <span className="text-[13px] text-gray-600 leading-[24px]">
+              Payments are secure and encrypted
+            </span>
+          </div>
+          {/* Footer Links */}
+          <div className="flex flex-col items-center gap-4 pt-4">
+            <PoweredByFlowglad />
+
+            <div className="flex items-center gap-2.5 text-[13px] text-gray-600">
+              <a
+                href="/terms"
+                className="hover:text-gray-800 transition-colors"
+              >
+                Terms
+              </a>
+              <span>·</span>
+              <a
+                href="/privacy"
+                className="hover:text-gray-800 transition-colors"
+              >
+                Privacy
+              </a>
+              <span>·</span>
+              <a
+                href="/help"
+                className="hover:text-gray-800 transition-colors"
+              >
+                Help
+              </a>
+            </div>
+          </div>
+        </div>
       )}
     </form>
   )

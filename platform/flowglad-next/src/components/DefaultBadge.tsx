@@ -1,7 +1,14 @@
-import Badge from '@/components/ion/Badge'
+import { Badge } from '@/components/ui/badge'
 
 const DefaultBadge = () => {
-  return <Badge color="green">Default</Badge>
+  return (
+    <Badge
+      variant="secondary"
+      className="bg-green-100 text-green-800"
+    >
+      Default
+    </Badge>
+  )
 }
 
 export default DefaultBadge

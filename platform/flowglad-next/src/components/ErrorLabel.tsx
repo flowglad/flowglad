@@ -1,4 +1,5 @@
 import { FieldError, GlobalError } from 'react-hook-form'
+import { cn } from '@/lib/utils'
 import core from '@/utils/core'
 const ErrorLabel = ({
   error,
@@ -13,7 +14,7 @@ const ErrorLabel = ({
   const errorMessage =
     typeof error === 'string' ? error : error.message
   return (
-    <p className={core.cn('mt-1 text-sm text-danger', className)}>
+    <p className={cn('mt-1 text-sm text-destructive', className)}>
       {errorMessage}
     </p>
   )

@@ -1,7 +1,7 @@
 'use client'
 
 import InternalPageContainer from '@/components/InternalPageContainer'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import OrganizationMembersTable from './OrganizationMembersTable'
 import { useState } from 'react'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
@@ -15,12 +15,15 @@ function TeammatesPage() {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <div className="flex flex-row justify-between">
-          <PageTitle className="mb-6">Team</PageTitle>
-          <Button onClick={() => setIsInviteModalOpen(true)}>
-            Invite Member
-          </Button>
-        </div>
+        <PageHeader
+          title="Team"
+          className="mb-6"
+          action={
+            <Button onClick={() => setIsInviteModalOpen(true)}>
+              Invite Member
+            </Button>
+          }
+        />
 
         <OrganizationMembersTable />
         <InviteUserToOrganizationModal

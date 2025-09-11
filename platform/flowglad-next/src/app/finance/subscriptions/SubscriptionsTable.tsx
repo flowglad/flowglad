@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import { Subscription } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
 import { SubscriptionStatus } from '@/types'
-import Badge, { BadgeColor } from '@/components/ion/Badge'
+import { Badge } from '@/components/ui/badge'
 import { sentenceCase } from 'change-case'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
@@ -15,20 +14,18 @@ import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useRouter } from 'next/navigation'
 
-const subscriptionStatusColors: Record<
-  SubscriptionStatus,
-  BadgeColor
-> = {
-  [SubscriptionStatus.Active]: 'green',
-  [SubscriptionStatus.Canceled]: 'red',
-  [SubscriptionStatus.CancellationScheduled]: 'red',
-  [SubscriptionStatus.Incomplete]: 'yellow',
-  [SubscriptionStatus.IncompleteExpired]: 'red',
-  [SubscriptionStatus.PastDue]: 'red',
-  [SubscriptionStatus.Paused]: 'yellow',
-  [SubscriptionStatus.Trialing]: 'yellow',
-  [SubscriptionStatus.Unpaid]: 'yellow',
-  [SubscriptionStatus.CreditTrial]: 'yellow',
+const subscriptionStatusColors: Record<SubscriptionStatus, string> = {
+  [SubscriptionStatus.Active]: 'bg-green-100 text-green-800',
+  [SubscriptionStatus.Canceled]: 'bg-red-100 text-red-800',
+  [SubscriptionStatus.CancellationScheduled]:
+    'bg-red-100 text-red-800',
+  [SubscriptionStatus.Incomplete]: 'bg-yellow-100 text-yellow-800',
+  [SubscriptionStatus.IncompleteExpired]: 'bg-red-100 text-red-800',
+  [SubscriptionStatus.PastDue]: 'bg-red-100 text-red-800',
+  [SubscriptionStatus.Paused]: 'bg-yellow-100 text-yellow-800',
+  [SubscriptionStatus.Trialing]: 'bg-yellow-100 text-yellow-800',
+  [SubscriptionStatus.Unpaid]: 'bg-yellow-100 text-yellow-800',
+  [SubscriptionStatus.CreditTrial]: 'bg-yellow-100 text-yellow-800',
 }
 
 const SubscriptionStatusCell = ({
@@ -37,7 +34,10 @@ const SubscriptionStatusCell = ({
   status: SubscriptionStatus
 }) => {
   return (
-    <Badge color={subscriptionStatusColors[status]}>
+    <Badge
+      variant="secondary"
+      className={subscriptionStatusColors[status]}
+    >
       {sentenceCase(status)}
     </Badge>
   )
@@ -98,18 +98,14 @@ const SubscriptionsTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Customer" column={column} />
-          ),
+          header: 'Customer',
           accessorKey: 'customer.name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.customer.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'subscription.status',
           cell: ({ row: { original: cellData } }) => (
             <SubscriptionStatusCell
@@ -118,27 +114,21 @@ const SubscriptionsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Product" column={column} />
-          ),
+          header: 'Product',
           accessorKey: 'product.name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.product.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'subscription.createdAt',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.subscription.createdAt)}</>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Canceled" column={column} />
-          ),
+          header: 'Canceled',
           accessorKey: 'subscription.canceledAt',
           cell: ({ row: { original: cellData } }) => (
             <>
@@ -149,9 +139,7 @@ const SubscriptionsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'subscription.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell
@@ -178,10 +166,10 @@ const SubscriptionsTable = ({
   const router = useRouter()
 
   return (
-    <Table
+    <DataTable
       columns={columns}
       data={tableData}
-      className="bg-nav"
+      className="bg-background"
       bordered
       onClickRow={(row) => {
         router.push(`/finance/subscriptions/${row.subscription.id}`)

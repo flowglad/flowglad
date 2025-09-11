@@ -17,8 +17,9 @@ import { Loader2, X } from 'lucide-react'
 import { signIn, signUp } from '@/utils/authClient'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { ErrorContext } from 'better-auth/react'
+import ErrorLabel from '@/components/ErrorLabel'
 
 export default function SignUp() {
   const [firstName, setFirstName] = useState('')
@@ -32,6 +33,7 @@ export default function SignUp() {
   )
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleImageChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -52,8 +54,10 @@ export default function SignUp() {
     },
     onRequest: () => {
       setLoading(true)
+      setError('')
     },
     onError: (ctx: ErrorContext) => {
+      setError(ctx.error.message)
       toast.error(ctx.error.message)
     },
     onSuccess: async () => {
@@ -196,6 +200,10 @@ export default function SignUp() {
               Sign up with Google
             </Button>
           </div>
+          <ErrorLabel
+            error={error}
+            className={cn(error ? 'opacity-100' : 'opacity-0')}
+          />
         </div>
       </CardContent>
     </Card>

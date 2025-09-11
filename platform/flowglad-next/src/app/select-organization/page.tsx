@@ -8,6 +8,7 @@ import { trpc } from '@/app/_trpc/client'
 import { updateFocusedMembershipSchema } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Label } from '@/components/ui/label'
 import ErrorLabel from '@/components/ErrorLabel'
@@ -162,6 +163,9 @@ const SelectOrganizationPage = () => {
             className="w-full"
             onClick={handleSubmit(onSubmit)}
           >
+            {isSubmitting && (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            )}
             {isSubmitting ? 'Switching...' : 'Switch Organization'}
           </Button>
         </CardFooter>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DateRangePicker } from './ion/Datepicker'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { RecurringRevenueChart } from './RecurringRevenueChart'
 
 const DateRangeRecurringRevenueChart = ({
@@ -25,6 +25,10 @@ const DateRangeRecurringRevenueChart = ({
   })
   const showDateRangePicker = !fromDate || !toDate
 
+  // Use props when available, otherwise use internal state
+  const effectiveFromDate = fromDate ?? range.from
+  const effectiveToDate = toDate ?? range.to
+
   return (
     <>
       <div
@@ -44,13 +48,12 @@ const DateRangeRecurringRevenueChart = ({
                 to: range?.to ?? new Date(),
               })
             }}
-            mode="range"
           />
         )}
       </div>
       <RecurringRevenueChart
-        fromDate={range.from}
-        toDate={range.to}
+        fromDate={effectiveFromDate}
+        toDate={effectiveToDate}
         productId={productId}
       />
     </>

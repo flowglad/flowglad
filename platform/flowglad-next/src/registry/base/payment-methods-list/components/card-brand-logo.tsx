@@ -1,6 +1,6 @@
 import React from 'react'
 import { CreditCard } from 'lucide-react'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import {
   VisaLogo,
   MastercardLogo,

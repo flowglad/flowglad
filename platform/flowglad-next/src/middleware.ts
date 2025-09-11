@@ -45,7 +45,10 @@ export default async function middleware(req: NextRequest) {
   const requestHeaders = new Headers(req.headers)
   requestHeaders.set('x-pathname', req.nextUrl.pathname)
   // Pass public-route boolean to server layout/Providers
-  requestHeaders.set('x-is-public-route', isPublicRoute(req) ? 'true' : 'false')
+  requestHeaders.set(
+    'x-is-public-route',
+    isPublicRoute(req) ? 'true' : 'false'
+  )
 
   return NextResponse.next({
     request: {

@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 import * as React from 'react'
 import { forwardRef, useEffect } from 'react'
 
-import { Badge } from '@/components/ion/Badge'
+import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import {
   Command,
@@ -13,8 +13,8 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { cn } from '@/utils/core'
-import Hint from '../ion/Hint'
+import { cn } from '@/lib/utils'
+import { FormDescription, FormMessage } from '@/components/ui/form'
 
 export interface Option {
   value: string
@@ -519,15 +519,19 @@ const MultipleSelector = React.forwardRef<
     return (
       <div>
         {label && (
-          <Label
-            id={`${id}__label`}
-            htmlFor={id}
-            required={required}
-            helper={helper}
-            className="mb-0.5"
-          >
-            {label}
-          </Label>
+          <div className="mb-0.5">
+            <Label id={`${id}__label`} htmlFor={id}>
+              {label}
+              {required && (
+                <span className="text-destructive ml-1">*</span>
+              )}
+              {helper && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  ({helper})
+                </span>
+              )}
+            </Label>
+          </div>
         )}
         <Command
           ref={dropdownRef}
@@ -549,22 +553,21 @@ const MultipleSelector = React.forwardRef<
         >
           <div
             className={cn(
-              'flex items-center w-full rounded-radius-sm border text-sm text-foreground',
+              'flex items-center w-full rounded-2xl border text-sm text-foreground',
               'transition-all',
-              'min-h-9 h-auto',
+              'min-h-10 h-auto',
               'overflow-hidden',
-              'px-3 py-1.5',
+              'px-1 py-2',
               {
-                [disabled ? 'bg-disabled' : 'bg-background-input']:
-                  true,
+                [disabled ? 'bg-muted' : 'bg-background']: true,
                 'hover:border-outline': !disabled && !resolvedError,
                 'focus-within:danger-focus border-danger hover:border-danger':
                   resolvedError && !disabled,
-                'focus-within:primary-focus focus-within:border-stroke-primary':
+                'focus-within:primary-focus focus-within:border-border-primary':
                   !resolvedError && !disabled,
                 'border-danger': resolvedError && !disabled,
-                'border-stroke': !resolvedError && !disabled,
-                'border-stroke-disabled text-on-disabled': disabled,
+                'border-border': !resolvedError && !disabled,
+                'border-border-disabled text-on-disabled': disabled,
                 'pointer-events-none': disabled,
                 'cursor-text': !disabled,
               },
@@ -581,7 +584,7 @@ const MultipleSelector = React.forwardRef<
                   <Badge
                     key={option.value}
                     className={cn(
-                      'py-1',
+                      'py-1 rounded-full bg-accent text-foreground border-transparent hover:bg-accent/80 shadow-none',
                       'data-[disabled]:bg-muted-foreground data-[disabled]:text-muted data-[disabled]:hover:bg-muted-foreground',
                       'data-[fixed]:bg-muted-foreground data-[fixed]:text-muted data-[fixed]:hover:bg-muted-foreground',
                       badgeClassName
@@ -607,7 +610,7 @@ const MultipleSelector = React.forwardRef<
                       }}
                       onClick={() => handleUnselect(option)}
                     >
-                      <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      <X className="h-3 w-3 text-foreground hover:text-foreground/80" />
                     </button>
                   </Badge>
                 )
@@ -637,14 +640,14 @@ const MultipleSelector = React.forwardRef<
                     : placeholder
                 }
                 className={cn(
-                  'flex-1 bg-transparent outline-none border-none focus:ring-0 text-sm placeholder:text-subtle',
+                  'flex-1 bg-transparent outline-none border-none focus:ring-0 text-sm placeholder:text-muted-foreground',
                   'py-0.5',
                   'disabled:text-on-disabled disabled:placeholder:text-on-disabled disabled:pointer-events-none',
                   {
                     'w-full':
                       hidePlaceholderWhenSelected &&
                       selected.length > 0,
-                    'ml-1':
+                    'ml-0':
                       selected.length !== 0 &&
                       (!hidePlaceholderWhenSelected ||
                         selected.length > 0),
@@ -674,7 +677,7 @@ const MultipleSelector = React.forwardRef<
           <div className="relative">
             {open && (
               <CommandList
-                className="absolute top-1 z-10 w-full rounded-md border border-stroke-subtle bg-background text-on-background shadow-medium outline-none animate-in"
+                className="absolute top-1 z-10 w-full rounded-xl border bg-popover p-1 text-popover-foreground shadow-md outline-none animate-in"
                 onMouseLeave={() => {
                   setOnScrollbar(false)
                 }}
@@ -751,25 +754,22 @@ const MultipleSelector = React.forwardRef<
           </div>
         </Command>
         {hint && (
-          <Hint
+          <div
             id={`${id}__hint`}
-            className="text-xs text-subtle mt-1"
-            showIcon={showHintIcon}
-            disabled={disabled}
+            className={`text-xs mt-1 ${disabled ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}
           >
             {hint}
-          </Hint>
+          </div>
         )}
         {error && (
-          <Hint
+          <div
             id={`${id}__error`}
-            error={error}
-            className="mt-1 text-danger"
-            showIcon={showHintIcon}
-            disabled={disabled}
+            className={`mt-1 text-destructive text-xs ${disabled ? 'opacity-60' : ''}`}
           >
-            {error}
-          </Hint>
+            {typeof error === 'string'
+              ? error
+              : 'This field has an error'}
+          </div>
         )}
       </div>
     )

@@ -42,7 +42,7 @@ export function PricingTable({
       <div className="bg-muted/50 rounded-t-lg">
         <div className="relative px-6 py-4 sm:py-6 lg:py-8">
           <div className="flex flex-col items-center space-y-6">
-            <h2 className="text-2xl sm:text-3xl font-medium text-center text-foreground">
+            <h2 className="text-2xl sm:text-3xl font-normal text-center text-foreground">
               Upgrade your plan
             </h2>
 
@@ -100,7 +100,7 @@ export function PricingTable({
           </p>
           <p className="text-sm text-muted-foreground">
             See{' '}
-            <a href="#" className="underline font-medium">
+            <a href="#" className="underline font-normal">
               ChatGPT Enterprise
             </a>
           </p>

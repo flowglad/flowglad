@@ -7,7 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { CardBrandLogo } from './card-brand-logo'
 import type { PaymentMethodRowProps } from '../types'
 

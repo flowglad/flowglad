@@ -1,9 +1,9 @@
 'use client'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import { RichSubscription } from '@/subscriptions/schemas'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 import PaymentsTable from '../../payments/PaymentsTable'
 import { useAuthContext } from '@/contexts/authContext'
 import SubscriptionItemsTable from './SubscriptionItemsTable'
@@ -34,14 +34,15 @@ const InnerSubscriptionPage = ({
           <Breadcrumb />
           <div className="flex flex-col">
             <div className="flex flex-row justify-between items-center mb-6 gap-8">
-              <PageTitle className="flex flex-row items-center gap-2">
-                {subscription.name ?? 'Subscription'}
-              </PageTitle>
+              <PageHeader
+                title={subscription.name ?? 'Subscription'}
+                className="flex flex-row items-center gap-2"
+              />
             </div>
             <SubscriptionStatusBadge status={subscription.status} />
           </div>
         </div>
-        <TableTitle title="Details" noButtons />
+        <TableHeader title="Details" noButtons />
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <Label>Dates</Label>
@@ -70,15 +71,15 @@ const InnerSubscriptionPage = ({
             </div>
           </div>
         </div>
-        <TableTitle title="Items" noButtons />
+        <TableHeader title="Items" noButtons />
         <SubscriptionItemsTable
           subscriptionItems={subscription.subscriptionItems}
         />
-        <TableTitle title="Invoices" noButtons />
+        <TableHeader title="Invoices" noButtons />
         <InvoicesTable
           filters={{ subscriptionId: subscription.id }}
         />
-        <TableTitle title="Payments" noButtons />
+        <TableHeader title="Payments" noButtons />
         <PaymentsTable
           filters={{ subscriptionId: subscription.id }}
         />

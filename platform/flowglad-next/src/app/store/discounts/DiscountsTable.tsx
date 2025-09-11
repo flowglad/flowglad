@@ -1,8 +1,7 @@
 'use client'
 import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import { Discount } from '@/db/schema/discounts'
 import core from '@/utils/core'
 import {
@@ -10,11 +9,14 @@ import {
   DiscountAmountType,
   DiscountDuration,
 } from '@/types'
-import { PopoverMenuItem } from '@/components/PopoverMenu'
+import {
+  PopoverMenuItem,
+  PopoverMenuItemState,
+} from '@/components/PopoverMenu'
 import EditDiscountModal from '@/components/forms/EditDiscountModal'
 import DeleteDiscountModal from '@/components/forms/DeleteDiscountModal'
 import StatusBadge from '@/components/StatusBadge'
-import { RotateCw, Infinity } from 'lucide-react'
+import { RotateCw, Infinity, Pencil, Trash2 } from 'lucide-react'
 import { sentenceCase } from 'change-case'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { trpc } from '@/app/_trpc/client'
@@ -31,10 +33,13 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Edit Discount',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
       label: 'Delete Discount',
+      icon: <Trash2 />,
+      state: PopoverMenuItemState.Danger,
       handler: () => setIsDeleteOpen(true),
     },
   ]
@@ -126,45 +131,35 @@ const DiscountsTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'discount.name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.discount.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Code" column={column} />
-          ),
+          header: 'Code',
           accessorKey: 'discount.code',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.discount.code}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Amount" column={column} />
-          ),
+          header: 'Amount',
           accessorKey: 'discount.amount',
           cell: ({ row: { original: cellData } }) => (
             <DiscountTableAmountCell amount={cellData.discount} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Duration" column={column} />
-          ),
+          header: 'Duration',
           accessorKey: 'discount.duration',
           cell: ({ row: { original: cellData } }) => (
             <DiscountTableDurationCell duration={cellData.discount} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Redemptions" column={column} />
-          ),
+          header: 'Redemptions',
           accessorKey: 'discountRedemptionsCount',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -173,18 +168,14 @@ const DiscountsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'discount.active',
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.discount.active} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'discount.createdAt',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.discount.createdAt!)}</>
@@ -204,10 +195,10 @@ const DiscountsTable = ({
   const total = data?.total || 0
 
   return (
-    <Table
+    <DataTable
       columns={columns}
       data={tableData}
-      className="bg-nav"
+      className="bg-background"
       bordered
       pagination={{
         pageIndex,

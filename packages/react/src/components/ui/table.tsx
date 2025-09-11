@@ -15,7 +15,7 @@ function Table({
       <div
         data-slot="table-container"
         className={
-          'flowglad-relative flowglad-w-full flowglad-overflow-x-auto'
+          'flowglad-relative flowglad-w-full flowglad-overflow-x-auto flowglad-rounded-xl flowglad-border flowglad-bg-background'
         }
       >
         <table
@@ -65,7 +65,7 @@ function TableFooter({
     <tfoot
       data-slot="table-footer"
       className={cn(
-        'flowglad-bg-muted/50 flowglad-border-t flowglad-font-medium [&>tr]:last:flowglad-border-b-0',
+        'flowglad-bg-muted/50 flowglad-border-t flowglad-font-normal [&>tr]:last:flowglad-border-b-0',
         className
       )}
       {...props}
@@ -97,7 +97,7 @@ function TableHead({
     <th
       data-slot="table-head"
       className={cn(
-        'flowglad-text-muted-foreground flowglad-h-10 flowglad-px-2 flowglad-text-left flowglad-align-middle flowglad-font-medium flowglad-whitespace-nowrap [&:has([role=checkbox])]:flowglad-pr-0 [&>[role=checkbox]]:flowglad-translate-y-[2px]',
+        'flowglad-text-muted-foreground flowglad-h-10 flowglad-px-2 flowglad-text-left flowglad-align-middle flowglad-font-normal flowglad-whitespace-nowrap [&:has([role=checkbox])]:flowglad-pr-0 [&>[role=checkbox]]:flowglad-translate-y-[2px]',
         className
       )}
       {...props}

@@ -7,44 +7,44 @@
   @custom-variant dark (&:is(.dark *));
   
   --flowglad-background: hsl(0 0% 100%);
-  --flowglad-foreground: hsl(240 10% 3.9%);
+  --flowglad-foreground: hsl(24 10% 10%);
   --flowglad-card: hsl(0 0% 100%);
-  --flowglad-card-foreground: hsl(240 10% 3.9%);
-  --flowglad-primary: hsl(240 5.9% 10%);
-  --flowglad-primary-foreground: hsl(0 0% 98%);
-  --flowglad-secondary: hsl(240 4.8% 95.9%);
-  --flowglad-secondary-foreground: hsl(240 5.9% 10%);
-  --flowglad-muted: hsl(240 4.8% 95.9%);
-  --flowglad-muted-foreground: hsl(240 3.8% 46.1%);
-  --flowglad-accent: hsl(240 4.8% 95.9%);
-  --flowglad-accent-foreground: hsl(240 5.9% 10%);
+  --flowglad-card-foreground: hsl(24 10% 10%);
+  --flowglad-primary: hsl(24 10% 10%);
+  --flowglad-primary-foreground: hsl(60 9% 98%);
+  --flowglad-secondary: hsl(60 5% 96%);
+  --flowglad-secondary-foreground: hsl(24 10% 10%);
+  --flowglad-muted: hsl(60 5% 96%);
+  --flowglad-muted-foreground: hsl(25 5% 45%);
+  --flowglad-accent: hsl(60 5% 96%);
+  --flowglad-accent-foreground: hsl(24 10% 10%);
   --flowglad-destructive: hsl(0 84.2% 60.2%);
-  --flowglad-destructive-foreground: hsl(0 0% 98%);
-  --flowglad-border: hsl(240 5.9% 90%);
-  --flowglad-input: hsl(240 5.9% 90%);
-  --flowglad-ring: hsl(240 10% 3.9%);
+  --flowglad-destructive-foreground: hsl(60 9% 98%);
+  --flowglad-border: hsl(20 6% 90%);
+  --flowglad-input: hsl(20 6% 90%);
+  --flowglad-ring: hsl(24 10% 10%);
   --flowglad-radius: 0.5rem;
   --radius: 0.5rem;
 }
 
 .flowglad-dark {
-  --flowglad-background: hsl(240 10% 3.9%);
-  --flowglad-foreground: hsl(0 0% 98%);
-  --flowglad-card: hsl(240 10% 3.9%);
-  --flowglad-card-foreground: hsl(0 0% 98%);
-  --flowglad-primary: hsl(0 0% 98%);
-  --flowglad-primary-foreground: hsl(240 5.9% 10%);
-  --flowglad-secondary: hsl(240 3.7% 15.9%);
-  --flowglad-secondary-foreground: hsl(0 0% 98%);
-  --flowglad-muted: hsl(240 3.7% 15.9%);
-  --flowglad-muted-foreground: hsl(240 5% 64.9%);
-  --flowglad-accent: hsl(240 3.7% 15.9%);
-  --flowglad-accent-foreground: hsl(0 0% 98%);
+  --flowglad-background: hsl(20 14% 4%);
+  --flowglad-foreground: hsl(60 9% 98%);
+  --flowglad-card: hsl(20 14% 4%);
+  --flowglad-card-foreground: hsl(60 9% 98%);
+  --flowglad-primary: hsl(60 9% 98%);
+  --flowglad-primary-foreground: hsl(24 10% 10%);
+  --flowglad-secondary: hsl(12 7% 15%);
+  --flowglad-secondary-foreground: hsl(60 9% 98%);
+  --flowglad-muted: hsl(12 7% 15%);
+  --flowglad-muted-foreground: hsl(24 6% 64%);
+  --flowglad-accent: hsl(12 7% 15%);
+  --flowglad-accent-foreground: hsl(60 9% 98%);
   --flowglad-destructive: hsl(0 72.2% 50.6%);
-  --flowglad-destructive-foreground: hsl(0 0% 98%);
-  --flowglad-border: hsl(240 3.7% 15.9%);
-  --flowglad-input: hsl(240 3.7% 15.9%);
-  --flowglad-ring: hsl(240 4.9% 83.9%);
+  --flowglad-destructive-foreground: hsl(60 9% 98%);
+  --flowglad-border: hsl(12 7% 15%);
+  --flowglad-input: hsl(12 7% 15%);
+  --flowglad-ring: hsl(24 6% 83%);
   --flowglad-radius: 0.5rem;
 }
 

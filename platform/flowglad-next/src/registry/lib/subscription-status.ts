@@ -14,15 +14,15 @@ export type SubscriptionStatus =
 export function getStatusColor(status: SubscriptionStatus): string {
   switch (status) {
     case 'active':
-      return 'text-green-600 bg-green-50 border-green-200'
+      return 'text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-900/30 dark:border-green-800'
     case 'trialing':
-      return 'text-blue-600 bg-blue-50 border-blue-200'
+      return 'text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-900/30 dark:border-blue-800'
     case 'past_due':
-      return 'text-red-600 bg-red-50 border-red-200'
+      return 'text-destructive bg-destructive/10 border-destructive/20'
     case 'canceled':
-      return 'text-gray-600 bg-gray-50 border-gray-200'
+      return 'text-muted-foreground bg-muted border-border'
     default:
-      return 'text-gray-600 bg-gray-50 border-gray-200'
+      return 'text-muted-foreground bg-muted border-border'
   }
 }
 

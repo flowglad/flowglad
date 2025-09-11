@@ -1,6 +1,8 @@
 import { Calendar, ChevronDown } from 'lucide-react'
 import { encodeCursor } from '@/db/tableUtils'
+import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import {
   FormField,
   FormItem,
@@ -21,13 +23,18 @@ import { InvoiceFormLineItemsField } from './InvoiceFormLineItemsField'
 import { Invoice } from '@/db/schema/invoices'
 import { useFormContext } from 'react-hook-form'
 import { useAuthenticatedContext } from '../../contexts/authContext'
-import Datepicker from '../ion/Datepicker'
-import clsx from 'clsx'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { format } from 'date-fns'
 import { useEffect, useState } from 'react'
 import { Customer } from '@/db/schema/customers'
 import { trpc } from '@/app/_trpc/client'
 import { Switch } from '@/components/ui/switch'
-import Badge from '../ion/Badge'
+import { Label } from '@/components/ui/label'
 import ConnectedSelect from './ConnectedSelect'
 import core from '@/utils/core'
 
@@ -180,18 +187,40 @@ const InvoiceFormFields = ({
             <FormItem className="flex-1 w-full">
               <FormLabel>Issued On</FormLabel>
               <FormControl>
-                <Datepicker
-                  {...field}
-                  onSelect={(value) =>
-                    field.onChange(value ? value.toISOString() : '')
-                  }
-                  value={
-                    field.value ? new Date(field.value) : undefined
-                  }
-                  iconTrailing={<ChevronDown size={16} />}
-                  iconLeading={<Calendar size={16} />}
-                  className="flex-1 w-full"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'flex-1 w-full justify-start text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      <Calendar size={16} className="mr-2" />
+                      {field.value
+                        ? format(new Date(field.value), 'PPP')
+                        : 'Select issue date'}
+                      <ChevronDown size={16} className="ml-auto" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto p-0"
+                    align="start"
+                  >
+                    <CalendarComponent
+                      mode="single"
+                      selected={
+                        field.value
+                          ? new Date(field.value)
+                          : undefined
+                      }
+                      onSelect={(date) =>
+                        field.onChange(date ? date.toISOString() : '')
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -254,15 +283,19 @@ const InvoiceFormFields = ({
             <FormItem className="flex-1">
               <FormLabel>Bank Payment Only</FormLabel>
               <FormControl>
-                <Switch
-                  checked={Boolean(field.value)}
-                  onCheckedChange={field.onChange}
-                  label={
-                    <div className="cursor-pointer w-full">
-                      Only accept payment via ACH or Wire.
-                    </div>
-                  }
-                />
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="bank-payment-only"
+                    checked={Boolean(field.value)}
+                    onCheckedChange={field.onChange}
+                  />
+                  <Label
+                    htmlFor="bank-payment-only"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Only accept payment via ACH or Wire.
+                  </Label>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -290,26 +323,49 @@ const InvoiceFormFields = ({
           name="invoice.dueDate"
           render={({ field }) => (
             <FormItem
-              className={clsx(
+              className={cn(
                 'flex-1',
                 dueOption !== 'Custom Date' && 'opacity-0'
               )}
             >
               <FormLabel>Due Date</FormLabel>
               <FormControl>
-                <Datepicker
-                  {...field}
-                  onSelect={(value) =>
-                    field.onChange(value ? value.toISOString() : '')
-                  }
-                  value={
-                    field.value ? new Date(field.value) : undefined
-                  }
-                  iconTrailing={<ChevronDown size={16} />}
-                  iconLeading={<Calendar size={16} />}
-                  className="flex-1"
-                  disabled={dueOption !== 'Custom Date'}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={dueOption !== 'Custom Date'}
+                      className={cn(
+                        'flex-1 justify-start text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      <Calendar size={16} className="mr-2" />
+                      {field.value
+                        ? format(new Date(field.value), 'PPP')
+                        : 'Select due date'}
+                      <ChevronDown size={16} className="ml-auto" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto p-0"
+                    align="start"
+                  >
+                    <CalendarComponent
+                      mode="single"
+                      selected={
+                        field.value
+                          ? new Date(field.value)
+                          : undefined
+                      }
+                      onSelect={(date) =>
+                        field.onChange(date ? date.toISOString() : '')
+                      }
+                      disabled={(date) => dueOption !== 'Custom Date'}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -339,7 +395,7 @@ const InvoiceFormFields = ({
           )}
         />
       )}
-      <div className="w-full border-opacity-[0.07] flex items-start py-6 border-b border-white">
+      <div className="w-full flex items-start py-6 border-b border-border">
         <div className="flex-1 w-full flex flex-col justify-center gap-6">
           <div className="w-full flex flex-col gap-3">
             <InvoiceFormLineItemsField />

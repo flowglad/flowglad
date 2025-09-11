@@ -4,7 +4,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 
 import Providers from './Providers'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
@@ -37,7 +37,8 @@ export default async function RootLayout({
   // The preview routes will handle their own complete HTML structure
   const headersList = await headers()
   const pathname = headersList.get('x-pathname') || ''
-  const isPublicRoute = headersList.get('x-is-public-route') === 'true'
+  const isPublicRoute =
+    headersList.get('x-is-public-route') === 'true'
 
   // For preview routes, skip the root layout entirely
   if (pathname.includes('/preview-ui')) {
@@ -78,8 +79,8 @@ export default async function RootLayout({
     : 'merchant'
 
   return (
-    <html lang="en" className="dark h-full" data-mode="dark">
-      <body className={cn(inter.className, 'dark', 'h-full')}>
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body className={cn(inter.className, 'h-full')}>
         <Providers
           authContext={{
             organization,

@@ -267,7 +267,7 @@ export const registryComponents = [
     defaultProps: {
       customers: mockCustomers,
       onSelect: (customerId: string) => {
-        console.log('Selected customer:', customerId)
+        // Handle customer selection
       },
       searchable: true,
       gridCols: 3 as const,

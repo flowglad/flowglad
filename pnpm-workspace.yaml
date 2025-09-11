@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - '!playground/**'  # Exclude playground directory
   - '!platform/**'
+  - 'platform/flowglad-next'  # Include specific platform app for Turbopack (must come after exclusion)
 
 catalogs:
   # Can be referenced through "catalog:react"

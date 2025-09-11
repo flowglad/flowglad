@@ -82,7 +82,7 @@ export const InvoiceFormLineItemsField = () => {
             size="default"
             className="opacity-0"
           >
-            <GripVertical size={16} />
+            <GripVertical className="w-4 h-4 mr-2" />
           </Button>
           <Label className="flex-1">Item</Label>
         </div>
@@ -119,8 +119,8 @@ export const InvoiceFormLineItemsField = () => {
         size="sm"
         onClick={addAnItemClickHandler}
       >
-        <Plus size={16} />
-        Add Item
+        <Plus className="w-4 h-4 mr-2" />
+        Add Line Item
       </Button>
     </div>
   )

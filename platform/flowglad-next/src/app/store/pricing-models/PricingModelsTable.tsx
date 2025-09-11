@@ -1,11 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Table, {
-  type ColumnDefWithWidth,
-} from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
-import Badge from '@/components/ion/Badge'
+import { Pencil, Copy, Star } from 'lucide-react'
+import { DataTable } from '@/components/ui/data-table'
+import { type ColumnDef } from '@tanstack/react-table'
+import { Badge } from '@/components/ui/badge'
 import { PricingModel } from '@/db/schema/pricingModels'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
@@ -28,16 +27,19 @@ const MoreMenuCell = ({
   const menuItems: PopoverMenuItem[] = [
     {
       label: 'Edit Pricing Model',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
       label: 'Clone Pricing Model',
+      icon: <Copy />,
       handler: () => setIsCloneOpen(true),
     },
   ]
   if (!pricingModel.isDefault) {
     menuItems.push({
       label: 'Set as Default',
+      icon: <Star />,
       handler: () => setIsSetDefaultOpen(true),
     })
   }
@@ -94,18 +96,18 @@ const PricingModelsTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'pricingModel.name',
-          width: '20%',
           cell: ({ row: { original: cellData } }) => (
             <div className="flex items-center gap-2">
               <span className="text-sm">
                 {cellData.pricingModel.name}
               </span>
               {cellData.pricingModel.isDefault && (
-                <Badge color="green" size="sm">
+                <Badge
+                  variant="secondary"
+                  className="bg-green-100 text-green-800 text-xs"
+                >
                   Default
                 </Badge>
               )}
@@ -113,21 +115,15 @@ const PricingModelsTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Products" column={column} />
-          ),
+          header: 'Products',
           accessorKey: 'productsCount',
-          width: '30%',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.productsCount}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'pricingModel.id',
-          width: '30%',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell
               copyText={cellData.pricingModel.id}
@@ -138,12 +134,12 @@ const PricingModelsTable = ({
         },
         {
           id: '_',
-          width: '10%',
+          size: 100,
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell pricingModel={cellData.pricingModel} />
           ),
         },
-      ] as ColumnDefWithWidth<PricingModel.TableRow, string>[],
+      ] as ColumnDef<PricingModel.TableRow, string>[],
     []
   )
 
@@ -151,10 +147,10 @@ const PricingModelsTable = ({
   const total = data?.total || 0
 
   return (
-    <Table
+    <DataTable
       columns={columns}
       data={tableData}
-      className="bg-nav"
+      className="bg-background"
       bordered
       onClickRow={(row) => {
         router.push(`/store/pricing-models/${row.pricingModel.id}`)

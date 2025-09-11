@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PaymentMethodRow } from './components/payment-method-row'
 import { AddPaymentMethodButton } from './components/add-payment-method-button'

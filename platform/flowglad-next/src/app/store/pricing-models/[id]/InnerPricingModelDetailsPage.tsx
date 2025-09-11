@@ -7,11 +7,11 @@ import { PricingModel } from '@/db/schema/pricingModels'
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import { Pencil, Plus } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import CustomersTable from '@/app/customers/CustomersTable'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 import FeaturesTable from '@/app/features/FeaturesTable'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
@@ -43,14 +43,15 @@ function InnerPricingModelDetailsPage({
           <Breadcrumb />
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-row items-center gap-2 min-w-0 overflow-hidden mr-4">
-              <PageTitle className="truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                {pricingModel.name}
-              </PageTitle>
+              <PageHeader
+                title={pricingModel.name}
+                className="truncate whitespace-nowrap overflow-hidden text-ellipsis"
+              />
               {pricingModel.isDefault && <DefaultBadge />}
             </div>
             <div className="flex flex-row gap-4 justify-end flex-shrink-0">
               <Button onClick={() => setIsEditOpen(true)}>
-                <Pencil size={16} />
+                <Pencil className="w-4 h-4 mr-2" />
                 Edit
               </Button>
             </div>
@@ -58,7 +59,7 @@ function InnerPricingModelDetailsPage({
         </div>
 
         <div className="flex flex-col gap-5">
-          <TableTitle
+          <TableHeader
             title="Products"
             buttonLabel="Create Product"
             buttonIcon={<Plus size={16} />}
@@ -71,13 +72,13 @@ function InnerPricingModelDetailsPage({
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableTitle title="Customers" noButtons />
+          <TableHeader title="Customers" noButtons />
           <CustomersTable
             filters={{ pricingModelId: pricingModel.id }}
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableTitle
+          <TableHeader
             title="Features"
             buttonLabel="Create Feature"
             buttonIcon={<Plus size={16} />}
@@ -90,7 +91,7 @@ function InnerPricingModelDetailsPage({
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableTitle
+          <TableHeader
             title="Usage Meters"
             buttonLabel="Create Usage Meter"
             buttonIcon={<Plus size={16} />}

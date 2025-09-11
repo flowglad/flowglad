@@ -1,6 +1,6 @@
 'use client'
 import JSZip from 'jszip'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 import {
   FilePostPurchaseAssetRow,
   LinkPostPurchaseAssetRow,
@@ -20,7 +20,7 @@ const AccessResourcesView = ({
     <div className="flex flex-col gap-4 w-full px-4">
       {files.length > 0 && (
         <div className="flex flex-col gap-4 w-full px-4">
-          <TableTitle
+          <TableHeader
             title={'Files'}
             buttonLabel={'Download All'}
             buttonIcon={<Download size={16} />}
@@ -65,7 +65,7 @@ const AccessResourcesView = ({
       )}
       {links.length > 0 && (
         <div className="flex flex-col gap-4 w-full px-4">
-          <TableTitle
+          <TableHeader
             title={'Links'}
             buttonLabel={'Open All'}
             buttonIcon={<SquareArrowOutUpRight size={16} />}

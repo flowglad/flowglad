@@ -27,7 +27,8 @@ import {
 } from '@/components/ui/form'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import UsageMetersSelect from './UsageMetersSelect'
-import { cn, core } from '@/utils/core'
+import { cn } from '@/lib/utils'
+import core from '@/utils/core'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
@@ -81,6 +82,7 @@ const SubscriptionFields = ({
                   />
                 </FormControl>
               </div>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -201,6 +203,7 @@ const SinglePaymentFields = () => {
                 />
               </FormControl>
             </div>
+            <FormMessage />
           </FormItem>
         )}
       />
@@ -228,12 +231,6 @@ const PriceFormFields = ({
 
   let typeFields = <></>
   const { organization } = useAuthenticatedContext()
-  if (!core.IS_PROD) {
-    const price = watch('price')
-    console.log('===price', price)
-    // eslint-disable-next-line no-console
-    console.log('===errors', errors)
-  }
 
   switch (type) {
     case PriceType.Subscription:
@@ -271,7 +268,11 @@ const PriceFormFields = ({
             <FormItem>
               <FormLabel>Price Name</FormLabel>
               <FormControl>
-                <Input placeholder="Price" {...field} value={field.value ?? ''} />
+                <Input
+                  placeholder="Price"
+                  {...field}
+                  value={field.value ?? ''}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -288,7 +289,7 @@ const PriceFormFields = ({
               <AutoSlugInput
                 {...field}
                 name="price.slug"
-                sourceName={priceOnly ? "price.name" : "product.name"}
+                sourceName={priceOnly ? 'price.name' : 'product.name'}
                 placeholder="price_slug"
                 disabledAuto={edit}
               />

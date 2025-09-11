@@ -1,11 +1,12 @@
-import Table, { ColumnDefWithWidth } from '@/components/ion/Table'
+import { DataTable } from '@/components/ui/data-table'
+import { Link, Pencil, Mail } from 'lucide-react'
+import { ColumnDef } from '@tanstack/react-table'
 import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
 import { useMemo, useState } from 'react'
-import Badge, { BadgeProps } from './ion/Badge'
+import { Badge } from '@/components/ui/badge'
 import core from '@/utils/core'
 import { sentenceCase } from 'change-case'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 // import CreateInvoiceModal from './forms/CreateInvoiceModal'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { PopoverMenuItem } from './PopoverMenu'
@@ -25,29 +26,32 @@ const InvoiceStatusBadge = ({
 }: {
   invoice: Invoice.ClientRecord
 }) => {
-  let color: BadgeProps['color']
+  let className: string
   switch (invoice.status) {
     case 'draft':
-      color = 'grey'
+      className = 'bg-gray-100 text-gray-800'
       break
     case 'paid':
-      color = 'green'
+      className = 'bg-green-100 text-green-800'
       break
     case 'void':
-      color = 'red'
+      className = 'bg-red-100 text-red-800'
       break
     case 'uncollectible':
-      color = 'red'
+      className = 'bg-red-100 text-red-800'
       break
     case 'partially_refunded':
-      color = 'yellow'
+      className = 'bg-yellow-100 text-yellow-800'
       break
     case 'refunded':
-      color = 'yellow'
+      className = 'bg-yellow-100 text-yellow-800'
+      break
+    default:
+      className = 'bg-gray-100 text-gray-800'
       break
   }
   return (
-    <Badge variant="soft" color={color} size="sm">
+    <Badge variant="secondary" className={className}>
       {sentenceCase(invoice.status)}
     </Badge>
   )
@@ -76,6 +80,7 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Copy URL',
+      icon: <Link />,
       handler: copyInvoiceUrlHandler,
     },
   ]
@@ -83,12 +88,14 @@ const MoreMenuCell = ({
   if (!invoiceIsInTerminalState(invoice)) {
     items.push({
       label: 'Edit Invoice',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     })
 
     if (invoice.status !== InvoiceStatus.Draft) {
       items.push({
         label: 'Send Reminder Email',
+        icon: <Mail />,
         handler: () => setIsSendReminderEmailOpen(true),
       })
     }
@@ -154,14 +161,11 @@ const InvoicesTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Amount" column={column} />
-          ),
+          header: 'Amount',
           accessorKey: 'amount',
-          width: '10%',
           cell: ({ row: { original: cellData } }) => (
             <>
-              <span className="font-bold text-sm">
+              <span className="font-normal text-sm">
                 {stripeCurrencyAmountToHumanReadableCurrencyAmount(
                   cellData.invoice.currency,
                   0
@@ -172,32 +176,22 @@ const InvoicesTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'status',
           cell: ({ row: { original: cellData } }) => (
             <InvoiceStatusBadge invoice={cellData.invoice} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell
-              title="Invoice Number"
-              column={column}
-            />
-          ),
+          header: 'Invoice Number',
           accessorKey: 'invoiceNumber',
           cell: ({ row: { original: cellData } }) => (
             <>{cellData.invoice.invoiceNumber}</>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Due" column={column} />
-          ),
+          header: 'Due',
           accessorKey: 'due',
-          width: '15%',
           cell: ({ row: { original: cellData } }) => (
             <>
               {cellData.invoice.dueDate
@@ -207,21 +201,15 @@ const InvoicesTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'createdAt',
-          width: '15%',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.invoice.createdAt)}</>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'invoice.id',
-          width: '15%',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.invoice.id}>
               {cellData.invoice.id}
@@ -230,7 +218,6 @@ const InvoicesTable = ({
         },
         {
           id: '_',
-          width: '10%',
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell
               invoice={cellData.invoice}
@@ -238,7 +225,7 @@ const InvoicesTable = ({
             />
           ),
         },
-      ] as ColumnDefWithWidth<
+      ] as ColumnDef<
         {
           invoice: Invoice.ClientRecord
           customer: { id: string; name: string }
@@ -254,10 +241,10 @@ const InvoicesTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5">
-      <Table
+      <DataTable
         columns={columns}
         data={tableData}
-        className="w-full rounded-radius"
+        className="w-full rounded-lg"
         bordered
         pagination={{
           pageIndex,

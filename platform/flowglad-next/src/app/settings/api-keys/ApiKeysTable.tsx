@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { DisplayColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { ApiKey } from '@/db/schema/apiKeys'
 import core from '@/utils/core'
-import { PopoverMenuItem } from '@/components/PopoverMenu'
+import {
+  PopoverMenuItem,
+  PopoverMenuItemState,
+} from '@/components/PopoverMenu'
 import { FlowgladApiKeyType } from '@/types'
 import { useAuthContext } from '@/contexts/authContext'
 import { trpc } from '@/app/_trpc/client'
@@ -29,6 +33,8 @@ const MoreMenuCell = ({
   if (isKeyDeleteable) {
     basePopoverMenuItems.push({
       label: 'Delete API Key',
+      icon: <Trash2 />,
+      state: PopoverMenuItemState.Danger,
       handler: () => setIsDeleteOpen(true),
     })
   }
@@ -85,7 +91,7 @@ const ApiKeysTable = ({
       [
         {
           header: ({ column }) => (
-            <ColumnHeaderCell
+            <DataTableColumnHeader
               title="Name"
               column={column}
               className="w-24"
@@ -99,18 +105,14 @@ const ApiKeysTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Token" column={column} />
-          ),
+          header: 'Token',
           accessorKey: 'token',
           cell: ({ row: { original: cellData } }) => {
             return <ApiKeyTokenCell apiKey={cellData.apiKey} />
           },
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'createdAt',
           cell: ({ row: { original: cellData } }) => (
             <>{core.formatDate(cellData.apiKey.createdAt!)}</>
@@ -138,10 +140,10 @@ const ApiKeysTable = ({
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
-            <Table
+            <DataTable
               columns={columns}
               data={tableData}
-              className="bg-nav"
+              className="bg-background"
               bordered
               pagination={{
                 pageIndex,

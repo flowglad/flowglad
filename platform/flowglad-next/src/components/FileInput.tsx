@@ -1,14 +1,13 @@
 'use client'
 
 import React, { useState } from 'react'
-import core, { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
+import core from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
-
 import { FileUploadData, Nullish } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Plus, X, File as FileIcon } from 'lucide-react'
-
 interface FileInputProps {
   directory: string
   onUploadComplete?: (data: FileUploadData) => void
@@ -46,7 +45,6 @@ const isFileTypeImage = (fileType: string) =>
   fileType === 'webp' ||
   fileType === 'jpg' ||
   fileType === 'jpeg'
-
 const FileInput: React.FC<FileInputProps> = ({
   directory,
   onUploadComplete,
@@ -68,7 +66,6 @@ const FileInput: React.FC<FileInputProps> = ({
     FileUploadDataWithType[]
   >([])
   const getPresignedURL = trpc.utils.getPresignedURL.useMutation()
-
   React.useEffect(() => {
     if (initialURL) {
       setUploadedFiles([
@@ -89,7 +86,6 @@ const FileInput: React.FC<FileInputProps> = ({
       ])
     }
   }, [initialURL])
-
   const deleteFile = (fileDetails: FileUploadDataWithType) => {
     const updatedFiles = uploadedFiles.filter(
       (file) => file.objectKey !== fileDetails.objectKey
@@ -97,15 +93,12 @@ const FileInput: React.FC<FileInputProps> = ({
     setUploadedFiles(updatedFiles)
     onUploadDeleted?.(fileDetails)
   }
-
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const files = event.target.files
     if (!files || files.length === 0) return
-
     setIsUploading(true)
-
     try {
       const uploadPromises = Array.from(files).map(async (file) => {
         const key = `${core.nanoid()}${file.name.substring(
@@ -116,7 +109,6 @@ const FileInput: React.FC<FileInputProps> = ({
           directory,
           contentType: file.type,
         })
-
         const response = await fetch(data.presignedURL, {
           method: 'PUT',
           body: file,
@@ -124,7 +116,6 @@ const FileInput: React.FC<FileInputProps> = ({
             'Content-Type': file.type,
           },
         })
-
         if (!response.ok) {
           throw new Error(`Failed to upload file: ${file.name}`)
         }
@@ -134,21 +125,17 @@ const FileInput: React.FC<FileInputProps> = ({
           fileType: file.type,
         }
       })
-
       const fileUploadsWithFiles = await Promise.all(uploadPromises)
-
       fileUploadsWithFiles.forEach((data) =>
         onUploadComplete?.({
           objectKey: data.objectKey,
           publicURL: data.publicURL,
         })
       )
-
       const newUploadedFiles = [
         ...uploadedFiles,
         ...fileUploadsWithFiles,
       ]
-
       setUploadedFiles(newUploadedFiles)
     } catch (error) {
       console.error('Error uploading files:', error)
@@ -161,6 +148,7 @@ const FileInput: React.FC<FileInputProps> = ({
       setIsUploading(false)
     }
   }
+
   const preview =
     uploadedFiles.length > 0 ? (
       <div className="w-full h-full flex items-center justify-center gap-2">
@@ -182,7 +170,7 @@ const FileInput: React.FC<FileInputProps> = ({
             ) : (
               <div className="w-full h-full flex items-center justify-center gap-2">
                 <FileIcon size={16} />
-                <div className="text-xs text-subtle">
+                <div className="text-xs text-muted-foreground">
                   {file.file?.name ?? file.objectKey.split('/').pop()}
                 </div>
               </div>
@@ -195,7 +183,7 @@ const FileInput: React.FC<FileInputProps> = ({
                   deleteFile(file)
                 }}
               >
-                <X size={16} />
+                <X className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -209,7 +197,8 @@ const FileInput: React.FC<FileInputProps> = ({
                 document.getElementById(id)?.click()
               }}
             >
-              <Plus size={16} />
+              <Plus className="w-4 h-4 mr-2" />
+              Add File
             </Button>
           </div>
         )}
@@ -227,7 +216,7 @@ const FileInput: React.FC<FileInputProps> = ({
             isUploading && 'opacity-50'
           )}
         >
-          <div className="text-xs text-center text-subtle w-full">
+          <div className="text-xs text-center text-muted-foreground w-full">
             {fileTypes && fileTypes.length > 0
               ? `${fileTypes
                   .map((type) => `.${type}`)
@@ -237,23 +226,25 @@ const FileInput: React.FC<FileInputProps> = ({
         </div>
       </div>
     )
+
   let hintElement = null
   if (typeof hint === 'string') {
     hintElement = (
-      <div className="text-xs text-subtle mt-1">{hint}</div>
+      <div className="text-xs text-muted-foreground mt-1">{hint}</div>
     )
   } else if (React.isValidElement(hint)) {
     hintElement = hint
   }
+
   return (
     <div className={className}>
       {label && <Label className="mb-1">{label}</Label>}
       <div
-        className={core.cn(
-          'w-full min-w-[320px] relative flex flex-col items-center gap-1 p-4 rounded-radius-md border-2 border-stroke-subtle border-dashed cursor-pointer transition-colors duration-200 hover:border-primary',
-          isDragging && 'border-primary bg-container-high',
+        className={cn(
+          'w-full min-w-[320px] relative flex flex-col items-center gap-1 p-4 rounded-lg border-2 border-muted border-dashed cursor-pointer transition-colors duration-200 hover:border-primary',
+          isDragging && 'border-primary bg-card',
           uploadedFiles.length > 0 &&
-            'border-solid border-stroke-subtle border'
+            'border-solid border-muted border'
         )}
         onClick={() => document.getElementById(id)?.click()}
         onDragOver={(e) => {
@@ -262,20 +253,16 @@ const FileInput: React.FC<FileInputProps> = ({
           setIsDragging(true)
         }}
         onDragLeave={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
           setIsDragging(false)
         }}
         onDrop={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          setIsDragging(false)
           const files = e.dataTransfer.files
           if (files && files.length > 0) {
             handleFileChange({
               target: { files },
             } as React.ChangeEvent<HTMLInputElement>)
           }
+          setIsDragging(false)
         }}
       >
         <div className="w-full relative flex flex-col items-center gap-3">

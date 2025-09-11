@@ -11,8 +11,8 @@ export default function MenuItem({
 }) {
   return (
     <button
-      className={`bg-transparent border-none rounded-[0.4rem] text-white cursor-pointer h-7 mr-1 p-1 w-7 hover:bg-[#303030] ${
-        isActive && isActive() ? 'bg-[#303030]' : ''
+      className={`bg-transparent border-none rounded-[0.4rem] text-foreground cursor-pointer h-7 mr-1 p-1 w-7 hover:bg-accent ${
+        isActive && isActive() ? 'bg-accent' : ''
       }`}
       onClick={action}
       title={title}

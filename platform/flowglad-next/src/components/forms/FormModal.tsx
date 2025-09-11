@@ -9,12 +9,25 @@ import {
   UseFormReturn,
 } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
-import Modal, { ModalInterfaceProps } from '../ion/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+
+export interface ModalInterfaceProps {
+  isOpen: boolean
+  setIsOpen: (open: boolean) => void
+}
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { cn } from '@/lib/utils'
 import core from '@/utils/core'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useState, useCallback } from 'react'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
   Drawer,
@@ -142,14 +155,14 @@ export const NestedFormModal = <T extends FieldValues>({
 
   const innerContent = (
     <div
-      className={core.cn(
+      className={cn(
         'transition-opacity duration-200',
         isOpen ? 'opacity-100' : 'opacity-0'
       )}
     >
       {shouldRenderContent && (
         <>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1">
             <div className="w-full min-w-[460px]">
               <div className="flex-1 w-full flex flex-col justify-center gap-6">
                 {children}
@@ -165,22 +178,22 @@ export const NestedFormModal = <T extends FieldValues>({
   )
 
   return (
-    <Modal
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      title={title}
-      className={core.cn(
-        'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
-        extraWide && 'w-full'
-      )}
-      onClose={core.noOp}
-      footer={footer}
-      wide={wide}
-      extraWide={extraWide}
-      headerAlignment="center"
-    >
-      {innerContent}
-    </Modal>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent
+        className={cn(
+          'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
+          extraWide && 'w-full',
+          wide && 'max-w-5xl',
+          !wide && !extraWide && 'max-w-xl'
+        )}
+      >
+        <DialogHeader className="text-center">
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1">{innerContent}</div>
+        {footer && <DialogFooter>{footer}</DialogFooter>}
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -211,7 +224,7 @@ const FormModal = <T extends FieldValues>({
     reset,
   } = form
 
-  const hardResetFormValues = () => {
+  const hardResetFormValues = useCallback(() => {
     form.reset(defaultValues, {
       keepDefaultValues: true,
       keepIsSubmitted: false,
@@ -220,7 +233,7 @@ const FormModal = <T extends FieldValues>({
       keepValues: false,
       keepTouched: false,
     })
-  }
+  }, [form, defaultValues])
 
   const shouldRenderContent = useShouldRenderContent({
     isOpen,
@@ -253,14 +266,14 @@ const FormModal = <T extends FieldValues>({
 
   const innerContent = (
     <div
-      className={core.cn(
+      className={cn(
         'transition-opacity duration-200',
         isOpen ? 'opacity-100' : 'opacity-0'
       )}
     >
       {shouldRenderContent && (
         <>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1">
             <div className="w-full min-w-[460px]">
               <div className="flex-1 w-full flex flex-col justify-center gap-6">
                 {children}
@@ -276,22 +289,24 @@ const FormModal = <T extends FieldValues>({
   )
 
   let content = (
-    <Modal
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      title={title}
-      className={core.cn(
-        'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
-        extraWide && 'w-full'
-      )}
-      onClose={hardResetFormValues}
-      footer={hideFooter ? null : footer}
-      wide={wide}
-      extraWide={extraWide}
-      headerAlignment="center"
-    >
-      {innerContent}
-    </Modal>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent
+        className={cn(
+          'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
+          extraWide && 'w-full',
+          wide && 'max-w-5xl',
+          !wide && !extraWide && 'max-w-xl'
+        )}
+      >
+        <DialogHeader className="text-center">
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1">{innerContent}</div>
+        {!hideFooter && footer && (
+          <DialogFooter>{footer}</DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 
   if (mode === 'drawer') {
@@ -302,13 +317,11 @@ const FormModal = <T extends FieldValues>({
         direction="right"
       >
         <DrawerContent className="h-full flex flex-col">
-          <DrawerHeader className="sticky top-0 z-10 bg-background border-b border-stroke-subtle px-6 py-4">
+          <DrawerHeader className="sticky top-0 z-10 bg-background border-b border-muted px-6 py-4">
             <DrawerTitle>{title}</DrawerTitle>
           </DrawerHeader>
-          <div className="flex-1 overflow-y-auto px-6 py-5">
-            {innerContent}
-          </div>
-          <div className="sticky bottom-0 z-10 bg-background border-t border-stroke-subtle px-6 py-4">
+          <div className="flex-1 px-6 py-5">{innerContent}</div>
+          <div className="sticky bottom-0 z-10 bg-background border-t border-muted px-6 py-4">
             {hideFooter ? null : footer}
           </div>
         </DrawerContent>
@@ -340,7 +353,7 @@ const FormModal = <T extends FieldValues>({
             })
           }
         })}
-        className={core.cn(isOpen && 'flex-1 overflow-y-auto')}
+        className={cn(isOpen && 'flex-1')}
         id={id}
       >
         {content}

@@ -56,7 +56,10 @@ export default defineConfig({
     Sentry.init({
       defaultIntegrations: false,
       dsn: process.env.SENTRY_DSN,
-      environment: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+      environment:
+        process.env.NODE_ENV === 'production'
+          ? 'production'
+          : 'development',
     })
   },
   onFailure: async ({ payload, error, ctx }) => {

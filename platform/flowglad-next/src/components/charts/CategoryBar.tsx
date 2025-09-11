@@ -9,7 +9,7 @@ import {
   AvailableChartColorsKeys,
   getColorClassName,
 } from '@/utils/chartStyles'
-import { cx } from '@/utils/core'
+import { cn } from '@/lib/utils'
 
 import { Tooltip } from './Tooltip'
 
@@ -64,7 +64,7 @@ const BarLabels = ({ values }: { values: number[] }) => {
 
   return (
     <div
-      className={cx(
+      className={cn(
         // base
         'relative mb-2 flex h-5 w-full text-sm font-medium',
         // text color
@@ -97,7 +97,7 @@ const BarLabels = ({ values }: { values: number[] }) => {
             style={{ width: `${widthPositionLeft}%` }}
           >
             <span
-              className={cx(
+              className={cn(
                 showLabel ? 'block' : 'hidden',
                 'translate-x-1/2 text-sm tabular-nums'
               )}
@@ -169,7 +169,7 @@ const CategoryBar = React.forwardRef<
     return (
       <div
         ref={forwardedRef}
-        className={cx(className)}
+        className={cn(className)}
         aria-label="category bar"
         aria-valuenow={marker?.value}
         tremor-id="tremor-raw"
@@ -184,7 +184,7 @@ const CategoryBar = React.forwardRef<
               return (
                 <div
                   key={`item-${index}`}
-                  className={cx(
+                  className={cn(
                     'h-full',
                     getColorClassName(
                       barColor as AvailableChartColorsKeys,
@@ -200,7 +200,7 @@ const CategoryBar = React.forwardRef<
 
           {marker !== undefined ? (
             <div
-              className={cx(
+              className={cn(
                 'absolute w-2 -translate-x-1/2',
                 marker.showAnimation &&
                   'transform-gpu transition-all duration-300 ease-in-out'
@@ -213,7 +213,7 @@ const CategoryBar = React.forwardRef<
                 <Tooltip triggerAsChild content={marker.tooltip}>
                   <div
                     aria-hidden="true"
-                    className={cx(
+                    className={cn(
                       'relative mx-auto h-4 w-1 rounded-full ring-2',
                       'ring-white dark:ring-gray-950',
                       markerBgColor
@@ -227,7 +227,7 @@ const CategoryBar = React.forwardRef<
                 </Tooltip>
               ) : (
                 <div
-                  className={cx(
+                  className={cn(
                     'mx-auto h-4 w-1 rounded-full ring-2',
                     'ring-white dark:ring-gray-950',
                     markerBgColor

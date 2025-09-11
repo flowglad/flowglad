@@ -7,7 +7,7 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import core from '@/utils/core'
 import { RevenueChartIntervalUnit } from '@/types'
 import { trpc } from '@/app/_trpc/client'
-import { FallbackSkeleton, Skeleton } from './ui/skeleton'
+import { Skeleton } from './ui/skeleton'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { LineChart } from './charts/LineChart'
 
@@ -49,6 +49,18 @@ export const RecurringRevenueChart = ({
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
+
+  // Use useRef to store tooltip data during render, then update state after render
+  const pendingTooltipData =
+    React.useRef<TooltipCallbackProps | null>(null)
+
+  // Use useEffect to safely update tooltip state after render
+  React.useEffect(() => {
+    if (pendingTooltipData.current !== null) {
+      setTooltipData(pendingTooltipData.current)
+      pendingTooltipData.current = null
+    }
+  })
   const defaultCurrency = organization?.defaultCurrency
   const chartData = React.useMemo(() => {
     if (!mrrData) return []
@@ -112,25 +124,26 @@ export const RecurringRevenueChart = ({
   return (
     <div className="w-full h-full">
       <div className="flex flex-row gap-2 justify-between">
-        <div className="text-sm text-gray-700 dark:text-gray-300 w-fit flex items-center flex-row">
+        <div className="text-sm text-muted-foreground w-fit flex items-center flex-row">
           <p className="whitespace-nowrap">MRR</p>
         </div>
       </div>
 
       <div className="mt-2">
-        <FallbackSkeleton
-          showSkeleton={isLoading}
-          className="w-36 h-12"
-        >
-          <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-            {formattedMRRValue}
-          </p>
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            {isTooltipLabelDate
-              ? core.formatDate(new Date(tooltipLabel as string))
-              : core.formatDateRange({ fromDate, toDate })}
-          </p>
-        </FallbackSkeleton>
+        {isLoading ? (
+          <Skeleton className="w-36 h-12" />
+        ) : (
+          <>
+            <p className="text-xl font-semibold text-foreground">
+              {formattedMRRValue}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {isTooltipLabelDate
+                ? core.formatDate(new Date(tooltipLabel as string))
+                : core.formatDateRange({ fromDate, toDate })}
+            </p>
+          </>
+        )}
       </div>
       {isLoading ? (
         <div className="-mb-2 mt-8 flex items-center">
@@ -142,7 +155,7 @@ export const RecurringRevenueChart = ({
           index="date"
           categories={['revenue']}
           className="-mb-2 mt-8"
-          colors={['amber']}
+          colors={['foreground']}
           customTooltip={RevenueTooltip}
           maxValue={maxValue}
           autoMinValue={false}
@@ -162,13 +175,14 @@ export const RecurringRevenueChart = ({
             )
           }
           tooltipCallback={(props: any) => {
+            // Store tooltip data in ref during render, useEffect will update state safely
             if (props.active) {
-              setTooltipData((prev) => {
-                if (prev?.label === props.label) return prev
-                return props
-              })
+              // Only update if the data is different to prevent unnecessary re-renders
+              if (tooltipData?.label !== props.label) {
+                pendingTooltipData.current = props
+              }
             } else {
-              setTooltipData(null)
+              pendingTooltipData.current = null
             }
           }}
         />

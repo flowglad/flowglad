@@ -5,7 +5,7 @@ import debounce from 'debounce'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import Hint from './ion/Hint'
+import { FormDescription, FormMessage } from '@/components/ui/form'
 import { CheckoutFlowType } from '@/types'
 import {
   Form,
@@ -129,7 +129,7 @@ export default function DiscountCodeInput() {
         form.setValue('discountCode', '')
       }}
       variant="ghost"
-      className="px-0 hover:bg-transparent focus-visible:ring-0 text-muted-foreground"
+      className="px-0 hover:bg-transparent focus-visible:ring-0 text-gray-600 hover:text-gray-800"
       disabled={!discount}
     >
       Clear
@@ -141,7 +141,7 @@ export default function DiscountCodeInput() {
       onClick={form.handleSubmit(attemptHandler)}
       disabled={discountCodeStatus === 'loading'}
       variant="ghost"
-      className="px-0 hover:bg-transparent focus-visible:ring-0 text-muted-foreground"
+      className="px-0 hover:bg-transparent focus-visible:ring-0 text-gray-600 hover:text-gray-800"
     >
       Apply
     </Button>
@@ -150,7 +150,12 @@ export default function DiscountCodeInput() {
   return (
     <Form {...form}>
       <div className="flex flex-col gap-1 w-full">
-        <Label htmlFor="discountCode">Discount Code</Label>
+        <Label
+          htmlFor="discountCode"
+          className="text-[#0a0a0a] text-[14px] font-medium"
+        >
+          Discount Code
+        </Label>
         <div className="flex flex-row gap-2 w-full">
           <div className="flex-1">
             <FormField
@@ -159,41 +164,49 @@ export default function DiscountCodeInput() {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input
-                      id="discountCode"
-                      className="h-11 bg-[#353535] focus-visible:bg-[#353535] border-none"
-                      autoCapitalize="characters"
-                      iconTrailing={
-                        discount
+                    <div className="relative">
+                      <Input
+                        id="discountCode"
+                        className="pr-12 border border-[#e5e7eb] bg-[#ffffff] text-[#0a0a0a] rounded-[8px] px-4 py-4 text-[14px] min-h-[44.39px] shadow-[0px_1px_1px_0px_rgba(10,10,11,0.06)] focus-visible:border-[#3b82f6] focus-visible:shadow-[0px_0px_0px_1px_inset_rgba(59,130,246,0.16)]"
+                        autoCapitalize="characters"
+                        {...field}
+                        onChange={(e) => {
+                          const code = e.target.value.toUpperCase()
+                          field.onChange(code)
+                        }}
+                        onBlur={async (e) => {
+                          field.onBlur()
+                          const code = e.target.value.trim()
+                          if (
+                            code &&
+                            code !== discount?.code &&
+                            debouncedAttemptHandler
+                          ) {
+                            debouncedAttemptHandler({
+                              discountCode: code,
+                            })
+                          }
+                        }}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {discount
                           ? clearDiscountCodeButton
-                          : applyDiscountCodeButton
-                      }
-                      {...field}
-                      onChange={(e) => {
-                        const code = e.target.value.toUpperCase()
-                        field.onChange(code)
-                      }}
-                      onBlur={async (e) => {
-                        field.onBlur()
-                        const code = e.target.value.trim()
-                        if (
-                          code &&
-                          code !== discount?.code &&
-                          debouncedAttemptHandler
-                        ) {
-                          debouncedAttemptHandler({
-                            discountCode: code,
-                          })
-                        }
-                      }}
-                    />
+                          : applyDiscountCodeButton}
+                      </div>
+                    </div>
                   </FormControl>
                 </FormItem>
               )}
             />
           </div>
         </div>
-        <Hint error={discountCodeStatus === 'error'}>{hint}</Hint>
+        {hint && (
+          <div
+            className={`text-sm ${discountCodeStatus === 'error' ? 'text-red-600' : 'text-gray-600'}`}
+          >
+            {hint}
+          </div>
+        )}
       </div>
     </Form>
   )

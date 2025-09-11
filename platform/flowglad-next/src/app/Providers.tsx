@@ -5,6 +5,7 @@ import type { AuthContextValues } from '../contexts/authContext'
 import AuthProvider from '../contexts/authContext'
 import TrpcProvider from '@/app/_trpc/Provider'
 import PostHogPageView from './PostHogPageview'
+import { ThemeProvider } from '@/components/theme-provider'
 import FeaturebaseMessenger from './FeaturebaseMessenger'
 import { usePathname } from 'next/navigation'
 if (typeof window !== 'undefined') {
@@ -25,16 +26,26 @@ export default function Providers({
   isPublicRoute?: boolean
 }) {
   const pathname = usePathname()
-  const isBillingPortal = Boolean(pathname?.startsWith('/billing-portal'))
+  const isBillingPortal = Boolean(
+    pathname?.startsWith('/billing-portal')
+  )
   return (
-    <TrpcProvider>
-      <AuthProvider values={authContext}>
-        <PostHogProvider client={posthog}>
-          <PostHogPageView user={authContext.user} />
-          {/* {!isPublicRoute && !isBillingPortal && <FeaturebaseMessenger />} */}
-          {children}
-        </PostHogProvider>
-      </AuthProvider>
-    </TrpcProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+      storageKey="flowglad-theme"
+    >
+      <TrpcProvider>
+        <AuthProvider values={authContext}>
+          <PostHogProvider client={posthog}>
+            <PostHogPageView user={authContext.user} />
+            {/* {!isPublicRoute && !isBillingPortal && <FeaturebaseMessenger />} */}
+            {children}
+          </PostHogProvider>
+        </AuthProvider>
+      </TrpcProvider>
+    </ThemeProvider>
   )
 }
