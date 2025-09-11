@@ -55,7 +55,9 @@ export const usersUpdateSchema = usersInsertSchema.partial().extend({
   id: z.string(),
 })
 
-export type UserInsert = z.infer<typeof usersInsertSchema>
-export type UserUpdate = z.infer<typeof usersUpdateSchema>
-export type UserRecord = z.infer<typeof usersSelectSchema>
-export type Where = SelectConditions<typeof users>
+export namespace User {
+  export type Insert = z.infer<typeof usersInsertSchema>
+  export type Update = z.infer<typeof usersUpdateSchema>
+  export type Record = z.infer<typeof usersSelectSchema>
+  export type Where = SelectConditions<typeof users>
+}

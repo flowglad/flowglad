@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import Table from '@/components/ion/Table'
 import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
-import { UserRecord } from '@/db/schema/users'
+import { User } from '@/db/schema/users'
 import { Membership } from '@/db/schema/memberships'
 import TableTitle from '@/components/ion/TableTitle'
 import { Plus } from 'lucide-react'
@@ -12,7 +12,7 @@ import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 type OrganizationMembersTableProps = {
   loading?: boolean
-  data?: { user: UserRecord; membership: Membership.ClientRecord }[]
+  data?: { user: User.Record; membership: Membership.ClientRecord }[]
 }
 
 const OrganizationMembersTable = ({
@@ -30,7 +30,7 @@ const OrganizationMembersTable = ({
     isFetching,
   } = usePaginatedTableState<
     {
-      user: UserRecord
+      user: User.Record
       membership: Membership.ClientRecord
     },
     {}
@@ -66,7 +66,7 @@ const OrganizationMembersTable = ({
           ),
         },
       ] as ColumnDef<{
-        user: UserRecord
+        user: User.Record
         membership: Membership.ClientRecord
       }>[],
     []

@@ -23,7 +23,7 @@ import {
   setupBillingRun,
   setupBillingPeriodItem,
   setupPaymentMethod,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 
 // Helpers to query the database after adjustments
 import { selectSubscriptionItemsAndSubscriptionBySubscriptionId } from '@/db/tableMethods/subscriptionItemMethods'

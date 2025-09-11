@@ -7,10 +7,10 @@ import Providers from './Providers'
 import { cn } from '@/utils/core'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { User } from '@/db/schema/users'
 import {
   insertUser,
   selectUsers,
-  UserRecord,
 } from '@/db/tableMethods/userMethods'
 import {
   Organization,
@@ -37,7 +37,8 @@ export default async function RootLayout({
   // The preview routes will handle their own complete HTML structure
   const headersList = await headers()
   const pathname = headersList.get('x-pathname') || ''
-  const isPublicRoute = headersList.get('x-is-public-route') === 'true'
+  const isPublicRoute =
+    headersList.get('x-is-public-route') === 'true'
 
   // For preview routes, skip the root layout entirely
   if (pathname.includes('/preview-ui')) {
@@ -47,7 +48,7 @@ export default async function RootLayout({
   const session = await getSession()
   let organization: Organization.ClientRecord | undefined = undefined
   let livemode: boolean = true
-  let user: UserRecord | undefined = undefined
+  let user: User.Record | undefined = undefined
   if (session) {
     user = await betterAuthUserToApplicationUser(session.user)
     const [membershipData] = await adminTransaction(

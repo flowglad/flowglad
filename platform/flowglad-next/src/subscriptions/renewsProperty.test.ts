@@ -15,7 +15,7 @@ import {
   setupProductFeature,
   setupSubscriptionItemFeature,
   setupUsageCredit,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
