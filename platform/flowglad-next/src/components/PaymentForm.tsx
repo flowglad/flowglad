@@ -82,16 +82,18 @@ const AuthenticationElement = ({
   onReady: LinkAuthenticationElementProps['onReady']
   isSessionOpen: boolean
 }) => {
-  // Only apply readonly styling and interaction blocking when session is NOT open
-  // For new checkout sessions (Open), always allow editing even with previous email
+  // FIXED LOGIC: Only apply readonly styling when session is NOT open
+  // For new checkout sessions (Open), always allow editing regardless of readonlyCustomerEmail
   const isReadonly = !isSessionOpen
 
-  // Debug logging to understand the values
-  console.log('🔍 AuthenticationElement Debug:', {
+  console.log('✅ AuthenticationElement Fixed:', {
     readonlyCustomerEmail,
     isSessionOpen,
     isReadonly,
     willApplyOpacity: isReadonly,
+    scenario: isSessionOpen
+      ? 'NEW_SESSION_EDITABLE'
+      : 'COMPLETED_SESSION_READONLY',
   })
 
   const preventInteraction = isReadonly
@@ -122,13 +124,19 @@ const AuthenticationElement = ({
         onChange={onChange}
         onReady={onReady}
         className={(() => {
-          // TEMPORARY: Remove opacity styling completely to test
-          const computedClassName = cn(className) // Removed: isReadonly && 'opacity-50'
-          console.log('🔍 ClassName Debug (OPACITY DISABLED):', {
+          // FIXED: Re-enable opacity with corrected logic
+          const computedClassName = cn(
+            className,
+            isReadonly && 'opacity-50'
+          )
+          console.log('✅ ClassName Fixed:', {
             baseClassName: className,
             isReadonly,
-            opacityClass: 'DISABLED FOR TESTING',
+            opacityClass: isReadonly ? 'opacity-50' : 'none',
             finalClassName: computedClassName,
+            explanation: isReadonly
+              ? 'Session closed - readonly'
+              : 'Session open - editable',
           })
           return computedClassName
         })()}
@@ -406,12 +414,14 @@ const PaymentForm = () => {
             isSessionOpen={(() => {
               const isOpen =
                 checkoutSession.status === CheckoutSessionStatus.Open
-              console.log('🔍 Session Status Debug:', {
+              console.log('✅ Session Status Fixed:', {
                 checkoutSessionId: checkoutSession.id,
                 status: checkoutSession.status,
                 expectedStatus: CheckoutSessionStatus.Open,
                 isOpen,
                 readonlyCustomerEmail,
+                statusComparison: `"${checkoutSession.status}" === "${CheckoutSessionStatus.Open}"`,
+                issue: !isOpen ? 'STATUS_NOT_OPEN' : 'STATUS_IS_OPEN',
               })
               return isOpen
             })()}
