@@ -22,7 +22,6 @@ export const unkey = () =>
 export const verifyApiKey = async (apiKey: string) => {
   const cachedVerificationResult =
     await getApiKeyVerificationResult(apiKey)
-  console.log('attempting to check cachedVerificationResult.....')
   if (cachedVerificationResult) {
     return cachedVerificationResult
   }
