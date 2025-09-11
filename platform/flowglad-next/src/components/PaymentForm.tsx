@@ -365,7 +365,10 @@ const PaymentForm = () => {
             readonlyCustomerEmail={readonlyCustomerEmail}
             onChange={async (event) => {
               // Simplified: Always allow editing since we only show checkout pages for Open sessions
-              if (event.complete) {
+              if (
+                event.complete &&
+                checkoutSession.status === CheckoutSessionStatus.Open
+              ) {
                 const parseResult = z
                   .string()
                   .email()
