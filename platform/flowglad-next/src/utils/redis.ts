@@ -69,6 +69,13 @@ type ApiKeyVerificationResult = z.infer<
 >
 
 const redis = () => {
+  if (core.IS_TEST) {
+    return {
+      get: () => null,
+      set: () => null,
+      del: () => null,
+    }
+  }
   return new Redis({
     url: core.envVariable('UPSTASH_REDIS_REST_URL'),
     token: core.envVariable('UPSTASH_REDIS_REST_TOKEN'),
