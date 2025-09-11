@@ -20,6 +20,7 @@ import {
 import { Organization } from '@/db/schema/organizations'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { deleteApiKeyVerificationResult } from './redis'
 
 export const createSecretApiKeyTransaction = async (
   input: CreateApiKeyInput,
@@ -98,6 +99,11 @@ export const rotateSecretApiKeyTransaction = async (
     apiKeyInsert,
     transaction
   )
+
+  await deleteApiKeyVerificationResult({
+    hashText: existingApiKey.hashText ?? '',
+  })
+
   return {
     newApiKey: {
       ...newApiKeyRecord,

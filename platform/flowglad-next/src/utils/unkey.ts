@@ -1,4 +1,4 @@
-import { Unkey } from '@unkey/api'
+import { Unkey, verifyKey } from '@unkey/api'
 import core from './core'
 import { Organization } from '@/db/schema/organizations'
 import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
@@ -8,6 +8,11 @@ import {
   secretApiKeyMetadataSchema,
   apiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'
+import {
+  getApiKeyVerificationResult,
+  setApiKeyVerificationResult,
+} from './redis'
+import { hashData } from './backendCore'
 
 export const unkey = () =>
   new Unkey({
@@ -15,19 +20,17 @@ export const unkey = () =>
   })
 
 export const verifyApiKey = async (apiKey: string) => {
-  const { result, error } = await unkey().keys.verify({
-    apiId: core.envVariable('UNKEY_API_ID'),
+  const cachedVerificationResult =
+    await getApiKeyVerificationResult(apiKey)
+  if (cachedVerificationResult) {
+    return cachedVerificationResult
+  }
+  const verificationResult = await verifyKey({
     key: apiKey,
+    apiId: core.envVariable('UNKEY_API_ID'),
   })
-  if (error) {
-    throw error
-  }
-  return {
-    keyId: result.keyId,
-    valid: result.valid,
-    ownerId: result.ownerId,
-    environment: result.environment as ApiEnvironment,
-  }
+  await setApiKeyVerificationResult(apiKey, verificationResult)
+  return verificationResult
 }
 
 export interface StandardCreateApiKeyParams {
@@ -105,6 +108,7 @@ export const createSecretApiKey = async (
       unkeyId: result.keyId,
       type: FlowgladApiKeyType.Secret,
       expiresAt: params.expiresAt,
+      hashText: hashData(result.key),
     },
     shownOnlyOnceKey: result.key,
   }

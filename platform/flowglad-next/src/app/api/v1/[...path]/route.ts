@@ -4,7 +4,7 @@ import {
 } from '@trpc/server/adapters/fetch'
 import { appRouter } from '@/server'
 import { createApiContext } from '@/server/trpcContext'
-import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs'
+import { NextRequestWithUnkeyContext } from '@unkey/nextjs'
 import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
 import { NextResponse } from 'next/server'
 import { trpcToRest, RouteConfig } from '@/utils/openapi'
@@ -31,10 +31,15 @@ import {
   refundPaymentRouteConfig,
 } from '@/server/routers/paymentsRouter'
 import core from '@/utils/core'
-import { parseUnkeyMeta } from '@/utils/unkey'
+import { parseUnkeyMeta, verifyApiKey } from '@/utils/unkey'
 import { featuresRouteConfigs } from '@/server/routers/featuresRouter'
 import { productFeaturesRouteConfigs } from '@/server/routers/productFeaturesRouter'
 import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
+import { headers } from 'next/headers'
+
+interface FlowgladRESTRouteContext {
+  params: Promise<{ path: string[] }>
+}
 
 const parseErrorMessage = (rawMessage: string) => {
   let parsedMessage = rawMessage
@@ -108,7 +113,7 @@ type TRPCResponse =
 
 const innerHandler = async (
   req: NextRequestWithUnkeyContext,
-  { params }: { params: Promise<{ path: string[] }> }
+  { params }: FlowgladRESTRouteContext
 ) => {
   const tracer = trace.getTracer('rest-api')
   return tracer.startActiveSpan(
@@ -257,9 +262,47 @@ const innerHandler = async (
   )
 }
 
+const withVerification = (
+  handler: (
+    req: NextRequestWithUnkeyContext,
+    context: FlowgladRESTRouteContext
+  ) => Promise<Response>
+): ((
+  req: NextRequestWithUnkeyContext,
+  context: FlowgladRESTRouteContext
+) => Promise<Response>) => {
+  return async (
+    req: NextRequestWithUnkeyContext,
+    context: FlowgladRESTRouteContext
+  ) => {
+    const headerSet = await headers()
+    const authorizationHeader = headerSet.get('Authorization')
+    if (!authorizationHeader) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+    const apiKey = authorizationHeader.split(' ')[1]
+    if (!apiKey) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+    const { result } = await verifyApiKey(apiKey)
+    if (!result) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+    if (!result?.valid) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    const reqWithUnkey = Object.assign(req, {
+      unkey: result,
+    })
+
+    return handler(reqWithUnkey, context)
+  }
+}
+
 const handlerWrapper = core.IS_TEST
   ? innerHandler
-  : withUnkey(innerHandler)
+  : withVerification(innerHandler)
 
 const handler = handlerWrapper
 

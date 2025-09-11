@@ -1,0 +1,41 @@
+ALTER TABLE "api_keys" ADD COLUMN "hash_text" text;--> statement-breakpoint
+ALTER POLICY "Check mode" ON "api_keys" RENAME TO "Check mode (api_keys)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "billing_period_items" RENAME TO "Check mode (billing_period_items)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "billing_periods" RENAME TO "Check mode (billing_periods)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "billing_runs" RENAME TO "Check mode (billing_runs)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "checkout_sessions" RENAME TO "Enable select for customer";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "customers" RENAME TO "Check mode (customers)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "discount_redemptions" RENAME TO "Check mode (discount_redemptions)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "discounts" RENAME TO "Check mode (discounts)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "events" RENAME TO "Check mode (events)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "features" RENAME TO "Check mode (features)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "fee_calculations" RENAME TO "Check mode (fee_calculations)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "files" RENAME TO "Check mode (files)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "invoice_line_items" RENAME TO "Check mode (invoice_line_items)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "invoices" RENAME TO "Check mode (invoices)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "ledger_accounts" RENAME TO "Check mode (ledger_accounts)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "ledger_entries" RENAME TO "Check mode (ledger_entries)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "ledger_transactions" RENAME TO "Check mode (ledger_transactions)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "links" RENAME TO "Check mode (links)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "messages" RENAME TO "Check mode (messages)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "payment_methods" RENAME TO "Check mode (payment_methods)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "payments" RENAME TO "Check mode (payments)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "prices" RENAME TO "Check mode (prices)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "pricing_models" RENAME TO "Check mode (pricing_models)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "product_features" RENAME TO "Check mode (product_features)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "products" RENAME TO "Check mode (products)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "proper_nouns" RENAME TO "Check mode (proper_nouns)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "purchase_access_sessions" RENAME TO "Check mode (purchase_access_sessions)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "purchases" RENAME TO "Check mode (purchases)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "refunds" RENAME TO "Check mode (refunds)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "subscription_item_features" RENAME TO "Check mode (subscription_item_features)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "subscription_items" RENAME TO "Check mode (subscription_items)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "subscription_meter_period_calculations" RENAME TO "Check mode (subscription_meter_period_calculations)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "subscriptions" RENAME TO "Check mode (subscriptions)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "usage_credit_applications" RENAME TO "Check mode (usage_credit_applications)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "usage_credit_balance_adjustments" RENAME TO "Check mode (usage_credit_balance_adjustments)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "usage_credits" RENAME TO "Check mode (usage_credits)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "usage_events" RENAME TO "Check mode (usage_events)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "usage_meters" RENAME TO "Check mode (usage_meters)";--> statement-breakpoint
+ALTER POLICY "Check mode" ON "webhooks" RENAME TO "Check mode (webhooks)";--> statement-breakpoint
+CREATE POLICY "Check mode (checkout_sessions)" ON "checkout_sessions" AS RESTRICTIVE FOR ALL TO "merchant" USING (current_setting('app.livemode')::boolean = livemode);
