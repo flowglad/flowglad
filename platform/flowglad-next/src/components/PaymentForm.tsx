@@ -122,14 +122,12 @@ const AuthenticationElement = ({
         onChange={onChange}
         onReady={onReady}
         className={(() => {
-          const computedClassName = cn(
-            className,
-            isReadonly && 'opacity-50'
-          )
-          console.log('🔍 ClassName Debug:', {
+          // TEMPORARY: Remove opacity styling completely to test
+          const computedClassName = cn(className) // Removed: isReadonly && 'opacity-50'
+          console.log('🔍 ClassName Debug (OPACITY DISABLED):', {
             baseClassName: className,
             isReadonly,
-            opacityClass: isReadonly && 'opacity-50',
+            opacityClass: 'DISABLED FOR TESTING',
             finalClassName: computedClassName,
           })
           return computedClassName
