@@ -13,21 +13,11 @@ import {
 import { FlowgladApiKeyType } from '@/types'
 import { CreateApiKeyInput } from '@/db/schema/apiKeys'
 import { Organization } from '@/db/schema/organizations'
-import { User } from '@stackframe/stack'
-import {
-  insertCustomer,
-  updateCustomer,
-} from '@/db/tableMethods/customerMethods'
-import { insertApiKey } from '@/db/tableMethods/apiKeyMethods'
-import {
-  insertOrganization,
-  updateOrganization,
-} from '@/db/tableMethods/organizationMethods'
-import {
-  insertMembership,
-  updateMembership,
-} from '@/db/tableMethods/membershipMethods'
+import { updateCustomer } from '@/db/tableMethods/customerMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { updateMembership } from '@/db/tableMethods/membershipMethods'
 import { nanoid } from './core'
+import { User } from '@/db/schema/users'
 
 describe('apiKeyHelpers', () => {
   let organization: Organization.Record
@@ -250,7 +240,7 @@ describe('apiKeyHelpers', () => {
       const params = {
         organizationId: organization.id,
         livemode: customer.livemode,
-        user: { id: newId } as Pick<User, 'id'>,
+        user: { id: newId } as Pick<User.Record, 'id'>,
       }
       const result = await adminTransaction(
         async ({ transaction }) => {
