@@ -10,7 +10,7 @@ describe('OrderReceiptEmail', () => {
     orderDate: '2024-03-20',
     organizationLogoUrl: 'https://example.com/logo.png',
     organizationId: 'org_123',
-    customerExternalId: 'cus_456',
+    customerId: 'cus_456',
     lineItems: [
       {
         name: 'Test Product',
@@ -120,10 +120,9 @@ describe('OrderReceiptEmail', () => {
     )
 
     const button = getByTestId('view-order-button')
-    const expectedUrl = core.billingPortalPageURL({
+    const expectedUrl = core.customerBillingPortalURL({
       organizationId: mockProps.organizationId,
-      customerExternalId: mockProps.customerExternalId,
-      page: 'sign-in',
+      customerId: mockProps.customerId,
     })
 
     expect(button).toHaveAttribute('href', expectedUrl)

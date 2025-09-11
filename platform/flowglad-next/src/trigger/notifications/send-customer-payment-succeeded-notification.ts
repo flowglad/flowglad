@@ -79,7 +79,7 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
       organizationName: organization.name,
       to: [customer.email],
       organizationId: organization.id,
-      customerExternalId: customer.externalId,
+      customerId: customer.id,
       replyTo: orgAndFirstMember?.user.email ?? null,
     })
 

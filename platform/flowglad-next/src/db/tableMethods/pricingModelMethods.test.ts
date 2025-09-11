@@ -127,6 +127,56 @@ describe('safelyUpdatePricingModel', () => {
     )
     expect(refreshedPricingModelA.isDefault).toBe(false)
   })
+
+  it('should not affect default pricingModels across livemode boundaries when updating', async () => {
+    // Create a test mode (livemode: false) default pricing model for the same organization
+    const testModePricingModel = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Test Mode Default PricingModel',
+      isDefault: true,
+      livemode: false,
+    })
+
+    // Verify we have two default pricing models - one for each livemode
+    expect(pricingModelA.isDefault).toBe(true)
+    expect(pricingModelA.livemode).toBe(true)
+    expect(testModePricingModel.isDefault).toBe(true)
+    expect(testModePricingModel.livemode).toBe(false)
+
+    // Make pricingModelB (livemode: true) the new default
+    await adminTransaction(async ({ transaction }) => {
+      await safelyUpdatePricingModel(
+        { id: pricingModelB.id, isDefault: true },
+        transaction
+      )
+    })
+
+    // Check that only the livemode: true default was affected
+    const refreshedPricingModelA = await adminTransaction(
+      async ({ transaction }) =>
+        selectPricingModelById(pricingModelA.id, transaction)
+    )
+    const refreshedPricingModelB = await adminTransaction(
+      async ({ transaction }) =>
+        selectPricingModelById(pricingModelB.id, transaction)
+    )
+    const refreshedTestModePricingModel = await adminTransaction(
+      async ({ transaction }) =>
+        selectPricingModelById(testModePricingModel.id, transaction)
+    )
+
+    // pricingModelB should now be the default for livemode: true
+    expect(refreshedPricingModelB.isDefault).toBe(true)
+    expect(refreshedPricingModelB.livemode).toBe(true)
+
+    // pricingModelA should no longer be default
+    expect(refreshedPricingModelA.isDefault).toBe(false)
+    expect(refreshedPricingModelA.livemode).toBe(true)
+
+    // Test mode default should remain unchanged
+    expect(refreshedTestModePricingModel.isDefault).toBe(true)
+    expect(refreshedTestModePricingModel.livemode).toBe(false)
+  })
 })
 
 describe('safelyInsertPricingModel', () => {
@@ -220,5 +270,71 @@ describe('safelyInsertPricingModel', () => {
         )
     )
     expect(refreshedOtherOrgPricingModel.isDefault).toBe(true)
+  })
+
+  it('should not affect default pricingModels across livemode boundaries when inserting', async () => {
+    // Create a test mode (livemode: false) default pricing model for the same organization
+    const testModeDefaultPricingModel = await adminTransaction(
+      async ({ transaction }) => {
+        return safelyInsertPricingModel(
+          {
+            name: 'Test Mode Default PricingModel',
+            organizationId: organization.id,
+            isDefault: true,
+            livemode: false,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Verify we have two default pricing models - one for each livemode
+    expect(existingDefaultPricingModel.isDefault).toBe(true)
+    expect(existingDefaultPricingModel.livemode).toBe(true)
+    expect(testModeDefaultPricingModel.isDefault).toBe(true)
+    expect(testModeDefaultPricingModel.livemode).toBe(false)
+
+    // Insert a new default for livemode: true
+    const newLivemodeDefault = await adminTransaction(
+      async ({ transaction }) => {
+        return safelyInsertPricingModel(
+          {
+            name: 'New Live Mode Default PricingModel',
+            organizationId: organization.id,
+            isDefault: true,
+            livemode: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Check that only the livemode: true default was affected
+    const refreshedOldLivemodeDefault = await adminTransaction(
+      async ({ transaction }) =>
+        selectPricingModelById(
+          existingDefaultPricingModel.id,
+          transaction
+        )
+    )
+    const refreshedTestModeDefault = await adminTransaction(
+      async ({ transaction }) =>
+        selectPricingModelById(
+          testModeDefaultPricingModel.id,
+          transaction
+        )
+    )
+
+    // New livemode pricing model should be default
+    expect(newLivemodeDefault.isDefault).toBe(true)
+    expect(newLivemodeDefault.livemode).toBe(true)
+
+    // Old livemode default should no longer be default
+    expect(refreshedOldLivemodeDefault.isDefault).toBe(false)
+    expect(refreshedOldLivemodeDefault.livemode).toBe(true)
+
+    // Test mode default should remain unchanged
+    expect(refreshedTestModeDefault.isDefault).toBe(true)
+    expect(refreshedTestModeDefault.livemode).toBe(false)
   })
 })

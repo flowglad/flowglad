@@ -118,13 +118,21 @@ export const makePricingModelDefault = async (
 }
 
 const setPricingModelsForOrganizationToNonDefault = async (
-  organizationId: string,
+  {
+    organizationId,
+    livemode,
+  }: { organizationId: string; livemode: boolean },
   transaction: DbTransaction
 ) => {
   await transaction
     .update(pricingModels)
     .set({ isDefault: false })
-    .where(eq(pricingModels.organizationId, organizationId))
+    .where(
+      and(
+        eq(pricingModels.organizationId, organizationId),
+        eq(pricingModels.livemode, livemode)
+      )
+    )
   return true
 }
 
@@ -141,7 +149,10 @@ export const safelyUpdatePricingModel = async (
       transaction
     )
     await setPricingModelsForOrganizationToNonDefault(
-      existingPricingModel.organizationId,
+      {
+        organizationId: existingPricingModel.organizationId,
+        livemode: existingPricingModel.livemode,
+      },
       transaction
     )
   }
@@ -154,7 +165,10 @@ export const safelyInsertPricingModel = async (
 ) => {
   if (pricingModel.isDefault) {
     await setPricingModelsForOrganizationToNonDefault(
-      pricingModel.organizationId,
+      {
+        organizationId: pricingModel.organizationId,
+        livemode: pricingModel.livemode,
+      },
       transaction
     )
   }

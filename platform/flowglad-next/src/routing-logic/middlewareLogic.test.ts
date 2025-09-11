@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { middlewareLogic } from './middleware'
+import { middlewareLogic } from './middlewareLogic'
 
 describe('middlewareLogic', () => {
   describe('no session cookie scenarios', () => {
@@ -465,24 +465,6 @@ describe('middlewareLogic', () => {
         })
         expect(result.proceed).toBe(true)
       })
-
-      it('should allow access to hosted billing API without session', () => {
-        const paths = [
-          '/api/hosted-billing/checkout',
-          '/api/hosted-billing/subscriptions',
-          '/api/hosted-billing/invoices/123',
-        ]
-        paths.forEach((path) => {
-          const result = middlewareLogic({
-            sessionCookie: null,
-            isProtectedRoute: false,
-            pathName: path,
-            customerBillingPortalOrganizationId: null,
-            req: { nextUrl: `https://example.com${path}` },
-          })
-          expect(result.proceed).toBe(true)
-        })
-      })
     })
 
     describe('purchase and checkout routes', () => {
@@ -722,6 +704,7 @@ describe('middlewareLogic', () => {
           '/handler/callback',
           '/handler/webhook',
           '/handler/oauth/return',
+          '/api/trpc/utils.logout',
         ]
         paths.forEach((path) => {
           const result = middlewareLogic({

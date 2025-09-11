@@ -37,6 +37,8 @@ export default async function RootLayout({
   // The preview routes will handle their own complete HTML structure
   const headersList = await headers()
   const pathname = headersList.get('x-pathname') || ''
+  const isPublicRoute =
+    headersList.get('x-is-public-route') === 'true'
 
   // For preview routes, skip the root layout entirely
   if (pathname.includes('/preview-ui')) {
@@ -86,6 +88,7 @@ export default async function RootLayout({
             user,
             role,
           }}
+          isPublicRoute={isPublicRoute}
         >
           {/* {!livemode && (
             <div className="h-12 w-full bg-orange-primary-500"></div>
