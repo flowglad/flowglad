@@ -7,7 +7,7 @@ import {
   AddressElement,
   LinkAuthenticationElementProps,
 } from '@stripe/react-stripe-js'
-import { FormEvent, useState } from 'react'
+import { FormEvent, useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import core from '@/utils/core'
 import { Button } from '@/components/ui/button'
@@ -35,6 +35,38 @@ import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
 import { Switch } from '@/components/ui/switch'
+
+// Utility function to force reflow for Stripe iframes to prevent rendering issues
+const forceStripeElementsReflow = () => {
+  // Force reflow on all Stripe Elements containers
+  const stripeElements = document.querySelectorAll(
+    '.StripeElement, [data-testid*="stripe"], iframe[name*="__privateStripe"]'
+  )
+  stripeElements.forEach((element) => {
+    if (element instanceof HTMLElement) {
+      const initialDisplay = element.style.display
+      element.style.display = 'none'
+      element.offsetHeight // Trigger reflow
+      element.style.display = initialDisplay || ''
+    }
+  })
+
+  // Simple reflow for iframe containers - let Appearance API handle styling
+  setTimeout(() => {
+    const iframes = document.querySelectorAll(
+      'iframe[name*="__privateStripe"], iframe[title*="Google autocomplete"]'
+    )
+    iframes.forEach((iframe) => {
+      if (iframe instanceof HTMLElement && iframe.parentElement) {
+        const parent = iframe.parentElement
+        const initialDisplay = parent.style.display
+        parent.style.display = 'none'
+        parent.offsetHeight // Trigger reflow
+        parent.style.display = initialDisplay || ''
+      }
+    })
+  }, 100)
+}
 
 const AuthenticationElement = ({
   readonlyCustomerEmail,
@@ -191,6 +223,40 @@ const PaymentForm = () => {
     flowType !== CheckoutFlowType.AddPaymentMethod
   const showAutomaticallyUpdateCurrentSubscriptions =
     flowType === CheckoutFlowType.AddPaymentMethod
+
+  // Force reflow when all embeds are ready to prevent iframe transparency issues
+  useEffect(() => {
+    if (embedsReady) {
+      // Delay to ensure all Stripe iframes are fully rendered
+      const timeoutId = setTimeout(() => {
+        forceStripeElementsReflow()
+      }, 200)
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [embedsReady])
+
+  // Simplified reflow trigger when address field gains focus - let Appearance API handle styling
+  useEffect(() => {
+    const handleFocus = () => {
+      // Small delay to allow iframe to be created before forcing reflow
+      setTimeout(forceStripeElementsReflow, 50)
+    }
+
+    // Listen for focus events on address field containers
+    const addressContainers = document.querySelectorAll(
+      '[data-testid*="address"], .StripeElement'
+    )
+    addressContainers.forEach((container) => {
+      container.addEventListener('focus', handleFocus, true)
+    })
+
+    return () => {
+      addressContainers.forEach((container) => {
+        container.removeEventListener('focus', handleFocus, true)
+      })
+    }
+  }, [embedsReady])
   return (
     <form
       className={cn(
@@ -343,30 +409,36 @@ const PaymentForm = () => {
 
         {/* Payment Method Section */}
         <div className="space-y-3">
-          <PaymentElement
-            onReady={() => {
-              setPaymentEmbedReady(true)
-            }}
-            options={{
-              fields: {
-                billingDetails: {
-                  email: readonlyCustomerEmail ? 'never' : undefined,
-                  address: 'never',
+          <div className="pb-0">
+            {' '}
+            {/* Reduced bottom padding to bring terms text closer */}
+            <PaymentElement
+              onReady={() => {
+                setPaymentEmbedReady(true)
+              }}
+              options={{
+                fields: {
+                  billingDetails: {
+                    email: readonlyCustomerEmail
+                      ? 'never'
+                      : undefined,
+                    address: 'never',
+                  },
                 },
-              },
-            }}
-            onChange={async (e) => {
-              if (e.complete) {
-                await editCheckoutSessionPaymentMethodType({
-                  id: checkoutSession.id,
-                  paymentMethodType: e.value
-                    .type as PaymentMethodType,
-                })
-                setPaymentInfoComplete(true)
-              }
-            }}
-            className={!embedsReady ? 'opacity-0' : ''}
-          />
+              }}
+              onChange={async (e) => {
+                if (e.complete) {
+                  await editCheckoutSessionPaymentMethodType({
+                    id: checkoutSession.id,
+                    paymentMethodType: e.value
+                      .type as PaymentMethodType,
+                  })
+                  setPaymentInfoComplete(true)
+                }
+              }}
+              className={!embedsReady ? 'opacity-0' : ''}
+            />
+          </div>
         </div>
 
         {/* Billing Address Section */}
@@ -376,9 +448,15 @@ const PaymentForm = () => {
               mode: 'billing',
               defaultValues:
                 checkoutSession?.billingAddress ?? undefined,
+              // Re-enabling autocomplete now that Appearance API is fixed
+              autocomplete: {
+                mode: 'automatic',
+              },
             }}
             onReady={() => {
               setAddressEmbedReady(true)
+              // Simple reflow to ensure proper rendering
+              setTimeout(forceStripeElementsReflow, 100)
             }}
             onChange={async (event) => {
               if (event.complete) {
@@ -446,7 +524,12 @@ const PaymentForm = () => {
                 'text-slate-50 font-normal', // LS button text (fixed light mode foreground)
                 'rounded-[8px]', // LS border radius
                 'text-[16px] leading-[28px]', // LS typography
-                'disabled:!bg-gray-950 disabled:!text-slate-50/30 disabled:!opacity-100' // LS disabled state (force same bg, muted text)
+                'transition-all duration-200', // Smooth transitions
+                // Lemon Squeezy disabled state pattern - override pointer-events-none
+                'disabled:!pointer-events-auto disabled:cursor-not-allowed disabled:opacity-50',
+                // Hover states
+                'hover:cursor-pointer',
+                'disabled:hover:cursor-not-allowed' // Override hover cursor when disabled
               )}
               disabled={
                 !paymentInfoComplete ||
