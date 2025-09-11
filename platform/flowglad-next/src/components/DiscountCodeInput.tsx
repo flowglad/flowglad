@@ -152,7 +152,7 @@ export default function DiscountCodeInput() {
       <div className="flex flex-col gap-1 w-full">
         <Label
           htmlFor="discountCode"
-          className="text-[#0a0a0a] text-[14px] font-medium"
+          className="text-[#0a0a0a] text-[13px] font-medium"
         >
           Discount Code
         </Label>
@@ -167,7 +167,11 @@ export default function DiscountCodeInput() {
                     <div className="relative">
                       <Input
                         id="discountCode"
-                        className="pr-12 border border-[#e5e7eb] bg-[#ffffff] text-[#0a0a0a] rounded-[8px] px-4 py-4 text-[14px] min-h-[44.39px] shadow-[0px_1px_1px_0px_rgba(10,10,11,0.06)] focus-visible:border-[#3b82f6] focus-visible:shadow-[0px_0px_0px_1px_inset_rgba(59,130,246,0.16)]"
+                        className="discount-input-focus pr-12 border border-[#e5e7eb] bg-[#ffffff] text-[#0a0a0a] rounded-[8px] px-4 py-3 text-[14px] min-h-[42.09px] leading-[1.3] transition-colors focus-visible:outline-none focus-visible:border-[#0a0a0a] focus-visible:ring-0"
+                        style={{
+                          boxShadow:
+                            '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(0, 0, 0, 0.02)',
+                        }}
                         autoCapitalize="characters"
                         {...field}
                         onChange={(e) => {
