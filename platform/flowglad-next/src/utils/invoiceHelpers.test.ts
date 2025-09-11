@@ -4,7 +4,7 @@ import {
   setupOrg,
   setupCustomer,
   setupInvoice,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import { updateInvoiceTransaction } from './invoiceHelpers'
 import {
   InvoiceStatus,
