@@ -87,7 +87,7 @@ const AuthenticationElement = ({
   const isReadonly = !isSessionOpen
 
   // Debug logging to understand the values
-  console.log('AuthenticationElement Debug:', {
+  console.log('🔍 AuthenticationElement Debug:', {
     readonlyCustomerEmail,
     isSessionOpen,
     isReadonly,
@@ -121,7 +121,19 @@ const AuthenticationElement = ({
         }
         onChange={onChange}
         onReady={onReady}
-        className={cn(className, isReadonly && 'opacity-50')}
+        className={(() => {
+          const computedClassName = cn(
+            className,
+            isReadonly && 'opacity-50'
+          )
+          console.log('🔍 ClassName Debug:', {
+            baseClassName: className,
+            isReadonly,
+            opacityClass: isReadonly && 'opacity-50',
+            finalClassName: computedClassName,
+          })
+          return computedClassName
+        })()}
       />
     </div>
   )
@@ -393,9 +405,18 @@ const PaymentForm = () => {
           {/* LS label spacing */}
           <AuthenticationElement
             readonlyCustomerEmail={readonlyCustomerEmail}
-            isSessionOpen={
-              checkoutSession.status === CheckoutSessionStatus.Open
-            }
+            isSessionOpen={(() => {
+              const isOpen =
+                checkoutSession.status === CheckoutSessionStatus.Open
+              console.log('🔍 Session Status Debug:', {
+                checkoutSessionId: checkoutSession.id,
+                status: checkoutSession.status,
+                expectedStatus: CheckoutSessionStatus.Open,
+                isOpen,
+                readonlyCustomerEmail,
+              })
+              return isOpen
+            })()}
             onChange={async (event) => {
               // Allow editing when session is open (new session should be editable)
               if (
