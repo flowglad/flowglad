@@ -208,7 +208,7 @@ export function RevenueChart({
               setInterval(value as RevenueChartIntervalUnit)
             }
           >
-            <SelectTrigger className="border-none bg-transparent">
+            <SelectTrigger className="border-none bg-transparent px-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -260,7 +260,7 @@ export function RevenueChart({
           categories={['revenue']}
           // startEndOnly={true}
           className="-mb-2 mt-8"
-          colors={['blue']}
+          colors={['foreground']}
           customTooltip={RevenueTooltip}
           maxValue={maxValue}
           autoMinValue={false}

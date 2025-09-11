@@ -17,7 +17,7 @@ const ChartContainer = ({
   children: React.ReactNode
 }) => {
   return (
-    <div className="bg-background w-full relative flex flex-col gap-6 p-8 pt-0 rounded-2xl border">
+    <div className="bg-background w-full relative flex flex-col gap-6 p-8 pt-6 rounded-2xl border">
       {children}
     </div>
   )
@@ -44,43 +44,47 @@ function InternalDashboardPage({
         <div className="flex flex-row justify-between">
           <PageHeader title="Dashboard" />
         </div>
-        <div className="flex justify-between items-center">
-          <DateRangePicker
-            fromDate={range.from}
-            toDate={range.to}
-            minDate={new Date(organizationCreatedAt)}
-            maxDate={new Date()}
-            onSelect={(newRange) => {
-              console.log('newRange', newRange)
-              if (newRange) {
-                setRange({
-                  from:
-                    newRange.from ?? new Date(organizationCreatedAt),
-                  to: newRange.to ?? new Date(),
-                })
-              }
-            }}
-          />
-        </div>
-        <div className="grid grid-cols-1 gap-6">
-          <ChartContainer>
-            <RevenueChart fromDate={range.from} toDate={range.to} />
-          </ChartContainer>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Dashboard Analytics Container - wraps date picker and charts */}
+        <div className="w-full flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <DateRangePicker
+              fromDate={range.from}
+              toDate={range.to}
+              minDate={new Date(organizationCreatedAt)}
+              maxDate={new Date()}
+              onSelect={(newRange) => {
+                console.log('newRange', newRange)
+                if (newRange) {
+                  setRange({
+                    from:
+                      newRange.from ??
+                      new Date(organizationCreatedAt),
+                    to: newRange.to ?? new Date(),
+                  })
+                }
+              }}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-6">
             <ChartContainer>
-              <DateRangeRecurringRevenueChart
-                organizationCreatedAt={organizationCreatedAt}
-                fromDate={range.from}
-                toDate={range.to}
-              />
+              <RevenueChart fromDate={range.from} toDate={range.to} />
             </ChartContainer>
-            <ChartContainer>
-              <DateRangeActiveSubscribersChart
-                organizationCreatedAt={organizationCreatedAt}
-                fromDate={range.from}
-                toDate={range.to}
-              />
-            </ChartContainer>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ChartContainer>
+                <DateRangeRecurringRevenueChart
+                  organizationCreatedAt={organizationCreatedAt}
+                  fromDate={range.from}
+                  toDate={range.to}
+                />
+              </ChartContainer>
+              <ChartContainer>
+                <DateRangeActiveSubscribersChart
+                  organizationCreatedAt={organizationCreatedAt}
+                  fromDate={range.from}
+                  toDate={range.to}
+                />
+              </ChartContainer>
+            </div>
           </div>
         </div>
       </div>

@@ -27,6 +27,33 @@ import {
   getYAxisDomain,
   hasOnlyOneValueForKey,
 } from '@/utils/chartStyles'
+
+// Function to get the actual CSS color value for Recharts stroke prop
+const getCSSColorValue = (
+  color: AvailableChartColorsKeys
+): string => {
+  // For foreground, return the CSS custom property directly
+  if (color === 'foreground') {
+    return 'hsl(var(--foreground))'
+  }
+
+  // For other colors, construct the appropriate CSS color
+  const colorMap = {
+    blue: '#3b82f6',
+    emerald: '#10b981',
+    violet: '#8b5cf6',
+    amber: '#f59e0b',
+    gray: '#6b7280',
+    cyan: '#06b6d4',
+    pink: '#ec4899',
+    lime: '#84cc16',
+    fuchsia: '#d946ef',
+    primary: 'hsl(var(--primary))',
+    stone: '#57534e',
+  }
+
+  return colorMap[color as keyof typeof colorMap] || '#6b7280'
+}
 import { useOnWindowResize } from '@/app/hooks/useOnWindowResize'
 import { cn } from '@/lib/utils'
 
@@ -875,6 +902,11 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                     'stroke'
                   )
                 )}
+                stroke={getCSSColorValue(
+                  categoryColors.get(
+                    category
+                  ) as AvailableChartColorsKeys
+                )}
                 strokeOpacity={
                   activeDot ||
                   (activeLegend && activeLegend !== category)
@@ -894,14 +926,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                   return (
                     <Dot
                       className={cn(
-                        'stroke-white dark:stroke-gray-950',
-                        onValueChange ? 'cursor-pointer' : '',
-                        getColorClassName(
-                          categoryColors.get(
-                            dataKey
-                          ) as AvailableChartColorsKeys,
-                          'fill'
-                        )
+                        'stroke-foreground fill-foreground',
+                        onValueChange ? 'cursor-pointer' : ''
                       )}
                       cx={cxCoord}
                       cy={cyCoord}
@@ -948,14 +974,8 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                         strokeLinejoin={strokeLinejoin}
                         strokeWidth={strokeWidth}
                         className={cn(
-                          'stroke-white dark:stroke-gray-950',
-                          onValueChange ? 'cursor-pointer' : '',
-                          getColorClassName(
-                            categoryColors.get(
-                              dataKey
-                            ) as AvailableChartColorsKeys,
-                            'fill'
-                          )
+                          'stroke-foreground fill-foreground',
+                          onValueChange ? 'cursor-pointer' : ''
                         )}
                       />
                     )

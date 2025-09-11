@@ -977,14 +977,8 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                       return (
                         <Dot
                           className={cn(
-                            'stroke-white dark:stroke-gray-950',
-                            onValueChange ? 'cursor-pointer' : '',
-                            getColorClassName(
-                              categoryColors.get(
-                                dataKey
-                              ) as AvailableChartColorsKeys,
-                              'fill'
-                            )
+                            'stroke-foreground fill-foreground',
+                            onValueChange ? 'cursor-pointer' : ''
                           )}
                           cx={cxCoord}
                           cy={cyCoord}
@@ -1034,14 +1028,8 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                             strokeLinejoin={strokeLinejoin}
                             strokeWidth={strokeWidth}
                             className={cn(
-                              'stroke-white dark:stroke-gray-950',
-                              onValueChange ? 'cursor-pointer' : '',
-                              getColorClassName(
-                                categoryColors.get(
-                                  dataKey
-                                ) as AvailableChartColorsKeys,
-                                'fill'
-                              )
+                              'stroke-foreground fill-foreground',
+                              onValueChange ? 'cursor-pointer' : ''
                             )}
                           />
                         )

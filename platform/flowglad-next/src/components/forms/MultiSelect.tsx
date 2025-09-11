@@ -555,9 +555,9 @@ const MultipleSelector = React.forwardRef<
             className={cn(
               'flex items-center w-full rounded-2xl border text-sm text-foreground',
               'transition-all',
-              'min-h-9 h-auto',
+              'min-h-10 h-auto',
               'overflow-hidden',
-              'px-1 py-1.5',
+              'px-1 py-2',
               {
                 [disabled ? 'bg-muted' : 'bg-background']: true,
                 'hover:border-outline': !disabled && !resolvedError,

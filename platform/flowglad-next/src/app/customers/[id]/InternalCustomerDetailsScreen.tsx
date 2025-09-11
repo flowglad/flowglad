@@ -22,7 +22,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 function InternalCustomerDetailsScreen({
   customer,
@@ -82,16 +81,6 @@ function InternalCustomerDetailsScreen({
             />
           </div>
         </div>
-        <Tabs className="w-full flex border-b border-muted text-sm font-semibold">
-          <TabsList className="gap-8">
-            <TabsTrigger
-              className="h-full first:pl-0 last:pr-0 first:ml-0 last:mr-0 text-lg"
-              value={'billing'}
-            >
-              Billing
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
         <div className="pt-6">
           <CustomerBillingSubPage
             customer={customer}

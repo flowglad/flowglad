@@ -69,6 +69,12 @@ export const chartColors = {
     fill: 'fill-stone-600',
     text: 'text-stone-600',
   },
+  foreground: {
+    bg: 'bg-foreground',
+    stroke: 'stroke-foreground',
+    fill: 'fill-foreground',
+    text: 'text-foreground',
+  },
 } as const satisfies {
   [color: string]: {
     [key in ColorUtility]: string

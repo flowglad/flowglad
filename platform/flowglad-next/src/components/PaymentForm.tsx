@@ -13,7 +13,6 @@ import core from '@/utils/core'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { trpc } from '@/app/_trpc/client'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
 import {
   CheckoutFlowType,
@@ -36,157 +35,6 @@ import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
 import { Switch } from '@/components/ui/switch'
-
-export const PaymentLoadingForm = ({
-  disableAnimation,
-}: {
-  disableAnimation?: boolean
-}) => {
-  const lightModeSkeleton = 'bg-[#f3f4f6] animate-pulse rounded-[8px]'
-  const lightModeSkeletonLabel =
-    'bg-[#e5e7eb] animate-pulse rounded-[4px]'
-
-  return (
-    <>
-      <div className="space-y-5">
-        {/* Email Section */}
-        <div className="space-y-3">
-          <div className={cn('h-4 w-16', lightModeSkeletonLabel)} />{' '}
-          {/* Email label */}
-          <div
-            className={cn('h-[44px] w-full', lightModeSkeleton)}
-          />{' '}
-          {/* Email input */}
-        </div>
-
-        {/* Payment Method Section */}
-        <div className="space-y-3">
-          <div className={cn('h-4 w-24', lightModeSkeletonLabel)} />{' '}
-          {/* Payment method label */}
-          <div className="space-y-3">
-            <div
-              className={cn('h-[44px] w-full', lightModeSkeleton)}
-            />{' '}
-            {/* Card number */}
-            <div className="flex gap-3">
-              <div
-                className={cn('h-[44px] w-1/2', lightModeSkeleton)}
-              />{' '}
-              {/* Expiry */}
-              <div
-                className={cn('h-[44px] w-1/2', lightModeSkeleton)}
-              />{' '}
-              {/* CVC */}
-            </div>
-            <div
-              className={cn('h-[44px] w-full', lightModeSkeleton)}
-            />{' '}
-            {/* Cardholder name */}
-          </div>
-        </div>
-
-        {/* Billing Address Section */}
-        <div className="space-y-3">
-          <div className={cn('h-4 w-28', lightModeSkeletonLabel)} />{' '}
-          {/* Billing address label */}
-          <div className="space-y-3">
-            <div
-              className={cn('h-[44px] w-full', lightModeSkeleton)}
-            />{' '}
-            {/* Full name */}
-            <div
-              className={cn('h-[44px] w-full', lightModeSkeleton)}
-            />{' '}
-            {/* Address line 1 */}
-            <div
-              className={cn('h-[44px] w-full', lightModeSkeleton)}
-            />{' '}
-            {/* Address line 2 */}
-            <div className="flex gap-3">
-              <div
-                className={cn('h-[44px] w-1/2', lightModeSkeleton)}
-              />{' '}
-              {/* City */}
-              <div
-                className={cn('h-[44px] w-1/4', lightModeSkeleton)}
-              />{' '}
-              {/* State */}
-              <div
-                className={cn('h-[44px] w-1/4', lightModeSkeleton)}
-              />{' '}
-              {/* ZIP */}
-            </div>
-            <div
-              className={cn('h-[44px] w-full', lightModeSkeleton)}
-            />{' '}
-            {/* Country */}
-          </div>
-        </div>
-      </div>
-
-      {/* Form Footer */}
-      <div className="space-y-6 pt-1">
-        {/* Discount Code */}
-        <div className="space-y-3">
-          <div className={cn('h-4 w-24', lightModeSkeletonLabel)} />{' '}
-          {/* Discount code label */}
-          <div className="flex gap-2">
-            <div
-              className={cn('h-[44px] flex-1', lightModeSkeleton)}
-            />{' '}
-            {/* Discount input */}
-            <div
-              className={cn('h-[44px] w-16', lightModeSkeleton)}
-            />{' '}
-            {/* Apply button */}
-          </div>
-        </div>
-
-        {/* Order Summary */}
-        <div className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <div
-                className={cn('h-4 w-16', lightModeSkeletonLabel)}
-              />{' '}
-              {/* Subtotal label */}
-              <div
-                className={cn('h-4 w-12', lightModeSkeletonLabel)}
-              />{' '}
-              {/* Subtotal amount */}
-            </div>
-            <div className="flex justify-between">
-              <div
-                className={cn('h-4 w-12', lightModeSkeletonLabel)}
-              />{' '}
-              {/* Tax label */}
-              <div
-                className={cn('h-4 w-10', lightModeSkeletonLabel)}
-              />{' '}
-              {/* Tax amount */}
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              <div
-                className={cn('h-5 w-20', lightModeSkeletonLabel)}
-              />{' '}
-              {/* Total due label */}
-              <div
-                className={cn('h-6 w-16', lightModeSkeletonLabel)}
-              />{' '}
-              {/* Total due amount */}
-            </div>
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        <div className="pt-2">
-          <div className={cn('h-[52px] w-full', lightModeSkeleton)} />{' '}
-          {/* Pay button - matches the actual button style */}
-        </div>
-      </div>
-    </>
-  )
-}
 
 const AuthenticationElement = ({
   readonlyCustomerEmail,
@@ -451,27 +299,8 @@ const PaymentForm = () => {
         setIsSubmitting(false)
       }}
     >
-      {/* Loading overlay */}
-      {
-        <div
-          className={cn(
-            'absolute inset-0 z-10 transition-opacity duration-300 rounded-[8px]',
-            embedsReady
-              ? 'opacity-0 pointer-events-none'
-              : 'opacity-100',
-            'bg-background/95 backdrop-blur-sm'
-          )}
-        >
-          <PaymentLoadingForm />
-        </div>
-      }
       {/* Main form content */}
-      <div
-        className={cn(
-          'transition-opacity duration-300 space-y-5', // LS spacing pattern
-          !embedsReady && 'opacity-0'
-        )}
-      >
+      <div className="space-y-5">
         {/* Email Section */}
         <div className="space-y-3">
           {' '}

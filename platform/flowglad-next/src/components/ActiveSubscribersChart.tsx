@@ -170,7 +170,7 @@ export const ActiveSubscribersChart = ({
   return (
     <div className="w-full h-full">
       <div className="flex flex-row gap-2 justify-between">
-        <div className="text-sm text-gray-700 dark:text-gray-300 w-fit flex items-center flex-row">
+        <div className="text-sm text-muted-foreground w-fit flex items-center flex-row">
           <p className="whitespace-nowrap">Active Subscribers</p>
         </div>
       </div>
@@ -180,10 +180,10 @@ export const ActiveSubscribersChart = ({
           <Skeleton className="w-36 h-12" />
         ) : (
           <>
-            <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
+            <p className="text-xl font-semibold text-foreground">
               {formattedSubscriberValue}
             </p>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
+            <p className="text-sm text-muted-foreground">
               {isTooltipLabelDate
                 ? core.formatDate(new Date(tooltipLabel as string))
                 : core.formatDateRange({ fromDate, toDate })}
@@ -201,7 +201,7 @@ export const ActiveSubscribersChart = ({
           index="date"
           categories={['subscribers']}
           className="-mb-2 mt-8"
-          colors={['amber']}
+          colors={['foreground']}
           customTooltip={SubscriberCountTooltip}
           maxValue={maxValue}
           autoMinValue={false}

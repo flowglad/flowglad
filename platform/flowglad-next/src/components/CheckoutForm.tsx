@@ -2,7 +2,7 @@
 import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
-import PaymentForm, { PaymentLoadingForm } from './PaymentForm'
+import PaymentForm from './PaymentForm'
 import { ChevronRight, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
@@ -13,36 +13,29 @@ const CheckoutFormDisabled = () => {
   const router = useRouter()
   return (
     <div className="relative w-full h-full sm:max-w-[420px] lg:max-w-[496px] rounded-md">
-      <div className="p-4 lg:p-6">
-        {' '}
-        {/* Progressive padding */}
-        <PaymentLoadingForm disableAnimation />
-      </div>
-      <div className="absolute top-0 left-0 right-0 bottom-0 backdrop-blur-sm rounded-md mb-20">
-        <div className="flex flex-col gap-4 items-center justify-center h-full bg-background/95 backdrop-blur-sm rounded-md">
-          <div className="flex flex-col gap-2 items-center justify-center bg-card p-6 lg:p-8 rounded-md border border-border w-full sm:max-w-[320px] lg:max-w-[400px]">
-            <TriangleAlert className="w-8 h-8 text-destructive" />
-            <p className="text-lg font-semibold text-center">
-              Checkout is disabled
-            </p>
-            <p className="text-center text-sm text-muted-foreground font-medium">
-              This is likely because the organization does not have
-              payouts enabled.
-            </p>
-            <Button
-              onClick={() => {
-                router.push('/onboarding')
-              }}
-              className="mt-4 w-full lg:w-auto"
-            >
-              Enable Payouts
-              <ChevronRight
-                className="w-4 h-4 ml-2"
-                size={16}
-                strokeWidth={4}
-              />
-            </Button>
-          </div>
+      <div className="flex flex-col gap-4 items-center justify-center h-full bg-background/95 backdrop-blur-sm rounded-md min-h-[400px]">
+        <div className="flex flex-col gap-2 items-center justify-center bg-card p-6 lg:p-8 rounded-md border border-border w-full sm:max-w-[320px] lg:max-w-[400px]">
+          <TriangleAlert className="w-8 h-8 text-destructive" />
+          <p className="text-lg font-semibold text-center">
+            Checkout is disabled
+          </p>
+          <p className="text-center text-sm text-muted-foreground font-medium">
+            This is likely because the organization does not have
+            payouts enabled.
+          </p>
+          <Button
+            onClick={() => {
+              router.push('/onboarding')
+            }}
+            className="mt-4 w-full lg:w-auto"
+          >
+            Enable Payouts
+            <ChevronRight
+              className="w-4 h-4 ml-2"
+              size={16}
+              strokeWidth={4}
+            />
+          </Button>
         </div>
       </div>
     </div>

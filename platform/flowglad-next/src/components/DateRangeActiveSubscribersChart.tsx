@@ -25,6 +25,10 @@ const DateRangeActiveSubscribersChart = ({
   })
   const showDateRangePicker = !fromDate || !toDate
 
+  // Use props when available, otherwise use internal state
+  const effectiveFromDate = fromDate ?? range.from
+  const effectiveToDate = toDate ?? range.to
+
   return (
     <>
       <div
@@ -48,8 +52,8 @@ const DateRangeActiveSubscribersChart = ({
         )}
       </div>
       <ActiveSubscribersChart
-        fromDate={range.from}
-        toDate={range.to}
+        fromDate={effectiveFromDate}
+        toDate={effectiveToDate}
         productId={productId}
       />
     </>

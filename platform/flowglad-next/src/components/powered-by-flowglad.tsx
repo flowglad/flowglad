@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Lock } from 'lucide-react'
 import FlowgladWordmark from '@/components/FlowgladWordmark'
 import { cn } from '@/lib/utils'
 
@@ -17,12 +16,14 @@ export function PoweredByFlowglad({
         className
       )}
     >
-      <Lock size={16} className="text-muted-foreground" />
-      <div className="text-sm font-medium text-center text-muted-foreground">
+      <div
+        className="text-sm font-medium text-center"
+        style={{ color: '#6b7280' }}
+      >
         Powered by
       </div>
       <Link href="https://flowglad.com">
-        <FlowgladWordmark fill="hsl(var(--muted-foreground))" />
+        <FlowgladWordmark fill="#6b7280" />
       </Link>
     </div>
   )
