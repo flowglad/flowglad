@@ -54,7 +54,7 @@ export const sendReceiptEmail = async (params: {
   organizationName: string
   organizationLogoUrl?: string
   organizationId: string
-  customerExternalId: string
+  customerId: string
   replyTo?: string | null
 }) => {
   const { invoice } = params
@@ -99,7 +99,7 @@ export const sendReceiptEmail = async (params: {
       organizationName: params.organizationName,
       organizationLogoUrl: params.organizationLogoUrl,
       organizationId: invoice.organizationId,
-      customerExternalId: params.customerExternalId,
+      customerId: params.customerId,
     }),
   })
 }
