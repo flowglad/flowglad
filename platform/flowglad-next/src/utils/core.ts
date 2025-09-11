@@ -526,11 +526,11 @@ export const emailBaseUrl =
 
 export const customerBillingPortalURL = (params: {
   organizationId: string
-  customerId: string
+  customerId?: string
 }) => {
   const { organizationId, customerId } = params
   return safeUrl(
-    `/billing-portal/${organizationId}/${customerId}`,
+    `/billing-portal/${organizationId}/${customerId ?? ''}`,
     emailBaseUrl
   )
 }

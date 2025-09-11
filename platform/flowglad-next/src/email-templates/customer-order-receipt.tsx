@@ -22,13 +22,13 @@ export const OrderReceiptEmail = ({
   organizationName,
   currency,
   organizationId,
-  customerExternalId,
+  customerId,
 }: {
   invoiceNumber: string
   orderDate: string
   organizationLogoUrl?: string
   organizationId: string
-  customerExternalId: string
+  customerId: string
   lineItems: {
     name: string
     price: number
@@ -86,10 +86,9 @@ export const OrderReceiptEmail = ({
       </Paragraph>
       {/* TODO: create customer portal.... */}
       <EmailButton
-        href={core.billingPortalPageURL({
+        href={core.customerBillingPortalURL({
           organizationId,
-          customerExternalId,
-          page: 'sign-in',
+          customerId,
         })}
         testId="view-order-button"
       >
