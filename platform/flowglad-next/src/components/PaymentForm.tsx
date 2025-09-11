@@ -322,6 +322,8 @@ const PaymentForm = () => {
                     ? {
                         billing_details: {
                           email: readonlyCustomerEmail,
+                          // Name will be collected from AddressElement
+                          name: checkoutSession.billingAddress?.name,
                         },
                       }
                     : undefined,
@@ -343,11 +345,15 @@ const PaymentForm = () => {
                  * If we have a customer we want to use the customer email.
                  * Otherwise, we want to use the email collected from the email element.
                  */
-                payment_method_data: {
-                  billing_details: {
-                    email: readonlyCustomerEmail,
-                  },
-                },
+                payment_method_data: readonlyCustomerEmail
+                  ? {
+                      billing_details: {
+                        email: readonlyCustomerEmail,
+                        // Name will be collected from AddressElement
+                        name: checkoutSession.billingAddress?.name,
+                      },
+                    }
+                  : undefined,
               },
             })
           error = confirmationError
@@ -419,9 +425,10 @@ const PaymentForm = () => {
               options={{
                 fields: {
                   billingDetails: {
-                    email: readonlyCustomerEmail
-                      ? 'never'
-                      : undefined,
+                    // Always hide email - use AuthenticationElement instead
+                    email: 'never',
+                    // Always hide name - use AddressElement instead
+                    name: 'never',
                     address: 'never',
                   },
                 },

@@ -5,7 +5,7 @@ import debounce from 'debounce'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { FormDescription, FormMessage } from '@/components/ui/form'
+import { FormDescription } from '@/components/ui/form'
 import { CheckoutFlowType } from '@/types'
 import {
   Form,
@@ -24,6 +24,7 @@ export default function DiscountCodeInput() {
   const [discountCodeStatus, setDiscountCodeStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >(discount ? 'success' : 'idle')
+  const [isTouched, setIsTouched] = useState(false)
 
   const form = useForm<DiscountCodeFormData>({
     defaultValues: {
@@ -110,6 +111,8 @@ export default function DiscountCodeInput() {
     hint = 'Checking discount code...'
   } else if (discountCodeStatus === 'success') {
     hint = 'Discount code applied!'
+  } else if (isTouched && !discountCode.trim()) {
+    hint = 'Please enter a discount code'
   }
 
   const clearDiscountCodeButton = (
@@ -126,6 +129,7 @@ export default function DiscountCodeInput() {
           })
         }
         setDiscountCodeStatus('idle')
+        setIsTouched(false)
         form.setValue('discountCode', '')
       }}
       variant="ghost"
@@ -139,7 +143,9 @@ export default function DiscountCodeInput() {
   const applyDiscountCodeButton = (
     <Button
       onClick={form.handleSubmit(attemptHandler)}
-      disabled={discountCodeStatus === 'loading'}
+      disabled={
+        discountCodeStatus === 'loading' || !discountCode.trim()
+      }
       variant="ghost"
       className="px-0 hover:bg-transparent focus-visible:ring-0 text-gray-600 hover:text-gray-800"
     >
@@ -177,9 +183,11 @@ export default function DiscountCodeInput() {
                         onChange={(e) => {
                           const code = e.target.value.toUpperCase()
                           field.onChange(code)
+                          setIsTouched(true)
                         }}
                         onBlur={async (e) => {
                           field.onBlur()
+                          setIsTouched(true)
                           const code = e.target.value.trim()
                           if (
                             code &&
@@ -206,7 +214,7 @@ export default function DiscountCodeInput() {
         </div>
         {hint && (
           <div
-            className={`text-sm ${discountCodeStatus === 'error' ? 'text-red-600' : 'text-gray-600'}`}
+            className={`text-sm ${discountCodeStatus === 'error' || (isTouched && !discountCode.trim()) ? 'text-red-600' : 'text-gray-600'}`}
           >
             {hint}
           </div>

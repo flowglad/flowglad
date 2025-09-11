@@ -233,7 +233,7 @@ export const TotalBillingDetails = React.forwardRef<
         />
       )}
 
-      {taxAmount && (
+      {taxAmount != null && taxAmount > 0 && (
         <BillingLine
           label="Tax"
           amount={taxAmount}
@@ -242,7 +242,7 @@ export const TotalBillingDetails = React.forwardRef<
         />
       )}
 
-      {afterwardsTotal && (
+      {afterwardsTotal != null && afterwardsTotal > 0 && (
         <BillingLine
           label={afterwardsTotalLabel}
           amount={afterwardsTotal}
@@ -258,7 +258,7 @@ export const TotalBillingDetails = React.forwardRef<
               className="text-lg font-semibold text-gray-900"
               data-testid="billing-info-total-due-label"
             >
-              {`Total Due${flowType === CheckoutFlowType.Subscription ? ' Today' : ''}`}
+              Total
             </span>
             {editCheckoutSessionLoading ? (
               <Skeleton className="h-6 w-24" />

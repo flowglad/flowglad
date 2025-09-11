@@ -22,22 +22,16 @@ const components = {
     />
   ),
   p: (props: any) => (
-    <p
-      className="text-base font-medium text-foreground py-2"
-      {...props}
-    />
+    <p className="text-base text-muted-foreground py-2" {...props} />
   ),
   ul: (props: any) => (
     <ul
-      className="list-disc list-inside text-base font-medium text-foreground py-2"
+      className="list-disc list-inside text-base text-muted-foreground py-2"
       {...props}
     />
   ),
   li: (props: any) => (
-    <li
-      className="text-base font-medium text-foreground py-2"
-      {...props}
-    />
+    <li className="text-base text-muted-foreground py-2" {...props} />
   ),
 }
 

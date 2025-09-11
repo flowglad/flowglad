@@ -91,64 +91,30 @@ function CheckoutForm() {
           appearance: {
             disableAnimations: true,
             variables: {
-              // Fixed colors that work well on white background
-              colorText: '#0a0a0a', // Always dark text
-              colorBackground: '#ffffff', // Always white background
-              colorPrimary: 'hsl(var(--primary))', // Keep primary color
-              tabIconColor: '#6b7280', // Gray for icons
-              tabIconHoverColor: '#0a0a0a', // Dark on hover
-              colorTextSecondary: '#6b7280', // Gray for secondary text
-              borderRadius: '8px', // Match LS border radius
+              // VALID Stripe appearance variables - optimized for consistent input heights
+              colorText: '#0a0a0a',
+              colorBackground: '#ffffff',
+              colorPrimary: '#0a0a0a',
+              colorTextSecondary: '#6b7280',
+              borderRadius: '8px',
+              fontFamily:
+                'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              fontSizeBase: '14px',
+              fontLineHeight: '1.3',
+              // Height and spacing controls to match discount input (42.09px target)
+              spacingUnit: '4px', // Controls internal spacing throughout Elements to match updated discount input
+              gridColumnSpacing: '16px', // Controls horizontal spacing
+              gridRowSpacing: '16px', // Increased spacing between tab selector and input fields
             },
             rules: {
-              // Enhanced styling for white background
-              '.Input, .CodeInput, .p-Input, .p-LinkAuth, .p-Input-input, .p-Fieldset-input':
-                {
-                  border: '1px solid #e5e7eb !important', // Light gray border
-                  color: '#0a0a0a !important', // Always dark text
-                  backgroundColor: '#ffffff !important', // Always white background
-                  borderRadius: '8px !important', // LS border radius
-                  padding: '16px 16px !important', // LS field padding
-                  fontSize: '14px !important', // LS font size
-                  minHeight: '40px !important', // LS field height
-                  boxShadow:
-                    '0px 1px 1px 0px rgba(10,10,11,0.06) !important', // LS shadow
-                },
-              '.Input:focus, .CodeInput:focus, .p-Input:focus, .p-LinkAuth:focus, .p-Input-input:focus, .p-Fieldset-input:focus':
-                {
-                  borderColor: '#3b82f6 !important', // Blue focus border
-                  outline: 'none !important',
-                  boxShadow:
-                    '0px 0px 0px 1px inset rgba(59,130,246,0.16) !important', // Blue focus shadow
-                },
-              '.Block': {
-                color: '#0a0a0a', // Always dark text
+              // Minimal rules - let Stripe variables control styling for consistency
+              '.Input': {
+                border: '1px solid #e5e7eb',
+                // height, padding, fontSize, etc. controlled by variables above
               },
               '.Label': {
-                color: '#0a0a0a', // Always dark text
-                fontSize: '14px',
-                fontWeight: '500', // LS label weight
-                marginBottom: '8px', // LS label spacing
-              },
-              // Enhanced dropdown styling for white background
-              '.Dropdown': {
-                color: '#0a0a0a', // Always dark text
-                border: '1px solid #e5e7eb', // Light gray border
-                backgroundColor: '#ffffff', // Always white background
-                borderRadius: '8px',
-                boxShadow:
-                  '0px 1px 1px 0px rgba(10,10,11,0.06), 0px 3px 6px 0px rgba(0,0,0,0.02)',
-              },
-              '.DropdownItem': {
-                color: '#0a0a0a', // Always dark text
-                backgroundColor: 'transparent',
-                borderRadius: '6px',
-                border: 'none',
-                padding: '8px 12px',
-              },
-              '.DropdownItem:hover': {
-                color: '#0a0a0a', // Keep dark text on hover
-                backgroundColor: '#f3f4f6', // Light gray hover
+                fontWeight: '500',
+                // fontSize and spacing controlled by variables above
               },
             },
           },
