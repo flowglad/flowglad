@@ -74,74 +74,27 @@ const AuthenticationElement = ({
   onChange,
   onReady,
   className,
-  isSessionOpen,
 }: {
   readonlyCustomerEmail: string | undefined | null
   onChange: LinkAuthenticationElementProps['onChange']
   className: string
   onReady: LinkAuthenticationElementProps['onReady']
-  isSessionOpen: boolean
 }) => {
-  // FIXED LOGIC: Only apply readonly styling when session is NOT open
-  // For new checkout sessions (Open), always allow editing regardless of readonlyCustomerEmail
-  const isReadonly = !isSessionOpen
-
-  console.log('✅ AuthenticationElement Fixed:', {
-    readonlyCustomerEmail,
-    isSessionOpen,
-    isReadonly,
-    willApplyOpacity: isReadonly,
-    scenario: isSessionOpen
-      ? 'NEW_SESSION_EDITABLE'
-      : 'COMPLETED_SESSION_READONLY',
-  })
-
-  const preventInteraction = isReadonly
-    ? (
-        e:
-          | React.MouseEvent<HTMLDivElement>
-          | React.KeyboardEvent<HTMLDivElement>
-      ) => {
-        e.preventDefault()
-        e.stopPropagation()
-      }
-    : undefined
-
+  // Simplified: Always editable since users only see checkout pages with Open sessions
+  // readonlyCustomerEmail is only used for pre-filling, never for readonly state
   return (
-    <div
-      className="relative"
-      onMouseDown={preventInteraction}
-      onKeyDown={preventInteraction}
-    >
-      <LinkAuthenticationElement
-        options={
-          readonlyCustomerEmail
-            ? {
-                defaultValues: { email: readonlyCustomerEmail },
-              }
-            : {}
-        }
-        onChange={onChange}
-        onReady={onReady}
-        className={(() => {
-          // FIXED: Re-enable opacity with corrected logic
-          const computedClassName = cn(
-            className,
-            isReadonly && 'opacity-50'
-          )
-          console.log('✅ ClassName Fixed:', {
-            baseClassName: className,
-            isReadonly,
-            opacityClass: isReadonly ? 'opacity-50' : 'none',
-            finalClassName: computedClassName,
-            explanation: isReadonly
-              ? 'Session closed - readonly'
-              : 'Session open - editable',
-          })
-          return computedClassName
-        })()}
-      />
-    </div>
+    <LinkAuthenticationElement
+      options={
+        readonlyCustomerEmail
+          ? {
+              defaultValues: { email: readonlyCustomerEmail },
+            }
+          : {}
+      }
+      onChange={onChange}
+      onReady={onReady}
+      className={className}
+    />
   )
 }
 
@@ -222,9 +175,8 @@ const PaymentForm = () => {
   const [paymentInfoComplete, setPaymentInfoComplete] =
     useState(false)
   const [emailComplete, setEmailComplete] = useState(
-    // Only consider email complete if session is not open AND there's a readonly email
-    checkoutSession.status !== CheckoutSessionStatus.Open &&
-      Boolean(readonlyCustomerEmail)
+    // Start as complete if there's a pre-filled email
+    Boolean(readonlyCustomerEmail)
   )
   const [emailError, setEmailError] = useState<string | undefined>(
     undefined
@@ -411,27 +363,8 @@ const PaymentForm = () => {
           {/* LS label spacing */}
           <AuthenticationElement
             readonlyCustomerEmail={readonlyCustomerEmail}
-            isSessionOpen={(() => {
-              const isOpen =
-                checkoutSession.status === CheckoutSessionStatus.Open
-              console.log('✅ Session Status Fixed:', {
-                checkoutSessionId: checkoutSession.id,
-                status: checkoutSession.status,
-                expectedStatus: CheckoutSessionStatus.Open,
-                isOpen,
-                readonlyCustomerEmail,
-                statusComparison: `"${checkoutSession.status}" === "${CheckoutSessionStatus.Open}"`,
-                issue: !isOpen ? 'STATUS_NOT_OPEN' : 'STATUS_IS_OPEN',
-              })
-              return isOpen
-            })()}
             onChange={async (event) => {
-              // Allow editing when session is open (new session should be editable)
-              if (
-                checkoutSession.status !== CheckoutSessionStatus.Open
-              ) {
-                return
-              }
+              // Simplified: Always allow editing since we only show checkout pages for Open sessions
               if (event.complete) {
                 const parseResult = z
                   .string()
