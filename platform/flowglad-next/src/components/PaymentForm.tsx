@@ -16,6 +16,7 @@ import { trpc } from '@/app/_trpc/client'
 import { useRouter } from 'next/navigation'
 import {
   CheckoutFlowType,
+  CheckoutSessionStatus,
   CurrencyCode,
   PaymentMethodType,
   PriceType,
@@ -73,13 +74,27 @@ const AuthenticationElement = ({
   onChange,
   onReady,
   className,
+  isSessionOpen,
 }: {
   readonlyCustomerEmail: string | undefined | null
   onChange: LinkAuthenticationElementProps['onChange']
   className: string
   onReady: LinkAuthenticationElementProps['onReady']
+  isSessionOpen: boolean
 }) => {
-  const preventInteraction = readonlyCustomerEmail
+  // Only apply readonly styling and interaction blocking when session is NOT open
+  // For new checkout sessions (Open), always allow editing even with previous email
+  const isReadonly = !isSessionOpen
+
+  // Debug logging to understand the values
+  console.log('AuthenticationElement Debug:', {
+    readonlyCustomerEmail,
+    isSessionOpen,
+    isReadonly,
+    willApplyOpacity: isReadonly,
+  })
+
+  const preventInteraction = isReadonly
     ? (
         e:
           | React.MouseEvent<HTMLDivElement>
@@ -106,10 +121,7 @@ const AuthenticationElement = ({
         }
         onChange={onChange}
         onReady={onReady}
-        className={cn(
-          className,
-          readonlyCustomerEmail && 'opacity-50'
-        )}
+        className={cn(className, isReadonly && 'opacity-50')}
       />
     </div>
   )
@@ -192,7 +204,9 @@ const PaymentForm = () => {
   const [paymentInfoComplete, setPaymentInfoComplete] =
     useState(false)
   const [emailComplete, setEmailComplete] = useState(
-    Boolean(readonlyCustomerEmail)
+    // Only consider email complete if session is not open AND there's a readonly email
+    checkoutSession.status !== CheckoutSessionStatus.Open &&
+      Boolean(readonlyCustomerEmail)
   )
   const [emailError, setEmailError] = useState<string | undefined>(
     undefined
@@ -379,8 +393,14 @@ const PaymentForm = () => {
           {/* LS label spacing */}
           <AuthenticationElement
             readonlyCustomerEmail={readonlyCustomerEmail}
+            isSessionOpen={
+              checkoutSession.status === CheckoutSessionStatus.Open
+            }
             onChange={async (event) => {
-              if (readonlyCustomerEmail) {
+              // Allow editing when session is open (new session should be editable)
+              if (
+                checkoutSession.status !== CheckoutSessionStatus.Open
+              ) {
                 return
               }
               if (event.complete) {
@@ -389,13 +409,20 @@ const PaymentForm = () => {
                   .email()
                   .safeParse(event.value.email)
                 if (parseResult.success) {
-                  await editCheckoutSessionCustomerEmail({
-                    id: checkoutSession.id,
-                    customerEmail: parseResult.data,
-                  })
-                  setEmailComplete(true)
-                  setEmailError(undefined)
-                  router.refresh()
+                  try {
+                    await editCheckoutSessionCustomerEmail({
+                      id: checkoutSession.id,
+                      customerEmail: parseResult.data,
+                    })
+                    setEmailComplete(true)
+                    setEmailError(undefined)
+                    router.refresh()
+                  } catch (error) {
+                    console.warn(
+                      'Failed to update customer email:',
+                      error
+                    )
+                  }
                 } else {
                   setEmailError(
                     JSON.parse(parseResult.error.message)[0].message
@@ -434,13 +461,24 @@ const PaymentForm = () => {
                 },
               }}
               onChange={async (e) => {
-                if (e.complete) {
-                  await editCheckoutSessionPaymentMethodType({
-                    id: checkoutSession.id,
-                    paymentMethodType: e.value
-                      .type as PaymentMethodType,
-                  })
-                  setPaymentInfoComplete(true)
+                if (
+                  e.complete &&
+                  checkoutSession.status ===
+                    CheckoutSessionStatus.Open
+                ) {
+                  try {
+                    await editCheckoutSessionPaymentMethodType({
+                      id: checkoutSession.id,
+                      paymentMethodType: e.value
+                        .type as PaymentMethodType,
+                    })
+                    setPaymentInfoComplete(true)
+                  } catch (error) {
+                    console.warn(
+                      'Failed to update payment method type:',
+                      error
+                    )
+                  }
                 }
               }}
               className={!embedsReady ? 'opacity-0' : ''}
@@ -466,11 +504,22 @@ const PaymentForm = () => {
               setTimeout(forceStripeElementsReflow, 100)
             }}
             onChange={async (event) => {
-              if (event.complete) {
-                await editCheckoutSessionBillingAddress({
-                  id: checkoutSession.id,
-                  billingAddress: event.value,
-                })
+              if (
+                event.complete &&
+                checkoutSession.status === CheckoutSessionStatus.Open
+              ) {
+                try {
+                  await editCheckoutSessionBillingAddress({
+                    id: checkoutSession.id,
+                    billingAddress: event.value,
+                  })
+                } catch (error) {
+                  // Silently handle errors for non-open sessions
+                  console.warn(
+                    'Failed to update billing address:',
+                    error
+                  )
+                }
               }
             }}
             className={!embedsReady ? 'opacity-0' : ''}
