@@ -9,11 +9,8 @@ import { createSecretApiKeyTransaction } from './apiKeyHelpers'
 import { FlowgladApiKeyType } from '@/types'
 import { CreateApiKeyInput } from '@/db/schema/apiKeys'
 import { Organization } from '@/db/schema/organizations'
-import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updateMembership } from '@/db/tableMethods/membershipMethods'
-import { nanoid } from './core'
-import { User } from '@/db/schema/users'
 
 describe('apiKeyHelpers', () => {
   let organization: Organization.Record
