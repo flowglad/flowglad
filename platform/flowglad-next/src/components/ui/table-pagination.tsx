@@ -22,14 +22,19 @@ export function TablePagination({
   const showingStart = total === 0 ? 0 : pageIndex * pageSize + 1
   const showingEnd = Math.min((pageIndex + 1) * pageSize, total)
 
+  // Ensure previous button is disabled on first page
+  const canGoPrevious = pageIndex > 0 && !isLoading && !isFetching
+  const canGoNext =
+    pageIndex < pageCount - 1 && !isLoading && !isFetching
+
   return (
     <div className="flex items-center justify-between py-3">
       <p className="text-sm text-muted-foreground">
         {isLoading || isFetching ? (
           <span>Loading...</span>
         ) : (
-          <span>
-            Showing {showingEnd} of {total} results
+          <span style={{ opacity: total === 0 ? 0 : 1 }}>
+            {showingStart}-{showingEnd} of {total}
           </span>
         )}
       </p>
@@ -38,7 +43,8 @@ export function TablePagination({
           variant="outline"
           size="sm"
           onClick={() => onPageChange(pageIndex - 1)}
-          disabled={pageIndex === 0 || isLoading || isFetching}
+          disabled={!canGoPrevious}
+          style={total <= 10 ? { opacity: 0 } : undefined}
         >
           <ChevronLeft className="h-4 w-4" />
           Previous
@@ -47,9 +53,8 @@ export function TablePagination({
           variant="outline"
           size="sm"
           onClick={() => onPageChange(pageIndex + 1)}
-          disabled={
-            pageIndex >= pageCount - 1 || isLoading || isFetching
-          }
+          disabled={!canGoNext}
+          style={total <= 10 ? { opacity: 0 } : undefined}
         >
           Next
           <ChevronRight className="h-4 w-4" />
