@@ -30,15 +30,9 @@ jobs:
       environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
     secrets: inherit
 
-  deploy-hosted-billing-staging:
-    uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
-    with:
-      environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
-    secrets: inherit
-
   merge-main-to-stable:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [deploy-hosted-billing-staging, deploy-flowglad-next-staging]
+    needs: [deploy-flowglad-next-staging]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
