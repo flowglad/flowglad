@@ -14,6 +14,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import {
   insertPrice,
+  safelyInsertPrice,
   selectPriceById,
 } from '@/db/tableMethods/priceMethods'
 import { users } from '@/db/schema/users'
@@ -212,7 +213,7 @@ export const setupOrg = async (params?: {
         pluralQuantityLabel: 'seats',
         pricingModelId: pricingModel.id,
         externalId: null,
-        default: false,
+        default: true,
         slug: `flowglad-test-product-price+${core.nanoid()}`,
       },
       transaction
@@ -894,7 +895,7 @@ export const setupPrice = async ({
     }
     switch (type) {
       case PriceType.SinglePayment:
-        return insertPrice(
+        return safelyInsertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.SinglePayment],
@@ -903,7 +904,7 @@ export const setupPrice = async ({
           transaction
         )
       case PriceType.Subscription:
-        return insertPrice(
+        return safelyInsertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.Subscription],
@@ -912,7 +913,7 @@ export const setupPrice = async ({
           transaction
         )
       case PriceType.Usage:
-        return insertPrice(
+        return safelyInsertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.Usage],

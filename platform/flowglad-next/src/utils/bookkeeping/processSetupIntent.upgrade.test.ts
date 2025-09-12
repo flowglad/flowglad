@@ -94,7 +94,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       pricingModelId: pricingModel.id,
       name: 'Free Plan',
       livemode: true,
-      default: true,
+      default: false,
     })
 
     freePrice = await setupPrice({
