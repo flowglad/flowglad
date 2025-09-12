@@ -33,7 +33,7 @@ const CheckoutModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="w-[calc(100vw-32px)] sm:max-w-md max-h-[90vh] overflow-y-auto">
         {title && (
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>

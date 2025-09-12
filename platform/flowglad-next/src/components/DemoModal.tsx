@@ -44,7 +44,7 @@ const DemoModal: React.FC = () => {
       <DialogTrigger asChild>
         <Button>Open Demo Modal</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[calc(100vw-32px)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Hello World Modal</DialogTitle>
         </DialogHeader>

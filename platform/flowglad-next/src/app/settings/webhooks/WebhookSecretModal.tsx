@@ -21,7 +21,7 @@ const WebhookSecretModal = ({
 }: WebhookSecretModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent>
+      <DialogContent className="w-[calc(100vw-32px)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Webhook Signing Secret</DialogTitle>
         </DialogHeader>

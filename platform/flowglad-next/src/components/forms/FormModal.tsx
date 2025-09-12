@@ -163,8 +163,8 @@ export const NestedFormModal = <T extends FieldValues>({
       {shouldRenderContent && (
         <>
           <div className="flex-1">
-            <div className="w-full min-w-[460px]">
-              <div className="flex-1 w-full flex flex-col justify-center gap-6">
+            <div className="w-full">
+              <div className="flex-1 w-full flex flex-col gap-6">
                 {children}
               </div>
             </div>
@@ -181,13 +181,15 @@ export const NestedFormModal = <T extends FieldValues>({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent
         className={cn(
-          'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
-          extraWide && 'w-full',
-          wide && 'max-w-5xl',
-          !wide && !extraWide && 'max-w-xl'
+          'flex-1 max-h-[90vh] overflow-hidden flex flex-col',
+          // Mobile-first responsive width
+          'w-[calc(100vw-32px)]', // Ensure 16px padding on mobile
+          extraWide && 'sm:w-full sm:max-w-6xl',
+          wide && 'sm:max-w-5xl',
+          !wide && !extraWide && 'sm:max-w-md'
         )}
       >
-        <DialogHeader className="text-center">
+        <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="flex-1">{innerContent}</div>
@@ -274,8 +276,8 @@ const FormModal = <T extends FieldValues>({
       {shouldRenderContent && (
         <>
           <div className="flex-1">
-            <div className="w-full min-w-[460px]">
-              <div className="flex-1 w-full flex flex-col justify-center gap-6">
+            <div className="w-full">
+              <div className="flex-1 w-full flex flex-col gap-6">
                 {children}
               </div>
             </div>
@@ -292,13 +294,15 @@ const FormModal = <T extends FieldValues>({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent
         className={cn(
-          'flex-1 max-h-[90vh] overflow-hidden flex flex-col w-3xl',
-          extraWide && 'w-full',
-          wide && 'max-w-5xl',
-          !wide && !extraWide && 'max-w-xl'
+          'flex-1 max-h-[90vh] overflow-hidden flex flex-col',
+          // Mobile-first responsive width
+          'w-[calc(100vw-32px)]', // Ensure 16px padding on mobile
+          extraWide && 'sm:w-full sm:max-w-6xl',
+          wide && 'sm:max-w-5xl',
+          !wide && !extraWide && 'sm:max-w-md'
         )}
       >
-        <DialogHeader className="text-center">
+        <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="flex-1">{innerContent}</div>
