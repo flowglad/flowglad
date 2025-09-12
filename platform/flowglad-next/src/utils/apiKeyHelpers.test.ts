@@ -5,7 +5,10 @@ import {
   setupMemberships,
   setupOrg,
 } from '@/../seedDatabase'
-import { createSecretApiKeyTransaction } from './apiKeyHelpers'
+import {
+  createSecretApiKeyTransaction,
+  getApiKeyHeader,
+} from './apiKeyHelpers'
 import { FlowgladApiKeyType } from '@/types'
 import { CreateApiKeyInput } from '@/db/schema/apiKeys'
 import { Organization } from '@/db/schema/organizations'
@@ -227,4 +230,17 @@ describe('apiKeyHelpers', () => {
 
   //   expect(result).toBeNull()
   // })
+})
+
+describe('getApiKeyHeader', () => {
+  it('should return the second fragment if there are exactly 2 fragments', () => {
+    const authorizationHeader = 'Bearer 1234567890'
+    const apiKey = getApiKeyHeader(authorizationHeader)
+    expect(apiKey).toBe('1234567890')
+  })
+  it('should return the original authorization header if there are not exactly 2 fragments', () => {
+    const authorizationHeader = '1234567890'
+    const apiKey = getApiKeyHeader(authorizationHeader)
+    expect(apiKey).toBe('1234567890')
+  })
 })
