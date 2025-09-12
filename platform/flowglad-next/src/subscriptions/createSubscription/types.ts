@@ -17,8 +17,8 @@ export interface CreateSubscriptionParams {
     Customer.Record,
     'id' | 'stripeCustomerId' | 'livemode' | 'organizationId'
   >
-  product: Product.Record
-  price: Price.Record
+  product: Product.ClientRecord
+  price: Price.ClientRecord
   quantity: number
   livemode: boolean
   startDate: Date

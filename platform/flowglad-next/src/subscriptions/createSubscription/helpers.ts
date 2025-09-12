@@ -289,7 +289,7 @@ export const setupLedgerAccounts = async (
   params: {
     subscription: Subscription.Record
     subscriptionItems: SubscriptionItem.Record[]
-    price: Price.Record
+    price: Price.ClientRecord
   },
   transaction: DbTransaction
 ) => {

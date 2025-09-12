@@ -1,4 +1,7 @@
-import { insertSubscription } from '@/db/tableMethods/subscriptionMethods'
+import {
+  insertSubscription,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
 import {
   IntervalUnit,
   PriceType,
@@ -124,9 +127,9 @@ export const createNonRenewingSubscriptionAndItems = async (
     stripeSetupIntentId,
     metadata,
   } = params
-  if (price.type !== PriceType.Subscription) {
+  if (!product.default && price.type !== PriceType.Subscription) {
     throw new Error(
-      `Price ${price.id} is not a subscription price. Credit trial subscriptions must have a subscription price. Received price type: ${price.type}`
+      `Price ${price.id} is not a subscription price. Non-renewing subscriptions must have a subscription price. Received price type: ${price.type}`
     )
   }
   const subscriptionInsert: Subscription.NonRenewingInsert = {
@@ -137,7 +140,7 @@ export const createNonRenewingSubscriptionAndItems = async (
     isFreePlan: price.unitPrice === 0,
     cancellationReason: null,
     replacedBySubscriptionId: null,
-    status: SubscriptionStatus.CreditTrial,
+    status: SubscriptionStatus.Active,
     defaultPaymentMethodId: null,
     backupPaymentMethodId: null,
     cancelScheduledAt: null,
@@ -166,6 +169,7 @@ export const createNonRenewingSubscriptionAndItems = async (
     subscriptionInsert,
     transaction
   )
+
   const subscriptionItemInsert: SubscriptionItem.StaticInsert = {
     name: `${price.name}${quantity > 1 ? ` x ${quantity}` : ''}`,
     subscriptionId: subscription.id,
@@ -203,8 +207,13 @@ export const insertSubscriptionAndItems = async (
     billingCycleAnchorDate,
     preservedBillingPeriodEnd,
     preservedBillingPeriodStart,
+    product,
   } = params
-
+  if (price.productId !== product.id) {
+    throw new Error(
+      `insertSubscriptionAndItems: Price ${price.id} is not associated with product ${product.id}`
+    )
+  }
   // Use provided anchor date or default to start date
   const actualBillingCycleAnchor = billingCycleAnchorDate || startDate
 
@@ -227,9 +236,17 @@ export const insertSubscriptionAndItems = async (
     }
   }
 
-  if (!isPriceTypeSubscription(price.type)) {
+  if (!isPriceTypeSubscription(price.type) && !product.default) {
     throw new Error('Price is not a subscription')
   }
+
+  if (product.default && !isPriceTypeSubscription(price.type)) {
+    return await createNonRenewingSubscriptionAndItems(
+      params,
+      transaction
+    )
+  }
+
   if (price.startsWithCreditTrial) {
     return await createNonRenewingSubscriptionAndItems(
       params,
