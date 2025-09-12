@@ -1,5 +1,4 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { IntervalUnit, PriceType } from '@/types'
 import { Switch } from '@/components/ui/switch'
@@ -15,7 +14,6 @@ import {
   subscriptionPriceDefaultColumns,
   usagePriceDefaultColumns,
 } from '@/db/schema/prices'
-import { Controller, FieldError } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import {
   FormField,
@@ -27,7 +25,9 @@ import {
 } from '@/components/ui/form'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import UsageMetersSelect from './UsageMetersSelect'
-import { cn, core } from '@/utils/core'
+import core from '@/utils/core'
+import { usePriceConstraints } from '@/app/hooks/usePriceConstraints'
+import type { PriceConstraints } from '@/app/hooks/usePriceConstraints'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
@@ -37,18 +37,15 @@ import { isCurrencyZeroDecimal } from '@/utils/stripe'
 import { currencyCharacter } from '@/registry/lib/currency'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
+
 const SubscriptionFields = ({
-  omitTrialFields = false,
+  constraints,
   productId,
 }: {
-  omitTrialFields?: boolean
+  constraints: PriceConstraints
   productId?: string
 }) => {
-  const {
-    formState: { errors },
-    control,
-    watch,
-  } = usePriceFormContext()
+  const { control } = usePriceFormContext()
   const { organization } = useAuthenticatedContext()
   const zeroDecimal = isCurrencyZeroDecimal(
     organization!.defaultCurrency
@@ -78,6 +75,7 @@ const SubscriptionFields = ({
                       field.onChange(value)
                     }}
                     allowDecimals={!zeroDecimal}
+                    disabled={constraints.disableAmountAndTrials}
                   />
                 </FormControl>
               </div>
@@ -125,7 +123,9 @@ const SubscriptionFields = ({
           productId={productId}
         />
       )}
-      {!omitTrialFields && <TrialFields />}
+      {!constraints.omitTrialFields && (
+        <TrialFields disabled={constraints.disableAmountAndTrials} />
+      )}
     </>
   )
 }
@@ -165,11 +165,12 @@ const SubscriptionFields = ({
 //   )
 // }
 
-const SinglePaymentFields = () => {
-  const {
-    formState: { errors },
-    control,
-  } = usePriceFormContext()
+const SinglePaymentFields = ({
+  constraints,
+}: {
+  constraints: PriceConstraints
+}) => {
+  const { control } = usePriceFormContext()
   const { organization } = useAuthenticatedContext()
   const zeroDecimal = isCurrencyZeroDecimal(
     organization!.defaultCurrency
@@ -198,6 +199,7 @@ const SinglePaymentFields = () => {
                     field.onChange(value)
                   }}
                   allowDecimals={!zeroDecimal}
+                  disabled={constraints.disableAmountAndTrials}
                 />
               </FormControl>
             </div>
@@ -212,10 +214,14 @@ const PriceFormFields = ({
   priceOnly,
   edit,
   productId,
+  isDefaultProductOverride,
+  isDefaultPriceOverride,
 }: {
   priceOnly?: boolean
   edit?: boolean
   productId?: string
+  isDefaultProductOverride?: boolean
+  isDefaultPriceOverride?: boolean
 }) => {
   const {
     control,
@@ -225,27 +231,36 @@ const PriceFormFields = ({
   } = usePriceFormContext()
   const fullForm = useFormContext<CreateProductSchema>()
   const type = watch('price.type')
+  const isDefaultProduct =
+    isDefaultProductOverride ?? (fullForm.watch('product')?.default === true)
+  const isDefaultPrice =
+    isDefaultPriceOverride ?? (watch('price.isDefault') === true)
+  const { constraints, isDefaultLocked } = usePriceConstraints({
+    type,
+    isDefaultProduct,
+    isDefaultPrice,
+  })
 
   let typeFields = <></>
-  const { organization } = useAuthenticatedContext()
-  if (!core.IS_PROD) {
-    const price = watch('price')
-    console.log('===price', price)
-    // eslint-disable-next-line no-console
-    console.log('===errors', errors)
-  }
+  
+
 
   switch (type) {
     case PriceType.Subscription:
-      typeFields = <SubscriptionFields productId={productId} />
+      typeFields = (
+        <SubscriptionFields
+          productId={productId}
+          constraints={constraints}
+        />
+      )
       break
     case PriceType.SinglePayment:
-      typeFields = <SinglePaymentFields />
+      typeFields = <SinglePaymentFields constraints={constraints} />
       break
     case PriceType.Usage:
       typeFields = (
         <div className="flex flex-col gap-2.5">
-          <SubscriptionFields omitTrialFields />
+          <SubscriptionFields constraints={constraints} />
           <UsageMetersSelect
             name="price.usageMeterId"
             control={control}
@@ -263,6 +278,11 @@ const PriceFormFields = ({
 
   return (
     <div className="flex-1 w-full relative flex flex-col justify-center gap-6">
+      {priceOnly && isDefaultLocked && (
+        <p className="text-xs text-muted-foreground">
+          Amount, trial settings, name, slug, type, and default status are locked for the default price of a default plan.
+        </p>
+      )}
       {priceOnly && (
         <FormField
           control={control}
@@ -271,7 +291,12 @@ const PriceFormFields = ({
             <FormItem>
               <FormLabel>Price Name</FormLabel>
               <FormControl>
-                <Input placeholder="Price" {...field} value={field.value ?? ''} />
+                <Input
+                  placeholder="Price"
+                  {...field}
+                  value={field.value ?? ''}
+                  disabled={isDefaultProduct && isDefaultPrice}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -290,7 +315,8 @@ const PriceFormFields = ({
                 name="price.slug"
                 sourceName={priceOnly ? "price.name" : "product.name"}
                 placeholder="price_slug"
-                disabledAuto={edit}
+                disabledAuto={edit || isDefaultLocked}
+                disabled={isDefaultLocked}
               />
             </FormControl>
             <FormDescription>
@@ -309,7 +335,7 @@ const PriceFormFields = ({
             <FormLabel>Price Type</FormLabel>
             <FormControl>
               <Select
-                value={field.value}
+                value={isDefaultProduct ? (field.value ?? PriceType.Subscription) : field.value}
                 onValueChange={(value) => {
                   /**
                    * When price type changes,
@@ -333,7 +359,7 @@ const PriceFormFields = ({
                   }
                   field.onChange(value)
                 }}
-                disabled={edit}
+                disabled={edit || isDefaultLocked}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -371,6 +397,7 @@ const PriceFormFields = ({
                 <Switch
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  disabled={isDefaultLocked}
                 />
               </FormControl>
               <FormMessage />

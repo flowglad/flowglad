@@ -8,12 +8,14 @@ import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import {
   validateProductCreation,
   validateDefaultProductUpdate,
+  validateDefaultPriceUpdate,
 } from '@/utils/defaultProductValidation'
 import {
   createProductTransaction,
   editProduct as editProductPricingModel,
 } from '@/utils/pricingModel'
 import { errorHandlers } from '../trpcErrorHandler'
+import { TRPCError } from '@trpc/server'
 import {
   createProductSchema,
   editProductSchema,
@@ -35,6 +37,7 @@ import {
 import {
   safelyUpdatePrice,
   selectPrices,
+  selectPriceById,
 } from '@/db/tableMethods/priceMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
 import * as R from 'ramda'
@@ -124,11 +127,16 @@ export const editProduct = protectedProcedure
             throw new Error('Product not found')
           }
 
+          // If default product, always force active=true on edit to auto-correct bad states
+          const enforcedProduct = existingProduct.default
+            ? { ...product, active: true }
+            : product
+
           // Validate that default products can only have certain fields updated
-          validateDefaultProductUpdate(product, existingProduct)
+          validateDefaultProductUpdate(enforcedProduct, existingProduct)
 
           const updatedProduct = await editProductPricingModel(
-            { product, featureIds },
+            { product: enforcedProduct, featureIds },
             transaction
           )
 
@@ -140,6 +148,31 @@ export const editProduct = protectedProcedure
           }
 
           if (input.price) {
+            const existingPrice = await selectPriceById(
+              input.price.id,
+              transaction
+            )
+            if (!existingPrice) {
+              throw new Error('Price not found')
+            }
+            validateDefaultPriceUpdate(
+              input.price,
+              existingPrice,
+              existingProduct
+            )
+            // Disallow slug changes for the default price of a default product (parity with pricesRouter.edit)
+            if (
+              existingProduct.default &&
+              existingPrice.isDefault &&
+              input.price.slug !== undefined &&
+              input.price.slug !== existingPrice.slug
+            ) {
+              throw new TRPCError({
+                code: 'FORBIDDEN',
+                message:
+                  'Cannot change the slug of the default price for a default product',
+              })
+            }
             await safelyUpdatePrice(input.price, transaction)
           }
           return {

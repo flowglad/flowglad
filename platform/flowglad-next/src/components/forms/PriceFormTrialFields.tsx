@@ -19,7 +19,7 @@ import {
 import NumberInput from '@/components/ion/NumberInput'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 
-const TrialFields = () => {
+const TrialFields = ({ disabled = false }: { disabled?: boolean }) => {
   const {
     formState: { errors },
     control,
@@ -50,12 +50,23 @@ const TrialFields = () => {
       setTrialType(overagePriceId ? 'credit' : 'time')
     }
   }, [overagePriceId, startsWithCreditTrial, setTrialType])
+
+  // When disabled, force trials off in the form and local UI state
+  useEffect(() => {
+    if (disabled) {
+      setOfferTrial(false)
+      setValue('price.trialPeriodDays', 0)
+      setValue('price.startsWithCreditTrial', null)
+    }
+  }, [disabled, setValue])
   return (
     <div className="flex flex-col gap-2.5">
       <Switch
         label="Trial"
         checked={offerTrial}
+        disabled={disabled}
         onCheckedChange={(checked) => {
+          if (disabled) return
           setOfferTrial(checked)
           if (!checked) {
             setValue('price.trialPeriodDays', 0)
@@ -70,6 +81,7 @@ const TrialFields = () => {
             <Select
               value={trialType}
               onValueChange={(value) => {
+                if (disabled) return
                 setTrialType(value as 'credit' | 'time')
                 if (value === 'credit') {
                   setValue('price.startsWithCreditTrial', true)
@@ -78,7 +90,7 @@ const TrialFields = () => {
                 }
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger disabled={disabled}>
                 <SelectValue placeholder="Select trial type" />
               </SelectTrigger>
               <SelectContent>
@@ -90,7 +102,7 @@ const TrialFields = () => {
                 </SelectItem>
                 <SelectItem
                   value="credit"
-                  disabled={!overagePriceId}
+                  disabled={!overagePriceId || disabled}
                   description="For one-time credit grant trials. Requires an overage price"
                 >
                   Credit
@@ -98,31 +110,31 @@ const TrialFields = () => {
               </SelectContent>
             </Select>
           </div>
-          {trialType === 'time' && (
-            <FormField
-              name="price.trialPeriodDays"
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>Trial Period Days</FormLabel>
-                  <FormControl>
-                    <NumberInput
-                      {...field}
-                      onChange={undefined}
-                      onValueChange={({ floatValue }) => {
-                        field.onChange(floatValue ?? undefined)
-                      }}
-                      min={1}
-                      max={365}
-                      step={1}
-                      error={fieldState.error?.message}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+          <FormField
+            name="price.trialPeriodDays"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel>Trial Period Days</FormLabel>
+                <FormControl>
+                  <NumberInput
+                    {...field}
+                    onChange={undefined}
+                    onValueChange={({ floatValue }) => {
+                      if (disabled) return
+                      field.onChange(floatValue ?? undefined)
+                    }}
+                    min={1}
+                    max={365}
+                    step={1}
+                    error={fieldState.error?.message}
+                    disabled={disabled || trialType !== 'time'}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </>
       )}
     </div>
