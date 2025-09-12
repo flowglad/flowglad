@@ -31,7 +31,7 @@ export default function Providers({
       <AuthProvider values={authContext}>
         <PostHogProvider client={posthog}>
           <PostHogPageView user={authContext.user} />
-          {/* {!isPublicRoute && !isBillingPortal && <FeaturebaseMessenger />} */}
+          {!isPublicRoute && !isBillingPortal && <FeaturebaseMessenger />}
           {children}
         </PostHogProvider>
       </AuthProvider>

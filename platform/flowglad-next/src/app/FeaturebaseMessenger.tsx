@@ -14,7 +14,7 @@ export default function FeaturebaseMessenger() {
   const appId = process.env.NEXT_PUBLIC_FEATUREBASE_APP_ID
   const { user } = useAuthContext()
   const [userHash, setUserHash] = useState<string | null>(null)
-  const bootedRef = useRef(false)
+  const lastBootKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!appId || !user) return
@@ -22,7 +22,7 @@ export default function FeaturebaseMessenger() {
       try {
         const res = await fetch('/api/featurebase/user-hash', {
           method: 'GET',
-          headers: { 'cache-control': 'no-store' },
+          cache: 'no-store',
         })
         if (res.ok) {
           const json = await res.json()
@@ -39,7 +39,9 @@ export default function FeaturebaseMessenger() {
 
   useEffect(() => {
     if (!appId || !user || !userHash) return
-    if (bootedRef.current) return
+
+    const key = `${user.id}:${userHash}`
+    if (lastBootKeyRef.current === key) return
 
     const browserWindow = window as Window
 
@@ -62,10 +64,13 @@ export default function FeaturebaseMessenger() {
       userHash,
     }
     browserWindow.Featurebase!('boot', payload)
-    bootedRef.current = true
-  }, [appId, user, userHash])
+    lastBootKeyRef.current = key
+  }, [appId, user?.id, userHash])
 
   if (!appId || !user) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Featurebase disabled', { hasAppId: !!appId, hasUser: !!user })
+    }
     return null
   }
 
@@ -74,6 +79,7 @@ export default function FeaturebaseMessenger() {
       src="https://do.featurebase.app/js/sdk.js"
       id="featurebase-sdk"
       strategy="afterInteractive"
+      onError={() => console.warn('Featurebase SDK failed to load')}
     />
   )
 }
