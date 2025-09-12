@@ -279,14 +279,13 @@ export const createFreePlanProductInsert = (
 
 export const createFreePlanPriceInsert = (
   defaultProduct: Product.Record,
-  defaultCurrency: CurrencyCode
+  defaultCurrency: CurrencyCode,
+  defaultPlanInterval?: IntervalUnit
 ): Price.Insert => {
-  return {
+  const coreInsert = {
     productId: defaultProduct.id,
     unitPrice: 0,
     isDefault: true,
-    type: PriceType.Subscription,
-    intervalUnit: IntervalUnit.Month,
     intervalCount: 1,
     currency: defaultCurrency,
     livemode: defaultProduct.livemode,
@@ -299,6 +298,22 @@ export const createFreePlanPriceInsert = (
     externalId: null,
     slug: null,
     startsWithCreditTrial: false,
+  } as const
+
+  if (defaultPlanInterval) {
+    return {
+      ...coreInsert,
+      intervalUnit: defaultPlanInterval,
+      type: PriceType.Subscription,
+    }
+  }
+
+  return {
+    ...coreInsert,
+    startsWithCreditTrial: null,
+    intervalCount: null,
+    intervalUnit: null,
+    type: PriceType.SinglePayment,
     overagePriceId: null,
   }
 }
@@ -495,6 +510,7 @@ export const createPricingModelBookkeeping = async (
       PricingModel.Insert,
       'livemode' | 'organizationId'
     >
+    defaultPlanInterval?: IntervalUnit
   },
   {
     transaction,
@@ -534,7 +550,8 @@ export const createPricingModelBookkeeping = async (
   const defaultPrice = await insertPrice(
     createFreePlanPriceInsert(
       defaultProduct,
-      organization.defaultCurrency
+      organization.defaultCurrency,
+      payload.defaultPlanInterval
     ),
     transaction
   )

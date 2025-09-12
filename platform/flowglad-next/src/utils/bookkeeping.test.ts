@@ -670,6 +670,7 @@ describe('createPricingModelBookkeeping', () => {
                 name: 'New Pricing Model',
                 isDefault: false,
               },
+              defaultPlanInterval: IntervalUnit.Month,
             },
             {
               transaction,
@@ -1118,7 +1119,7 @@ describe('createPricingModelBookkeeping', () => {
       expect(defaultProduct.externalId).toBeNull()
     })
 
-    it('should create default price with all correct attributes', async () => {
+    it('should create default price with all correct attributes set to single payment type when no default plan interval is provided', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
           const output = await createPricingModelBookkeeping(
@@ -1145,9 +1146,9 @@ describe('createPricingModelBookkeeping', () => {
       )
       expect(defaultPrice.unitPrice).toBe(0)
       expect(defaultPrice.isDefault).toBe(true)
-      expect(defaultPrice.type).toBe(PriceType.Subscription)
-      expect(defaultPrice.intervalUnit).toBe(IntervalUnit.Month)
-      expect(defaultPrice.intervalCount).toBe(1)
+      expect(defaultPrice.type).toBe(PriceType.SinglePayment)
+      expect(defaultPrice.intervalUnit).toBe(null)
+      expect(defaultPrice.intervalCount).toBe(null)
       expect(defaultPrice.currency).toBe(CurrencyCode.USD)
       expect(defaultPrice.livemode).toBe(livemode)
       expect(defaultPrice.active).toBe(true)
@@ -1158,7 +1159,7 @@ describe('createPricingModelBookkeeping', () => {
       expect(defaultPrice.usageMeterId).toBeNull()
       expect(defaultPrice.externalId).toBeNull()
       expect(defaultPrice.slug).toBeNull()
-      expect(defaultPrice.startsWithCreditTrial).toBe(false)
+      expect(defaultPrice.startsWithCreditTrial).toBe(null)
       expect(defaultPrice.overagePriceId).toBeNull()
     })
 

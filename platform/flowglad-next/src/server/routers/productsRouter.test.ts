@@ -89,7 +89,6 @@ describe('productsRouter - Default Product Constraints', () => {
           externalId: null,
           slug: null,
           startsWithCreditTrial: false,
-          overagePriceId: null,
         },
         transaction
       )
@@ -189,7 +188,6 @@ describe('productsRouter - Default Product Constraints', () => {
               externalId: null,
               slug: null,
               startsWithCreditTrial: false,
-              overagePriceId: null,
             },
             transaction
           )

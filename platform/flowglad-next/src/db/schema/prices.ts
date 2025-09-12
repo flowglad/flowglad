@@ -52,6 +52,7 @@ const readOnlyColumns = {
 const hiddenColumns = {
   externalId: true,
   ...hiddenColumnsForClientSchema,
+  overagePriceId: true,
 } as const
 
 const nonClientEditableColumns = {
@@ -104,6 +105,9 @@ export const prices = pgTable(
       columnName: 'currency',
       enumBase: CurrencyCode,
     }).notNull(),
+    /**
+     * TODO: delete
+     */
     startsWithCreditTrial: boolean('starts_with_credit_trial'),
     /**
      * A hidden column, used primarily for managing migrations from
@@ -111,6 +115,9 @@ export const prices = pgTable(
      */
     externalId: text('external_id'),
     slug: text('slug'),
+    /**
+     * TODO: delete
+     */
     overagePriceId: text('overage_price_id').references(
       (): PgColumn<
         ColumnBaseConfig<ColumnDataType, string>,
@@ -161,7 +168,6 @@ export const prices = pgTable(
 ).enableRLS()
 
 export const nulledPriceColumns = {
-  overagePriceId: null,
   usageEventsPerUnit: null,
   startsWithCreditTrial: null,
   usageMeterId: null,
@@ -216,9 +222,11 @@ const subscriptionPriceColumns = {
       'The trial period in days. If the trial period is 0 or null, there will be no trial period.'
     ),
   usageEventsPerUnit: core.safeZodNullOrUndefined,
-  overagePriceId: core.safeZodNullishString.describe(
-    'The price to use when the usage exceeds the usage events per unit. If null, there is no overage price.'
-  ),
+  overagePriceId: core.safeZodNullishString
+    .describe(
+      'The price to use when the usage exceeds the usage events per unit. If null, there is no overage price.'
+    )
+    .optional(),
   usageMeterId: core.safeZodNullOrUndefined,
   startsWithCreditTrial: z
     .boolean()
@@ -231,7 +239,7 @@ const subscriptionPriceColumns = {
 
 const usagePriceColumns = {
   ...subscriptionPriceColumns,
-  overagePriceId: core.safeZodNullOrUndefined,
+  overagePriceId: core.safeZodNullOrUndefined.optional(),
   trialPeriodDays: core.safeZodNullOrUndefined,
   setupFeeAmount: core.safeZodNullOrUndefined,
   usageMeterId: z
@@ -277,7 +285,7 @@ const singlePaymentPriceColumns = {
   trialPeriodDays: core.safeZodNullOrUndefined,
   usageMeterId: core.safeZodNullOrUndefined,
   usageEventsPerUnit: core.safeZodNullOrUndefined,
-  overagePriceId: core.safeZodNullOrUndefined,
+  overagePriceId: core.safeZodNullOrUndefined.optional(),
   startsWithCreditTrial: core.safeZodNullOrUndefined,
 }
 
@@ -694,12 +702,12 @@ export const usagePriceDefaultColumns: Pick<
   keyof typeof usagePriceColumns
 > = {
   ...subscriptionPriceDefaultColumns,
+  overagePriceId: null,
   setupFeeAmount: null,
   trialPeriodDays: null,
   type: PriceType.Usage,
   usageMeterId: '',
   usageEventsPerUnit: 1,
-  overagePriceId: null,
 }
 
 export const singlePaymentPriceDefaultColumns: Pick<
@@ -709,4 +717,5 @@ export const singlePaymentPriceDefaultColumns: Pick<
   ...nulledPriceColumns,
   startsWithCreditTrial: null,
   type: PriceType.SinglePayment,
+  overagePriceId: null,
 }

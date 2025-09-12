@@ -32,6 +32,7 @@ describe('Price Defaults', () => {
     const transformedToUsagePrice = {
       ...subscriptionDummyPrice,
       ...usagePriceDefaultColumns,
+      overagePriceId: null,
     }
     testStartingPriceToDestinationPrice(
       transformedToUsagePrice,
@@ -43,6 +44,7 @@ describe('Price Defaults', () => {
     const transformedToSinglePaymentPrice = {
       ...subscriptionDummyPrice,
       ...singlePaymentPriceDefaultColumns,
+      overagePriceId: null,
     }
     testStartingPriceToDestinationPrice(
       transformedToSinglePaymentPrice,

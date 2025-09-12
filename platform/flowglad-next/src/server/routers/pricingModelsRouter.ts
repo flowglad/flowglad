@@ -110,6 +110,7 @@ const createPricingModelProcedure = protectedProcedure
         return createPricingModelBookkeeping(
           {
             pricingModel: input.pricingModel,
+            defaultPlanInterval: input.defaultPlanInterval,
           },
           { transaction, organizationId, livemode }
         )

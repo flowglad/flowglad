@@ -82,7 +82,6 @@ describe('pricesRouter - Default Price Constraints', () => {
           externalId: null,
           slug: null,
           startsWithCreditTrial: false,
-          overagePriceId: null,
         },
         transaction
       )
@@ -157,7 +156,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           const updatedPrice = await safelyUpdatePrice(
             {
               id: defaultPriceId,
-              type: PriceType.Subscription,
+              type: PriceType.SinglePayment,
               unitPrice: 0,
               name: 'Updated Base Plan Price',
             },
@@ -224,7 +223,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           const updatedPrice = await safelyUpdatePrice(
             {
               id: defaultPriceId,
-              type: PriceType.Subscription,
+              type: PriceType.SinglePayment,
               name: 'Updated Default Price Name',
               active: false,
             },
@@ -304,7 +303,6 @@ describe('pricesRouter - Default Price Constraints', () => {
               externalId: null,
               slug: null,
               startsWithCreditTrial: false,
-              overagePriceId: null,
             },
             transaction
           )
@@ -368,7 +366,6 @@ describe('pricesRouter - Default Price Constraints', () => {
               externalId: null,
               slug: null,
               startsWithCreditTrial: false,
-              overagePriceId: null,
             },
             transaction
           )
@@ -405,7 +402,6 @@ describe('pricesRouter - Default Price Constraints', () => {
               externalId: null,
               slug: null,
               startsWithCreditTrial: false,
-              overagePriceId: null,
             },
             transaction
           )

@@ -31,7 +31,6 @@ import { cn, core } from '@/utils/core'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
-import { RecurringUsageCreditsOveragePriceSelect } from './OveragePriceSelect'
 import TrialFields from './PriceFormTrialFields'
 import { isCurrencyZeroDecimal } from '@/utils/stripe'
 import { currencyCharacter } from '@/registry/lib/currency'
@@ -120,11 +119,6 @@ const SubscriptionFields = ({
           )}
         />
       </div>
-      {productId && (
-        <RecurringUsageCreditsOveragePriceSelect
-          productId={productId}
-        />
-      )}
       {!omitTrialFields && <TrialFields />}
     </>
   )
@@ -271,7 +265,11 @@ const PriceFormFields = ({
             <FormItem>
               <FormLabel>Price Name</FormLabel>
               <FormControl>
-                <Input placeholder="Price" {...field} value={field.value ?? ''} />
+                <Input
+                  placeholder="Price"
+                  {...field}
+                  value={field.value ?? ''}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -288,7 +286,7 @@ const PriceFormFields = ({
               <AutoSlugInput
                 {...field}
                 name="price.slug"
-                sourceName={priceOnly ? "price.name" : "product.name"}
+                sourceName={priceOnly ? 'price.name' : 'product.name'}
                 placeholder="price_slug"
                 disabledAuto={edit}
               />

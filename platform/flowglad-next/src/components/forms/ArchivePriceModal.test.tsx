@@ -34,7 +34,6 @@ describe('priceToEditPriceInput', () => {
       setupFeeAmount: null,
       usageMeterId: null,
       usageEventsPerUnit: null,
-      overagePriceId: null,
       slug: 'test-price',
     }
     const result = priceToArchivePriceInput(price)
@@ -66,7 +65,6 @@ describe('priceToEditPriceInput', () => {
       setupFeeAmount: null,
       livemode: false,
       usageEventsPerUnit: null,
-      overagePriceId: null,
       slug: 'test-price',
     }
     const result = priceToArchivePriceInput(price)
@@ -97,7 +95,6 @@ describe('priceToEditPriceInput', () => {
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageEventsPerUnit: null,
-      overagePriceId: null,
       slug: 'test-price',
     }
     const result = priceToArchivePriceInput(price)
@@ -126,7 +123,6 @@ describe('priceToEditPriceInput', () => {
       intervalCount: 1,
       trialPeriodDays: null,
       setupFeeAmount: null,
-      overagePriceId: null,
       usageMeterId: 'um_1',
       usageEventsPerUnit: 1,
       slug: 'test-price',

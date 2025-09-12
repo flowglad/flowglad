@@ -865,6 +865,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
           active: true,
           externalId: null,
           isDefault: false,
+          overagePriceId: null,
           slug: `flowglad-test-product-price+${core.nanoid()}`,
         }
 

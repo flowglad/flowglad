@@ -114,7 +114,6 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
                 startsWithCreditTrial: false,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
