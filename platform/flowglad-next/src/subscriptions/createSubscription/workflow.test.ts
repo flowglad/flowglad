@@ -447,6 +447,74 @@ describe('createSubscriptionWorkflow', async () => {
         })
       ).rejects.toThrow('Price is not a subscription')
     })
+
+    it('creates a non-renewing subscription if provided a default product and non-subscribable price', async () => {
+      const defaultProductCustomer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      const defaultProductPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: defaultProductCustomer.id,
+      })
+
+      // Use the default product from setupOrg
+      const singlePaymentPrice = await setupPrice({
+        productId: product.id, // Use the default product
+        type: PriceType.SinglePayment,
+        name: 'Single Payment Price for Default Product',
+        unitPrice: 100,
+        livemode: true,
+        isDefault: false,
+        setupFeeAmount: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product, // Use the default product
+              price: singlePaymentPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: defaultProductPaymentMethod,
+              customer: defaultProductCustomer,
+              autoStart: true, // Enable autoStart to get an active subscription
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify a subscription was created successfully
+      expect(result.result.subscription).toBeDefined()
+      expect(result.result.subscription.customerId).toBe(
+        defaultProductCustomer.id
+      )
+      expect(result.result.subscription.priceId).toBe(
+        singlePaymentPrice.id
+      )
+      // Since it's a single payment price with default product, it should create a standard subscription
+      expect(result.result.subscription.renews).toBe(false) // Standard subscriptions renew by default
+      expect(result.result.subscription.status).toBe(
+        SubscriptionStatus.Active
+      )
+
+      // Verify billing period was created
+      expect(result.result.billingPeriod).toBeNull()
+
+      // Verify subscription items were created
+      expect(result.result.subscriptionItems).toBeDefined()
+      expect(result.result.subscriptionItems.length).toBeGreaterThan(
+        0
+      )
+    })
   })
 
   it("doesn't recreate subscriptions, billing periods, or billing period items for the same setup intent", async () => {

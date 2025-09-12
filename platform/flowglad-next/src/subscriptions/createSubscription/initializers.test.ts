@@ -82,6 +82,65 @@ describe('insertSubscriptionAndItems', () => {
       ).rejects.toThrow('Price is not a subscription')
     })
 
+    it('should create a standard subscription when provided a default product and non-subscribable price', async () => {
+      // setup:
+      // - Create a SinglePayment price for the default product
+      const singlePaymentPrice = await setupPrice({
+        productId: product.id, // Use the default product from beforeEach
+        type: PriceType.SinglePayment,
+        name: 'Single Payment Price for Default Product',
+        unitPrice: 500,
+        livemode: true,
+        isDefault: false,
+        setupFeeAmount: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
+      // - Create a payment method for testing
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      // - Construct params for insertSubscriptionAndItems using the default product
+      const params = {
+        organization,
+        customer,
+        product, // Default product from beforeEach
+        price: singlePaymentPrice,
+        quantity: 1,
+        livemode: true,
+        startDate: new Date(),
+        interval: IntervalUnit.Month,
+        intervalCount: 1,
+        defaultPaymentMethod: paymentMethod,
+        autoStart: true, // Enable autoStart to get an active subscription
+      }
+
+      // expects:
+      // - The call should succeed and create a standard subscription
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return insertSubscriptionAndItems(params, transaction)
+        }
+      )
+
+      // Verify the subscription was created successfully
+      expect(result.subscription).toBeDefined()
+      expect(result.subscription.customerId).toBe(customer.id)
+      expect(result.subscription.priceId).toBe(singlePaymentPrice.id)
+      // Standard subscriptions should have renews = true
+      expect(result.subscription.renews).toBe(true)
+      expect(result.subscription.status).toBe(
+        SubscriptionStatus.Active
+      )
+
+      // Verify subscription items were created
+      expect(result.subscriptionItems).toBeDefined()
+      expect(result.subscriptionItems.length).toBeGreaterThan(0)
+    })
+
     it('should route to createNonRenewingSubscriptionAndItems when price.startsWithCreditTrial is true', async () => {
       // setup:
       // - Create a usage meter.
