@@ -1,4 +1,7 @@
-import { insertSubscription } from '@/db/tableMethods/subscriptionMethods'
+import {
+  insertSubscription,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
 import {
   IntervalUnit,
   PriceType,
@@ -237,11 +240,30 @@ export const insertSubscriptionAndItems = async (
   }
 
   if (product.default && !isPriceTypeSubscription(price.type)) {
-    return await createStandardSubscriptionAndItems(
-      params,
+    // For default products with non-subscribable prices, create a non-renewing subscription
+    // We'll use createStandardSubscriptionAndItems but modify the params to ensure renews is false
+    const nonRenewingParams = {
+      ...params,
+      // Pass a flag or modify the behavior to ensure renews: false
+    }
+    const result = await createStandardSubscriptionAndItems(
+      nonRenewingParams,
       currentBillingPeriod,
       transaction
     )
+    // Override the renews property after creation
+    if (result.subscription) {
+      await updateSubscription(
+        {
+          id: result.subscription.id,
+          renews: false,
+        },
+        transaction
+      )
+      // Update the result object to reflect the change
+      result.subscription.renews = false
+    }
+    return result
   }
 
   if (price.startsWithCreditTrial) {

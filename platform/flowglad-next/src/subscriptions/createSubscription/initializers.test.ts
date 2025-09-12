@@ -82,7 +82,7 @@ describe('insertSubscriptionAndItems', () => {
       ).rejects.toThrow('Price is not a subscription')
     })
 
-    it('should create a standard subscription when provided a default product and non-subscribable price', async () => {
+    it('should create a non-renewing subscription when provided a default product and non-subscribable price', async () => {
       // setup:
       // - Create a SinglePayment price for the default product
       const singlePaymentPrice = await setupPrice({
@@ -119,7 +119,7 @@ describe('insertSubscriptionAndItems', () => {
       }
 
       // expects:
-      // - The call should succeed and create a standard subscription
+      // - The call should succeed and create a non-renewing subscription
       const result = await adminTransaction(
         async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
@@ -130,8 +130,8 @@ describe('insertSubscriptionAndItems', () => {
       expect(result.subscription).toBeDefined()
       expect(result.subscription.customerId).toBe(customer.id)
       expect(result.subscription.priceId).toBe(singlePaymentPrice.id)
-      // Standard subscriptions should have renews = true
-      expect(result.subscription.renews).toBe(true)
+      // Non-renewing subscriptions should have renews = false
+      expect(result.subscription.renews).toBe(false)
       expect(result.subscription.status).toBe(
         SubscriptionStatus.Active
       )

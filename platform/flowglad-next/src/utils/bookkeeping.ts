@@ -5,10 +5,7 @@ import {
   selectCustomerById,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
-import {
-  deleteOpenInvoicesForPurchase,
-  safelyUpdateInvoiceStatus,
-} from '@/db/tableMethods/invoiceMethods'
+import { safelyUpdateInvoiceStatus } from '@/db/tableMethods/invoiceMethods'
 import {
   AuthenticatedTransactionParams,
   DbTransaction,
@@ -35,7 +32,10 @@ import { Customer } from '@/db/schema/customers'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { Payment } from '@/db/schema/payments'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import {
+  selectPriceById,
+  selectPricesAndProductsByProductWhere,
+} from '@/db/tableMethods/priceMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
   selectOpenNonExpiredCheckoutSessions,
@@ -45,6 +45,7 @@ import {
   selectDefaultPricingModel,
   insertPricingModel,
   safelyInsertPricingModel,
+  selectPricingModelById,
 } from '@/db/tableMethods/pricingModelMethods'
 import {
   selectProducts,
@@ -327,9 +328,21 @@ export const createCustomerBookkeeping = async (
       'Customer organizationId must match authenticated organizationId'
     )
   }
-
+  const pricingModel = payload.customer.pricingModelId
+    ? await selectPricingModelById(
+        payload.customer.pricingModelId,
+        transaction
+      )
+    : await selectDefaultPricingModel(
+        { organizationId: payload.customer.organizationId, livemode },
+        transaction
+      )
   let customer = await insertCustomer(
-    { ...payload.customer, livemode },
+    {
+      ...payload.customer,
+      livemode,
+      pricingModelId: pricingModel?.id ?? null,
+    },
     transaction
   )
   if (!customer.stripeCustomerId) {
@@ -361,122 +374,93 @@ export const createCustomerBookkeeping = async (
     metadata: {},
     processedAt: null,
   })
-
+  const pricingModelToUse =
+    pricingModel ??
+    (await selectDefaultPricingModel(
+      {
+        organizationId: customer.organizationId,
+        livemode: customer.livemode,
+      },
+      transaction
+    ))
   // Create default subscription for the customer
   // Use customer's organizationId to ensure consistency
-  if (customer.organizationId) {
-    try {
-      // Determine which pricing model to use
-      let pricingModelId = customer.pricingModelId
+  try {
+    // Determine which pricing model to use
+    let pricingModelId = pricingModelToUse!.id
+    // Get the default product for this pricing model
+    const [product] = await selectPricesAndProductsByProductWhere(
+      {
+        pricingModelId,
+        default: true,
+        active: true,
+      },
+      transaction
+    )
 
-      // If no pricing model specified, use the default one
-      if (!pricingModelId) {
-        const defaultPricingModel = await selectDefaultPricingModel(
-          {
-            organizationId: customer.organizationId,
-            livemode: customer.livemode,
-          },
-          transaction
-        )
-        if (defaultPricingModel) {
-          pricingModelId = defaultPricingModel.id
-        }
-      }
-
-      if (pricingModelId) {
-        // Get the default product for this pricing model
-        const products = await selectProducts(
-          {
-            pricingModelId,
-            default: true,
-            active: true,
-          },
+    if (product) {
+      const defaultProduct = product
+      const defaultPrice = product.defaultPrice
+      if (defaultPrice) {
+        // Get the organization details - use customer's organizationId for consistency
+        const organization = await selectOrganizationById(
+          customer.organizationId,
           transaction
         )
 
-        if (products.length > 0) {
-          const defaultProduct = products[0]
-
-          // Get the default price for this product
-          const prices = await selectPrices(
-            {
-              productId: defaultProduct.id,
-              isDefault: true,
-              active: true,
+        // Create the subscription
+        const subscriptionResult = await createSubscriptionWorkflow(
+          {
+            organization,
+            customer: {
+              id: customer.id,
+              stripeCustomerId: customer.stripeCustomerId,
+              livemode: customer.livemode,
+              organizationId: customer.organizationId,
             },
-            transaction
-          )
+            product: defaultProduct,
+            price: defaultPrice,
+            quantity: 1,
+            livemode: customer.livemode,
+            startDate: new Date(),
+            interval: defaultPrice.intervalUnit || IntervalUnit.Month,
+            intervalCount: defaultPrice.intervalCount || 1,
+            trialEnd: defaultPrice.trialPeriodDays
+              ? new Date(
+                  Date.now() +
+                    defaultPrice.trialPeriodDays * 24 * 60 * 60 * 1000
+                )
+              : undefined,
+            autoStart: true,
+            name: `${defaultProduct.name} Subscription`,
+          },
+          transaction
+        )
 
-          if (prices.length > 0) {
-            const defaultPrice = prices[0]
+        // Merge events from subscription creation
+        if (subscriptionResult.eventsToLog) {
+          eventsToLog.push(...subscriptionResult.eventsToLog)
+        }
 
-            // Get the organization details - use customer's organizationId for consistency
-            const organization = await selectOrganizationById(
-              customer.organizationId,
-              transaction
-            )
-
-            // Create the subscription
-            const subscriptionResult =
-              await createSubscriptionWorkflow(
-                {
-                  organization,
-                  customer: {
-                    id: customer.id,
-                    stripeCustomerId: customer.stripeCustomerId,
-                    livemode: customer.livemode,
-                    organizationId: customer.organizationId,
-                  },
-                  product: defaultProduct,
-                  price: defaultPrice,
-                  quantity: 1,
-                  livemode: customer.livemode,
-                  startDate: new Date(),
-                  interval:
-                    defaultPrice.intervalUnit || IntervalUnit.Month,
-                  intervalCount: defaultPrice.intervalCount || 1,
-                  trialEnd: defaultPrice.trialPeriodDays
-                    ? new Date(
-                        Date.now() +
-                          defaultPrice.trialPeriodDays *
-                            24 *
-                            60 *
-                            60 *
-                            1000
-                      )
-                    : undefined,
-                  autoStart: true,
-                  name: `${defaultProduct.name} Subscription`,
-                },
-                transaction
-              )
-
-            // Merge events from subscription creation
-            if (subscriptionResult.eventsToLog) {
-              eventsToLog.push(...subscriptionResult.eventsToLog)
-            }
-
-            // Return combined result with all events and ledger commands
-            return {
-              result: {
-                customer,
-                subscription: subscriptionResult.result.subscription,
-                subscriptionItems:
-                  subscriptionResult.result.subscriptionItems,
-              },
-              eventsToLog,
-              ledgerCommand: subscriptionResult.ledgerCommand,
-            }
-          }
+        // Return combined result with all events and ledger commands
+        return {
+          result: {
+            customer,
+            subscription: subscriptionResult.result.subscription,
+            subscriptionItems:
+              subscriptionResult.result.subscriptionItems,
+          },
+          eventsToLog,
+          ledgerCommand: subscriptionResult.ledgerCommand,
         }
       }
-    } catch (error) {
-      // Log the error but don't fail customer creation
-      console.error(
-        'Failed to create default subscription for customer:',
-        error
-      )
     }
+  } catch (error) {
+    // Log the error but don't fail customer creation
+    console.error(
+      'Failed to create default subscription for customer:',
+      error
+    )
   }
 
   // Return just the customer with events

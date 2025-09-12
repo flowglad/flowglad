@@ -500,8 +500,8 @@ describe('createSubscriptionWorkflow', async () => {
       expect(result.result.subscription.priceId).toBe(
         singlePaymentPrice.id
       )
-      // Since it's a single payment price with default product, it should create a standard subscription
-      expect(result.result.subscription.renews).toBe(false) // Standard subscriptions renew by default
+      // Since it's a single payment price with default product, it should create a non-renewing subscription
+      expect(result.result.subscription.renews).toBe(false) // Non-renewing subscriptions do not renew
       expect(result.result.subscription.status).toBe(
         SubscriptionStatus.Active
       )
