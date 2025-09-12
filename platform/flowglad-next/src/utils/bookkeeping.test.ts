@@ -623,7 +623,7 @@ describe('createCustomerBookkeeping', () => {
       expect(subscriptionInDb).toBeDefined()
       expect(subscriptionInDb?.subscription.name).toContain(
         // the name of the default product returned by setupOrg
-        'Flowglad Test Product'
+        'Default Product'
       )
       expect(subscriptionInDb?.subscription.name).toContain(
         'Subscription'

@@ -232,8 +232,16 @@ export const insertSubscriptionAndItems = async (
     }
   }
 
-  if (!isPriceTypeSubscription(price.type)) {
+  if (!isPriceTypeSubscription(price.type) && !product.default) {
     throw new Error('Price is not a subscription')
+  }
+
+  if (product.default && !isPriceTypeSubscription(price.type)) {
+    return await createStandardSubscriptionAndItems(
+      params,
+      currentBillingPeriod,
+      transaction
+    )
   }
 
   if (price.startsWithCreditTrial) {

@@ -6,6 +6,7 @@ import {
   setupPaymentMethod,
   setupUsageMeter,
   setupPrice,
+  setupProduct,
 } from '@/../seedDatabase'
 import { insertSubscriptionAndItems } from './initializers'
 import {
@@ -40,10 +41,16 @@ describe('insertSubscriptionAndItems', () => {
 
   describe('routing logic', () => {
     it('should throw an error if the price is not a subscription type', async () => {
+      const nonDefaultProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: product.pricingModelId,
+        name: 'Non Default Product',
+        livemode: true,
+      })
       // setup:
       // - Create a price with type PriceType.SinglePayment.
       const singlePaymentPrice = await setupPrice({
-        productId: product.id,
+        productId: nonDefaultProduct.id,
         type: PriceType.SinglePayment,
         name: 'Single Payment Price',
         unitPrice: 100,
@@ -57,7 +64,7 @@ describe('insertSubscriptionAndItems', () => {
       const params = {
         organization,
         customer,
-        product,
+        product: nonDefaultProduct,
         price: singlePaymentPrice,
         quantity: 1,
         livemode: true,

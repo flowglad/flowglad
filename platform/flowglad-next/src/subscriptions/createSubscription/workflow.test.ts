@@ -16,6 +16,7 @@ import {
   setupDiscount,
   setupPurchase,
   setupDiscountRedemption,
+  setupProduct,
 } from '@/../seedDatabase'
 import { createSubscriptionWorkflow } from './workflow'
 import {
@@ -397,13 +398,19 @@ describe('createSubscriptionWorkflow', async () => {
       const singlePayCustomer = await setupCustomer({
         organizationId: organization.id,
       })
+
       const singlePayPaymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
         customerId: singlePayCustomer.id,
       })
-
+      const nonDefaultProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: product.pricingModelId,
+        name: 'Non Default Product',
+        livemode: true,
+      })
       const singlePaymentPrice = await setupPrice({
-        productId: product.id,
+        productId: nonDefaultProduct.id,
         type: PriceType.SinglePayment,
         name: 'Single Payment Price',
         unitPrice: 100,
@@ -423,7 +430,7 @@ describe('createSubscriptionWorkflow', async () => {
           return createSubscriptionWorkflow(
             {
               organization,
-              product,
+              product: nonDefaultProduct,
               price: singlePaymentPrice, // Use the single payment price
               quantity: 1,
               livemode: true,
