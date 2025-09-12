@@ -203,8 +203,13 @@ export const insertSubscriptionAndItems = async (
     billingCycleAnchorDate,
     preservedBillingPeriodEnd,
     preservedBillingPeriodStart,
+    product,
   } = params
-
+  if (price.productId !== product.id) {
+    throw new Error(
+      `insertSubscriptionAndItems: Price ${price.id} is not associated with product ${product.id}`
+    )
+  }
   // Use provided anchor date or default to start date
   const actualBillingCycleAnchor = billingCycleAnchorDate || startDate
 
@@ -230,6 +235,7 @@ export const insertSubscriptionAndItems = async (
   if (!isPriceTypeSubscription(price.type)) {
     throw new Error('Price is not a subscription')
   }
+
   if (price.startsWithCreditTrial) {
     return await createNonRenewingSubscriptionAndItems(
       params,
