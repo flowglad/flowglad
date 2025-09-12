@@ -91,29 +91,123 @@ function CheckoutForm() {
           appearance: {
             disableAnimations: true,
             variables: {
-              // VALID Stripe appearance variables - optimized for consistent input heights
-              colorText: '#0a0a0a',
-              colorBackground: '#ffffff',
-              colorPrimary: '#0a0a0a',
-              colorTextSecondary: '#6b7280',
-              borderRadius: '8px',
+              // === COLOR VARIABLES ===
+              // Currently using:
+              colorText: '#0a0a0a', // Primary text color
+              colorBackground: '#ffffff', // Background color (CRITICAL for autocomplete)
+              colorPrimary: '#0a0a0a', // Primary brand color (buttons, focus states)
+              colorTextSecondary: '#6b7280', // Secondary text color
+
+              // Available color options:
+              // colorDanger: '#dc2626',               // Error states, destructive actions
+              // colorSuccess: '#059669',              // Success states, confirmations
+              // colorWarning: '#d97706',              // Warning states, cautions
+              // colorTextPlaceholder: '#9ca3af',      // Placeholder text color
+
+              // === ICON COLOR VARIABLES ===
+              // Available icon color options:
+              // iconColor: '#6b7280',                 // Default icon color
+              // iconHoverColor: '#374151',            // Icon color on hover
+              // iconCardErrorColor: '#dc2626',        // Card icons in error states
+              // iconCardCvcColor: '#6b7280',          // CVC card icons
+              // iconCardCvcErrorColor: '#dc2626',     // CVC card icons in error
+              // iconCheckmarkColor: '#059669',        // Checkmark icons
+              // iconChevronDownColor: '#6b7280',      // Dropdown arrows
+              // iconChevronDownHoverColor: '#374151', // Dropdown arrows on hover
+              // iconCloseColor: '#6b7280',            // Close/X icons
+              // iconCloseHoverColor: '#374151',       // Close icons on hover
+              // iconLoadingIndicatorColor: '#3b82f6', // Loading spinners
+              // iconRedirectColor: '#6b7280',         // Redirect icons
+              // tabIconColor: '#6b7280',              // Tab icons
+              // tabIconHoverColor: '#374151',         // Tab icons on hover
+              // tabIconSelectedColor: '#0a0a0a',      // Selected tab icons
+              // tabIconMoreColor: '#6b7280',          // "More" menu icon
+              // tabIconMoreHoverColor: '#374151',     // "More" menu icon on hover
+
+              // === ACCESSIBILITY COLOR VARIABLES ===
+              // Available accessibility color options:
+              // accessibleColorOnColorPrimary: '#ffffff',    // Text on primary color
+              // accessibleColorOnColorBackground: '#0a0a0a', // Text on background
+              // accessibleColorOnColorSuccess: '#ffffff',    // Text on success color
+              // accessibleColorOnColorDanger: '#ffffff',     // Text on danger color
+              // accessibleColorOnColorWarning: '#000000',    // Text on warning color
+
+              // === LOGO COLOR VARIABLES ===
+              // Available logo color options:
+              // logoColor: 'dark',                    // Logo variant: 'light' or 'dark'
+              // tabLogoColor: 'dark',                 // Logo in tabs
+              // tabLogoSelectedColor: 'dark',         // Logo in selected tabs
+              // blockLogoColor: 'dark',               // Logo in block components
+
+              // === TYPOGRAPHY VARIABLES ===
+              // Currently using:
               fontFamily:
                 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontSizeBase: '14px',
-              fontLineHeight: '1.3',
-              // Height and spacing controls to match discount input (42.09px target)
-              spacingUnit: '4px', // Controls internal spacing throughout Elements to match updated discount input
-              gridColumnSpacing: '16px', // Controls horizontal spacing
-              gridRowSpacing: '16px', // Increased spacing between tab selector and input fields
+              fontSizeBase: '14px', // Base font size for all text
+              fontLineHeight: '1.3', // Line height multiplier
+
+              // Available typography options:
+              // fontSizeSm: '12px',                   // Small text (labels, captions)
+              // fontSizeLg: '16px',                   // Large text (headings)
+              // fontSizeXl: '18px',                   // Extra large text
+              // fontSizeXs: '11px',                   // Extra small text
+              // fontSize2Xs: '10px',                  // Double extra small text
+              // fontSize3Xs: '9px',                   // Triple extra small text
+              // fontWeightLight: '300',               // Light font weight
+              // fontWeightNormal: '400',              // Normal font weight
+              // fontWeightMedium: '500',              // Medium font weight
+              // fontWeightBold: '600',                // Bold font weight
+              // fontSmooth: 'always',                 // Text anti-aliasing: 'always', 'auto', 'never'
+              // fontVariantLigatures: 'normal',       // Font ligatures control
+              // fontVariationSettings: 'normal',      // Variable font settings
+
+              // === BORDER & SHAPE VARIABLES ===
+              // Currently using:
+              borderRadius: '8px', // Border radius for all elements
+
+              // Available border/shape options:
+              // borderWidth: '1px',                   // Border width for inputs
+              // focusBoxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)', // Focus ring shadow
+              // focusOutline: 'none',                 // Focus outline style
+
+              // === SPACING VARIABLES ===
+              // Currently using:
+              spacingUnit: '4px', // Base spacing unit (internal padding/margins)
+              gridColumnSpacing: '8px', // Horizontal spacing between columns
+              gridRowSpacing: '16px', // Vertical spacing between elements
+
+              // Available spacing options:
+              // spacingGridRow: '20px',               // Alternative to gridRowSpacing
+              // spacingGridColumn: '12px',            // Alternative to gridColumnSpacing
+              // tabSpacing: '10px',                   // Horizontal spacing between tabs
+              // accordionItemSpacing: '12px',         // Vertical spacing between accordion items
+              // pickerItemSpacing: '8px',             // Spacing between picker items
+
+              // === SIZE VARIABLES ===
+              // Available size options (not currently using any):
+              // borderWidth: '1px',                   // Border thickness
+              // controlHeight: '40px',                // Height of form controls
+
+              // === ACCESSIBILITY VARIABLES ===
+              // Available accessibility options (not currently using any):
+              // accessibilityOutline: '2px solid #0066cc', // High contrast outline
+              // accessibilityOutlineOffset: '2px',    // Outline offset for focus
+
+              // === ADVANCED CUSTOMIZATION ===
+              // Available advanced options (use with caution):
+              // logoAlignment: 'left',                // Logo position in payment methods
+              // buttonHeight: '44px',                 // Custom button height
+              // inputHeight: '44px',                  // Custom input height
             },
             rules: {
               // Minimal rules - let Stripe variables control styling for consistency
               '.Input': {
-                border: '1px solid #e5e7eb',
+                border: '1px solid #e5e5e5',
                 // height, padding, fontSize, etc. controlled by variables above
               },
               '.Label': {
                 fontWeight: '500',
+                textTransform: 'capitalize',
                 // fontSize and spacing controlled by variables above
               },
             },

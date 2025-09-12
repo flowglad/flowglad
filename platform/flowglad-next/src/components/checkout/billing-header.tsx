@@ -163,19 +163,18 @@ export const BillingHeader = React.forwardRef<
       {...props}
     >
       {/* Product Title & Price Header */}
-      <div className="flex items-start">
+      <div className="flex flex-col gap-2">
         <h1
           className={cn(
             'text-[24px] font-medium leading-[32px]', // LS typography
-            'text-foreground dark:text-white', // Adaptive color
-            'flex-1'
+            'text-foreground dark:text-white' // Adaptive color
           )}
           data-testid="checkout-product-name"
         >
           <span>{product.name}</span>
         </h1>
-        <p className="ml-auto flex-shrink-0 text-muted-foreground">
-          <span className="ml-2 text-[20px]">
+        <p className="text-muted-foreground">
+          <span className="text-[20px]">
             <span className="text-[20px]">
               {mainTitleSuffix ||
                 `${stripeCurrencyAmountToHumanReadableCurrencyAmount(price.currency, price.unitPrice * checkoutSession.quantity)}`}

@@ -168,6 +168,7 @@ const PaymentForm = () => {
     checkoutBlocked,
     feeCalculation,
     readonlyCustomerEmail,
+    sellerOrganization,
   } = checkoutPageContext
   const [emailEmbedReady, setEmailEmbedReady] = useState(true)
   const [paymentEmbedReady, setPaymentEmbedReady] = useState(false)
@@ -241,6 +242,7 @@ const PaymentForm = () => {
       })
     }
   }, [embedsReady])
+
   return (
     <form
       className={cn(
@@ -356,7 +358,7 @@ const PaymentForm = () => {
       }}
     >
       {/* Main form content */}
-      <div className="space-y-5">
+      <div className="space-y-3">
         {/* Email Section */}
         <div className="space-y-3">
           {' '}
@@ -408,8 +410,6 @@ const PaymentForm = () => {
         {/* Payment Method Section */}
         <div className="space-y-3">
           <div className="pb-0">
-            {' '}
-            {/* Reduced bottom padding to bring terms text closer */}
             <PaymentElement
               onReady={() => {
                 setPaymentEmbedReady(true)
@@ -424,6 +424,17 @@ const PaymentForm = () => {
                     address: 'never',
                   },
                 },
+                terms: {
+                  wallets: 'never',
+                  auBankAccount: 'never',
+                  bancontact: 'never',
+                  card: 'never',
+                  ideal: 'never',
+                  p24: 'never',
+                  sepaDebit: 'never',
+                  sofort: 'never',
+                  usBankAccount: 'never',
+                } as any,
               }}
               onChange={async (e) => {
                 if (
@@ -607,6 +618,13 @@ const PaymentForm = () => {
               Payments are secure and encrypted
             </span>
           </div>
+          {/* Terms and Privacy Notice */}
+          <div className="text-center">
+            <p className="text-[13px] text-gray-600 leading-[24px]">
+              By paying, you agree to{' '}
+              {sellerOrganization?.name || 'our'} Terms and Privacy.
+            </p>
+          </div>
           {/* Footer Links */}
           <div className="flex flex-col items-center gap-4 pt-4">
             <PoweredByFlowglad />
@@ -630,7 +648,7 @@ const PaymentForm = () => {
                 href="/help"
                 className="hover:text-gray-800 transition-colors"
               >
-                Help
+                Support
               </a>
             </div>
           </div>
