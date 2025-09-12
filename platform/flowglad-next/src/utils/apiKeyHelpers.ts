@@ -112,3 +112,10 @@ export const rotateSecretApiKeyTransaction = async (
     oldApiKey: existingApiKey,
   }
 }
+
+export const getApiKeyHeader = (authorizationHeader: string) => {
+  const authorizationFragments = authorizationHeader.split(' ')
+  return authorizationFragments.length == 2
+    ? authorizationFragments[1]
+    : authorizationHeader
+}

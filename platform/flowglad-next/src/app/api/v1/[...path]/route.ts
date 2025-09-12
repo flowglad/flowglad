@@ -36,6 +36,7 @@ import { featuresRouteConfigs } from '@/server/routers/featuresRouter'
 import { productFeaturesRouteConfigs } from '@/server/routers/productFeaturesRouter'
 import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
 import { headers } from 'next/headers'
+import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
 
 interface FlowgladRESTRouteContext {
   params: Promise<{ path: string[] }>
@@ -277,14 +278,19 @@ const withVerification = (
   ) => {
     const headerSet = await headers()
     const authorizationHeader = headerSet.get('Authorization')
+
     if (!authorizationHeader) {
       return new Response('Unauthorized', { status: 401 })
     }
-    const apiKey = authorizationHeader.split(' ')[1]
+
+    const apiKey = getApiKeyHeader(authorizationHeader)
+
     if (!apiKey) {
       return new Response('Unauthorized', { status: 401 })
     }
+
     const { result } = await verifyApiKey(apiKey)
+
     if (!result) {
       return new Response('Unauthorized', { status: 401 })
     }
