@@ -127,9 +127,9 @@ export const createNonRenewingSubscriptionAndItems = async (
     stripeSetupIntentId,
     metadata,
   } = params
-  if (price.type !== PriceType.Subscription) {
+  if (!product.default && price.type !== PriceType.Subscription) {
     throw new Error(
-      `Price ${price.id} is not a subscription price. Credit trial subscriptions must have a subscription price. Received price type: ${price.type}`
+      `Price ${price.id} is not a subscription price. Non-renewing subscriptions must have a subscription price. Received price type: ${price.type}`
     )
   }
   const subscriptionInsert: Subscription.NonRenewingInsert = {
@@ -140,7 +140,7 @@ export const createNonRenewingSubscriptionAndItems = async (
     isFreePlan: price.unitPrice === 0,
     cancellationReason: null,
     replacedBySubscriptionId: null,
-    status: SubscriptionStatus.CreditTrial,
+    status: SubscriptionStatus.Active,
     defaultPaymentMethodId: null,
     backupPaymentMethodId: null,
     cancelScheduledAt: null,
@@ -169,6 +169,7 @@ export const createNonRenewingSubscriptionAndItems = async (
     subscriptionInsert,
     transaction
   )
+
   const subscriptionItemInsert: SubscriptionItem.StaticInsert = {
     name: `${price.name}${quantity > 1 ? ` x ${quantity}` : ''}`,
     subscriptionId: subscription.id,
@@ -240,30 +241,10 @@ export const insertSubscriptionAndItems = async (
   }
 
   if (product.default && !isPriceTypeSubscription(price.type)) {
-    // For default products with non-subscribable prices, create a non-renewing subscription
-    // We'll use createStandardSubscriptionAndItems but modify the params to ensure renews is false
-    const nonRenewingParams = {
-      ...params,
-      // Pass a flag or modify the behavior to ensure renews: false
-    }
-    const result = await createStandardSubscriptionAndItems(
-      nonRenewingParams,
-      currentBillingPeriod,
+    return await createNonRenewingSubscriptionAndItems(
+      params,
       transaction
     )
-    // Override the renews property after creation
-    if (result.subscription) {
-      await updateSubscription(
-        {
-          id: result.subscription.id,
-          renews: false,
-        },
-        transaction
-      )
-      // Update the result object to reflect the change
-      result.subscription.renews = false
-    }
-    return result
   }
 
   if (price.startsWithCreditTrial) {

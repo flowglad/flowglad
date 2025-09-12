@@ -374,6 +374,7 @@ export const createCustomerBookkeeping = async (
     metadata: {},
     processedAt: null,
   })
+
   const pricingModelToUse =
     pricingModel ??
     (await selectDefaultPricingModel(
@@ -383,6 +384,7 @@ export const createCustomerBookkeeping = async (
       },
       transaction
     ))
+
   // Create default subscription for the customer
   // Use customer's organizationId to ensure consistency
   try {

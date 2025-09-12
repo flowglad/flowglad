@@ -182,8 +182,8 @@ describe('insertSubscriptionAndItems', () => {
         await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
         })
-      // - The returned subscription should have status 'credit_trial'.
-      expect(subscription.status).toBe(SubscriptionStatus.CreditTrial)
+      // - The returned subscription should have status 'active', because credit_trial status has been deprecated
+      expect(subscription.status).toBe(SubscriptionStatus.Active)
       // - The returned subscription item should have type 'static'
       // as usage meters do not attach to the credit trial subscription items
       expect(subscriptionItems[0].type).toBe('static')
@@ -210,10 +210,11 @@ describe('insertSubscriptionAndItems', () => {
         await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
         })
-      // - The returned subscription should have a status other than 'credit_trial' (e.g., 'incomplete', 'active').
-      expect(subscription.status).not.toBe(
-        SubscriptionStatus.CreditTrial
-      )
+      // - The returned subscription should have status of either 'incomplete' or 'active'.
+      expect(subscription.status).toBeOneOf([
+        SubscriptionStatus.Incomplete,
+        SubscriptionStatus.Active,
+      ])
       // - The returned subscription item should have type 'static'.
       expect(subscriptionItems[0].type).toBe('static')
     })
@@ -487,8 +488,8 @@ describe('insertSubscriptionAndItems', () => {
           return insertSubscriptionAndItems(params, transaction)
         })
 
-      // - The subscription status should be 'credit_trial'.
-      expect(subscription.status).toBe(SubscriptionStatus.CreditTrial)
+      // - The subscription status should be 'active', because credit_trial status has been deprecated
+      expect(subscription.status).toBe(SubscriptionStatus.Active)
       // - The subscription should have null for billing period start/end dates and interval.
       expect(subscription.currentBillingPeriodStart).toBeNull()
       expect(subscription.currentBillingPeriodEnd).toBeNull()

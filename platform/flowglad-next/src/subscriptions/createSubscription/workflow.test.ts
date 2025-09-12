@@ -394,7 +394,7 @@ describe('createSubscriptionWorkflow', async () => {
       expect(subTypeSubscription.runBillingAtPeriodStart).toBe(true)
     })
 
-    it('throws if price is not subscription type', async () => {
+    it('throws if price is not subscription type for a non-default product', async () => {
       const singlePayCustomer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -1763,7 +1763,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
 })
 
 describe('createSubscriptionWorkflow with Credit Trial', () => {
-  it('should create a subscription with CreditTrial status and no billing run when price.startsWithCreditTrial is true', async () => {
+  it('should create a subscription with Active status and no billing run when price.startsWithCreditTrial is true', async () => {
     // Setup
     const {
       organization,
@@ -1807,9 +1807,7 @@ describe('createSubscriptionWorkflow with Credit Trial', () => {
     )
 
     // Assertions
-    expect(result.subscription.status).toBe(
-      SubscriptionStatus.CreditTrial
-    )
+    expect(result.subscription.status).toBe(SubscriptionStatus.Active)
     expect(result.billingPeriod).toBeNull()
     expect(result.billingRun).toBeNull()
   })
@@ -2134,7 +2132,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     )
 
     expect(subscription).toBeDefined()
-    expect(subscription.status).toBe(SubscriptionStatus.CreditTrial)
+    expect(subscription.status).toBe(SubscriptionStatus.Active)
     expect(subscriptionItems.length).toBeGreaterThan(0)
     expect(billingPeriod).toBeNull()
     expect(billingRun).toBeNull()
