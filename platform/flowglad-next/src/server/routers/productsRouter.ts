@@ -153,7 +153,18 @@ export const editProduct = protectedProcedure
               transaction
             )
             if (!existingPrice) {
-              throw new Error('Price not found')
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: 'Price not found',
+              })
+            }
+            // Ensure the price being edited belongs to the product being edited
+            if (existingPrice.productId !== existingProduct.id) {
+              throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message:
+                  'The specified price does not belong to the product being edited',
+              })
             }
             validateDefaultPriceUpdate(
               input.price,
