@@ -29,8 +29,7 @@ export const ProductFormFields = ({
 }) => {
   const form = useFormContext<CreateProductSchema>()
   const product = form.watch('product')
-  const isDefaultProduct = (product as unknown as Product.ClientRecord)
-    ?.default
+  const isDefaultProduct = product?.default === true
 
   // Ensure default products remain active in UI
   useEffect(() => {

@@ -27,7 +27,6 @@ import { useAuthenticatedContext } from '@/contexts/authContext'
 import UsageMetersSelect from './UsageMetersSelect'
 import core from '@/utils/core'
 import { usePriceConstraints } from '@/app/hooks/usePriceConstraints'
-import type { PriceConstraints } from '@/app/hooks/usePriceConstraints'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
@@ -39,10 +38,12 @@ import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
 
 const SubscriptionFields = ({
-  constraints,
+  disableAmountAndTrials,
+  omitTrialFields,
   productId,
 }: {
-  constraints: PriceConstraints
+  disableAmountAndTrials: boolean
+  omitTrialFields: boolean
   productId?: string
 }) => {
   const { control } = usePriceFormContext()
@@ -75,7 +76,7 @@ const SubscriptionFields = ({
                       field.onChange(value)
                     }}
                     allowDecimals={!zeroDecimal}
-                    disabled={constraints.disableAmountAndTrials}
+                    disabled={disableAmountAndTrials}
                   />
                 </FormControl>
               </div>
@@ -123,8 +124,8 @@ const SubscriptionFields = ({
           productId={productId}
         />
       )}
-      {!constraints.omitTrialFields && (
-        <TrialFields disabled={constraints.disableAmountAndTrials} />
+      {!omitTrialFields && (
+        <TrialFields disabled={disableAmountAndTrials} />
       )}
     </>
   )
@@ -166,9 +167,9 @@ const SubscriptionFields = ({
 // }
 
 const SinglePaymentFields = ({
-  constraints,
+  disableAmountAndTrials,
 }: {
-  constraints: PriceConstraints
+  disableAmountAndTrials: boolean
 }) => {
   const { control } = usePriceFormContext()
   const { organization } = useAuthenticatedContext()
@@ -199,7 +200,7 @@ const SinglePaymentFields = ({
                     field.onChange(value)
                   }}
                   allowDecimals={!zeroDecimal}
-                  disabled={constraints.disableAmountAndTrials}
+                  disabled={disableAmountAndTrials}
                 />
               </FormControl>
             </div>
@@ -235,7 +236,7 @@ const PriceFormFields = ({
     isDefaultProductOverride ?? (fullForm.watch('product')?.default === true)
   const isDefaultPrice =
     isDefaultPriceOverride ?? (watch('price.isDefault') === true)
-  const { constraints, isDefaultLocked } = usePriceConstraints({
+  const { omitTrialFields, disableAmountAndTrials, isDefaultLocked } = usePriceConstraints({
     type,
     isDefaultProduct,
     isDefaultPrice,
@@ -250,17 +251,21 @@ const PriceFormFields = ({
       typeFields = (
         <SubscriptionFields
           productId={productId}
-          constraints={constraints}
+          disableAmountAndTrials={disableAmountAndTrials}
+          omitTrialFields={omitTrialFields}
         />
       )
       break
     case PriceType.SinglePayment:
-      typeFields = <SinglePaymentFields constraints={constraints} />
+      typeFields = <SinglePaymentFields disableAmountAndTrials={disableAmountAndTrials} />
       break
     case PriceType.Usage:
       typeFields = (
         <div className="flex flex-col gap-2.5">
-          <SubscriptionFields constraints={constraints} />
+          <SubscriptionFields
+            disableAmountAndTrials={disableAmountAndTrials}
+            omitTrialFields={omitTrialFields}
+          />
           <UsageMetersSelect
             name="price.usageMeterId"
             control={control}

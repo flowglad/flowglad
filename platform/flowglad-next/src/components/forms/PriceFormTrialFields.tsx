@@ -66,7 +66,9 @@ const TrialFields = ({ disabled = false }: { disabled?: boolean }) => {
         checked={offerTrial}
         disabled={disabled}
         onCheckedChange={(checked) => {
-          if (disabled) return
+          if (disabled) {
+            return
+          }
           setOfferTrial(checked)
           if (!checked) {
             setValue('price.trialPeriodDays', 0)
@@ -81,7 +83,9 @@ const TrialFields = ({ disabled = false }: { disabled?: boolean }) => {
             <Select
               value={trialType}
               onValueChange={(value) => {
-                if (disabled) return
+                if (disabled) {
+                  return
+                }
                 setTrialType(value as 'credit' | 'time')
                 if (value === 'credit') {
                   setValue('price.startsWithCreditTrial', true)
@@ -121,7 +125,9 @@ const TrialFields = ({ disabled = false }: { disabled?: boolean }) => {
                     {...field}
                     onChange={undefined}
                     onValueChange={({ floatValue }) => {
-                      if (disabled) return
+                      if (disabled) {
+                        return
+                      }
                       field.onChange(floatValue ?? undefined)
                     }}
                     min={1}
