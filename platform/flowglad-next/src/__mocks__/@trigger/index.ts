@@ -74,6 +74,9 @@ export const invoiceUpdatedTask = createTaskMock(
 // Cron tasks
 export const dailyCron = createTaskMock('daily-cron')
 export const hourlyCron = createTaskMock('hourly-cron')
+export const verifyApiContractTask = createTaskMock(
+  'verify-api-contract'
+)
 
 // Example task
 export const helloWorldTask = createTaskMock('example')
