@@ -14,6 +14,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import {
   insertPrice,
+  safelyInsertPrice,
   selectPriceById,
 } from '@/db/tableMethods/priceMethods'
 import { users } from '@/db/schema/users'
@@ -201,10 +202,10 @@ export const setupOrg = async (params?: {
 
     const product = await insertProduct(
       {
-        name: 'Flowglad Test Product',
+        name: 'Default Product',
         organizationId: organization.id,
         livemode: true,
-        description: 'Flowglad Live Product',
+        description: 'Default product for organization',
         imageURL: 'https://flowglad.com/logo.png',
         active: true,
         displayFeatures: [],
@@ -213,7 +214,7 @@ export const setupOrg = async (params?: {
         pricingModelId: pricingModel.id,
         externalId: null,
         default: true,
-        slug: `flowglad-test-product-price+${core.nanoid()}`,
+        slug: `default-product-${core.nanoid()}`,
       },
       transaction
     )
@@ -222,7 +223,7 @@ export const setupOrg = async (params?: {
       {
         ...nulledPriceColumns,
         productId: product.id,
-        name: 'Flowglad Test Product Price',
+        name: 'Default Product Price',
         type: PriceType.Subscription,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
@@ -234,7 +235,7 @@ export const setupOrg = async (params?: {
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
         externalId: null,
-        slug: `flowglad-test-product-price+${core.nanoid()}`,
+        slug: `default-product-price-${core.nanoid()}`,
       },
       transaction
     )) as Price.SubscriptionRecord
@@ -894,7 +895,7 @@ export const setupPrice = async ({
     }
     switch (type) {
       case PriceType.SinglePayment:
-        return insertPrice(
+        return safelyInsertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.SinglePayment],
@@ -903,7 +904,7 @@ export const setupPrice = async ({
           transaction
         )
       case PriceType.Subscription:
-        return insertPrice(
+        return safelyInsertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.Subscription],
@@ -912,7 +913,7 @@ export const setupPrice = async ({
           transaction
         )
       case PriceType.Usage:
-        return insertPrice(
+        return safelyInsertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.Usage],

@@ -46,6 +46,7 @@ import {
   trackFailedAuth,
   checkForExpiredKeyUsage,
 } from '@/utils/securityTelemetry'
+import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
 
 interface FlowgladRESTRouteContext {
   params: Promise<{ path: string[] }>
@@ -547,6 +548,27 @@ const withVerification = (
     context: FlowgladRESTRouteContext
   ) => {
     const tracer = trace.getTracer('rest-api-auth')
+    const headerSet = await headers()
+    const authorizationHeader = headerSet.get('Authorization')
+
+    if (!authorizationHeader) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    const apiKey = getApiKeyHeader(authorizationHeader)
+
+    if (!apiKey) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    const { result } = await verifyApiKey(apiKey)
+
+    if (!result) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+    if (!result?.valid) {
+      return new Response('Unauthorized', { status: 401 })
+    }
 
     return tracer.startActiveSpan(
       'API Key Verification',

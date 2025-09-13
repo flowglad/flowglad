@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
+import { useAuthContext } from '../contexts/authContext'
 
 declare global {
   interface Window {
@@ -11,12 +12,34 @@ declare global {
 
 export default function FeaturebaseMessenger() {
   const appId = process.env.NEXT_PUBLIC_FEATUREBASE_APP_ID
+  const { user } = useAuthContext()
+  const [userHash, setUserHash] = useState<string | null>(null)
+  const bootedRef = useRef(false)
 
   useEffect(() => {
-    if (!appId) {
-      // Silently no-op if not configured in this environment
-      return
+    if (!appId || !user) return
+    const fetchHash = async () => {
+      try {
+        const res = await fetch('/api/featurebase/user-hash', {
+          method: 'GET',
+          headers: { 'cache-control': 'no-store' },
+        })
+        if (res.ok) {
+          const json = await res.json()
+          setUserHash(json.userHash ?? null)
+        } else {
+          setUserHash(null)
+        }
+      } catch (error) {
+        setUserHash(null)
+      }
     }
+    fetchHash()
+  }, [appId, user])
+
+  useEffect(() => {
+    if (!appId || !user || !userHash) return
+    if (bootedRef.current) return
 
     const browserWindow = window as Window
 
@@ -32,16 +55,17 @@ export default function FeaturebaseMessenger() {
       browserWindow.Featurebase = featurebaseShim
     }
 
-    browserWindow.Featurebase!('boot', {
+    const payload = {
       appId,
-      // Add additional user context when available. Avoid adding user data
-      // unless Identity Verification (userHash) is configured per docs.
-      // theme: 'light',
-      // language: 'en',
-    })
-  }, [appId])
+      email: user.email,
+      userId: user.id,
+      userHash,
+    }
+    browserWindow.Featurebase!('boot', payload)
+    bootedRef.current = true
+  }, [appId, user, userHash])
 
-  if (!appId) {
+  if (!appId || !user) {
     return null
   }
 
@@ -53,5 +77,3 @@ export default function FeaturebaseMessenger() {
     />
   )
 }
-
-
