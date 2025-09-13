@@ -24,7 +24,8 @@
     "migrations:generate": "drizzle-kit generate",
     "migrations:push": "tsx ./src/scripts/migrate.ts",
     "shadcn:build": "shadcn build --output 'public/ui'",
-    "validate:registry": "tsx src/scripts/validate-registry.ts"
+    "validate:registry": "tsx src/scripts/validate-registry.ts",
+    "test:telemetry": "tsx scripts/verify-telemetry.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.0.10",
@@ -182,6 +183,7 @@
     "@vitejs/plugin-react": "4.3.4",
     "autoprefixer": "^10.4.20",
     "babel-plugin-syntax-trailing-function-commas": "^6.22.0",
+    "chalk": "5.6.2",
     "drizzle-kit": "0.28.1",
     "esbuild": "0.25.0",
     "esbuild-plugin-babel": "^0.2.3",

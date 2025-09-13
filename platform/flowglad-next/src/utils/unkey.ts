@@ -13,6 +13,8 @@ import {
   setApiKeyVerificationResult,
 } from './redis'
 import { hashData } from './backendCore'
+import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api'
+import { logger } from './logger'
 
 export const unkey = () =>
   new Unkey({
@@ -20,17 +22,132 @@ export const unkey = () =>
   })
 
 export const verifyApiKey = async (apiKey: string) => {
-  const cachedVerificationResult =
-    await getApiKeyVerificationResult(apiKey)
-  if (cachedVerificationResult) {
-    return cachedVerificationResult
-  }
-  const verificationResult = await verifyKey({
-    key: apiKey,
-    apiId: core.envVariable('UNKEY_API_ID'),
-  })
-  await setApiKeyVerificationResult(apiKey, verificationResult)
-  return verificationResult
+  const tracer = trace.getTracer('api-key-verification')
+
+  return tracer.startActiveSpan(
+    'verifyApiKey',
+    { kind: SpanKind.INTERNAL },
+    async (span) => {
+      try {
+        const keyPrefix = apiKey.substring(0, 8)
+        span.setAttributes({
+          'auth.key_prefix': keyPrefix,
+        })
+
+        // Check cache first
+        const cacheStartTime = Date.now()
+        const cachedVerificationResult =
+          await getApiKeyVerificationResult(apiKey)
+        const cacheLookupDuration = Date.now() - cacheStartTime
+
+        if (cachedVerificationResult) {
+          span.setAttributes({
+            'auth.cache_hit': true,
+            'auth.verification_source': 'cache',
+            'auth.cache_lookup_duration_ms': cacheLookupDuration,
+          })
+          span.setStatus({ code: SpanStatusCode.OK })
+
+          logger.info('API Key verification cache hit', {
+            key_prefix: keyPrefix,
+            cache_lookup_duration_ms: cacheLookupDuration,
+            cached_valid: cachedVerificationResult.result?.valid,
+          })
+
+          return cachedVerificationResult
+        }
+
+        // Cache miss - call Unkey API
+        span.setAttributes({
+          'auth.cache_hit': false,
+          'auth.verification_source': 'unkey_api',
+          'auth.cache_lookup_duration_ms': cacheLookupDuration,
+        })
+
+        logger.info(
+          'API Key verification cache miss, calling Unkey',
+          {
+            key_prefix: keyPrefix,
+            cache_lookup_duration_ms: cacheLookupDuration,
+          }
+        )
+
+        const unkeyStartTime = Date.now()
+        const unkeyApiId = core.envVariable('UNKEY_API_ID')
+
+        // Log what we're sending to Unkey
+        logger.info('Calling Unkey API for verification', {
+          key_prefix: keyPrefix,
+          unkey_api_id: unkeyApiId,
+          has_root_key: !!core.envVariable('UNKEY_ROOT_KEY'),
+        })
+
+        const verificationResult = await verifyKey({
+          key: apiKey,
+          apiId: unkeyApiId,
+        })
+        const unkeyDuration = Date.now() - unkeyStartTime
+
+        // Log the full response for debugging
+        if (!verificationResult.result?.valid) {
+          logger.warn('Unkey verification failed', {
+            key_prefix: keyPrefix,
+            unkey_api_id: unkeyApiId,
+            response_valid: verificationResult.result?.valid || false,
+            response_code:
+              verificationResult.result?.code || 'UNKNOWN',
+            error: verificationResult.error,
+            full_result: JSON.stringify(verificationResult.result),
+            unkey_duration_ms: unkeyDuration,
+          })
+        }
+
+        span.setAttributes({
+          'auth.unkey_api_duration_ms': unkeyDuration,
+          'auth.unkey_response_valid':
+            verificationResult.result?.valid || false,
+          'auth.unkey_response_code':
+            verificationResult.result?.code || 'UNKNOWN',
+        })
+
+        // Cache the result
+        const cacheWriteStartTime = Date.now()
+        await setApiKeyVerificationResult(apiKey, verificationResult)
+        const cacheWriteDuration = Date.now() - cacheWriteStartTime
+
+        span.setAttributes({
+          'auth.cache_write_duration_ms': cacheWriteDuration,
+        })
+
+        span.setStatus({ code: SpanStatusCode.OK })
+
+        logger.info('API Key verification completed', {
+          key_prefix: keyPrefix,
+          unkey_duration_ms: unkeyDuration,
+          cache_write_duration_ms: cacheWriteDuration,
+          valid: verificationResult.result?.valid,
+          code: verificationResult.result?.code,
+        })
+
+        return verificationResult
+      } catch (error) {
+        span.recordException(error as Error)
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        })
+
+        logger.error('API Key verification error', {
+          error: error as Error,
+          key_prefix: apiKey.substring(0, 8),
+        })
+
+        throw error
+      } finally {
+        span.end()
+      }
+    }
+  )
 }
 
 export interface StandardCreateApiKeyParams {
