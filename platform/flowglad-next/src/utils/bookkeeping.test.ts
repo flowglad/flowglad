@@ -1138,7 +1138,7 @@ describe('createPricingModelBookkeeping', () => {
       expect(defaultPrice.usageEventsPerUnit).toBeNull()
       expect(defaultPrice.usageMeterId).toBeNull()
       expect(defaultPrice.externalId).toBeNull()
-      expect(defaultPrice.slug).toBeNull()
+      expect(defaultPrice.slug).toBe('free')
       expect(defaultPrice.startsWithCreditTrial).toBe(false)
       expect(defaultPrice.overagePriceId).toBeNull()
     })

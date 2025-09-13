@@ -152,6 +152,20 @@ export const editPrice = protectedProcedure
         // Validate that default prices on default products maintain their constraints
         validateDefaultPriceUpdate(price, existingPrice, product)
 
+        // Disallow slug changes for the default price of a default product
+        if (
+          product.default &&
+          existingPrice.isDefault &&
+          price.slug !== undefined &&
+          price.slug !== existingPrice.slug
+        ) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'Cannot change the slug of the default price for a default product',
+          })
+        }
+
         const updatedPrice = await safelyUpdatePrice(
           price,
           transaction
