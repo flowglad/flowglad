@@ -8,7 +8,10 @@ import { NextRequestWithUnkeyContext } from '@unkey/nextjs'
 import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
 import { NextResponse } from 'next/server'
 import { trpcToRest, RouteConfig } from '@/utils/openapi'
-import { customersRouteConfigs } from '@/server/routers/customersRouter'
+import {
+  customerBillingRouteConfig,
+  customersRouteConfigs,
+} from '@/server/routers/customersRouter'
 import { productsRouteConfigs } from '@/server/routers/productsRouter'
 import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
 import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
@@ -63,6 +66,7 @@ const parseErrorMessage = (rawMessage: string) => {
 }
 
 const routeConfigs = [
+  ...customersRouteConfigs,
   ...subscriptionsRouteConfigs,
   ...checkoutSessionsRouteConfigs,
   ...pricesRouteConfigs,
@@ -88,7 +92,7 @@ const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
 const routes: Record<string, RouteConfig> = {
   ...getDefaultPricingModelRouteConfig,
   ...refundPaymentRouteConfig,
-  ...customersRouteConfigs,
+  ...customerBillingRouteConfig,
   ...discountsRouteConfigs,
   ...productsRouteConfigs,
   ...subscriptionItemFeaturesRouteConfigs,
@@ -430,7 +434,7 @@ const innerHandler = async (
             method: req.method,
             path,
             procedure: route.procedure,
-            error_message: errorMessage,
+            error_message: JSON.stringify(errorMessage),
             error_code: errorCode,
             error_category: errorCategory,
             http_status: httpStatus,
@@ -548,42 +552,6 @@ const withVerification = (
     context: FlowgladRESTRouteContext
   ) => {
     const tracer = trace.getTracer('rest-api-auth')
-    const headerSet = await headers()
-    const authorizationHeader = headerSet.get('Authorization')
-
-    if (!authorizationHeader) {
-      return new Response('Unauthorized', { status: 401 })
-    }
-
-    const apiKey = getApiKeyHeader(authorizationHeader)
-
-    if (!apiKey) {
-      return new Response('Unauthorized', { status: 401 })
-    }
-
-    const { result, error } = await verifyApiKey(apiKey)
-
-    if (error) {
-      logger.error('API key verification error', {
-        error,
-        key_prefix: apiKey.substring(0, 8),
-      })
-      return new Response('Unauthorized', { status: 401 })
-    }
-
-    if (!result) {
-      logger.warn('API key verification returned no result', {
-        key_prefix: apiKey.substring(0, 8),
-      })
-      return new Response('Unauthorized', { status: 401 })
-    }
-    if (!result?.valid) {
-      logger.warn('API key verification failed', {
-        key_prefix: apiKey.substring(0, 8),
-        code: result.code,
-      })
-      return new Response('Unauthorized', { status: 401 })
-    }
 
     return tracer.startActiveSpan(
       'API Key Verification',
@@ -620,7 +588,7 @@ const withVerification = (
             return new Response('Unauthorized', { status: 401 })
           }
 
-          const apiKey = authorizationHeader.split(' ')[1]
+          const apiKey = getApiKeyHeader(authorizationHeader)
           if (!apiKey) {
             authSpan.setStatus({
               code: SpanStatusCode.ERROR,
@@ -653,7 +621,7 @@ const withVerification = (
             'auth.key_prefix': keyPrefix,
           })
 
-          // Verify API key with telemetry
+          // Verify API key with telemetry - single verification call
           const verificationStartTime = Date.now()
           const { result, error } = await verifyApiKey(apiKey)
           const verificationDuration =

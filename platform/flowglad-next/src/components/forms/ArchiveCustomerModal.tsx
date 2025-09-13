@@ -24,7 +24,7 @@ const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
   customerArchived,
 }) => {
   const router = useRouter()
-  const editCustomer = trpc.customers.edit.useMutation()
+  const editCustomer = trpc.customers.update.useMutation()
 
   const handleSubmit = async (data: Customer.EditInput) => {
     await editCustomer.mutateAsync(data)
