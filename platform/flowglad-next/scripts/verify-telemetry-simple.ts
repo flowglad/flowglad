@@ -86,6 +86,12 @@ class TelemetryVerifier {
       if (response.status === 200) {
         console.log('  ✅ API key is valid')
         this.hasValidKey = true
+
+        // Show response for successful auth too
+        const responseText = await response
+          .text()
+          .catch(() => 'Could not read response')
+        console.log(`  Response: ${responseText.substring(0, 200)}`)
       } else {
         console.log(
           `  ❌ API key is invalid (status: ${response.status})`
@@ -93,7 +99,9 @@ class TelemetryVerifier {
         const responseText = await response
           .text()
           .catch(() => 'Could not read response')
-        console.log(`  Response: ${responseText.substring(0, 500)}`)
+        console.log(
+          `  Response body: ${responseText.substring(0, 500)}`
+        )
 
         // Additional debug for headers
         const headers: Record<string, string> = {}

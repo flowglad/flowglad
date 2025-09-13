@@ -73,11 +73,34 @@ export const verifyApiKey = async (apiKey: string) => {
         )
 
         const unkeyStartTime = Date.now()
+        const unkeyApiId = core.envVariable('UNKEY_API_ID')
+
+        // Log what we're sending to Unkey
+        logger.info('Calling Unkey API for verification', {
+          key_prefix: keyPrefix,
+          unkey_api_id: unkeyApiId,
+          has_root_key: !!core.envVariable('UNKEY_ROOT_KEY'),
+        })
+
         const verificationResult = await verifyKey({
           key: apiKey,
-          apiId: core.envVariable('UNKEY_API_ID'),
+          apiId: unkeyApiId,
         })
         const unkeyDuration = Date.now() - unkeyStartTime
+
+        // Log the full response for debugging
+        if (!verificationResult.result?.valid) {
+          logger.warn('Unkey verification failed', {
+            key_prefix: keyPrefix,
+            unkey_api_id: unkeyApiId,
+            response_valid: verificationResult.result?.valid || false,
+            response_code:
+              verificationResult.result?.code || 'UNKNOWN',
+            error: verificationResult.error,
+            full_result: JSON.stringify(verificationResult.result),
+            unkey_duration_ms: unkeyDuration,
+          })
+        }
 
         span.setAttributes({
           'auth.unkey_api_duration_ms': unkeyDuration,

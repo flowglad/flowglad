@@ -27,6 +27,17 @@ fi
 echo "Debug: UNKEY_ROOT_KEY is ${UNKEY_ROOT_KEY:+set}${UNKEY_ROOT_KEY:-not set}"
 echo "Debug: UNKEY_API_ID is ${UNKEY_API_ID:+set}${UNKEY_API_ID:-not set}"
 
+# Show partial values for debugging (safely)
+if [ ! -z "$UNKEY_ROOT_KEY" ]; then
+  ROOT_KEY_PREFIX=$(echo "$UNKEY_ROOT_KEY" | cut -c1-15)
+  echo "Debug: UNKEY_ROOT_KEY prefix: ${ROOT_KEY_PREFIX}..."
+fi
+
+if [ ! -z "$UNKEY_API_ID" ]; then
+  API_ID_PREFIX=$(echo "$UNKEY_API_ID" | cut -c1-15)
+  echo "Debug: UNKEY_API_ID prefix: ${API_ID_PREFIX}..."
+fi
+
 # Also check if the test API key matches the environment
 if [ ! -z "$TELEMETRY_TEST_API_KEY" ]; then
   KEY_PREFIX=$(echo "$TELEMETRY_TEST_API_KEY" | cut -c1-10)

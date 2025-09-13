@@ -561,12 +561,27 @@ const withVerification = (
       return new Response('Unauthorized', { status: 401 })
     }
 
-    const { result } = await verifyApiKey(apiKey)
+    const { result, error } = await verifyApiKey(apiKey)
+
+    if (error) {
+      logger.error('API key verification error', {
+        error,
+        key_prefix: apiKey.substring(0, 8),
+      })
+      return new Response('Unauthorized', { status: 401 })
+    }
 
     if (!result) {
+      logger.warn('API key verification returned no result', {
+        key_prefix: apiKey.substring(0, 8),
+      })
       return new Response('Unauthorized', { status: 401 })
     }
     if (!result?.valid) {
+      logger.warn('API key verification failed', {
+        key_prefix: apiKey.substring(0, 8),
+        code: result.code,
+      })
       return new Response('Unauthorized', { status: 401 })
     }
 
@@ -640,7 +655,7 @@ const withVerification = (
 
           // Verify API key with telemetry
           const verificationStartTime = Date.now()
-          const { result } = await verifyApiKey(apiKey)
+          const { result, error } = await verifyApiKey(apiKey)
           const verificationDuration =
             Date.now() - verificationStartTime
 
@@ -648,14 +663,35 @@ const withVerification = (
             'auth.verification_duration_ms': verificationDuration,
           })
 
+          if (error) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: `API key verification error: ${error.message || error}`,
+            })
+            authSpan.setAttributes({
+              'auth.error': 'verification_error',
+              'auth.failure_reason': 'unkey_error',
+              'auth.error_message': String(error),
+            })
+
+            logger.error('REST API Auth Error: Unkey error', {
+              error,
+              method: req.method,
+              url: req.url,
+              key_prefix: keyPrefix,
+              verification_duration_ms: verificationDuration,
+            })
+            return new Response('Unauthorized', { status: 401 })
+          }
+
           if (!result) {
             authSpan.setStatus({
               code: SpanStatusCode.ERROR,
-              message: 'API key verification failed',
+              message: 'API key verification returned no result',
             })
             authSpan.setAttributes({
               'auth.error': 'verification_failed',
-              'auth.failure_reason': 'invalid_key',
+              'auth.failure_reason': 'no_result',
             })
 
             // Track failed auth and check for suspicious patterns
