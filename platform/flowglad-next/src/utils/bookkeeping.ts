@@ -280,27 +280,53 @@ export const createFreePlanProductInsert = (
 
 export const createFreePlanPriceInsert = (
   defaultProduct: Product.Record,
-  defaultCurrency: CurrencyCode
+  defaultCurrency: CurrencyCode,
+  defaultPlanIntervalUnit?: IntervalUnit
 ): Price.Insert => {
-  return {
-    productId: defaultProduct.id,
-    unitPrice: 0,
-    isDefault: true,
-    type: PriceType.Subscription,
-    intervalUnit: IntervalUnit.Month,
-    intervalCount: 1,
-    currency: defaultCurrency,
-    livemode: defaultProduct.livemode,
-    active: true,
-    name: 'Free Plan',
-    trialPeriodDays: null,
-    setupFeeAmount: null,
-    usageEventsPerUnit: null,
-    usageMeterId: null,
-    externalId: null,
-    slug: null,
-    startsWithCreditTrial: false,
-    overagePriceId: null,
+  if (defaultPlanIntervalUnit) {
+    // Return subscription price when interval unit is provided
+    return {
+      productId: defaultProduct.id,
+      unitPrice: 0,
+      isDefault: true,
+      type: PriceType.Subscription,
+      intervalUnit: defaultPlanIntervalUnit,
+      intervalCount: 1,
+      currency: defaultCurrency,
+      livemode: defaultProduct.livemode,
+      active: true,
+      name: 'Free Plan',
+      trialPeriodDays: null,
+      setupFeeAmount: null,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      externalId: null,
+      slug: null,
+      startsWithCreditTrial: false,
+      overagePriceId: null,
+    }
+  } else {
+    // Return single payment price when no interval unit is provided
+    return {
+      productId: defaultProduct.id,
+      unitPrice: 0,
+      isDefault: true,
+      type: PriceType.SinglePayment,
+      intervalUnit: null,
+      intervalCount: null,
+      currency: defaultCurrency,
+      livemode: defaultProduct.livemode,
+      active: true,
+      name: 'Free Plan',
+      trialPeriodDays: null,
+      setupFeeAmount: null,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      externalId: null,
+      slug: null,
+      startsWithCreditTrial: null,
+      overagePriceId: null,
+    }
   }
 }
 export const createCustomerBookkeeping = async (
@@ -481,6 +507,7 @@ export const createPricingModelBookkeeping = async (
       PricingModel.Insert,
       'livemode' | 'organizationId'
     >
+    defaultPlanIntervalUnit?: IntervalUnit
   },
   {
     transaction,
@@ -520,7 +547,8 @@ export const createPricingModelBookkeeping = async (
   const defaultPrice = await insertPrice(
     createFreePlanPriceInsert(
       defaultProduct,
-      organization.defaultCurrency
+      organization.defaultCurrency,
+      payload.defaultPlanIntervalUnit
     ),
     transaction
   )

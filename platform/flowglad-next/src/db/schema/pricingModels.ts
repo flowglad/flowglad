@@ -19,7 +19,7 @@ import { organizations } from '@/db/schema/organizations'
 import { pgPolicy } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import core from '@/utils/core'
-import { DestinationEnvironment } from '@/types'
+import { DestinationEnvironment, IntervalUnit } from '@/types'
 
 const TABLE_NAME = 'pricing_models'
 
@@ -134,6 +134,9 @@ export namespace PricingModel {
 
 export const createPricingModelSchema = z.object({
   pricingModel: pricingModelsClientInsertSchema,
+  defaultPlanIntervalUnit: core
+    .createSafeZodEnum(IntervalUnit)
+    .optional(),
 })
 
 export type CreatePricingModelInput = z.infer<
