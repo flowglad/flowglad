@@ -64,14 +64,8 @@ export const verifyCheckoutSessionContract = async (
   logger.info(
     `Got checkout session: ${getCheckoutSessionesult.checkoutSession.id}`
   )
-  const customerListResult =
-    await getCheckoutSessionListResource(client)
-  logger.info(
-    `Got checkout session list: ${customerListResult.data.length}`
-  )
   return {
     checkoutSession: getCheckoutSessionesult,
     createdCheckoutSession,
-    customerListResult,
   }
 }

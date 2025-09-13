@@ -1,6 +1,7 @@
 import { StandardLogger } from '@/types'
 import { flowgladNode } from './nodeClient'
 import { Flowglad as FlowgladNode } from '@flowglad/node'
+import core from '@/utils/core'
 
 const getCustomerResource = (
   externalId: string,
@@ -20,7 +21,6 @@ const createCustomerResource = (
   customer: FlowgladNode.Customers.CustomerCreateParams,
   client: FlowgladNode
 ) => {
-  console.log('===== customer=====???', customer)
   return client.customers.create(customer)
 }
 
@@ -40,7 +40,7 @@ export const verifyCustomerContract = async (
   logger: StandardLogger
 ) => {
   const client = flowgladNode()
-  const externalId = 'test-user-id-' + Date.now()
+  const externalId = 'test-user-id-' + core.nanoid()
   logger.info(`External ID: ${externalId}`)
   const createdCustomer = await createCustomerResource(
     {

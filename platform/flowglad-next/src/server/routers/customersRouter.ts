@@ -352,7 +352,6 @@ const getTableRowsProcedure = protectedProcedure
 
 export const customersRouter = router({
   create: createCustomerProcedure,
-  edit: editCustomer,
   /**
    * Forward/backward compatibility with the old update endpoint
    */
