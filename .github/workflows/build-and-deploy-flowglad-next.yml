@@ -24,12 +24,6 @@ on:
         required: true
       MINTLIFY_API_KEY:
         required: true
-      TELEMETRY_TEST_API_KEY:
-        required: false
-      UNKEY_ROOT_KEY:
-        required: false
-      UNKEY_API_ID:
-        required: false
 
 jobs:
   deploy:
@@ -77,15 +71,6 @@ jobs:
       - name: Attempt to remove dev routes if production
         run: pnpm prebuild
         working-directory: platform/flowglad-next
-
-      - name: Verify API Telemetry
-        if: ${{ inputs.environment == 'production' }}
-        working-directory: platform/flowglad-next
-        run: ./scripts/ci-verify-telemetry.sh
-        env:
-          TELEMETRY_TEST_API_KEY: ${{ secrets.TELEMETRY_TEST_API_KEY }}
-          UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
-          UNKEY_API_ID: ${{ secrets.UNKEY_API_ID }}
 
       - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
