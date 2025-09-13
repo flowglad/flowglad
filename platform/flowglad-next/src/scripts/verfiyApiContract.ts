@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* 
 run the following in the terminal
 pnpm tsx src/scripts/verfiyApiContract.ts
@@ -8,8 +9,6 @@ import runScript from './scriptRunner'
 import verifyApiContract from '@/api-contract/verify'
 
 async function verifyApiContractScript(db: PostgresJsDatabase) {
-  // eslint-disable-next-line no-console
-  console.log(`foo`)
   const logger = {
     info: console.log,
     warn: console.log,

@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-/** eslint-disable no-console */
+/* eslint-disable no-console */
 /**
  * Telemetry Verification Script
  *
