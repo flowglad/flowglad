@@ -212,7 +212,7 @@ export const setupOrg = async (params?: {
         pluralQuantityLabel: 'seats',
         pricingModelId: pricingModel.id,
         externalId: null,
-        default: false,
+        default: true,
         slug: `flowglad-test-product-price+${core.nanoid()}`,
       },
       transaction
