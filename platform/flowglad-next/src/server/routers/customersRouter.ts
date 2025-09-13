@@ -48,33 +48,26 @@ import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 
-const { openApiMetas } = generateOpenApiMetas({
+const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'customer',
   tags: ['Customer'],
   idParamOverride: 'externalId',
 })
 
-export const customersRouteConfigs: Record<string, RouteConfig> = {
-  ...trpcToRest('customers.create', {
-    routeParams: ['externalId'],
-  }),
-  ...trpcToRest('customers.edit', {
-    routeParams: ['externalId'],
-  }),
-  ...trpcToRest('customers.get', {
-    routeParams: ['externalId'],
-  }),
-  'GET /customers/:externalId/billing': {
-    procedure: 'customers.getBilling',
-    pattern: new RegExp(`^customers\/([^\\/]+)\/billing$`),
-    mapParams: (matches) => ({
-      externalId: matches[0],
-    }),
-  },
-  ...trpcToRest('customers.list', {
-    routeParams: [],
-  }),
-}
+export const customersRouteConfigs = routeConfigs
+
+export const customerBillingRouteConfig: Record<string, RouteConfig> =
+  {
+    'GET /customers/:externalId/billing': {
+      procedure: 'customers.getBilling',
+      pattern: new RegExp(`^customers\/([^\\/]+)\/billing$`),
+      mapParams: (matches) => {
+        return {
+          externalId: matches[0],
+        }
+      },
+    },
+  }
 
 const createCustomerProcedure = protectedProcedure
   .meta(openApiMetas.POST)
@@ -168,7 +161,10 @@ export const editCustomer = protectedProcedure
             })
           }
           const updatedCustomer = await updateCustomer(
-            customer,
+            {
+              ...customer,
+              id: customerRecord.id,
+            },
             transaction
           )
           return {
@@ -177,8 +173,12 @@ export const editCustomer = protectedProcedure
         } catch (error) {
           errorHandlers.customer.handle(error, {
             operation: 'update',
-            id: input.customer.id,
-            details: { customerData: input.customer },
+            id: input.externalId,
+            details: {
+              customerData: input.customer,
+              externalId: input.externalId,
+              note: 'error context.id is the externalId of the customer',
+            },
           })
           throw error
         }
@@ -353,6 +353,10 @@ const getTableRowsProcedure = protectedProcedure
 export const customersRouter = router({
   create: createCustomerProcedure,
   edit: editCustomer,
+  /**
+   * Forward/backward compatibility with the old update endpoint
+   */
+  update: editCustomer,
   getBilling: getCustomerBilling,
   get: getCustomer,
   internal__getById: getCustomerById,

@@ -20,6 +20,7 @@ const createCustomerResource = (
   customer: FlowgladNode.Customers.CustomerCreateParams,
   client: FlowgladNode
 ) => {
+  console.log('===== customer=====???', customer)
   return client.customers.create(customer)
 }
 
@@ -40,6 +41,7 @@ export const verifyCustomerContract = async (
 ) => {
   const client = flowgladNode()
   const externalId = 'test-user-id-' + Date.now()
+  logger.info(`External ID: ${externalId}`)
   const createdCustomer = await createCustomerResource(
     {
       customer: {
@@ -76,7 +78,7 @@ export const verifyCustomerContract = async (
   const customerListResult = await getCustomerListResource(client)
   logger.info(`Got customer list: ${customerListResult.data.length}`)
   return {
-    customer: getCustomerResult,
+    customer: getCustomerResult.customer,
     billing: billingResult,
     createdCustomer,
     customerListResult,

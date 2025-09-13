@@ -11,6 +11,7 @@
     "lint": "next lint && tsc --noEmit && pnpm validate:registry",
     "install-packages": "pnpm install --ignore-workspace",
     "test": "vitest --reporter=verbose",
+    "test:run": "vitest run --reporter=verbose",
     "test:setup": "export NODE_ENV=test && docker-compose -f docker-compose.test.yml down --volumes && docker-compose -f docker-compose.test.yml up --build -d && docker-compose -f docker-compose.test.yml ps && pnpm migrations:push",
     "test:teardown": "docker-compose -f docker-compose.test.yml down --volumes",
     "test:local": "npm run test:setup && DATABASE_URL=postgresql://test:test@localhost:5432/test_db ./src/scripts/run_subscription_tests.sh && npm run test:teardown",

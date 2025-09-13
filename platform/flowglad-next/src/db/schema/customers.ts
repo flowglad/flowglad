@@ -194,7 +194,10 @@ export const customersSupabaseUpdatePayloadSchema =
   supabaseSchemas.supabaseUpdatePayloadSchema
 
 export const editCustomerInputSchema = z.object({
-  customer: customerClientUpdateSchema.omit({ externalId: true }),
+  customer: customerClientUpdateSchema.omit({
+    externalId: true,
+    id: true,
+  }),
   externalId: z.string(),
 })
 

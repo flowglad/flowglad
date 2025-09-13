@@ -8,7 +8,10 @@ import { NextRequestWithUnkeyContext } from '@unkey/nextjs'
 import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
 import { NextResponse } from 'next/server'
 import { trpcToRest, RouteConfig } from '@/utils/openapi'
-import { customersRouteConfigs } from '@/server/routers/customersRouter'
+import {
+  customerBillingRouteConfig,
+  customersRouteConfigs,
+} from '@/server/routers/customersRouter'
 import { productsRouteConfigs } from '@/server/routers/productsRouter'
 import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
 import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
@@ -63,6 +66,7 @@ const parseErrorMessage = (rawMessage: string) => {
 }
 
 const routeConfigs = [
+  ...customersRouteConfigs,
   ...subscriptionsRouteConfigs,
   ...checkoutSessionsRouteConfigs,
   ...pricesRouteConfigs,
@@ -88,7 +92,7 @@ const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
 const routes: Record<string, RouteConfig> = {
   ...getDefaultPricingModelRouteConfig,
   ...refundPaymentRouteConfig,
-  ...customersRouteConfigs,
+  ...customerBillingRouteConfig,
   ...discountsRouteConfigs,
   ...productsRouteConfigs,
   ...subscriptionItemFeaturesRouteConfigs,
@@ -430,7 +434,7 @@ const innerHandler = async (
             method: req.method,
             path,
             procedure: route.procedure,
-            error_message: errorMessage,
+            error_message: JSON.stringify(errorMessage),
             error_code: errorCode,
             error_category: errorCategory,
             http_status: httpStatus,
