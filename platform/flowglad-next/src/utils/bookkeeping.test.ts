@@ -629,6 +629,306 @@ describe('createCustomerBookkeeping', () => {
       )
     })
   })
+
+  describe('subscription behavior based on pricing model price type', () => {
+    it('should create a non-renewing subscription when default pricing model has SinglePayment price', async () => {
+      // Create a pricing model with SinglePayment default price
+      const singlePaymentPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Single Payment Default Pricing Model',
+                isDefault: true,
+              },
+              // No defaultPlanIntervalUnit - creates SinglePayment price
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify the pricing model has a SinglePayment default price
+      expect(singlePaymentPricingModel.result.defaultPrice.type).toBe(
+        PriceType.SinglePayment
+      )
+
+      // Create a customer without specifying pricing model (uses default)
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test SinglePayment Customer',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                // No pricingModelId - will use default
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify customer and subscription were created
+      expect(result.result.customer).toBeDefined()
+      expect(result.result.subscription).toBeDefined()
+
+      // Check the subscription has renews = false for SinglePayment
+      const subscription = result.result.subscription!
+      expect(subscription.renews).toBe(false)
+      expect(subscription.currentBillingPeriodStart).toBeNull()
+      expect(subscription.currentBillingPeriodEnd).toBeNull()
+
+      // Verify no billing period was created
+      const billingPeriods = await adminTransaction(
+        async ({ transaction }) => {
+          const { selectBillingPeriods } = await import(
+            '@/db/tableMethods/billingPeriodMethods'
+          )
+          return selectBillingPeriods(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+        }
+      )
+      expect(billingPeriods).toHaveLength(0)
+    })
+
+    it('should create a renewing subscription with billing period when default pricing model has Subscription price', async () => {
+      // Create a pricing model with Subscription default price
+      const subscriptionPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Subscription Default Pricing Model',
+                isDefault: true,
+              },
+              defaultPlanIntervalUnit: IntervalUnit.Month, // Creates Subscription price
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify the pricing model has a Subscription default price
+      expect(subscriptionPricingModel.result.defaultPrice.type).toBe(
+        PriceType.Subscription
+      )
+
+      // Create a customer without specifying pricing model (uses default)
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test Subscription Customer',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                // No pricingModelId - will use default
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify customer and subscription were created
+      expect(result.result.customer).toBeDefined()
+      expect(result.result.subscription).toBeDefined()
+
+      // Check the subscription has renews = true for Subscription
+      const subscription = result.result.subscription!
+      expect(subscription.renews).toBe(true)
+      expect(subscription.currentBillingPeriodStart).toBeDefined()
+      expect(subscription.currentBillingPeriodEnd).toBeDefined()
+      expect(subscription.currentBillingPeriodStart).toBeInstanceOf(
+        Date
+      )
+      expect(subscription.currentBillingPeriodEnd).toBeInstanceOf(
+        Date
+      )
+
+      // Verify billing period was created
+      const billingPeriods = await adminTransaction(
+        async ({ transaction }) => {
+          const { selectBillingPeriods } = await import(
+            '@/db/tableMethods/billingPeriodMethods'
+          )
+          return selectBillingPeriods(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+        }
+      )
+      expect(billingPeriods).toHaveLength(1)
+      expect(billingPeriods[0].startDate).toEqual(
+        subscription.currentBillingPeriodStart
+      )
+      expect(billingPeriods[0].endDate).toEqual(
+        subscription.currentBillingPeriodEnd
+      )
+    })
+
+    it('should respect specified pricing model price type when creating customer subscription', async () => {
+      // Create two pricing models with different price types
+      const singlePaymentPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Specific SinglePayment Pricing Model',
+                isDefault: false,
+              },
+              // No interval - SinglePayment
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      const subscriptionPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Specific Subscription Pricing Model',
+                isDefault: false,
+              },
+              defaultPlanIntervalUnit: IntervalUnit.Year, // Subscription with Year
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Test 1: Customer with SinglePayment pricing model
+      const singlePaymentCustomerResult = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Customer with SinglePayment Model',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                pricingModelId:
+                  singlePaymentPricingModel.result.pricingModel.id,
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify SinglePayment subscription behavior
+      const singlePaymentSub =
+        singlePaymentCustomerResult.result.subscription!
+      expect(singlePaymentSub.renews).toBe(false)
+      expect(singlePaymentSub.currentBillingPeriodStart).toBeNull()
+      expect(singlePaymentSub.currentBillingPeriodEnd).toBeNull()
+
+      // Test 2: Customer with Subscription pricing model
+      const subscriptionCustomerResult = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Customer with Subscription Model',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                pricingModelId:
+                  subscriptionPricingModel.result.pricingModel.id,
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify Subscription behavior
+      const subscriptionSub =
+        subscriptionCustomerResult.result.subscription!
+      expect(subscriptionSub.renews).toBe(true)
+      expect(subscriptionSub.currentBillingPeriodStart).toBeDefined()
+      expect(subscriptionSub.currentBillingPeriodEnd).toBeDefined()
+
+      // Verify billing periods
+      const singlePaymentBillingPeriods = await adminTransaction(
+        async ({ transaction }) => {
+          const { selectBillingPeriods } = await import(
+            '@/db/tableMethods/billingPeriodMethods'
+          )
+          return selectBillingPeriods(
+            { subscriptionId: singlePaymentSub.id },
+            transaction
+          )
+        }
+      )
+      expect(singlePaymentBillingPeriods).toHaveLength(0)
+
+      const subscriptionBillingPeriods = await adminTransaction(
+        async ({ transaction }) => {
+          const { selectBillingPeriods } = await import(
+            '@/db/tableMethods/billingPeriodMethods'
+          )
+          return selectBillingPeriods(
+            { subscriptionId: subscriptionSub.id },
+            transaction
+          )
+        }
+      )
+      expect(subscriptionBillingPeriods).toHaveLength(1)
+    })
+  })
 })
 
 describe('createPricingModelBookkeeping', () => {
