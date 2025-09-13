@@ -4,19 +4,14 @@ import verifyApiContract from '@/api-contract/verify'
 
 export const verifyApiContractTask = schedules.task({
   id: 'verify-api-contract',
-  cron: '*/10 * * * *', // Every 10 minutes
+  cron: {
+    pattern: '*/10 * * * *',
+    environments: ['PRODUCTION'],
+  }, // Every 10 minutes
   run: async ({ timestamp }) => {
     logger.log('Starting API contract verification', { timestamp })
-
     try {
-      // Create a StandardLogger that wraps trigger.dev's logger
-      const standardLogger: StandardLogger = {
-        info: (message: string) => logger.log(message),
-        warn: (message: string) => logger.warn(message),
-        error: (message: string) => logger.error(message),
-      }
-
-      await verifyApiContract(standardLogger)
+      await verifyApiContract(logger)
 
       logger.log('API contract verification completed successfully', {
         timestamp,
