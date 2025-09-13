@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import { setupOrg } from '@/../seedDatabase'
+import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
 import { insertProduct } from '@/db/tableMethods/productMethods'
 import {
@@ -15,6 +15,7 @@ import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
 import { TRPCError } from '@trpc/server'
 import { pricesRouter } from './pricesRouter'
 import { productsRouter } from './productsRouter'
+import * as orgSetup from '@/db/tableMethods/organizationMethods'
 
 describe('pricesRouter - Default Price Constraints', () => {
   let organizationId: string
@@ -253,7 +254,6 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('router-level behaviors', () => {
     it('pricesRouter.edit: throws NOT_FOUND for missing price id', async () => {
-      const { setupUserAndApiKey } = await import('@/../seedDatabase')
       const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
       const ctx = {
         organizationId,
@@ -270,7 +270,6 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('productsRouter.edit: enforces cross-product price guard (BAD_REQUEST)', async () => {
-      const { setupUserAndApiKey } = await import('@/../seedDatabase')
       const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
       const ctx = {
         organizationId,
@@ -299,7 +298,6 @@ describe('pricesRouter - Default Price Constraints', () => {
           },
           transaction
         )
-        const orgSetup = await import('@/db/tableMethods/organizationMethods')
         const org = await orgSetup.selectOrganizationById(organizationId, transaction)
         const otherPrice = await insertPrice(
           {
@@ -334,7 +332,6 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('pricesRouter.create: enforces single default per product and auto-default for first price', async () => {
-      const { setupUserAndApiKey } = await import('@/../seedDatabase')
       const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
       const ctx = {
         organizationId,
