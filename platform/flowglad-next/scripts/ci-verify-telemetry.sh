@@ -42,9 +42,10 @@ if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
   exit 1
 fi
 
-# Run telemetry verification
-echo "Running telemetry tests..."
-pnpm tsx scripts/verify-telemetry.ts
+# Run telemetry verification (using simplified script with debug output)
+echo "Running telemetry tests with debug output..."
+echo "Debug: TELEMETRY_TEST_API_KEY is ${TELEMETRY_TEST_API_KEY:+set}${TELEMETRY_TEST_API_KEY:-not set}"
+pnpm tsx scripts/verify-telemetry-simple.ts
 TEST_RESULT=$?
 
 # Check result

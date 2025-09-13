@@ -6,13 +6,26 @@
  * This script tests all the telemetry improvements made to the REST API.
  * Run with: pnpm tsx scripts/verify-telemetry.ts
  */
-
 import chalk from 'chalk'
 
 const API_BASE_URL =
   process.env.API_BASE_URL || 'http://localhost:3000/api/v1'
 
 const TEST_API_KEY = process.env.TELEMETRY_TEST_API_KEY || ''
+
+// Debug logging for CI
+console.log('\n=== Telemetry Test Configuration ===')
+console.log(`API Base URL: ${API_BASE_URL}`)
+console.log(`API Key Set: ${TEST_API_KEY ? 'YES' : 'NO'}`)
+if (TEST_API_KEY) {
+  const keyPreview =
+    TEST_API_KEY.length > 20
+      ? `${TEST_API_KEY.substring(0, 8)}...${TEST_API_KEY.substring(TEST_API_KEY.length - 4)}`
+      : 'KEY_TOO_SHORT'
+  console.log(`API Key Preview: ${keyPreview}`)
+  console.log(`API Key Length: ${TEST_API_KEY.length}`)
+}
+console.log('=================================\n')
 
 interface TestResult {
   name: string
