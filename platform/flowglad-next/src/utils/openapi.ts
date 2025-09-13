@@ -273,7 +273,7 @@ export const trpcToRest = (
           procedure: procedureName,
           pattern: new RegExp(`^${entity}\/([^\\/]+)$`),
           mapParams: (matches, body) => ({
-            [updateIdKey]: matches[1],
+            [updateIdKey]: matches[0],
             ...body,
           }),
         },
@@ -284,10 +284,13 @@ export const trpcToRest = (
         [`PUT /${entity}/:${editIdKey}`]: {
           procedure: procedureName,
           pattern: new RegExp(`^${entity}\/([^\\/]+)$`),
-          mapParams: (matches, body) => ({
-            [editIdKey]: matches[1],
-            ...body,
-          }),
+          mapParams: (matches, body) => {
+            const result = {
+              [editIdKey]: matches[0],
+              ...body,
+            }
+            return result
+          },
         },
       }
 

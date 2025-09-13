@@ -13,6 +13,7 @@ import {
   selectCustomersPaginated,
   updateCustomer,
   selectCustomersCursorPaginatedWithTableRowData,
+  selectCustomerByExternalIdAndOrganizationId,
 } from '@/db/tableMethods/customerMethods'
 import {
   customerClientSelectSchema,
@@ -148,10 +149,24 @@ export const editCustomer = protectedProcedure
   .output(editCustomerOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transaction, organizationId }) => {
         try {
           const { customer } = input
+          const customerRecord =
+            await selectCustomerByExternalIdAndOrganizationId(
+              {
+                externalId: input.externalId,
+                organizationId,
+              },
+              transaction
+            )
 
+          if (!customerRecord) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Customer with externalId ${input.externalId} not found`,
+            })
+          }
           const updatedCustomer = await updateCustomer(
             customer,
             transaction

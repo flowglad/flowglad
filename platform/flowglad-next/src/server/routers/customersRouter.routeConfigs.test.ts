@@ -1,0 +1,332 @@
+import { describe, it, expect } from 'vitest'
+import { customersRouteConfigs } from './customersRouter'
+
+describe('customersRouteConfigs', () => {
+  describe('Route pattern matching and procedure mapping', () => {
+    it('should map POST /customers to customers.create procedure', () => {
+      const routeConfig = customersRouteConfigs['POST /customers']
+
+      expect(routeConfig).toBeDefined()
+      expect(routeConfig.procedure).toBe('customers.create')
+      expect(routeConfig.pattern.test('customers')).toBe(true)
+
+      // Test mapParams with body
+      const testBody = { customer: { name: 'Test Customer' } }
+      const result = routeConfig.mapParams([], testBody)
+      expect(result).toEqual(testBody)
+    })
+
+    it('should map PUT /customers/:externalId to customers.edit procedure', () => {
+      const routeConfig =
+        customersRouteConfigs['PUT /customers/:externalId']
+
+      expect(routeConfig).toBeDefined()
+      expect(routeConfig.procedure).toBe('customers.edit')
+      expect(routeConfig.pattern.test('customers/test-id')).toBe(true)
+
+      // Test mapParams with matches and body
+      const testBody = { customer: { name: 'Updated Customer' } }
+      const result = routeConfig.mapParams(['test-id'], testBody)
+      expect(result).toEqual({
+        externalId: 'test-id',
+        ...testBody,
+      })
+    })
+
+    it('should map GET /customers/:externalId to customers.get procedure', () => {
+      const routeConfig =
+        customersRouteConfigs['GET /customers/:externalId']
+
+      expect(routeConfig).toBeDefined()
+      expect(routeConfig.procedure).toBe('customers.get')
+      expect(routeConfig.pattern.test('customers/test-id')).toBe(true)
+
+      // Test mapParams with matches only
+      const result = routeConfig.mapParams(['test-id'])
+      expect(result).toEqual({ externalId: 'test-id' })
+    })
+
+    it('should map GET /customers/:externalId/billing to customers.getBilling procedure', () => {
+      const routeConfig =
+        customersRouteConfigs['GET /customers/:externalId/billing']
+
+      expect(routeConfig).toBeDefined()
+      expect(routeConfig.procedure).toBe('customers.getBilling')
+      expect(
+        routeConfig.pattern.test('customers/test-id/billing')
+      ).toBe(true)
+
+      // Test mapParams with matches only
+      const result = routeConfig.mapParams(['test-id'])
+      expect(result).toEqual({ externalId: 'test-id' })
+    })
+
+    it('should map GET /customers to customers.list procedure', () => {
+      const routeConfig = customersRouteConfigs['GET /customers']
+
+      expect(routeConfig).toBeDefined()
+      expect(routeConfig.procedure).toBe('customers.list')
+      expect(routeConfig.pattern.test('customers')).toBe(true)
+
+      // Test mapParams returns undefined for list endpoints
+      const result = routeConfig.mapParams([])
+      expect(result).toBeUndefined()
+    })
+  })
+
+  describe('Route pattern RegExp validation', () => {
+    it('should have valid RegExp patterns that match expected paths', () => {
+      const configs = customersRouteConfigs
+
+      // Customer creation pattern should match 'customers'
+      expect(
+        configs['POST /customers'].pattern.test('customers')
+      ).toBe(true)
+      expect(
+        configs['POST /customers'].pattern.test('customers/id')
+      ).toBe(false)
+
+      // Customer get pattern should match 'customers/abc123'
+      expect(
+        configs['GET /customers/:externalId'].pattern.test(
+          'customers/abc123'
+        )
+      ).toBe(true)
+      expect(
+        configs['GET /customers/:externalId'].pattern.test(
+          'customers'
+        )
+      ).toBe(false)
+      expect(
+        configs['GET /customers/:externalId'].pattern.test(
+          'customers/abc123/extra'
+        )
+      ).toBe(false)
+
+      // Customer edit pattern should match 'customers/abc123'
+      expect(
+        configs['PUT /customers/:externalId'].pattern.test(
+          'customers/abc123'
+        )
+      ).toBe(true)
+      expect(
+        configs['PUT /customers/:externalId'].pattern.test(
+          'customers'
+        )
+      ).toBe(false)
+
+      // Customer billing pattern should match 'customers/abc123/billing'
+      expect(
+        configs['GET /customers/:externalId/billing'].pattern.test(
+          'customers/abc123/billing'
+        )
+      ).toBe(true)
+      expect(
+        configs['GET /customers/:externalId/billing'].pattern.test(
+          'customers/abc123'
+        )
+      ).toBe(false)
+      expect(
+        configs['GET /customers/:externalId/billing'].pattern.test(
+          'customers/billing'
+        )
+      ).toBe(false)
+
+      // Customer list pattern should match 'customers' only
+      expect(
+        configs['GET /customers'].pattern.test('customers')
+      ).toBe(true)
+      expect(
+        configs['GET /customers'].pattern.test('customers/id')
+      ).toBe(false)
+    })
+
+    it('should extract correct matches from URL paths', () => {
+      const configs = customersRouteConfigs
+
+      // Test customer get pattern extraction
+      const getMatches = configs[
+        'GET /customers/:externalId'
+      ].pattern.exec('customers/test-id')
+      expect(getMatches).not.toBeNull()
+      expect(getMatches![1]).toBe('test-id') // First capture group
+
+      // Test customer billing pattern extraction
+      const billingMatches = configs[
+        'GET /customers/:externalId/billing'
+      ].pattern.exec('customers/test-id/billing')
+      expect(billingMatches).not.toBeNull()
+      expect(billingMatches![1]).toBe('test-id') // First capture group
+
+      // Test customer list pattern (no captures)
+      const listMatches =
+        configs['GET /customers'].pattern.exec('customers')
+      expect(listMatches).not.toBeNull()
+      expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
+
+      // Test customer create pattern (no captures)
+      const createMatches =
+        configs['POST /customers'].pattern.exec('customers')
+      expect(createMatches).not.toBeNull()
+      expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
+    })
+  })
+
+  describe('mapParams function behavior', () => {
+    it('should correctly map URL parameters for customer get requests', () => {
+      const routeConfig =
+        customersRouteConfigs['GET /customers/:externalId']
+
+      const result = routeConfig.mapParams(['customer-123'])
+
+      expect(result).toEqual({
+        externalId: 'customer-123',
+      })
+    })
+
+    it('should correctly map URL parameters and body for customer edit requests', () => {
+      const routeConfig =
+        customersRouteConfigs['PUT /customers/:externalId']
+      const testBody = {
+        customer: {
+          name: 'Updated Customer Name',
+          email: 'updated@example.com',
+        },
+      }
+
+      const result = routeConfig.mapParams(['customer-456'], testBody)
+
+      expect(result).toEqual({
+        externalId: 'customer-456',
+        customer: {
+          name: 'Updated Customer Name',
+          email: 'updated@example.com',
+        },
+      })
+    })
+
+    it('should correctly map URL parameters for customer billing requests', () => {
+      const routeConfig =
+        customersRouteConfigs['GET /customers/:externalId/billing']
+
+      const result = routeConfig.mapParams(['customer-789'])
+
+      expect(result).toEqual({
+        externalId: 'customer-789',
+      })
+    })
+
+    it('should return body for customer create requests', () => {
+      const routeConfig = customersRouteConfigs['POST /customers']
+      const testBody = {
+        customer: {
+          externalId: 'new-customer',
+          name: 'New Customer',
+          email: 'new@example.com',
+        },
+      }
+
+      const result = routeConfig.mapParams([], testBody)
+
+      expect(result).toEqual(testBody)
+    })
+
+    it('should return undefined for customer list requests', () => {
+      const routeConfig = customersRouteConfigs['GET /customers']
+
+      const result = routeConfig.mapParams([])
+
+      expect(result).toBeUndefined()
+    })
+
+    it('should handle special characters and encoded values in externalId', () => {
+      const routeConfig =
+        customersRouteConfigs['GET /customers/:externalId']
+
+      // Test with URL-encoded characters
+      const result1 = routeConfig.mapParams([
+        'customer%40company.com',
+      ])
+      expect(result1).toEqual({
+        externalId: 'customer%40company.com',
+      })
+
+      // Test with hyphens and underscores
+      const result2 = routeConfig.mapParams(['customer_123-abc'])
+      expect(result2).toEqual({ externalId: 'customer_123-abc' })
+    })
+  })
+
+  describe('Route config completeness', () => {
+    it('should have all expected CRUD route configs', () => {
+      const routeKeys = Object.keys(customersRouteConfigs)
+
+      // Check that all expected routes exist
+      expect(routeKeys).toContain('POST /customers') // create
+      expect(routeKeys).toContain('PUT /customers/:externalId') // edit
+      expect(routeKeys).toContain('GET /customers/:externalId') // get
+      expect(routeKeys).toContain('GET /customers') // list
+      expect(routeKeys).toContain(
+        'GET /customers/:externalId/billing'
+      ) // custom billing route
+
+      // Check that we have exactly the expected number of routes
+      expect(routeKeys).toHaveLength(5)
+    })
+
+    it('should have consistent externalId parameter usage', () => {
+      const idRoutes = [
+        'PUT /customers/:externalId',
+        'GET /customers/:externalId',
+        'GET /customers/:externalId/billing',
+      ]
+
+      idRoutes.forEach((routeKey) => {
+        const config = customersRouteConfigs[routeKey]
+
+        // Test that mapParams consistently uses 'externalId'
+        const result = config.mapParams(['test-id'], {
+          someData: 'value',
+        })
+        expect(result).toHaveProperty('externalId', 'test-id')
+      })
+    })
+
+    it('should have valid route config structure for all routes', () => {
+      Object.entries(customersRouteConfigs).forEach(
+        ([routeKey, config]) => {
+          // Each config should have required properties
+          expect(config).toHaveProperty('procedure')
+          expect(config).toHaveProperty('pattern')
+          expect(config).toHaveProperty('mapParams')
+
+          // Procedure should be a valid TRPC procedure path
+          expect(config.procedure).toMatch(/^customers\.\w+$/)
+
+          // Pattern should be a RegExp
+          expect(config.pattern).toBeInstanceOf(RegExp)
+
+          // mapParams should be a function
+          expect(typeof config.mapParams).toBe('function')
+        }
+      )
+    })
+
+    it('should map to correct TRPC procedures', () => {
+      const expectedMappings = {
+        'POST /customers': 'customers.create',
+        'PUT /customers/:externalId': 'customers.edit',
+        'GET /customers/:externalId': 'customers.get',
+        'GET /customers': 'customers.list',
+        'GET /customers/:externalId/billing': 'customers.getBilling',
+      }
+
+      Object.entries(expectedMappings).forEach(
+        ([routeKey, expectedProcedure]) => {
+          const config = customersRouteConfigs[routeKey]
+          expect(config.procedure).toBe(expectedProcedure)
+        }
+      )
+    })
+  })
+})

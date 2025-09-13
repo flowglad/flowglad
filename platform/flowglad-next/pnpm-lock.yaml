@@ -51,6 +51,9 @@ importers:
       '@dotenvx/dotenvx':
         specifier: ^1.9.1
         version: 1.21.1
+      '@flowglad/node':
+        specifier: ^0.21.0
+        version: 0.21.0
       '@hookform/resolvers':
         specifier: 3.10.0
         version: 3.10.0(react-hook-form@7.53.1(react@19.0.0))
@@ -1701,6 +1704,9 @@ packages:
 
   '@floating-ui/utils@0.2.8':
     resolution: {integrity: sha512-kym7SodPp8/wloecOpcmSnWJsK7M0E5Wg8UcFA+uO4B9s5d0ywXOEro/8HM9x0rW+TljRzul/14UYz3TleT3ig==}
+
+  '@flowglad/node@0.21.0':
+    resolution: {integrity: sha512-mD6VGoxJpAdSM4Ftv7wLgTzPjNpjU+Q10xUKxv3uvRfEa42dRgOc7mEa2QrVclpq/1tyg/j0Aw9igrcrvNsUMw==}
 
   '@google-cloud/precise-date@4.0.0':
     resolution: {integrity: sha512-1TUx3KdaU3cN7nfCdNf+UVqA/PSX29Cjcox3fZZBtINlRrXVTmUkQnCKv2MbBUbCopbK4olAT1IHl76uZyCiVA==}
@@ -11249,6 +11255,8 @@ snapshots:
       react-dom: 19.0.0(react@19.0.0)
 
   '@floating-ui/utils@0.2.8': {}
+
+  '@flowglad/node@0.21.0': {}
 
   '@google-cloud/precise-date@4.0.0': {}
 

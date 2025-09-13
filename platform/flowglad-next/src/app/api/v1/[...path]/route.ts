@@ -548,42 +548,6 @@ const withVerification = (
     context: FlowgladRESTRouteContext
   ) => {
     const tracer = trace.getTracer('rest-api-auth')
-    const headerSet = await headers()
-    const authorizationHeader = headerSet.get('Authorization')
-
-    if (!authorizationHeader) {
-      return new Response('Unauthorized', { status: 401 })
-    }
-
-    const apiKey = getApiKeyHeader(authorizationHeader)
-
-    if (!apiKey) {
-      return new Response('Unauthorized', { status: 401 })
-    }
-
-    const { result, error } = await verifyApiKey(apiKey)
-
-    if (error) {
-      logger.error('API key verification error', {
-        error,
-        key_prefix: apiKey.substring(0, 8),
-      })
-      return new Response('Unauthorized', { status: 401 })
-    }
-
-    if (!result) {
-      logger.warn('API key verification returned no result', {
-        key_prefix: apiKey.substring(0, 8),
-      })
-      return new Response('Unauthorized', { status: 401 })
-    }
-    if (!result?.valid) {
-      logger.warn('API key verification failed', {
-        key_prefix: apiKey.substring(0, 8),
-        code: result.code,
-      })
-      return new Response('Unauthorized', { status: 401 })
-    }
 
     return tracer.startActiveSpan(
       'API Key Verification',
@@ -620,7 +584,7 @@ const withVerification = (
             return new Response('Unauthorized', { status: 401 })
           }
 
-          const apiKey = authorizationHeader.split(' ')[1]
+          const apiKey = getApiKeyHeader(authorizationHeader)
           if (!apiKey) {
             authSpan.setStatus({
               code: SpanStatusCode.ERROR,
@@ -653,7 +617,7 @@ const withVerification = (
             'auth.key_prefix': keyPrefix,
           })
 
-          // Verify API key with telemetry
+          // Verify API key with telemetry - single verification call
           const verificationStartTime = Date.now()
           const { result, error } = await verifyApiKey(apiKey)
           const verificationDuration =
