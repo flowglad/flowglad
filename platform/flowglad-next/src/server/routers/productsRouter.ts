@@ -55,6 +55,7 @@ export const productsRouteConfigs = {
   ...trpcToRest('products.list'),
   ...trpcToRest('products.create'),
   ...trpcToRest('products.update'),
+  ...trpcToRest('products.get'),
 }
 
 const singleProductOutputSchema = z.object({

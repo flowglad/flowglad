@@ -29,7 +29,7 @@ import {
   setupMemberships,
 } from '@/../seedDatabase'
 import { Organization } from './schema/organizations'
-import { UserRecord } from './schema/users'
+import { User } from './schema/users'
 import { ApiKey } from './schema/apiKeys'
 import { insertApiKey } from './tableMethods/apiKeyMethods'
 import { Membership } from './schema/memberships'
@@ -46,8 +46,8 @@ describe('authenticatedTransaction', () => {
   // Global test state variables
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
-  let userA: UserRecord
-  let userB: UserRecord
+  let userA: User.Record
+  let userB: User.Record
   let apiKeyA: ApiKey.Record
   let apiKeyB: ApiKey.Record
   let membershipA1: Membership.Record // userA in testOrg1
@@ -202,7 +202,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
   // Reuse the same global test state
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
-  let userA: UserRecord
+  let userA: User.Record
   let apiKeyA: ApiKey.Record
 
   beforeEach(async () => {
@@ -318,8 +318,8 @@ describe('RLS Access Control with selectOrganizations', () => {
   // Global test state variables
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
-  let userA: UserRecord
-  let userB: UserRecord
+  let userA: User.Record
+  let userB: User.Record
   let apiKeyA: ApiKey.Record
   let apiKeyB: ApiKey.Record
 
@@ -451,8 +451,8 @@ describe('RLS Access Control with selectMemberships', () => {
   // Global test state variables
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
-  let userA: UserRecord
-  let userB: UserRecord
+  let userA: User.Record
+  let userB: User.Record
   let apiKeyA: ApiKey.Record
   let membershipA1: Membership.Record
   let membershipA2: Membership.Record
@@ -615,7 +615,7 @@ describe('RLS Access Control with selectMemberships', () => {
 
 describe('Authentication Method Tests', () => {
   let testOrg1: Organization.Record
-  let userA: UserRecord
+  let userA: User.Record
   let apiKeyA: ApiKey.Record
 
   beforeEach(async () => {
@@ -906,8 +906,8 @@ describe('RLS for selectProducts', () => {
   let prodPricingModel2: any
   let product1: any
   let product2: any
-  let prodUserA: UserRecord
-  let prodUserB: UserRecord
+  let prodUserA: User.Record
+  let prodUserB: User.Record
   let apiKeyAForOrg1: ApiKey.Record
   let apiKeyAForOrg2: ApiKey.Record
 
@@ -1188,8 +1188,8 @@ describe('RLS for selectPricingModels', () => {
   let catOrg2: Organization.Record
   let pricingModel1: PricingModel.Record
   let pricingModel2: PricingModel.Record
-  let catUserA: UserRecord
-  let catUserB: UserRecord
+  let catUserA: User.Record
+  let catUserB: User.Record
   let apiKeyCatAOrg1: ApiKey.Record
   let apiKeyCatAOrg2: ApiKey.Record
 

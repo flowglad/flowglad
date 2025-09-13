@@ -16,7 +16,7 @@ import {
   Organization,
   organizations,
 } from '@/db/schema/organizations'
-import { UserRecord, users } from '@/db/schema/users'
+import { User, users } from '@/db/schema/users'
 import { Membership, memberships } from '@/db/schema/memberships'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
@@ -29,7 +29,7 @@ vi.mock('@/utils/email', () => ({
 
 describe('innerInviteUserToOrganizationHandler', () => {
   let organization: Organization.Record
-  let inviterUser: UserRecord
+  let inviterUser: User.Record
   let focusedMembership: {
     organization: Pick<Organization.Record, 'id' | 'name'>
     membership: Pick<Membership.Record, 'livemode' | 'userId'>

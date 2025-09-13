@@ -656,7 +656,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         customerId: nonRenewingCustomer.id,
         paymentMethodId: null as any, // Credit trial doesn't need payment method
         priceId: price.id,
-        status: SubscriptionStatus.CreditTrial,
+        status: SubscriptionStatus.Active,
         renews: false,
       })
 

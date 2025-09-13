@@ -178,7 +178,7 @@ describe('Subscription Activation Workflow E2E', () => {
         transaction
       )
       const sub1 = billingState1.subscriptions[0]
-      expect(sub1.status).toBe(SubscriptionStatus.CreditTrial)
+      expect(sub1.status).toBe(SubscriptionStatus.Active)
       expect(sub1.experimental?.featureItems).toHaveLength(3)
       expect(sub1.experimental?.usageMeterBalances).toHaveLength(1)
       expect(
@@ -217,7 +217,7 @@ describe('Subscription Activation Workflow E2E', () => {
         transaction
       )
       const sub2 = billingState2.subscriptions[0]
-      expect(sub2.status).toBe(SubscriptionStatus.CreditTrial)
+      expect(sub2.status).toBe(SubscriptionStatus.Active)
       expect(sub2.experimental?.featureItems).toHaveLength(3)
       expect(sub2.experimental?.usageMeterBalances).toHaveLength(1)
       expect(
@@ -255,7 +255,7 @@ describe('Subscription Activation Workflow E2E', () => {
         transaction
       )
       const sub2Prime = billingState2Prime.subscriptions[0]
-      expect(sub2Prime.status).toBe(SubscriptionStatus.CreditTrial)
+      expect(sub2Prime.status).toBe(SubscriptionStatus.Active)
       expect(sub2Prime.experimental?.featureItems).toHaveLength(3)
       expect(sub2Prime.experimental?.usageMeterBalances).toHaveLength(
         1

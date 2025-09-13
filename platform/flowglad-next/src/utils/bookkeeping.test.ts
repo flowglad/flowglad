@@ -48,28 +48,9 @@ describe('createCustomerBookkeeping', () => {
     // Set up organization with default product and pricing
     const orgData = await setupOrg()
     organization = orgData.organization
-    product = orgData.product
+    defaultProduct = orgData.product
     price = orgData.price
-
-    // Get the default pricing model that was created
-    defaultPricingModel = await adminTransaction(
-      async ({ transaction }) => {
-        const pricingModel = await selectPricingModelById(
-          orgData.pricingModel.id,
-          transaction
-        )
-        return pricingModel
-      }
-    )
-
-    // Create a default product for the default pricing model
-    defaultProduct = await setupProduct({
-      organizationId: organization.id,
-      name: 'Default Product',
-      pricingModelId: defaultPricingModel.id,
-      default: true,
-      active: true,
-    })
+    defaultPricingModel = orgData.pricingModel
 
     // Create a default price for the default product
     defaultPrice = await setupPrice({
@@ -357,18 +338,18 @@ describe('createCustomerBookkeeping', () => {
       })
 
       // Create a non-default price
-      await setupPrice({
-        productId: productWithoutDefaultPrice.id,
-        name: 'Non-Default Price',
-        type: PriceType.Subscription,
-        unitPrice: 3000,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        isDefault: false, // Not default
-        setupFeeAmount: 0,
-        currency: CurrencyCode.USD,
-        livemode,
-      })
+      // const nonDefaultPrice = await setupPrice({
+      //   productId: productWithoutDefaultPrice.id,
+      //   name: 'Non-Default Price',
+      //   type: PriceType.Subscription,
+      //   unitPrice: 3000,
+      //   intervalUnit: IntervalUnit.Month,
+      //   intervalCount: 1,
+      //   isDefault: false, // Not default
+      //   setupFeeAmount: 0,
+      //   currency: CurrencyCode.USD,
+      //   livemode,
+      // })
 
       // Create customer
       const result = await adminTransaction(
@@ -393,7 +374,6 @@ describe('createCustomerBookkeeping', () => {
           return output
         }
       )
-
       // expects:
       // - customer should be created successfully
       // - no subscription should be created since there's no default price
@@ -641,6 +621,7 @@ describe('createCustomerBookkeeping', () => {
 
       expect(subscriptionInDb).toBeDefined()
       expect(subscriptionInDb?.subscription.name).toContain(
+        // the name of the default product returned by setupOrg
         'Default Product'
       )
       expect(subscriptionInDb?.subscription.name).toContain(

@@ -40,7 +40,6 @@ const publicRoutes = [
   '/api/ai',
   '/api/ai/(.*)',
   '/api/openapi',
-  '/api/hosted-billing/(.*)',
   '/invoice/view/(.*)',
   '/ui/(.*)',
   /**

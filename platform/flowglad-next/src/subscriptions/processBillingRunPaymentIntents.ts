@@ -38,7 +38,7 @@ import {
   sendPaymentFailedEmail,
 } from '@/utils/email'
 import { Payment } from '@/db/schema/payments'
-import { UserRecord } from '@/db/schema/users'
+import { User } from '@/db/schema/users'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import {
   selectInvoiceLineItems,
@@ -103,7 +103,7 @@ interface BillingRunNotificationParams {
   organization: Organization.Record
   subscription: Subscription.Record
   payment: Payment.Record
-  organizationMemberUsers: UserRecord[]
+  organizationMemberUsers: User.Record[]
   invoiceLineItems: InvoiceLineItem.Record[]
 }
 

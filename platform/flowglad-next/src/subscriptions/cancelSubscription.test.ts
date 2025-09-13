@@ -19,7 +19,7 @@ import {
   setupCustomer,
   setupPaymentMethod,
   setupOrg,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'

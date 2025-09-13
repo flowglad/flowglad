@@ -8,7 +8,7 @@ import {
 import { Organization } from '@/db/schema/organizations'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { getSession } from '@/utils/auth'
-import { UserRecord } from '@/db/schema/users'
+import { User } from '@/db/schema/users'
 import { selectUsers } from '@/db/tableMethods/userMethods'
 
 export const createContext = async (
@@ -19,7 +19,7 @@ export const createContext = async (
   let environment: ApiEnvironment = 'live'
   let organizationId: string | undefined
   let organization: Organization.Record | undefined
-  let user: UserRecord | undefined
+  let user: User.Record | undefined
 
   if (betterAuthUserId) {
     const memberships = await adminTransaction(

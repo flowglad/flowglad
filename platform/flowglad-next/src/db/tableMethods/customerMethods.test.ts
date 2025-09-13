@@ -22,7 +22,7 @@ import {
 } from '@/db/schema/customers'
 import { setupPurchase } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
-import { UserRecord } from '@/db/schema/users'
+import { User } from '@/db/schema/users'
 
 describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId', () => {
   let targetEmail: string
@@ -294,8 +294,8 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 describe('setUserIdForCustomerRecords', () => {
   let organization: Organization.Record
   let targetEmail: string
-  let user1: UserRecord
-  let user2: UserRecord
+  let user1: User.Record
+  let user2: User.Record
 
   beforeEach(async () => {
     // Set up organization

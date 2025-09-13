@@ -16,6 +16,7 @@ import {
   setupDiscount,
   setupPurchase,
   setupDiscountRedemption,
+  setupProduct,
 } from '@/../seedDatabase'
 import { createSubscriptionWorkflow } from './workflow'
 import {
@@ -393,17 +394,23 @@ describe('createSubscriptionWorkflow', async () => {
       expect(subTypeSubscription.runBillingAtPeriodStart).toBe(true)
     })
 
-    it('throws if price is not subscription type', async () => {
+    it('throws if price is not subscription type for a non-default product', async () => {
       const singlePayCustomer = await setupCustomer({
         organizationId: organization.id,
       })
+
       const singlePayPaymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
         customerId: singlePayCustomer.id,
       })
-
+      const nonDefaultProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: product.pricingModelId,
+        name: 'Non Default Product',
+        livemode: true,
+      })
       const singlePaymentPrice = await setupPrice({
-        productId: product.id,
+        productId: nonDefaultProduct.id,
         type: PriceType.SinglePayment,
         name: 'Single Payment Price',
         unitPrice: 100,
@@ -423,7 +430,7 @@ describe('createSubscriptionWorkflow', async () => {
           return createSubscriptionWorkflow(
             {
               organization,
-              product,
+              product: nonDefaultProduct,
               price: singlePaymentPrice, // Use the single payment price
               quantity: 1,
               livemode: true,
@@ -439,6 +446,74 @@ describe('createSubscriptionWorkflow', async () => {
           )
         })
       ).rejects.toThrow('Price is not a subscription')
+    })
+
+    it('creates a non-renewing subscription if provided a default product and non-subscribable price', async () => {
+      const defaultProductCustomer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      const defaultProductPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: defaultProductCustomer.id,
+      })
+
+      // Use the default product from setupOrg
+      const singlePaymentPrice = await setupPrice({
+        productId: product.id, // Use the default product
+        type: PriceType.SinglePayment,
+        name: 'Single Payment Price for Default Product',
+        unitPrice: 100,
+        livemode: true,
+        isDefault: false,
+        setupFeeAmount: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product, // Use the default product
+              price: singlePaymentPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: defaultProductPaymentMethod,
+              customer: defaultProductCustomer,
+              autoStart: true, // Enable autoStart to get an active subscription
+            },
+            transaction
+          )
+        }
+      )
+
+      // Verify a subscription was created successfully
+      expect(result.result.subscription).toBeDefined()
+      expect(result.result.subscription.customerId).toBe(
+        defaultProductCustomer.id
+      )
+      expect(result.result.subscription.priceId).toBe(
+        singlePaymentPrice.id
+      )
+      // Since it's a single payment price with default product, it should create a non-renewing subscription
+      expect(result.result.subscription.renews).toBe(false) // Non-renewing subscriptions do not renew
+      expect(result.result.subscription.status).toBe(
+        SubscriptionStatus.Active
+      )
+
+      // Verify billing period was created
+      expect(result.result.billingPeriod).toBeNull()
+
+      // Verify subscription items were created
+      expect(result.result.subscriptionItems).toBeDefined()
+      expect(result.result.subscriptionItems.length).toBeGreaterThan(
+        0
+      )
     })
   })
 
@@ -1688,7 +1763,7 @@ describe('createSubscriptionWorkflow with usage credit entitlements', async () =
 })
 
 describe('createSubscriptionWorkflow with Credit Trial', () => {
-  it('should create a subscription with CreditTrial status and no billing run when price.startsWithCreditTrial is true', async () => {
+  it('should create a subscription with Active status and no billing run when price.startsWithCreditTrial is true', async () => {
     // Setup
     const {
       organization,
@@ -1732,9 +1807,7 @@ describe('createSubscriptionWorkflow with Credit Trial', () => {
     )
 
     // Assertions
-    expect(result.subscription.status).toBe(
-      SubscriptionStatus.CreditTrial
-    )
+    expect(result.subscription.status).toBe(SubscriptionStatus.Active)
     expect(result.billingPeriod).toBeNull()
     expect(result.billingRun).toBeNull()
   })
@@ -2059,7 +2132,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     )
 
     expect(subscription).toBeDefined()
-    expect(subscription.status).toBe(SubscriptionStatus.CreditTrial)
+    expect(subscription.status).toBe(SubscriptionStatus.Active)
     expect(subscriptionItems.length).toBeGreaterThan(0)
     expect(billingPeriod).toBeNull()
     expect(billingRun).toBeNull()

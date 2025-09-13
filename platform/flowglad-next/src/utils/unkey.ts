@@ -1,4 +1,4 @@
-import { Unkey } from '@unkey/api'
+import { Unkey, verifyKey } from '@unkey/api'
 import core from './core'
 import { Organization } from '@/db/schema/organizations'
 import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
@@ -8,6 +8,11 @@ import {
   secretApiKeyMetadataSchema,
   apiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'
+import {
+  getApiKeyVerificationResult,
+  setApiKeyVerificationResult,
+} from './redis'
+import { hashData } from './backendCore'
 
 export const unkey = () =>
   new Unkey({
@@ -15,19 +20,17 @@ export const unkey = () =>
   })
 
 export const verifyApiKey = async (apiKey: string) => {
-  const { result, error } = await unkey().keys.verify({
-    apiId: core.envVariable('UNKEY_API_ID'),
+  const cachedVerificationResult =
+    await getApiKeyVerificationResult(apiKey)
+  if (cachedVerificationResult) {
+    return cachedVerificationResult
+  }
+  const verificationResult = await verifyKey({
     key: apiKey,
+    apiId: core.envVariable('UNKEY_API_ID'),
   })
-  if (error) {
-    throw error
-  }
-  return {
-    keyId: result.keyId,
-    valid: result.valid,
-    ownerId: result.ownerId,
-    environment: result.environment as ApiEnvironment,
-  }
+  await setApiKeyVerificationResult(apiKey, verificationResult)
+  return verificationResult
 }
 
 export interface StandardCreateApiKeyParams {
@@ -37,13 +40,6 @@ export interface StandardCreateApiKeyParams {
   userId: string
   type: FlowgladApiKeyType.Secret
   expiresAt?: Date
-}
-
-export interface BillingPortalCreateApiKeyParams
-  extends Omit<StandardCreateApiKeyParams, 'type'> {
-  type: FlowgladApiKeyType.BillingPortalToken
-  stackAuthHostedBillingUserId: string
-  expiresAt: Date
 }
 
 interface CreateApiKeyResult {
@@ -112,87 +108,7 @@ export const createSecretApiKey = async (
       unkeyId: result.keyId,
       type: FlowgladApiKeyType.Secret,
       expiresAt: params.expiresAt,
-    },
-    shownOnlyOnceKey: result.key,
-  }
-}
-
-export const billingPortalApiKeyInputToUnkeyInput = (
-  params: BillingPortalCreateApiKeyParams
-): UnkeyInput => {
-  const {
-    organization,
-    apiEnvironment,
-    stackAuthHostedBillingUserId,
-  } = params
-
-  const maybeStagingPrefix = core.IS_PROD ? '' : 'stg_'
-
-  const unparsedMeta: ApiKey.BillingPortalMetadata = {
-    organizationId: params.organization.id,
-    stackAuthHostedBillingUserId: params.stackAuthHostedBillingUserId,
-    type: FlowgladApiKeyType.BillingPortalToken,
-  }
-  const billingPortalMeta =
-    billingPortalApiKeyMetadataSchema.parse(unparsedMeta)
-  return {
-    apiId: core.envVariable('UNKEY_API_ID'),
-    name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
-    environment: apiEnvironment,
-    expires: params.expiresAt.getTime(),
-    externalId: organization.id,
-    prefix: [maybeStagingPrefix, 'bk_', apiEnvironment].join(''),
-    meta: billingPortalMeta,
-  }
-}
-
-export const createBillingPortalApiKey = async (
-  params: BillingPortalCreateApiKeyParams
-): Promise<CreateApiKeyResult> => {
-  if (params.type !== FlowgladApiKeyType.BillingPortalToken) {
-    throw new Error(
-      'createBillingPortalApiKey: Only billing portal tokens are supported at this time. Received type: ' +
-        params.type
-    )
-  }
-
-  if (!params.stackAuthHostedBillingUserId) {
-    throw new Error(
-      'stackAuthHostedBillingUserId is required for billing portal tokens'
-    )
-  }
-
-  if (!params.expiresAt) {
-    throw new Error('expiresAt is required for billing portal tokens')
-  }
-
-  const unkeyInput = billingPortalApiKeyInputToUnkeyInput(params)
-  const { result, error } = await unkey().keys.create(unkeyInput)
-
-  if (error) {
-    throw error
-  }
-
-  const livemode = params.apiEnvironment === 'live'
-  /**
-   * Hide the key in live mode
-   */
-  const token = livemode
-    ? `bk_live_...${result.key.slice(-4)}`
-    : result.key
-
-  return {
-    apiKeyInsert: {
-      organizationId: params.organization.id,
-      name: params.name,
-      token,
-      livemode,
-      active: true,
-      unkeyId: result.keyId,
-      stackAuthHostedBillingUserId:
-        params.stackAuthHostedBillingUserId,
-      expiresAt: params.expiresAt,
-      type: FlowgladApiKeyType.BillingPortalToken,
+      hashText: hashData(result.key),
     },
     shownOnlyOnceKey: result.key,
   }
@@ -202,30 +118,6 @@ interface ReplaceApiKeyParams {
   organization: Organization.Record
   oldApiKey: ApiKey.Record
   userId: string
-}
-
-export const replaceBillingPortalApiKey = async (
-  params: ReplaceApiKeyParams
-): Promise<{
-  apiKeyInsert: ApiKey.Insert
-  shownOnlyOnceKey: string
-}> => {
-  if (
-    params.oldApiKey.type !== FlowgladApiKeyType.BillingPortalToken
-  ) {
-    throw new Error('Can only replace billing portal API keys')
-  }
-
-  return await createBillingPortalApiKey({
-    name: params.oldApiKey.name,
-    apiEnvironment: params.oldApiKey.livemode ? 'live' : 'test',
-    organization: params.organization,
-    userId: params.userId,
-    type: FlowgladApiKeyType.BillingPortalToken,
-    stackAuthHostedBillingUserId:
-      params.oldApiKey.stackAuthHostedBillingUserId,
-    expiresAt: params.oldApiKey.expiresAt,
-  })
 }
 
 export const replaceSecretApiKey = async (

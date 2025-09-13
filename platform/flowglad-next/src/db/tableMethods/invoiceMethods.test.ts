@@ -210,6 +210,9 @@ describe('selectInvoicesTableRowData', () => {
         return selectInvoicesTableRowData({
           input: {
             pageSize: 2,
+            filters: {
+              organizationId: org1Id,
+            },
           },
           transaction,
         })
@@ -223,6 +226,9 @@ describe('selectInvoicesTableRowData', () => {
           input: {
             pageSize: 2,
             pageAfter: firstPage.endCursor!,
+            filters: {
+              organizationId: org1Id,
+            },
           },
           transaction,
         })
@@ -236,6 +242,9 @@ describe('selectInvoicesTableRowData', () => {
           input: {
             pageSize: 2,
             pageBefore: secondPage.startCursor!,
+            filters: {
+              organizationId: org1Id,
+            },
           },
           transaction,
         })

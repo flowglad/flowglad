@@ -33,9 +33,3 @@ jobs:
     with:
       environment: production
     secrets: inherit
-
-  deploy-hosted-billing:
-    uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
-    with:
-      environment: production
-    secrets: inherit

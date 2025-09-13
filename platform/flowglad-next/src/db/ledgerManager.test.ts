@@ -14,7 +14,7 @@ import {
   setupUsageEvent,
   setupUsageCredit,
   setupLedgerEntries,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
 import { Customer } from '@/db/schema/customers'

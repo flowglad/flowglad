@@ -52,6 +52,7 @@ export const apiKeys = pgTable(
     stackAuthHostedBillingUserId: text(
       'stack_auth_hosted_billing_user_id'
     ),
+    hashText: text('hash_text'),
   },
   (table) => {
     return [

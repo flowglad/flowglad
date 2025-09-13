@@ -15,7 +15,7 @@ import {
 
 export type UserInsert = typeof users.$inferInsert
 export type UserUpdate = Partial<UserInsert>
-export type UserRecord = typeof users.$inferSelect
+export type User = typeof users.$inferSelect
 
 const config: ORMMethodCreatorConfig<
   typeof users,

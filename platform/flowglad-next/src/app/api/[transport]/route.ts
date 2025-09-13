@@ -1,4 +1,3 @@
-import { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
 import { verifyApiKey } from '@/utils/unkey'
 import {
   createMcpHandler,
@@ -42,7 +41,9 @@ const authHandler = experimental_withMcpAuth(
     if (!apiKey) {
       return undefined
     }
-    const { valid, ownerId } = await verifyApiKey(apiKey)
+    const { result } = await verifyApiKey(apiKey)
+    const valid = result?.valid
+    const ownerId = result?.ownerId
     if (!valid) {
       return undefined
     }

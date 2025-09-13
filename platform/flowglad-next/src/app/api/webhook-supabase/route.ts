@@ -13,7 +13,7 @@ import { Customer } from '@/db/schema/customers'
 import { Product } from '@/db/schema/products'
 import { Event } from '@/db/schema/events'
 import { subscribeToNewsletter } from '@/utils/newsletter'
-import { UserRecord } from '@/db/schema/users'
+import { User } from '@/db/schema/users'
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get('Authorization')
@@ -34,7 +34,8 @@ export async function POST(request: Request) {
   const event = `${payload.table}:${payload.type}`
   switch (event) {
     case `users:${SupabasePayloadType.INSERT}`:
-      const userPayload = payload as SupabaseInsertPayload<UserRecord>
+      const userPayload =
+        payload as SupabaseInsertPayload<User.Record>
       const email = userPayload.record.email
       if (email) {
         await subscribeToNewsletter(email)

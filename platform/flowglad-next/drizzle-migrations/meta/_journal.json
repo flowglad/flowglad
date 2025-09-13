@@ -1674,6 +1674,13 @@
       "when": 1757270411408,
       "tag": "0239_sharp_kree",
       "breakpoints": true
+    },
+    {
+      "idx": 240,
+      "version": "7",
+      "when": 1757628314689,
+      "tag": "0240_soft_loki",
+      "breakpoints": true
     }
   ]
 }
