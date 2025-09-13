@@ -22,8 +22,8 @@ export interface CreateSubscriptionParams {
   quantity: number
   livemode: boolean
   startDate: Date
-  interval: IntervalUnit
-  intervalCount: number
+  interval?: IntervalUnit | null
+  intervalCount?: number | null
   trialEnd?: Date
   stripeSetupIntentId?: string
   metadata?: Subscription.ClientRecord['metadata']

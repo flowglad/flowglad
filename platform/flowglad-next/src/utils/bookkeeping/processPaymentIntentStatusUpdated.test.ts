@@ -22,7 +22,6 @@ import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Organization } from '@/db/schema/organizations'
-import { Event } from '@/db/schema/events'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -57,9 +56,6 @@ import {
 } from '../stripe'
 import core from '../core'
 import { vi } from 'vitest'
-import { checkoutSessions } from '@/db/schema/checkoutSessions'
-import { purchases } from '@/db/schema/purchases'
-import { eq } from 'drizzle-orm'
 import Stripe from 'stripe'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
 
@@ -1385,9 +1381,6 @@ describe('Process payment intent status updated', async () => {
       // Verify events were created
       const events = await adminTransaction(
         async ({ transaction }) => {
-          const { selectEvents } = await import(
-            '@/db/tableMethods/eventMethods'
-          )
           return await selectEvents(
             { organizationId: organization.id },
             transaction
@@ -1530,9 +1523,6 @@ describe('Process payment intent status updated', async () => {
       // Verify only PaymentSucceeded event was created
       const events = await adminTransaction(
         async ({ transaction }) => {
-          const { selectEvents } = await import(
-            '@/db/tableMethods/eventMethods'
-          )
           return await selectEvents(
             { organizationId: organization.id },
             transaction
@@ -1618,9 +1608,6 @@ describe('Process payment intent status updated', async () => {
       // Verify no events were created
       const events = await adminTransaction(
         async ({ transaction }) => {
-          const { selectEvents } = await import(
-            '@/db/tableMethods/eventMethods'
-          )
           return await selectEvents(
             { organizationId: organization.id },
             transaction
@@ -1704,9 +1691,6 @@ describe('Process payment intent status updated', async () => {
       // Verify events were created with correct structure
       const events = await adminTransaction(
         async ({ transaction }) => {
-          const { selectEvents } = await import(
-            '@/db/tableMethods/eventMethods'
-          )
           return await selectEvents(
             { organizationId: organization.id },
             transaction

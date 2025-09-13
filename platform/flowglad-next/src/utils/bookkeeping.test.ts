@@ -29,8 +29,7 @@ import {
   selectPricingModels,
 } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectProducts } from '@/db/tableMethods/productMethods'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
 import core from '@/utils/core'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
@@ -695,9 +694,6 @@ describe('createCustomerBookkeeping', () => {
       // Verify no billing period was created
       const billingPeriods = await adminTransaction(
         async ({ transaction }) => {
-          const { selectBillingPeriods } = await import(
-            '@/db/tableMethods/billingPeriodMethods'
-          )
           return selectBillingPeriods(
             { subscriptionId: subscription.id },
             transaction
@@ -777,9 +773,6 @@ describe('createCustomerBookkeeping', () => {
       // Verify billing period was created
       const billingPeriods = await adminTransaction(
         async ({ transaction }) => {
-          const { selectBillingPeriods } = await import(
-            '@/db/tableMethods/billingPeriodMethods'
-          )
           return selectBillingPeriods(
             { subscriptionId: subscription.id },
             transaction
@@ -904,9 +897,6 @@ describe('createCustomerBookkeeping', () => {
       // Verify billing periods
       const singlePaymentBillingPeriods = await adminTransaction(
         async ({ transaction }) => {
-          const { selectBillingPeriods } = await import(
-            '@/db/tableMethods/billingPeriodMethods'
-          )
           return selectBillingPeriods(
             { subscriptionId: singlePaymentSub.id },
             transaction
@@ -917,9 +907,6 @@ describe('createCustomerBookkeeping', () => {
 
       const subscriptionBillingPeriods = await adminTransaction(
         async ({ transaction }) => {
-          const { selectBillingPeriods } = await import(
-            '@/db/tableMethods/billingPeriodMethods'
-          )
           return selectBillingPeriods(
             { subscriptionId: subscriptionSub.id },
             transaction

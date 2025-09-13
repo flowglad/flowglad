@@ -425,7 +425,6 @@ export const createCustomerBookkeeping = async (
       },
       transaction
     )
-
     if (product) {
       const defaultProduct = product
       const defaultPrice = product.defaultPrice
@@ -451,8 +450,8 @@ export const createCustomerBookkeeping = async (
             quantity: 1,
             livemode: customer.livemode,
             startDate: new Date(),
-            interval: defaultPrice.intervalUnit || IntervalUnit.Month,
-            intervalCount: defaultPrice.intervalCount || 1,
+            interval: defaultPrice.intervalUnit,
+            intervalCount: defaultPrice.intervalCount,
             trialEnd: defaultPrice.trialPeriodDays
               ? new Date(
                   Date.now() +

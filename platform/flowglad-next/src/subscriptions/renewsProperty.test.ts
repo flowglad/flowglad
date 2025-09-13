@@ -540,7 +540,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               organization,
               customer,
               product,
-              price,
+              price: updatedPrice,
               quantity: 1,
               livemode: true,
               startDate: new Date(),

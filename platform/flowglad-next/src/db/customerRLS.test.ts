@@ -1391,9 +1391,6 @@ describe('Customer Role RLS Policies', () => {
 
       // Refresh the customer objects AFTER the admin transaction commits
       await adminTransaction(async ({ transaction }) => {
-        const { selectCustomerById } = await import(
-          './tableMethods/customerMethods'
-        )
         customerA_Org1 = await selectCustomerById(
           customerA_Org1.id,
           transaction
