@@ -24,6 +24,8 @@ on:
         required: true
       MINTLIFY_API_KEY:
         required: true
+      TELEMETRY_TEST_API_KEY:
+        required: false
 
 jobs:
   deploy:
@@ -74,6 +76,13 @@ jobs:
 
       - name: Build Project Artifacts
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
+
+      - name: Verify API Telemetry
+        if: ${{ inputs.environment == 'production' }}
+        working-directory: platform/flowglad-next
+        run: ./scripts/ci-verify-telemetry.sh
+        env:
+          TELEMETRY_TEST_API_KEY: ${{ secrets.TELEMETRY_TEST_API_KEY }}
 
       - name: Deploy Trigger
         run: export TRIGGER_ENV=${{ inputs.environment == 'production' && 'prod' || 'staging' }} && pnpm trigger:deploy

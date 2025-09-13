@@ -24,7 +24,9 @@
     "migrations:generate": "drizzle-kit generate",
     "migrations:push": "tsx ./src/scripts/migrate.ts",
     "shadcn:build": "shadcn build --output 'public/ui'",
-    "validate:registry": "tsx src/scripts/validate-registry.ts"
+    "validate:registry": "tsx src/scripts/validate-registry.ts",
+    "test:telemetry": "tsx scripts/verify-telemetry.ts",
+    "test:telemetry:ci": "./scripts/ci-verify-telemetry.sh"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.0.10",
