@@ -325,11 +325,29 @@ describe('insertSubscriptionAndItems', () => {
       // setup:
       // - Create a standard subscription price.
       // - Construct params with autoStart: false (or undefined) and no payment method or trial.
+      const nonDefaultProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: product.pricingModelId,
+        name: 'Non Default Product',
+        livemode: true,
+      })
+      const nonDefaultPrice = await setupPrice({
+        productId: nonDefaultProduct.id,
+        type: PriceType.Subscription,
+        name: 'Non Default Price',
+        unitPrice: 1000,
+        livemode: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        startsWithCreditTrial: false,
+      })
       const params = {
         organization,
         customer,
-        product,
-        price: defaultPrice,
+        product: nonDefaultProduct,
+        price: nonDefaultPrice,
         quantity: 1,
         livemode: true,
         startDate: new Date(),

@@ -8,6 +8,7 @@ describe('deriveSubscriptionStatus', () => {
       trialEnd: new Date(),
       autoStart: true,
       defaultPaymentMethodId: 'pm_123',
+      isDefaultPlan: false,
     })
     expect(status).toBe(SubscriptionStatus.Trialing)
   })
@@ -16,6 +17,7 @@ describe('deriveSubscriptionStatus', () => {
     const status = deriveSubscriptionStatus({
       autoStart: true,
       defaultPaymentMethodId: 'pm_123',
+      isDefaultPlan: false,
     })
     expect(status).toBe(SubscriptionStatus.Active)
   })
@@ -23,6 +25,7 @@ describe('deriveSubscriptionStatus', () => {
   it('should return "incomplete" if autoStart is true but no payment method is available', () => {
     const status = deriveSubscriptionStatus({
       autoStart: true,
+      isDefaultPlan: false,
     })
     expect(status).toBe(SubscriptionStatus.Incomplete)
   })
@@ -31,11 +34,13 @@ describe('deriveSubscriptionStatus', () => {
     let status = deriveSubscriptionStatus({
       autoStart: false,
       defaultPaymentMethodId: 'pm_123',
+      isDefaultPlan: false,
     })
     expect(status).toBe(SubscriptionStatus.Incomplete)
 
     status = deriveSubscriptionStatus({
       autoStart: false,
+      isDefaultPlan: false,
     })
     expect(status).toBe(SubscriptionStatus.Incomplete)
   })
@@ -45,6 +50,7 @@ describe('deriveSubscriptionStatus', () => {
       trialEnd: new Date(),
       autoStart: true,
       defaultPaymentMethodId: 'pm_123',
+      isDefaultPlan: false,
     })
     expect(status).toBe(SubscriptionStatus.Trialing)
   })
@@ -53,12 +59,16 @@ describe('deriveSubscriptionStatus', () => {
     const status = deriveSubscriptionStatus({
       trialEnd: new Date(),
       autoStart: false,
+      isDefaultPlan: false,
     })
     expect(status).toBe(SubscriptionStatus.Trialing)
   })
 
   it('should return "incomplete" if only autoStart is false', () => {
-    const status = deriveSubscriptionStatus({ autoStart: false })
+    const status = deriveSubscriptionStatus({
+      autoStart: false,
+      isDefaultPlan: false,
+    })
     expect(status).toBe(SubscriptionStatus.Incomplete)
   })
 })

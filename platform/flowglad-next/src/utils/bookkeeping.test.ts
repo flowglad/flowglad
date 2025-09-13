@@ -29,8 +29,7 @@ import {
   selectPricingModels,
 } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectProducts } from '@/db/tableMethods/productMethods'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
 import core from '@/utils/core'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
@@ -629,6 +628,294 @@ describe('createCustomerBookkeeping', () => {
       )
     })
   })
+
+  describe('subscription behavior based on pricing model price type', () => {
+    it('should create a non-renewing subscription when default pricing model has SinglePayment price', async () => {
+      // Create a pricing model with SinglePayment default price
+      const singlePaymentPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Single Payment Default Pricing Model',
+                isDefault: true,
+              },
+              // No defaultPlanIntervalUnit - creates SinglePayment price
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify the pricing model has a SinglePayment default price
+      expect(singlePaymentPricingModel.result.defaultPrice.type).toBe(
+        PriceType.SinglePayment
+      )
+
+      // Create a customer without specifying pricing model (uses default)
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test SinglePayment Customer',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                // No pricingModelId - will use default
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify customer and subscription were created
+      expect(result.result.customer).toBeDefined()
+      expect(result.result.subscription).toBeDefined()
+
+      // Check the subscription has renews = false for SinglePayment
+      const subscription = result.result.subscription!
+      expect(subscription.renews).toBe(false)
+      expect(subscription.currentBillingPeriodStart).toBeNull()
+      expect(subscription.currentBillingPeriodEnd).toBeNull()
+
+      // Verify no billing period was created
+      const billingPeriods = await adminTransaction(
+        async ({ transaction }) => {
+          return selectBillingPeriods(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+        }
+      )
+      expect(billingPeriods).toHaveLength(0)
+    })
+
+    it('should create a renewing subscription with billing period when default pricing model has Subscription price', async () => {
+      // Create a pricing model with Subscription default price
+      const subscriptionPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Subscription Default Pricing Model',
+                isDefault: true,
+              },
+              defaultPlanIntervalUnit: IntervalUnit.Month, // Creates Subscription price
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify the pricing model has a Subscription default price
+      expect(subscriptionPricingModel.result.defaultPrice.type).toBe(
+        PriceType.Subscription
+      )
+
+      // Create a customer without specifying pricing model (uses default)
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test Subscription Customer',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                // No pricingModelId - will use default
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify customer and subscription were created
+      expect(result.result.customer).toBeDefined()
+      expect(result.result.subscription).toBeDefined()
+
+      // Check the subscription has renews = true for Subscription
+      const subscription = result.result.subscription!
+      expect(subscription.renews).toBe(true)
+      expect(subscription.currentBillingPeriodStart).toBeDefined()
+      expect(subscription.currentBillingPeriodEnd).toBeDefined()
+      expect(subscription.currentBillingPeriodStart).toBeInstanceOf(
+        Date
+      )
+      expect(subscription.currentBillingPeriodEnd).toBeInstanceOf(
+        Date
+      )
+
+      // Verify billing period was created
+      const billingPeriods = await adminTransaction(
+        async ({ transaction }) => {
+          return selectBillingPeriods(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+        }
+      )
+      expect(billingPeriods).toHaveLength(1)
+      expect(billingPeriods[0].startDate).toEqual(
+        subscription.currentBillingPeriodStart
+      )
+      expect(billingPeriods[0].endDate).toEqual(
+        subscription.currentBillingPeriodEnd
+      )
+    })
+
+    it('should respect specified pricing model price type when creating customer subscription', async () => {
+      // Create two pricing models with different price types
+      const singlePaymentPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Specific SinglePayment Pricing Model',
+                isDefault: false,
+              },
+              // No interval - SinglePayment
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      const subscriptionPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Specific Subscription Pricing Model',
+                isDefault: false,
+              },
+              defaultPlanIntervalUnit: IntervalUnit.Year, // Subscription with Year
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Test 1: Customer with SinglePayment pricing model
+      const singlePaymentCustomerResult = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Customer with SinglePayment Model',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                pricingModelId:
+                  singlePaymentPricingModel.result.pricingModel.id,
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify SinglePayment subscription behavior
+      const singlePaymentSub =
+        singlePaymentCustomerResult.result.subscription!
+      expect(singlePaymentSub.renews).toBe(false)
+      expect(singlePaymentSub.currentBillingPeriodStart).toBeNull()
+      expect(singlePaymentSub.currentBillingPeriodEnd).toBeNull()
+
+      // Test 2: Customer with Subscription pricing model
+      const subscriptionCustomerResult = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Customer with Subscription Model',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                pricingModelId:
+                  subscriptionPricingModel.result.pricingModel.id,
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              userId: 'user_test',
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // Verify Subscription behavior
+      const subscriptionSub =
+        subscriptionCustomerResult.result.subscription!
+      expect(subscriptionSub.renews).toBe(true)
+      expect(subscriptionSub.currentBillingPeriodStart).toBeDefined()
+      expect(subscriptionSub.currentBillingPeriodEnd).toBeDefined()
+
+      // Verify billing periods
+      const singlePaymentBillingPeriods = await adminTransaction(
+        async ({ transaction }) => {
+          return selectBillingPeriods(
+            { subscriptionId: singlePaymentSub.id },
+            transaction
+          )
+        }
+      )
+      expect(singlePaymentBillingPeriods).toHaveLength(0)
+
+      const subscriptionBillingPeriods = await adminTransaction(
+        async ({ transaction }) => {
+          return selectBillingPeriods(
+            { subscriptionId: subscriptionSub.id },
+            transaction
+          )
+        }
+      )
+      expect(subscriptionBillingPeriods).toHaveLength(1)
+    })
+  })
 })
 
 describe('createPricingModelBookkeeping', () => {
@@ -642,7 +929,7 @@ describe('createPricingModelBookkeeping', () => {
   })
 
   describe('pricing model creation with automatic default product', () => {
-    it('should create a pricing model with a default product and price', async () => {
+    it('should create a pricing model with a default product and single payment price when no interval unit is provided', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
           const output = await createPricingModelBookkeeping(
@@ -695,12 +982,10 @@ describe('createPricingModelBookkeeping', () => {
       expect(result.result.defaultPrice.unitPrice).toBe(0)
       expect(result.result.defaultPrice.isDefault).toBe(true)
       expect(result.result.defaultPrice.type).toBe(
-        PriceType.Subscription
+        PriceType.SinglePayment
       )
-      expect(result.result.defaultPrice.intervalUnit).toBe(
-        IntervalUnit.Month
-      )
-      expect(result.result.defaultPrice.intervalCount).toBe(1)
+      expect(result.result.defaultPrice.intervalUnit).toBe(null)
+      expect(result.result.defaultPrice.intervalCount).toBe(null)
       expect(result.result.defaultPrice.livemode).toBe(livemode)
       expect(result.result.defaultPrice.active).toBe(true)
       expect(result.result.defaultPrice.name).toBe('Free Plan')
@@ -1126,9 +1411,13 @@ describe('createPricingModelBookkeeping', () => {
       )
       expect(defaultPrice.unitPrice).toBe(0)
       expect(defaultPrice.isDefault).toBe(true)
-      expect(defaultPrice.type).toBe(PriceType.Subscription)
-      expect(defaultPrice.intervalUnit).toBe(IntervalUnit.Month)
-      expect(defaultPrice.intervalCount).toBe(1)
+      /**
+       * If defaultPlanIntervalUnit is not provided,
+       * the default price should be a single payment price
+       */
+      expect(defaultPrice.type).toBe(PriceType.SinglePayment)
+      expect(defaultPrice.intervalUnit).toBeNull()
+      expect(defaultPrice.intervalCount).toBeNull()
       expect(defaultPrice.currency).toBe(CurrencyCode.USD)
       expect(defaultPrice.livemode).toBe(livemode)
       expect(defaultPrice.active).toBe(true)
@@ -1139,7 +1428,7 @@ describe('createPricingModelBookkeeping', () => {
       expect(defaultPrice.usageMeterId).toBeNull()
       expect(defaultPrice.externalId).toBeNull()
       expect(defaultPrice.slug).toBeNull()
-      expect(defaultPrice.startsWithCreditTrial).toBe(false)
+      expect(defaultPrice.startsWithCreditTrial).toBeNull()
       expect(defaultPrice.overagePriceId).toBeNull()
     })
 
@@ -1192,6 +1481,254 @@ describe('createPricingModelBookkeeping', () => {
       expect(result.result.pricingModel.livemode).toBe(testLivemode)
       expect(result.result.defaultProduct.livemode).toBe(testLivemode)
       expect(result.result.defaultPrice.livemode).toBe(testLivemode)
+    })
+  })
+
+  describe('default price type behavior based on interval unit', () => {
+    describe('when defaultPlanIntervalUnit IS provided', () => {
+      it('should create a subscription price with Month interval when Month is provided', async () => {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            const output = await createPricingModelBookkeeping(
+              {
+                pricingModel: {
+                  name: 'Monthly Subscription Pricing Model',
+                  isDefault: false,
+                },
+                defaultPlanIntervalUnit: IntervalUnit.Month,
+              },
+              {
+                transaction,
+                organizationId,
+                livemode,
+              }
+            )
+            return output
+          }
+        )
+
+        // Verify the default price is a subscription with Month interval
+        expect(result.result.defaultPrice.type).toBe(
+          PriceType.Subscription
+        )
+        expect(result.result.defaultPrice.intervalUnit).toBe(
+          IntervalUnit.Month
+        )
+        expect(result.result.defaultPrice.intervalCount).toBe(1)
+        expect(result.result.defaultPrice.unitPrice).toBe(0)
+        // Additional checks for subscription-specific fields
+        expect(result.result.defaultPrice.name).toBe('Free Plan')
+        expect(result.result.defaultPrice.isDefault).toBe(true)
+        expect(result.result.defaultPrice.active).toBe(true)
+      })
+
+      it('should create a subscription price with Year interval when Year is provided', async () => {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            const output = await createPricingModelBookkeeping(
+              {
+                pricingModel: {
+                  name: 'Yearly Subscription Pricing Model',
+                  isDefault: false,
+                },
+                defaultPlanIntervalUnit: IntervalUnit.Year,
+              },
+              {
+                transaction,
+                organizationId,
+                livemode,
+              }
+            )
+            return output
+          }
+        )
+
+        // Verify the default price is a subscription with year interval
+        expect(result.result.defaultPrice.type).toBe(
+          PriceType.Subscription
+        )
+        expect(result.result.defaultPrice.intervalUnit).toBe(
+          IntervalUnit.Year
+        )
+        expect(result.result.defaultPrice.intervalCount).toBe(1)
+        expect(result.result.defaultPrice.unitPrice).toBe(0)
+      })
+
+      it('should create a subscription price with Week interval when Week is provided', async () => {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            const output = await createPricingModelBookkeeping(
+              {
+                pricingModel: {
+                  name: 'Weekly Subscription Pricing Model',
+                  isDefault: false,
+                },
+                defaultPlanIntervalUnit: IntervalUnit.Week,
+              },
+              {
+                transaction,
+                organizationId,
+                livemode,
+              }
+            )
+            return output
+          }
+        )
+
+        // Verify the default price is a subscription with Week interval
+        expect(result.result.defaultPrice.type).toBe(
+          PriceType.Subscription
+        )
+        expect(result.result.defaultPrice.intervalUnit).toBe(
+          IntervalUnit.Week
+        )
+        expect(result.result.defaultPrice.intervalCount).toBe(1)
+        expect(result.result.defaultPrice.unitPrice).toBe(0)
+      })
+
+      it('should create a subscription price with Day interval when Day is provided', async () => {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            const output = await createPricingModelBookkeeping(
+              {
+                pricingModel: {
+                  name: 'Daily Subscription Pricing Model',
+                  isDefault: false,
+                },
+                defaultPlanIntervalUnit: IntervalUnit.Day,
+              },
+              {
+                transaction,
+                organizationId,
+                livemode,
+              }
+            )
+            return output
+          }
+        )
+
+        // Verify the default price is a subscription with Day interval
+        expect(result.result.defaultPrice.type).toBe(
+          PriceType.Subscription
+        )
+        expect(result.result.defaultPrice.intervalUnit).toBe(
+          IntervalUnit.Day
+        )
+        expect(result.result.defaultPrice.intervalCount).toBe(1)
+        expect(result.result.defaultPrice.unitPrice).toBe(0)
+      })
+
+      it('should always set intervalCount to 1 for subscription prices', async () => {
+        // Test that intervalCount is always 1 regardless of interval unit
+        const intervalUnits = [
+          IntervalUnit.Day,
+          IntervalUnit.Week,
+          IntervalUnit.Month,
+          IntervalUnit.Year,
+        ]
+
+        for (const intervalUnit of intervalUnits) {
+          const result = await adminTransaction(
+            async ({ transaction }) => {
+              const output = await createPricingModelBookkeeping(
+                {
+                  pricingModel: {
+                    name: `${intervalUnit} Test Pricing Model`,
+                    isDefault: false,
+                  },
+                  defaultPlanIntervalUnit: intervalUnit,
+                },
+                {
+                  transaction,
+                  organizationId,
+                  livemode,
+                }
+              )
+              return output
+            }
+          )
+
+          // Verify intervalCount is always 1
+          expect(result.result.defaultPrice.intervalCount).toBe(1)
+          expect(result.result.defaultPrice.intervalCount).not.toBe(2)
+          expect(result.result.defaultPrice.intervalCount).not.toBe(0)
+          expect(
+            result.result.defaultPrice.intervalCount
+          ).not.toBeNull()
+        }
+      })
+    })
+
+    describe('when defaultPlanIntervalUnit is NOT provided', () => {
+      it('should create a single payment price by default', async () => {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            const output = await createPricingModelBookkeeping(
+              {
+                pricingModel: {
+                  name: 'Single Payment Pricing Model',
+                  isDefault: false,
+                },
+                // No defaultPlanIntervalUnit provided
+              },
+              {
+                transaction,
+                organizationId,
+                livemode,
+              }
+            )
+            return output
+          }
+        )
+
+        // Verify the default price is a single payment
+        expect(result.result.defaultPrice.type).toBe(
+          PriceType.SinglePayment
+        )
+        expect(result.result.defaultPrice.intervalUnit).toBeNull()
+        expect(result.result.defaultPrice.intervalCount).toBeNull()
+        expect(result.result.defaultPrice.unitPrice).toBe(0)
+      })
+    })
+
+    it('should support all IntervalUnit enum values', async () => {
+      const intervalUnits = [
+        IntervalUnit.Day,
+        IntervalUnit.Week,
+        IntervalUnit.Month,
+        IntervalUnit.Year,
+      ]
+
+      for (const intervalUnit of intervalUnits) {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            const output = await createPricingModelBookkeeping(
+              {
+                pricingModel: {
+                  name: `${intervalUnit} Interval Pricing Model`,
+                  isDefault: false,
+                },
+                defaultPlanIntervalUnit: intervalUnit,
+              },
+              {
+                transaction,
+                organizationId,
+                livemode,
+              }
+            )
+            return output
+          }
+        )
+
+        // Verify the correct interval unit is set
+        expect(result.result.defaultPrice.type).toBe(
+          PriceType.Subscription
+        )
+        expect(result.result.defaultPrice.intervalUnit).toBe(
+          intervalUnit
+        )
+        expect(result.result.defaultPrice.intervalCount).toBe(1)
+      }
     })
   })
 })

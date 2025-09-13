@@ -44,6 +44,16 @@ export const createStandardSubscriptionAndItems = async (
     autoStart = false,
     billingCycleAnchorDate,
   } = params
+  const derivedInterval = interval ?? price.intervalUnit
+  const derivedIntervalCount = intervalCount ?? price.intervalCount
+  if (!derivedInterval) {
+    throw new Error('Interval is required for standard subscriptions')
+  }
+  if (!derivedIntervalCount) {
+    throw new Error(
+      'Interval count is required for standard subscriptions'
+    )
+  }
   const subscriptionInsert: Subscription.StandardInsert = {
     organizationId: organization.id,
     customerId: customer.id,
@@ -53,6 +63,7 @@ export const createStandardSubscriptionAndItems = async (
       autoStart,
       trialEnd,
       defaultPaymentMethodId: defaultPaymentMethod?.id,
+      isDefaultPlan: product.default,
     }),
     isFreePlan: price.unitPrice === 0,
     cancellationReason: null,
@@ -75,8 +86,8 @@ export const createStandardSubscriptionAndItems = async (
     currentBillingPeriodStart: currentBillingPeriod.startDate,
     currentBillingPeriodEnd: currentBillingPeriod.endDate,
     billingCycleAnchorDate: billingCycleAnchorDate || startDate,
-    interval,
-    intervalCount,
+    interval: derivedInterval,
+    intervalCount: derivedIntervalCount,
     stripeSetupIntentId: stripeSetupIntentId ?? null,
     externalId: null,
     startDate,
@@ -214,14 +225,41 @@ export const insertSubscriptionAndItems = async (
       `insertSubscriptionAndItems: Price ${price.id} is not associated with product ${product.id}`
     )
   }
+
+  if (!isPriceTypeSubscription(price.type) && !product.default) {
+    throw new Error('Price is not a subscription')
+  }
+  if (product.default && !isPriceTypeSubscription(price.type)) {
+    return await createNonRenewingSubscriptionAndItems(
+      params,
+      transaction
+    )
+  }
+  if (price.startsWithCreditTrial) {
+    return await createNonRenewingSubscriptionAndItems(
+      params,
+      transaction
+    )
+  }
+
+  const derivedInterval = interval ?? price.intervalUnit
+  const derivedIntervalCount = intervalCount ?? price.intervalCount
+  if (!derivedInterval) {
+    throw new Error('Interval is required for standard subscriptions')
+  }
+  if (!derivedIntervalCount) {
+    throw new Error(
+      'Interval count is required for standard subscriptions'
+    )
+  }
   // Use provided anchor date or default to start date
   const actualBillingCycleAnchor = billingCycleAnchorDate || startDate
 
   let currentBillingPeriod = generateNextBillingPeriod({
     billingCycleAnchorDate: actualBillingCycleAnchor,
     subscriptionStartDate: startDate,
-    interval,
-    intervalCount,
+    interval: derivedInterval,
+    intervalCount: derivedIntervalCount,
     lastBillingPeriodEndDate: null,
     trialEnd,
   })
@@ -235,25 +273,6 @@ export const insertSubscriptionAndItems = async (
         preservedBillingPeriodEnd || currentBillingPeriod.endDate,
     }
   }
-
-  if (!isPriceTypeSubscription(price.type) && !product.default) {
-    throw new Error('Price is not a subscription')
-  }
-
-  if (product.default && !isPriceTypeSubscription(price.type)) {
-    return await createNonRenewingSubscriptionAndItems(
-      params,
-      transaction
-    )
-  }
-
-  if (price.startsWithCreditTrial) {
-    return await createNonRenewingSubscriptionAndItems(
-      params,
-      transaction
-    )
-  }
-
   return await createStandardSubscriptionAndItems(
     params,
     currentBillingPeriod,

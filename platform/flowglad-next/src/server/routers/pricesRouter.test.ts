@@ -148,6 +148,8 @@ describe('pricesRouter - Default Price Constraints', () => {
               unitPrice: 0,
               type: PriceType.Subscription,
               name: 'Updated Base Plan Price',
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
             },
             existingPrice,
             product
@@ -160,6 +162,8 @@ describe('pricesRouter - Default Price Constraints', () => {
               type: PriceType.Subscription,
               unitPrice: 0,
               name: 'Updated Base Plan Price',
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
             },
             transaction
           )
@@ -223,10 +227,12 @@ describe('pricesRouter - Default Price Constraints', () => {
           // Actually update the price
           const updatedPrice = await safelyUpdatePrice(
             {
-              id: defaultPriceId,
+              id: existingPrice.id,
               type: PriceType.Subscription,
               name: 'Updated Default Price Name',
               active: false,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
             },
             transaction
           )
