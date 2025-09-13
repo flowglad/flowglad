@@ -1199,13 +1199,13 @@ describe('createPricingModelBookkeeping', () => {
 
   describe('default price type behavior based on interval unit', () => {
     describe('when defaultPlanIntervalUnit IS provided', () => {
-      it('should create a subscription price with the specified interval unit', async () => {
+      it('should create a subscription price with Month interval when Month is provided', async () => {
         const result = await adminTransaction(
           async ({ transaction }) => {
             const output = await createPricingModelBookkeeping(
               {
                 pricingModel: {
-                  name: 'Subscription Pricing Model',
+                  name: 'Monthly Subscription Pricing Model',
                   isDefault: false,
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Month,
@@ -1220,7 +1220,7 @@ describe('createPricingModelBookkeeping', () => {
           }
         )
 
-        // Verify the default price is a subscription with correct interval
+        // Verify the default price is a subscription with Month interval
         expect(result.result.defaultPrice.type).toBe(
           PriceType.Subscription
         )
@@ -1229,9 +1229,13 @@ describe('createPricingModelBookkeeping', () => {
         )
         expect(result.result.defaultPrice.intervalCount).toBe(1)
         expect(result.result.defaultPrice.unitPrice).toBe(0)
+        // Additional checks for subscription-specific fields
+        expect(result.result.defaultPrice.name).toBe('Free Plan')
+        expect(result.result.defaultPrice.isDefault).toBe(true)
+        expect(result.result.defaultPrice.active).toBe(true)
       })
 
-      it('should create a subscription with year interval when Year is provided', async () => {
+      it('should create a subscription price with Year interval when Year is provided', async () => {
         const result = await adminTransaction(
           async ({ transaction }) => {
             const output = await createPricingModelBookkeeping(
@@ -1260,6 +1264,111 @@ describe('createPricingModelBookkeeping', () => {
           IntervalUnit.Year
         )
         expect(result.result.defaultPrice.intervalCount).toBe(1)
+        expect(result.result.defaultPrice.unitPrice).toBe(0)
+      })
+
+      it('should create a subscription price with Week interval when Week is provided', async () => {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            const output = await createPricingModelBookkeeping(
+              {
+                pricingModel: {
+                  name: 'Weekly Subscription Pricing Model',
+                  isDefault: false,
+                },
+                defaultPlanIntervalUnit: IntervalUnit.Week,
+              },
+              {
+                transaction,
+                organizationId,
+                livemode,
+              }
+            )
+            return output
+          }
+        )
+
+        // Verify the default price is a subscription with Week interval
+        expect(result.result.defaultPrice.type).toBe(
+          PriceType.Subscription
+        )
+        expect(result.result.defaultPrice.intervalUnit).toBe(
+          IntervalUnit.Week
+        )
+        expect(result.result.defaultPrice.intervalCount).toBe(1)
+        expect(result.result.defaultPrice.unitPrice).toBe(0)
+      })
+
+      it('should create a subscription price with Day interval when Day is provided', async () => {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            const output = await createPricingModelBookkeeping(
+              {
+                pricingModel: {
+                  name: 'Daily Subscription Pricing Model',
+                  isDefault: false,
+                },
+                defaultPlanIntervalUnit: IntervalUnit.Day,
+              },
+              {
+                transaction,
+                organizationId,
+                livemode,
+              }
+            )
+            return output
+          }
+        )
+
+        // Verify the default price is a subscription with Day interval
+        expect(result.result.defaultPrice.type).toBe(
+          PriceType.Subscription
+        )
+        expect(result.result.defaultPrice.intervalUnit).toBe(
+          IntervalUnit.Day
+        )
+        expect(result.result.defaultPrice.intervalCount).toBe(1)
+        expect(result.result.defaultPrice.unitPrice).toBe(0)
+      })
+
+      it('should always set intervalCount to 1 for subscription prices', async () => {
+        // Test that intervalCount is always 1 regardless of interval unit
+        const intervalUnits = [
+          IntervalUnit.Day,
+          IntervalUnit.Week,
+          IntervalUnit.Month,
+          IntervalUnit.Year,
+        ]
+
+        for (const intervalUnit of intervalUnits) {
+          const result = await adminTransaction(
+            async ({ transaction }) => {
+              const output = await createPricingModelBookkeeping(
+                {
+                  pricingModel: {
+                    name: `${intervalUnit} Test Pricing Model`,
+                    isDefault: false,
+                  },
+                  defaultPlanIntervalUnit: intervalUnit,
+                },
+                {
+                  transaction,
+                  organizationId,
+                  livemode,
+                }
+              )
+              return output
+            }
+          )
+
+          // Verify intervalCount is always 1
+          expect(result.result.defaultPrice.intervalCount).toBe(1)
+          expect(result.result.defaultPrice.intervalCount).not.toBe(2)
+          expect(result.result.defaultPrice.intervalCount).not.toBe(0)
+          expect(
+            result.result.defaultPrice.intervalCount
+          ).not.toBeNull()
+        }
       })
     })
 
