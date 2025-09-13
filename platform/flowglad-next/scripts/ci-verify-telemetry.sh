@@ -8,8 +8,44 @@ set -e
 
 echo "🔬 Starting telemetry verification for production deployment..."
 
-# Start dev server in background
-echo "Starting development server..."
+# Check if Unkey credentials are already set (from GitHub secrets)
+if [ ! -z "$UNKEY_ROOT_KEY" ] && [ ! -z "$UNKEY_API_ID" ]; then
+  echo "Using Unkey credentials from GitHub secrets"
+elif [ -f ".env.local" ]; then
+  echo "Loading environment variables from .env.local..."
+  # Use set -a to automatically export all variables
+  set -a
+  source .env.local
+  set +a
+  echo "Environment variables loaded from .env.local"
+else
+  echo "Warning: No Unkey credentials found in environment or .env.local"
+  echo "API key validation will fail without UNKEY_ROOT_KEY and UNKEY_API_ID"
+fi
+
+# Debug: Show if critical Unkey variables are set
+echo "Debug: UNKEY_ROOT_KEY is ${UNKEY_ROOT_KEY:+set}${UNKEY_ROOT_KEY:-not set}"
+echo "Debug: UNKEY_API_ID is ${UNKEY_API_ID:+set}${UNKEY_API_ID:-not set}"
+
+# Also check if the test API key matches the environment
+if [ ! -z "$TELEMETRY_TEST_API_KEY" ]; then
+  KEY_PREFIX=$(echo "$TELEMETRY_TEST_API_KEY" | cut -c1-10)
+  echo "Debug: Test API key prefix: $KEY_PREFIX..."
+  
+  # Check if it's a staging or production key
+  if [[ "$TELEMETRY_TEST_API_KEY" == staging_* ]]; then
+    echo "Debug: Using staging API key"
+  elif [[ "$TELEMETRY_TEST_API_KEY" == sk_live_* ]]; then
+    echo "Debug: Using production API key"
+  elif [[ "$TELEMETRY_TEST_API_KEY" == sk_test_* ]]; then
+    echo "Debug: Using test API key"
+  else
+    echo "Warning: Unrecognized API key format"
+  fi
+fi
+
+# Start dev server in background with environment variables
+echo "Starting development server with Unkey environment..."
 pnpm dev &
 SERVER_PID=$!
 

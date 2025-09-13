@@ -104,6 +104,35 @@ class TelemetryVerifier {
           `  Response headers: ${JSON.stringify(headers, null, 2)}`
         )
 
+        if (response.status === 401) {
+          console.log('\n  🔍 Authentication Failure Diagnosis:')
+          console.log('  Possible causes:')
+          console.log('    1. API key is invalid or expired in Unkey')
+          console.log(
+            '    2. Server missing UNKEY_ROOT_KEY environment variable'
+          )
+          console.log(
+            '    3. Server missing UNKEY_API_ID environment variable'
+          )
+          console.log(
+            '    4. API key prefix mismatch (staging vs production)'
+          )
+          console.log('')
+          console.log('  Check the CI logs above for:')
+          console.log(
+            '    - "Loading environment variables from .env.local..." message'
+          )
+          console.log(
+            '    - "Debug: UNKEY_ROOT_KEY is set/not set" message'
+          )
+          console.log(
+            '    - "Debug: UNKEY_API_ID is set/not set" message'
+          )
+          console.log(
+            '    - API key prefix (should match environment)'
+          )
+        }
+
         this.hasValidKey = false
       }
     } catch (error) {
