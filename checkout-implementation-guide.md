@@ -141,7 +141,6 @@ export const CheckoutDetails = React.forwardRef<
       )}
       {...props}
     >
-      {/* Seller Info - positioned like LS header */}
       <div className="relative">
         <SellerInfo 
           data-testid="seller-info"
@@ -161,7 +160,6 @@ export const CheckoutDetails = React.forwardRef<
           className="w-full"
         />
         
-        {/* Product Showcase Area (like LS image carousel) */}
         <div className={cn(
           'w-full rounded-[8px] overflow-hidden',
           'bg-card dark:bg-card/10',         // Subtle card background
@@ -343,7 +341,6 @@ return (
       )}
     >
       {/* Email Section */}
-      <div className="space-y-3">                     {/* LS label spacing */}
         <AuthenticationElement
           readonlyCustomerEmail={readonlyCustomerEmail}
           onChange={async (event) => {
@@ -401,7 +398,7 @@ return (
 
     {/* Form Footer - Order Summary & Actions */}
     {embedsReady && (
-      <div className="space-y-6 pt-1">                {/* LS spacing */}
+      <div className="space-y-6 pt-1">                
         {/* Discount Code */}
         {showDiscountCodeInput && (
           <div className="space-y-3">

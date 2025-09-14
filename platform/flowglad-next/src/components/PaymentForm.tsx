@@ -361,8 +361,6 @@ const PaymentForm = () => {
       <div className="space-y-3">
         {/* Email Section */}
         <div className="space-y-3">
-          {' '}
-          {/* LS label spacing */}
           <AuthenticationElement
             readonlyCustomerEmail={readonlyCustomerEmail}
             onChange={async (event) => {
@@ -505,9 +503,6 @@ const PaymentForm = () => {
       {/* Form Footer - Order Summary & Actions */}
       {embedsReady && (
         <div className="space-y-6 pt-1">
-          {' '}
-          {/* LS spacing */}
-          {/* Discount Code */}
           {showDiscountCodeInput && (
             <div className="space-y-3">
               <DiscountCodeInput />
@@ -547,8 +542,6 @@ const PaymentForm = () => {
           )}
           {/* Primary Action Button */}
           <div className="pt-2">
-            {' '}
-            {/* LS button spacing */}
             <Button
               className={cn(
                 'w-full h-[52px]', // LS button height
