@@ -1,5 +1,3 @@
-// Generated with Ion on 9/20/2024, 10:31:46 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=372:12322
 'use client'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'

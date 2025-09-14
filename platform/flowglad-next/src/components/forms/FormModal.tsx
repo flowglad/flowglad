@@ -1,5 +1,3 @@
-// Generated with Ion on 10/11/2024, 4:13:18 AM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=770:28007
 'use client'
 import {
   useForm,

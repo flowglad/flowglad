@@ -1,5 +1,3 @@
-// Generated with Ion on 11/18/2024, 2:07:04 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1303:14448
 'use client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -33,7 +31,7 @@ import {
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
   const { data } = trpc.countries.list.useQuery()
-  const { setOrganization, user } = useAuthContext()
+  const { setOrganization } = useAuthContext()
   const form = useForm<CreateOrganizationInput>({
     resolver: zodResolver(createOrganizationSchema),
     defaultValues: {

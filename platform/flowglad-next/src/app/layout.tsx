@@ -19,7 +19,6 @@ import {
 import { auth, getSession } from '@/utils/auth'
 import { headers } from 'next/headers'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
-import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -44,7 +43,6 @@ export default async function RootLayout({
   if (pathname.includes('/preview-ui')) {
     return children
   }
-
   const session = await getSession()
   let organization: Organization.ClientRecord | undefined = undefined
   let livemode: boolean = true
@@ -77,7 +75,6 @@ export default async function RootLayout({
   const role = currentPath.startsWith('/billing-portal/')
     ? 'customer'
     : 'merchant'
-
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className={cn(inter.className, 'h-full')}>
@@ -87,6 +84,7 @@ export default async function RootLayout({
             livemode,
             user,
             role,
+            authenticated: !!user,
           }}
           isPublicRoute={isPublicRoute}
         >

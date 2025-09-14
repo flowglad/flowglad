@@ -1,5 +1,3 @@
-// Generated with Ion on 11/15/2024, 6:09:53 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1210:41903
 'use client'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'

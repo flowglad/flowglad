@@ -1,45 +1,135 @@
-'use client'
-
-import { trpc } from '@/app/_trpc/client'
-import { OnboardingChecklistItem, OnboardingItemType } from '@/types'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import {
+  FlowgladApiKeyType,
+  OnboardingChecklistItem,
+  OnboardingItemType,
+} from '@/types'
+import { updateOrganizationOnboardingStatus } from '@/utils/processStripeEvents'
+import { selectAllCountries } from '@/db/tableMethods/countryMethods'
 import OnboardingStatusTable from './OnboardingStatusTable'
+import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
+import { selectDiscounts } from '@/db/tableMethods/discountMethods'
+import { redirect } from 'next/navigation'
+import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
+import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
+import { ApiKey } from '@/db/schema/apiKeys'
+import { auth, getSession } from '@/utils/auth'
+import { selectUsers } from '@/db/tableMethods/userMethods'
 import { ClientAuthGuard } from '@/components/ClientAuthGuard'
-import { useAuthContext } from '@/contexts/authContext'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 
-const OnboardingPage = () => {
-  const { organization } = useAuthContext()
-  const router = useRouter()
-
-  // Client-side queries using tRPC
-  const { data: countries, isLoading: countriesLoading } =
-    trpc.countries.list.useQuery()
-
-  // Redirect to business details if no organization
-  useEffect(() => {
-    if (!organization) {
-      router.push('/onboarding/business-details')
+const OnboardingPage = async () => {
+  const results = await authenticatedTransaction(
+    async ({ transaction, userId }) => {
+      const membershipsAndOrganizations =
+        await selectMembershipAndOrganizations(
+          {
+            userId,
+            focused: true,
+          },
+          transaction
+        )
+      const countries = await selectAllCountries(transaction)
+      if (membershipsAndOrganizations.length === 0) {
+        return { countries }
+      }
+      const organization = membershipsAndOrganizations[0].organization
+      const products = await selectPricesAndProductsForOrganization(
+        {},
+        organization.id,
+        transaction
+      )
+      const discounts = await selectDiscounts(
+        { organizationId: organization.id },
+        transaction
+      )
+      return { organization, countries, products, discounts }
     }
-  }, [organization, router])
+  )
+  const { countries } = results
 
-  // Show loading state while data is being fetched
-  if (!organization || countriesLoading || !countries) {
-    return (
-      <div className="flex flex-col gap-4 p-4 w-full justify-center items-start m-auto max-w-[416px] min-h-svh">
-        <div className="flex flex-col items-start justify-center w-full gap-4">
-          <div className="flex flex-col items-start justify-center gap-1 p-2">
-            <Skeleton className="h-7 w-48" />
-            <Skeleton className="h-4 w-64" />
-          </div>
-          <Skeleton className="h-64 w-full" />
-        </div>
-      </div>
+  if (!results.organization) {
+    return redirect('/onboarding/business-details')
+  }
+  let organization = results.organization
+  const testmodeApiKeys = await adminTransaction(
+    async ({ transaction }) => {
+      return selectApiKeys(
+        { organizationId: organization.id, livemode: false },
+        transaction
+      )
+    }
+  )
+  let secretApiKey: ApiKey.ClientRecord | undefined =
+    testmodeApiKeys.find(
+      (key) => key.type === FlowgladApiKeyType.Secret
     )
+  const session = await getSession()
+
+  if (!secretApiKey) {
+    const betterAuthId = session?.user.id
+    if (!betterAuthId) {
+      throw new Error('User not found')
+    }
+    secretApiKey = await adminTransaction(
+      async ({ transaction }): Promise<ApiKey.Record> => {
+        const [user] = await selectUsers(
+          {
+            betterAuthId,
+          },
+          transaction
+        )
+        const { apiKey } = await createSecretApiKeyTransaction(
+          {
+            apiKey: {
+              name: 'Secret Testmode Key',
+              type: FlowgladApiKeyType.Secret,
+            },
+          },
+          {
+            transaction,
+            livemode: false,
+            userId: user!.id,
+            organizationId: organization.id,
+          }
+        )
+        return apiKey
+      }
+    )
+  }
+  /**
+   * Sync the organization's payouts enabled status if they have a stripe account
+   */
+  const stripeAccountId = organization.stripeAccountId
+  const payoutsEnabled = organization.payoutsEnabled
+  if (stripeAccountId && !payoutsEnabled) {
+    const updateStatusResult =
+      await updateOrganizationOnboardingStatus(
+        organization.stripeAccountId,
+        true
+      )
+    if (updateStatusResult) {
+      organization = updateStatusResult.organization
+    }
   }
 
   const onboardingChecklistItems: OnboardingChecklistItem[] = [
+    // {
+    //   title: 'Create your first product',
+    //   description: `Make the first product you'll sell to your customers.`,
+    //   completed: Boolean(products && products.length > 0),
+    //   action: 'Create Product',
+    //   type: OnboardingItemType.Product,
+    // },
+    // {
+    //   title: 'Add a discount',
+    //   description:
+    //     'Close customers who are on the fence with a discount',
+    //   completed: Boolean(discounts && discounts.length > 0),
+    //   action: 'Create Discount',
+    //   type: OnboardingItemType.Discount,
+    // },
     {
       title: 'Setup payments',
       description:
@@ -49,11 +139,6 @@ const OnboardingPage = () => {
       type: OnboardingItemType.Stripe,
     },
   ]
-
-  // Generate a realistic placeholder API key for demo purposes
-  // In production, this should be replaced with proper API key management
-  const placeholderApiKey = `sk_test_${organization.id.slice(0, 8)}...${Math.random().toString(36).slice(2, 10)}`
-
   return (
     <ClientAuthGuard
       requireAuth={true}
@@ -72,8 +157,8 @@ const OnboardingPage = () => {
           </div>
           <OnboardingStatusTable
             onboardingChecklistItems={onboardingChecklistItems}
-            countries={countries.countries}
-            secretApiKey={placeholderApiKey}
+            countries={countries}
+            secretApiKey={secretApiKey.token}
           />
         </div>
       </div>

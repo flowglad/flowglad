@@ -1,5 +1,3 @@
-// Generated with Ion on 10/10/2024, 7:03:48 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=727:33232
 'use client'
 import { useState } from 'react'
 import { Customer } from '@/db/schema/customers'

@@ -1,5 +1,3 @@
-// Generated with Ion on 9/23/2024, 6:30:46 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=372:6968
 'use client'
 import {
   Image as ImageIcon,

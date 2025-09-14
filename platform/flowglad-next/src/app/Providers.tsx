@@ -22,7 +22,10 @@ export default function Providers({
   isPublicRoute,
 }: {
   children: React.ReactNode
-  authContext: Omit<AuthContextValues, 'setOrganization'>
+  authContext: Omit<
+    AuthContextValues,
+    'setOrganization' | 'authenticatedLoading'
+  >
   isPublicRoute?: boolean
 }) {
   const pathname = usePathname()

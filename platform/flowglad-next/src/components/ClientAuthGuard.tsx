@@ -25,23 +25,28 @@ export const ClientAuthGuard = ({
   redirectTo,
   fallbackComponent,
 }: AuthGuardProps) => {
-  const { user, organization, livemode } = useAuthContext()
+  const { authenticated, organization, authenticatedLoading } =
+    useAuthContext()
   const router = useRouter()
-
   useEffect(() => {
-    // Wait for auth context to be fully loaded
-    if (!user && requireAuth) {
+    if (authenticatedLoading) {
+      return
+    }
+    // Wait for auth context to be fully loaded, then redirect to sign-in
+    // if not authenticated
+    if (!authenticated && requireAuth) {
       router.push(redirectTo || '/sign-in')
       return
     }
 
-    if (!organization && requireOrganization && user) {
+    if (!organization && requireOrganization && authenticated) {
       router.push(redirectTo || '/onboarding/business-details')
       return
     }
   }, [
-    user,
+    authenticated,
     organization,
+    authenticatedLoading,
     requireAuth,
     requireOrganization,
     redirectTo,
@@ -49,11 +54,11 @@ export const ClientAuthGuard = ({
   ])
 
   // Show loading state while auth is being determined
-  if (requireAuth && !user) {
+  if (requireAuth && !authenticated) {
     return fallbackComponent || <AuthLoadingFallback />
   }
 
-  if (requireOrganization && !organization && user) {
+  if (requireOrganization && !organization && authenticated) {
     return fallbackComponent || <AuthLoadingFallback />
   }
 
