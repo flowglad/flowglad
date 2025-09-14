@@ -12,6 +12,6 @@ export default function Logout() {
       router.replace('/sign-in')
     }
     performLogout()
-  }, [logoutMutation])
+  }, [])
   return null
 }
