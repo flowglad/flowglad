@@ -1,16 +1,15 @@
 'use client'
-import { authClient } from '@/utils/authClient'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { trpc } from '@/app/_trpc/client'
 
 export default function Logout() {
   const logoutMutation = trpc.utils.logout.useMutation()
-
+  const router = useRouter()
   useEffect(() => {
     const performLogout = async () => {
       await logoutMutation.mutateAsync()
-      redirect('/sign-in')
+      router.replace('/sign-in')
     }
     performLogout()
   }, [logoutMutation])
