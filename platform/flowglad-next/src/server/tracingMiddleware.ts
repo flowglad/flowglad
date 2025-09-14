@@ -72,6 +72,7 @@ export function createTracingMiddleware() {
                 path,
                 has_input: rawInput !== undefined,
                 input: rawInput,
+                organization_id: organizationId,
                 auth_type: apiKey
                   ? 'api_key'
                   : user
@@ -162,6 +163,7 @@ export function createTracingMiddleware() {
                   path,
                   error_code: errorCode,
                   duration_ms: duration,
+                  organization_id: organizationId,
                 }
               )
 

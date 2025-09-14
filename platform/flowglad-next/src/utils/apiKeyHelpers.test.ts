@@ -4,30 +4,16 @@ import {
   setupCustomer,
   setupMemberships,
   setupOrg,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import {
   createSecretApiKeyTransaction,
-  createBillingPortalApiKeyTransaction,
-  verifyBillingPortalApiKeyTransaction,
+  getApiKeyHeader,
 } from './apiKeyHelpers'
 import { FlowgladApiKeyType } from '@/types'
 import { CreateApiKeyInput } from '@/db/schema/apiKeys'
 import { Organization } from '@/db/schema/organizations'
-import { User } from '@stackframe/stack'
-import {
-  insertCustomer,
-  updateCustomer,
-} from '@/db/tableMethods/customerMethods'
-import { insertApiKey } from '@/db/tableMethods/apiKeyMethods'
-import {
-  insertOrganization,
-  updateOrganization,
-} from '@/db/tableMethods/organizationMethods'
-import {
-  insertMembership,
-  updateMembership,
-} from '@/db/tableMethods/membershipMethods'
-import { nanoid } from './core'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { updateMembership } from '@/db/tableMethods/membershipMethods'
 
 describe('apiKeyHelpers', () => {
   let organization: Organization.Record
@@ -216,91 +202,45 @@ describe('apiKeyHelpers', () => {
     })
   })
 
-  describe('createBillingPortalApiKeyTransaction', () => {
-    it('should successfully create a billing portal API key', async () => {
-      const params = {
-        organization,
-        stackAuthHostedBillingUserId: userId,
-        livemode: false,
-        name: 'Billing Portal Key',
-      }
+  // it('should return null if no customer is found', async () => {
+  //   // Delete the customer
+  //   await adminTransaction(async ({ transaction }) => {
+  //     await deleteCustomer(
+  //       {
+  //         id: customerId,
+  //       },
+  //       transaction
+  //     )
+  //   })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return createBillingPortalApiKeyTransaction(
-            params,
-            transaction
-          )
-        }
-      )
+  //   const params = {
+  //     organizationId: organization.id,
+  //     livemode: false,
+  //     user: { id: userId } as Pick<User, 'id'>,
+  //   }
 
-      expect(result).toBeDefined()
-      expect(result.apiKey).toBeDefined()
-      expect(result.apiKey.name).toBe('Billing Portal Key')
-      expect(result.shownOnlyOnceKey).toBeDefined()
-    })
+  //   const result = await adminTransaction(
+  //     async ({ transaction }) => {
+  //       return verifyBillingPortalApiKeyTransaction(
+  //         params,
+  //         transaction
+  //       )
+  //     }
+  //   )
+
+  //   expect(result).toBeNull()
+  // })
+})
+
+describe('getApiKeyHeader', () => {
+  it('should return the second fragment if there are exactly 2 fragments', () => {
+    const authorizationHeader = 'Bearer 1234567890'
+    const apiKey = getApiKeyHeader(authorizationHeader)
+    expect(apiKey).toBe('1234567890')
   })
-
-  describe('verifyBillingPortalApiKeyTransaction', () => {
-    it('should successfully verify and create a billing portal API key', async () => {
-      const newId = nanoid()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const params = {
-        organizationId: organization.id,
-        livemode: customer.livemode,
-        user: { id: newId } as Pick<User, 'id'>,
-      }
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          await updateCustomer(
-            {
-              id: customer.id,
-              stackAuthHostedBillingUserId: newId,
-            },
-            transaction
-          )
-          return verifyBillingPortalApiKeyTransaction(
-            params,
-            transaction
-          )
-        }
-      )
-
-      expect(result).toBeDefined()
-      expect(result?.apiKey).toBeDefined()
-      expect(result?.apiKey.name).toContain('Billing Portal Key')
-      expect(result?.shownOnlyOnceKey).toBeDefined()
-    })
-
-    // it('should return null if no customer is found', async () => {
-    //   // Delete the customer
-    //   await adminTransaction(async ({ transaction }) => {
-    //     await deleteCustomer(
-    //       {
-    //         id: customerId,
-    //       },
-    //       transaction
-    //     )
-    //   })
-
-    //   const params = {
-    //     organizationId: organization.id,
-    //     livemode: false,
-    //     user: { id: userId } as Pick<User, 'id'>,
-    //   }
-
-    //   const result = await adminTransaction(
-    //     async ({ transaction }) => {
-    //       return verifyBillingPortalApiKeyTransaction(
-    //         params,
-    //         transaction
-    //       )
-    //     }
-    //   )
-
-    //   expect(result).toBeNull()
-    // })
+  it('should return the original authorization header if there are not exactly 2 fragments', () => {
+    const authorizationHeader = '1234567890'
+    const apiKey = getApiKeyHeader(authorizationHeader)
+    expect(apiKey).toBe('1234567890')
   })
 })

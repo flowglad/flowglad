@@ -936,3 +936,9 @@ export enum DestinationEnvironment {
   Livemode = 'livemode',
   Testmode = 'testmode',
 }
+
+export type StandardLogger = {
+  info: (message: string) => void
+  warn: (message: string) => void
+  error: (message: string) => void
+}

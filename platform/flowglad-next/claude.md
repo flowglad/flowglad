@@ -15,6 +15,9 @@ Whenever you complete a task, confirm that everything lints as expected:
 pnpm lint
 ```
 
+## Running Tests
+If you are trying to run tests to see whether they pass, you must use `pnpm test:run`. `pnpm test` will run the test suite in watch mode and leave you waiting for timeouts.
+
 ## When Writing TRPC Code
 1. Always specify mutation and query outputs using `.output()`
 2. If possible, do not write raw ORM code in the procedures. It's pure tech debt. Instead, use db/tableMethods/fooMethods.ts where you can.
@@ -31,6 +34,6 @@ Do this in four steps:
 3. Prepare global setup — see [@new-test-3-before-each-setup.md](llm-prompts/new-test-3-before-each-setup.md)
 4. Implement tests — see [@new-test-4-implementation.md](llm-prompts/new-test-4-implementation.md)
 
-### ast-grep
+### Use ast-grep instead of grep
 
 You run in an environment where `ast-grep` is available; whenever a search requires syntax-aware or structural matching, default to `ast-grep --lang rust -p '<pattern>'` (or set `--lang` appropriately) and avoid falling back to text-only tools like `rg` or `grep` unless I explicitly request a plain-text search.

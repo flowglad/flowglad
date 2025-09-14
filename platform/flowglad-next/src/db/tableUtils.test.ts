@@ -6,7 +6,7 @@ import {
   setupOrg,
   setupCustomer,
   setupUserAndApiKey,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import { core } from '@/utils/core'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { nulledPriceColumns, Price, prices } from '@/db/schema/prices'

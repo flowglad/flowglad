@@ -22,7 +22,7 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import type { Organization } from '@/db/schema/organizations'
-import type { UserRecord } from '@/db/schema/users'
+import type { User } from '@/db/schema/users'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -81,7 +81,7 @@ let organization: Organization.Record
 let pricingModel: PricingModel.Record
 let product: Product.Record
 let price: Price.Record
-let user: UserRecord
+let user: User.Record
 let customer: Customer.Record
 let paymentMethod: PaymentMethod.Record
 let subscription: Subscription.Record
@@ -233,7 +233,7 @@ afterEach(() => {
 
 // Create a context for testing the procedures
 const createTestContext = (
-  customUser?: UserRecord,
+  customUser?: User.Record,
   customCustomer?: Customer.Record
 ) => ({
   user: customUser || user,

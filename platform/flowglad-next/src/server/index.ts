@@ -31,7 +31,6 @@ import { usageEventsRouter } from './routers/usageEventsRouter'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { apiKeysRouter } from './routers/apiKeysRouter'
 import { purchasesRouter } from './routers/purchasesRouter'
-import { requestBillingPortalLink } from './mutations/requestBillingPortalLink'
 import { webhooksRouter } from './routers/webhooksRouter'
 import { featuresRouter } from './routers/featuresRouter'
 import { productFeaturesRouter } from './routers/productFeaturesRouter'
@@ -76,7 +75,6 @@ export const appRouter = router({
     getPresignedURL,
     toggleTestMode,
     inviteUserToOrganization,
-    requestBillingPortalLink,
     logout,
   }),
   apiKeys: apiKeysRouter,

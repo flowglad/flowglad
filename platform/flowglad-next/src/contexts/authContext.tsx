@@ -1,13 +1,12 @@
 'use client'
 import { Organization } from '@/db/schema/organizations'
-import { CurrentServerUser } from '@stackframe/stack'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import { UserRecord } from '@/db/schema/users'
+import { User } from '@/db/schema/users'
 import { useSession } from '@/utils/authClient'
 
 export type AuthContextValues = Partial<{
-  user: UserRecord
+  user: User.Record
   role: 'merchant' | 'customer'
   organization: Organization.ClientRecord
 }> & {

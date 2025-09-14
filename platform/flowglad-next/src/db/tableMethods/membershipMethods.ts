@@ -26,7 +26,8 @@ import {
 import { DbTransaction } from '@/db/types'
 import { users, usersSelectSchema } from '../schema/users'
 import { z } from 'zod'
-import { selectUsers, UserRecord } from './userMethods'
+import { selectUsers } from './userMethods'
+import { User } from '@/db/schema/users'
 
 const config: ORMMethodCreatorConfig<
   typeof memberships,
@@ -206,7 +207,7 @@ export const selectMembershipsTableRowData =
         },
         transaction
       )
-      const usersById = new Map<string, UserRecord>(
+      const usersById = new Map<string, User.Record>(
         users.map((user) => [user.id, user])
       )
       return data.map((membership) => ({

@@ -48,18 +48,29 @@ export const deriveSubscriptionStatus = ({
   autoStart,
   trialEnd,
   defaultPaymentMethodId,
+  isDefaultPlan,
 }: {
   autoStart: boolean
   trialEnd?: Date
   defaultPaymentMethodId?: string
+  isDefaultPlan: boolean
 }):
   | SubscriptionStatus.Trialing
   | SubscriptionStatus.Active
   | SubscriptionStatus.Incomplete => {
+  /**
+   * If the subscription is a default plan, it is always active
+   */
   if (trialEnd) {
     return SubscriptionStatus.Trialing
   }
+  if (!autoStart) {
+    return SubscriptionStatus.Incomplete
+  }
   if (autoStart && defaultPaymentMethodId) {
+    return SubscriptionStatus.Active
+  }
+  if (isDefaultPlan) {
     return SubscriptionStatus.Active
   }
   return SubscriptionStatus.Incomplete
@@ -289,7 +300,7 @@ export const setupLedgerAccounts = async (
   params: {
     subscription: Subscription.Record
     subscriptionItems: SubscriptionItem.Record[]
-    price: Price.Record
+    price: Price.ClientRecord
   },
   transaction: DbTransaction
 ) => {
@@ -311,7 +322,7 @@ export const activateSubscription = async (
   params: {
     subscription: Subscription.Record
     subscriptionItems: SubscriptionItem.Record[]
-    defaultPaymentMethod: PaymentMethod.Record
+    defaultPaymentMethod?: PaymentMethod.Record
     autoStart: boolean
   },
   transaction: DbTransaction
@@ -343,7 +354,7 @@ export const activateSubscription = async (
       currentBillingPeriodStart: startDate,
       currentBillingPeriodEnd: endDate,
       billingCycleAnchorDate: startDate,
-      defaultPaymentMethodId: defaultPaymentMethod.id,
+      defaultPaymentMethodId: defaultPaymentMethod?.id,
       interval: subscription.interval ?? IntervalUnit.Month,
       intervalCount: subscription.intervalCount ?? 1,
       renews: true,
@@ -491,11 +502,16 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     prorateFirstPeriod?: boolean
     preservedBillingPeriodEnd?: Date
     preservedBillingPeriodStart?: Date
+    isDefaultPlan: boolean
   },
   transaction: DbTransaction
 ) => {
-  const { subscription, defaultPaymentMethod, subscriptionItems } =
-    params
+  const {
+    subscription,
+    defaultPaymentMethod,
+    subscriptionItems,
+    isDefaultPlan,
+  } = params
   /**
    * If
    * and no default payment method is provided,
@@ -505,11 +521,16 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
    * and we do not want to create a billing period or run
    * for a subscription that is not yet active.
    */
+  const isCreditTrial =
+    subscription.status === SubscriptionStatus.CreditTrial
+  const isIncomplete =
+    subscription.status === SubscriptionStatus.Incomplete
+  const isNoDefaultPaymentMethod = !defaultPaymentMethod
+  const isNonRenewing = !subscription.renews
   if (
-    subscription.status === SubscriptionStatus.CreditTrial ||
-    (subscription.status === SubscriptionStatus.Incomplete &&
-      !defaultPaymentMethod) ||
-    !subscription.renews
+    isCreditTrial ||
+    (isIncomplete && isNoDefaultPaymentMethod) ||
+    isNonRenewing
   ) {
     return {
       subscription,
@@ -608,7 +629,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
    *
    * In practice this should never be reached
    */
-  if (!defaultPaymentMethod) {
+  if (!defaultPaymentMethod && !isDefaultPlan) {
     throw new Error(
       'Default payment method is required if trial period is not set'
     )
@@ -631,7 +652,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
   return await activateSubscription(
     {
       ...params,
-      defaultPaymentMethod,
+      defaultPaymentMethod: defaultPaymentMethod ?? undefined,
     },
     transaction
   )

@@ -1,5 +1,5 @@
 import { adminTransaction } from '@/db/adminTransaction'
-import { UserRecord } from '@/db/schema/users'
+import { User as UserSchema } from '@/db/schema/users'
 import {
   insertUser,
   selectUsers,
@@ -9,7 +9,7 @@ import { User } from 'better-auth'
 
 export const betterAuthUserToApplicationUser = async (
   betterAuthUser: User
-): Promise<UserRecord> => {
+): Promise<UserSchema.Record> => {
   return await adminTransaction(async ({ transaction }) => {
     const [existingUser] = await selectUsers(
       {

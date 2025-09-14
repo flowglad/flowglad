@@ -122,10 +122,10 @@ export const createSubscriptionWorkflow = async (
       prorateFirstPeriod: params.prorateFirstPeriod,
       preservedBillingPeriodEnd: params.preservedBillingPeriodEnd,
       preservedBillingPeriodStart: params.preservedBillingPeriodStart,
+      isDefaultPlan: params.product.default,
     },
     transaction
   )
-
   // Don't send notifications for free subscriptions
   // A subscription is considered free if unitPrice is 0, not based on slug
   if (price.unitPrice !== 0) {
@@ -153,7 +153,6 @@ export const createSubscriptionWorkflow = async (
       processedAt: null,
     },
   ]
-
   const ledgerCommand:
     | BillingPeriodTransitionLedgerCommand
     | undefined =

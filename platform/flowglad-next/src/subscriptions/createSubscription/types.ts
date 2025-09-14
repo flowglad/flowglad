@@ -17,13 +17,13 @@ export interface CreateSubscriptionParams {
     Customer.Record,
     'id' | 'stripeCustomerId' | 'livemode' | 'organizationId'
   >
-  product: Product.Record
-  price: Price.Record
+  product: Product.ClientRecord
+  price: Price.ClientRecord
   quantity: number
   livemode: boolean
   startDate: Date
-  interval: IntervalUnit
-  intervalCount: number
+  interval?: IntervalUnit | null
+  intervalCount?: number | null
   trialEnd?: Date
   stripeSetupIntentId?: string
   metadata?: Subscription.ClientRecord['metadata']

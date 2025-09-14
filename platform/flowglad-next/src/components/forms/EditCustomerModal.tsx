@@ -17,7 +17,7 @@ const EditCustomerModal = ({
   setIsOpen,
   customer,
 }: EditCustomerModalProps) => {
-  const editCustomer = trpc.customers.edit.useMutation()
+  const editCustomer = trpc.customers.update.useMutation()
 
   return (
     <FormModal

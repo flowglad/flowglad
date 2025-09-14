@@ -1051,7 +1051,7 @@ describe('clonePricingModelTransaction', () => {
       // Check products and prices
       expect(clonedPricingModel.products).toHaveLength(2)
       const basicProduct = clonedPricingModel.products.find(
-        (p) => p.name === 'Flowglad Test Product'
+        (p) => p.name === 'Default Product'
       )
       const proProduct = clonedPricingModel.products.find(
         (p) => p.name === 'Pro Plan'

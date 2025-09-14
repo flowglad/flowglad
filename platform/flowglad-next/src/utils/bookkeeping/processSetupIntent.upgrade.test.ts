@@ -13,10 +13,7 @@ import {
   processSetupIntentSucceeded,
   CoreSripeSetupIntent,
 } from '@/utils/bookkeeping/processSetupIntent'
-import { Purchase } from '@/db/schema/purchases'
 import {
-  setupBillingPeriod,
-  setupBillingRun,
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
@@ -25,13 +22,10 @@ import {
   setupCheckoutSession,
   setupProduct,
   setupPrice,
-  setupSubscriptionItem,
   setupFeeCalculation,
 } from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
@@ -44,11 +38,9 @@ import {
 import {
   selectSubscriptions,
   selectSubscriptionById,
-  updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { IntentMetadataType } from '@/utils/stripe'
-
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 // Helper function to create mock setup intent
 const mockSucceededSetupIntent = ({
   checkoutSessionId,
@@ -94,7 +86,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       pricingModelId: pricingModel.id,
       name: 'Free Plan',
       livemode: true,
-      default: true,
+      default: false,
     })
 
     freePrice = await setupPrice({
@@ -441,9 +433,6 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
     it('should allow creating second paid subscription while canceling free', async () => {
       // Update organization to allow multiple subscriptions
       await adminTransaction(async ({ transaction }) => {
-        const { updateOrganization } = await import(
-          '@/db/tableMethods/organizationMethods'
-        )
         await updateOrganization(
           {
             id: organization.id,

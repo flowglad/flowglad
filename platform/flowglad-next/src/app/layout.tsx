@@ -7,10 +7,10 @@ import Providers from './Providers'
 import { cn } from '@/lib/utils'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { User } from '@/db/schema/users'
 import {
   insertUser,
   selectUsers,
-  UserRecord,
 } from '@/db/tableMethods/userMethods'
 import {
   Organization,
@@ -46,7 +46,7 @@ export default async function RootLayout({
   const session = await getSession()
   let organization: Organization.ClientRecord | undefined = undefined
   let livemode: boolean = true
-  let user: UserRecord | undefined = undefined
+  let user: User.Record | undefined = undefined
   if (session) {
     user = await betterAuthUserToApplicationUser(session.user)
     const [membershipData] = await adminTransaction(

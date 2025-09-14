@@ -17,7 +17,7 @@ import { sql } from 'drizzle-orm'
 import db from './client'
 import type { Organization } from './schema/organizations'
 import type { Customer } from './schema/customers'
-import type { UserRecord } from './schema/users'
+import type { User } from './schema/users'
 import type { Invoice } from './schema/invoices'
 import type { Subscription } from './schema/subscriptions'
 import type { Payment } from './schema/payments'
@@ -73,7 +73,7 @@ import { setupProduct, setupPricingModel } from '@/../seedDatabase'
  */
 async function authenticatedCustomerTransaction<T>(
   customer: Customer.Record,
-  user: UserRecord,
+  user: User.Record,
   organization: Organization.Record,
   fn: (params: {
     transaction: DbTransaction
@@ -144,10 +144,10 @@ describe('Customer Role RLS Policies', () => {
   let org1Price: Price.Record
   let org2Price: Price.Record
 
-  let userA: UserRecord // Has customer in both orgs
-  let userB: UserRecord // Only in org1
-  let userC: UserRecord // Only in org1
-  let userD: UserRecord // Only in org2
+  let userA: User.Record // Has customer in both orgs
+  let userB: User.Record // Only in org1
+  let userC: User.Record // Only in org1
+  let userD: User.Record // Only in org2
 
   // Customers in Org1
   let customerA_Org1: Customer.Record
@@ -1391,9 +1391,6 @@ describe('Customer Role RLS Policies', () => {
 
       // Refresh the customer objects AFTER the admin transaction commits
       await adminTransaction(async ({ transaction }) => {
-        const { selectCustomerById } = await import(
-          './tableMethods/customerMethods'
-        )
         customerA_Org1 = await selectCustomerById(
           customerA_Org1.id,
           transaction

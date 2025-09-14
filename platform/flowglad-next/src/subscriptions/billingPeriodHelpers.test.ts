@@ -48,7 +48,7 @@ import {
   setupSubscriptionItem,
   setupUsageCredit,
   setupUsageLedgerScenario,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
@@ -84,7 +84,7 @@ import {
   setupLedgerEntries,
   setupUsageEvent,
   setupUsageCreditApplication,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
 
 let customer: Customer.Record

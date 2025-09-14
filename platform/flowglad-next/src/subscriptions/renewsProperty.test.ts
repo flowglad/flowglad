@@ -15,7 +15,7 @@ import {
   setupProductFeature,
   setupSubscriptionItemFeature,
   setupUsageCredit,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
@@ -44,7 +44,10 @@ import {
   createBillingPeriodAndItems,
 } from '@/subscriptions/billingPeriodHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
-import { updatePrice } from '@/db/tableMethods/priceMethods'
+import {
+  safelyUpdatePrice,
+  updatePrice,
+} from '@/db/tableMethods/priceMethods'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
@@ -120,7 +123,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         // Verify non-renewing subscription properties
         expect(result.subscription.renews).toBe(false)
         expect(result.subscription.status).toBe(
-          SubscriptionStatus.CreditTrial
+          SubscriptionStatus.Active
         )
         expect(
           result.subscription.currentBillingPeriodStart
@@ -458,28 +461,50 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should not create future billing periods for non-renewing subscriptions', async () => {
-        // Create a non-renewing subscription
-        const nonRenewingSubscription = await setupSubscription({
-          organizationId: organization.id,
-          customerId: customer.id,
-          paymentMethodId: null as any,
-          priceId: price.id,
-          status: SubscriptionStatus.Active, // Not CreditTrial to avoid that check
-          renews: false,
-        })
-
         // Query initial state
-        const initialBillingPeriods = await adminTransaction(
-          async ({ transaction }) => {
-            return selectBillingPeriods(
+        const { billingPeriods, nonRenewingSubscription } =
+          await adminTransaction(async ({ transaction }) => {
+            const usageMeter = await setupUsageMeter({
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+              name: 'Usage Meter',
+            })
+            const updatedPrice = await safelyUpdatePrice(
+              {
+                id: price.id,
+                type: PriceType.Usage,
+                startsWithCreditTrial: true,
+                usageMeterId: usageMeter.id,
+                usageEventsPerUnit: 1,
+              },
+              transaction
+            )
+            const {
+              result: { subscription: nonRenewingSubscription },
+            } = await createSubscriptionWorkflow(
+              {
+                organization,
+                customer,
+                product,
+                price: updatedPrice,
+                quantity: 1,
+                livemode: true,
+                startDate: new Date(),
+                interval: IntervalUnit.Month,
+                intervalCount: 1,
+              },
+              transaction
+            )
+
+            const billingPeriods = await selectBillingPeriods(
               { subscriptionId: nonRenewingSubscription.id },
               transaction
             )
-          }
-        )
+            return { billingPeriods, nonRenewingSubscription }
+          })
 
         // Should not create any billing periods for non-renewing subscriptions
-        expect(initialBillingPeriods).toHaveLength(0)
+        expect(billingPeriods).toHaveLength(0)
 
         // Subscription dates should remain null
         expect(
@@ -491,18 +516,39 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should not schedule billing runs for non-renewing subscriptions', async () => {
-        // Create a non-renewing subscription with payment method
-        const nonRenewingSubscription = await setupSubscription({
+        const usageMeter = await setupUsageMeter({
           organizationId: organization.id,
-          customerId: customer.id,
-          paymentMethodId: paymentMethod.id, // Has payment method
-          priceId: price.id,
-          status: SubscriptionStatus.Active,
-          renews: false,
+          pricingModelId: pricingModel.id,
+          name: 'Usage Meter',
         })
-
         // Check that no billing runs were created
         await adminTransaction(async ({ transaction }) => {
+          const updatedPrice = await safelyUpdatePrice(
+            {
+              id: price.id,
+              type: PriceType.Usage,
+              startsWithCreditTrial: true,
+              usageMeterId: usageMeter.id,
+              usageEventsPerUnit: 1,
+            },
+            transaction
+          )
+          const {
+            result: { subscription: nonRenewingSubscription },
+          } = await createSubscriptionWorkflow(
+            {
+              organization,
+              customer,
+              product,
+              price: updatedPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+            },
+            transaction
+          )
           const billingRuns = await selectBillingRuns(
             { subscriptionId: nonRenewingSubscription.id },
             transaction
@@ -866,7 +912,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       // Verify initial state
       expect(result.subscription.renews).toBe(false)
       expect(result.subscription.status).toBe(
-        SubscriptionStatus.CreditTrial
+        SubscriptionStatus.Active
       )
       expect(result.billingPeriod).toBeNull()
 
@@ -1073,7 +1119,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       // Verify initial state
       expect(result.subscription.renews).toBe(false)
       expect(result.subscription.status).toBe(
-        SubscriptionStatus.CreditTrial
+        SubscriptionStatus.Active
       )
 
       // Simulate credit exhaustion (update status)
@@ -1178,7 +1224,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Verify subscription state
         expect(result.subscription.status).toBe(
-          SubscriptionStatus.CreditTrial
+          SubscriptionStatus.Active
         )
         expect(result.subscription.renews).toBe(false)
 
@@ -1421,7 +1467,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         // Verify no billing run was created
         expect(result.billingRun).toBeNull()
         expect(result.subscription.status).toBe(
-          SubscriptionStatus.CreditTrial
+          SubscriptionStatus.Active
         )
         expect(result.subscription.renews).toBe(false)
 
@@ -1523,15 +1569,6 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       // - interval fields should remain null
     })
 
-    it('should prevent creating billing periods for non-renewing subscriptions', () => {
-      // setup:
-      // - create credit trial subscription
-      // - attempt to manually create billing period
-      // expects:
-      // - should reject billing period creation
-      // - or billing period should not affect subscription
-    })
-
     it('should handle mixed subscription types in same customer account', () => {
       // setup:
       // - create customer with both credit trial and regular subscriptions
@@ -1548,7 +1585,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         customerId: customer.id,
         paymentMethodId: null as any,
         priceId: price.id,
-        status: SubscriptionStatus.CreditTrial,
+        status: SubscriptionStatus.Active,
         renews: false,
       })
 
@@ -1566,7 +1603,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         nonRenewingSubscription.billingCycleAnchorDate
       ).toBeNull()
       expect(nonRenewingSubscription.status).toBe(
-        SubscriptionStatus.CreditTrial
+        SubscriptionStatus.Active
       )
 
       // Verify no billing periods exist

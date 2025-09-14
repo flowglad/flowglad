@@ -25,7 +25,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import { PricingModel } from '@/db/schema/pricingModels'
-import { UserRecord } from '@/db/schema/users'
+import { User } from '@/db/schema/users'
 import {
   PaymentMethodType,
   SubscriptionStatus,
@@ -588,7 +588,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   let price: Price.Record
   let price2: Price.Record
   let customer: Customer.Record
-  let user: UserRecord
+  let user: User.Record
 
   beforeEach(async () => {
     // Reset all mocks

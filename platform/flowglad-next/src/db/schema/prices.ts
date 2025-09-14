@@ -180,7 +180,7 @@ const basePriceColumns = {
     .describe(
       'Whether or not this price is the default price for the product.'
     ),
-  unitPrice: core.safeZodNonNegativeInteger.describe(
+  unitPrice: core.safeZodPositiveIntegerOrZero.describe(
     'The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents. If'
   ),
   currency: currencyCodeSchema,

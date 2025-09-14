@@ -1,4 +1,4 @@
-import { Unkey } from '@unkey/api'
+import { Unkey, verifyKey } from '@unkey/api'
 import core from './core'
 import { Organization } from '@/db/schema/organizations'
 import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
@@ -8,6 +8,13 @@ import {
   secretApiKeyMetadataSchema,
   apiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'
+import {
+  getApiKeyVerificationResult,
+  setApiKeyVerificationResult,
+} from './redis'
+import { hashData } from './backendCore'
+import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api'
+import { logger } from './logger'
 
 export const unkey = () =>
   new Unkey({
@@ -15,19 +22,132 @@ export const unkey = () =>
   })
 
 export const verifyApiKey = async (apiKey: string) => {
-  const { result, error } = await unkey().keys.verify({
-    apiId: core.envVariable('UNKEY_API_ID'),
-    key: apiKey,
-  })
-  if (error) {
-    throw error
-  }
-  return {
-    keyId: result.keyId,
-    valid: result.valid,
-    ownerId: result.ownerId,
-    environment: result.environment as ApiEnvironment,
-  }
+  const tracer = trace.getTracer('api-key-verification')
+
+  return tracer.startActiveSpan(
+    'verifyApiKey',
+    { kind: SpanKind.INTERNAL },
+    async (span) => {
+      try {
+        const keyPrefix = apiKey.substring(0, 8)
+        span.setAttributes({
+          'auth.key_prefix': keyPrefix,
+        })
+
+        // Check cache first
+        const cacheStartTime = Date.now()
+        const cachedVerificationResult =
+          await getApiKeyVerificationResult(apiKey)
+        const cacheLookupDuration = Date.now() - cacheStartTime
+
+        if (cachedVerificationResult) {
+          span.setAttributes({
+            'auth.cache_hit': true,
+            'auth.verification_source': 'cache',
+            'auth.cache_lookup_duration_ms': cacheLookupDuration,
+          })
+          span.setStatus({ code: SpanStatusCode.OK })
+
+          logger.info('API Key verification cache hit', {
+            key_prefix: keyPrefix,
+            cache_lookup_duration_ms: cacheLookupDuration,
+            cached_valid: cachedVerificationResult.result?.valid,
+          })
+
+          return cachedVerificationResult
+        }
+
+        // Cache miss - call Unkey API
+        span.setAttributes({
+          'auth.cache_hit': false,
+          'auth.verification_source': 'unkey_api',
+          'auth.cache_lookup_duration_ms': cacheLookupDuration,
+        })
+
+        logger.info(
+          'API Key verification cache miss, calling Unkey',
+          {
+            key_prefix: keyPrefix,
+            cache_lookup_duration_ms: cacheLookupDuration,
+          }
+        )
+
+        const unkeyStartTime = Date.now()
+        const unkeyApiId = core.envVariable('UNKEY_API_ID')
+
+        // Log what we're sending to Unkey
+        logger.info('Calling Unkey API for verification', {
+          key_prefix: keyPrefix,
+          unkey_api_id: unkeyApiId,
+          has_root_key: !!core.envVariable('UNKEY_ROOT_KEY'),
+        })
+
+        const verificationResult = await verifyKey({
+          key: apiKey,
+          apiId: unkeyApiId,
+        })
+        const unkeyDuration = Date.now() - unkeyStartTime
+
+        // Log the full response for debugging
+        if (!verificationResult.result?.valid) {
+          logger.warn('Unkey verification failed', {
+            key_prefix: keyPrefix,
+            unkey_api_id: unkeyApiId,
+            response_valid: verificationResult.result?.valid || false,
+            response_code:
+              verificationResult.result?.code || 'UNKNOWN',
+            error: verificationResult.error,
+            full_result: JSON.stringify(verificationResult.result),
+            unkey_duration_ms: unkeyDuration,
+          })
+        }
+
+        span.setAttributes({
+          'auth.unkey_api_duration_ms': unkeyDuration,
+          'auth.unkey_response_valid':
+            verificationResult.result?.valid || false,
+          'auth.unkey_response_code':
+            verificationResult.result?.code || 'UNKNOWN',
+        })
+
+        // Cache the result
+        const cacheWriteStartTime = Date.now()
+        await setApiKeyVerificationResult(apiKey, verificationResult)
+        const cacheWriteDuration = Date.now() - cacheWriteStartTime
+
+        span.setAttributes({
+          'auth.cache_write_duration_ms': cacheWriteDuration,
+        })
+
+        span.setStatus({ code: SpanStatusCode.OK })
+
+        logger.info('API Key verification completed', {
+          key_prefix: keyPrefix,
+          unkey_duration_ms: unkeyDuration,
+          cache_write_duration_ms: cacheWriteDuration,
+          valid: verificationResult.result?.valid,
+          code: verificationResult.result?.code,
+        })
+
+        return verificationResult
+      } catch (error) {
+        span.recordException(error as Error)
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        })
+
+        logger.error('API Key verification error', {
+          error: error as Error,
+          key_prefix: apiKey.substring(0, 8),
+        })
+
+        throw error
+      } finally {
+        span.end()
+      }
+    }
+  )
 }
 
 export interface StandardCreateApiKeyParams {
@@ -37,13 +157,6 @@ export interface StandardCreateApiKeyParams {
   userId: string
   type: FlowgladApiKeyType.Secret
   expiresAt?: Date
-}
-
-export interface BillingPortalCreateApiKeyParams
-  extends Omit<StandardCreateApiKeyParams, 'type'> {
-  type: FlowgladApiKeyType.BillingPortalToken
-  stackAuthHostedBillingUserId: string
-  expiresAt: Date
 }
 
 interface CreateApiKeyResult {
@@ -112,87 +225,7 @@ export const createSecretApiKey = async (
       unkeyId: result.keyId,
       type: FlowgladApiKeyType.Secret,
       expiresAt: params.expiresAt,
-    },
-    shownOnlyOnceKey: result.key,
-  }
-}
-
-export const billingPortalApiKeyInputToUnkeyInput = (
-  params: BillingPortalCreateApiKeyParams
-): UnkeyInput => {
-  const {
-    organization,
-    apiEnvironment,
-    stackAuthHostedBillingUserId,
-  } = params
-
-  const maybeStagingPrefix = core.IS_PROD ? '' : 'stg_'
-
-  const unparsedMeta: ApiKey.BillingPortalMetadata = {
-    organizationId: params.organization.id,
-    stackAuthHostedBillingUserId: params.stackAuthHostedBillingUserId,
-    type: FlowgladApiKeyType.BillingPortalToken,
-  }
-  const billingPortalMeta =
-    billingPortalApiKeyMetadataSchema.parse(unparsedMeta)
-  return {
-    apiId: core.envVariable('UNKEY_API_ID'),
-    name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
-    environment: apiEnvironment,
-    expires: params.expiresAt.getTime(),
-    externalId: organization.id,
-    prefix: [maybeStagingPrefix, 'bk_', apiEnvironment].join(''),
-    meta: billingPortalMeta,
-  }
-}
-
-export const createBillingPortalApiKey = async (
-  params: BillingPortalCreateApiKeyParams
-): Promise<CreateApiKeyResult> => {
-  if (params.type !== FlowgladApiKeyType.BillingPortalToken) {
-    throw new Error(
-      'createBillingPortalApiKey: Only billing portal tokens are supported at this time. Received type: ' +
-        params.type
-    )
-  }
-
-  if (!params.stackAuthHostedBillingUserId) {
-    throw new Error(
-      'stackAuthHostedBillingUserId is required for billing portal tokens'
-    )
-  }
-
-  if (!params.expiresAt) {
-    throw new Error('expiresAt is required for billing portal tokens')
-  }
-
-  const unkeyInput = billingPortalApiKeyInputToUnkeyInput(params)
-  const { result, error } = await unkey().keys.create(unkeyInput)
-
-  if (error) {
-    throw error
-  }
-
-  const livemode = params.apiEnvironment === 'live'
-  /**
-   * Hide the key in live mode
-   */
-  const token = livemode
-    ? `bk_live_...${result.key.slice(-4)}`
-    : result.key
-
-  return {
-    apiKeyInsert: {
-      organizationId: params.organization.id,
-      name: params.name,
-      token,
-      livemode,
-      active: true,
-      unkeyId: result.keyId,
-      stackAuthHostedBillingUserId:
-        params.stackAuthHostedBillingUserId,
-      expiresAt: params.expiresAt,
-      type: FlowgladApiKeyType.BillingPortalToken,
+      hashText: hashData(result.key),
     },
     shownOnlyOnceKey: result.key,
   }
@@ -202,30 +235,6 @@ interface ReplaceApiKeyParams {
   organization: Organization.Record
   oldApiKey: ApiKey.Record
   userId: string
-}
-
-export const replaceBillingPortalApiKey = async (
-  params: ReplaceApiKeyParams
-): Promise<{
-  apiKeyInsert: ApiKey.Insert
-  shownOnlyOnceKey: string
-}> => {
-  if (
-    params.oldApiKey.type !== FlowgladApiKeyType.BillingPortalToken
-  ) {
-    throw new Error('Can only replace billing portal API keys')
-  }
-
-  return await createBillingPortalApiKey({
-    name: params.oldApiKey.name,
-    apiEnvironment: params.oldApiKey.livemode ? 'live' : 'test',
-    organization: params.organization,
-    userId: params.userId,
-    type: FlowgladApiKeyType.BillingPortalToken,
-    stackAuthHostedBillingUserId:
-      params.oldApiKey.stackAuthHostedBillingUserId,
-    expiresAt: params.oldApiKey.expiresAt,
-  })
 }
 
 export const replaceSecretApiKey = async (
