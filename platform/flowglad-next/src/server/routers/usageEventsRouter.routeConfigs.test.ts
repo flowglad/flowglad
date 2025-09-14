@@ -4,6 +4,7 @@ import {
   findRouteConfigInArray,
   getAllRouteKeysFromArray,
   validateRouteConfigStructure,
+  validateStandardCrudMappings,
 } from './routeConfigs.test-utils'
 
 describe('usageEventsRouteConfigs', () => {
@@ -305,19 +306,10 @@ describe('usageEventsRouteConfigs', () => {
     })
 
     it('should map to correct TRPC procedures', () => {
-      const expectedMappings = {
-        'POST /usage-events': 'usageEvents.create',
-        'PUT /usage-events/:id': 'usageEvents.update',
-        'GET /usage-events/:id': 'usageEvents.get',
-        'GET /usage-events': 'usageEvents.list',
-        'DELETE /usage-events/:id': 'usageEvents.delete',
-      }
-
-      Object.entries(expectedMappings).forEach(
-        ([routeKey, expectedProcedure]) => {
-          const config = findRouteConfig(routeKey)
-          expect(config!.procedure).toBe(expectedProcedure)
-        }
+      validateStandardCrudMappings(
+        findRouteConfig,
+        'usage-events',
+        'usageEvents'
       )
     })
   })

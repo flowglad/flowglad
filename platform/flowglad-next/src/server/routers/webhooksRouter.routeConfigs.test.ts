@@ -297,19 +297,10 @@ describe('webhooksRouteConfigs', () => {
     })
 
     it('should map to correct TRPC procedures', () => {
-      const expectedMappings = {
-        'POST /webhooks': 'webhooks.create',
-        'PUT /webhooks/:id': 'webhooks.update',
-        'GET /webhooks/:id': 'webhooks.get',
-        'GET /webhooks': 'webhooks.list',
-        'DELETE /webhooks/:id': 'webhooks.delete',
-      }
-
-      Object.entries(expectedMappings).forEach(
-        ([routeKey, expectedProcedure]) => {
-          const config = findRouteConfig(routeKey)
-          expect(config!.procedure).toBe(expectedProcedure)
-        }
+      validateStandardCrudMappings(
+        findRouteConfig,
+        'webhooks',
+        'webhooks'
       )
     })
   })

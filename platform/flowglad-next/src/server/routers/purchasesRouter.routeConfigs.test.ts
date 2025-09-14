@@ -304,19 +304,10 @@ describe('purchasesRouteConfigs', () => {
     })
 
     it('should map to correct TRPC procedures', () => {
-      const expectedMappings = {
-        'POST /purchases': 'purchases.create',
-        'PUT /purchases/:id': 'purchases.update',
-        'GET /purchases/:id': 'purchases.get',
-        'GET /purchases': 'purchases.list',
-        'DELETE /purchases/:id': 'purchases.delete',
-      }
-
-      Object.entries(expectedMappings).forEach(
-        ([routeKey, expectedProcedure]) => {
-          const config = findRouteConfig(routeKey)
-          expect(config!.procedure).toBe(expectedProcedure)
-        }
+      validateStandardCrudMappings(
+        findRouteConfig,
+        'purchases',
+        'purchases'
       )
     })
   })

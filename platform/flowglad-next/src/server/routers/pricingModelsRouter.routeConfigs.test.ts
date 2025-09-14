@@ -440,19 +440,10 @@ describe('pricingModelsRouteConfigs', () => {
     })
 
     it('should map to correct TRPC procedures', () => {
-      const expectedMappings = {
-        'POST /pricing-models': 'pricingModels.create',
-        'PUT /pricing-models/:id': 'pricingModels.update',
-        'GET /pricing-models/:id': 'pricingModels.get',
-        'GET /pricing-models': 'pricingModels.list',
-        'DELETE /pricing-models/:id': 'pricingModels.delete',
-      }
-
-      Object.entries(expectedMappings).forEach(
-        ([routeKey, expectedProcedure]) => {
-          const config = findRouteConfig(routeKey)
-          expect(config!.procedure).toBe(expectedProcedure)
-        }
+      validateStandardCrudMappings(
+        findRouteConfig,
+        'pricing-models',
+        'pricingModels'
       )
 
       // Test custom route mapping

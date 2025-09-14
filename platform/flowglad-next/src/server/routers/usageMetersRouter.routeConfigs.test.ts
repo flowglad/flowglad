@@ -314,19 +314,10 @@ describe('usageMetersRouteConfigs', () => {
     })
 
     it('should map to correct TRPC procedures', () => {
-      const expectedMappings = {
-        'POST /usage-meters': 'usageMeters.create',
-        'PUT /usage-meters/:id': 'usageMeters.update',
-        'GET /usage-meters/:id': 'usageMeters.get',
-        'GET /usage-meters': 'usageMeters.list',
-        'DELETE /usage-meters/:id': 'usageMeters.delete',
-      }
-
-      Object.entries(expectedMappings).forEach(
-        ([routeKey, expectedProcedure]) => {
-          const config = findRouteConfig(routeKey)
-          expect(config!.procedure).toBe(expectedProcedure)
-        }
+      validateStandardCrudMappings(
+        findRouteConfig,
+        'usage-meters',
+        'usageMeters'
       )
     })
   })
