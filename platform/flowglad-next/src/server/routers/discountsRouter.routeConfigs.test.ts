@@ -1,10 +1,25 @@
 import { describe, it, expect } from 'vitest'
 import { discountsRouteConfigs } from './discountsRouter'
+import {
+  findRouteConfigInObject,
+  getAllRouteKeysFromObject,
+  validateRouteConfigStructure,
+} from './routeConfigs.test-utils'
 
 describe('discountsRouteConfigs', () => {
+  // Helper function to find route config in the object
+  const findRouteConfig = (routeKey: string) => {
+    return findRouteConfigInObject(discountsRouteConfigs, routeKey)
+  }
+
+  // Helper function to get all route keys from the object
+  const getAllRouteKeys = () => {
+    return getAllRouteKeysFromObject(discountsRouteConfigs)
+  }
+
   describe('Route pattern matching and procedure mapping', () => {
     it('should map POST /discounts to discounts.create procedure', () => {
-      const routeConfig = discountsRouteConfigs['POST /discounts']
+      const routeConfig = findRouteConfig('POST /discounts')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig.procedure).toBe('discounts.create')
@@ -17,7 +32,7 @@ describe('discountsRouteConfigs', () => {
     })
 
     it('should map PUT /discounts/:id to discounts.update procedure', () => {
-      const routeConfig = discountsRouteConfigs['PUT /discounts/:id']
+      const routeConfig = findRouteConfig('PUT /discounts/:id')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig.procedure).toBe('discounts.update')
@@ -33,7 +48,7 @@ describe('discountsRouteConfigs', () => {
     })
 
     it('should map GET /discounts/:id to discounts.get procedure', () => {
-      const routeConfig = discountsRouteConfigs['GET /discounts/:id']
+      const routeConfig = findRouteConfig('GET /discounts/:id')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig.procedure).toBe('discounts.get')
@@ -45,7 +60,7 @@ describe('discountsRouteConfigs', () => {
     })
 
     it('should map GET /discounts to discounts.list procedure', () => {
-      const routeConfig = discountsRouteConfigs['GET /discounts']
+      const routeConfig = findRouteConfig('GET /discounts')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig.procedure).toBe('discounts.list')
@@ -60,12 +75,12 @@ describe('discountsRouteConfigs', () => {
   describe('Route pattern RegExp validation', () => {
     it('should have valid RegExp patterns that match expected paths', () => {
       // Discount creation pattern should match 'discounts'
-      const createConfig = discountsRouteConfigs['POST /discounts']
+      const createConfig = findRouteConfig('POST /discounts')
       expect(createConfig.pattern.test('discounts')).toBe(true)
       expect(createConfig.pattern.test('discounts/id')).toBe(false)
 
       // Discount get pattern should match 'discounts/abc123'
-      const getConfig = discountsRouteConfigs['GET /discounts/:id']
+      const getConfig = findRouteConfig('GET /discounts/:id')
       expect(getConfig.pattern.test('discounts/abc123')).toBe(true)
       expect(getConfig.pattern.test('discounts')).toBe(false)
       expect(getConfig.pattern.test('discounts/abc123/extra')).toBe(
@@ -73,25 +88,25 @@ describe('discountsRouteConfigs', () => {
       )
 
       // Discount update pattern should match 'discounts/abc123'
-      const updateConfig = discountsRouteConfigs['PUT /discounts/:id']
+      const updateConfig = findRouteConfig('PUT /discounts/:id')
       expect(updateConfig.pattern.test('discounts/abc123')).toBe(true)
       expect(updateConfig.pattern.test('discounts')).toBe(false)
 
       // Discount list pattern should match 'discounts' only
-      const listConfig = discountsRouteConfigs['GET /discounts']
+      const listConfig = findRouteConfig('GET /discounts')
       expect(listConfig.pattern.test('discounts')).toBe(true)
       expect(listConfig.pattern.test('discounts/id')).toBe(false)
     })
 
     it('should extract correct matches from URL paths', () => {
       // Test discount get pattern extraction
-      const getConfig = discountsRouteConfigs['GET /discounts/:id']
+      const getConfig = findRouteConfig('GET /discounts/:id')
       const getMatches = getConfig.pattern.exec('discounts/test-id')
       expect(getMatches).not.toBeNull()
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test discount update pattern extraction
-      const updateConfig = discountsRouteConfigs['PUT /discounts/:id']
+      const updateConfig = findRouteConfig('PUT /discounts/:id')
       const updateMatches = updateConfig.pattern.exec(
         'discounts/discount-456'
       )
@@ -99,13 +114,13 @@ describe('discountsRouteConfigs', () => {
       expect(updateMatches![1]).toBe('discount-456') // First capture group
 
       // Test discount list pattern (no captures)
-      const listConfig = discountsRouteConfigs['GET /discounts']
+      const listConfig = findRouteConfig('GET /discounts')
       const listMatches = listConfig.pattern.exec('discounts')
       expect(listMatches).not.toBeNull()
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test discount create pattern (no captures)
-      const createConfig = discountsRouteConfigs['POST /discounts']
+      const createConfig = findRouteConfig('POST /discounts')
       const createMatches = createConfig.pattern.exec('discounts')
       expect(createMatches).not.toBeNull()
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
@@ -114,7 +129,7 @@ describe('discountsRouteConfigs', () => {
 
   describe('mapParams function behavior', () => {
     it('should correctly map URL parameters for discount get requests', () => {
-      const routeConfig = discountsRouteConfigs['GET /discounts/:id']
+      const routeConfig = findRouteConfig('GET /discounts/:id')
 
       // Simulate what route handler does - slices off the full match
       const result = routeConfig.mapParams(['discount-123'])
@@ -125,7 +140,7 @@ describe('discountsRouteConfigs', () => {
     })
 
     it('should correctly map URL parameters and body for discount update requests', () => {
-      const routeConfig = discountsRouteConfigs['PUT /discounts/:id']
+      const routeConfig = findRouteConfig('PUT /discounts/:id')
       const testBody = {
         discount: {
           amount: 25,
@@ -146,7 +161,7 @@ describe('discountsRouteConfigs', () => {
     })
 
     it('should return body for discount create requests', () => {
-      const routeConfig = discountsRouteConfigs['POST /discounts']
+      const routeConfig = findRouteConfig('POST /discounts')
       const testBody = {
         discount: {
           code: 'NEWCODE',
@@ -161,7 +176,7 @@ describe('discountsRouteConfigs', () => {
     })
 
     it('should return undefined for discount list requests', () => {
-      const routeConfig = discountsRouteConfigs['GET /discounts']
+      const routeConfig = findRouteConfig('GET /discounts')
 
       const result = routeConfig.mapParams([])
 
@@ -169,7 +184,7 @@ describe('discountsRouteConfigs', () => {
     })
 
     it('should handle special characters and encoded values in id', () => {
-      const routeConfig = discountsRouteConfigs['GET /discounts/:id']
+      const routeConfig = findRouteConfig('GET /discounts/:id')
 
       // Test with URL-encoded characters
       const result1 = routeConfig.mapParams(['discount%2D2024'])
@@ -189,7 +204,7 @@ describe('discountsRouteConfigs', () => {
 
   describe('Route config completeness', () => {
     it('should have exactly 4 expected route configs', () => {
-      const routeKeys = Object.keys(discountsRouteConfigs)
+      const routeKeys = getAllRouteKeys()
 
       // Check that all expected routes exist
       expect(routeKeys).toContain('POST /discounts') // create
@@ -210,7 +225,7 @@ describe('discountsRouteConfigs', () => {
       const idRoutes = ['PUT /discounts/:id', 'GET /discounts/:id']
 
       idRoutes.forEach((routeKey) => {
-        const config = discountsRouteConfigs[routeKey]
+        const config = findRouteConfig(routeKey)
 
         // Test that mapParams consistently uses 'id'
         const result = config.mapParams(['test-id'], {
@@ -223,19 +238,7 @@ describe('discountsRouteConfigs', () => {
     it('should have valid route config structure for all routes', () => {
       Object.entries(discountsRouteConfigs).forEach(
         ([routeKey, config]) => {
-          // Each config should have required properties
-          expect(config).toHaveProperty('procedure')
-          expect(config).toHaveProperty('pattern')
-          expect(config).toHaveProperty('mapParams')
-
-          // Procedure should be a valid TRPC procedure path
-          expect(config.procedure).toMatch(/^discounts\.\w+$/)
-
-          // Pattern should be a RegExp
-          expect(config.pattern).toBeInstanceOf(RegExp)
-
-          // mapParams should be a function
-          expect(typeof config.mapParams).toBe('function')
+          validateRouteConfigStructure(config, 'discounts')
         }
       )
     })
@@ -250,8 +253,8 @@ describe('discountsRouteConfigs', () => {
 
       Object.entries(expectedMappings).forEach(
         ([routeKey, expectedProcedure]) => {
-          const config = discountsRouteConfigs[routeKey]
-          expect(config.procedure).toBe(expectedProcedure)
+          const config = findRouteConfig(routeKey)
+          expect(config!.procedure).toBe(expectedProcedure)
         }
       )
     })
@@ -266,7 +269,7 @@ describe('discountsRouteConfigs', () => {
       ]
 
       omittedRoutes.forEach((routeKey) => {
-        expect(discountsRouteConfigs[routeKey]).toBeUndefined()
+        expect(() => findRouteConfig(routeKey)).toThrow()
       })
     })
   })

@@ -3,25 +3,21 @@ import {
   customersRouteConfigs,
   customerBillingRouteConfig,
 } from './customersRouter'
+import {
+  findRouteConfigInArray,
+  getAllRouteKeysFromArray,
+  validateRouteConfigStructure,
+} from './routeConfigs.test-utils'
 
 describe('customersRouteConfigs', () => {
   // Helper function to find route config in the array
   const findRouteConfig = (routeKey: string) => {
-    for (const routeConfigObj of customersRouteConfigs) {
-      if (routeConfigObj[routeKey]) {
-        return routeConfigObj[routeKey]
-      }
-    }
-    return undefined
+    return findRouteConfigInArray(customersRouteConfigs, routeKey)
   }
 
   // Helper function to get all route keys from the array
   const getAllRouteKeys = () => {
-    const keys: string[] = []
-    for (const routeConfigObj of customersRouteConfigs) {
-      keys.push(...Object.keys(routeConfigObj))
-    }
-    return keys
+    return getAllRouteKeysFromArray(customersRouteConfigs)
   }
 
   describe('Route pattern matching and procedure mapping', () => {
@@ -329,19 +325,7 @@ describe('customersRouteConfigs', () => {
       customersRouteConfigs.forEach((routeConfigObj) => {
         Object.entries(routeConfigObj).forEach(
           ([routeKey, config]) => {
-            // Each config should have required properties
-            expect(config).toHaveProperty('procedure')
-            expect(config).toHaveProperty('pattern')
-            expect(config).toHaveProperty('mapParams')
-
-            // Procedure should be a valid TRPC procedure path
-            expect(config.procedure).toMatch(/^customers\.\w+$/)
-
-            // Pattern should be a RegExp
-            expect(config.pattern).toBeInstanceOf(RegExp)
-
-            // mapParams should be a function
-            expect(typeof config.mapParams).toBe('function')
+            validateRouteConfigStructure(config, 'customers')
           }
         )
       })
@@ -349,19 +333,7 @@ describe('customersRouteConfigs', () => {
       // Test billing route configs
       Object.entries(customerBillingRouteConfig).forEach(
         ([routeKey, config]) => {
-          // Each config should have required properties
-          expect(config).toHaveProperty('procedure')
-          expect(config).toHaveProperty('pattern')
-          expect(config).toHaveProperty('mapParams')
-
-          // Procedure should be a valid TRPC procedure path
-          expect(config.procedure).toMatch(/^customers\.\w+$/)
-
-          // Pattern should be a RegExp
-          expect(config.pattern).toBeInstanceOf(RegExp)
-
-          // mapParams should be a function
-          expect(typeof config.mapParams).toBe('function')
+          validateRouteConfigStructure(config, 'customers')
         }
       )
     })

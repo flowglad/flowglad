@@ -1,12 +1,29 @@
 import { describe, it, expect } from 'vitest'
 import { invoiceLineItemsRouteConfigs } from './invoiceLineItemsRouter'
+import {
+  findRouteConfigInArray,
+  getAllRouteKeysFromArray,
+  validateRouteConfigStructure,
+  validateStandardCrudMappings,
+} from './routeConfigs.test-utils'
 
 describe('invoiceLineItemsRouteConfigs', () => {
+  // Helper function to find route config in the array
+  const findRouteConfig = (routeKey: string) => {
+    return findRouteConfigInArray(
+      invoiceLineItemsRouteConfigs,
+      routeKey
+    )
+  }
+
+  // Helper function to get all route keys from the array
+  const getAllRouteKeys = () => {
+    return getAllRouteKeysFromArray(invoiceLineItemsRouteConfigs)
+  }
+
   describe('Route pattern matching and procedure mapping', () => {
     it('should map POST /invoice-line-items to invoiceLineItems.create procedure', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'POST /invoice-line-items' in config
-      )?.['POST /invoice-line-items']
+      const routeConfig = findRouteConfig('POST /invoice-line-items')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('invoiceLineItems.create')
@@ -23,9 +40,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
     })
 
     it('should map PUT /invoice-line-items/:id to invoiceLineItems.update procedure', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'PUT /invoice-line-items/:id' in config
-      )?.['PUT /invoice-line-items/:id']
+      const routeConfig = findRouteConfig(
+        'PUT /invoice-line-items/:id'
+      )
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('invoiceLineItems.update')
@@ -43,9 +60,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
     })
 
     it('should map GET /invoice-line-items/:id to invoiceLineItems.get procedure', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'GET /invoice-line-items/:id' in config
-      )?.['GET /invoice-line-items/:id']
+      const routeConfig = findRouteConfig(
+        'GET /invoice-line-items/:id'
+      )
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('invoiceLineItems.get')
@@ -59,9 +76,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
     })
 
     it('should map GET /invoice-line-items to invoiceLineItems.list procedure', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'GET /invoice-line-items' in config
-      )?.['GET /invoice-line-items']
+      const routeConfig = findRouteConfig('GET /invoice-line-items')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('invoiceLineItems.list')
@@ -75,9 +90,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
     })
 
     it('should map DELETE /invoice-line-items/:id to invoiceLineItems.delete procedure', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'DELETE /invoice-line-items/:id' in config
-      )?.['DELETE /invoice-line-items/:id']
+      const routeConfig = findRouteConfig(
+        'DELETE /invoice-line-items/:id'
+      )
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('invoiceLineItems.delete')
@@ -94,9 +109,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
   describe('Route pattern RegExp validation', () => {
     it('should have valid RegExp patterns that match expected paths', () => {
       // Invoice line item creation pattern should match 'invoice-line-items'
-      const createConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'POST /invoice-line-items' in config
-      )?.['POST /invoice-line-items']
+      const createConfig = findRouteConfig('POST /invoice-line-items')
       expect(createConfig!.pattern.test('invoice-line-items')).toBe(
         true
       )
@@ -105,9 +118,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
       ).toBe(false)
 
       // Invoice line item get pattern should match 'invoice-line-items/abc123'
-      const getConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'GET /invoice-line-items/:id' in config
-      )?.['GET /invoice-line-items/:id']
+      const getConfig = findRouteConfig('GET /invoice-line-items/:id')
       expect(
         getConfig!.pattern.test('invoice-line-items/abc123')
       ).toBe(true)
@@ -119,9 +130,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
       ).toBe(false)
 
       // Invoice line item update pattern should match 'invoice-line-items/abc123'
-      const updateConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'PUT /invoice-line-items/:id' in config
-      )?.['PUT /invoice-line-items/:id']
+      const updateConfig = findRouteConfig(
+        'PUT /invoice-line-items/:id'
+      )
       expect(
         updateConfig!.pattern.test('invoice-line-items/abc123')
       ).toBe(true)
@@ -130,9 +141,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
       )
 
       // Invoice line item delete pattern should match 'invoice-line-items/abc123'
-      const deleteConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'DELETE /invoice-line-items/:id' in config
-      )?.['DELETE /invoice-line-items/:id']
+      const deleteConfig = findRouteConfig(
+        'DELETE /invoice-line-items/:id'
+      )
       expect(
         deleteConfig!.pattern.test('invoice-line-items/abc123')
       ).toBe(true)
@@ -141,9 +152,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
       )
 
       // Invoice line item list pattern should match 'invoice-line-items' only
-      const listConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'GET /invoice-line-items' in config
-      )?.['GET /invoice-line-items']
+      const listConfig = findRouteConfig('GET /invoice-line-items')
       expect(listConfig!.pattern.test('invoice-line-items')).toBe(
         true
       )
@@ -154,9 +163,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
 
     it('should extract correct matches from URL paths', () => {
       // Test invoice line item get pattern extraction
-      const getConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'GET /invoice-line-items/:id' in config
-      )?.['GET /invoice-line-items/:id']
+      const getConfig = findRouteConfig('GET /invoice-line-items/:id')
       const getMatches = getConfig!.pattern.exec(
         'invoice-line-items/test-id'
       )
@@ -164,9 +171,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test invoice line item update pattern extraction
-      const updateConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'PUT /invoice-line-items/:id' in config
-      )?.['PUT /invoice-line-items/:id']
+      const updateConfig = findRouteConfig(
+        'PUT /invoice-line-items/:id'
+      )
       const updateMatches = updateConfig!.pattern.exec(
         'invoice-line-items/test-id'
       )
@@ -174,9 +181,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test invoice line item delete pattern extraction
-      const deleteConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'DELETE /invoice-line-items/:id' in config
-      )?.['DELETE /invoice-line-items/:id']
+      const deleteConfig = findRouteConfig(
+        'DELETE /invoice-line-items/:id'
+      )
       const deleteMatches = deleteConfig!.pattern.exec(
         'invoice-line-items/test-id'
       )
@@ -184,9 +191,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test invoice line item list pattern (no captures)
-      const listConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'GET /invoice-line-items' in config
-      )?.['GET /invoice-line-items']
+      const listConfig = findRouteConfig('GET /invoice-line-items')
       const listMatches = listConfig!.pattern.exec(
         'invoice-line-items'
       )
@@ -194,9 +199,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test invoice line item create pattern (no captures)
-      const createConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'POST /invoice-line-items' in config
-      )?.['POST /invoice-line-items']
+      const createConfig = findRouteConfig('POST /invoice-line-items')
       const createMatches = createConfig!.pattern.exec(
         'invoice-line-items'
       )
@@ -207,9 +210,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
 
   describe('mapParams function behavior', () => {
     it('should correctly map URL parameters for invoice line item get requests', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'GET /invoice-line-items/:id' in config
-      )?.['GET /invoice-line-items/:id']
+      const routeConfig = findRouteConfig(
+        'GET /invoice-line-items/:id'
+      )
 
       // Simulate what route handler does - slices off the full match
       const result = routeConfig!.mapParams(['ili_123'])
@@ -220,9 +223,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
     })
 
     it('should correctly map URL parameters and body for invoice line item update requests', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'PUT /invoice-line-items/:id' in config
-      )?.['PUT /invoice-line-items/:id']
+      const routeConfig = findRouteConfig(
+        'PUT /invoice-line-items/:id'
+      )
       const testBody = {
         amount: 3000,
         description: 'Updated Line Item',
@@ -241,9 +244,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
     })
 
     it('should correctly map URL parameters for invoice line item delete requests', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'DELETE /invoice-line-items/:id' in config
-      )?.['DELETE /invoice-line-items/:id']
+      const routeConfig = findRouteConfig(
+        'DELETE /invoice-line-items/:id'
+      )
 
       // Simulate what route handler does - slices off the full match
       const result = routeConfig!.mapParams(['ili_789'])
@@ -254,9 +257,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
     })
 
     it('should return body for invoice line item create requests', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'POST /invoice-line-items' in config
-      )?.['POST /invoice-line-items']
+      const routeConfig = findRouteConfig('POST /invoice-line-items')
       const testBody = {
         invoiceId: 'inv_123',
         amount: 5000,
@@ -270,9 +271,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
     })
 
     it('should return undefined for invoice line item list requests', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'GET /invoice-line-items' in config
-      )?.['GET /invoice-line-items']
+      const routeConfig = findRouteConfig('GET /invoice-line-items')
 
       const result = routeConfig!.mapParams([])
 
@@ -280,9 +279,9 @@ describe('invoiceLineItemsRouteConfigs', () => {
     })
 
     it('should handle special characters and encoded values in id', () => {
-      const routeConfig = invoiceLineItemsRouteConfigs.find(
-        (config) => 'GET /invoice-line-items/:id' in config
-      )?.['GET /invoice-line-items/:id']
+      const routeConfig = findRouteConfig(
+        'GET /invoice-line-items/:id'
+      )
 
       // Test with URL-encoded characters (simulate route handler slicing)
       const result1 = routeConfig!.mapParams(['ili%40123'])
@@ -298,10 +297,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
 
   describe('Route config completeness', () => {
     it('should have all expected CRUD route configs', () => {
-      const routeKeys: string[] = []
-      invoiceLineItemsRouteConfigs.forEach((config) => {
-        routeKeys.push(...Object.keys(config))
-      })
+      const routeKeys = getAllRouteKeys()
 
       // Check that all expected routes exist
       expect(routeKeys).toContain('POST /invoice-line-items') // create
@@ -322,9 +318,7 @@ describe('invoiceLineItemsRouteConfigs', () => {
       ]
 
       idRoutes.forEach((routeKey) => {
-        const config = invoiceLineItemsRouteConfigs.find(
-          (c) => routeKey in c
-        )?.[routeKey]
+        const config = findRouteConfig(routeKey)
 
         // Test that mapParams consistently uses 'id' (simulate route handler slicing)
         const result = config!.mapParams(['test-id'], {
@@ -339,42 +333,17 @@ describe('invoiceLineItemsRouteConfigs', () => {
       invoiceLineItemsRouteConfigs.forEach((routeConfigObj) => {
         Object.entries(routeConfigObj).forEach(
           ([routeKey, config]) => {
-            // Each config should have required properties
-            expect(config).toHaveProperty('procedure')
-            expect(config).toHaveProperty('pattern')
-            expect(config).toHaveProperty('mapParams')
-
-            // Procedure should be a valid TRPC procedure path
-            expect(config.procedure).toMatch(
-              /^invoiceLineItems\.\w+$/
-            )
-
-            // Pattern should be a RegExp
-            expect(config.pattern).toBeInstanceOf(RegExp)
-
-            // mapParams should be a function
-            expect(typeof config.mapParams).toBe('function')
+            validateRouteConfigStructure(config, 'invoiceLineItems')
           }
         )
       })
     })
 
     it('should map to correct TRPC procedures', () => {
-      const expectedMappings = {
-        'POST /invoice-line-items': 'invoiceLineItems.create',
-        'PUT /invoice-line-items/:id': 'invoiceLineItems.update',
-        'GET /invoice-line-items/:id': 'invoiceLineItems.get',
-        'GET /invoice-line-items': 'invoiceLineItems.list',
-        'DELETE /invoice-line-items/:id': 'invoiceLineItems.delete',
-      }
-
-      Object.entries(expectedMappings).forEach(
-        ([routeKey, expectedProcedure]) => {
-          const config = invoiceLineItemsRouteConfigs.find(
-            (c) => routeKey in c
-          )?.[routeKey]
-          expect(config!.procedure).toBe(expectedProcedure)
-        }
+      validateStandardCrudMappings(
+        findRouteConfig,
+        'invoice-line-items',
+        'invoiceLineItems'
       )
     })
   })
