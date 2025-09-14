@@ -269,7 +269,7 @@ describe('discountsRouteConfigs', () => {
       ]
 
       omittedRoutes.forEach((routeKey) => {
-        expect(findRouteConfig(routeKey)).toBeUndefined()
+        expect(() => findRouteConfig(routeKey)).toThrow()
       })
     })
   })

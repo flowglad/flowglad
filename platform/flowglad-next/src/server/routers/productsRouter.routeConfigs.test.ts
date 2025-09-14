@@ -86,9 +86,7 @@ describe('productsRouteConfigs', () => {
     })
 
     it('should NOT have DELETE /products/:id route (missing from router)', () => {
-      const routeConfig = findRouteConfig('DELETE /products/:id')
-
-      expect(routeConfig).toBeUndefined()
+      expect(() => findRouteConfig('DELETE /products/:id')).toThrow()
     })
   })
 
