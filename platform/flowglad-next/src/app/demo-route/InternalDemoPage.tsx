@@ -151,7 +151,7 @@ const InternalDemoPage = () => {
       organizationId: '123',
       email: 'test@test.com',
     })
-  }, [requestMagicLink])
+  }, [])
   return (
     <PricingTable
       productGroups={productGroups}
