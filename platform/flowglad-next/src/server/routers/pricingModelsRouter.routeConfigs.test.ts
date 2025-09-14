@@ -119,19 +119,26 @@ describe('pricingModelsRouteConfigs', () => {
         routeConfig!.pattern.test('pricing-models/default')
       ).toBe(true)
 
-      // NOTE: This test exposes a potential bug in the mapParams function
-      // The pattern doesn't have capture groups but mapParams tries to access matches[0]
-      // This should probably return undefined or an empty object instead
+      // BUG: This test exposes a bug in the mapParams implementation.
+      // The route pattern /^pricing-models\/default$/ has no capture groups,
+      // but mapParams tries to access matches[0].
+      //
+      // Current buggy behavior:
       const result = routeConfig!.mapParams([])
       expect(result).toEqual({ externalId: undefined })
 
-      // Test with actual matches array (what would happen in real usage)
+      // With actual matches array, it incorrectly uses the full match
       const resultWithMatches = routeConfig!.mapParams([
         'pricing-models/default',
       ])
       expect(resultWithMatches).toEqual({
         externalId: 'pricing-models/default',
       })
+
+      // EXPECTED BEHAVIOR: Since this is a static route with no parameters,
+      // and the pricingModels.getDefault procedure expects no arguments,
+      // mapParams should return undefined:
+      // expect(routeConfig!.mapParams([])).toBeUndefined()
     })
   })
 
@@ -335,25 +342,36 @@ describe('pricingModelsRouteConfigs', () => {
       expect(result2).toEqual({ id: 'pricing-model_123-abc' })
     })
 
-    it('should handle mapParams for default pricing model route (exposes bug)', () => {
+    it('should handle mapParams for default pricing model route (documents bug)', () => {
       const routeConfig =
         getDefaultPricingModelRouteConfig[
           'GET /pricing-models/default'
         ]
 
-      // This test exposes the bug: no capture groups but tries to access matches[0]
-      // With an empty matches array, this returns undefined for externalId
+      // BUG DOCUMENTATION:
+      // The implementation in pricingModelsRouter.ts has a bug where mapParams
+      // attempts to read matches[0] for a static route with no capture groups.
+      // The regex pattern /^pricing-models\/default$/ has no parentheses for captures.
+      //
+      // CURRENT BUGGY BEHAVIOR:
+      // - With empty matches: returns { externalId: undefined }
+      // - With matches array: incorrectly uses full match as externalId
       const result1 = routeConfig!.mapParams([])
       expect(result1).toEqual({ externalId: undefined })
 
-      // With a matches array, it incorrectly uses the full match as externalId
-      // This is probably not the intended behavior
       const result2 = routeConfig!.mapParams([
         'pricing-models/default',
       ])
       expect(result2).toEqual({
         externalId: 'pricing-models/default',
       })
+
+      // CORRECT BEHAVIOR:
+      // Since pricingModels.getDefault expects no arguments and this is a static route,
+      // mapParams should return undefined:
+      //
+      // const correctImplementation = () => undefined
+      // expect(correctImplementation()).toBeUndefined()
     })
   })
 
