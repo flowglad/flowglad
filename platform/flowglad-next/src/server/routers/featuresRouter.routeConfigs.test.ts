@@ -1,24 +1,21 @@
 import { describe, it, expect } from 'vitest'
 import { featuresRouteConfigs } from './featuresRouter'
+import {
+  findRouteConfigInArray,
+  getAllRouteKeysFromArray,
+  validateRouteConfigStructure,
+  validateStandardCrudMappings,
+} from './routeConfigs.test-utils'
 
 describe('featuresRouteConfigs', () => {
   // Helper function to find route config in the array
   const findRouteConfig = (routeKey: string) => {
-    for (const routeConfigObj of featuresRouteConfigs) {
-      if (routeConfigObj[routeKey]) {
-        return routeConfigObj[routeKey]
-      }
-    }
-    return undefined
+    return findRouteConfigInArray(featuresRouteConfigs, routeKey)
   }
 
   // Helper function to get all route keys from the array
   const getAllRouteKeys = () => {
-    const keys: string[] = []
-    for (const routeConfigObj of featuresRouteConfigs) {
-      keys.push(...Object.keys(routeConfigObj))
-    }
-    return keys
+    return getAllRouteKeysFromArray(featuresRouteConfigs)
   }
 
   describe('Route pattern matching and procedure mapping', () => {
@@ -282,38 +279,17 @@ describe('featuresRouteConfigs', () => {
       featuresRouteConfigs.forEach((routeConfigObj) => {
         Object.entries(routeConfigObj).forEach(
           ([routeKey, config]) => {
-            // Each config should have required properties
-            expect(config).toHaveProperty('procedure')
-            expect(config).toHaveProperty('pattern')
-            expect(config).toHaveProperty('mapParams')
-
-            // Procedure should be a valid TRPC procedure path
-            expect(config.procedure).toMatch(/^features\.\w+$/)
-
-            // Pattern should be a RegExp
-            expect(config.pattern).toBeInstanceOf(RegExp)
-
-            // mapParams should be a function
-            expect(typeof config.mapParams).toBe('function')
+            validateRouteConfigStructure(config, 'features')
           }
         )
       })
     })
 
     it('should map to correct TRPC procedures', () => {
-      const expectedMappings = {
-        'POST /features': 'features.create',
-        'PUT /features/:id': 'features.update',
-        'GET /features/:id': 'features.get',
-        'GET /features': 'features.list',
-        'DELETE /features/:id': 'features.delete',
-      }
-
-      Object.entries(expectedMappings).forEach(
-        ([routeKey, expectedProcedure]) => {
-          const config = findRouteConfig(routeKey)
-          expect(config!.procedure).toBe(expectedProcedure)
-        }
+      validateStandardCrudMappings(
+        findRouteConfig,
+        'features',
+        'features'
       )
     })
 

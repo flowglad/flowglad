@@ -1,12 +1,28 @@
 import { describe, it, expect } from 'vitest'
 import { invoicesRouteConfigs } from './invoicesRouter'
+import {
+  findRouteConfigInArray,
+  getAllRouteKeysFromArray,
+  findRouteConfigInObject,
+  getAllRouteKeysFromObject,
+  validateRouteConfigStructure,
+  validateStandardCrudMappings,
+} from './routeConfigs.test-utils'
 
 describe('invoicesRouteConfigs', () => {
+  // Helper function to find route config in the array
+  const findRouteConfig = (routeKey: string) => {
+    return findRouteConfigInArray(invoicesRouteConfigs, routeKey)
+  }
+
+  // Helper function to get all route keys from the array
+  const getAllRouteKeys = () => {
+    return getAllRouteKeysFromArray(invoicesRouteConfigs)
+  }
+
   describe('Route pattern matching and procedure mapping', () => {
     it('should map POST /invoices to invoices.create procedure', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'POST /invoices' in config
-      )?.['POST /invoices']
+      const routeConfig = findRouteConfig('POST /invoices')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('invoices.create')
@@ -21,9 +37,7 @@ describe('invoicesRouteConfigs', () => {
     })
 
     it('should map PUT /invoices/:id to invoices.update procedure', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'PUT /invoices/:id' in config
-      )?.['PUT /invoices/:id']
+      const routeConfig = findRouteConfig('PUT /invoices/:id')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('invoices.update')
@@ -39,9 +53,7 @@ describe('invoicesRouteConfigs', () => {
     })
 
     it('should map GET /invoices/:id to invoices.get procedure', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'GET /invoices/:id' in config
-      )?.['GET /invoices/:id']
+      const routeConfig = findRouteConfig('GET /invoices/:id')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('invoices.get')
@@ -53,9 +65,7 @@ describe('invoicesRouteConfigs', () => {
     })
 
     it('should map GET /invoices to invoices.list procedure', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'GET /invoices' in config
-      )?.['GET /invoices']
+      const routeConfig = findRouteConfig('GET /invoices')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('invoices.list')
@@ -67,9 +77,7 @@ describe('invoicesRouteConfigs', () => {
     })
 
     it('should map DELETE /invoices/:id to invoices.delete procedure', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'DELETE /invoices/:id' in config
-      )?.['DELETE /invoices/:id']
+      const routeConfig = findRouteConfig('DELETE /invoices/:id')
 
       expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('invoices.delete')
@@ -84,16 +92,12 @@ describe('invoicesRouteConfigs', () => {
   describe('Route pattern RegExp validation', () => {
     it('should have valid RegExp patterns that match expected paths', () => {
       // Invoice creation pattern should match 'invoices'
-      const createConfig = invoicesRouteConfigs.find(
-        (config) => 'POST /invoices' in config
-      )?.['POST /invoices']
+      const createConfig = findRouteConfig('POST /invoices')
       expect(createConfig!.pattern.test('invoices')).toBe(true)
       expect(createConfig!.pattern.test('invoices/id')).toBe(false)
 
       // Invoice get pattern should match 'invoices/abc123'
-      const getConfig = invoicesRouteConfigs.find(
-        (config) => 'GET /invoices/:id' in config
-      )?.['GET /invoices/:id']
+      const getConfig = findRouteConfig('GET /invoices/:id')
       expect(getConfig!.pattern.test('invoices/abc123')).toBe(true)
       expect(getConfig!.pattern.test('invoices')).toBe(false)
       expect(getConfig!.pattern.test('invoices/abc123/extra')).toBe(
@@ -101,40 +105,30 @@ describe('invoicesRouteConfigs', () => {
       )
 
       // Invoice update pattern should match 'invoices/abc123'
-      const updateConfig = invoicesRouteConfigs.find(
-        (config) => 'PUT /invoices/:id' in config
-      )?.['PUT /invoices/:id']
+      const updateConfig = findRouteConfig('PUT /invoices/:id')
       expect(updateConfig!.pattern.test('invoices/abc123')).toBe(true)
       expect(updateConfig!.pattern.test('invoices')).toBe(false)
 
       // Invoice delete pattern should match 'invoices/abc123'
-      const deleteConfig = invoicesRouteConfigs.find(
-        (config) => 'DELETE /invoices/:id' in config
-      )?.['DELETE /invoices/:id']
+      const deleteConfig = findRouteConfig('DELETE /invoices/:id')
       expect(deleteConfig!.pattern.test('invoices/abc123')).toBe(true)
       expect(deleteConfig!.pattern.test('invoices')).toBe(false)
 
       // Invoice list pattern should match 'invoices' only
-      const listConfig = invoicesRouteConfigs.find(
-        (config) => 'GET /invoices' in config
-      )?.['GET /invoices']
+      const listConfig = findRouteConfig('GET /invoices')
       expect(listConfig!.pattern.test('invoices')).toBe(true)
       expect(listConfig!.pattern.test('invoices/id')).toBe(false)
     })
 
     it('should extract correct matches from URL paths', () => {
       // Test invoice get pattern extraction
-      const getConfig = invoicesRouteConfigs.find(
-        (config) => 'GET /invoices/:id' in config
-      )?.['GET /invoices/:id']
+      const getConfig = findRouteConfig('GET /invoices/:id')
       const getMatches = getConfig!.pattern.exec('invoices/test-id')
       expect(getMatches).not.toBeNull()
       expect(getMatches![1]).toBe('test-id') // First capture group
 
       // Test invoice update pattern extraction
-      const updateConfig = invoicesRouteConfigs.find(
-        (config) => 'PUT /invoices/:id' in config
-      )?.['PUT /invoices/:id']
+      const updateConfig = findRouteConfig('PUT /invoices/:id')
       const updateMatches = updateConfig!.pattern.exec(
         'invoices/test-id'
       )
@@ -142,9 +136,7 @@ describe('invoicesRouteConfigs', () => {
       expect(updateMatches![1]).toBe('test-id') // First capture group
 
       // Test invoice delete pattern extraction
-      const deleteConfig = invoicesRouteConfigs.find(
-        (config) => 'DELETE /invoices/:id' in config
-      )?.['DELETE /invoices/:id']
+      const deleteConfig = findRouteConfig('DELETE /invoices/:id')
       const deleteMatches = deleteConfig!.pattern.exec(
         'invoices/test-id'
       )
@@ -152,17 +144,13 @@ describe('invoicesRouteConfigs', () => {
       expect(deleteMatches![1]).toBe('test-id') // First capture group
 
       // Test invoice list pattern (no captures)
-      const listConfig = invoicesRouteConfigs.find(
-        (config) => 'GET /invoices' in config
-      )?.['GET /invoices']
+      const listConfig = findRouteConfig('GET /invoices')
       const listMatches = listConfig!.pattern.exec('invoices')
       expect(listMatches).not.toBeNull()
       expect(listMatches!.length).toBe(1) // Only the full match, no capture groups
 
       // Test invoice create pattern (no captures)
-      const createConfig = invoicesRouteConfigs.find(
-        (config) => 'POST /invoices' in config
-      )?.['POST /invoices']
+      const createConfig = findRouteConfig('POST /invoices')
       const createMatches = createConfig!.pattern.exec('invoices')
       expect(createMatches).not.toBeNull()
       expect(createMatches!.length).toBe(1) // Only the full match, no capture groups
@@ -171,9 +159,7 @@ describe('invoicesRouteConfigs', () => {
 
   describe('mapParams function behavior', () => {
     it('should correctly map URL parameters for invoice get requests', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'GET /invoices/:id' in config
-      )?.['GET /invoices/:id']
+      const routeConfig = findRouteConfig('GET /invoices/:id')
 
       // Simulate what route handler does - slices off the full match
       const result = routeConfig!.mapParams(['inv_123'])
@@ -184,9 +170,7 @@ describe('invoicesRouteConfigs', () => {
     })
 
     it('should correctly map URL parameters and body for invoice update requests', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'PUT /invoices/:id' in config
-      )?.['PUT /invoices/:id']
+      const routeConfig = findRouteConfig('PUT /invoices/:id')
       const testBody = {
         amount: 30000,
         status: 'paid',
@@ -205,9 +189,7 @@ describe('invoicesRouteConfigs', () => {
     })
 
     it('should correctly map URL parameters for invoice delete requests', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'DELETE /invoices/:id' in config
-      )?.['DELETE /invoices/:id']
+      const routeConfig = findRouteConfig('DELETE /invoices/:id')
 
       // Simulate what route handler does - slices off the full match
       const result = routeConfig!.mapParams(['inv_789'])
@@ -218,9 +200,7 @@ describe('invoicesRouteConfigs', () => {
     })
 
     it('should return body for invoice create requests', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'POST /invoices' in config
-      )?.['POST /invoices']
+      const routeConfig = findRouteConfig('POST /invoices')
       const testBody = {
         customerId: 'cus_123',
         amount: 50000,
@@ -237,9 +217,7 @@ describe('invoicesRouteConfigs', () => {
     })
 
     it('should return undefined for invoice list requests', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'GET /invoices' in config
-      )?.['GET /invoices']
+      const routeConfig = findRouteConfig('GET /invoices')
 
       const result = routeConfig!.mapParams([])
 
@@ -247,9 +225,7 @@ describe('invoicesRouteConfigs', () => {
     })
 
     it('should handle special characters and encoded values in id', () => {
-      const routeConfig = invoicesRouteConfigs.find(
-        (config) => 'GET /invoices/:id' in config
-      )?.['GET /invoices/:id']
+      const routeConfig = findRouteConfig('GET /invoices/:id')
 
       // Test with URL-encoded characters (simulate route handler slicing)
       const result1 = routeConfig!.mapParams(['inv%40123'])
@@ -269,10 +245,7 @@ describe('invoicesRouteConfigs', () => {
 
   describe('Route config completeness', () => {
     it('should have all expected CRUD route configs', () => {
-      const routeKeys: string[] = []
-      invoicesRouteConfigs.forEach((config) => {
-        routeKeys.push(...Object.keys(config))
-      })
+      const routeKeys = getAllRouteKeys()
 
       // Check that all expected routes exist
       expect(routeKeys).toContain('POST /invoices') // create
@@ -293,9 +266,7 @@ describe('invoicesRouteConfigs', () => {
       ]
 
       idRoutes.forEach((routeKey) => {
-        const config = invoicesRouteConfigs.find(
-          (c) => routeKey in c
-        )?.[routeKey]
+        const config = findRouteConfig(routeKey)
 
         // Test that mapParams consistently uses 'id' (simulate route handler slicing)
         const result = config!.mapParams(['test-id'], {
@@ -311,18 +282,7 @@ describe('invoicesRouteConfigs', () => {
         Object.entries(routeConfigObj).forEach(
           ([routeKey, config]) => {
             // Each config should have required properties
-            expect(config).toHaveProperty('procedure')
-            expect(config).toHaveProperty('pattern')
-            expect(config).toHaveProperty('mapParams')
-
-            // Procedure should be a valid TRPC procedure path
-            expect(config.procedure).toMatch(/^invoices\.\w+$/)
-
-            // Pattern should be a RegExp
-            expect(config.pattern).toBeInstanceOf(RegExp)
-
-            // mapParams should be a function
-            expect(typeof config.mapParams).toBe('function')
+            validateRouteConfigStructure(config, 'invoices')
           }
         )
       })
@@ -339,9 +299,7 @@ describe('invoicesRouteConfigs', () => {
 
       Object.entries(expectedMappings).forEach(
         ([routeKey, expectedProcedure]) => {
-          const config = invoicesRouteConfigs.find(
-            (c) => routeKey in c
-          )?.[routeKey]
+          const config = findRouteConfig(routeKey)
           expect(config!.procedure).toBe(expectedProcedure)
         }
       )
