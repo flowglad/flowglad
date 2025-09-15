@@ -1,7 +1,10 @@
 'use client'
 
 import { useFormContext } from '@/components/ui/form'
+<<<<<<< HEAD
 import { Controller } from 'react-hook-form'
+=======
+>>>>>>> c149cdd7 (added cards to create pricing model form)
 import { CreatePricingModelInput } from '@/db/schema/pricingModels'
 import { Input } from '@/components/ui/input'
 import {
@@ -20,7 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+<<<<<<< HEAD
 import { Card } from '@/components/ui/card'
+=======
+import { Card } from '@/registry/components/card'
+>>>>>>> c149cdd7 (added cards to create pricing model form)
 
 export default function PricingModelFormFields({ edit }: { edit?: boolean }) {
   const form = useFormContext<CreatePricingModelInput>()
@@ -75,10 +82,14 @@ export default function PricingModelFormFields({ edit }: { edit?: boolean }) {
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
+<<<<<<< HEAD
             if (e.key === 'Enter') {
               e.preventDefault()
               chooseRenewing()
             }
+=======
+            if (e.key === 'Enter' || e.key === ' ') chooseRenewing()
+>>>>>>> c149cdd7 (added cards to create pricing model form)
           }}
         >
           <div className="font-medium">Renewing</div>
@@ -92,16 +103,24 @@ export default function PricingModelFormFields({ edit }: { edit?: boolean }) {
             `cursor-pointer text-left px-4 ${
               !isRenewing
                 ? 'border-2 border-primary'
+<<<<<<< HEAD
                 : 'border-border hover:border-primary/50'
+=======
+                : 'border-border hover-border-primary/50'
+>>>>>>> c149cdd7 (added cards to create pricing model form)
             }`
           }
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
+<<<<<<< HEAD
             if (e.key === 'Enter') {
               e.preventDefault()
               chooseNonRenewing()
             }
+=======
+            if (e.key === 'Enter' || e.key === ' ') chooseNonRenewing()
+>>>>>>> c149cdd7 (added cards to create pricing model form)
           }}
         >
           <div className="font-medium">Non-renewing</div>
