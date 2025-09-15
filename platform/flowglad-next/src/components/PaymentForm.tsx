@@ -607,19 +607,9 @@ const PaymentForm = () => {
               </span>
             </div>
           )}
-          {/* Terms and Privacy Notice */}
-          <div className="text-center">
-            <p className="text-[13px] text-gray-600 leading-[24px] max-w-[80%] mx-auto">
-              {flowType === CheckoutFlowType.AddPaymentMethod
-                ? 'By adding a payment method, you agree to'
-                : 'By paying, you agree to'}{' '}
-              {sellerOrganization?.name || 'our'} Terms and Privacy.
-            </p>
-          </div>
           {/* Footer Links */}
           <div className="flex flex-col items-center gap-1 pt-4">
             <PoweredByFlowglad />
-
             <div className="flex items-center gap-2.5 text-[13px] text-gray-600">
               <a
                 href="/terms"
