@@ -53,7 +53,7 @@ const OnboardingPage = async () => {
     return redirect('/onboarding/business-details')
   }
   let organization = results.organization
-  const testmodeApiKeys = await adminTransaction(
+  const testmodeApiKeys: ApiKey.Record[] = await adminTransaction(
     async ({ transaction }) => {
       return selectApiKeys(
         { organizationId: organization.id, livemode: false },
@@ -61,10 +61,9 @@ const OnboardingPage = async () => {
       )
     }
   )
-  let secretApiKey: ApiKey.ClientRecord | undefined =
-    testmodeApiKeys.find(
-      (key) => key.type === FlowgladApiKeyType.Secret
-    )
+  let secretApiKey: ApiKey.Record | undefined = testmodeApiKeys.find(
+    (key) => key.type === FlowgladApiKeyType.Secret
+  )
   const session = await getSession()
 
   if (!secretApiKey) {
