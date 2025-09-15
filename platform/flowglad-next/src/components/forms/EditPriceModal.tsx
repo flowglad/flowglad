@@ -42,6 +42,9 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
   })
 
   const { organization } = useAuthenticatedContext()
+  const productQuery = trpc.products.get.useQuery({ id: price.productId })
+  const isDefaultProduct = productQuery.data?.default === true
+  const isDefaultPrice = price.isDefault === true
   return (
     <FormModal
       isOpen={isOpen}
@@ -62,7 +65,13 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
         })
       }}
     >
-      <PriceFormFields priceOnly edit productId={price.productId} />
+      <PriceFormFields
+        priceOnly
+        edit
+        productId={price.productId}
+        isDefaultProductOverride={isDefaultProduct}
+        isDefaultPriceOverride={isDefaultPrice}
+      />
     </FormModal>
   )
 }

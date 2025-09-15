@@ -20,6 +20,7 @@ import core from '@/utils/core'
 import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
 import { Product } from '@/db/schema/products'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
+import { useEffect } from 'react'
 
 export const ProductFormFields = ({
   editProduct = false,
@@ -28,6 +29,14 @@ export const ProductFormFields = ({
 }) => {
   const form = useFormContext<CreateProductSchema>()
   const product = form.watch('product')
+  const isDefaultProduct = product?.default === true
+
+  // Ensure default products remain active in UI
+  useEffect(() => {
+    if (isDefaultProduct && product?.active !== true) {
+      form.setValue('product.active', true)
+    }
+  }, [isDefaultProduct, product?.active, form])
 
   if (
     !core.IS_PROD &&
@@ -41,6 +50,11 @@ export const ProductFormFields = ({
       <div className="flex-1 w-full max-w-[656px] min-w-[460px] relative flex flex-col rounded-radius-md">
         <div className="w-full relative flex flex-col items-start">
           <div className="flex-1 w-full relative flex flex-col justify-center gap-6">
+            {isDefaultProduct && (
+              <p className="text-xs text-muted-foreground">
+                Product slug, price slug, status, price type, price amount, and trial settings are locked on default plans.
+              </p>
+            )}
             <FormField
               control={form.control}
               name="product.name"
@@ -70,7 +84,8 @@ export const ProductFormFields = ({
                       name="product.slug"
                       sourceName="product.name"
                       placeholder="product_slug"
-                      disabledAuto={editProduct}
+                      disabledAuto={editProduct || isDefaultProduct}
+                      disabled={isDefaultProduct}
                       className="w-full"
                     />
                   </FormControl>
@@ -135,6 +150,7 @@ export const ProductFormFields = ({
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
+                        disabled={isDefaultProduct}
                         label={
                           <div className="cursor-pointer w-full">
                             {field.value ? (

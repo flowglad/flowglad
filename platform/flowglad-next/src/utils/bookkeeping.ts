@@ -301,7 +301,7 @@ export const createFreePlanPriceInsert = (
       usageEventsPerUnit: null,
       usageMeterId: null,
       externalId: null,
-      slug: null,
+      slug: 'free',
       startsWithCreditTrial: false,
       overagePriceId: null,
     }
@@ -323,7 +323,7 @@ export const createFreePlanPriceInsert = (
       usageEventsPerUnit: null,
       usageMeterId: null,
       externalId: null,
-      slug: null,
+      slug: 'free',
       startsWithCreditTrial: null,
       overagePriceId: null,
     }
