@@ -589,23 +589,17 @@ const PaymentForm = () => {
               className={cn(
                 'bg-gray-50 border border-gray-200', // Light background for white theme
                 'rounded-[8px] p-4',
-                'flex items-center justify-center gap-2'
+                'flex items-center justify-center gap-1.5'
               )}
             >
               <div className="w-6 h-6 text-gray-500">
-                {/* Security icon */}
+                {/* Security icon - filled */}
                 <svg
                   className="w-full h-full"
-                  fill="none"
-                  stroke="currentColor"
+                  fill="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  />
+                  <path d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2ZM9 6a3 3 0 0 1 6 0v2H9V6Zm3 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z" />
                 </svg>
               </div>
               <span className="text-[13px] text-gray-600 leading-[24px]">
@@ -623,7 +617,7 @@ const PaymentForm = () => {
             </p>
           </div>
           {/* Footer Links */}
-          <div className="flex flex-col items-center gap-4 pt-4">
+          <div className="flex flex-col items-center gap-1 pt-4">
             <PoweredByFlowglad />
 
             <div className="flex items-center gap-2.5 text-[13px] text-gray-600">
