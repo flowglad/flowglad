@@ -550,7 +550,6 @@ const PaymentForm = () => {
                 'rounded-[8px]', // LS border radius
                 'text-[16px] leading-[28px]', // LS typography
                 'transition-all duration-200', // Smooth transitions
-                // Lemon Squeezy disabled state pattern - override pointer-events-none
                 'disabled:!pointer-events-auto disabled:cursor-not-allowed disabled:opacity-50',
                 // Hover states
                 'hover:cursor-pointer',
@@ -574,47 +573,52 @@ const PaymentForm = () => {
             {errorMessage && (
               <ErrorLabel error={errorMessage} className="mt-3" />
             )}
-            {!checkoutSession.livemode && (
-              <div className="p-4 bg-gray-50 border border-gray-200 justify-center items-center text-center w-full flex mt-6 rounded-[8px]">
-                <div className="text-gray-600 text-sm">
-                  <p>This is a test mode checkout.</p>
-                  <p>No payments will be processed.</p>
+            {!checkoutSession.livemode &&
+              flowType !== CheckoutFlowType.AddPaymentMethod && (
+                <div className="p-4 bg-gray-50 border border-gray-200 justify-center items-center text-center w-full flex mt-6 rounded-[8px]">
+                  <div className="text-gray-600 text-sm">
+                    <p>This is a test mode checkout.</p>
+                    <p>No payments will be processed.</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
           {/* Security Notice */}
-          <div
-            className={cn(
-              'bg-gray-50 border border-gray-200', // Light background for white theme
-              'rounded-[8px] p-4',
-              'flex items-center justify-center gap-2'
-            )}
-          >
-            <div className="w-6 h-6 text-gray-500">
-              {/* Security icon */}
-              <svg
-                className="w-full h-full"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
+          {flowType !== CheckoutFlowType.AddPaymentMethod && (
+            <div
+              className={cn(
+                'bg-gray-50 border border-gray-200', // Light background for white theme
+                'rounded-[8px] p-4',
+                'flex items-center justify-center gap-2'
+              )}
+            >
+              <div className="w-6 h-6 text-gray-500">
+                {/* Security icon */}
+                <svg
+                  className="w-full h-full"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+              </div>
+              <span className="text-[13px] text-gray-600 leading-[24px]">
+                Payments are secure and encrypted
+              </span>
             </div>
-            <span className="text-[13px] text-gray-600 leading-[24px]">
-              Payments are secure and encrypted
-            </span>
-          </div>
+          )}
           {/* Terms and Privacy Notice */}
           <div className="text-center">
             <p className="text-[13px] text-gray-600 leading-[24px]">
-              By paying, you agree to{' '}
+              {flowType === CheckoutFlowType.AddPaymentMethod
+                ? 'By adding a payment method, you agree to'
+                : 'By paying, you agree to'}{' '}
               {sellerOrganization?.name || 'our'} Terms and Privacy.
             </p>
           </div>

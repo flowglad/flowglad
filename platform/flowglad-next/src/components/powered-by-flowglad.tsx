@@ -18,12 +18,12 @@ export function PoweredByFlowglad({
     >
       <div
         className="text-sm font-medium text-center"
-        style={{ color: '#374151' }}
+        style={{ color: '#111827' }}
       >
         Powered by
       </div>
       <Link href="https://flowglad.com">
-        <FlowgladWordmark fill="#374151" />
+        <FlowgladWordmark fill="#111827" />
       </Link>
     </div>
   )
