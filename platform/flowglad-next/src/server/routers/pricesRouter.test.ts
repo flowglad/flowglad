@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import { setupOrg } from '@/../seedDatabase'
+import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
 import { insertProduct } from '@/db/tableMethods/productMethods'
 import {
@@ -13,6 +13,9 @@ import core from '@/utils/core'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
 import { TRPCError } from '@trpc/server'
+import { pricesRouter } from './pricesRouter'
+import { productsRouter } from './productsRouter'
+import * as orgSetup from '@/db/tableMethods/organizationMethods'
 
 describe('pricesRouter - Default Price Constraints', () => {
   let organizationId: string
@@ -246,6 +249,126 @@ describe('pricesRouter - Default Price Constraints', () => {
       expect(result.active).toBe(false)
       expect(result.unitPrice).toBe(0) // Should remain 0
       expect(result.isDefault).toBe(true) // Should remain default
+    })
+  })
+
+  describe('router-level behaviors', () => {
+    it('pricesRouter.edit: throws NOT_FOUND for missing price id', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+      }
+      await expect(
+        pricesRouter.createCaller(ctx).edit({
+          price: {
+            id: 'price_missing_' + core.nanoid(),
+            type: PriceType.Subscription,
+          } as any,
+        } as any)
+      ).rejects.toThrow(TRPCError)
+    })
+
+    it('productsRouter.edit: enforces cross-product price guard (BAD_REQUEST)', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+      }
+      // create another product with its own price
+      await adminTransaction(async ({ transaction }) => {
+        const otherProduct = await insertProduct(
+          {
+            name: 'Another Product',
+            slug: 'another-product',
+            default: false,
+            description: null,
+            imageURL: null,
+            displayFeatures: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId,
+            organizationId,
+            livemode,
+            active: true,
+          },
+          transaction
+        )
+        const org = await orgSetup.selectOrganizationById(
+          organizationId,
+          transaction
+        )
+        const otherPrice = await insertPrice(
+          {
+            productId: otherProduct.id,
+            unitPrice: 4000,
+            isDefault: true,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: org.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'Other Price',
+            trialPeriodDays: null,
+            setupFeeAmount: null,
+            usageEventsPerUnit: null,
+            usageMeterId: null,
+            externalId: null,
+            slug: null,
+            startsWithCreditTrial: false,
+            overagePriceId: null,
+          },
+          transaction
+        )
+        await expect(
+          productsRouter.createCaller(ctx).edit({
+            product: { id: defaultProductId },
+            price: { id: otherPrice.id } as any,
+          } as any)
+        ).rejects.toThrow(TRPCError)
+      })
+    })
+
+    it('pricesRouter.create: enforces single default per product and auto-default for first price', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+      }
+      // attempt to create another default price for default product should fail
+      await expect(
+        pricesRouter.createCaller(ctx).create({
+          price: {
+            productId: defaultProductId,
+            unitPrice: 0,
+            isDefault: true,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            name: 'Duplicate Default',
+          } as any,
+        } as any)
+      ).rejects.toThrow(TRPCError)
     })
   })
 

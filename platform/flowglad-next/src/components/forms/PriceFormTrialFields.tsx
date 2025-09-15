@@ -19,7 +19,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 
-const TrialFields = () => {
+const TrialFields = ({
+  disabled = false,
+}: {
+  disabled?: boolean
+}) => {
   const {
     formState: { errors },
     control,
@@ -50,6 +54,15 @@ const TrialFields = () => {
       setTrialType(overagePriceId ? 'credit' : 'time')
     }
   }, [overagePriceId, startsWithCreditTrial, setTrialType])
+
+  // When disabled, force trials off in the form and local UI state
+  useEffect(() => {
+    if (disabled) {
+      setOfferTrial(false)
+      setValue('price.trialPeriodDays', 0)
+      setValue('price.startsWithCreditTrial', null)
+    }
+  }, [disabled, setValue])
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center space-x-2">
@@ -78,6 +91,9 @@ const TrialFields = () => {
             <Select
               value={trialType}
               onValueChange={(value) => {
+                if (disabled) {
+                  return
+                }
                 setTrialType(value as 'credit' | 'time')
                 if (value === 'credit') {
                   setValue('price.startsWithCreditTrial', true)
@@ -86,7 +102,7 @@ const TrialFields = () => {
                 }
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger disabled={disabled}>
                 <SelectValue placeholder="Select trial type" />
               </SelectTrigger>
               <SelectContent>
@@ -98,7 +114,7 @@ const TrialFields = () => {
                 </SelectItem>
                 <SelectItem
                   value="credit"
-                  disabled={!overagePriceId}
+                  disabled={!overagePriceId || disabled}
                   description="For one-time credit grant trials. Requires an overage price"
                 >
                   Credit
@@ -106,35 +122,33 @@ const TrialFields = () => {
               </SelectContent>
             </Select>
           </div>
-          {trialType === 'time' && (
-            <FormField
-              name="price.trialPeriodDays"
-              control={control}
-              render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>Trial Period Days</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={365}
-                      step={1}
-                      placeholder="7"
-                      value={field.value?.toString() ?? ''}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        const numValue = Number(value)
-                        if (!isNaN(numValue)) {
-                          field.onChange(numValue)
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+          <FormField
+            name="price.trialPeriodDays"
+            control={control}
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel>Trial Period Days</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={365}
+                    step={1}
+                    placeholder="7"
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      const numValue = Number(value)
+                      if (!isNaN(numValue)) {
+                        field.onChange(numValue)
+                      }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </>
       )}
     </div>

@@ -44,7 +44,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
-      title="Edit Product"
+      title={product.default ? 'Edit Default Plan' : 'Edit Product'}
       formSchema={editProductFormSchema}
       defaultValues={{
         product,

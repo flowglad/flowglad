@@ -21,6 +21,8 @@ const CreatePriceModal: React.FC<CreatePriceModalProps> = ({
 }) => {
   const createPrice = trpc.prices.create.useMutation()
   const { organization } = useAuthenticatedContext()
+  const productQuery = trpc.products.get.useQuery({ id: productId })
+  const isDefaultProduct = productQuery.data?.default === true
   return (
     <FormModal
       isOpen={isOpen}
@@ -50,7 +52,11 @@ const CreatePriceModal: React.FC<CreatePriceModalProps> = ({
         })
       }}
     >
-      <PriceFormFields priceOnly productId={productId} />
+      <PriceFormFields
+        priceOnly
+        productId={productId}
+        isDefaultProductOverride={isDefaultProduct}
+      />
     </FormModal>
   )
 }
