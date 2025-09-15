@@ -609,7 +609,7 @@ const PaymentForm = () => {
           )}
           {/* Terms and Privacy Notice */}
           <div className="text-center">
-            <p className="text-[13px] text-gray-600 leading-[24px]">
+            <p className="text-[13px] text-gray-600 leading-[24px] max-w-[80%] mx-auto">
               {flowType === CheckoutFlowType.AddPaymentMethod
                 ? 'By adding a payment method, you agree to'
                 : 'By paying, you agree to'}{' '}
