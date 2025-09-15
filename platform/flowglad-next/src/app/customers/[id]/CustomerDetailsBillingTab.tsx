@@ -23,10 +23,9 @@ const CustomerDetailsSection = ({
   customer: Customer.ClientRecord
   payments: Payment.ClientRecord[]
 }) => {
-  const billingPortalURL = core.billingPortalPageURL({
+  const billingPortalURL = core.customerBillingPortalURL({
     organizationId: customer.organizationId,
-    customerExternalId: customer.externalId,
-    page: 'manage',
+    customerId: customer.id,
   })
 
   return (

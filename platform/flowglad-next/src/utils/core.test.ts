@@ -1,37 +1,23 @@
 import { describe, it, expect } from 'vitest'
 import { core } from '@/utils/core'
 
-describe('billingPortalPageURL', () => {
-  it('creates correct URL for manage page', () => {
-    const url = core.billingPortalPageURL({
+describe('customerBillingPortalURL', () => {
+  it('creates correct URL for billing portal with customerId', () => {
+    const url = core.customerBillingPortalURL({
       organizationId: 'organizationid',
-      customerExternalId: 'customerexternalid',
-      page: 'manage',
+      customerId: 'customerid',
     })
     expect(url).toBe(
-      'http://localhost:3000/p/organizationid/customerexternalid/manage'
+      'http://localhost:3000/billing-portal/organizationid/customerid'
     )
   })
 
-  it('creates correct URL for sign-in page', () => {
-    const url = core.billingPortalPageURL({
+  it('creates correct URL for billing portal without customerId', () => {
+    const url = core.customerBillingPortalURL({
       organizationId: 'organizationid',
-      customerExternalId: 'customerexternalid',
-      page: 'sign-in',
     })
     expect(url).toBe(
-      'http://localhost:3000/p/organizationid/customerexternalid/sign-in'
-    )
-  })
-
-  it('creates correct URL for validate-magic-link page', () => {
-    const url = core.billingPortalPageURL({
-      organizationId: 'organizationid',
-      customerExternalId: 'customerexternalid',
-      page: 'validate-magic-link',
-    })
-    expect(url).toBe(
-      'http://localhost:3000/api/organizationid/customerexternalid/validate-magic-link'
+      'http://localhost:3000/billing-portal/organizationid/'
     )
   })
 })
