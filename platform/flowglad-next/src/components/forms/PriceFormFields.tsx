@@ -1,4 +1,4 @@
-'use client'
+'use client' 
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { IntervalUnit, PriceType } from '@/types'
 import { Switch } from '@/components/ui/switch'
