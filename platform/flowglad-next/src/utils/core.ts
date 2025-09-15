@@ -501,7 +501,6 @@ export const customerBillingPortalURL = (params: {
   customerId?: string
 }) => {
   const { organizationId, customerId } = params
-  console.log('emailBaseUrl', emailBaseUrl)
   return safeUrl(
     `/billing-portal/${organizationId}/${customerId ?? ''}`,
     process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
