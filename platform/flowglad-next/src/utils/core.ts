@@ -493,34 +493,6 @@ export const gitCommitId = () => {
   }
   return commitId
 }
-
-export const billingPortalPageURL = (params: {
-  organizationId: string
-  customerExternalId: string
-  page: 'sign-in' | 'manage' | 'validate-magic-link'
-}) => {
-  const { organizationId, customerExternalId, page } = params
-  const baseURL = core.IS_TEST
-    ? 'http://localhost:3000'
-    : process.env.NEXT_PUBLIC_HOSTED_BILLING_PORTAL_URL!
-
-  if (page === 'validate-magic-link') {
-    /**
-     * Note: stack auth redirects post-magic link signin redirects, for whatever reason,
-     * don't seem to work if we redirect from a page to another page, but they will work if
-     * we redirect to a route to a page
-     */
-    return safeUrl(
-      `api/${organizationId}/${customerExternalId}/${page}`,
-      baseURL
-    )
-  }
-  return safeUrl(
-    `p/${organizationId}/${customerExternalId}/${page}`,
-    baseURL
-  )
-}
-
 export const emailBaseUrl =
   envVariable('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000'
 
@@ -529,9 +501,10 @@ export const customerBillingPortalURL = (params: {
   customerId?: string
 }) => {
   const { organizationId, customerId } = params
+  console.log('emailBaseUrl', emailBaseUrl)
   return safeUrl(
     `/billing-portal/${organizationId}/${customerId ?? ''}`,
-    emailBaseUrl
+    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   )
 }
 
@@ -562,7 +535,6 @@ export const core = {
   areDatabaseIdsEqual,
   constructMidnightDate,
   emailAddressToCompanyDomain,
-  billingPortalPageURL,
   nanoid,
   amountInDollars,
   omit,
