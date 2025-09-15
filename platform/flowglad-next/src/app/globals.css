@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Removed old conflicting variables and hardcoded background */
-/* Now using zinc-based shadcn CSS variables defined below */
-
 @layer utilities {
   .text-balance {
     text-wrap: balance;

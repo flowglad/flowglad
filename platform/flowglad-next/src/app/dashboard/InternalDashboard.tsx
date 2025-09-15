@@ -78,6 +78,8 @@ function InternalDashboardPage({
               <ChartContainer>
                 <DateRangeActiveSubscribersChart
                   organizationCreatedAt={organizationCreatedAt}
+                  fromDate={range.from}
+                  toDate={range.to}
                 />
               </ChartContainer>
             </div>
