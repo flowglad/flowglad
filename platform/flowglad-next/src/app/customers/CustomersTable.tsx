@@ -52,10 +52,9 @@ const CustomerMoreMenuCell = ({
   customer: Customer.ClientRecord
 }) => {
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const billingPortalURL = core.billingPortalPageURL({
+  const billingPortalURL = core.customerBillingPortalURL({
     organizationId: customer.organizationId,
-    customerExternalId: customer.externalId,
-    page: 'manage',
+    customerId: customer.id,
   })
   const copyPortalURLHandler = useCopyTextHandler({
     text: billingPortalURL,
