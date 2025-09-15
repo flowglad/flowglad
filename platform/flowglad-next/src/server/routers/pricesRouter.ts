@@ -72,11 +72,22 @@ export const createPrice = protectedProcedure
       async ({ transaction }) => {
         const { price } = input
 
-        // Get all prices for this product to validate default price constraint
+        // Get product to check if it's a default product
+        const product = await selectProductById(price.productId, transaction)
+        
+        // Get all prices for this product to validate constraints
         const existingPrices = await selectPrices(
           { productId: price.productId },
           transaction
         )
+
+        // Forbid creating additional prices for default products
+        if (product.default && existingPrices.length > 0) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Cannot create additional prices for the default plan',
+          })
+        }
 
         // If we're setting this price as default, ensure no other prices are default
         const defaultPrices = [...existingPrices, price].filter(

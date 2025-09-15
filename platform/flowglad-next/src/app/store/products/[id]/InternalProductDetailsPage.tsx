@@ -111,7 +111,12 @@ function InternalProductDetailsPage(
           buttonLabel="Create Price"
           buttonIcon={<Plus className="w-4 h-4" strokeWidth={2} />}
           buttonOnClick={() => setIsCreatePriceOpen(true)}
-          buttonDisabledTooltip="Product must be selected"
+          buttonDisabled={product.default}
+          buttonDisabledTooltip={
+            product.default
+              ? 'Cannot create additional prices for the default plan'
+              : 'Product must be selected'
+          }
         />
         <PricesTable
           productId={product.id}

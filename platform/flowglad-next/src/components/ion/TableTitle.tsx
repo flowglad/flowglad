@@ -57,7 +57,11 @@ const TableTitleButtonStrip = ({
       return (
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger asChild>{button}</TooltipTrigger>
+            <TooltipTrigger asChild>
+              <span className="inline-flex cursor-not-allowed">
+                {button}
+              </span>
+            </TooltipTrigger>
             <TooltipContent>
               <p>{disabledTooltip}</p>
             </TooltipContent>
