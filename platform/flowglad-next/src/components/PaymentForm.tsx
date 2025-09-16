@@ -370,7 +370,6 @@ const PaymentForm = () => {
                 checkoutSession.status === CheckoutSessionStatus.Open
               ) {
                 const parseResult = z
-                  .string()
                   .email()
                   .safeParse(event.value.email)
                 if (parseResult.success) {
