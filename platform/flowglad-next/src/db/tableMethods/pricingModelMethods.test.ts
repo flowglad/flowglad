@@ -2,13 +2,21 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { Organization } from '@/db/schema/organizations'
-import { setupPricingModel, setupOrg } from '@/../seedDatabase'
+import {
+  setupPricingModel,
+  setupOrg,
+  setupProduct,
+  setupPrice,
+  setupToggleFeature,
+  setupProductFeature,
+} from '@/../seedDatabase'
 import {
   safelyUpdatePricingModel,
   selectPricingModelById,
   safelyInsertPricingModel,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from './pricingModelMethods'
+import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
 
 describe('safelyUpdatePricingModel', () => {
   let organization: Organization.Record
@@ -351,16 +359,6 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
   })
 
   it('should return pricing models with products and features correctly mapped', async () => {
-    const {
-      setupProduct,
-      setupPrice,
-      setupToggleFeature,
-      setupProductFeature,
-    } = await import('@/../seedDatabase')
-    const { PriceType, IntervalUnit, CurrencyCode } = await import(
-      '@/types'
-    )
-
     // Create products for the pricing model
     const product1 = await setupProduct({
       organizationId: organization.id,
