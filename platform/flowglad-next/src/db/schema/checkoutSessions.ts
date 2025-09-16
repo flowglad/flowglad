@@ -452,6 +452,8 @@ const hiddenColumns = {
   expires: true,
   stripePaymentIntentId: true,
   stripeSetupIntentId: true,
+  createdByCommit: true,
+  updatedByCommit: true,
   ...hiddenColumnsForClientSchema,
 } as const
 

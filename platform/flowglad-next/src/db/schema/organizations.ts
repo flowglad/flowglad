@@ -178,11 +178,11 @@ const hiddenColumns = {
   stripeAccountId: true,
   stripeConnectContractType: true,
   externalId: true,
+  createdByCommit: true,
+  updatedByCommit: true,
   ...hiddenColumnsForClientSchema,
   securitySalt: true,
   upfrontProcessingCredits: true,
-  createdByCommit: true,
-  updatedByCommit: true,
 } as const
 
 const readOnlyColumns = {
@@ -201,10 +201,13 @@ export const organizationsClientSelectSchema =
     id: 'OrganizationRecord',
   })
 
-const clientWriteOmits = R.omit(['position'], {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-})
+const clientWriteOmits = R.omit(
+  ['position', 'createdByCommit', 'updatedByCommit'],
+  {
+    ...hiddenColumns,
+    ...readOnlyColumns,
+  }
+)
 export const organizationsClientUpdateSchema =
   organizationsUpdateSchema.omit(clientWriteOmits).meta({
     id: 'OrganizationUpdate',
