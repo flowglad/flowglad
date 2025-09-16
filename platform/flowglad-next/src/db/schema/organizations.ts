@@ -181,6 +181,8 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
   securitySalt: true,
   upfrontProcessingCredits: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 const readOnlyColumns = {
@@ -199,13 +201,10 @@ export const organizationsClientSelectSchema =
     id: 'OrganizationRecord',
   })
 
-const clientWriteOmits = R.omit(
-  ['position', 'createdByCommit', 'updatedByCommit'],
-  {
-    ...hiddenColumns,
-    ...readOnlyColumns,
-  }
-)
+const clientWriteOmits = R.omit(['position'], {
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
 export const organizationsClientUpdateSchema =
   organizationsUpdateSchema.omit(clientWriteOmits).meta({
     id: 'OrganizationUpdate',

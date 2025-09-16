@@ -151,7 +151,7 @@ const priceProductJoinResultToProductAndPrices = (
   result: {
     price: Price.Record
     product: Product.Record
-    feature: Feature.Record
+    feature?: Feature.Record
   }[]
 ): ProductWithPrices[] => {
   const productMap = new Map<string, Product.Record>()
@@ -160,7 +160,9 @@ const priceProductJoinResultToProductAndPrices = (
   result.forEach((item) => {
     productMap.set(item.product.id, item.product)
     pricesMap.set(item.price.id, item.price)
-    featureMap.set(item.feature.id, item.feature)
+    if (item.feature) {
+      featureMap.set(item.feature.id, item.feature)
+    }
   })
 
   const products = Array.from(productMap.values())
@@ -185,7 +187,7 @@ const priceProductJoinResultToProductAndPrices = (
 const priceProductFeatureSchema = z.object({
   price: pricesSelectSchema,
   product: productsSelectSchema,
-  feature: featuresSelectSchema,
+  feature: featuresSelectSchema.optional(),
 })
 
 type PriceProductFeature = z.infer<typeof priceProductFeatureSchema>
@@ -211,7 +213,18 @@ export const selectPricesAndProductsByProductWhere = async (
     .orderBy(asc(products.createdAt))
 
   const parsedResults: PriceProductFeature[] =
-    priceProductFeatureSchema.array().parse(results)
+    priceProductFeatureSchema.array().parse(
+      results.map((item) => {
+        return {
+          ...item,
+          /**
+           * Returns null if feature is not found,
+           * undefined makes this pass the .optional() check
+           */
+          feature: item.feature ?? undefined,
+        }
+      })
+    )
 
   return priceProductJoinResultToProductAndPrices(parsedResults)
 }
