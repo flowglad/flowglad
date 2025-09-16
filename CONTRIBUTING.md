@@ -178,3 +178,17 @@ pnpm test:setup
 ```
 pnpm test
 ```
+
+### Adding tests (backend)
+
+Follow this sequence when introducing new tests:
+- Plan: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-1-outline-test-cases.md`
+- Stub: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-2-planning-stubs.md`
+- Global setup: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-3-before-each-setup.md`
+- Implement: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-4-implementation.md`
+
+Guidelines:
+- Do not mock the database. Tests use the local Postgres test instance (Docker) with real reads/writes.
+- Use the seeding helpers in `platform/flowglad-next/seedDatabase.ts` to create state; avoid ad‑hoc inserts.
+- When asserting existence or absence, fetch and compare primary keys (ids) rather than relying solely on list lengths.
+- Useful commands: `pnpm test` (CI run), `pnpm test:watch` (local TDD), `pnpm test:setup` (reset DB), `pnpm test:teardown` (stop DB).
