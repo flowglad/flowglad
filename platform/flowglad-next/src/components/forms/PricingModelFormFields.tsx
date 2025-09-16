@@ -74,7 +74,10 @@ export default function PricingModelFormFields({ edit }: { edit?: boolean }) {
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') chooseRenewing()
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              chooseRenewing()
+            }
           }}
         >
           <div className="font-medium">Renewing</div>
@@ -88,13 +91,16 @@ export default function PricingModelFormFields({ edit }: { edit?: boolean }) {
             `cursor-pointer text-left px-4 ${
               !isRenewing
                 ? 'border-2 border-primary'
-                : 'border-border hover-border-primary/50'
+                : 'border-border hover:border-primary/50'
             }`
           }
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') chooseNonRenewing()
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              chooseNonRenewing()
+            }
           }}
         >
           <div className="font-medium">Non-renewing</div>

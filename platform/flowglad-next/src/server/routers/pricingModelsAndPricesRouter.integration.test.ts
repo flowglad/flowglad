@@ -195,23 +195,68 @@ describe('pricesRouter.create', () => {
       path: '',
     }
     const { pricingModel } = await pricingModelsRouter.createCaller(ctx).create({ pricingModel: { name: 'PM constraints' } as any })
-    const productAndPrices = await adminTransaction(async ({ transaction }) => {
-      return selectPricesAndProductsByProductWhere({ pricingModelId: pricingModel.id, default: true }, transaction)
+
+    // Create a non-default product under the pricing model
+    const product = await adminTransaction(async ({ transaction }) => {
+      return insertProduct(
+        {
+          name: 'Non-Default Product',
+          slug: 'non-default-product',
+          default: false,
+          description: null,
+          imageURL: null,
+          displayFeatures: null,
+          singularQuantityLabel: null,
+          pluralQuantityLabel: null,
+          externalId: null,
+          pricingModelId: pricingModel.id,
+          organizationId: orgData.organization.id,
+          livemode: true,
+          active: true,
+        },
+        transaction
+      )
     })
-    const defaultProduct = productAndPrices[0]
-    await expect(
-      pricesRouter.createCaller(ctx).create({
+
+    // Create the first default price
+    await pricesRouter.createCaller(ctx).create({
+      price: {
+        productId: product.id,
+        unitPrice: 0,
+        isDefault: true,
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        name: 'Initial Default',
+        setupFeeAmount: 0,
+        trialPeriodDays: 0,
+        slug: 'initial-default',
+        active: true,
+      } as any,
+    } as any)
+
+    // Attempt to create a second default price for the same product
+    try {
+      await pricesRouter.createCaller(ctx).create({
         price: {
-          productId: defaultProduct.id,
-          unitPrice: 0,
+          productId: product.id,
+          unitPrice: 1000,
           isDefault: true,
           type: PriceType.Subscription,
           intervalUnit: IntervalUnit.Month,
           intervalCount: 1,
           name: 'Duplicate Default',
+          setupFeeAmount: 0,
+          trialPeriodDays: 0,
+          slug: 'duplicate-default',
+          active: true,
         } as any,
       } as any)
-    ).rejects.toThrow(TRPCError)
+      throw new Error('Expected TRPCError BAD_REQUEST for multiple default prices')
+    } catch (err: any) {
+      expect(err).toBeInstanceOf(TRPCError)
+      expect(err.code).toBe('BAD_REQUEST')
+    }
   })
 
   it('allows creating the first price for a default product', async () => {
@@ -257,8 +302,8 @@ describe('pricesRouter.create', () => {
       return selectPricesAndProductsByProductWhere({ pricingModelId: pricingModel.id, default: true }, transaction)
     })
     const defaultProduct = productAndPrices[0]
-    await expect(
-      pricesRouter.createCaller(ctx).create({
+    try {
+      await pricesRouter.createCaller(ctx).create({
         price: {
           productId: defaultProduct.id,
           unitPrice: 500,
@@ -273,7 +318,11 @@ describe('pricesRouter.create', () => {
           active: true,
         } as any,
       } as any)
-    ).rejects.toThrow('Cannot create additional prices for the default plan')
+      throw new Error('Expected TRPCError FORBIDDEN when adding price to default product')
+    } catch (err: any) {
+      expect(err).toBeInstanceOf(TRPCError)
+      expect(err.code).toBe('FORBIDDEN')
+    }
   })
 
   it('sets currency from organization and livemode from ctx', async () => {
