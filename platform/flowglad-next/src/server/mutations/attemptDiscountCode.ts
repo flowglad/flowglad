@@ -28,6 +28,11 @@ export const attemptDiscountCode = publicProcedure
 
     const isValid = await adminTransaction(
       async ({ transaction }) => {
+        if ('invoiceId' in input) {
+          throw new Error(
+            `Invoice checkout flow does not support discount codes. Invoice id: ${input.invoiceId}`
+          )
+        }
         const checkoutSession = await findCheckoutSession(
           findInput,
           transaction
@@ -56,26 +61,16 @@ export const attemptDiscountCode = publicProcedure
             transaction
           )
         }
-
-        if (matchingDiscounts.length === 0) {
-          await updateCheckoutSessionDiscount(null)
-          return false
-        }
-
         const discount = matchingDiscounts[0]
 
-        if (!discount.active) {
+        if (!discount || !discount.active) {
           await updateCheckoutSessionDiscount(null)
           return false
         }
 
         // Check if product or purchase exists and get its organizationId
         let organizationId: string | null = null
-        if ('invoiceId' in input) {
-          throw new Error(
-            `Invoice checkout flow does not support discount codes. Invoice id: ${input.invoiceId}`
-          )
-        } else if ('productId' in input) {
+        if ('productId' in input) {
           const products = await selectProducts(
             {
               id: input.productId,
@@ -94,11 +89,6 @@ export const attemptDiscountCode = publicProcedure
         if (!organizationId) {
           await updateCheckoutSessionDiscount(null)
           return false
-        }
-        if ('invoiceId' in input) {
-          throw new Error(
-            `Invoice checkout flow does not support discount codes. Invoice id: ${input.invoiceId}`
-          )
         }
         // Verify organization matches
         const applyDiscount =
