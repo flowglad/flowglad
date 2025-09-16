@@ -223,7 +223,6 @@ const FormModal = <T extends FieldValues>({
     formState: { isSubmitting, errors },
     reset,
   } = form
-
   const hardResetFormValues = useCallback(() => {
     form.reset(defaultValues, {
       keepDefaultValues: true,

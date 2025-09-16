@@ -10,7 +10,12 @@ import { cn } from '@/lib/utils'
  */
 export const SmoothPageTransition = ({
   children,
-  showLoader = true,
+  /**
+   * Default to false to avoid showing a loader on every page,
+   * including router.refresh() calls triggered
+   * by every form submission.
+   */
+  showLoader = false,
 }: {
   children: React.ReactNode
   showLoader?: boolean
@@ -30,7 +35,11 @@ export const SmoothPageTransition = ({
     }, 150)
 
     return () => clearTimeout(timer)
-  }, [pathname, children])
+    /**
+     * Only re-run the transition effect
+     * when the pathname changes.
+     */
+  }, [pathname])
 
   if (isTransitioning && showLoader) {
     return (
