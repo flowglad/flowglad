@@ -237,6 +237,11 @@ export const selectPricesAndProductByProductId = async (
     { id: productId },
     transaction
   )
+  if (!results.length) {
+    throw new Error(
+      `selectPricesAndProductByProductId: No product found with id ${productId}`
+    )
+  }
   return results[0]
 }
 
