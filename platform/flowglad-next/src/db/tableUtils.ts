@@ -753,6 +753,8 @@ export const ommittedColumnsForInsertSchema = {
 
 export const hiddenColumnsForClientSchema = {
   position: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 export const createPaginatedSelectSchema = <T extends {}>(

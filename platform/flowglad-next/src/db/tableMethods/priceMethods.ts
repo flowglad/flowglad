@@ -39,6 +39,12 @@ import {
 import { PriceType } from '@/types'
 import { selectProducts } from './productMethods'
 import { z } from 'zod'
+import {
+  Feature,
+  features,
+  featuresSelectSchema,
+} from '../schema/features'
+import { productFeatures } from '../schema/productFeatures'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -145,14 +151,16 @@ const priceProductJoinResultToProductAndPrices = (
   result: {
     price: Price.Record
     product: Product.Record
+    feature: Feature.Record
   }[]
 ): ProductWithPrices[] => {
   const productMap = new Map<string, Product.Record>()
   const pricesMap = new Map<string, Price.Record>()
-
+  const featureMap = new Map<string, Feature.Record>()
   result.forEach((item) => {
     productMap.set(item.product.id, item.product)
     pricesMap.set(item.price.id, item.price)
+    featureMap.set(item.feature.id, item.feature)
   })
 
   const products = Array.from(productMap.values())
@@ -160,6 +168,7 @@ const priceProductJoinResultToProductAndPrices = (
   const sortedPrices = prices.sort(
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
   )
+  const features = Array.from(featureMap.values())
   return products.map((product): ProductWithPrices => {
     return {
       ...product,
@@ -168,35 +177,18 @@ const priceProductJoinResultToProductAndPrices = (
       ),
       defaultPrice:
         sortedPrices.find((price) => price.isDefault) ?? prices[0],
+      features,
     }
   })
 }
 
-export const selectPricesAndProductByProductId = async (
-  productId: string,
-  transaction: DbTransaction
-): Promise<ProductWithPrices> => {
-  const results = await transaction
-    .select({
-      price: prices,
-      product: products,
-    })
-    .from(prices)
-    .innerJoin(products, eq(products.id, prices.productId))
-    .where(eq(products.id, productId))
+const priceProductFeatureSchema = z.object({
+  price: pricesSelectSchema,
+  product: productsSelectSchema,
+  feature: featuresSelectSchema,
+})
 
-  const parsedResults: {
-    product: Product.Record
-    price: Price.Record
-  }[] = results.map((result) => ({
-    product: productsSelectSchema.parse(result.product),
-    price: pricesSelectSchema.parse(result.price),
-  }))
-
-  const [normalizedResult] =
-    priceProductJoinResultToProductAndPrices(parsedResults)
-  return normalizedResult
-}
+type PriceProductFeature = z.infer<typeof priceProductFeatureSchema>
 
 export const selectPricesAndProductsByProductWhere = async (
   whereConditions: SelectConditions<typeof products>,
@@ -206,21 +198,33 @@ export const selectPricesAndProductsByProductWhere = async (
     .select({
       price: prices,
       product: products,
+      feature: features,
     })
     .from(prices)
     .innerJoin(products, eq(products.id, prices.productId))
+    .leftJoin(
+      productFeatures,
+      eq(products.id, productFeatures.productId)
+    )
+    .leftJoin(features, eq(productFeatures.featureId, features.id))
     .where(whereClauseFromObject(products, whereConditions))
     .orderBy(asc(products.createdAt))
 
-  const parsedResults: {
-    product: Product.Record
-    price: Price.Record
-  }[] = results.map((result) => ({
-    product: productsSelectSchema.parse(result.product),
-    price: pricesSelectSchema.parse(result.price),
-  }))
+  const parsedResults: PriceProductFeature[] =
+    priceProductFeatureSchema.array().parse(results)
 
   return priceProductJoinResultToProductAndPrices(parsedResults)
+}
+
+export const selectPricesAndProductByProductId = async (
+  productId: string,
+  transaction: DbTransaction
+): Promise<ProductWithPrices> => {
+  const results = await selectPricesAndProductsByProductWhere(
+    { id: productId },
+    transaction
+  )
+  return results[0]
 }
 
 export const selectDefaultPriceAndProductByProductId = async (

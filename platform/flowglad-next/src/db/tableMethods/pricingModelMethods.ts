@@ -18,7 +18,7 @@ import {
   pricingModelsUpdateSchema,
 } from '@/db/schema/pricingModels'
 import { DbTransaction } from '@/db/types'
-import { count, eq, and } from 'drizzle-orm'
+import { count, eq, and, inArray } from 'drizzle-orm'
 import { products } from '../schema/products'
 import {
   selectPricesAndProductsByProductWhere,
@@ -33,6 +33,15 @@ import {
 } from '../schema/usageMeters'
 import { selectProducts } from './productMethods'
 import { z } from 'zod'
+import {
+  ProductFeature,
+  productFeatures,
+} from '../schema/productFeatures'
+import {
+  Feature,
+  features,
+  featuresSelectSchema,
+} from '../schema/features'
 
 const config: ORMMethodCreatorConfig<
   typeof pricingModels,
@@ -225,7 +234,7 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
      * Implementation note:
      * it is actually fairly important to do this in two steps,
      * because pricingModels are one-to-many with products, so we couldn't
-     * easily describe our desired "limit" result easily.
+     * easily describe our desired "limit" result.
      * But in two steps, we can limit the pricingModels, and then get the
      * products for each pricingModel.
      * This COULD create a performance issue if there are a lot of products
@@ -273,10 +282,48 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         { pricingModelId: Array.from(uniquePricingModelsMap.keys()) },
         transaction
       )
+    const productFeaturesAndFeatures = await transaction
+      .select({
+        productFeature: productFeatures,
+        feature: features,
+      })
+      .from(productFeatures)
+      .innerJoin(features, eq(productFeatures.featureId, features.id))
+      .where(
+        inArray(
+          productFeatures.productId,
+          productResults.map((product) => product.id)
+        )
+      )
+
+    const productFeaturesAndFeaturesByProductId = new Map<
+      string,
+      {
+        productFeature: ProductFeature.Record
+        feature: Feature.Record
+      }[]
+    >()
+    productFeaturesAndFeatures.forEach(
+      ({ productFeature, feature }) => {
+        productFeaturesAndFeaturesByProductId.set(
+          productFeature.productId,
+          [
+            ...(productFeaturesAndFeaturesByProductId.get(
+              productFeature.productId
+            ) || []),
+            {
+              productFeature,
+              feature: featuresSelectSchema.parse(feature),
+            },
+          ]
+        )
+      }
+    )
     const productsByPricingModelId = new Map<
       string,
       PricingModelWithProductsAndUsageMeters['products']
     >()
+
     productResults.forEach(({ prices, ...product }) => {
       productsByPricingModelId.set(product.pricingModelId, [
         ...(productsByPricingModelId.get(product.pricingModelId) ||
@@ -284,6 +331,10 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         {
           ...product,
           prices,
+          features:
+            productFeaturesAndFeaturesByProductId
+              .get(product.id)
+              ?.map((p) => p.feature) ?? [],
           defaultPrice:
             prices.find((price) => price.isDefault) ?? prices[0],
         },

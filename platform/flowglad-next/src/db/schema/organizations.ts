@@ -178,8 +178,6 @@ const hiddenColumns = {
   stripeAccountId: true,
   stripeConnectContractType: true,
   externalId: true,
-  createdByCommit: true,
-  updatedByCommit: true,
   ...hiddenColumnsForClientSchema,
   securitySalt: true,
   upfrontProcessingCredits: true,

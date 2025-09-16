@@ -217,7 +217,12 @@ export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
         'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
       ),
   })
-  .omit(R.omit(['position'], hiddenColumns))
+  .omit(
+    R.omit(
+      ['position', 'createdByCommit', 'updatedByCommit'],
+      hiddenColumns
+    )
+  )
   .omit(createOnlyColumns)
   .meta({ id: 'UsageEventsClientUpdateSchema' })
 

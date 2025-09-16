@@ -33,11 +33,13 @@ import {
 } from '@/db/schema/pricingModels'
 import {
   selectPrices,
+  selectPricesAndProductByProductId,
   selectPricesProductsAndPricingModelsForOrganization,
 } from './priceMethods'
 import { selectMembershipAndOrganizations } from './membershipMethods'
 import { selectPricingModels } from './pricingModelMethods'
 import { groupBy } from '@/utils/core'
+import { selectFeaturesByProductFeatureWhere } from './productFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof products,
@@ -239,3 +241,22 @@ export const selectProductsCursorPaginated =
       }))
     }
   )
+
+export const selectProductPriceAndFeaturesByProductId = async (
+  productId: string,
+  transaction: DbTransaction
+) => {
+  const { prices, ...product } =
+    await selectPricesAndProductByProductId(productId, transaction)
+  const features = await selectFeaturesByProductFeatureWhere(
+    {
+      productId: productId,
+    },
+    transaction
+  )
+  return {
+    product,
+    prices,
+    features: features.map((f) => f.feature),
+  }
+}

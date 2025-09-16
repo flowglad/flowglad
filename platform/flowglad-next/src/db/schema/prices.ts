@@ -43,6 +43,10 @@ import {
   usageMetersClientSelectSchema,
 } from './usageMeters'
 import { currencyCodeSchema } from '../commonZodSchema'
+import {
+  featuresClientSelectSchema,
+  featuresSelectSchema,
+} from './features'
 
 const readOnlyColumns = {
   livemode: true,
@@ -635,6 +639,7 @@ export const productWithPricesSchema = productsClientSelectSchema
     defaultPrice: pricesClientSelectSchema.describe(
       'The default price for the product. If no price is explicitly set as default, will return the first price created for the product..'
     ),
+    features: z.array(featuresClientSelectSchema),
   })
   .meta({
     id: 'ProductWithPricesRecord',

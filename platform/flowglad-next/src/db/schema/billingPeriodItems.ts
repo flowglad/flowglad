@@ -193,10 +193,13 @@ const nonClientEditableColumns = {
   ...createOnlyColumns,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-})
+const clientWriteOmits = R.omit(
+  ['position', 'createdByCommit', 'updatedByCommit'],
+  {
+    ...hiddenColumns,
+    ...readOnlyColumns,
+  }
+)
 
 /*
  * client schemas

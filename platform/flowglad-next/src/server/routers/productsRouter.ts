@@ -3,6 +3,7 @@ import {
   selectProductsPaginated,
   selectProductById,
   selectProductsCursorPaginated,
+  selectProductPriceAndFeaturesByProductId,
 } from '@/db/tableMethods/productMethods'
 import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import {
@@ -133,7 +134,10 @@ export const editProduct = protectedProcedure
             : product
 
           // Validate that default products can only have certain fields updated
-          validateDefaultProductUpdate(enforcedProduct, existingProduct)
+          validateDefaultProductUpdate(
+            enforcedProduct,
+            existingProduct
+          )
 
           const updatedProduct = await editProductPricingModel(
             { product: enforcedProduct, featureIds },
@@ -229,25 +233,15 @@ export const getProduct = protectedProcedure
     try {
       return await authenticatedTransaction(
         async ({ transaction }) => {
-          const product = await selectProductById(
-            input.id,
-            transaction
-          )
-          if (!product) {
-            errorHandlers.product.handle(
-              new Error('Product not found'),
-              { operation: 'get', id: input.id }
+          const { product, prices, features } =
+            await selectProductPriceAndFeaturesByProductId(
+              input.id,
+              transaction
             )
-          }
-          const prices = await selectPrices(
-            {
-              productId: product.id,
-            },
-            transaction
-          )
           return {
             ...product,
             prices,
+            features,
             defaultPrice:
               prices.find((price) => price.isDefault) ?? prices[0],
           }
