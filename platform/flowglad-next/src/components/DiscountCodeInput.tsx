@@ -94,6 +94,28 @@ export default function DiscountCodeInput() {
       }
     }
   }, [attemptHandler])
+  const clearDiscountCodeHandler = useCallback(async () => {
+    setDiscountCodeStatus('idle')
+    setIsTouched(false)
+    form.setValue('discountCode', '')
+    /**
+     * NOTE: this optimistically clears the discount code
+     * without waiting for the server to respond. In almost all
+     * cases, this should be fine.
+     *
+     * The rare edge cases is if the clearDiscountCode mutation
+     * fails
+     */
+    if (purchase?.id) {
+      await clearDiscountCode({
+        purchaseId: purchase.id!,
+      })
+    } else if (product?.id) {
+      await clearDiscountCode({
+        productId: product.id!,
+      })
+    }
+  }, [clearDiscountCode, purchase, product])
 
   const debouncedAttemptHandler = debouncedAttemptHandlerRef.current
 
@@ -111,34 +133,13 @@ export default function DiscountCodeInput() {
     hint = 'Checking discount code...'
   } else if (discountCodeStatus === 'success') {
     hint = 'Discount code applied!'
-  } else if (isTouched && !discountCode.trim()) {
-    hint = 'Please enter a discount code'
   }
 
   const clearDiscountCodeButton = (
     <Button
       onClick={async (e) => {
         e.preventDefault()
-        setDiscountCodeStatus('idle')
-        setIsTouched(false)
-        form.setValue('discountCode', '')
-        /**
-         * NOTE: this optimistically clears the discount code
-         * without waiting for the server to respond. In almost all
-         * cases, this should be fine.
-         *
-         * The rare edge cases is if the clearDiscountCode mutation
-         * fails
-         */
-        if (purchase?.id) {
-          await clearDiscountCode({
-            purchaseId: purchase.id!,
-          })
-        } else if (product?.id) {
-          await clearDiscountCode({
-            productId: product.id!,
-          })
-        }
+        await clearDiscountCodeHandler()
       }}
       variant="ghost"
       className="px-0 hover:bg-transparent focus-visible:ring-0 text-gray-600 hover:text-gray-800"
@@ -198,8 +199,10 @@ export default function DiscountCodeInput() {
                           field.onBlur()
                           setIsTouched(true)
                           const code = e.target.value.trim()
+                          if (!code) {
+                            return clearDiscountCodeHandler()
+                          }
                           if (
-                            code &&
                             code !== discount?.code &&
                             debouncedAttemptHandler
                           ) {
