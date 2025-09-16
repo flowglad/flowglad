@@ -456,7 +456,10 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     const pricingModelResult = result[0]
 
     expect(pricingModelResult.id).toBe(pricingModel.id)
-    expect(pricingModelResult.products).toHaveLength(2)
+    /**
+     * 3 products: product1, product2, and default product created with pricing model
+     */
+    expect(pricingModelResult.products).toHaveLength(3)
 
     // Check that product 1 has features 1 and 2
     const product1Result = pricingModelResult.products.find(
