@@ -258,7 +258,11 @@ export const TotalBillingDetails = React.forwardRef<
               className="text-lg font-semibold text-gray-900"
               data-testid="billing-info-total-due-label"
             >
-              Total
+              {`Total${
+                flowType === CheckoutFlowType.Subscription
+                  ? ' Due Today'
+                  : ''
+              }`}
             </span>
             {editCheckoutSessionLoading ? (
               <Skeleton className="h-6 w-24" />

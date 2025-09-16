@@ -28,6 +28,8 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { Customer } from '@/db/schema/customers'
+import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
+import { Feature } from '@/db/schema/features'
 
 interface CheckoutInfoSuccess {
   checkoutInfo: CheckoutInfoCore
@@ -58,6 +60,7 @@ export async function checkoutInfoForPriceWhere(
         product,
         price,
         organization,
+        features: [],
       }
     }
     /**
@@ -86,6 +89,10 @@ export async function checkoutInfoForPriceWhere(
       },
       transaction
     )
+    const features = await selectFeaturesByProductFeatureWhere(
+      { productId: product.id, expiredAt: null },
+      transaction
+    )
     const maybeCustomer = checkoutSession.customerId
       ? await selectCustomerById(
           checkoutSession.customerId,
@@ -95,6 +102,7 @@ export async function checkoutInfoForPriceWhere(
     return {
       product,
       price,
+      features: features.map((f) => f.feature),
       organization,
       checkoutSession,
       discount,
@@ -102,7 +110,7 @@ export async function checkoutInfoForPriceWhere(
       maybeCustomer,
     }
   })
-  const { checkoutSession, organization } = result
+  const { checkoutSession, organization, features } = result
   if (!checkoutSession) {
     // TODO: ERROR PAGE UI
     return {
@@ -165,6 +173,7 @@ export async function checkoutInfoForPriceWhere(
       readonlyCustomerEmail: maybeCustomer?.email,
       discount,
       feeCalculation,
+      features,
     }
     return {
       checkoutInfo: checkoutInfoSchema.parse(rawCheckoutInfo),
@@ -186,6 +195,7 @@ export async function checkoutInfoForCheckoutSession(
   feeCalculation: FeeCalculation.Record | null
   maybeCustomer: Customer.Record | null
   maybeCurrentSubscriptions: Subscription.Record[] | null
+  features: Feature.Record[] | null
 }> {
   const checkoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
@@ -209,6 +219,10 @@ export async function checkoutInfoForCheckoutSession(
     )
   const feeCalculation = await selectLatestFeeCalculation(
     { checkoutSessionId: checkoutSession.id },
+    transaction
+  )
+  const featuresResult = await selectFeaturesByProductFeatureWhere(
+    { productId: product.id, expiredAt: null },
     transaction
   )
   const maybeCustomer = checkoutSession.customerId
@@ -236,5 +250,6 @@ export async function checkoutInfoForCheckoutSession(
     feeCalculation,
     maybeCustomer,
     maybeCurrentSubscriptions,
+    features: featuresResult.map((f) => f.feature),
   }
 }

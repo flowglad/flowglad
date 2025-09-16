@@ -31,7 +31,7 @@ export const intervalLabel = (
   const intervalLabel =
     intervalCount > 1
       ? `${intervalCount} ${intervalUnit}s`
-      : intervalUnit.slice(0, -1) + 'ly'
+      : intervalUnit + 'ly'
   return intervalLabel
 }
 
@@ -42,7 +42,13 @@ export const pricingSubtitleForSubscriptionFlow = (
   const { purchase, price, product, checkoutSession } =
     checkoutContext as any
 
-  if (!purchase || !price || !product || !checkoutSession) {
+  if (!purchase && !price && !product && !checkoutSession) {
+    console.log('pricingSubtitleForSubscriptionFlow', {
+      purchase,
+      price,
+      product,
+      checkoutSession,
+    })
     return ''
   }
 
@@ -58,17 +64,7 @@ export const pricingSubtitleForSubscriptionFlow = (
       ? `${checkoutSession.quantity} × `
       : ''
 
-  return `${quantitySubtitle}${priceSubtitle}/${intervalLabelText}`
-}
-
-const pricingSubtitleForSinglePaymentFlow = (
-  purchase: Purchase.SinglePaymentPurchaseRecord,
-  price: Pick<Price.ClientRecord, 'unitPrice' | 'currency'>
-) => {
-  return stripeCurrencyAmountToHumanReadableCurrencyAmount(
-    price.currency,
-    purchase?.firstInvoiceValue ?? price.unitPrice
-  )
+  return `${quantitySubtitle}${priceSubtitle} ${intervalLabelText}`
 }
 
 export const BillingHeader = React.forwardRef<
@@ -84,63 +80,13 @@ export const BillingHeader = React.forwardRef<
     return null
   }
 
-  // Fetch product features relationally
-  const { data: productFeaturesData } =
-    trpc.productFeatures.list.useQuery(
-      {
-        cursor: encodeCursor({
-          parameters: {
-            productId: checkoutPageContext.product?.id,
-          },
-          createdAt: new Date(0),
-          direction: 'forward',
-        }),
-        limit: 50,
-      },
-      {
-        enabled: !!checkoutPageContext.product?.id,
-        retry: false, // Don't retry if auth fails for anonymous users
-      }
-    )
-
-  const { data: featuresData } =
-    trpc.features.getFeaturesForPricingModel.useQuery(
-      {
-        pricingModelId:
-          checkoutPageContext.product?.pricingModelId || '',
-      },
-      {
-        enabled: !!checkoutPageContext.product?.pricingModelId,
-        retry: false, // Don't retry if auth fails for anonymous users
-      }
-    )
-
-  // Debug logging - remove after debugging
-  console.log('Product data debug (anonymous checkout):', {
-    hasProduct: !!checkoutPageContext.product,
-    hasDisplayFeatures:
-      !!checkoutPageContext.product?.displayFeatures,
-    displayFeaturesLength:
-      checkoutPageContext.product?.displayFeatures?.length,
-    enabledFeaturesCount:
-      checkoutPageContext.product?.displayFeatures?.filter(
-        (f) => f.enabled
-      )?.length || 0,
-    allFeatures: checkoutPageContext.product?.displayFeatures,
-    // Relational data
-    hasProductFeatures: !!productFeaturesData?.data?.length,
-    productFeaturesCount: productFeaturesData?.data?.length || 0,
-    hasFeaturesData: !!featuresData?.features?.length,
-    featuresDataCount: featuresData?.features?.length || 0,
-  })
-
   const {
     purchase,
     price,
     product,
-    subscriptionDetails,
     flowType,
     checkoutSession,
+    features,
   } = checkoutPageContext
   let mainTitleSuffix = ''
   if (price.type === PriceType.SinglePayment) {
@@ -150,12 +96,14 @@ export const BillingHeader = React.forwardRef<
         ? price.unitPrice * checkoutSession.quantity
         : purchase.firstInvoiceValue
     )}`
-  } else if (flowType === CheckoutFlowType.Subscription) {
+  } else if (
+    flowType === CheckoutFlowType.Subscription ||
+    price.type === PriceType.Subscription
+  ) {
     mainTitleSuffix = pricingSubtitleForSubscriptionFlow(
       checkoutPageContext
     )
   }
-
   return (
     <div
       ref={ref}
@@ -213,60 +161,28 @@ export const BillingHeader = React.forwardRef<
         </div>
       )}
 
-      {/* Product Features - displayFeatures approach */}
-      {product.displayFeatures &&
-        product.displayFeatures.length > 0 && (
-          <div className="w-full">
-            <div className="space-y-3">
-              {product.displayFeatures
-                .filter((feature) => feature.enabled)
-                .map((feature, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-3"
-                    title={feature.details || feature.label}
-                  >
-                    <div className="mt-0 flex-shrink-0">
-                      <Check className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      {feature.label}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
-
       {/* Product Features - relational approach */}
-      {!product.displayFeatures?.length &&
-        productFeaturesData?.data &&
-        featuresData?.features && (
-          <div className="w-full">
-            <div className="space-y-3">
-              {productFeaturesData.data
-                .filter((pf) => !pf.expiredAt)
-                .map((productFeature) => {
-                  const feature = featuresData.features.find(
-                    (feat) => feat.id === productFeature.featureId
-                  )
-                  return feature ? (
-                    <div
-                      key={productFeature.featureId}
-                      className="flex items-start gap-3"
-                    >
-                      <div className="mt-0 flex-shrink-0">
-                        <Check className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {feature.name}
-                      </span>
-                    </div>
-                  ) : null
-                })}
-            </div>
+      {features && features.length > 0 && (
+        <div className="w-full">
+          <div className="space-y-3">
+            {features.map((feature) => {
+              return feature ? (
+                <div
+                  key={feature.id}
+                  className="flex items-start gap-3"
+                >
+                  <div className="mt-0 flex-shrink-0">
+                    <Check className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {feature.name}
+                  </span>
+                </div>
+              ) : null
+            })}
           </div>
-        )}
+        </div>
+      )}
     </div>
   )
 })
