@@ -1,5 +1,5 @@
 import { headers } from 'next/headers'
-import PostPaymentSideBar from '@/components/ion/PostPaymentSidebar'
+import PostPaymentSidebar from '@/components/checkout/post-payment-sidebar'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectPurchaseCheckoutParametersById } from '@/db/tableMethods/purchaseMethods'
 
@@ -23,8 +23,8 @@ const PurchaseAccessLayout = async ({
   )
 
   return (
-    <div className="bg-internal h-full w-full flex justify-between items-center">
-      <PostPaymentSideBar organization={organization} />
+    <div className="bg-background h-full w-full flex justify-between items-center">
+      <PostPaymentSidebar organization={organization} />
       {children}
     </div>
   )

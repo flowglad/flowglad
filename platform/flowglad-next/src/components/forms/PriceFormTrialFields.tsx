@@ -16,10 +16,14 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import NumberInput from '@/components/ion/NumberInput'
+import { Input } from '@/components/ui/input'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 
-const TrialFields = ({ disabled = false }: { disabled?: boolean }) => {
+const TrialFields = ({
+  disabled = false,
+}: {
+  disabled?: boolean
+}) => {
   const {
     formState: { errors },
     control,
@@ -61,21 +65,28 @@ const TrialFields = ({ disabled = false }: { disabled?: boolean }) => {
   }, [disabled, setValue])
   return (
     <div className="flex flex-col gap-2.5">
-      <Switch
-        label="Trial"
-        checked={offerTrial}
-        disabled={disabled}
-        onCheckedChange={(checked) => {
-          if (disabled) {
-            return
-          }
-          setOfferTrial(checked)
-          if (!checked) {
-            setValue('price.trialPeriodDays', 0)
-            setValue('price.startsWithCreditTrial', null)
-          }
-        }}
-      />
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="trial-toggle"
+          checked={offerTrial}
+          onCheckedChange={(checked) => {
+            if (disabled) {
+              return
+            }
+            setOfferTrial(checked)
+            if (!checked) {
+              setValue('price.trialPeriodDays', 0)
+              setValue('price.startsWithCreditTrial', null)
+            }
+          }}
+        />
+        <Label
+          htmlFor="trial-toggle"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Trial
+        </Label>
+      </div>
       {offerTrial && (
         <>
           <div>
@@ -121,20 +132,20 @@ const TrialFields = ({ disabled = false }: { disabled?: boolean }) => {
               <FormItem>
                 <FormLabel>Trial Period Days</FormLabel>
                 <FormControl>
-                  <NumberInput
-                    {...field}
-                    onChange={undefined}
-                    onValueChange={({ floatValue }) => {
-                      if (disabled) {
-                        return
-                      }
-                      field.onChange(floatValue ?? undefined)
-                    }}
+                  <Input
+                    type="number"
                     min={1}
                     max={365}
                     step={1}
-                    error={fieldState.error?.message}
-                    disabled={disabled || trialType !== 'time'}
+                    placeholder="7"
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      const numValue = Number(value)
+                      if (!isNaN(numValue)) {
+                        field.onChange(numValue)
+                      }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />

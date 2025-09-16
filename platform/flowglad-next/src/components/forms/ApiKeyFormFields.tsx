@@ -27,7 +27,11 @@ const ApiKeyFormFields = () => {
             <FormControl>
               <Input
                 placeholder="e.g. Production API Key"
-                error={errors.apiKey?.name?.message}
+                className={
+                  errors.apiKey?.name?.message
+                    ? 'border-destructive focus-visible:ring-destructive'
+                    : ''
+                }
                 {...field}
               />
             </FormControl>

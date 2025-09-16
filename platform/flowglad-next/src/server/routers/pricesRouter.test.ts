@@ -254,7 +254,10 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('router-level behaviors', () => {
     it('pricesRouter.edit: throws NOT_FOUND for missing price id', async () => {
-      const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -264,13 +267,19 @@ describe('pricesRouter - Default Price Constraints', () => {
       }
       await expect(
         pricesRouter.createCaller(ctx).edit({
-          price: { id: 'price_missing_' + core.nanoid(), type: PriceType.Subscription } as any,
+          price: {
+            id: 'price_missing_' + core.nanoid(),
+            type: PriceType.Subscription,
+          } as any,
         } as any)
       ).rejects.toThrow(TRPCError)
     })
 
     it('productsRouter.edit: enforces cross-product price guard (BAD_REQUEST)', async () => {
-      const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -298,7 +307,10 @@ describe('pricesRouter - Default Price Constraints', () => {
           },
           transaction
         )
-        const org = await orgSetup.selectOrganizationById(organizationId, transaction)
+        const org = await orgSetup.selectOrganizationById(
+          organizationId,
+          transaction
+        )
         const otherPrice = await insertPrice(
           {
             productId: otherProduct.id,
@@ -332,7 +344,10 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('pricesRouter.create: enforces single default per product and auto-default for first price', async () => {
-      const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,

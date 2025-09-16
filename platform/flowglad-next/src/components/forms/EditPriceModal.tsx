@@ -42,7 +42,9 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
   })
 
   const { organization } = useAuthenticatedContext()
-  const productQuery = trpc.products.get.useQuery({ id: price.productId })
+  const productQuery = trpc.products.get.useQuery({
+    id: price.productId,
+  })
   const isDefaultProduct = productQuery.data?.default === true
   const isDefaultPrice = price.isDefault === true
   return (

@@ -21,7 +21,9 @@ const InviteUserToOrganizationFormFields: React.FC = () => {
         name="email"
         render={({ field }) => (
           <FormItem>
-            <FormLabel required>Email</FormLabel>
+            <FormLabel>
+              Email <span className="text-destructive">*</span>
+            </FormLabel>
             <FormControl>
               <Input
                 type="email"
@@ -38,7 +40,9 @@ const InviteUserToOrganizationFormFields: React.FC = () => {
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel required>Name</FormLabel>
+            <FormLabel>
+              Name <span className="text-destructive">*</span>
+            </FormLabel>
             <FormControl>
               <Input placeholder="Enter name" {...field} />
             </FormControl>

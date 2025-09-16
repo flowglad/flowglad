@@ -17,6 +17,7 @@ import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { ApiKey } from '@/db/schema/apiKeys'
 import { auth, getSession } from '@/utils/auth'
 import { selectUsers } from '@/db/tableMethods/userMethods'
+import { ClientAuthGuard } from '@/components/ClientAuthGuard'
 
 const OnboardingPage = async () => {
   const results = await authenticatedTransaction(
@@ -52,7 +53,7 @@ const OnboardingPage = async () => {
     return redirect('/onboarding/business-details')
   }
   let organization = results.organization
-  const testmodeApiKeys = await adminTransaction(
+  const testmodeApiKeys: ApiKey.Record[] = await adminTransaction(
     async ({ transaction }) => {
       return selectApiKeys(
         { organizationId: organization.id, livemode: false },
@@ -60,10 +61,9 @@ const OnboardingPage = async () => {
       )
     }
   )
-  let secretApiKey: ApiKey.ClientRecord | undefined =
-    testmodeApiKeys.find(
-      (key) => key.type === FlowgladApiKeyType.Secret
-    )
+  let secretApiKey: ApiKey.Record | undefined = testmodeApiKeys.find(
+    (key) => key.type === FlowgladApiKeyType.Secret
+  )
   const session = await getSession()
 
   if (!secretApiKey) {
@@ -138,28 +138,30 @@ const OnboardingPage = async () => {
       type: OnboardingItemType.Stripe,
     },
   ]
-  // if (
-  //   organization.onboardingStatus ===
-  //   BusinessOnboardingStatus.FullyOnboarded
-  // ) {
-  //   return redirect('/dashboard')
-  // }
   return (
-    <div className="flex flex-col gap-4 p-8 w-full justify-center items-start m-auto max-w-2xl">
-      <div className="flex flex-col items-start justify-center w-full gap-4">
-        <div className="flex flex-col items-start justify-center gap-2">
-          <h2 className="text-2xl font-semibold">Set Up</h2>
-          <p className="text-md text-foreground">
-            Complete just a few steps to get up and running.
-          </p>
+    <ClientAuthGuard
+      requireAuth={true}
+      requireOrganization={true}
+      redirectTo="/onboarding/business-details"
+    >
+      <div className="flex flex-col gap-4 p-4 w-full justify-center items-start m-auto max-w-[416px] min-h-svh">
+        <div className="flex flex-col items-start justify-center w-full gap-4">
+          <div className="flex flex-col items-start justify-center gap-1 p-2">
+            <h2 className="text-xl font-semibold">
+              Integrate Flowglad
+            </h2>
+            <p className="text-sm text-foreground">
+              Complete just a few steps to get up and running.
+            </p>
+          </div>
+          <OnboardingStatusTable
+            onboardingChecklistItems={onboardingChecklistItems}
+            countries={countries}
+            secretApiKey={secretApiKey.token}
+          />
         </div>
-        <OnboardingStatusTable
-          onboardingChecklistItems={onboardingChecklistItems}
-          countries={countries}
-          secretApiKey={secretApiKey.token}
-        />
       </div>
-    </div>
+    </ClientAuthGuard>
   )
 }
 

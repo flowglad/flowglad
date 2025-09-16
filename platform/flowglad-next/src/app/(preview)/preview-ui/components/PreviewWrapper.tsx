@@ -89,7 +89,7 @@ export function PreviewWrapper({
           <p className="mt-2 text-sm text-gray-600">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
           >
             Reload Page
           </button>

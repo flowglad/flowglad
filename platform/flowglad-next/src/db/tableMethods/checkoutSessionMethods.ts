@@ -60,7 +60,9 @@ export const selectCheckoutSessions = createSelectFunction(
 export const deleteExpiredCheckoutSessionsAndFeeCalculations = async (
   transaction: DbTransaction
 ) => {
-  const retentionCutoff = new Date(Date.now() - CHECKOUT_SESSION_RETENTION_MS)
+  const retentionCutoff = new Date(
+    Date.now() - CHECKOUT_SESSION_RETENTION_MS
+  )
   const expiredCheckoutSessions = await transaction
     .select()
     .from(checkoutSessions)

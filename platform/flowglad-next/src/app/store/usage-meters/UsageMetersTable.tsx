@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { core } from '@/utils/core'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 import { Plus } from 'lucide-react'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 import { trpc } from '@/app/_trpc/client'
@@ -46,9 +45,7 @@ const UsageMetersTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'usageMeter.name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -57,9 +54,7 @@ const UsageMetersTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Pricing Model" column={column} />
-          ),
+          header: 'Pricing Model',
           accessorKey: 'pricingModel.name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -68,12 +63,7 @@ const UsageMetersTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell
-              title="Aggregation Type"
-              column={column}
-            />
-          ),
+          header: 'Aggregation Type',
           accessorKey: 'usageMeter.aggregationType',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -84,9 +74,7 @@ const UsageMetersTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
+          header: 'Created',
           accessorKey: 'usageMeter.createdAt',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -95,9 +83,7 @@ const UsageMetersTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'usageMeter.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.usageMeter.id}>
@@ -120,10 +106,10 @@ const UsageMetersTable = ({
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex flex-col gap-2">
           <div className="w-full flex flex-col gap-5">
-            <Table
+            <DataTable
               columns={columns}
               data={tableData}
-              className="bg-nav"
+              className="bg-background"
               bordered
               pagination={{
                 pageIndex,

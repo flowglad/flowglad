@@ -14,6 +14,7 @@ import PriceFormFields from '@/components/forms/PriceFormFields'
 import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import StatusBadge from '../StatusBadge'
 import PricingModelSelect from './PricingModelSelect'
 import core from '@/utils/core'
@@ -47,12 +48,14 @@ export const ProductFormFields = ({
   }
   return (
     <div className="relative flex justify-between items-start gap-2.5 bg-background">
-      <div className="flex-1 w-full max-w-[656px] min-w-[460px] relative flex flex-col rounded-radius-md">
+      <div className="flex-1 w-full max-w-[656px] min-w-[460px] relative flex flex-col rounded-lg-md">
         <div className="w-full relative flex flex-col items-start">
           <div className="flex-1 w-full relative flex flex-col justify-center gap-6">
             {isDefaultProduct && (
               <p className="text-xs text-muted-foreground">
-                Product slug, price slug, status, price type, price amount, and trial settings are locked on default plans.
+                Product slug, price slug, status, price type, price
+                amount, and trial settings are locked on default
+                plans.
               </p>
             )}
             <FormField
@@ -89,7 +92,7 @@ export const ProductFormFields = ({
                       className="w-full"
                     />
                   </FormControl>
-                  <FormDescription className="text-xs text-subtle mt-1">
+                  <FormDescription className="text-xs text-muted-foreground mt-1">
                     Used to identify the product via API. Must be
                     unique per-pricing model.
                   </FormDescription>
@@ -113,7 +116,7 @@ export const ProductFormFields = ({
                       value={field.value || ''}
                     />
                   </FormControl>
-                  <FormDescription className="text-xs text-subtle mt-1">
+                  <FormDescription className="text-xs text-muted-foreground mt-1">
                     Details about your product that will be displayed
                     on the purchase page.
                   </FormDescription>
@@ -129,7 +132,7 @@ export const ProductFormFields = ({
                 />
               </div>
             )}
-            <div className="w-full mt-4">
+            <div className="w-full">
               <ProductFeatureMultiSelect
                 pricingModelId={product.pricingModelId}
                 productId={
@@ -147,20 +150,24 @@ export const ProductFormFields = ({
                   <FormItem>
                     <FormLabel>Status</FormLabel>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isDefaultProduct}
-                        label={
-                          <div className="cursor-pointer w-full">
-                            {field.value ? (
-                              <StatusBadge active={true} />
-                            ) : (
-                              <StatusBadge active={false} />
-                            )}
-                          </div>
-                        }
-                      />
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="product-active"
+                          checked={field.value}
+                          disabled={isDefaultProduct}
+                          onCheckedChange={field.onChange}
+                        />
+                        <Label
+                          htmlFor="product-active"
+                          className="cursor-pointer w-full"
+                        >
+                          {field.value ? (
+                            <StatusBadge active={true} />
+                          ) : (
+                            <StatusBadge active={false} />
+                          )}
+                        </Label>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -168,10 +175,10 @@ export const ProductFormFields = ({
               />
             )}
           </div>
-          <div className="w-full mt-8">
+          <div className="w-full mt-6">
             <PriceFormFields edit={editProduct} />
           </div>
-          <div className="w-full mt-8">
+          <div className="w-full mt-6">
             <FileInput
               directory="products"
               onUploadComplete={({ publicURL }) => {

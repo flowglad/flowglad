@@ -62,13 +62,13 @@ export function SubscriptionDetails({
       {subscription.cancelAtPeriodEnd &&
         subscription.currentPeriodEnd && (
           <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3">
-            <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+            <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-amber-900">
+              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
                 Subscription will end on{' '}
                 {formatDate(subscription.currentPeriodEnd)}
               </p>
-              <p className="text-xs text-amber-700 mt-1">
+              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
                 You will continue to have access until this date
               </p>
             </div>
@@ -78,12 +78,12 @@ export function SubscriptionDetails({
       {/* Past Due Notice */}
       {subscription.status === 'past_due' && (
         <div className="flex items-start gap-2 rounded-md bg-red-50 p-3">
-          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+          <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-red-900">
+            <p className="text-sm font-medium text-destructive">
               Payment past due
             </p>
-            <p className="text-xs text-red-700 mt-1">
+            <p className="text-xs text-destructive/80 mt-1">
               Please update your payment method to continue service
             </p>
           </div>

@@ -5,11 +5,10 @@ import { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { RevenueChartIntervalUnit } from '@/types'
 import { trpc } from '@/app/_trpc/client'
-import { FallbackSkeleton, Skeleton } from './ui/skeleton'
+import { Skeleton } from './ui/skeleton'
 import { LineChart } from './charts/LineChart'
+import { cn } from '@/lib/utils'
 import core from '@/utils/core'
-import { twMerge } from 'tailwind-merge'
-import clsx from 'clsx'
 import ErrorBoundary from './ErrorBoundary'
 import {
   AvailableChartColorsKeys,
@@ -55,24 +54,22 @@ const SubscriberCountTooltip = ({
   return (
     <ErrorBoundary fallback={<div>Error</div>}>
       <div
-        className={twMerge(
-          clsx(
-            'bg-[#282828] flex flex-col gap-2 p-4 rounded-radius-sm border border-stroke-subtle shadow-[3px_4px_17px_0_rgba(1.35,5.12,17,0.2)]'
-          )
+        className={cn(
+          'bg-popover flex flex-col gap-2 p-4 rounded-md border border-border shadow-lg'
         )}
       >
-        <div className="flex justify-between items-center gap-2 text-xs font-medium text-on-primary-hover">
+        <div className="flex justify-between items-center gap-2 text-xs font-medium text-foreground">
           {color && (
             <div className="text-left">
               <div
-                className={core.cn(
+                className={cn(
                   // Use getColorClassName to derive the correct background class
                   color
                     ? getColorClassName(
                         color as AvailableChartColorsKeys,
                         'bg'
                       )
-                    : 'bg-gray-500',
+                    : 'bg-muted-foreground',
                   'w-2 h-2 rounded-full'
                 )}
                 style={{ width: '10px', height: '10px' }}
@@ -112,6 +109,18 @@ export const ActiveSubscribersChart = ({
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
+
+  // Use useRef to store tooltip data during render, then update state after render
+  const pendingTooltipData =
+    React.useRef<TooltipCallbackProps | null>(null)
+
+  // Use useEffect to safely update tooltip state after render
+  React.useEffect(() => {
+    if (pendingTooltipData.current !== null) {
+      setTooltipData(pendingTooltipData.current)
+      pendingTooltipData.current = null
+    }
+  })
   const firstPayloadValue = tooltipData?.payload?.[0]?.value
   const chartData = React.useMemo(() => {
     if (!subscriberData) return []
@@ -161,25 +170,26 @@ export const ActiveSubscribersChart = ({
   return (
     <div className="w-full h-full">
       <div className="flex flex-row gap-2 justify-between">
-        <div className="text-sm text-gray-700 dark:text-gray-300 w-fit flex items-center flex-row">
+        <div className="text-sm text-muted-foreground w-fit flex items-center flex-row">
           <p className="whitespace-nowrap">Active Subscribers</p>
         </div>
       </div>
 
       <div className="mt-2">
-        <FallbackSkeleton
-          showSkeleton={isLoading}
-          className="w-36 h-12"
-        >
-          <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-            {formattedSubscriberValue}
-          </p>
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            {isTooltipLabelDate
-              ? core.formatDate(new Date(tooltipLabel as string))
-              : core.formatDateRange({ fromDate, toDate })}
-          </p>
-        </FallbackSkeleton>
+        {isLoading ? (
+          <Skeleton className="w-36 h-12" />
+        ) : (
+          <>
+            <p className="text-xl font-semibold text-foreground">
+              {formattedSubscriberValue}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {isTooltipLabelDate
+                ? core.formatDate(new Date(tooltipLabel as string))
+                : core.formatDateRange({ fromDate, toDate })}
+            </p>
+          </>
+        )}
       </div>
       {isLoading ? (
         <div className="-mb-2 mt-8 w-full flex items-center justify-center">
@@ -191,7 +201,7 @@ export const ActiveSubscribersChart = ({
           index="date"
           categories={['subscribers']}
           className="-mb-2 mt-8"
-          colors={['amber']}
+          colors={['foreground']}
           customTooltip={SubscriberCountTooltip}
           maxValue={maxValue}
           autoMinValue={false}
@@ -200,13 +210,14 @@ export const ActiveSubscribersChart = ({
           startEndOnlyYAxis={true}
           valueFormatter={(value: number) => value.toString()}
           tooltipCallback={(props: any) => {
+            // Store tooltip data in ref during render, useEffect will update state safely
             if (props.active) {
-              setTooltipData((prev) => {
-                if (prev?.label === props.label) return prev
-                return props
-              })
+              // Only update if the data is different to prevent unnecessary re-renders
+              if (tooltipData?.label !== props.label) {
+                pendingTooltipData.current = props
+              }
             } else {
-              setTooltipData(null)
+              pendingTooltipData.current = null
             }
           }}
         />

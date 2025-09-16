@@ -100,7 +100,7 @@ function PricingTableProductColumn({
       )}
     >
       <div className="flowglad-flex flowglad-flex-col flowglad-gap-2">
-        <h3 className="flowglad-text-2xl flowglad-font-bold">
+        <h3 className="flowglad-text-2xl flowglad-font-normal">
           {product.name}
         </h3>
         <PriceLabel

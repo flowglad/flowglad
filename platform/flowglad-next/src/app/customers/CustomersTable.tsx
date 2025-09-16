@@ -1,14 +1,13 @@
 import { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import {
   Customer,
   InferredCustomerStatus,
   CustomerTableRowData,
 } from '@/db/schema/customers'
 import core from '@/utils/core'
-import Badge, { BadgeColor } from '@/components/ion/Badge'
+import { Badge } from '@/components/ui/badge'
 import { sentenceCase } from 'change-case'
 import { trpc } from '@/app/_trpc/client'
 import { useRouter } from 'next/navigation'
@@ -20,18 +19,15 @@ import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { useCopyTextHandler } from '../hooks/useCopyTextHandler'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { SearchIcon } from 'lucide-react'
+import { SearchIcon, Pencil, ExternalLink, Copy } from 'lucide-react'
 import debounce from 'debounce'
 
-const customerStatusColors: Record<
-  InferredCustomerStatus,
-  BadgeColor
-> = {
-  [InferredCustomerStatus.Active]: 'green',
-  [InferredCustomerStatus.Archived]: 'red',
-  [InferredCustomerStatus.Pending]: 'yellow',
-  [InferredCustomerStatus.Concluded]: 'grey',
-  [InferredCustomerStatus.PastDue]: 'red',
+const customerStatusColors: Record<InferredCustomerStatus, string> = {
+  [InferredCustomerStatus.Active]: 'bg-green-100 text-green-800',
+  [InferredCustomerStatus.Archived]: 'bg-red-100 text-red-800',
+  [InferredCustomerStatus.Pending]: 'bg-yellow-100 text-yellow-800',
+  [InferredCustomerStatus.Concluded]: 'bg-gray-100 text-gray-800',
+  [InferredCustomerStatus.PastDue]: 'bg-red-100 text-red-800',
 }
 
 const CustomerStatusCell = ({
@@ -40,7 +36,10 @@ const CustomerStatusCell = ({
   status: InferredCustomerStatus
 }) => {
   return (
-    <Badge color={customerStatusColors[status]}>
+    <Badge
+      variant="secondary"
+      className={customerStatusColors[status]}
+    >
       {sentenceCase(status)}
     </Badge>
   )
@@ -68,18 +67,22 @@ const CustomerMoreMenuCell = ({
   const basePopoverMenuItems = [
     {
       label: 'Edit Customer',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
       label: 'Copy Portal Link',
+      icon: <ExternalLink />,
       handler: copyPortalURLHandler,
     },
     {
       label: 'Copy External ID',
+      icon: <Copy />,
       handler: copyExternalIDHandler,
     },
     {
       label: 'Copy ID',
+      icon: <Copy />,
       handler: copyIDHandler,
     },
   ]
@@ -137,27 +140,21 @@ const CustomersTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'customer.name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.customer.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Email" column={column} />
-          ),
+          header: 'Email',
           accessorKey: 'customer.email',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.customer.email}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Total Spend" column={column} />
-          ),
+          header: 'Total Spend',
           accessorKey: 'totalSpend',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -169,18 +166,14 @@ const CustomersTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Payments" column={column} />
-          ),
+          header: 'Payments',
           accessorKey: 'payments',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.payments || 0}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created At" column={column} />
-          ),
+          header: 'Created At',
           accessorKey: 'customer.createdAt',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -189,9 +182,7 @@ const CustomersTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'customer.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.customer.id}>
@@ -201,6 +192,8 @@ const CustomersTable = ({
         },
         {
           id: '_',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <CustomerMoreMenuCell customer={cellData.customer} />
           ),
@@ -221,10 +214,10 @@ const CustomersTable = ({
         placeholder="Search"
         className="mb-4"
       />
-      <Table
+      <DataTable
         columns={columns}
         data={tableData}
-        className="bg-nav"
+        className="bg-background"
         bordered
         pagination={{
           pageIndex,

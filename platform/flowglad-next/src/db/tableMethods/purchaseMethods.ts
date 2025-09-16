@@ -60,6 +60,7 @@ import { customerFacingFeeCalculationSelectSchema } from '../schema/feeCalculati
 import { ProperNoun } from '../schema/properNouns'
 import { invoicesClientSelectSchema } from '../schema/invoices'
 import { invoiceLineItemsClientSelectSchema } from '../schema/invoiceLineItems'
+import { featuresClientSelectSchema } from '../schema/features'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,
@@ -200,6 +201,7 @@ const subscriptionCheckoutInfoSchema = checkoutInfoCoreSchema.extend({
     subscriptionPriceSelectSchema,
     usagePriceSelectSchema,
   ]),
+  features: featuresClientSelectSchema.array().optional(),
   flowType: z.literal(CheckoutFlowType.Subscription),
   product: productsSelectSchema,
 })
@@ -217,6 +219,7 @@ const singlePaymentCheckoutInfoSchema = checkoutInfoCoreSchema.extend(
   {
     purchase: singlePaymentPurchaseSelectSchema.nullish(),
     price: singlePaymentPriceSelectSchema,
+    features: featuresClientSelectSchema.array().optional(),
     flowType: z.literal(CheckoutFlowType.SinglePayment),
     product: productsSelectSchema,
   }

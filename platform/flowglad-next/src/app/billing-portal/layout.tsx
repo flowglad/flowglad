@@ -25,6 +25,7 @@ export default async function BillingPortalLayout({
           ? await betterAuthUserToApplicationUser(session?.user)
           : undefined,
         role: 'customer',
+        authenticated: !!session?.user,
       }}
     >
       {children}

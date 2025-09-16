@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
-import Table, { ColumnDefWithWidth } from '@/components/ion/Table'
+import { DataTable } from '@/components/ui/data-table'
 import { Purchase } from '@/db/schema/purchases'
 import core from '@/utils/core'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
@@ -10,8 +10,8 @@ import {
   PopoverMenuItemState,
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
-import Badge, { BadgeColor } from '@/components/ion/Badge'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { Badge } from '@/components/ui/badge'
+import { TableHeader } from '@/components/ui/table-header'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode, PurchaseStatus } from '@/types'
 import { trpc } from '@/app/_trpc/client'
@@ -25,20 +25,25 @@ const PurchaseStatusCell = ({
   purchase: Purchase.ClientRecord
 }) => {
   let badgeLabel: string = 'Pending'
-  let badgeColor: BadgeColor = 'grey'
+  let badgeClassName: string = 'bg-muted text-muted-foreground'
 
   if (purchase.endDate) {
-    badgeColor = 'grey'
+    badgeClassName = 'bg-muted text-muted-foreground'
     badgeLabel = 'Concluded'
   } else if (purchase.purchaseDate) {
-    badgeColor = 'green'
+    badgeClassName =
+      'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
     badgeLabel = 'Paid'
   } else {
-    badgeColor = 'grey'
+    badgeClassName = 'bg-muted text-muted-foreground'
     badgeLabel = 'Pending'
   }
 
-  return <Badge color={badgeColor}>{badgeLabel}</Badge>
+  return (
+    <Badge variant="secondary" className={badgeClassName}>
+      {badgeLabel}
+    </Badge>
+  )
 }
 
 export interface PurchasesTableFilters {
@@ -73,18 +78,15 @@ const PurchasesTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'name',
           cell: ({ row: { original: cellData } }) => {
             return (
-              <span className="text-sm font-medium w-[25ch] truncate">
+              <span className="text-sm font-normal w-[25ch] truncate">
                 {cellData.purchase.name}
               </span>
             )
           },
-          width: '18%',
         },
         {
           header: 'Status',
@@ -92,12 +94,9 @@ const PurchasesTable = ({
           cell: ({ row: { original: cellData } }) => {
             return <PurchaseStatusCell purchase={cellData.purchase} />
           },
-          width: '10%',
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Revenue" column={column} />
-          ),
+          header: 'Revenue',
           accessorKey: 'revenue',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -107,12 +106,9 @@ const PurchasesTable = ({
               )}
             </span>
           ),
-          width: '12%',
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Customer" column={column} />
-          ),
+          header: 'Customer',
           accessorKey: 'customer',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
@@ -121,12 +117,9 @@ const PurchasesTable = ({
                 : cellData.customer.name}
             </span>
           ),
-          width: '28%',
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Purchase Date" column={column} />
-          ),
+          header: 'Purchase Date',
           accessorKey: 'startDate',
           cell: ({ row: { original: cellData } }) => (
             <>
@@ -135,22 +128,17 @@ const PurchasesTable = ({
                 : '-'}
             </>
           ),
-          width: '14%',
         },
         {
-          id: '_',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'purchase.id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.purchase.id}>
               {cellData.purchase.id}
             </CopyableTextTableCell>
           ),
-          width: '10%',
         },
-      ] as ColumnDefWithWidth<
+      ] as ColumnDef<
         {
           purchase: Purchase.ClientRecord
           customer: Customer.ClientRecord
@@ -166,10 +154,10 @@ const PurchasesTable = ({
 
   return (
     <div className="w-full flex flex-col gap-5">
-      <Table
+      <DataTable
         columns={columns}
         data={tableData}
-        className="bg-nav w-full"
+        className="bg-background w-full"
         bordered
         pagination={{
           pageIndex,

@@ -1,5 +1,5 @@
 'use client'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import UsageMetersTable, {
   UsageMetersTableFilters,
 } from './UsageMetersTable'
@@ -19,13 +19,18 @@ export default function UsageMetersPage() {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <div className="flex flex-row justify-between items-center mb-6 gap-8">
-          <PageTitle>Usage Meters</PageTitle>
-          <Button onClick={() => setCreateUsageMeterModalOpen(true)}>
-            <Plus size={16} strokeWidth={2} />
-            Create Usage Meter
-          </Button>
-        </div>
+        <PageHeader
+          title="Usage Meters"
+          className="mb-6"
+          action={
+            <Button
+              onClick={() => setCreateUsageMeterModalOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" strokeWidth={2} />
+              Create Usage Meter
+            </Button>
+          }
+        />
         <UsageMetersTable filters={filters} />
       </div>
       <CreateUsageMeterModal

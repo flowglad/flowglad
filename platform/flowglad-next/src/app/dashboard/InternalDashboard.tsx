@@ -1,14 +1,13 @@
-// Generated with Ion on 10/31/2024, 6:10:56 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1033:8693
 'use client'
 import { useState } from 'react'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
-import { DateRangePicker } from '@/components/ion/Datepicker'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
+import { RevenueChart } from '@/components/RevenueChart'
 
 const ChartContainer = ({
   children,
@@ -16,7 +15,7 @@ const ChartContainer = ({
   children: React.ReactNode
 }) => {
   return (
-    <div className="bg-nav w-full relative flex flex-col gap-6 p-8 pt-0 rounded-radius-sm border border-stroke-subtle">
+    <div className="bg-card w-full relative flex flex-col p-8 rounded-2xl border">
       {children}
     </div>
   )
@@ -35,55 +34,55 @@ function InternalDashboardPage({
     from: new Date(organizationCreatedAt),
     to: new Date(),
   })
-
+  console.log('state hook range', range)
   return (
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
         <div className="flex flex-row justify-between">
-          <PageTitle>Dashboard</PageTitle>
+          <PageHeader title="Dashboard" />
         </div>
-        <div className="flex justify-between items-center">
-          <DateRangePicker
-            fromDate={range.from}
-            toDate={range.to}
-            minDate={new Date(organizationCreatedAt)}
-            maxDate={new Date()}
-            onSelect={(newRange) => {
-              if (newRange) {
-                setRange({
-                  from:
-                    newRange.from ?? new Date(organizationCreatedAt),
-                  to: newRange.to ?? new Date(),
-                })
-              }
-            }}
-            mode="range"
-          />
-        </div>
-        <div className="grid grid-cols-1 gap-6">
-          <ChartContainer>
-            <DateRangeRevenueChart
-              organizationCreatedAt={organizationCreatedAt}
+        {/* Dashboard Analytics Container - wraps date picker and charts */}
+        <div className="w-full flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <DateRangePicker
               fromDate={range.from}
               toDate={range.to}
+              minDate={new Date(organizationCreatedAt)}
+              maxDate={new Date()}
+              onSelect={(newRange) => {
+                console.log('newRange', newRange)
+                if (newRange) {
+                  setRange({
+                    from:
+                      newRange.from ??
+                      new Date(organizationCreatedAt),
+                    to: newRange.to ?? new Date(),
+                  })
+                }
+              }}
             />
-          </ChartContainer>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          </div>
+          <div className="grid grid-cols-1 gap-6">
             <ChartContainer>
-              <DateRangeRecurringRevenueChart
-                organizationCreatedAt={organizationCreatedAt}
-                fromDate={range.from}
-                toDate={range.to}
-              />
+              <RevenueChart fromDate={range.from} toDate={range.to} />
             </ChartContainer>
-            <ChartContainer>
-              <DateRangeActiveSubscribersChart
-                organizationCreatedAt={organizationCreatedAt}
-                fromDate={range.from}
-                toDate={range.to}
-              />
-            </ChartContainer>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ChartContainer>
+                <DateRangeRecurringRevenueChart
+                  organizationCreatedAt={organizationCreatedAt}
+                  fromDate={range.from}
+                  toDate={range.to}
+                />
+              </ChartContainer>
+              <ChartContainer>
+                <DateRangeActiveSubscribersChart
+                  organizationCreatedAt={organizationCreatedAt}
+                  fromDate={range.from}
+                  toDate={range.to}
+                />
+              </ChartContainer>
+            </div>
           </div>
         </div>
       </div>

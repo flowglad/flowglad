@@ -3,12 +3,15 @@ import { Organization } from '@/db/schema/organizations'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { User } from '@/db/schema/users'
+import { useSession } from '@/utils/authClient'
 
 export type AuthContextValues = Partial<{
   user: User.Record
   role: 'merchant' | 'customer'
   organization: Organization.ClientRecord
 }> & {
+  authenticated: boolean
+  authenticatedLoading: boolean
   setOrganization: (organization: Organization.ClientRecord) => void
   livemode: boolean
 }
@@ -16,6 +19,8 @@ export type AuthContextValues = Partial<{
 const AuthContext = createContext<AuthContextValues>({
   setOrganization: () => {},
   livemode: false,
+  authenticatedLoading: false,
+  authenticated: false,
 })
 
 /**
@@ -27,8 +32,11 @@ export const useAuthContext = () => useContext(AuthContext)
 export const useAuthenticatedContext = () => {
   const { organization, user, setOrganization, livemode } =
     useAuthContext()
-  if (!organization || !user) {
+  const session = useSession()
+  if (!organization || !user || session.isPending) {
     return {
+      authenticatedLoading: session.isPending,
+      authenticated: false,
       ready: false,
     }
   }
@@ -37,11 +45,14 @@ export const useAuthenticatedContext = () => {
       'useAuthenticatedContext: setOrganization is not defined'
     )
   }
+  const authenticated = session.data?.user?.id !== undefined
   return {
     user,
     organization,
     setOrganization,
     livemode,
+    authenticated,
+    authenticatedLoading: session.isPending,
     ready: true,
   }
 }
@@ -51,7 +62,10 @@ const AuthProvider = ({
   values,
 }: {
   children: React.ReactNode
-  values: Omit<AuthContextValues, 'setOrganization'>
+  values: Omit<
+    AuthContextValues,
+    'setOrganization' | 'authenticatedLoading'
+  >
 }) => {
   const { user } = values
   const [organization, setOrganization] = useState<
@@ -63,6 +77,8 @@ const AuthProvider = ({
   } = trpc.organizations.getFocusedMembership.useQuery(undefined, {
     enabled: values.role === 'merchant',
   })
+  const session = useSession()
+  const authenticated = session.data?.user?.id !== undefined
   /**
    * A race condition happens where sometimes the layout renders
    * before the user is fetched when first logging in.
@@ -85,7 +101,9 @@ const AuthProvider = ({
     <AuthContext.Provider
       value={{
         ...values,
+        authenticatedLoading: session.isPending,
         user,
+        authenticated,
         organization,
         setOrganization,
         livemode: focusedMembership?.membership.livemode ?? false,

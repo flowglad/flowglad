@@ -24,6 +24,7 @@ const CheckoutSessionPage = async ({
     feeCalculation,
     maybeCustomer,
     maybeCurrentSubscriptions,
+    discount,
   } = await adminTransaction(async ({ transaction }) => {
     return checkoutInfoForCheckoutSession(id, transaction)
   })
@@ -96,6 +97,7 @@ const CheckoutSessionPage = async ({
       `/purchase/post-payment`,
       core.envVariable('NEXT_PUBLIC_APP_URL')
     ),
+    discount,
     readonlyCustomerEmail: maybeCustomer?.email,
     feeCalculation,
     clientSecret,

@@ -1,23 +1,21 @@
 import { Subscription } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
 import { SubscriptionStatus } from '@/types'
-import Badge, { BadgeColor } from '@/components/ion/Badge'
+import { Badge } from '@/components/ui/badge'
 import { sentenceCase } from 'change-case'
 
-const subscriptionStatusColors: Record<
-  SubscriptionStatus,
-  BadgeColor
-> = {
-  [SubscriptionStatus.Active]: 'green',
-  [SubscriptionStatus.Canceled]: 'red',
-  [SubscriptionStatus.CancellationScheduled]: 'red',
-  [SubscriptionStatus.Incomplete]: 'yellow',
-  [SubscriptionStatus.IncompleteExpired]: 'red',
-  [SubscriptionStatus.PastDue]: 'red',
-  [SubscriptionStatus.Paused]: 'yellow',
-  [SubscriptionStatus.Trialing]: 'yellow',
-  [SubscriptionStatus.Unpaid]: 'yellow',
-  [SubscriptionStatus.CreditTrial]: 'yellow',
+const subscriptionStatusColors: Record<SubscriptionStatus, string> = {
+  [SubscriptionStatus.Active]: 'bg-green-100 text-green-800',
+  [SubscriptionStatus.Canceled]: 'bg-red-100 text-red-800',
+  [SubscriptionStatus.CancellationScheduled]:
+    'bg-red-100 text-red-800',
+  [SubscriptionStatus.Incomplete]: 'bg-yellow-100 text-yellow-800',
+  [SubscriptionStatus.IncompleteExpired]: 'bg-red-100 text-red-800',
+  [SubscriptionStatus.PastDue]: 'bg-red-100 text-red-800',
+  [SubscriptionStatus.Paused]: 'bg-yellow-100 text-yellow-800',
+  [SubscriptionStatus.Trialing]: 'bg-yellow-100 text-yellow-800',
+  [SubscriptionStatus.Unpaid]: 'bg-yellow-100 text-yellow-800',
+  [SubscriptionStatus.CreditTrial]: 'bg-yellow-100 text-yellow-800',
 }
 
 const SubscriptionStatusBadge = ({
@@ -26,7 +24,10 @@ const SubscriptionStatusBadge = ({
   status: SubscriptionStatus
 }) => {
   return (
-    <Badge color={subscriptionStatusColors[status]}>
+    <Badge
+      variant="secondary"
+      className={subscriptionStatusColors[status]}
+    >
       {sentenceCase(status)}
     </Badge>
   )
