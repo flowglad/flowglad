@@ -129,7 +129,6 @@ export const editCheckoutSession = async (
         transaction
       )
     }
-  } else {
   }
   let purchase: Purchase.Record | null = null
   if (purchaseId) {
