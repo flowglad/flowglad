@@ -30,6 +30,7 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { Customer } from '@/db/schema/customers'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
 import { Feature } from '@/db/schema/features'
+import { Discount } from '@/db/schema/discounts'
 
 interface CheckoutInfoSuccess {
   checkoutInfo: CheckoutInfoCore
@@ -148,6 +149,7 @@ export async function checkoutInfoForPriceWhere(
       clientSecret,
       checkoutSession,
       feeCalculation,
+      discount,
     }
     return {
       checkoutInfo: checkoutInfoSchema.parse(rawCheckoutInfo),
@@ -196,6 +198,7 @@ export async function checkoutInfoForCheckoutSession(
   maybeCustomer: Customer.Record | null
   maybeCurrentSubscriptions: Subscription.Record[] | null
   features: Feature.Record[] | null
+  discount: Discount.Record | null
 }> {
   const checkoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
@@ -225,6 +228,12 @@ export async function checkoutInfoForCheckoutSession(
     { productId: product.id, expiredAt: null },
     transaction
   )
+  const discount = checkoutSession.discountId
+    ? await selectDiscountById(
+        checkoutSession.discountId,
+        transaction
+      )
+    : null
   const maybeCustomer = checkoutSession.customerId
     ? await selectCustomerById(
         checkoutSession.customerId,
@@ -246,6 +255,7 @@ export async function checkoutInfoForCheckoutSession(
     checkoutSession,
     product,
     price,
+    discount,
     sellerOrganization: organization,
     feeCalculation,
     maybeCustomer,

@@ -50,30 +50,22 @@ export default function DiscountCodeInput() {
   const attemptHandler = useCallback(
     async (data: DiscountCodeFormData) => {
       try {
-        const code = data.discountCode
+        const code = data.discountCode.trim()
         let discountSucceeded = false
         setDiscountCodeStatus('loading')
-        console.log('attempting discount code....', code)
-        console.log('=====purchase', purchase)
-        console.log('=====product', product)
         if (purchase) {
           const result = await attemptDiscountCode({
             code,
             purchaseId: purchase.id,
           })
-          console.log('=====purchase result', result)
           discountSucceeded = result?.isValid
         } else if (product) {
           const result = await attemptDiscountCode({
             code,
             productId: product.id,
           })
-          console.log('=====product result', result)
           discountSucceeded = result?.isValid
-        } else {
-          console.log('=====no purchase or product')
         }
-        console.log('=====discountSucceeded', discountSucceeded)
         if (discountSucceeded) {
           setDiscountCodeStatus('success')
         } else {
@@ -127,6 +119,17 @@ export default function DiscountCodeInput() {
     <Button
       onClick={async (e) => {
         e.preventDefault()
+        setDiscountCodeStatus('idle')
+        setIsTouched(false)
+        form.setValue('discountCode', '')
+        /**
+         * NOTE: this optimistically clears the discount code
+         * without waiting for the server to respond. In almost all
+         * cases, this should be fine.
+         *
+         * The rare edge cases is if the clearDiscountCode mutation
+         * fails
+         */
         if (purchase?.id) {
           await clearDiscountCode({
             purchaseId: purchase.id!,
@@ -136,13 +139,10 @@ export default function DiscountCodeInput() {
             productId: product.id!,
           })
         }
-        setDiscountCodeStatus('idle')
-        setIsTouched(false)
-        form.setValue('discountCode', '')
       }}
       variant="ghost"
       className="px-0 hover:bg-transparent focus-visible:ring-0 text-gray-600 hover:text-gray-800"
-      disabled={!discount}
+      disabled={discountCodeStatus === 'loading'}
     >
       Clear
     </Button>
@@ -186,6 +186,7 @@ export default function DiscountCodeInput() {
                           boxShadow:
                             '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(0, 0, 0, 0.02)',
                         }}
+                        disabled={discountCodeStatus === 'loading'}
                         autoCapitalize="characters"
                         {...field}
                         onChange={(e) => {
@@ -209,7 +210,7 @@ export default function DiscountCodeInput() {
                         }}
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        {discount
+                        {discount || discountCodeStatus !== 'idle'
                           ? clearDiscountCodeButton
                           : applyDiscountCodeButton}
                       </div>
