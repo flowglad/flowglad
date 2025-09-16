@@ -5,7 +5,7 @@ import type { AuthContextValues } from '../contexts/authContext'
 import AuthProvider from '../contexts/authContext'
 import TrpcProvider from '@/app/_trpc/Provider'
 import PostHogPageView from './PostHogPageview'
-import FeaturebaseMessenger from './FeaturebaseMessenger'
+// import FeaturebaseMessenger from './FeaturebaseMessenger'
 import { usePathname } from 'next/navigation'
 if (typeof window !== 'undefined') {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
@@ -31,7 +31,7 @@ export default function Providers({
       <AuthProvider values={authContext}>
         <PostHogProvider client={posthog}>
           <PostHogPageView user={authContext.user} />
-          {!isPublicRoute && !isBillingPortal && <FeaturebaseMessenger />}
+          {/* !isPublicRoute && !isBillingPortal && <FeaturebaseMessenger /> */}
           {children}
         </PostHogProvider>
       </AuthProvider>
