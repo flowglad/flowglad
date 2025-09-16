@@ -5,9 +5,9 @@ import type { AuthContextValues } from '../contexts/authContext'
 import AuthProvider from '../contexts/authContext'
 import TrpcProvider from '@/app/_trpc/Provider'
 import PostHogPageView from './PostHogPageview'
-import { ThemeProvider } from '@/components/theme-provider'
-import FeaturebaseMessenger from './FeaturebaseMessenger'
+// import FeaturebaseMessenger from './FeaturebaseMessenger'
 import { usePathname } from 'next/navigation'
+import { ThemeProvider } from '@/components/theme-provider'
 if (typeof window !== 'undefined') {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
