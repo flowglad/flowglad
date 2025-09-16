@@ -1,6 +1,6 @@
-### Contributing to Flowglad Docs
+# Contributing to Flowglad Docs
 
-Thanks for your interest in contributing to Flowglad’s documentation. This guide focuses exclusively on the docs site in `platform/docs`.
+Thanks for your interest in contributing to Flowglad’s documentation. This section focuses exclusively on the docs site in `platform/docs`.
 
 Links:
 - Website: [flowglad.com](https://www.flowglad.com/)
@@ -142,3 +142,53 @@ Thanks again for improving the docs!
 
 
 
+
+---
+# Contributing to the backend (platform/flowglad-next)
+
+Thanks for your interest in contributing to Flowglad’s backend. This section focuses on the Next.js app in `platform/flowglad-next`.
+
+Prerequisites:
+- pnpm installed
+- Docker running (used for the test database via docker-compose)
+
+Before you start (once per repo clone):
+```
+# from the repo root
+pnpm install
+```
+
+Setup steps:
+1) Change directory to the backend app
+```
+cd platform/flowglad-next
+```
+
+2) Create your local env file from the example
+```
+cp .env.example .env.local
+```
+
+3) Start the test database and run migrations
+```
+pnpm test:setup
+```
+
+4) Run the test suite
+```
+pnpm test
+```
+
+### Adding tests (backend)
+
+Follow this sequence when introducing new tests:
+- Plan: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-1-outline-test-cases.md`
+- Stub: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-2-planning-stubs.md`
+- Global setup: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-3-before-each-setup.md`
+- Implement: `.conductor/fix-new-org-default-plan/platform/flowglad-next/llm-prompts/new-test-4-implementation.md`
+
+Guidelines:
+- Do not mock the database. Tests use the local Postgres test instance (Docker) with real reads/writes.
+- Use the seeding helpers in `platform/flowglad-next/seedDatabase.ts` to create state; avoid ad‑hoc inserts.
+- When asserting existence or absence, fetch and compare primary keys (ids) rather than relying solely on list lengths.
+- Useful commands: `pnpm test` (CI run), `pnpm test:watch` (local TDD), `pnpm test:setup` (reset DB), `pnpm test:teardown` (stop DB).
