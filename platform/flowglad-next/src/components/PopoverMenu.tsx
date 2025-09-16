@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils'
-import core from '@/utils/core'
-import * as PopoverPrimitive from '@radix-ui/react-popover'
+import { PopoverClose } from '@/components/ui/popover'
 
 export enum PopoverMenuItemState {
   Default = 'default',
@@ -40,7 +39,7 @@ const PopoverMenuItem = ({
   icon,
 }: PopoverMenuItemProps) => {
   return (
-    <PopoverPrimitive.Close asChild>
+    <PopoverClose asChild>
       <div
         className={cn(
           'relative flex cursor-default select-none items-start rounded-lg px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
@@ -73,7 +72,7 @@ const PopoverMenuItem = ({
           )}
         </div>
       </div>
-    </PopoverPrimitive.Close>
+    </PopoverClose>
   )
 }
 

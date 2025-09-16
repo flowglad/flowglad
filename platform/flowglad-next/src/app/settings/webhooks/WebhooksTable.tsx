@@ -128,6 +128,8 @@ const WebhooksTable = ({
         },
         {
           id: 'actions',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell webhook={cellData} />
           ),

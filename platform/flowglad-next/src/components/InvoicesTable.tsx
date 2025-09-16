@@ -218,6 +218,8 @@ const InvoicesTable = ({
         },
         {
           id: '_',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell
               invoice={cellData.invoice}

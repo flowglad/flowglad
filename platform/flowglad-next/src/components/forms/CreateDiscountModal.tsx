@@ -31,10 +31,13 @@ const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
           ...input,
           discount: {
             ...input.discount,
-            amount: rawStringAmountToCountableCurrencyAmount(
-              organization!.defaultCurrency,
-              input.__rawAmountString!
-            ),
+            amount:
+              input.discount.amountType === DiscountAmountType.Fixed
+                ? rawStringAmountToCountableCurrencyAmount(
+                    organization!.defaultCurrency,
+                    input.__rawAmountString || '0'
+                  )
+                : input.discount.amount, // For percentage discounts, use the amount as-is
           },
         })
       }}
@@ -43,12 +46,12 @@ const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
           name: '',
           code: '',
           amountType: DiscountAmountType.Fixed,
-          amount: 1,
+          amount: 1, // Must be positive integer per schema validation
           duration: DiscountDuration.Once,
           active: true,
           numberOfPayments: null,
         },
-        __rawAmountString: '0',
+        __rawAmountString: '0', // Initialize with '0' for fixed amount (default type)
       }}
     >
       <DiscountFormFields />

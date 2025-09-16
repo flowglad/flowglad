@@ -151,6 +151,8 @@ const SubscriptionsTable = ({
         },
         {
           id: '_',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <SubscriptionMoreMenuCell
               subscription={cellData.subscription}

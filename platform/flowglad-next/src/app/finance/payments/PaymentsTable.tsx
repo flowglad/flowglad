@@ -165,6 +165,8 @@ const PaymentsTable = ({
         },
         {
           id: '_',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell
               payment={cellData.payment}
