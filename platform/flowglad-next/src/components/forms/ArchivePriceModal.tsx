@@ -1,6 +1,13 @@
 'use client'
 
-import Modal from '@/components/ion/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
@@ -73,28 +80,33 @@ const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
   )
 
   return (
-    <Modal
-      trigger={trigger}
-      title={price.active ? 'Archive price' : 'Unarchive price'}
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      footer={
-        <div className="flex justify-end gap-3 w-full">
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleArchive}
-            disabled={editPrice.isPending}
-          >
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
             {price.active ? 'Archive price' : 'Unarchive price'}
-          </Button>
-        </div>
-      }
-      showClose
-    >
-      {modalText}
-    </Modal>
+          </DialogTitle>
+        </DialogHeader>
+        {modalText}
+        <DialogFooter>
+          <div className="flex justify-end gap-3 w-full">
+            <Button
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleArchive}
+              disabled={editPrice.isPending}
+            >
+              {price.active ? 'Archive price' : 'Unarchive price'}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

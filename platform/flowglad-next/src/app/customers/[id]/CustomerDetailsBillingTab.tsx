@@ -8,7 +8,7 @@ import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 // import { useState } from 'react'
@@ -29,8 +29,8 @@ const CustomerDetailsSection = ({
   })
 
   return (
-    <div className="w-full min-w-40 flex flex-col gap-4 py-5 pr-5 rounded-radius-sm">
-      <div className="text-xl font-semibold text-on-primary-hover">
+    <div className="w-full min-w-40 flex flex-col gap-4 py-5 pr-5 rounded-md">
+      <div className="text-xl font-semibold text-foreground">
         Details
       </div>
       <div className="grid grid-cols-2 gap-x-16 gap-y-4">
@@ -118,13 +118,13 @@ export const CustomerBillingSubPage = ({
             payments={payments}
           />
           <div className="w-full flex flex-col gap-5 pb-20">
-            <TableTitle title="Subscriptions" noButtons />
+            <TableHeader title="Subscriptions" noButtons />
             <SubscriptionsTable
               filters={{
                 customerId: customer.id,
               }}
             />
-            <TableTitle
+            <TableHeader
               title="Invoices"
               noButtons
               // buttonLabel="Create Invoice"
@@ -132,13 +132,13 @@ export const CustomerBillingSubPage = ({
               // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
             />
             <InvoicesTable customer={customer} />
-            <TableTitle title="Payments" noButtons />
+            <TableHeader title="Payments" noButtons />
             <PaymentsTable
               filters={{
                 customerId: customer.id,
               }}
             />
-            <TableTitle title="Purchases" noButtons />
+            <TableHeader title="Purchases" noButtons />
             <PurchasesTable
               filters={{
                 customerId: customer.id,

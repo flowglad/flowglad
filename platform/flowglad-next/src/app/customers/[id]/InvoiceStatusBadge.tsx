@@ -1,5 +1,5 @@
 import React from 'react'
-import { Badge } from '@/components/ion/Badge'
+import { Badge } from '@/components/ui/badge'
 import { InvoiceStatus } from '@/types'
 import { sentenceCase } from 'change-case'
 
@@ -7,33 +7,31 @@ interface InvoiceStatusBadgeProps {
   status: InvoiceStatus
 }
 
-const getColorForStatus = (
-  status: InvoiceStatus
-): 'blue' | 'green' | 'yellow' | 'red' | 'grey' => {
+const getClassNameForStatus = (status: InvoiceStatus): string => {
   switch (status) {
     case InvoiceStatus.Draft:
-      return 'grey'
+      return 'bg-gray-100 text-gray-800'
     case InvoiceStatus.Open:
-      return 'blue'
+      return 'bg-blue-100 text-blue-800'
     case InvoiceStatus.Paid:
-      return 'green'
+      return 'bg-green-100 text-green-800'
     case InvoiceStatus.Uncollectible:
-      return 'yellow'
+      return 'bg-yellow-100 text-yellow-800'
     case InvoiceStatus.Void:
-      return 'red'
+      return 'bg-red-100 text-red-800'
     default:
-      return 'grey'
+      return 'bg-gray-100 text-gray-800'
   }
 }
 
 export const InvoiceStatusBadge: React.FC<
   InvoiceStatusBadgeProps
 > = ({ status }) => {
-  const color = getColorForStatus(status)
+  const className = getClassNameForStatus(status)
   const displayText = sentenceCase(status)
 
   return (
-    <Badge color={color} variant="soft">
+    <Badge variant="secondary" className={className}>
       {displayText}
     </Badge>
   )

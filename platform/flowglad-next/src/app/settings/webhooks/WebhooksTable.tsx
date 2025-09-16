@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
+import { Eye, Pencil } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
-import Table from '@/components/ion/Table'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
+import { DataTable } from '@/components/ui/data-table'
 import { Webhook } from '@/db/schema/webhooks'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import StatusBadge from '@/components/StatusBadge'
@@ -43,10 +43,12 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Show Signing Secret',
+      icon: <Eye />,
       handler: handleShowSecret,
     },
     {
       label: 'Edit Webhook',
+      icon: <Pencil />,
       handler: () => setIsEditModalOpen(true),
     },
   ]
@@ -93,18 +95,14 @@ const WebhooksTable = ({
     () =>
       [
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'name',
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.name}</span>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="URL" column={column} />
-          ),
+          header: 'URL',
           accessorKey: 'url',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.url}>
@@ -113,18 +111,14 @@ const WebhooksTable = ({
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'active',
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.active} />
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'id',
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.id}>
@@ -146,10 +140,10 @@ const WebhooksTable = ({
   const total = data?.total || 0
 
   return (
-    <Table
+    <DataTable
       columns={columns}
       data={tableData}
-      className="bg-nav"
+      className="bg-background"
       bordered
       pagination={{
         pageIndex,

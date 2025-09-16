@@ -1,10 +1,15 @@
-// Generated with Ion on 9/23/2024, 6:30:46 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=372:6968
 'use client'
-import { Image as ImageIcon } from 'lucide-react'
+import {
+  Image as ImageIcon,
+  Pencil,
+  Copy,
+  Archive,
+  ArchiveRestore,
+  Plus,
+} from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
-import Table from '@/components/ion/Table'
+import { DataTable } from '@/components/ui/data-table'
 import { Product } from '@/db/schema/products'
 import core from '@/utils/core'
 import { Price } from '@/db/schema/prices'
@@ -17,7 +22,6 @@ import { useRouter } from 'next/navigation'
 import StatusBadge from '@/components/StatusBadge'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import PricingCellView from '@/components/PricingCellView'
-import ColumnHeaderCell from '@/components/ion/ColumnHeaderCell'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { trpc } from '@/app/_trpc/client'
@@ -62,22 +66,26 @@ const MoreMenuCell = ({
   const items: PopoverMenuItem[] = [
     {
       label: 'Edit product',
+      icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
       label: 'Copy purchase link',
+      icon: <Copy />,
       handler: copyPurchaseLinkHandler,
     },
     {
       label: product.active
         ? 'Deactivate product'
         : 'Activate product',
+      icon: product.active ? <Archive /> : <ArchiveRestore />,
       handler: () => setIsArchiveOpen(true),
     },
   ]
   if (product.active) {
     items.push({
       label: 'Create price',
+      icon: <Plus />,
       handler: () => setIsCreatePriceOpen(true),
     })
   }
@@ -135,93 +143,89 @@ export const ProductsTable = ({
       [
         {
           id: 'image',
-          width: 100,
+          size: 50,
+          maxSize: 50,
           cell: ({ row: { original: cellData } }) => (
-            <div className="bg-fbg-primary-200 h-10 w-10 hover:bg-fbg-primary-200 overflow-clip flex items-center justify-center rounded-md">
+            <div className="bg-muted h-10 w-10 hover:bg-muted overflow-clip flex items-center justify-center rounded-md shrink-0">
               {cellData.product.imageURL ? (
                 <Image
                   src={cellData.product.imageURL}
                   alt={cellData.product.name}
-                  width={140}
-                  height={80}
+                  width={40}
+                  height={40}
                   className="object-cover object-center overflow-hidden h-10 w-10"
                 />
               ) : (
-                <ImageIcon size={20} />
+                <ImageIcon
+                  size={16}
+                  className="text-muted-foreground"
+                />
               )}
             </div>
           ),
         },
         {
           id: 'name',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Name" column={column} />
-          ),
+          header: 'Name',
           accessorKey: 'product.name',
+          size: 250,
+          maxSize: 300,
           cell: ({ row: { original: cellData } }) => (
-            <>
-              <span className="font-bold text-sm">
+            <div className="min-w-0 max-w-[250px]">
+              <span
+                className="font-normal text-sm truncate block"
+                title={cellData.product.name}
+              >
                 {cellData.product.name}
               </span>
-            </>
+            </div>
           ),
         },
         {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Pricing" column={column} />
-          ),
+          header: 'Pricing',
           accessorKey: 'prices',
+          size: 120,
+          maxSize: 150,
           cell: ({ row: { original: cellData } }) => (
-            <PricingCellView prices={cellData.prices} />
+            <div className="min-w-0 max-w-[120px]">
+              <PricingCellView prices={cellData.prices} />
+            </div>
           ),
         },
         {
           id: 'status',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Status" column={column} />
-          ),
+          header: 'Status',
           accessorKey: 'product.active',
+          size: 100,
+          maxSize: 100,
           cell: ({ row: { original: cellData } }) => (
-            <StatusBadge active={cellData.product.active} />
+            <div className="min-w-0">
+              <StatusBadge active={cellData.product.active} />
+            </div>
           ),
         },
         {
-          id: 'created',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Created" column={column} />
-          ),
-          accessorKey: 'product.createdAt',
-          cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.product.createdAt!)}</>
-          ),
-        },
-        {
-          id: 'pricingModel',
-          header: ({ column }) => (
-            <ColumnHeaderCell title="Pricing Model" column={column} />
-          ),
-          accessorKey: 'pricingModel.name',
-          cell: ({ row: { original: cellData } }) => {
-            const pricingModelName = cellData.pricingModel?.name
-            if (pricingModelName) {
-              return <div className="w-fit">{pricingModelName}</div>
-            }
-            return <div className="w-fit">-</div>
-          },
-        },
-        {
-          header: ({ column }) => (
-            <ColumnHeaderCell title="ID" column={column} />
-          ),
+          header: 'ID',
           accessorKey: 'product.id',
+          size: 200,
+          maxSize: 200,
           cell: ({ row: { original: cellData } }) => (
-            <CopyableTextTableCell copyText={cellData.product.id}>
-              {cellData.product.id}
-            </CopyableTextTableCell>
+            <div className="min-w-0 max-w-[250px]">
+              <CopyableTextTableCell copyText={cellData.product.id}>
+                <span
+                  className="truncate block"
+                  title={cellData.product.id}
+                >
+                  {cellData.product.id}
+                </span>
+              </CopyableTextTableCell>
+            </div>
           ),
         },
         {
           id: '_',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell product={cellData.product} />
           ),
@@ -238,23 +242,25 @@ export const ProductsTable = ({
   return (
     <div className="flex-1 h-full w-full flex flex-col gap-6 pb-10">
       <div className="w-full flex flex-col gap-5">
-        <Table
-          columns={columns}
-          data={tableData}
-          onClickRow={(row) => {
-            router.push(`/store/products/${row.product.id}`)
-          }}
-          className="bg-nav"
-          bordered
-          pagination={{
-            pageIndex,
-            pageSize,
-            total,
-            onPageChange: handlePaginationChange,
-            isLoading,
-            isFetching,
-          }}
-        />
+        <div className="w-full">
+          <DataTable
+            columns={columns}
+            data={tableData}
+            onClickRow={(row) => {
+              router.push(`/store/products/${row.product.id}`)
+            }}
+            className="bg-background w-full"
+            bordered
+            pagination={{
+              pageIndex,
+              pageSize,
+              total,
+              onPageChange: handlePaginationChange,
+              isLoading,
+              isFetching,
+            }}
+          />
+        </div>
       </div>
     </div>
   )

@@ -19,5 +19,3 @@ export function usePriceConstraints(params: {
 
   return { omitTrialFields, disableAmountAndTrials, isDefaultLocked }
 }
-
-

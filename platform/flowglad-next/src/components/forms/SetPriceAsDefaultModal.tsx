@@ -1,6 +1,13 @@
 'use client'
 
-import Modal from '@/components/ion/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
@@ -59,33 +66,36 @@ const SetPriceAsDefault: React.FC<SetPriceAsDefaultProps> = ({
   }
 
   return (
-    <Modal
-      trigger={trigger}
-      title="Set Default Price"
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      footer={
-        <div className="flex justify-end gap-3 w-full">
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleMakeDefault}
-            disabled={editPrice.isPending}
-          >
-            Set as Default
-          </Button>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Set Default Price</DialogTitle>
+        </DialogHeader>
+        <div className="text-muted-foreground">
+          <p>
+            Set {price.name} to default? This will be the default
+            price customers will see for this product moving forward.
+          </p>
         </div>
-      }
-      showClose
-    >
-      <div className="text-muted-foreground">
-        <p>
-          Set {price.name} to default? This will be the default price
-          customers will see for this product moving forward.
-        </p>
-      </div>
-    </Modal>
+        <DialogFooter>
+          <div className="flex justify-end gap-3 w-full">
+            <Button
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMakeDefault}
+              disabled={editPrice.isPending}
+            >
+              Set as Default
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

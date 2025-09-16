@@ -6,7 +6,7 @@ const PaymentStatusSuccess: React.FC<{
 }> = ({ children }) => {
   return (
     <div className="flex flex-col items-center justify-center h-screen w-full">
-      <div className="flex items-center justify-center rounded-full bg-green-primary-500 p-4">
+      <div className="flex items-center justify-center rounded-full bg-green-500 p-4">
         <Check size={64} color="white" />
       </div>
       <div className="flex flex-col items-center justify-center pb-8">

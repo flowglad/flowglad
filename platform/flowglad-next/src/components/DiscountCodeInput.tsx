@@ -5,7 +5,7 @@ import debounce from 'debounce'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import Hint from './ion/Hint'
+import { FormDescription } from '@/components/ui/form'
 import { CheckoutFlowType } from '@/types'
 import {
   Form,
@@ -24,6 +24,7 @@ export default function DiscountCodeInput() {
   const [discountCodeStatus, setDiscountCodeStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >(discount ? 'success' : 'idle')
+  const [isTouched, setIsTouched] = useState(false)
 
   const form = useForm<DiscountCodeFormData>({
     defaultValues: {
@@ -49,7 +50,7 @@ export default function DiscountCodeInput() {
   const attemptHandler = useCallback(
     async (data: DiscountCodeFormData) => {
       try {
-        const code = data.discountCode
+        const code = data.discountCode.trim()
         let discountSucceeded = false
         setDiscountCodeStatus('loading')
         if (purchase) {
@@ -93,6 +94,28 @@ export default function DiscountCodeInput() {
       }
     }
   }, [attemptHandler])
+  const clearDiscountCodeHandler = useCallback(async () => {
+    setDiscountCodeStatus('idle')
+    setIsTouched(false)
+    form.setValue('discountCode', '')
+    /**
+     * NOTE: this optimistically clears the discount code
+     * without waiting for the server to respond. In almost all
+     * cases, this should be fine.
+     *
+     * The rare edge cases is if the clearDiscountCode mutation
+     * fails
+     */
+    if (purchase?.id) {
+      await clearDiscountCode({
+        purchaseId: purchase.id!,
+      })
+    } else if (product?.id) {
+      await clearDiscountCode({
+        productId: product.id!,
+      })
+    }
+  }, [clearDiscountCode, purchase, product])
 
   const debouncedAttemptHandler = debouncedAttemptHandlerRef.current
 
@@ -116,21 +139,11 @@ export default function DiscountCodeInput() {
     <Button
       onClick={async (e) => {
         e.preventDefault()
-        if (purchase?.id) {
-          await clearDiscountCode({
-            purchaseId: purchase.id!,
-          })
-        } else if (product?.id) {
-          await clearDiscountCode({
-            productId: product.id!,
-          })
-        }
-        setDiscountCodeStatus('idle')
-        form.setValue('discountCode', '')
+        await clearDiscountCodeHandler()
       }}
       variant="ghost"
-      className="px-0 hover:bg-transparent focus-visible:ring-0 text-muted-foreground"
-      disabled={!discount}
+      className="px-0 hover:bg-transparent focus-visible:ring-0 text-gray-600 hover:text-gray-800"
+      disabled={discountCodeStatus === 'loading'}
     >
       Clear
     </Button>
@@ -139,9 +152,11 @@ export default function DiscountCodeInput() {
   const applyDiscountCodeButton = (
     <Button
       onClick={form.handleSubmit(attemptHandler)}
-      disabled={discountCodeStatus === 'loading'}
+      disabled={
+        discountCodeStatus === 'loading' || !discountCode.trim()
+      }
       variant="ghost"
-      className="px-0 hover:bg-transparent focus-visible:ring-0 text-muted-foreground"
+      className="px-0 hover:bg-transparent focus-visible:ring-0 text-gray-600 hover:text-gray-800"
     >
       Apply
     </Button>
@@ -150,7 +165,12 @@ export default function DiscountCodeInput() {
   return (
     <Form {...form}>
       <div className="flex flex-col gap-1 w-full">
-        <Label htmlFor="discountCode">Discount Code</Label>
+        <Label
+          htmlFor="discountCode"
+          className="text-[#0a0a0a] text-[13px] font-medium"
+        >
+          Discount Code
+        </Label>
         <div className="flex flex-row gap-2 w-full">
           <div className="flex-1">
             <FormField
@@ -159,41 +179,58 @@ export default function DiscountCodeInput() {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input
-                      id="discountCode"
-                      className="h-11 bg-[#353535] focus-visible:bg-[#353535] border-none"
-                      autoCapitalize="characters"
-                      iconTrailing={
-                        discount
+                    <div className="relative">
+                      <Input
+                        id="discountCode"
+                        className="discount-input-focus pr-12 border border-[#e5e7eb] bg-[#ffffff] text-[#0a0a0a] rounded-[8px] px-4 py-3 text-[14px] min-h-[42.09px] leading-[1.3] transition-colors focus-visible:outline-none focus-visible:border-[#0a0a0a] focus-visible:ring-0"
+                        style={{
+                          boxShadow:
+                            '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(0, 0, 0, 0.02)',
+                        }}
+                        disabled={discountCodeStatus === 'loading'}
+                        autoCapitalize="characters"
+                        {...field}
+                        onChange={(e) => {
+                          const code = e.target.value.toUpperCase()
+                          field.onChange(code)
+                          setIsTouched(true)
+                        }}
+                        onBlur={async (e) => {
+                          field.onBlur()
+                          setIsTouched(true)
+                          const code = e.target.value.trim()
+                          if (!code) {
+                            return clearDiscountCodeHandler()
+                          }
+                          if (
+                            code !== discount?.code &&
+                            debouncedAttemptHandler
+                          ) {
+                            debouncedAttemptHandler({
+                              discountCode: code,
+                            })
+                          }
+                        }}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {discount || discountCodeStatus !== 'idle'
                           ? clearDiscountCodeButton
-                          : applyDiscountCodeButton
-                      }
-                      {...field}
-                      onChange={(e) => {
-                        const code = e.target.value.toUpperCase()
-                        field.onChange(code)
-                      }}
-                      onBlur={async (e) => {
-                        field.onBlur()
-                        const code = e.target.value.trim()
-                        if (
-                          code &&
-                          code !== discount?.code &&
-                          debouncedAttemptHandler
-                        ) {
-                          debouncedAttemptHandler({
-                            discountCode: code,
-                          })
-                        }
-                      }}
-                    />
+                          : applyDiscountCodeButton}
+                      </div>
+                    </div>
                   </FormControl>
                 </FormItem>
               )}
             />
           </div>
         </div>
-        <Hint error={discountCodeStatus === 'error'}>{hint}</Hint>
+        {hint && (
+          <div
+            className={`text-sm ${discountCodeStatus === 'error' || (isTouched && !discountCode.trim()) ? 'text-red-600' : 'text-gray-600'}`}
+          >
+            {hint}
+          </div>
+        )}
       </div>
     </Form>
   )

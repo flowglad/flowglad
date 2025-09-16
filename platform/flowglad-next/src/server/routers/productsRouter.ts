@@ -133,7 +133,10 @@ export const editProduct = protectedProcedure
             : product
 
           // Validate that default products can only have certain fields updated
-          validateDefaultProductUpdate(enforcedProduct, existingProduct)
+          validateDefaultProductUpdate(
+            enforcedProduct,
+            existingProduct
+          )
 
           const updatedProduct = await editProductPricingModel(
             { product: enforcedProduct, featureIds },

@@ -5,7 +5,7 @@ import ApiKeysTable from '@/app/settings/api-keys/ApiKeysTable'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
 import WebhooksTable from '@/app/settings/webhooks/WebhooksTable'
 import CreateWebhookModal from '@/components/forms/CreateWebhookModal'
-import TableTitle from '@/components/ion/TableTitle'
+import { TableHeader } from '@/components/ui/table-header'
 import { FlowgladApiKeyType } from '@/types'
 
 const ApiSettingsTab = () => {
@@ -17,7 +17,7 @@ const ApiSettingsTab = () => {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-4">
-        <TableTitle
+        <TableHeader
           title="API Keys"
           buttonLabel="Create API Key"
           buttonIcon={<PlusIcon size={16} />}
@@ -34,7 +34,7 @@ const ApiSettingsTab = () => {
         />
       </div>
       <div className="flex flex-col gap-4">
-        <TableTitle
+        <TableHeader
           title="Webhooks"
           buttonLabel="Create Webhook"
           buttonIcon={<PlusIcon size={16} />}

@@ -24,6 +24,9 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
       formSchema={createUsageMeterSchema}
       defaultValues={{
         usageMeter: {
+          name: '',
+          slug: '',
+          pricingModelId: '',
           aggregationType: UsageMeterAggregationType.Sum,
         },
       }}

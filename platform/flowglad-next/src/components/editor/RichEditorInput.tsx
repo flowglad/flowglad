@@ -10,7 +10,7 @@ import StarterKit from '@tiptap/starter-kit'
 import mentionSuggestions from './mentionSuggestions'
 import ErrorLabel from '../ErrorLabel'
 import { useEffect } from 'react'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 
 const RichEditorInput = ({
   onChange,
@@ -66,7 +66,7 @@ const RichEditorInput = ({
       Mention.configure({
         HTMLAttributes: {
           class:
-            'bg-blue-300 rounded-[0.4rem] box-decoration-clone text-blue-900 px-[0.1rem] py-[0.3rem]',
+            'bg-primary/20 text-primary rounded-[0.4rem] box-decoration-clone px-[0.1rem] py-[0.3rem]',
         },
         renderHTML: ({ node, options }) => {
           return [
@@ -102,7 +102,10 @@ const RichEditorInput = ({
 
   return (
     <div
-      className={cn('bg-background-input p-2 rounded-md', className)}
+      className={cn(
+        'bg-background border border-border p-2 rounded-md',
+        className
+      )}
     >
       {/* {editor && <MenuBar editor={editor} />} */}
       <EditorContent editor={editor} />

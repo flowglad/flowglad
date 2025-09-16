@@ -1,6 +1,7 @@
 'use client'
 
 import { useFormContext } from '@/components/ui/form'
+import { Controller } from 'react-hook-form'
 import { CreatePricingModelInput } from '@/db/schema/pricingModels'
 import { Input } from '@/components/ui/input'
 import {
@@ -19,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card } from '@/registry/components/card'
+import { Card } from '@/components/ui/card'
 
 export default function PricingModelFormFields({ edit }: { edit?: boolean }) {
   const form = useFormContext<CreatePricingModelInput>()
@@ -141,16 +142,29 @@ export default function PricingModelFormFields({ edit }: { edit?: boolean }) {
         </div>
       )}
       {!edit && (
-        <FormField
-          control={form.control}
+        <Controller
           name="pricingModel.isDefault"
-          render={({ field }: any) => (
-            <Switch
-              checked={field.value}
-              onCheckedChange={field.onChange}
-              label="Default pricing model"
-              description="This become the pricing model that automatically attaches to new customers."
-            />
+          control={form.control}
+          render={({ field }: { field: any }) => (
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is-default"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="is-default"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Default pricing model
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  This become the pricing model that automatically
+                  attaches to new customers.
+                </p>
+              </div>
+            </div>
           )}
         />
       )}

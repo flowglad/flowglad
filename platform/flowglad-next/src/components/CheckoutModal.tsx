@@ -2,8 +2,13 @@
 import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import CheckoutForm from '@/components/CheckoutForm'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
-import Modal from '@/components/ion/Modal'
-import { cn } from '@/utils/core'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSessionCookieEffect'
 
 interface CheckoutModalProps {
@@ -22,18 +27,25 @@ const CheckoutModal = ({
   useSetCheckoutSessionCookieEffect(checkoutInfo)
 
   const checkoutFormContainer = cn(
-    'bg-internal',
+    'bg-background',
     'w-full flex flex-1'
   )
 
   return (
-    <Modal open={isOpen} onOpenChange={onClose} title={title}>
-      <CheckoutPageProvider values={checkoutInfo}>
-        <div className={checkoutFormContainer}>
-          <CheckoutForm />
-        </div>
-      </CheckoutPageProvider>
-    </Modal>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="w-[calc(100vw-32px)] sm:max-w-md max-h-[90vh] overflow-y-auto">
+        {title && (
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+        )}
+        <CheckoutPageProvider values={checkoutInfo}>
+          <div className={checkoutFormContainer}>
+            <CheckoutForm />
+          </div>
+        </CheckoutPageProvider>
+      </DialogContent>
+    </Dialog>
   )
 }
 

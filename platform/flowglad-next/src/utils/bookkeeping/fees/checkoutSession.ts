@@ -157,6 +157,7 @@ export const createCheckoutSessionFeeCalculationInsertForPrice =
     } = params
     const base = calculatePriceBaseAmount({ price, purchase })
     const discountAmt = calculateDiscountAmount(base, discount)
+    console.log('=====discountAmt', discountAmt)
     const insert = createBaseFeeCalculationInsert({
       organization,
       billingAddress,
@@ -267,6 +268,10 @@ export const createFeeCalculationForCheckoutSession = async (
   const organizationCountry = await selectCountryById(
     organizationCountryId,
     transaction
+  )
+  console.log(
+    '=====createCheckoutSessionFeeCalculation: discount',
+    discount
   )
   return createCheckoutSessionFeeCalculation(
     {

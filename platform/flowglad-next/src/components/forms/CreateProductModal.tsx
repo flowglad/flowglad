@@ -1,5 +1,3 @@
-// Generated with Ion on 9/24/2024, 3:10:31 AM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=373:16122
 'use client'
 import { PriceType } from '@/types'
 import { ProductFormFields } from '@/components/forms/ProductFormFields'

@@ -7,6 +7,7 @@ import TrpcProvider from '@/app/_trpc/Provider'
 import PostHogPageView from './PostHogPageview'
 // import FeaturebaseMessenger from './FeaturebaseMessenger'
 import { usePathname } from 'next/navigation'
+import { ThemeProvider } from '@/components/theme-provider'
 if (typeof window !== 'undefined') {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -21,20 +22,33 @@ export default function Providers({
   isPublicRoute,
 }: {
   children: React.ReactNode
-  authContext: Omit<AuthContextValues, 'setOrganization'>
+  authContext: Omit<
+    AuthContextValues,
+    'setOrganization' | 'authenticatedLoading'
+  >
   isPublicRoute?: boolean
 }) {
   const pathname = usePathname()
-  const isBillingPortal = Boolean(pathname?.startsWith('/billing-portal'))
+  const isBillingPortal = Boolean(
+    pathname?.startsWith('/billing-portal')
+  )
   return (
-    <TrpcProvider>
-      <AuthProvider values={authContext}>
-        <PostHogProvider client={posthog}>
-          <PostHogPageView user={authContext.user} />
-          {/* !isPublicRoute && !isBillingPortal && <FeaturebaseMessenger /> */}
-          {children}
-        </PostHogProvider>
-      </AuthProvider>
-    </TrpcProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+      storageKey="flowglad-theme"
+    >
+      <TrpcProvider>
+        <AuthProvider values={authContext}>
+          <PostHogProvider client={posthog}>
+            <PostHogPageView user={authContext.user} />
+            {/* {!isPublicRoute && !isBillingPortal && <FeaturebaseMessenger />} */}
+            {children}
+          </PostHogProvider>
+        </AuthProvider>
+      </TrpcProvider>
+    </ThemeProvider>
   )
 }

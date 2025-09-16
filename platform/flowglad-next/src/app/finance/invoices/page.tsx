@@ -2,11 +2,10 @@
 
 import { useState } from 'react'
 import { InvoiceStatus } from '@/types'
-import { InvoiceStatusTab } from './components/InvoiceStatusTab'
 import InvoicesTable from '@/components/InvoicesTable'
 import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
-import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 // import { Button } from '@/components/ui/button'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
@@ -22,9 +21,19 @@ const InternalInvoicesPage = () => {
   const { isLoading, getCountForStatus } =
     useInvoiceCountsByStatusMap()
 
-  const handleTabChange = (value: string) => {
+  const handleFilterChange = (value: string) => {
     setSelectedStatus(value as InvoiceStatus | 'all')
   }
+
+  // Filter options for the button group
+  const filterOptions = [
+    { value: 'all', label: 'All' },
+    { value: InvoiceStatus.Draft, label: 'Draft' },
+    { value: InvoiceStatus.Open, label: 'Open' },
+    { value: InvoiceStatus.Paid, label: 'Paid' },
+    { value: InvoiceStatus.Uncollectible, label: 'Uncollectible' },
+    { value: InvoiceStatus.Void, label: 'Void' },
+  ]
 
   const filters =
     selectedStatus !== 'all' ? { status: selectedStatus } : {}
@@ -33,28 +42,20 @@ const InternalInvoicesPage = () => {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <div className="flex flex-row justify-between">
-          <PageTitle>Invoices</PageTitle>
-          {/* <Button onClick={() => setCreateInvoiceModalOpen(true)}>
-            <Plus size={16} />
-            Create Invoice
-          </Button> */}
+        <PageHeader
+          title="Invoices"
+          // Removed create invoice action - disabled per main branch business logic
+        />
+
+        <div className="w-full">
+          <FilterButtonGroup
+            options={filterOptions}
+            value={selectedStatus}
+            onValueChange={handleFilterChange}
+            className="mb-6"
+          />
+          <InvoicesTable filters={filters} />
         </div>
-
-        <Tabs value={selectedStatus} onValueChange={handleTabChange}>
-          <TabsList className="gap-8 border-b border-stroke-subtle">
-            <InvoiceStatusTab status="all" />
-            <InvoiceStatusTab status={InvoiceStatus.Draft} />
-            <InvoiceStatusTab status={InvoiceStatus.Open} />
-            <InvoiceStatusTab status={InvoiceStatus.Paid} />
-            <InvoiceStatusTab status={InvoiceStatus.Uncollectible} />
-            <InvoiceStatusTab status={InvoiceStatus.Void} />
-          </TabsList>
-
-          <TabsContent value={selectedStatus} className="mt-6">
-            <InvoicesTable filters={filters} />
-          </TabsContent>
-        </Tabs>
         {/* <CreateInvoiceModal
           isOpen={createInvoiceModalOpen}
           setIsOpen={setCreateInvoiceModalOpen}

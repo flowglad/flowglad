@@ -69,7 +69,10 @@ export default function FeaturebaseMessenger() {
 
   if (!appId || !user) {
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('Featurebase disabled', { hasAppId: !!appId, hasUser: !!user })
+      console.warn('Featurebase disabled', {
+        hasAppId: !!appId,
+        hasUser: !!user,
+      })
     }
     return null
   }

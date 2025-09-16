@@ -1,5 +1,3 @@
-// Generated with Ion on 11/18/2024, 2:07:04 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1303:14448
 'use client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -33,7 +31,7 @@ import {
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
   const { data } = trpc.countries.list.useQuery()
-  const { setOrganization, user } = useAuthContext()
+  const { setOrganization } = useAuthContext()
   const form = useForm<CreateOrganizationInput>({
     resolver: zodResolver(createOrganizationSchema),
     defaultValues: {
@@ -64,7 +62,7 @@ const BusinessDetails = () => {
       .sort((a, b) => a.label.localeCompare(b.label)) ?? []
 
   return (
-    <div className="bg-internal h-full w-full flex justify-between items-center">
+    <div className="bg-background h-full w-full flex justify-between items-center">
       <div className="flex-1 h-full w-full flex flex-col justify-center items-center gap-9 p-20">
         <div className="w-full flex flex-col items-center gap-4">
           <Form {...form}>

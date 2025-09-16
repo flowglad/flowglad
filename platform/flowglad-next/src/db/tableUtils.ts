@@ -15,6 +15,7 @@ import {
   ilike,
   or,
   SQLWrapper,
+  isNull,
 } from 'drizzle-orm'
 import core, { gitCommitId } from '@/utils/core'
 import {
@@ -337,6 +338,9 @@ export const whereClauseFromObject = <T extends PgTableWithId>(
         table[key as keyof typeof table] as PgColumn,
         selectConditions[key]
       )
+    }
+    if (selectConditions[key] === null) {
+      return isNull(table[key as keyof typeof table] as PgColumn)
     }
     return eq(
       table[key as keyof typeof table] as PgColumn,
