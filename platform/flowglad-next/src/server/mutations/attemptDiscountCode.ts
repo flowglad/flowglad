@@ -15,23 +15,57 @@ import { CheckoutSessionType } from '@/types'
 export const attemptDiscountCode = publicProcedure
   .input(attemptDiscountCodeInputSchema)
   .mutation(async ({ input }) => {
+    const findInput: CheckoutSessionCookieNameParams =
+      'productId' in input
+        ? {
+            productId: input.productId,
+            type: CheckoutSessionType.Product,
+          }
+        : {
+            purchaseId: input.purchaseId,
+            type: CheckoutSessionType.Purchase,
+          }
+
     const isValid = await adminTransaction(
       async ({ transaction }) => {
+        const checkoutSession = await findCheckoutSession(
+          findInput,
+          transaction
+        )
+
+        if (!checkoutSession) {
+          return false
+        }
+
         // Find active discounts with matching code
         const matchingDiscounts = await selectDiscounts(
           {
             code: input.code,
+            organizationId: checkoutSession.organizationId,
           },
           transaction
         )
+        const updateCheckoutSessionDiscount = (
+          discountId: string | null
+        ) => {
+          return editCheckoutSession(
+            {
+              checkoutSession: { ...checkoutSession, discountId },
+              purchaseId: R.propOr(null, 'purchaseId', input),
+            },
+            transaction
+          )
+        }
 
         if (matchingDiscounts.length === 0) {
+          await updateCheckoutSessionDiscount(null)
           return false
         }
 
         const discount = matchingDiscounts[0]
 
         if (!discount.active) {
+          await updateCheckoutSessionDiscount(null)
           return false
         }
 
@@ -58,6 +92,7 @@ export const attemptDiscountCode = publicProcedure
         }
 
         if (!organizationId) {
+          await updateCheckoutSessionDiscount(null)
           return false
         }
         if ('invoiceId' in input) {
@@ -65,37 +100,15 @@ export const attemptDiscountCode = publicProcedure
             `Invoice checkout flow does not support discount codes. Invoice id: ${input.invoiceId}`
           )
         }
-        const findInput: CheckoutSessionCookieNameParams =
-          'productId' in input
-            ? {
-                productId: input.productId,
-                type: CheckoutSessionType.Product,
-              }
-            : {
-                purchaseId: input.purchaseId,
-                type: CheckoutSessionType.Purchase,
-              }
-        const checkoutSession = await findCheckoutSession(
-          findInput,
-          transaction
-        )
-
-        if (!checkoutSession) {
+        // Verify organization matches
+        const applyDiscount =
+          matchingDiscounts[0].organizationId === organizationId
+        if (!applyDiscount) {
+          await updateCheckoutSessionDiscount(null)
           return false
         }
-
-        await editCheckoutSession(
-          {
-            checkoutSession: {
-              ...checkoutSession,
-              discountId: matchingDiscounts[0].id,
-            },
-            purchaseId: R.propOr(null, 'purchaseId', input),
-          },
-          transaction
-        )
-        // Verify organization matches
-        return matchingDiscounts[0].organizationId === organizationId
+        await updateCheckoutSessionDiscount(matchingDiscounts[0].id)
+        return applyDiscount
       }
     )
 

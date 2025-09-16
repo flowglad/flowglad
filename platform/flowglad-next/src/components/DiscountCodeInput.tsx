@@ -53,19 +53,27 @@ export default function DiscountCodeInput() {
         const code = data.discountCode
         let discountSucceeded = false
         setDiscountCodeStatus('loading')
+        console.log('attempting discount code....', code)
+        console.log('=====purchase', purchase)
+        console.log('=====product', product)
         if (purchase) {
           const result = await attemptDiscountCode({
             code,
             purchaseId: purchase.id,
           })
+          console.log('=====purchase result', result)
           discountSucceeded = result?.isValid
         } else if (product) {
           const result = await attemptDiscountCode({
             code,
             productId: product.id,
           })
+          console.log('=====product result', result)
           discountSucceeded = result?.isValid
+        } else {
+          console.log('=====no purchase or product')
         }
+        console.log('=====discountSucceeded', discountSucceeded)
         if (discountSucceeded) {
           setDiscountCodeStatus('success')
         } else {

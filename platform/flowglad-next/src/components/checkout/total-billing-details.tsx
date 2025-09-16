@@ -132,6 +132,10 @@ const calculateTotalBillingDetails = (
   }
 
   if (feeCalculation) {
+    console.log(
+      '=====totalDueAmount 1',
+      calculateTotalDueAmount(feeCalculation)
+    )
     return {
       baseAmount,
       subtotalAmount: feeCalculation.baseAmount,
@@ -140,7 +144,7 @@ const calculateTotalBillingDetails = (
       totalDueAmount: calculateTotalDueAmount(feeCalculation),
     }
   }
-
+  console.log('=====totalDueAmount 2', totalDueAmount)
   return {
     baseAmount,
     subtotalAmount,
@@ -199,7 +203,7 @@ export const TotalBillingDetails = React.forwardRef<
 
   const { discountAmount, taxAmount, baseAmount, totalDueAmount } =
     calculateTotalBillingDetails(totalBillingDetailsParams)
-
+  console.log('=====totalDueAmount', totalDueAmount)
   const hideTotalLabels =
     flowType === CheckoutFlowType.Subscription &&
     checkoutPageContext.price.type === PriceType.Usage

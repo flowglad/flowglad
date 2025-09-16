@@ -137,7 +137,6 @@ const currencyFromCheckoutInfoCore = (
 export const useCheckoutPageContext =
   (): CheckoutPageContextValues => {
     const rawCheckoutInfo = useContext(CheckoutPageContext)
-    console.log('rawCheckoutInfo', rawCheckoutInfo)
     const checkoutInfo = checkoutInfoSchema.parse(rawCheckoutInfo)
     const editCheckoutSession =
       trpc.purchases.updateSession.useMutation()
