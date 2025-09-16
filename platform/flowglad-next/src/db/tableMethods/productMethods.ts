@@ -246,8 +246,17 @@ export const selectProductPriceAndFeaturesByProductId = async (
   productId: string,
   transaction: DbTransaction
 ) => {
-  const { prices, ...product } =
-    await selectPricesAndProductByProductId(productId, transaction)
+  let productWithPrices
+  try {
+    productWithPrices = await selectPricesAndProductByProductId(
+      productId,
+      transaction
+    )
+  } catch (error) {
+    throw new Error(`Product not found with id ${productId}`)
+  }
+
+  const { prices, ...product } = productWithPrices
   const features = await selectFeaturesByProductFeatureWhere(
     {
       productId: productId,

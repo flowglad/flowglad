@@ -156,12 +156,19 @@ const priceProductJoinResultToProductAndPrices = (
 ): ProductWithPrices[] => {
   const productMap = new Map<string, Product.Record>()
   const pricesMap = new Map<string, Price.Record>()
+  const productFeaturesMap = new Map<string, Set<string>>()
   const featureMap = new Map<string, Feature.Record>()
+
   result.forEach((item) => {
     productMap.set(item.product.id, item.product)
     pricesMap.set(item.price.id, item.price)
     if (item.feature) {
       featureMap.set(item.feature.id, item.feature)
+      // Track which features belong to which product
+      if (!productFeaturesMap.has(item.product.id)) {
+        productFeaturesMap.set(item.product.id, new Set())
+      }
+      productFeaturesMap.get(item.product.id)!.add(item.feature.id)
     }
   })
 
@@ -170,16 +177,27 @@ const priceProductJoinResultToProductAndPrices = (
   const sortedPrices = prices.sort(
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
   )
-  const features = Array.from(featureMap.values())
+
   return products.map((product): ProductWithPrices => {
+    const productFeatureIds =
+      productFeaturesMap.get(product.id) || new Set()
+    const productFeatures = Array.from(productFeatureIds)
+      .map((featureId) => featureMap.get(featureId))
+      .filter(
+        (feature): feature is Feature.Record => feature !== undefined
+      )
+
+    const productPrices = sortedPrices.filter(
+      (price) => price.productId === product.id
+    )
+
     return {
       ...product,
-      prices: sortedPrices.filter(
-        (price) => price.productId === product.id
-      ),
+      prices: productPrices,
       defaultPrice:
-        sortedPrices.find((price) => price.isDefault) ?? prices[0],
-      features,
+        productPrices.find((price) => price.isDefault) ??
+        productPrices[0],
+      features: productFeatures,
     }
   })
 }

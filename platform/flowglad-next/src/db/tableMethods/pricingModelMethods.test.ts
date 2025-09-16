@@ -7,6 +7,7 @@ import {
   safelyUpdatePricingModel,
   selectPricingModelById,
   safelyInsertPricingModel,
+  selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from './pricingModelMethods'
 
 describe('safelyUpdatePricingModel', () => {
@@ -336,5 +337,148 @@ describe('safelyInsertPricingModel', () => {
     // Test mode default should remain unchanged
     expect(refreshedTestModeDefault.isDefault).toBe(true)
     expect(refreshedTestModeDefault.livemode).toBe(false)
+  })
+})
+
+describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+  })
+
+  it('should return pricing models with products and features correctly mapped', async () => {
+    const {
+      setupProduct,
+      setupPrice,
+      setupToggleFeature,
+      setupProductFeature,
+    } = await import('@/../seedDatabase')
+    const { PriceType, IntervalUnit, CurrencyCode } = await import(
+      '@/types'
+    )
+
+    // Create products for the pricing model
+    const product1 = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Product 1',
+    })
+
+    const product2 = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Product 2',
+    })
+
+    // Create prices for products
+    await setupPrice({
+      productId: product1.id,
+      name: 'Price 1',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      setupFeeAmount: 0,
+      trialPeriodDays: 0,
+      externalId: undefined,
+      usageMeterId: undefined,
+    })
+
+    await setupPrice({
+      productId: product2.id,
+      name: 'Price 2',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Year,
+      intervalCount: 1,
+      unitPrice: 10000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      setupFeeAmount: 0,
+      trialPeriodDays: 0,
+      externalId: undefined,
+      usageMeterId: undefined,
+    })
+
+    // Create features
+    const feature1 = await setupToggleFeature({
+      organizationId: organization.id,
+      name: 'Feature 1',
+      livemode: true,
+    })
+
+    const feature2 = await setupToggleFeature({
+      organizationId: organization.id,
+      name: 'Feature 2',
+      livemode: true,
+    })
+
+    const feature3 = await setupToggleFeature({
+      organizationId: organization.id,
+      name: 'Feature 3',
+      livemode: true,
+    })
+
+    // Assign features to products
+    await setupProductFeature({
+      productId: product1.id,
+      featureId: feature1.id,
+      organizationId: organization.id,
+    })
+
+    await setupProductFeature({
+      productId: product1.id,
+      featureId: feature2.id,
+      organizationId: organization.id,
+    })
+
+    await setupProductFeature({
+      productId: product2.id,
+      featureId: feature3.id,
+      organizationId: organization.id,
+    })
+
+    // Query the pricing models with products and features
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    // Verify the results
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+
+    expect(pricingModelResult.id).toBe(pricingModel.id)
+    expect(pricingModelResult.products).toHaveLength(2)
+
+    // Check that product 1 has features 1 and 2
+    const product1Result = pricingModelResult.products.find(
+      (p) => p.id === product1.id
+    )
+    expect(product1Result).toBeDefined()
+    expect(product1Result?.features).toHaveLength(2)
+    expect(product1Result?.features.map((f) => f.id)).toContain(
+      feature1.id
+    )
+    expect(product1Result?.features.map((f) => f.id)).toContain(
+      feature2.id
+    )
+
+    // Check that product 2 has only feature 3
+    const product2Result = pricingModelResult.products.find(
+      (p) => p.id === product2.id
+    )
+    expect(product2Result).toBeDefined()
+    expect(product2Result?.features).toHaveLength(1)
+    expect(product2Result?.features[0].id).toBe(feature3.id)
   })
 })

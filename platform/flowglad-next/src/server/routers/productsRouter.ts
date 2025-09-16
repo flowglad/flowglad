@@ -233,11 +233,28 @@ export const getProduct = protectedProcedure
     try {
       return await authenticatedTransaction(
         async ({ transaction }) => {
-          const { product, prices, features } =
+          const result =
             await selectProductPriceAndFeaturesByProductId(
               input.id,
               transaction
             )
+
+          if (!result) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Product not found with id ${input.id}`,
+            })
+          }
+
+          const { product, prices, features } = result
+
+          if (!prices || prices.length === 0) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `No prices found for product with id ${input.id}`,
+            })
+          }
+
           return {
             ...product,
             prices,
