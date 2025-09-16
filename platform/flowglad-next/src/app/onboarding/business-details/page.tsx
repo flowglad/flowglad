@@ -1,6 +1,7 @@
 // Generated with Ion on 11/18/2024, 2:07:04 PM
 // Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1303:14448
 'use client'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,34 @@ import {
   FormDescription,
 } from '@/components/ui/form'
 
+const REFERRAL_OPTIONS = [
+  'Bluesky',
+  'Bookface',
+  'Discord',
+  'Event',
+  'Facebook',
+  'Flowglad Founder',
+  'Friend',
+  'Hacker News',
+  'Indie Hackers',
+  'Instagram',
+  'LinkedIn',
+  'Mastodon',
+  'Newsletter',
+  'Product Hunt',
+  'Reddit',
+  'Search',
+  'Slack',
+  'Telegram',
+  'Threads',
+  'TikTok',
+  'WhatsApp',
+  'X',
+  'Y Combinator Site',
+  'YouTube',
+  'Other',
+]
+
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
   const { data } = trpc.countries.list.useQuery()
@@ -43,6 +72,7 @@ const BusinessDetails = () => {
     },
   })
   const router = useRouter()
+  const [referralSource, setReferralSource] = useState<string | undefined>()
   const onSubmit = form.handleSubmit(async (data) => {
     try {
       const { organization } =
@@ -126,11 +156,31 @@ const BusinessDetails = () => {
                   )}
                 />
               </div>
+              <FormItem>
+                <FormLabel>How did you hear about us?</FormLabel>
+                <FormControl>
+                  <Select
+                    value={referralSource}
+                    onValueChange={setReferralSource}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an option" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REFERRAL_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+              </FormItem>
               <Button
                 variant="default"
                 size="default"
                 type="submit"
-                disabled={form.formState.isSubmitting}
+                disabled={form.formState.isSubmitting || !referralSource}
                 className="w-full"
               >
                 Continue
