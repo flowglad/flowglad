@@ -456,11 +456,7 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     const pricingModelResult = result[0]
 
     expect(pricingModelResult.id).toBe(pricingModel.id)
-    /**
-     * 3 products: product1, product2,
-     * and default product created with pricing model
-     */
-    expect(pricingModelResult.products).toHaveLength(3)
+    expect(pricingModelResult.products).toHaveLength(2)
 
     // Check that product 1 has features 1 and 2
     const product1Result = pricingModelResult.products.find(
@@ -482,5 +478,50 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     expect(product2Result).toBeDefined()
     expect(product2Result?.features).toHaveLength(1)
     expect(product2Result?.features[0].id).toBe(feature3.id)
+  })
+
+  it('should return products with empty features array when no features are assigned', async () => {
+    // Create a product without any features
+    const productWithoutFeatures = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Product Without Features',
+    })
+
+    // Create a price for the product
+    await setupPrice({
+      productId: productWithoutFeatures.id,
+      name: 'Basic Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 500,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      setupFeeAmount: 0,
+      trialPeriodDays: 0,
+      externalId: undefined,
+      usageMeterId: undefined,
+    })
+
+    // Query the pricing model
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    // Find the product without features
+    const productResult = result[0].products.find(
+      (p) => p.id === productWithoutFeatures.id
+    )
+
+    // Verify it has an empty features array, not null or undefined
+    expect(productResult).toBeDefined()
+    expect(productResult?.features).toBeDefined()
+    expect(Array.isArray(productResult?.features)).toBe(true)
+    expect(productResult?.features).toHaveLength(0)
   })
 })
