@@ -70,6 +70,9 @@ const TrialFields = ({
           id="trial-toggle"
           checked={offerTrial}
           onCheckedChange={(checked) => {
+            if (disabled) {
+              return
+            }
             setOfferTrial(checked)
             if (!checked) {
               setValue('price.trialPeriodDays', 0)

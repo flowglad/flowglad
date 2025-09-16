@@ -154,6 +154,7 @@ export const ProductFormFields = ({
                         <Switch
                           id="product-active"
                           checked={field.value}
+                          disabled={isDefaultProduct}
                           onCheckedChange={field.onChange}
                         />
                         <Label
