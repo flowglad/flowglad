@@ -98,34 +98,8 @@ export default function DiscountFormFields({
                 <Select
                   value={field.value ?? DiscountAmountType.Fixed}
                   onValueChange={(value) => {
-                    // Prevent validation during field updates by batching them
-                    if (value === DiscountAmountType.Fixed) {
-                      // When switching to fixed, set amount to 1 (schema requires positive integer)
-                      // and initialize __rawAmountString
-                      form.setValue('discount.amount', 1, {
-                        shouldValidate: false,
-                      })
-                      form.setValue('__rawAmountString', '0', {
-                        shouldValidate: false,
-                      })
-                    } else {
-                      // When switching to percentage, set amount to 1 (valid positive integer)
-                      // and clear __rawAmountString
-                      form.setValue('discount.amount', 1, {
-                        shouldValidate: false,
-                      })
-                      form.setValue('__rawAmountString', undefined, {
-                        shouldValidate: false,
-                      })
-                    }
-
-                    // Update the discount type last, then trigger validation
+                    form.setValue('discount.amount', 0)
                     field.onChange(value)
-
-                    // Trigger validation after all fields are updated
-                    setTimeout(() => {
-                      form.trigger()
-                    }, 0)
                   }}
                 >
                   <SelectTrigger>
@@ -175,19 +149,11 @@ export default function DiscountFormFields({
                         value={field.value?.toString() ?? ''}
                         onChange={(e) => {
                           const value = e.target.value
-                          if (value === '') {
-                            // Set to minimum valid positive value for schema
-                            field.onChange(0.01)
+                          const floatValue = parseFloat(value)
+                          if (!isNaN(floatValue)) {
+                            field.onChange(floatValue)
                           } else {
-                            const floatValue = parseFloat(value)
-                            if (
-                              !isNaN(floatValue) &&
-                              floatValue > 0
-                            ) {
-                              field.onChange(floatValue)
-                            } else {
-                              field.onChange(0.01)
-                            }
+                            field.onChange(null)
                           }
                         }}
                       />
@@ -287,6 +253,7 @@ export default function DiscountFormFields({
                     max={10000000000}
                     step={1}
                     placeholder="10"
+                    defaultValue={1}
                     value={field.value?.toString() ?? ''}
                     onChange={(e) => {
                       const value = e.target.value
