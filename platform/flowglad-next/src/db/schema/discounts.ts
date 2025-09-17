@@ -350,7 +350,7 @@ export const createDiscountInputSchema = z.object({
 
 export const createDiscountFormSchema =
   createDiscountInputSchema.extend({
-    __rawAmountString: z.string().optional(),
+    __rawAmountString: z.string(),
   })
 
 export type CreateDiscountInput = z.infer<
@@ -367,7 +367,7 @@ export const editDiscountInputSchema = z.object({
 })
 
 export const editDiscountFormSchema = editDiscountInputSchema.extend({
-  __rawAmountString: z.string().optional(),
+  __rawAmountString: z.string(),
 })
 
 export type EditDiscountInput = z.infer<
