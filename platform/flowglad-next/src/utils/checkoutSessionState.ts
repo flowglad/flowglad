@@ -232,6 +232,17 @@ export const createNonInvoiceCheckoutSession = async (
     }
   }
 
+  // Validate that checkout sessions cannot be created for default products
+  const product = await selectProductById(
+    price.productId,
+    transaction
+  )
+  if (product.default) {
+    throw new Error(
+      'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+    )
+  }
+
   const checkoutSession = await insertCheckoutSession(
     checkoutSessionInsert,
     transaction
@@ -240,17 +251,6 @@ export const createNonInvoiceCheckoutSession = async (
     organizationId,
     transaction
   )
-  const product = await selectProductById(
-    price.productId,
-    transaction
-  )
-
-  // Validate that checkout sessions cannot be created for default products
-  if (product.default) {
-    throw new Error(
-      'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
-    )
-  }
 
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null

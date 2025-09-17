@@ -284,45 +284,49 @@ describe('createCheckoutSessionTransaction', () => {
       // Create a default product and price
       const { organization: defaultOrg, product: defaultProduct } =
         await setupOrg()
-      const defaultPrice = await setupPrice({
-        productId: defaultProduct.id,
-        type: PriceType.SinglePayment,
-        name: 'Default Product Price',
-        unitPrice: 0,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: true,
-      })
+      try {
+        const defaultPrice = await setupPrice({
+          productId: defaultProduct.id,
+          type: PriceType.SinglePayment,
+          name: 'Default Product Price',
+          unitPrice: 0,
+          intervalUnit: IntervalUnit.Day,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+        })
 
-      // Create a customer for the default organization
-      const defaultCustomer = await setupCustomer({
-        organizationId: defaultOrg.id,
-        stripeCustomerId: `cus_${core.nanoid()}`,
-      })
+        // Create a customer for the default organization
+        const defaultCustomer = await setupCustomer({
+          organizationId: defaultOrg.id,
+          stripeCustomerId: `cus_${core.nanoid()}`,
+        })
 
-      const checkoutSessionInput: CreateCheckoutSessionObject = {
-        customerExternalId: defaultCustomer.externalId,
-        type: CheckoutSessionType.Product,
-        successUrl: 'http://success.url',
-        cancelUrl: 'http://cancel.url',
-        priceId: defaultPrice.id,
-      }
+        const checkoutSessionInput: CreateCheckoutSessionObject = {
+          customerExternalId: defaultCustomer.externalId,
+          type: CheckoutSessionType.Product,
+          successUrl: 'http://success.url',
+          cancelUrl: 'http://cancel.url',
+          priceId: defaultPrice.id,
+        }
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: defaultOrg.id,
-              livemode: false,
-            },
-            transaction
+        await expect(
+          adminTransaction(async ({ transaction }) =>
+            createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: defaultOrg.id,
+                livemode: false,
+              },
+              transaction
+            )
           )
+        ).rejects.toThrow(
+          'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
         )
-      ).rejects.toThrow(
-        'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
-      )
+      } finally {
+        await teardownOrg({ organizationId: defaultOrg.id })
+      }
     })
 
     it('should allow creating checkout sessions for non-default products', async () => {

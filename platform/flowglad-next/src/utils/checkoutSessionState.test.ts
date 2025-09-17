@@ -101,30 +101,34 @@ describe('createNonInvoiceCheckoutSession', () => {
       // Create a default product and price
       const { organization: defaultOrg, product: defaultProduct } =
         await setupOrg()
-      const defaultPrice = await setupPrice({
-        productId: defaultProduct.id,
-        type: PriceType.SinglePayment,
-        name: 'Default Product Price',
-        unitPrice: 0,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: true,
-      })
+      try {
+        const defaultPrice = await setupPrice({
+          productId: defaultProduct.id,
+          type: PriceType.SinglePayment,
+          name: 'Default Product Price',
+          unitPrice: 0,
+          intervalUnit: IntervalUnit.Day,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+        })
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          createNonInvoiceCheckoutSession(
-            {
-              price: defaultPrice,
-              organizationId: defaultOrg.id,
-            },
-            transaction
+        await expect(
+          adminTransaction(async ({ transaction }) =>
+            createNonInvoiceCheckoutSession(
+              {
+                price: defaultPrice,
+                organizationId: defaultOrg.id,
+              },
+              transaction
+            )
           )
+        ).rejects.toThrow(
+          'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
         )
-      ).rejects.toThrow(
-        'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
-      )
+      } finally {
+        await teardownOrg({ organizationId: defaultOrg.id })
+      }
     })
 
     it('should allow creating checkout sessions for non-default products', async () => {
