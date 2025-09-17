@@ -125,6 +125,18 @@ export const validateDefaultPriceUpdate = (
     })
   }
 
+  // Prevent changing the billing interval for default prices on default products
+  if (
+    update.intervalUnit !== undefined &&
+    update.intervalUnit !== existingPrice.intervalUnit
+  ) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'Cannot change the billing interval of the default price for a default product',
+    })
+  }
+
   // Prevent changing the isDefault status
   if (
     'isDefault' in update &&
