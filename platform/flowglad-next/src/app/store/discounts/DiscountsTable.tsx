@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
 import { Discount } from '@/db/schema/discounts'
-import core from '@/utils/core'
 import {
   CurrencyCode,
   DiscountAmountType,
@@ -175,14 +174,9 @@ const DiscountsTable = ({
           ),
         },
         {
-          header: 'Created',
-          accessorKey: 'discount.createdAt',
-          cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.discount.createdAt!)}</>
-          ),
-        },
-        {
           id: '_',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell discount={cellData.discount} />
           ),
