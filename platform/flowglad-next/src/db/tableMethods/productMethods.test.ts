@@ -4,6 +4,7 @@ import {
   getProductTableRows,
   insertProduct,
   updateProduct,
+  selectProductPriceAndFeaturesByProductId,
 } from './productMethods'
 import { insertUser } from './userMethods'
 import {
@@ -599,5 +600,120 @@ describe('Slug uniqueness policies', () => {
         )
       })
     ).rejects.toThrow(/Failed query:/)
+  })
+})
+
+describe('selectProductPriceAndFeaturesByProductId', () => {
+  it('should return product with no features', async () => {
+    // Set up organization and product
+    const { organization } = await setupOrg()
+    const pricingModel = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Test PricingModel',
+    })
+    const product = await setupProduct({
+      organizationId: organization.id,
+      name: 'Product Without Features',
+      pricingModelId: pricingModel.id,
+    })
+
+    // Set up a price
+    await setupPrice({
+      productId: product.id,
+      name: 'Basic Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 999,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      setupFeeAmount: 0,
+      trialPeriodDays: 0,
+      externalId: undefined,
+      usageMeterId: undefined,
+    })
+
+    // Get product with prices and features (no features assigned)
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectProductPriceAndFeaturesByProductId(
+        product.id,
+        transaction
+      )
+    })
+
+    // Verify the result
+    expect(result.product.id).toBe(product.id)
+    expect(result.product.name).toBe('Product Without Features')
+    expect(result.prices).toHaveLength(1)
+    expect(result.prices[0].name).toBe('Basic Price')
+    // Should have empty features array, not null or undefined
+    expect(result.features).toBeDefined()
+    expect(Array.isArray(result.features)).toBe(true)
+    expect(result.features).toHaveLength(0)
+  })
+
+  it('should return product with prices and features', async () => {
+    // Set up organization and product
+    const { organization } = await setupOrg()
+    const pricingModel = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Test PricingModel',
+    })
+    const product = await setupProduct({
+      organizationId: organization.id,
+      name: 'Test Product',
+      pricingModelId: pricingModel.id,
+    })
+
+    // Set up prices
+    await setupPrice({
+      productId: product.id,
+      name: 'Price 1',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      setupFeeAmount: 0,
+      trialPeriodDays: 0,
+      externalId: undefined,
+      usageMeterId: undefined,
+    })
+
+    await setupPrice({
+      productId: product.id,
+      name: 'Price 2',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Year,
+      intervalCount: 1,
+      unitPrice: 10000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      setupFeeAmount: 0,
+      trialPeriodDays: 0,
+      externalId: undefined,
+      usageMeterId: undefined,
+    })
+
+    // Get product with prices and features
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectProductPriceAndFeaturesByProductId(
+        product.id,
+        transaction
+      )
+    })
+
+    // Verify the result
+    expect(result.product.id).toBe(product.id)
+    expect(result.product.name).toBe('Test Product')
+    expect(result.prices).toHaveLength(2)
+    expect(result.prices[0].name).toBe('Price 1')
+    expect(result.prices[1].name).toBe('Price 2')
+    expect(result.features).toBeDefined()
+    expect(Array.isArray(result.features)).toBe(true)
   })
 })
