@@ -165,6 +165,13 @@ export const createCheckoutSessionTransaction = async (
     price = result.price
     product = result.product
     organization = result.organization
+
+    // Validate that checkout sessions cannot be created for default products
+    if (product.default) {
+      throw new Error(
+        'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+      )
+    }
   } else {
     organization = await selectOrganizationById(
       checkoutSession.organizationId,

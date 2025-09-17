@@ -13,6 +13,7 @@ import {
   teardownOrg,
   setupPrice,
   setupUsageMeter,
+  setupProduct,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { Organization } from '@/db/schema/organizations'
@@ -36,11 +37,7 @@ describe('createCheckoutSessionTransaction', () => {
   })
 
   beforeEach(async () => {
-    const {
-      organization: org,
-      product,
-      pricingModel,
-    } = await setupOrg()
+    const { organization: org, pricingModel } = await setupOrg()
     organization = org
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -51,8 +48,19 @@ describe('createCheckoutSessionTransaction', () => {
       name: 'Usage Meter',
       pricingModelId: pricingModel.id,
     })
+
+    // Create a non-default product for testing
+    const nonDefaultProduct = await setupProduct({
+      organizationId: organization.id,
+      name: 'Test Product',
+      livemode: true,
+      pricingModelId: pricingModel.id,
+      active: true,
+      default: false,
+    })
+
     singlePaymentPrice = await setupPrice({
-      productId: product.id,
+      productId: nonDefaultProduct.id,
       type: PriceType.SinglePayment,
       name: 'Single Payment Price',
       unitPrice: 1000,
@@ -62,7 +70,7 @@ describe('createCheckoutSessionTransaction', () => {
       isDefault: false,
     })
     subscriptionPrice = await setupPrice({
-      productId: product.id,
+      productId: nonDefaultProduct.id,
       type: PriceType.Subscription,
       name: 'Subscription Price',
       unitPrice: 500,
@@ -72,7 +80,7 @@ describe('createCheckoutSessionTransaction', () => {
       isDefault: false,
     })
     usagePrice = await setupPrice({
-      productId: product.id,
+      productId: nonDefaultProduct.id,
       type: PriceType.Usage,
       name: 'Usage Price',
       unitPrice: 100,
@@ -269,6 +277,79 @@ describe('createCheckoutSessionTransaction', () => {
         )
       )
     ).rejects.toThrow('Invalid checkout session, type: InvalidType')
+  })
+
+  describe('Default product validation', () => {
+    it('should throw an error when trying to create a checkout session for a default product', async () => {
+      // Create a default product and price
+      const { organization: defaultOrg, product: defaultProduct } =
+        await setupOrg()
+      const defaultPrice = await setupPrice({
+        productId: defaultProduct.id,
+        type: PriceType.SinglePayment,
+        name: 'Default Product Price',
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+
+      // Create a customer for the default organization
+      const defaultCustomer = await setupCustomer({
+        organizationId: defaultOrg.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+      })
+
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        customerExternalId: defaultCustomer.externalId,
+        type: CheckoutSessionType.Product,
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+        priceId: defaultPrice.id,
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: defaultOrg.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow(
+        'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+      )
+    })
+
+    it('should allow creating checkout sessions for non-default products', async () => {
+      // This test verifies that the existing functionality still works for non-default products
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        customerExternalId: customer.externalId,
+        type: CheckoutSessionType.Product,
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+        priceId: singlePaymentPrice.id,
+      }
+
+      const { checkoutSession } = await adminTransaction(
+        async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+      )
+
+      expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
+      expect(checkoutSession.stripeSetupIntentId).toBeNull()
+    })
   })
 
   describe('Anonymous checkout sessions', () => {

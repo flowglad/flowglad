@@ -245,6 +245,13 @@ export const createNonInvoiceCheckoutSession = async (
     transaction
   )
 
+  // Validate that checkout sessions cannot be created for default products
+  if (product.default) {
+    throw new Error(
+      'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+    )
+  }
+
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null
   /**
