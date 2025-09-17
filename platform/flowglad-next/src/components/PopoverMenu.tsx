@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils'
-import core from '@/utils/core'
-import * as PopoverPrimitive from '@radix-ui/react-popover'
+import { PopoverClose } from '@/components/ui/popover'
 
 export enum PopoverMenuItemState {
   Default = 'default',
@@ -71,11 +70,11 @@ const PopoverMenuItem = ({
     </div>
   )
 
-  // Only wrap with PopoverPrimitive.Close if the item is enabled
+  // Only wrap with PopoverClose if the item is enabled
   return disabled ? (
     content
   ) : (
-    <PopoverPrimitive.Close asChild>{content}</PopoverPrimitive.Close>
+    <PopoverClose asChild>{content}</PopoverClose>
   )
 }
 

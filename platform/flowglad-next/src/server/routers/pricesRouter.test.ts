@@ -151,8 +151,6 @@ describe('pricesRouter - Default Price Constraints', () => {
               unitPrice: 0,
               type: PriceType.Subscription,
               name: 'Updated Base Plan Price',
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
             },
             existingPrice,
             product
@@ -201,6 +199,30 @@ describe('pricesRouter - Default Price Constraints', () => {
         })
       ).rejects.toThrow(
         'Cannot change the default status of a default price on a default product'
+      )
+    })
+
+    it('should throw error when attempting to change intervalUnit of default price on default product', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          const existingPrice = await selectPriceById(
+            defaultPriceId,
+            transaction
+          )
+          const product = await selectProductById(
+            existingPrice.productId,
+            transaction
+          )
+
+          // This should throw an error
+          validateDefaultPriceUpdate(
+            { intervalUnit: IntervalUnit.Year, type: PriceType.Subscription },
+            existingPrice,
+            product
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot change the billing interval of the default price for a default product'
       )
     })
 

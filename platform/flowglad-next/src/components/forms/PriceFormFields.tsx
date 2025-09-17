@@ -94,6 +94,7 @@ const SubscriptionFields = ({
                 <Select
                   value={field.value ?? ''}
                   onValueChange={field.onChange}
+                  disabled={disableAmountAndTrials}
                 >
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select interval" />

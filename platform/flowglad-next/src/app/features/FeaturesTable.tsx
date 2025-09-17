@@ -143,6 +143,8 @@ const FeaturesTable = ({
         },
         {
           id: 'more-menu',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell feature={cellData.feature} />
           ),

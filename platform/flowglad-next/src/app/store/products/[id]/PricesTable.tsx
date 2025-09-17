@@ -259,6 +259,8 @@ const PaginatedPricesTable = ({
         },
         {
           id: '_',
+          size: 40,
+          maxSize: 40,
           cell: ({ row: { original: cellData } }) => (
             <MoreMenuCell
               price={cellData.price}
