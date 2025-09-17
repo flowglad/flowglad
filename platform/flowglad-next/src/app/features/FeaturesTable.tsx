@@ -88,6 +88,9 @@ const FeaturesTable = ({
           id: 'status',
           header: 'Status',
           accessorKey: 'feature.active',
+          size: 110,
+          minSize: 105,
+          maxSize: 115,
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.feature.active} />
           ),

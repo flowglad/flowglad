@@ -128,6 +128,9 @@ const PaymentsTable = ({
         {
           header: 'Status',
           accessorKey: 'payment.status',
+          size: 110,
+          minSize: 105,
+          maxSize: 115,
           cell: ({ row: { original: cellData } }) => (
             <PaymentStatusBadge status={cellData.payment.status} />
           ),

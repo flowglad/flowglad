@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { DisplayColumnDef } from '@tanstack/react-table'
+import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
 import { formatDate } from '@/utils/core'
 import { Purchase } from '@/db/schema/purchases'
@@ -15,6 +15,9 @@ const PurchasesTable = ({
         {
           header: 'Customer',
           id: 'customer',
+          size: 280,
+          minSize: 220,
+          maxSize: 350,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{`${cellData.customer.name} (${cellData.customer.email})`}</span>
           ),
@@ -22,6 +25,9 @@ const PurchasesTable = ({
         {
           header: 'Product',
           accessorKey: 'product',
+          size: 200,
+          minSize: 150,
+          maxSize: 250,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.product.name}</span>
           ),
@@ -29,6 +35,9 @@ const PurchasesTable = ({
         {
           header: 'Status',
           accessorKey: 'status',
+          size: 110,
+          minSize: 105,
+          maxSize: 115,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
               {cellData.purchase.status}
@@ -38,6 +47,9 @@ const PurchasesTable = ({
         {
           header: 'Date',
           accessorKey: 'purchaseDate',
+          size: 125,
+          minSize: 125,
+          maxSize: 125,
           cell: ({ row: { original: cellData } }) => (
             <>
               {cellData.purchase.purchaseDate
@@ -46,8 +58,8 @@ const PurchasesTable = ({
             </>
           ),
         },
-      ] as DisplayColumnDef<Purchase.PurchaseTableRowData>[],
-    []
+      ] as ColumnDef<Purchase.PurchaseTableRowData>[],
+    [data]
   )
 
   return (

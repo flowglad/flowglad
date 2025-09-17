@@ -113,6 +113,9 @@ const WebhooksTable = ({
         {
           header: 'Status',
           accessorKey: 'active',
+          size: 110,
+          minSize: 105,
+          maxSize: 115,
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.active} />
           ),

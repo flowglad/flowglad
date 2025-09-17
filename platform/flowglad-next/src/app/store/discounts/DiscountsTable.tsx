@@ -172,8 +172,9 @@ const DiscountsTable = ({
         {
           header: 'Status',
           accessorKey: 'discount.active',
-          size: 120,
-          maxSize: 120,
+          size: 110,
+          minSize: 105,
+          maxSize: 115,
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.discount.active} />
           ),

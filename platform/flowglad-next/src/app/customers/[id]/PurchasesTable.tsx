@@ -80,9 +80,12 @@ const PurchasesTable = ({
         {
           header: 'Name',
           accessorKey: 'name',
+          size: 300,
+          minSize: 250,
+          maxSize: 400,
           cell: ({ row: { original: cellData } }) => {
             return (
-              <span className="text-sm font-normal w-[25ch] truncate">
+              <span className="text-sm font-normal">
                 {cellData.purchase.name}
               </span>
             )
@@ -91,6 +94,9 @@ const PurchasesTable = ({
         {
           header: 'Status',
           accessorKey: 'status',
+          size: 75,
+          minSize: 65,
+          maxSize: 75,
           cell: ({ row: { original: cellData } }) => {
             return <PurchaseStatusCell purchase={cellData.purchase} />
           },
@@ -98,6 +104,9 @@ const PurchasesTable = ({
         {
           header: 'Revenue',
           accessorKey: 'revenue',
+          size: 100,
+          minSize: 80,
+          maxSize: 100,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
               {stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -110,6 +119,9 @@ const PurchasesTable = ({
         {
           header: 'Customer',
           accessorKey: 'customer',
+          size: 150,
+          minSize: 120,
+          maxSize: 150,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
               {cellData.customer.name.length == 0
@@ -121,17 +133,30 @@ const PurchasesTable = ({
         {
           header: 'Purchase Date',
           accessorKey: 'startDate',
+          size: 125,
+          minSize: 125,
+          maxSize: 125,
           cell: ({ row: { original: cellData } }) => (
-            <>
+            <div
+              className="w-[125px] max-w-[125px] min-w-[125px] overflow-hidden whitespace-nowrap text-ellipsis box-border"
+              style={{
+                width: '125px !important',
+                maxWidth: '125px !important',
+                minWidth: '125px !important',
+              }}
+            >
               {cellData.purchase.purchaseDate
                 ? core.formatDate(cellData.purchase.purchaseDate)
                 : '-'}
-            </>
+            </div>
           ),
         },
         {
           header: 'ID',
           accessorKey: 'purchase.id',
+          size: 180,
+          minSize: 125,
+          maxSize: 250,
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.purchase.id}>
               {cellData.purchase.id}

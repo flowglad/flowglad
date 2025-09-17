@@ -4,6 +4,7 @@ import * as React from 'react'
 import {
   ColumnDef,
   ColumnFiltersState,
+  ColumnSizingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -54,13 +55,18 @@ export function DataTable<TData, TValue>({
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
+  const [columnSizing, setColumnSizing] =
+    React.useState<ColumnSizingState>({})
   const [rowSelection, setRowSelection] = React.useState({})
 
   const table = useReactTable({
     data,
     columns,
+    enableColumnResizing: true,
+    columnResizeMode: 'onEnd',
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onColumnSizingChange: setColumnSizing,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -75,6 +81,7 @@ export function DataTable<TData, TValue>({
       sorting,
       columnFilters,
       columnVisibility,
+      columnSizing,
       rowSelection,
       ...(pagination && {
         pagination: {
@@ -98,8 +105,14 @@ export function DataTable<TData, TValue>({
           bordered && 'border'
         )}
       >
-        <div className="min-w-fit max-w-full">
-          <Table className="table-fixed w-full">
+        <div className="w-full">
+          <Table
+            className="table-fixed w-full"
+            style={{
+              tableLayout: 'fixed',
+              width: '100%',
+            }}
+          >
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -108,10 +121,70 @@ export function DataTable<TData, TValue>({
                       <TableHead
                         key={header.id}
                         style={{
-                          width: header.getSize(),
-                          maxWidth: header.getSize(),
-                          minWidth: header.getSize(),
+                          width:
+                            header.column.columnDef.header ===
+                              'Date' ||
+                            header.column.columnDef.header ===
+                              'Purchase Date'
+                              ? '125px !important'
+                              : header.column.columnDef.header ===
+                                  'ID'
+                                ? '125px !important'
+                                : header.getSize(),
+                          maxWidth:
+                            header.column.columnDef.header ===
+                              'Date' ||
+                            header.column.columnDef.header ===
+                              'Purchase Date'
+                              ? '125px !important'
+                              : header.column.columnDef.header ===
+                                  'ID'
+                                ? '250px !important'
+                                : header.getSize(),
+                          minWidth:
+                            header.column.columnDef.header ===
+                              'Date' ||
+                            header.column.columnDef.header ===
+                              'Purchase Date'
+                              ? '125px !important'
+                              : header.column.columnDef.header ===
+                                  'ID'
+                                ? '125px !important'
+                                : header.getSize(),
+                          boxSizing:
+                            header.column.columnDef.header ===
+                              'Date' ||
+                            header.column.columnDef.header ===
+                              'Purchase Date' ||
+                            header.column.columnDef.header === 'ID'
+                              ? 'border-box'
+                              : undefined,
+                          flex:
+                            header.column.columnDef.header ===
+                              'Date' ||
+                            header.column.columnDef.header ===
+                              'Purchase Date' ||
+                            header.column.columnDef.header === 'ID'
+                              ? 'none !important'
+                              : undefined,
                         }}
+                        className={
+                          header.column.columnDef.header === 'Date' ||
+                          header.column.columnDef.header ===
+                            'Purchase Date'
+                            ? 'overflow-hidden !w-[125px] !max-w-[125px] !min-w-[125px]'
+                            : header.column.columnDef.header === 'ID'
+                              ? 'overflow-hidden !w-[125px] !max-w-[250px] !min-w-[125px]'
+                              : undefined
+                        }
+                        {...((header.column.columnDef.header ===
+                          'Date' ||
+                          header.column.columnDef.header ===
+                            'Purchase Date' ||
+                          header.column.columnDef.header ===
+                            'ID') && {
+                          'data-debug': `id:${header.id}, size:${header.getSize()}`,
+                        })}
                       >
                         {header.isPlaceholder
                           ? null
@@ -142,10 +215,54 @@ export function DataTable<TData, TValue>({
                       <TableCell
                         key={cell.id}
                         style={{
-                          width: cell.column.getSize(),
-                          maxWidth: cell.column.getSize(),
-                          minWidth: cell.column.getSize(),
+                          width:
+                            cell.column.columnDef.header === 'Date' ||
+                            cell.column.columnDef.header ===
+                              'Purchase Date'
+                              ? '125px !important'
+                              : cell.column.columnDef.header === 'ID'
+                                ? '125px !important'
+                                : cell.column.getSize(),
+                          maxWidth:
+                            cell.column.columnDef.header === 'Date' ||
+                            cell.column.columnDef.header ===
+                              'Purchase Date'
+                              ? '125px !important'
+                              : cell.column.columnDef.header === 'ID'
+                                ? '250px !important'
+                                : cell.column.getSize(),
+                          minWidth:
+                            cell.column.columnDef.header === 'Date' ||
+                            cell.column.columnDef.header ===
+                              'Purchase Date'
+                              ? '125px !important'
+                              : cell.column.columnDef.header === 'ID'
+                                ? '125px !important'
+                                : cell.column.getSize(),
+                          boxSizing:
+                            cell.column.columnDef.header === 'Date' ||
+                            cell.column.columnDef.header ===
+                              'Purchase Date' ||
+                            cell.column.columnDef.header === 'ID'
+                              ? 'border-box'
+                              : undefined,
+                          flex:
+                            cell.column.columnDef.header === 'Date' ||
+                            cell.column.columnDef.header ===
+                              'Purchase Date' ||
+                            cell.column.columnDef.header === 'ID'
+                              ? 'none !important'
+                              : undefined,
                         }}
+                        className={
+                          cell.column.columnDef.header === 'Date' ||
+                          cell.column.columnDef.header ===
+                            'Purchase Date'
+                            ? 'overflow-hidden whitespace-nowrap text-ellipsis !w-[125px] !max-w-[125px] !min-w-[125px]'
+                            : cell.column.columnDef.header === 'ID'
+                              ? 'overflow-hidden whitespace-nowrap text-ellipsis !w-[125px] !max-w-[250px] !min-w-[125px]'
+                              : undefined
+                        }
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
