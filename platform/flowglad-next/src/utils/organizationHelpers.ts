@@ -13,9 +13,7 @@ import {
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { upsertUserById } from '@/db/tableMethods/userMethods'
-import { createProductTransaction } from '@/utils/pricingModel'
-import { dummyProduct } from '@/stubs/productStubs'
-import { subscriptionDummyPrice } from '@/stubs/priceStubs'
+import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
@@ -120,46 +118,40 @@ export const createOrganizationTransaction = async (
     transaction
   )
 
-  await insertPricingModel(
+  const {
+    result: { pricingModel: defaultLivePricingModel },
+  } = await createPricingModelBookkeeping(
     {
-      name: 'Default',
-      livemode: true,
-      organizationId,
-      isDefault: true,
-    },
-    transaction
-  )
-
-  const defaultTestmodePricingModel = await insertPricingModel(
-    {
-      name: 'Default (testmode)',
-      livemode: false,
-      organizationId,
-      isDefault: true,
-    },
-    transaction
-  )
-
-  await createProductTransaction(
-    {
-      product: {
-        ...dummyProduct,
-        pricingModelId: defaultTestmodePricingModel.id,
+      pricingModel: {
+        name: 'Default',
+        isDefault: true,
       },
-      prices: [
-        {
-          ...subscriptionDummyPrice,
-          isDefault: true,
-        },
-      ],
     },
     {
       transaction,
-      livemode: false,
-      userId,
       organizationId,
+      livemode: true,
     }
   )
+
+  const {
+    result: { pricingModel: defaultTestmodePricingModel },
+  } = await createPricingModelBookkeeping(
+    {
+      pricingModel: {
+        name: 'Default (testmode)',
+        isDefault: true,
+      },
+    },
+    {
+      transaction,
+      organizationId,
+      livemode: false,
+    }
+  )
+
+  // Default products and prices for both livemode and testmode pricing models
+  // are created by createPricingModelBookkeeping above (as "Free Plan").
 
   await createSecretApiKeyTransaction(
     {
