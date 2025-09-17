@@ -474,41 +474,34 @@ describe('pricesRouter - Default Price Constraints', () => {
   })
 
   describe('createPrice', () => {
-    it('should allow creating additional prices for default products', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          // Create an additional price for the default product
-          const newPrice = await insertPrice(
-            {
-              productId: defaultProductId,
-              unitPrice: 500, // Non-zero price for a non-default price on default product
-              isDefault: false,
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Year,
-              intervalCount: 1,
-              currency: CurrencyCode.USD,
-              livemode,
-              active: true,
-              name: 'Premium Plan',
-              trialPeriodDays: null,
-              setupFeeAmount: null,
-              usageEventsPerUnit: null,
-              usageMeterId: null,
-              externalId: null,
-              slug: null,
-              startsWithCreditTrial: false,
-              overagePriceId: null,
-            },
-            transaction
-          )
-
-          return newPrice
-        }
-      )
-
-      expect(result).toBeDefined()
-      expect(result.unitPrice).toBe(500)
-      expect(result.isDefault).toBe(false)
+    it('should forbid creating additional prices for default products', async () => {
+      const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true as any,
+        path: '',
+      } as any
+      
+      await expect(
+        pricesRouter.createCaller(ctx).create({
+          price: {
+            productId: defaultProductId,
+            unitPrice: 500, // Non-zero price for a non-default price on default product
+            isDefault: false,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Year,
+            intervalCount: 1,
+            name: 'Premium Plan',
+            setupFeeAmount: 0,
+            trialPeriodDays: 0,
+            slug: 'premium-plan',
+            active: true,
+          } as any,
+        } as any)
+      ).rejects.toThrow('Cannot create additional prices for the default plan')
     })
 
     it('should enforce single default price per product constraint', async () => {
