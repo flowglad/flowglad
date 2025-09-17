@@ -130,7 +130,10 @@ export function DataTable<TData, TValue>({
                               : header.column.columnDef.header ===
                                   'ID'
                                 ? '125px !important'
-                                : header.getSize(),
+                                : header.column.columnDef.header ===
+                                    'Revenue'
+                                  ? '100px !important'
+                                  : header.getSize(),
                           maxWidth:
                             header.column.columnDef.header ===
                               'Date' ||
@@ -140,7 +143,10 @@ export function DataTable<TData, TValue>({
                               : header.column.columnDef.header ===
                                   'ID'
                                 ? '250px !important'
-                                : header.getSize(),
+                                : header.column.columnDef.header ===
+                                    'Revenue'
+                                  ? '100px !important'
+                                  : header.getSize(),
                           minWidth:
                             header.column.columnDef.header ===
                               'Date' ||
@@ -150,13 +156,18 @@ export function DataTable<TData, TValue>({
                               : header.column.columnDef.header ===
                                   'ID'
                                 ? '125px !important'
-                                : header.getSize(),
+                                : header.column.columnDef.header ===
+                                    'Revenue'
+                                  ? '80px !important'
+                                  : header.getSize(),
                           boxSizing:
                             header.column.columnDef.header ===
                               'Date' ||
                             header.column.columnDef.header ===
                               'Purchase Date' ||
-                            header.column.columnDef.header === 'ID'
+                            header.column.columnDef.header === 'ID' ||
+                            header.column.columnDef.header ===
+                              'Revenue'
                               ? 'border-box'
                               : undefined,
                           flex:
@@ -164,7 +175,9 @@ export function DataTable<TData, TValue>({
                               'Date' ||
                             header.column.columnDef.header ===
                               'Purchase Date' ||
-                            header.column.columnDef.header === 'ID'
+                            header.column.columnDef.header === 'ID' ||
+                            header.column.columnDef.header ===
+                              'Revenue'
                               ? 'none !important'
                               : undefined,
                         }}
@@ -175,14 +188,18 @@ export function DataTable<TData, TValue>({
                             ? 'overflow-hidden !w-[125px] !max-w-[125px] !min-w-[125px]'
                             : header.column.columnDef.header === 'ID'
                               ? 'overflow-hidden !w-[125px] !max-w-[250px] !min-w-[125px]'
-                              : undefined
+                              : header.column.columnDef.header ===
+                                  'Revenue'
+                                ? 'overflow-hidden !w-[100px] !max-w-[100px] !min-w-[80px]'
+                                : undefined
                         }
                         {...((header.column.columnDef.header ===
                           'Date' ||
                           header.column.columnDef.header ===
                             'Purchase Date' ||
+                          header.column.columnDef.header === 'ID' ||
                           header.column.columnDef.header ===
-                            'ID') && {
+                            'Revenue') && {
                           'data-debug': `id:${header.id}, size:${header.getSize()}`,
                         })}
                       >
@@ -222,7 +239,10 @@ export function DataTable<TData, TValue>({
                               ? '125px !important'
                               : cell.column.columnDef.header === 'ID'
                                 ? '125px !important'
-                                : cell.column.getSize(),
+                                : cell.column.columnDef.header ===
+                                    'Revenue'
+                                  ? '100px !important'
+                                  : cell.column.getSize(),
                           maxWidth:
                             cell.column.columnDef.header === 'Date' ||
                             cell.column.columnDef.header ===
@@ -230,7 +250,10 @@ export function DataTable<TData, TValue>({
                               ? '125px !important'
                               : cell.column.columnDef.header === 'ID'
                                 ? '250px !important'
-                                : cell.column.getSize(),
+                                : cell.column.columnDef.header ===
+                                    'Revenue'
+                                  ? '100px !important'
+                                  : cell.column.getSize(),
                           minWidth:
                             cell.column.columnDef.header === 'Date' ||
                             cell.column.columnDef.header ===
@@ -238,19 +261,24 @@ export function DataTable<TData, TValue>({
                               ? '125px !important'
                               : cell.column.columnDef.header === 'ID'
                                 ? '125px !important'
-                                : cell.column.getSize(),
+                                : cell.column.columnDef.header ===
+                                    'Revenue'
+                                  ? '80px !important'
+                                  : cell.column.getSize(),
                           boxSizing:
                             cell.column.columnDef.header === 'Date' ||
                             cell.column.columnDef.header ===
                               'Purchase Date' ||
-                            cell.column.columnDef.header === 'ID'
+                            cell.column.columnDef.header === 'ID' ||
+                            cell.column.columnDef.header === 'Revenue'
                               ? 'border-box'
                               : undefined,
                           flex:
                             cell.column.columnDef.header === 'Date' ||
                             cell.column.columnDef.header ===
                               'Purchase Date' ||
-                            cell.column.columnDef.header === 'ID'
+                            cell.column.columnDef.header === 'ID' ||
+                            cell.column.columnDef.header === 'Revenue'
                               ? 'none !important'
                               : undefined,
                         }}
@@ -261,7 +289,10 @@ export function DataTable<TData, TValue>({
                             ? 'overflow-hidden whitespace-nowrap text-ellipsis !w-[125px] !max-w-[125px] !min-w-[125px]'
                             : cell.column.columnDef.header === 'ID'
                               ? 'overflow-hidden whitespace-nowrap text-ellipsis !w-[125px] !max-w-[250px] !min-w-[125px]'
-                              : undefined
+                              : cell.column.columnDef.header ===
+                                  'Revenue'
+                                ? 'overflow-hidden whitespace-nowrap text-ellipsis !w-[100px] !max-w-[100px] !min-w-[80px]'
+                                : undefined
                         }
                       >
                         {flexRender(
