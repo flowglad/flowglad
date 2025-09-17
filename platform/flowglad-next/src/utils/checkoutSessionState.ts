@@ -232,16 +232,23 @@ export const createNonInvoiceCheckoutSession = async (
     }
   }
 
+  // Validate that checkout sessions cannot be created for default products
+  const product = await selectProductById(
+    price.productId,
+    transaction
+  )
+  if (product.default) {
+    throw new Error(
+      'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+    )
+  }
+
   const checkoutSession = await insertCheckoutSession(
     checkoutSessionInsert,
     transaction
   )
   const organization = await selectOrganizationById(
     organizationId,
-    transaction
-  )
-  const product = await selectProductById(
-    price.productId,
     transaction
   )
 

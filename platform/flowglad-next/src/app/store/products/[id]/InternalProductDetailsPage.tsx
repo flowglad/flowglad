@@ -54,10 +54,18 @@ function InternalProductDetailsPage(
     {
       label: 'Copy Link',
       handler: () => copyPurchaseLinkHandler(),
+      disabled: product.default,
+      helperText: product.default
+        ? 'Cannot copy checkout link for default products. Default products are automatically assigned to customers.'
+        : undefined,
     },
     {
       label: 'Preview',
       handler: () => previewProductHandler(),
+      disabled: product.default,
+      helperText: product.default
+        ? 'Cannot preview checkout for default products. Default products are automatically assigned to customers.'
+        : undefined,
     },
   ]
 

@@ -73,6 +73,10 @@ const MoreMenuCell = ({
       label: 'Copy purchase link',
       icon: <Copy />,
       handler: copyPurchaseLinkHandler,
+      disabled: product.default,
+      helperText: product.default
+        ? 'Cannot copy checkout link for default products. Default products are automatically assigned to customers.'
+        : undefined,
     },
     {
       label: product.active

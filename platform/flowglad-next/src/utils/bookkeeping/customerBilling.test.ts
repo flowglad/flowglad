@@ -30,6 +30,9 @@ import {
   PaymentMethodType,
   SubscriptionStatus,
   CheckoutSessionType,
+  PriceType,
+  IntervalUnit,
+  CurrencyCode,
 } from '@/types'
 import core from '@/utils/core'
 import {
@@ -45,6 +48,9 @@ import {
   updateCustomer,
   selectCustomerById,
 } from '@/db/tableMethods/customerMethods'
+import { insertProduct } from '@/db/tableMethods/productMethods'
+import { insertPrice } from '@/db/tableMethods/priceMethods'
+import { nulledPriceColumns } from '@/db/schema/prices'
 import { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
 import * as databaseAuthentication from '@/db/databaseAuthentication'
 import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
@@ -722,11 +728,61 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   })
 
   it('should succeed when price is accessible to customer', async () => {
-    // Use price from same organization that customer has access to
+    // Create a non-default product and price for this test since default products
+    // cannot have checkout sessions created for them
+    const created = await adminTransaction(
+      async ({ transaction }) => {
+        const createdProduct = await insertProduct(
+          {
+            name: 'Non-Default Product',
+            organizationId: organization.id,
+            livemode: true,
+            description:
+              'Non-default product for testing checkout sessions',
+            imageURL: 'https://flowglad.com/logo.png',
+            active: true,
+            displayFeatures: [],
+            singularQuantityLabel: 'seat',
+            pluralQuantityLabel: 'seats',
+            pricingModelId: pricingModel.id,
+            externalId: null,
+            default: false, // This is the key difference - not a default product
+            slug: `non-default-product-${core.nanoid()}`,
+          },
+          transaction
+        )
+
+        const createdPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: createdProduct.id,
+            name: 'Non-Default Product Price',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            unitPrice: 1000, // $10.00
+            currency: CurrencyCode.USD,
+            active: true,
+            livemode: true,
+            isDefault: false,
+            externalId: null,
+            slug: `non-default-price-${core.nanoid()}`,
+          },
+          transaction
+        )
+
+        return {
+          nonDefaultProduct: createdProduct,
+          nonDefaultPrice: createdPrice,
+        }
+      }
+    )
+
+    // Use the non-default price from same organization that customer has access to
     const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
       {
         customerExternalId: customer.externalId,
-        priceId: price.id, // Price from same organization/pricing model
+        priceId: created.nonDefaultPrice.id, // Price from same organization/pricing model
         type: CheckoutSessionType.Product,
         successUrl: 'http://success.url',
         cancelUrl: 'http://cancel.url',
@@ -739,7 +795,9 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
 
     expect(result).toBeDefined()
     expect(result.checkoutSession).toBeDefined()
-    expect(result.checkoutSession.priceId).toBe(price.id)
+    expect(result.checkoutSession.priceId).toBe(
+      created.nonDefaultPrice.id
+    )
     expect(result.checkoutSession.customerId).toBe(customer.id)
     expect(result.checkoutSession.organizationId).toBe(
       organization.id

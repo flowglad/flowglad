@@ -142,8 +142,32 @@ export const createCheckoutSessionTransaction = async (
     )
   }
   // Anonymous sessions can omit customerExternalId; in that case customer will be null
-  // NOTE: invoice and purchase checkout sessions
-  // are not supported by API yet.
+  // NOTE: invoice and purchase checkout sessions are not supported by API yet.
+  let price: Price.Record | null = null
+  let product: Product.Record | null = null
+  let organization: Organization.Record | null = null
+  if (checkoutSessionInput.type === CheckoutSessionType.Product) {
+    const [result] =
+      await selectPriceProductAndOrganizationByPriceWhere(
+        { id: checkoutSessionInput.priceId },
+        transaction
+      )
+    price = result.price
+    product = result.product
+    organization = result.organization
+
+    if (product.default) {
+      throw new Error(
+        'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+      )
+    }
+  } else {
+    organization = await selectOrganizationById(
+      organizationId,
+      transaction
+    )
+  }
+
   const checkoutSession = await insertCheckoutSession(
     checkoutSessionInsertFromInput({
       checkoutSessionInput,
@@ -153,24 +177,6 @@ export const createCheckoutSessionTransaction = async (
     }),
     transaction
   )
-  let price: Price.Record | null = null
-  let product: Product.Record | null = null
-  let organization: Organization.Record | null = null
-  if (checkoutSession.type === CheckoutSessionType.Product) {
-    const [result] =
-      await selectPriceProductAndOrganizationByPriceWhere(
-        { id: checkoutSession.priceId },
-        transaction
-      )
-    price = result.price
-    product = result.product
-    organization = result.organization
-  } else {
-    organization = await selectOrganizationById(
-      checkoutSession.organizationId,
-      transaction
-    )
-  }
 
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null
