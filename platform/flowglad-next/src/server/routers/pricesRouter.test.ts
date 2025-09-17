@@ -151,8 +151,6 @@ describe('pricesRouter - Default Price Constraints', () => {
               unitPrice: 0,
               type: PriceType.Subscription,
               name: 'Updated Base Plan Price',
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
             },
             existingPrice,
             product
@@ -201,6 +199,30 @@ describe('pricesRouter - Default Price Constraints', () => {
         })
       ).rejects.toThrow(
         'Cannot change the default status of a default price on a default product'
+      )
+    })
+
+    it('should throw error when attempting to change intervalUnit of default price on default product', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          const existingPrice = await selectPriceById(
+            defaultPriceId,
+            transaction
+          )
+          const product = await selectProductById(
+            existingPrice.productId,
+            transaction
+          )
+
+          // This should throw an error
+          validateDefaultPriceUpdate(
+            { intervalUnit: IntervalUnit.Year, type: PriceType.Subscription },
+            existingPrice,
+            product
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot change the billing interval of the default price for a default product'
       )
     })
 
@@ -474,41 +496,34 @@ describe('pricesRouter - Default Price Constraints', () => {
   })
 
   describe('createPrice', () => {
-    it('should allow creating additional prices for default products', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          // Create an additional price for the default product
-          const newPrice = await insertPrice(
-            {
-              productId: defaultProductId,
-              unitPrice: 500, // Non-zero price for a non-default price on default product
-              isDefault: false,
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Year,
-              intervalCount: 1,
-              currency: CurrencyCode.USD,
-              livemode,
-              active: true,
-              name: 'Premium Plan',
-              trialPeriodDays: null,
-              setupFeeAmount: null,
-              usageEventsPerUnit: null,
-              usageMeterId: null,
-              externalId: null,
-              slug: null,
-              startsWithCreditTrial: false,
-              overagePriceId: null,
-            },
-            transaction
-          )
-
-          return newPrice
-        }
-      )
-
-      expect(result).toBeDefined()
-      expect(result.unitPrice).toBe(500)
-      expect(result.isDefault).toBe(false)
+    it('should forbid creating additional prices for default products', async () => {
+      const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true as any,
+        path: '',
+      } as any
+      
+      await expect(
+        pricesRouter.createCaller(ctx).create({
+          price: {
+            productId: defaultProductId,
+            unitPrice: 500, // Non-zero price for a non-default price on default product
+            isDefault: false,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Year,
+            intervalCount: 1,
+            name: 'Premium Plan',
+            setupFeeAmount: 0,
+            trialPeriodDays: 0,
+            slug: 'premium-plan',
+            active: true,
+          } as any,
+        } as any)
+      ).rejects.toThrow('Cannot create additional prices for the default plan')
     })
 
     it('should enforce single default price per product constraint', async () => {
