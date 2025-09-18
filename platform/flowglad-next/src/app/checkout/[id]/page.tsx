@@ -4,7 +4,8 @@ import {
   CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { PriceType, CheckoutSessionStatus } from '@/types'
+import { PriceType, CheckoutSessionStatus, SubscriptionStatus } from '@/types'
+import { shouldBlockCheckout } from '@/app/checkout/guard'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 import { notFound, redirect } from 'next/navigation'
@@ -33,15 +34,23 @@ const CheckoutSessionPage = async ({
     notFound()
   }
   /**
-   * If the customer has an active subscription, and the price is a subscription,
+   * If the customer already has an active paid subscription, and the price is a subscription,
    * and the organization does not allow multiple subscriptions per customer,
    * redirect to the post-payment page.
+   *
+   * Note: This allows free/default → paid upgrades to proceed while still blocking
+   * multiple active paid subscriptions at the page level. The backend enforces this as well.
    */
   if (
-    maybeCurrentSubscriptions &&
-    maybeCurrentSubscriptions.length > 0 &&
-    price.type === PriceType.Subscription &&
-    !sellerOrganization.allowMultipleSubscriptionsPerCustomer
+    shouldBlockCheckout({
+      currentSubscriptions: (maybeCurrentSubscriptions ?? []).map((s) => ({
+        status: s.status,
+        isFreePlan: s.isFreePlan,
+      })),
+      priceType: price.type,
+      allowMultipleSubscriptionsPerCustomer:
+        sellerOrganization.allowMultipleSubscriptionsPerCustomer,
+    })
   ) {
     if (checkoutSession.successUrl) {
       redirect(checkoutSession.successUrl)
