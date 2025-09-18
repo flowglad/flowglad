@@ -3,6 +3,16 @@ import core from './core'
 import { verifyKey } from '@unkey/api'
 import { hashData } from './backendCore'
 import { z } from 'zod'
+import { referralOptionEnum } from '@/utils/referrals'
+
+export const referralSelectionSchema = z.object({
+  // The organization/user selecting the referral option; can be used to partition keys
+  subjectId: z.string().min(1),
+  // One of the predefined referral options
+  source: referralOptionEnum,
+  // ISO string timestamp for when the selection occurred
+  selectedAt: z.string().datetime().optional(),
+})
 
 const verificationCodeEnum = z.enum([
   'VALID',
@@ -84,6 +94,7 @@ const redis = () => {
 
 enum RedisKeyNamespace {
   ApiKeyVerificationResult = 'apiKeyVerificationResult',
+  ReferralSelection = 'referralSelection',
 }
 
 const evictionPolicy: Record<
@@ -93,6 +104,10 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.ApiKeyVerificationResult]: {
     max: 100000, // 100,000 items
     ttl: 60 * 60 * 2.4, // 2.4 hours
+  },
+  [RedisKeyNamespace.ReferralSelection]: {
+    max: 200000, // up to 200k selections across tenants
+    ttl: 60 * 60 * 24 * 90, // retain for ~90 days
   },
 }
 
@@ -113,6 +128,29 @@ export const setApiKeyVerificationResult = async (
     )
   } catch (error) {
     console.error('Error setting api key verification result', error)
+  }
+}
+
+/**
+ * Store a user's/organization's referral selection in Redis.
+ * Uses a namespaced key: `referralSelection:{subjectId}`
+ * Intentionally no getter/deleter; this serves as a cache/store for later processing.
+ */
+export const setReferralSelection = async (
+  params: z.infer<typeof referralSelectionSchema>
+) => {
+  try {
+    const redisClient = redis()
+    const payload = referralSelectionSchema.parse({
+      ...params,
+      selectedAt: params.selectedAt ?? new Date().toISOString(),
+    })
+    const key = `${RedisKeyNamespace.ReferralSelection}:${payload.subjectId}`
+    await redisClient.set(key, JSON.stringify(payload), {
+      ex: evictionPolicy[RedisKeyNamespace.ReferralSelection].ttl,
+    })
+  } catch (error) {
+    console.error('Error setting referral selection', error)
   }
 }
 
