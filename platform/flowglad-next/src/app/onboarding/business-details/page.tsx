@@ -50,7 +50,10 @@ const BusinessDetails = () => {
   >()
   const onSubmit = form.handleSubmit(async (data) => {
     try {
-      if (referralSource) {
+      const { organization } =
+        await createOrganization.mutateAsync(data)
+
+        if (referralSource) {
         try {
           await setReferralSelection.mutateAsync({
             source: referralSource,
@@ -60,8 +63,6 @@ const BusinessDetails = () => {
           console.error('Failed to cache referral selection', err)
         }
       }
-      const { organization } =
-        await createOrganization.mutateAsync(data)
       setOrganization(organization)
       router.refresh()
       router.push('/onboarding')
