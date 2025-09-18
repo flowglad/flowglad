@@ -5,12 +5,12 @@ import { referralOptionEnum } from '@/utils/referrals'
 import { TRPCError } from '@trpc/server'
 
 export async function innerSetReferralSelectionHandler(params: {
-  userId: string
+  organizationId: string
   source: z.infer<typeof referralOptionEnum>
 }) {
-  const { userId, source } = params
+  const { organizationId, source } = params
   await setReferralSelectionInRedis({
-    subjectId: userId,
+    subjectId: organizationId,
     source,
   })
   return { success: true }
@@ -23,9 +23,15 @@ export const setReferralSelection = protectedProcedure
     })
   )
   .mutation(async ({ ctx, input }) => {
-    const userId = ctx.user!.id
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new TRPCError({ 
+        code: 'BAD_REQUEST', 
+        message: 'Organization ID is required' 
+      })
+    }
     return innerSetReferralSelectionHandler({
-      userId,
+      organizationId,
       source: input.source,
     })
   })
