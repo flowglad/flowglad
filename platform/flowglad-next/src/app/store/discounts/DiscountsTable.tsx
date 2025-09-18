@@ -126,7 +126,7 @@ const DiscountsTable = ({
           accessorKey: 'discount.name',
           minSize: 120,
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm truncate">
+            <span className="text-sm block truncate">
               {cellData.discount.name}
             </span>
           ),
