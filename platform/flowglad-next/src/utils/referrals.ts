@@ -29,6 +29,6 @@ export const REFERRAL_OPTIONS = [
 ] as const
 
 export const referralOptionEnum = z.enum(REFERRAL_OPTIONS)
-export type ReferralOption = typeof REFERRAL_OPTIONS[number]
+export type ReferralOption = z.infer<typeof referralOptionEnum>
 
 

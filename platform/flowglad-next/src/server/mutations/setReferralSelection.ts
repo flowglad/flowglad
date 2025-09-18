@@ -2,6 +2,7 @@ import { protectedProcedure } from '@/server/trpc'
 import { z } from 'zod'
 import { setReferralSelection as setReferralSelectionInRedis } from '@/utils/redis'
 import { referralOptionEnum } from '@/utils/referrals'
+import { TRPCError } from '@trpc/server'
 
 export async function innerSetReferralSelectionHandler(params: {
   userId: string
@@ -22,10 +23,7 @@ export const setReferralSelection = protectedProcedure
     })
   )
   .mutation(async ({ ctx, input }) => {
-    const userId = ctx.user?.id
-    if (!userId) {
-      throw new Error('Unauthorized: missing user id')
-    }
+    const userId = ctx.user!.id
     return innerSetReferralSelectionHandler({
       userId,
       source: input.source,

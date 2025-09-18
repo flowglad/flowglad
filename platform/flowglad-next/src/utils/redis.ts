@@ -7,7 +7,7 @@ import { referralOptionEnum } from '@/utils/referrals'
 
 export const referralSelectionSchema = z.object({
   // The organization/user selecting the referral option; can be used to partition keys
-  subjectId: z.string(),
+  subjectId: z.string().min(1),
   // One of the predefined referral options
   source: referralOptionEnum,
   // ISO string timestamp for when the selection occurred
