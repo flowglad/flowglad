@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import React from 'react'
+import Page from './page'
+import { PriceType, CheckoutSessionStatus, SubscriptionStatus } from '@/types'
+import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 
 // Mock next/navigation redirect
 const redirect = vi.fn()
@@ -45,11 +47,6 @@ vi.mock('@/utils/checkoutHelpers', () => ({
     discount: null,
   })),
 }))
-
-// Import after mocks
-import Page from './page'
-import { PriceType, CheckoutSessionStatus, SubscriptionStatus } from '@/types'
-import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 
 describe('CheckoutSessionPage', () => {
   beforeEach(() => {
