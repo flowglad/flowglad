@@ -178,6 +178,9 @@ const InvoicesTable = ({
         {
           header: 'Status',
           accessorKey: 'status',
+          size: 110,
+          minSize: 105,
+          maxSize: 115,
           cell: ({ row: { original: cellData } }) => (
             <InvoiceStatusBadge invoice={cellData.invoice} />
           ),

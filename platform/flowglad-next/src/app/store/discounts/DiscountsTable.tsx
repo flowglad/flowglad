@@ -15,7 +15,7 @@ import {
 import EditDiscountModal from '@/components/forms/EditDiscountModal'
 import DeleteDiscountModal from '@/components/forms/DeleteDiscountModal'
 import StatusBadge from '@/components/StatusBadge'
-import { RotateCw, Infinity, Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { sentenceCase } from 'change-case'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { trpc } from '@/app/_trpc/client'
@@ -64,22 +64,14 @@ const DiscountTableDurationCell = ({
   duration: Discount.ClientRecord
 }) => {
   let durationText = ''
-  let icon = null
   if (duration.duration === DiscountDuration.NumberOfPayments) {
     durationText = `${duration.numberOfPayments} Payments`
-    icon = <RotateCw size={16} />
   } else if (duration.duration === DiscountDuration.Forever) {
     durationText = 'Forever'
-    icon = <Infinity size={16} />
   } else {
     durationText = sentenceCase(duration.duration)
   }
-  return (
-    <div className="flex flex-row items-center gap-2">
-      {icon}
-      <span className="text-sm">{durationText}</span>
-    </div>
-  )
+  return <span className="text-sm">{durationText}</span>
 }
 
 const DiscountTableAmountCell = ({
@@ -132,20 +124,27 @@ const DiscountsTable = ({
         {
           header: 'Name',
           accessorKey: 'discount.name',
+          minSize: 120,
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.discount.name}</span>
+            <span className="text-sm block truncate">
+              {cellData.discount.name}
+            </span>
           ),
         },
         {
           header: 'Code',
           accessorKey: 'discount.code',
+          minSize: 120,
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.discount.code}</span>
+            <span className="text-sm truncate">
+              {cellData.discount.code}
+            </span>
           ),
         },
         {
           header: 'Amount',
           accessorKey: 'discount.amount',
+          size: 100,
           cell: ({ row: { original: cellData } }) => (
             <DiscountTableAmountCell amount={cellData.discount} />
           ),
@@ -153,6 +152,8 @@ const DiscountsTable = ({
         {
           header: 'Duration',
           accessorKey: 'discount.duration',
+          size: 120,
+          maxSize: 120,
           cell: ({ row: { original: cellData } }) => (
             <DiscountTableDurationCell duration={cellData.discount} />
           ),
@@ -160,6 +161,8 @@ const DiscountsTable = ({
         {
           header: 'Redemptions',
           accessorKey: 'discountRedemptionsCount',
+          size: 120,
+          maxSize: 120,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
               {cellData.discountRedemptionsCount}
@@ -169,6 +172,9 @@ const DiscountsTable = ({
         {
           header: 'Status',
           accessorKey: 'discount.active',
+          size: 110,
+          minSize: 105,
+          maxSize: 115,
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.discount.active} />
           ),

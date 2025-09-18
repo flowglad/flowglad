@@ -175,7 +175,7 @@ export const ProductsTable = ({
           size: 250,
           maxSize: 300,
           cell: ({ row: { original: cellData } }) => (
-            <div className="min-w-0 max-w-[250px]">
+            <div className="min-w-0">
               <span
                 className="font-normal text-sm truncate block"
                 title={cellData.product.name}
@@ -188,10 +188,11 @@ export const ProductsTable = ({
         {
           header: 'Pricing',
           accessorKey: 'prices',
-          size: 120,
-          maxSize: 150,
+          size: 110,
+          minSize: 105,
+          maxSize: 120,
           cell: ({ row: { original: cellData } }) => (
-            <div className="min-w-0 max-w-[120px]">
+            <div className="min-w-[105px] max-w-[120px]">
               <PricingCellView prices={cellData.prices} />
             </div>
           ),
@@ -200,8 +201,9 @@ export const ProductsTable = ({
           id: 'status',
           header: 'Status',
           accessorKey: 'product.active',
-          size: 100,
-          maxSize: 100,
+          size: 110,
+          minSize: 105,
+          maxSize: 115,
           cell: ({ row: { original: cellData } }) => (
             <div className="min-w-0">
               <StatusBadge active={cellData.product.active} />

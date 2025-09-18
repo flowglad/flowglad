@@ -107,6 +107,9 @@ const SubscriptionsTable = ({
         {
           header: 'Status',
           accessorKey: 'subscription.status',
+          size: 110,
+          minSize: 105,
+          maxSize: 115,
           cell: ({ row: { original: cellData } }) => (
             <SubscriptionStatusCell
               status={cellData.subscription.status}

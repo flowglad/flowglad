@@ -8,7 +8,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { SmoothPageTransition } from './SmoothPageTransition'
 
 // Utility function to read cookie value on client side
 const getCookieValue = (name: string): string | null => {
@@ -51,8 +50,7 @@ const SidebarLayout = ({
         <div className="md:hidden sticky top-0 z-30 flex items-center h-12 border-b bg-background px-2">
           <SidebarTrigger />
         </div>
-        {/* Wrap children with smooth page transitions */}
-        <SmoothPageTransition>{children}</SmoothPageTransition>
+        {children}
       </SidebarInset>
     </SidebarProvider>
   )

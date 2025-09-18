@@ -737,7 +737,7 @@ const SidebarMenuSub = React.forwardRef<
     ref={ref}
     data-sidebar="menu-sub"
     className={cn(
-      'mx-4 flex min-w-0 translate-x-px flex-col gap-px border-l border-sidebar-border px-1 pt-px pb-0',
+      'ml-[18px] flex min-w-0 translate-x-px flex-col gap-px border-l border-sidebar-border pl-2 pt-px pb-0',
       'group-data-[collapsible=icon]:hidden',
       className
     )}
@@ -773,7 +773,7 @@ const SidebarMenuSubButton = React.forwardRef<
         data-size={size}
         data-active={isActive}
         className={cn(
-          'flex h-10 min-w-0 -translate-x-px items-center gap-0 overflow-hidden rounded-lg py-3 px-2 text-left text-sidebar-foreground font-normal outline-none ring-sidebar-ring transition-[width,height,padding] duration-150 ease hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[9px] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:stroke-[1.75] [&>svg]:text-sidebar-accent-foreground group-data-[collapsible=icon]:[&>span]:opacity-0',
+          'flex h-10 min-w-0 -translate-x-px items-center gap-0 overflow-hidden rounded-lg py-3 px-2 pl-6 text-left text-sidebar-foreground font-normal outline-none ring-sidebar-ring transition-[width,height,padding] duration-150 ease hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[25px] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:stroke-[1.75] [&>svg]:text-sidebar-accent-foreground group-data-[collapsible=icon]:[&>span]:opacity-0',
           'data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground',
           size === 'sm' && 'text-xs h-8',
           size === 'md' && 'text-sm h-10',

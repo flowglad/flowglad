@@ -218,13 +218,20 @@ const PaginatedPricesTable = ({
         {
           header: 'Pricing',
           accessorKey: 'pricing',
+          minSize: 105,
+          maxSize: 120,
           cell: ({ row: { original: cellData } }) => (
-            <PricingCellView prices={[cellData.price]} />
+            <div className="min-w-[105px] max-w-[120px]">
+              <PricingCellView prices={[cellData.price]} />
+            </div>
           ),
         },
         {
           header: 'Status',
           accessorKey: 'status',
+          size: 110,
+          minSize: 105,
+          maxSize: 115,
           cell: ({ row: { original: cellData } }) => (
             <StatusBadge active={cellData.price.active} />
           ),
