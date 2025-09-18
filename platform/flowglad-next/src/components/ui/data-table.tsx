@@ -126,39 +126,39 @@ export function DataTable<TData, TValue>({
                               'Date' ||
                             header.column.columnDef.header ===
                               'Purchase Date'
-                              ? '125px !important'
+                              ? '125px'
                               : header.column.columnDef.header ===
                                   'ID'
-                                ? '125px !important'
+                                ? '125px'
                                 : header.column.columnDef.header ===
                                     'Revenue'
-                                  ? '100px !important'
+                                  ? '100px'
                                   : header.getSize(),
                           maxWidth:
                             header.column.columnDef.header ===
                               'Date' ||
                             header.column.columnDef.header ===
                               'Purchase Date'
-                              ? '125px !important'
+                              ? '125px'
                               : header.column.columnDef.header ===
                                   'ID'
-                                ? '250px !important'
+                                ? '250px'
                                 : header.column.columnDef.header ===
                                     'Revenue'
-                                  ? '100px !important'
+                                  ? '100px'
                                   : header.getSize(),
                           minWidth:
                             header.column.columnDef.header ===
                               'Date' ||
                             header.column.columnDef.header ===
                               'Purchase Date'
-                              ? '125px !important'
+                              ? '125px'
                               : header.column.columnDef.header ===
                                   'ID'
-                                ? '125px !important'
+                                ? '125px'
                                 : header.column.columnDef.header ===
                                     'Revenue'
-                                  ? '80px !important'
+                                  ? '80px'
                                   : header.getSize(),
                           boxSizing:
                             header.column.columnDef.header ===
@@ -178,7 +178,7 @@ export function DataTable<TData, TValue>({
                             header.column.columnDef.header === 'ID' ||
                             header.column.columnDef.header ===
                               'Revenue'
-                              ? 'none !important'
+                              ? 'none'
                               : undefined,
                         }}
                         className={
@@ -236,34 +236,34 @@ export function DataTable<TData, TValue>({
                             cell.column.columnDef.header === 'Date' ||
                             cell.column.columnDef.header ===
                               'Purchase Date'
-                              ? '125px !important'
+                              ? '125px'
                               : cell.column.columnDef.header === 'ID'
-                                ? '125px !important'
+                                ? '125px'
                                 : cell.column.columnDef.header ===
                                     'Revenue'
-                                  ? '100px !important'
+                                  ? '100px'
                                   : cell.column.getSize(),
                           maxWidth:
                             cell.column.columnDef.header === 'Date' ||
                             cell.column.columnDef.header ===
                               'Purchase Date'
-                              ? '125px !important'
+                              ? '125px'
                               : cell.column.columnDef.header === 'ID'
-                                ? '250px !important'
+                                ? '250px'
                                 : cell.column.columnDef.header ===
                                     'Revenue'
-                                  ? '100px !important'
+                                  ? '100px'
                                   : cell.column.getSize(),
                           minWidth:
                             cell.column.columnDef.header === 'Date' ||
                             cell.column.columnDef.header ===
                               'Purchase Date'
-                              ? '125px !important'
+                              ? '125px'
                               : cell.column.columnDef.header === 'ID'
-                                ? '125px !important'
+                                ? '125px'
                                 : cell.column.columnDef.header ===
                                     'Revenue'
-                                  ? '80px !important'
+                                  ? '80px'
                                   : cell.column.getSize(),
                           boxSizing:
                             cell.column.columnDef.header === 'Date' ||
@@ -279,7 +279,7 @@ export function DataTable<TData, TValue>({
                               'Purchase Date' ||
                             cell.column.columnDef.header === 'ID' ||
                             cell.column.columnDef.header === 'Revenue'
-                              ? 'none !important'
+                              ? 'none'
                               : undefined,
                         }}
                         className={

@@ -85,7 +85,7 @@ const PurchasesTable = ({
           maxSize: 400,
           cell: ({ row: { original: cellData } }) => {
             return (
-              <span className="text-sm font-normal">
+              <span className="text-sm font-normal truncate block">
                 {cellData.purchase.name}
               </span>
             )
@@ -140,9 +140,9 @@ const PurchasesTable = ({
             <div
               className="w-[125px] max-w-[125px] min-w-[125px] overflow-hidden whitespace-nowrap text-ellipsis box-border"
               style={{
-                width: '125px !important',
-                maxWidth: '125px !important',
-                minWidth: '125px !important',
+                width: '125px',
+                maxWidth: '125px',
+                minWidth: '125px',
               }}
             >
               {cellData.purchase.purchaseDate
