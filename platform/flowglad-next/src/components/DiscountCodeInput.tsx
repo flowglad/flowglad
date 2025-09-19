@@ -227,7 +227,7 @@ export default function DiscountCodeInput() {
                         autoCapitalize="characters"
                         value={field.value}
                         name={field.name}
-                        ref={inputElementRef}
+                        ref={(el) => { inputElementRef.current = el; field.ref(el) }}
                         onChange={(e) => {
                           const code = e.target.value.toUpperCase()
                           field.onChange(code)
