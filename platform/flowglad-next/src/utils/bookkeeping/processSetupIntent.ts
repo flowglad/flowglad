@@ -563,8 +563,8 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       transaction
     )
     const eventInserts: Event.Insert[] = []
-    if (output.eventsToLog) {
-      eventInserts.push(...output.eventsToLog)
+    if (output.eventsToInsert) {
+      eventInserts.push(...output.eventsToInsert)
     }
 
     // Link the old and new subscriptions if there was an upgrade
@@ -619,7 +619,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
 
     return {
       ...output,
-      eventsToLog: eventInserts,
+      eventsToInsert: eventInserts,
       result: {
         purchase: updatedPurchase,
         checkoutSession,
@@ -783,7 +783,7 @@ export const processSetupIntentSucceeded = async (
           subscription,
           purchase: null,
         },
-        eventsToLog: [],
+        eventsToInsert: [],
       }
     }
     if (checkoutSession.type === CheckoutSessionType.Invoice) {
@@ -828,7 +828,7 @@ export const processSetupIntentSucceeded = async (
         billingRun: null,
         purchase: null,
       },
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
 
@@ -844,7 +844,7 @@ export const processSetupIntentSucceeded = async (
     )
     return {
       result,
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
 
@@ -858,7 +858,7 @@ export const processSetupIntentSucceeded = async (
     )
     return {
       result,
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
 
@@ -873,7 +873,7 @@ export const processSetupIntentSucceeded = async (
       )
     return {
       result,
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
 

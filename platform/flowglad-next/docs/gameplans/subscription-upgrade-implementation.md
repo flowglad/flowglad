@@ -285,7 +285,7 @@ describe('Subscription Selection with Upgrades', () => {
    if (existingSubscription) {
      return { 
        result: existingSubscription,
-       eventsToLog: [] // Already processed
+       eventsToInsert: [] // Already processed
      }
    }
    ```
@@ -352,7 +352,7 @@ describe('Upgrade Race Condition Prevention', () => {
 3. **Add event logging** ✅:
    ```typescript
    // Log upgrade event
-   eventsToLog.push({
+   eventsToInsert.push({
      type: FlowgladEventType.SubscriptionCreated, // Using existing event type
      occurredAt: timestamp,
      organizationId: subscription.organizationId,

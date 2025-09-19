@@ -73,7 +73,7 @@ export const ingestAndProcessUsageEvent = async (
 
   return {
     result: { usageEvent },
-    eventsToLog: [],
+    eventsToInsert: [],
     ledgerCommand: {
       type: LedgerTransactionType.UsageEventProcessed,
       livemode,

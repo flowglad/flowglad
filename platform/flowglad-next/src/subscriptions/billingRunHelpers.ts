@@ -732,7 +732,7 @@ export const executeBillingRun = async (billingRunId: string) => {
 
           return {
             result: resultFromSteps,
-            eventsToLog: [],
+            eventsToInsert: [],
           }
         },
         {

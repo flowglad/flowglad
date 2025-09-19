@@ -1787,7 +1787,7 @@ describe('Process payment intent status updated', async () => {
       vi.mocked(getStripeCharge).mockResolvedValue(stripeCharge)
 
       // Process the payment intent
-      const { result, eventsToLog } = await adminTransaction(
+      const { result, eventsToInsert } = await adminTransaction(
         async ({ transaction }) =>
           processPaymentIntentStatusUpdated(
             mockPaymentIntent,
@@ -1799,7 +1799,7 @@ describe('Process payment intent status updated', async () => {
       expect(result.payment.organizationId).toBe(organization.id)
 
       // Verify events have correct organizationId
-      const paymentSucceededEvent = eventsToLog?.find(
+      const paymentSucceededEvent = eventsToInsert?.find(
         (e) => e.type === FlowgladEventType.PaymentSucceeded
       )
       expect(paymentSucceededEvent?.organizationId).toBe(
@@ -1862,7 +1862,7 @@ describe('Process payment intent status updated', async () => {
         stripeCharge as any
       )
 
-      const { result, eventsToLog } = await adminTransaction(
+      const { result, eventsToInsert } = await adminTransaction(
         async ({ transaction }) =>
           processPaymentIntentStatusUpdated(
             mockPaymentIntent,
@@ -1871,10 +1871,10 @@ describe('Process payment intent status updated', async () => {
       )
 
       // Should have PaymentSucceeded and may have PurchaseCompleted if purchase becomes Paid
-      const paymentSucceededEvent = eventsToLog?.find(
+      const paymentSucceededEvent = eventsToInsert?.find(
         (e) => e.type === FlowgladEventType.PaymentSucceeded
       )
-      const purchaseCompletedEvent = eventsToLog?.find(
+      const purchaseCompletedEvent = eventsToInsert?.find(
         (e) => e.type === FlowgladEventType.PurchaseCompleted
       )
 
@@ -1894,7 +1894,7 @@ describe('Process payment intent status updated', async () => {
       })
 
       // Process same payment intent again
-      const { eventsToLog: secondEventsToLog } =
+      const { eventsToInsert: secondeventsToInsert } =
         await adminTransaction(async ({ transaction }) =>
           processPaymentIntentStatusUpdated(
             mockPaymentIntent,
@@ -1903,7 +1903,7 @@ describe('Process payment intent status updated', async () => {
         )
 
       // Now should have PurchaseCompleted event
-      const secondPurchaseCompletedEvent = secondEventsToLog?.find(
+      const secondPurchaseCompletedEvent = secondeventsToInsert?.find(
         (e) => e.type === FlowgladEventType.PurchaseCompleted
       )
       expect(secondPurchaseCompletedEvent).toBeDefined()
@@ -1957,7 +1957,7 @@ describe('Process payment intent status updated', async () => {
         stripeCharge as any
       )
 
-      const { result, eventsToLog } = await adminTransaction(
+      const { result, eventsToInsert } = await adminTransaction(
         async ({ transaction }) =>
           processPaymentIntentStatusUpdated(
             mockPaymentIntent,
@@ -1966,7 +1966,7 @@ describe('Process payment intent status updated', async () => {
       )
 
       // Should have PaymentFailed event
-      const paymentFailedEvent = eventsToLog?.find(
+      const paymentFailedEvent = eventsToInsert?.find(
         (e) => e.type === FlowgladEventType.PaymentFailed
       )
 
@@ -1975,10 +1975,10 @@ describe('Process payment intent status updated', async () => {
       expect(paymentFailedEvent?.hash).toBeDefined()
 
       // Should NOT have PaymentSucceeded or PurchaseCompleted
-      const paymentSucceededEvent = eventsToLog?.find(
+      const paymentSucceededEvent = eventsToInsert?.find(
         (e) => e.type === FlowgladEventType.PaymentSucceeded
       )
-      const purchaseCompletedEvent = eventsToLog?.find(
+      const purchaseCompletedEvent = eventsToInsert?.find(
         (e) => e.type === FlowgladEventType.PurchaseCompleted
       )
 

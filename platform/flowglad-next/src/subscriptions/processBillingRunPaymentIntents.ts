@@ -285,7 +285,7 @@ export const processPaymentIntentEventForBillingRun = async (
 
   const {
     result: { payment },
-    eventsToLog: childEventsToLog,
+    eventsToInsert: childeventsToInsert,
   } = await processPaymentIntentStatusUpdated(
     event.data.object,
     transaction
@@ -368,9 +368,9 @@ export const processPaymentIntentEventForBillingRun = async (
   const organizationMemberUsers = usersAndMemberships.map(
     (userAndMembership) => userAndMembership.user
   )
-  const eventsToLog: Event.Insert[] = []
-  if (childEventsToLog && childEventsToLog.length > 0) {
-    eventsToLog.push(...childEventsToLog)
+  const eventsToInsert: Event.Insert[] = []
+  if (childeventsToInsert && childeventsToInsert.length > 0) {
+    eventsToInsert.push(...childeventsToInsert)
   }
 
   const notificationParams: BillingRunNotificationParams = {
@@ -455,7 +455,7 @@ export const processPaymentIntentEventForBillingRun = async (
       payment,
     },
     ledgerCommand: invoiceLedgerCommand,
-    eventsToLog,
+    eventsToInsert,
   }
 }
 

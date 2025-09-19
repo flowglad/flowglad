@@ -1639,7 +1639,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         ).rejects.toThrow(
           'Payment method required for subscription activation'
         )
-        return { eventsToLog: [], result: null }
+        return { eventsToInsert: [], result: null }
       })
     })
   })
@@ -1697,7 +1697,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(updatedSub.defaultPaymentMethodId).toBe(newPM.id)
         // Verify renews is preserved
         expect(updatedSub.renews).toBe(targetSub.renews)
-        return { eventsToLog: [], result: null }
+        return { eventsToInsert: [], result: null }
       })
     })
 
@@ -1761,7 +1761,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
         expect(updatedSub1.defaultPaymentMethodId).toBe(newPM.id)
         expect(updatedSub2.defaultPaymentMethodId).toBe(newPM.id)
-        return { eventsToLog: [], result: null }
+        return { eventsToInsert: [], result: null }
       })
     })
   })
@@ -1816,7 +1816,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(subscriptions[0].defaultPaymentMethodId).toBe(
           paymentMethods[0].id
         )
-        return { eventsToLog: [], result: null }
+        return { eventsToInsert: [], result: null }
       })
     })
   })
@@ -1859,13 +1859,13 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(subscriptions[0].name).toBe(
           'Premium Plan - Special Edition'
         )
-        return { eventsToLog: [], result: null }
+        return { eventsToInsert: [], result: null }
       })
     })
   })
 
   describe('Events Logging Validation', () => {
-    it('should return appropriate events in eventsToLog', async () => {
+    it('should return appropriate events in eventsToInsert', async () => {
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
         customerId: customer.id,
@@ -1892,14 +1892,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           transaction
         )
 
-        // Check eventsToLog structure
-        expect(result.eventsToLog).toBeDefined()
-        expect(Array.isArray(result.eventsToLog)).toBe(true)
+        // Check eventsToInsert structure
+        expect(result.eventsToInsert).toBeDefined()
+        expect(Array.isArray(result.eventsToInsert)).toBe(true)
 
         // For upgrade flow, we might expect specific events
         // Adjust based on actual implementation
-        if (result.eventsToLog && result.eventsToLog.length > 0) {
-          const event = result.eventsToLog[0]
+        if (
+          result.eventsToInsert &&
+          result.eventsToInsert.length > 0
+        ) {
+          const event = result.eventsToInsert[0]
           expect(event.submittedAt).toBeDefined()
           expect(event.type).toBe(
             FlowgladEventType.SubscriptionCreated

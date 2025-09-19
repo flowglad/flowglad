@@ -238,7 +238,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
   if (isSubscriptionInTerminalState(subscription.status)) {
     return {
       result: { subscription, billingRun, updatedBillingPeriod },
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
   if (
@@ -270,7 +270,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         billingRun,
         updatedBillingPeriod,
       },
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
 
@@ -284,7 +284,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
   if (existingFutureBillingPeriod) {
     return {
       result: { subscription, billingRun, updatedBillingPeriod },
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
   const result =
@@ -309,7 +309,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
         billingRun,
         updatedBillingPeriod,
       },
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
   const newBillingPeriod = result.billingPeriod
@@ -396,7 +396,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     }
   return {
     result: { subscription, billingRun, updatedBillingPeriod },
-    eventsToLog: [],
+    eventsToInsert: [],
     ledgerCommand: {
       type: LedgerTransactionType.BillingPeriodTransition,
       livemode: updatedBillingPeriod.livemode,

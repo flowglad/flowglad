@@ -122,7 +122,7 @@ const createCustomerProcedure = protectedProcedure
                   createdCustomerOutput.result.subscriptionItems,
               },
             },
-            eventsToLog: createdCustomerOutput.eventsToLog,
+            eventsToInsert: createdCustomerOutput.eventsToInsert,
             ledgerCommand: createdCustomerOutput.ledgerCommand,
           }
         } catch (error) {

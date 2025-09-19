@@ -383,10 +383,10 @@ export const createCustomerBookkeeping = async (
   }
 
   const timestamp = new Date()
-  const eventsToLog: Event.Insert[] = []
+  const eventsToInsert: Event.Insert[] = []
 
   // Create customer created event
-  eventsToLog.push({
+  eventsToInsert.push({
     type: FlowgladEventType.CustomerCreated,
     occurredAt: timestamp,
     organizationId: customer.organizationId,
@@ -465,8 +465,8 @@ export const createCustomerBookkeeping = async (
         )
 
         // Merge events from subscription creation
-        if (subscriptionResult.eventsToLog) {
-          eventsToLog.push(...subscriptionResult.eventsToLog)
+        if (subscriptionResult.eventsToInsert) {
+          eventsToInsert.push(...subscriptionResult.eventsToInsert)
         }
 
         // Return combined result with all events and ledger commands
@@ -477,7 +477,7 @@ export const createCustomerBookkeeping = async (
             subscriptionItems:
               subscriptionResult.result.subscriptionItems,
           },
-          eventsToLog,
+          eventsToInsert,
           ledgerCommand: subscriptionResult.ledgerCommand,
         }
       }
@@ -493,7 +493,7 @@ export const createCustomerBookkeeping = async (
   // Return just the customer with events
   return {
     result: { customer },
-    eventsToLog,
+    eventsToInsert,
   }
 }
 
@@ -554,7 +554,7 @@ export const createPricingModelBookkeeping = async (
 
   // 5. Create events
   const timestamp = new Date()
-  const eventsToLog: Event.Insert[] = []
+  const eventsToInsert: Event.Insert[] = []
 
   return {
     result: {
@@ -562,6 +562,6 @@ export const createPricingModelBookkeeping = async (
       defaultProduct,
       defaultPrice,
     },
-    eventsToLog,
+    eventsToInsert,
   }
 }
