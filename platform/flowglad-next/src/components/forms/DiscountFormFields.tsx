@@ -98,7 +98,15 @@ export default function DiscountFormFields({
                 <Select
                   value={field.value ?? DiscountAmountType.Fixed}
                   onValueChange={(value) => {
-                    form.setValue('discount.amount', 0)
+                    if (value === DiscountAmountType.Percent) {
+                      form.setValue('discount.amount', 1)
+                      // Clear raw amount string when switching to percent
+                      form.setValue('__rawAmountString', undefined as any)
+                    } else {
+                      form.setValue('__rawAmountString', '0')
+                      // Remove amount when switching to fixed
+                      form.setValue('discount.amount', undefined as any)
+                    }
                     field.onChange(value)
                   }}
                 >
@@ -124,7 +132,10 @@ export default function DiscountFormFields({
             control={control}
             name="discount.amount"
             render={({ field }) => {
-              const parseError = errors.discount?.amount?.message
+              const amountFieldState = form.getFieldState('discount.amount')
+              const parseError =
+                (amountFieldState.error?.message as string | undefined) ||
+                undefined
               const moreThan100 = field.value && field.value > 100
               const lessThan0 = field.value && field.value < 0
               let logicError: string | undefined
@@ -137,29 +148,29 @@ export default function DiscountFormFields({
               return (
                 <FormItem className="flex-1">
                   <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <div className="relative">
+                  <div className="relative">
+                    <FormControl>
                       <Input
                         type="number"
-                        min={0}
+                        min={1}
                         max={100}
-                        step={0.01}
-                        placeholder="0"
+                        step={1}
+                        placeholder="1"
                         className="pr-10 text-right"
                         value={field.value?.toString() ?? ''}
                         onChange={(e) => {
                           const value = e.target.value
-                          const floatValue = parseFloat(value)
-                          if (!isNaN(floatValue)) {
-                            field.onChange(floatValue)
+                          const intValue = parseInt(value)
+                          if (!isNaN(intValue)) {
+                            field.onChange(intValue)
                           } else {
-                            field.onChange(null)
+                            field.onChange('')
                           }
                         }}
                       />
-                      <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </FormControl>
+                    </FormControl>
+                    <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
                   {(parseError ?? logicError) && (
                     <FormMessage>
                       {parseError ?? logicError}
