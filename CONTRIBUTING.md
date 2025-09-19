@@ -165,29 +165,28 @@ Prerequisites:
 - pnpm installed
 - Docker running (used for the test database via docker-compose)
 
-Before you start (once per repo clone):
-```
-# from the repo root
-pnpm install
-```
-
 Setup steps:
 1) Change directory to the backend app
 ```
 cd platform/flowglad-next
 ```
 
-2) Create your local env file from the example
+2) Install dependencies
+```
+pnpm install-packages
+```
+
+3) Create your local env file from the example
 ```
 cp .env.example .env.local
 ```
 
-3) Start the test database and run migrations
+4) Start the test database and run migrations
 ```
 pnpm test:setup
 ```
 
-4) Run the test suite
+5) Run the test suite
 ```
 pnpm test
 ```
