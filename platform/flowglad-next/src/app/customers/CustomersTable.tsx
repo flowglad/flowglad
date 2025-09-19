@@ -142,6 +142,9 @@ const CustomersTable = ({
         {
           header: 'Name',
           accessorKey: 'customer.name',
+          size: 150,
+          minSize: 120,
+          maxSize: 150,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.customer.name}</span>
           ),
@@ -149,13 +152,21 @@ const CustomersTable = ({
         {
           header: 'Email',
           accessorKey: 'customer.email',
+          size: 200,
+          minSize: 150,
+          maxSize: 500,
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.customer.email}</span>
+            <span className="text-sm truncate block">
+              {cellData.customer.email}
+            </span>
           ),
         },
         {
           header: 'Total Spend',
           accessorKey: 'totalSpend',
+          size: 100,
+          minSize: 80,
+          maxSize: 100,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">
               {stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -168,6 +179,9 @@ const CustomersTable = ({
         {
           header: 'Payments',
           accessorKey: 'payments',
+          size: 100,
+          minSize: 80,
+          maxSize: 100,
           cell: ({ row: { original: cellData } }) => (
             <span className="text-sm">{cellData.payments || 0}</span>
           ),
@@ -175,15 +189,28 @@ const CustomersTable = ({
         {
           header: 'Created At',
           accessorKey: 'customer.createdAt',
+          size: 125,
+          minSize: 125,
+          maxSize: 125,
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">
+            <div
+              className="w-[125px] max-w-[125px] min-w-[125px] overflow-hidden whitespace-nowrap text-ellipsis box-border"
+              style={{
+                width: '125px',
+                maxWidth: '125px',
+                minWidth: '125px',
+              }}
+            >
               {core.formatDate(cellData.customer.createdAt!)}
-            </span>
+            </div>
           ),
         },
         {
           header: 'ID',
           accessorKey: 'customer.id',
+          size: 180,
+          minSize: 125,
+          maxSize: 250,
           cell: ({ row: { original: cellData } }) => (
             <CopyableTextTableCell copyText={cellData.customer.id}>
               {cellData.customer.id}
