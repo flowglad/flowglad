@@ -17,6 +17,7 @@ import { Loader2, X } from 'lucide-react'
 import { signIn, signUp } from '@/utils/authClient'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { ErrorContext } from 'better-auth/react'
 import ErrorLabel from '@/components/ErrorLabel'
@@ -206,6 +207,17 @@ export default function SignUp() {
           />
         </div>
       </CardContent>
+      <CardFooter className="flex flex-col gap-2">
+        <div className="text-center text-sm text-muted-foreground">
+          Already have an account?{' '}
+          <Link 
+            href="/sign-in" 
+            className="text-primary hover:underline"
+          >
+            Sign in
+          </Link>
+        </div>
+      </CardFooter>
     </Card>
   )
 }
