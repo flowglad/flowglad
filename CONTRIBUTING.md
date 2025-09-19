@@ -1,3 +1,19 @@
+# Contributing to Flowglad
+
+Thanks for your interest in contributing to Flowglad! A good place to start is by checking out our GitHub [Issues](https://github.com/flowglad/flowglad/issues). Here you can find open issues.
+
+## Issue Tags
+| Tag                 | Meaning                                                        |
+|---------------------|----------------------------------------------------------------|
+| help wanted         | Issues that are open for public contributions                  |
+| good first issue    | Issues that are simple and scoped for a first-time contributor |
+| enhancement         | New feature or improvement                                     |
+| needs test coverage | A file or feature that needs better test coverage                 |
+| bug                 | A bug in the code that needs to be fixed                       |
+
+
+
+
 # Contributing to Flowglad Docs
 
 Thanks for your interest in contributing to Flowglad’s documentation. This section focuses exclusively on the docs site in `platform/docs`.
@@ -138,12 +154,8 @@ The API Reference is sourced from `https://app.flowglad.com/api/openapi` into `p
 
 - Open an issue or discussion on GitHub: https://github.com/flowglad/flowglad
 
-Thanks again for improving the docs!
-
-
-
-
 ---
+
 # Contributing to the backend (platform/flowglad-next)
 
 Thanks for your interest in contributing to Flowglad’s backend. This section focuses on the Next.js app in `platform/flowglad-next`.
