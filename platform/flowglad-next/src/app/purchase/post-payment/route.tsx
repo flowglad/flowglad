@@ -61,7 +61,7 @@ const processPaymentIntent = async ({
   }
   const { payment, purchase, invoice, checkoutSession } =
     await comprehensiveAdminTransaction(async ({ transaction }) => {
-      const { result, eventsToLog } =
+      const { result, eventsToInsert } =
         await processPaymentIntentStatusUpdated(
           paymentIntent,
           transaction
@@ -106,7 +106,7 @@ const processPaymentIntent = async ({
       }
       return {
         result: { payment, purchase, checkoutSession, invoice },
-        eventsToLog,
+        eventsToInsert,
       }
     })
   return {

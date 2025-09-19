@@ -131,15 +131,15 @@ describe('createCustomerBookkeeping', () => {
       )
 
       // Verify events were created
-      expect(result.eventsToLog).toBeDefined()
-      expect(result.eventsToLog?.length).toBeGreaterThan(0)
+      expect(result.eventsToInsert).toBeDefined()
+      expect(result.eventsToInsert?.length).toBeGreaterThan(0)
       expect(
-        result.eventsToLog?.some(
+        result.eventsToInsert?.some(
           (e) => e.type === FlowgladEventType.CustomerCreated
         )
       ).toBe(true)
       expect(
-        result.eventsToLog?.some(
+        result.eventsToInsert?.some(
           (e) => e.type === FlowgladEventType.SubscriptionCreated
         )
       ).toBe(true)
@@ -302,14 +302,14 @@ describe('createCustomerBookkeeping', () => {
       expect(subscriptionInDb).toBeNull()
 
       // Verify only CustomerCreated event exists
-      expect(result.eventsToLog).toBeDefined()
+      expect(result.eventsToInsert).toBeDefined()
       expect(
-        result.eventsToLog?.some(
+        result.eventsToInsert?.some(
           (e) => e.type === FlowgladEventType.CustomerCreated
         )
       ).toBe(true)
       expect(
-        result.eventsToLog?.some(
+        result.eventsToInsert?.some(
           (e) => e.type === FlowgladEventType.SubscriptionCreated
         )
       ).toBe(false)
@@ -396,14 +396,14 @@ describe('createCustomerBookkeeping', () => {
       expect(subscriptionInDb).toBeNull()
 
       // Verify only CustomerCreated event exists
-      expect(result.eventsToLog).toBeDefined()
+      expect(result.eventsToInsert).toBeDefined()
       expect(
-        result.eventsToLog?.some(
+        result.eventsToInsert?.some(
           (e) => e.type === FlowgladEventType.CustomerCreated
         )
       ).toBe(true)
       expect(
-        result.eventsToLog?.some(
+        result.eventsToInsert?.some(
           (e) => e.type === FlowgladEventType.SubscriptionCreated
         )
       ).toBe(false)
@@ -533,14 +533,14 @@ describe('createCustomerBookkeeping', () => {
       expect(result.result.subscriptionItems).toBeUndefined()
 
       // Verify only CustomerCreated event exists
-      expect(result.eventsToLog).toBeDefined()
+      expect(result.eventsToInsert).toBeDefined()
       expect(
-        result.eventsToLog?.some(
+        result.eventsToInsert?.some(
           (e) => e.type === FlowgladEventType.CustomerCreated
         )
       ).toBe(true)
       expect(
-        result.eventsToLog?.some(
+        result.eventsToInsert?.some(
           (e) => e.type === FlowgladEventType.SubscriptionCreated
         )
       ).toBe(false)

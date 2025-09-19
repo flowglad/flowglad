@@ -426,5 +426,5 @@ export const processPaymentIntentStatusUpdated = async (
       processedAt: null,
     })
   }
-  return { result: { payment }, eventsToLog: eventInserts }
+  return { result: { payment }, eventsToInsert: eventInserts }
 }

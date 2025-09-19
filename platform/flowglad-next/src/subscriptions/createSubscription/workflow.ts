@@ -194,6 +194,6 @@ export const createSubscriptionWorkflow = async (
   return {
     result: transactionResult,
     ledgerCommand,
-    eventsToLog: eventInserts,
+    eventsToInsert: eventInserts,
   }
 }

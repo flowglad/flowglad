@@ -73,9 +73,9 @@ export async function comprehensiveAdminTransaction<T>(
     const output = await fn(paramsForFn)
 
     // Process events if any
-    if (output.eventsToLog && output.eventsToLog.length > 0) {
+    if (output.eventsToInsert && output.eventsToInsert.length > 0) {
       await bulkInsertOrDoNothingEventsByHash(
-        output.eventsToLog,
+        output.eventsToInsert,
         transaction
       )
     }
@@ -107,7 +107,7 @@ export async function eventfulAdminTransaction<T>(
     const [result, eventInserts] = await fn(params)
     return {
       result,
-      eventsToLog: eventInserts,
+      eventsToInsert: eventInserts,
     }
   }, options)
 }

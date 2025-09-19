@@ -51,7 +51,7 @@ export const stripePaymentIntentSucceededTask = task({
     } = await eventfulAdminTransaction(async ({ transaction }) => {
       const {
         result: { payment },
-        eventsToLog,
+        eventsToInsert,
       } = await processPaymentIntentStatusUpdated(
         payload.data.object,
         transaction
@@ -99,7 +99,7 @@ export const stripePaymentIntentSucceededTask = task({
         membersForOrganization,
         payment,
       }
-      const eventInserts: Event.Insert[] = [...(eventsToLog ?? [])]
+      const eventInserts: Event.Insert[] = [...(eventsToInsert ?? [])]
 
       return [result, eventInserts]
     }, {})

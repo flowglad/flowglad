@@ -259,10 +259,10 @@ describe('comprehensiveAuthenticatedTransaction', () => {
   })
 
   describe('Transaction Output Processing', () => {
-    it('should process events when eventsToLog is provided', async () => {
+    it('should process events when eventsToInsert is provided', async () => {
       // setup:
       // - use valid API key
-      // - create transaction function that returns TransactionOutput with eventsToLog array
+      // - create transaction function that returns TransactionOutput with eventsToInsert array
 
       // expects:
       // - bulkInsertOrDoNothingEventsByHash should be called with the events array
@@ -288,7 +288,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       const result = await comprehensiveAuthenticatedTransaction(
         async () => ({
           result: 'events_processed',
-          eventsToLog: mockEvents,
+          eventsToInsert: mockEvents,
         }),
         { apiKey: apiKeyA.token }
       )

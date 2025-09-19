@@ -88,7 +88,7 @@ const result = await comprehensiveAuthenticatedTransaction(async (params) => {
   // Perform business logic (hypothetical code)
   const { invoice, invoiceLineItems } = await createInvoice(data, transaction)
   const payment = await selectPaymentById(invoice.paymentId, transaction)
-  const eventsToLog: Event.Insert[] = const eventInserts: Event.Insert[] = [
+  const eventsToInsert: Event.Insert[] = const eventInserts: Event.Insert[] = [
     {
       type: FlowgladEventType.PaymentSucceeded,
       occurredAt: new Date(),
@@ -123,7 +123,7 @@ const result = await comprehensiveAuthenticatedTransaction(async (params) => {
   // Return with events and ledger commands
   return {
     result: invoice,
-    eventsToLog,
+    eventsToInsert,
     ledgerCommand: invoiceLedgerCommand
   }
 }, { apiKey })
