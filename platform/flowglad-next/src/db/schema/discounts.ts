@@ -450,7 +450,7 @@ const foreverDiscountFormUpdateSchema = withOptionalIdAndAmount(
   foreverDiscountClientUpdateSchema
 )
 
-// Form-specific update schema: permit amount=0 for Fixed when provided
+// Form-specific update schema: disallow providing amount for Fixed; use __rawAmountString
 const discountFormUpdateSchema = z
   .discriminatedUnion('duration', [
     defaultDiscountFormUpdateSchema,
@@ -459,19 +459,23 @@ const discountFormUpdateSchema = z
   ])
   .superRefine((val: any, ctx: z.RefinementCtx) => {
     if (val.amountType === DiscountAmountType.Fixed) {
-      if (val.amount !== undefined && val.amount !== 0) {
+      if (val.amount !== undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Fixed discount amount must be 0 in form input',
+          message: 'Fixed discounts must not provide an amount',
           path: ['amount'],
         })
       }
     } else if (val.amountType === DiscountAmountType.Percent) {
       if (val.amount !== undefined) {
-        if (!Number.isInteger(val.amount) || val.amount <= 0) {
+        if (
+          !Number.isInteger(val.amount) ||
+          val.amount <= 0 ||
+          val.amount > 100
+        ) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: 'Percent amount must be a positive integer',
+            message: 'Percent amount must be an integer between 1 and 100',
             path: ['amount'],
           })
         }

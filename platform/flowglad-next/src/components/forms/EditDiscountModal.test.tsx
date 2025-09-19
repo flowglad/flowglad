@@ -37,7 +37,7 @@ vi.mock('@/utils/stripe', () => ({
 vi.mock('@/components/forms/FormModal', async () => {
   const React = await import('react')
   const { useForm, FormProvider } = await import('react-hook-form')
-  function FormModalMock({ children, onSubmit, defaultValues }: any) {
+  function FormModalMock({ children, onSubmit, defaultValues, setIsOpen }: any) {
     const form = useForm({ defaultValues })
     return (
       <FormProvider {...form}>
@@ -46,20 +46,40 @@ vi.mock('@/components/forms/FormModal', async () => {
           <button
             data-testid="submit-button"
             onClick={() => {
-              const mockInput = {
-                discount: {
-                  name: 'Updated Discount',
-                  code: 'UPDATED10',
-                  amountType: DiscountAmountType.Fixed,
-                  amount: 0,
-                  duration: DiscountDuration.Once,
-                  active: true,
-                  numberOfPayments: null,
-                },
-                __rawAmountString: '15.75',
-                id: 'discount_123',
+              // Simulate submit based on defaultValues (fixed vs percent)
+              const isPercent = defaultValues?.discount?.amountType === DiscountAmountType.Percent
+              const mockInput = isPercent
+                ? {
+                    discount: {
+                      name: 'Updated Percent Discount',
+                      code: 'PERCENT30',
+                      amountType: DiscountAmountType.Percent,
+                      amount: 30.7, // user entered percent with decimal; should round to 31
+                      duration: DiscountDuration.Once,
+                      active: true,
+                      numberOfPayments: null,
+                    },
+                    id: defaultValues?.id ?? 'discount_123',
+                  }
+                : {
+                    discount: {
+                      name: 'Updated Discount',
+                      code: 'UPDATED10',
+                      amountType: DiscountAmountType.Fixed,
+                      amount: undefined,
+                      duration: DiscountDuration.Once,
+                      active: true,
+                      numberOfPayments: null,
+                    },
+                    __rawAmountString: '15.75',
+                    id: defaultValues?.id ?? 'discount_123',
+                  }
+              const maybePromise = onSubmit(mockInput)
+              if (maybePromise && typeof maybePromise.then === 'function') {
+                maybePromise.finally(() => setIsOpen?.(false))
+              } else {
+                setIsOpen?.(false)
               }
-              onSubmit(mockInput)
             }}
           >
             Submit
@@ -215,16 +235,9 @@ describe('EditDiscountModal', () => {
         amount: 25,
       }
 
+      const mutateSpy = vi.fn().mockResolvedValue({ success: true })
       vi.mocked(trpc.discounts.update.useMutation).mockReturnValue({
-        mutateAsync: vi.fn().mockImplementation(async (input) => {
-          // Simulate percent calculation
-          const amount = input.discount.amountType === DiscountAmountType.Percent
-            ? Math.round(input.discount.amount ?? 0)
-            : 1575
-          
-          expect(amount).toBe(30) // Should be rounded integer
-          return { success: true }
-        })
+        mutateAsync: mutateSpy,
       } as any)
 
       render(
@@ -235,28 +248,17 @@ describe('EditDiscountModal', () => {
         />
       )
 
-      // Mock the form submission with percent data
-      const mockFormModal = vi.mocked(await import('@/components/forms/FormModal')).default
-      const mockOnSubmit = vi.fn()
-      
-      // Simulate percent form submission
-      const percentInput = {
-        discount: {
-          name: 'Updated Percent Discount',
-          code: 'PERCENT30',
-          amountType: DiscountAmountType.Percent,
-          amount: 30.7, // Should be rounded to 30
-          duration: DiscountDuration.Once,
-          active: true,
-          numberOfPayments: null,
-        },
-        __rawAmountString: '30.7',
-        id: 'discount_123',
-      }
+      // Click submit which our mock FormModal wires to percent submission
+      const submitButton = screen.getByTestId('submit-button')
+      fireEvent.click(submitButton)
 
-      mockOnSubmit(percentInput)
-
-      expect(mockOnSubmit).toHaveBeenCalledWith(percentInput)
+      await waitFor(() => {
+        expect(mutateSpy).toHaveBeenCalled()
+        const payload = mutateSpy.mock.calls[0][0]
+        expect(payload.discount.amountType).toBe(DiscountAmountType.Percent)
+        // Should round 30.7 to 31
+        expect(payload.discount.amount).toBe(31)
+      })
     })
   })
 
@@ -320,7 +322,7 @@ describe('EditDiscountModal', () => {
   })
 
   describe('Modal State Management', () => {
-    it('should call setIsOpen when modal state changes', () => {
+    it('should call setIsOpen(false) after successful submit', async () => {
       const mockSetIsOpen = vi.fn()
       render(
         <EditDiscountModal
@@ -330,8 +332,11 @@ describe('EditDiscountModal', () => {
         />
       )
 
-      // The modal should be rendered
       expect(screen.getByTestId('form-modal')).toBeInTheDocument()
+      fireEvent.click(screen.getByTestId('submit-button'))
+      await waitFor(() => {
+        expect(mockSetIsOpen).toHaveBeenCalledWith(false)
+      })
     })
   })
 
