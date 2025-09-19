@@ -6,7 +6,7 @@ if [ -z "$ROOT_DIR" ]; then
   echo "❌ Could not resolve git repository root"
   exit 1
 fi
-
+ 
 # Format staged TypeScript files with Prettier (only staged .ts/.tsx files)
 STAGED_TS_FILES_NUL=$(mktemp)
 git diff --cached --name-only -z --diff-filter=ACMR -- '*.ts' '*.tsx' > "$STAGED_TS_FILES_NUL"
