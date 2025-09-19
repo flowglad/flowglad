@@ -1,8 +1,12 @@
 #!/bin/sh
 
-# Store the root directory
-ROOT_DIR=$(pwd)
-
+# Resolve the repository root directory (works from any subdirectory)
+ROOT_DIR=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$ROOT_DIR" ]; then
+  echo "❌ Could not resolve git repository root"
+  exit 1
+fi
+ 
 # Format staged TypeScript files with Prettier (only staged .ts/.tsx files)
 STAGED_TS_FILES_NUL=$(mktemp)
 git diff --cached --name-only -z --diff-filter=ACMR -- '*.ts' '*.tsx' > "$STAGED_TS_FILES_NUL"
@@ -36,11 +40,8 @@ STATUS1=$?
 wait $PID2
 STATUS2=$?
 
-wait $PID3
-STATUS3=$?
-
 # Check if any lint task failed
-if [ $STATUS1 -ne 0 ] || [ $STATUS2 -ne 0 ] || [ $STATUS3 -ne 0 ]; then
+if [ $STATUS1 -ne 0 ] || [ $STATUS2 -ne 0 ]; then
   echo "❌ Lint checks failed. Please fix errors before committing."
   exit 1
 fi
