@@ -8,10 +8,11 @@ Thanks for your interest in contributing to Flowglad! A good place to start is b
 | help wanted         | Issues that are open for public contributions                  |
 | good first issue    | Issues that are simple and scoped for a first-time contributor |
 | enhancement         | New feature or improvement                                     |
-| needs test coverage | A file or feature that needs better test coverage                 |
+| needs test coverage | A file or feature that needs better test coverage              |
 | bug                 | A bug in the code that needs to be fixed                       |
 
-
+## Working on Issues
+If you would like to pick up an issue to work on, please indicate that by commenting on the Issue! Issues that are not yet open for public contributions (missing the help wanted tag) act as open discussion threads for said Issues.
 
 
 # Contributing to Flowglad Docs
