@@ -76,7 +76,12 @@ vi.mock('@/components/forms/FormModal', async () => {
                   }
               const maybePromise = onSubmit(mockInput)
               if (maybePromise && typeof maybePromise.then === 'function') {
-                maybePromise.finally(() => setIsOpen?.(false))
+                maybePromise
+                  .then(() => setIsOpen?.(false))
+                  .catch(() => {
+                    // Swallow rejection to avoid unhandled errors during tests,
+                    // and do not auto-close on failure to mirror real behavior
+                  })
               } else {
                 setIsOpen?.(false)
               }
