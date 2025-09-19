@@ -138,15 +138,17 @@ const numberOfPaymentsDiscountsRefinements = {
 // Default discounts schema (once or forever duration)
 export const defaultDiscountsInsertSchema = baseDiscountSchema.extend(
   defaultDiscountsRefinements
-)
+).describe(DEFAULT_DISCOUNT_DESCRIPTION)
 
 // Number of payments discounts schema
 export const numberOfPaymentsDiscountsInsertSchema =
-  baseDiscountSchema.extend(numberOfPaymentsDiscountsRefinements)
+  baseDiscountSchema.extend(numberOfPaymentsDiscountsRefinements).describe(
+    NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION
+  )
 
 export const foreverDiscountsInsertSchema = baseDiscountSchema.extend(
   foreverDiscountsRefinements
-)
+).describe(FOREVER_DISCOUNT_DESCRIPTION)
 
 // Combined insert schema
 export const discountsInsertSchema = z
@@ -165,14 +167,16 @@ const baseSelectSchema = createSelectSchema(
 
 export const defaultDiscountsSelectSchema = baseSelectSchema.extend(
   defaultDiscountsRefinements
-)
+).describe(DEFAULT_DISCOUNT_DESCRIPTION)
 
 export const numberOfPaymentsDiscountsSelectSchema =
-  baseSelectSchema.extend(numberOfPaymentsDiscountsRefinements)
+  baseSelectSchema
+    .extend(numberOfPaymentsDiscountsRefinements)
+    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
 
 export const foreverDiscountsSelectSchema = baseSelectSchema.extend(
   foreverDiscountsRefinements
-)
+).describe(FOREVER_DISCOUNT_DESCRIPTION)
 
 export const discountsSelectSchema = z
   .discriminatedUnion('duration', [
@@ -188,21 +192,21 @@ export const defaultDiscountsUpdateSchema =
     id: z.string(),
     duration: z.literal(DiscountDuration.Once),
     numberOfPayments: z.null(),
-  })
+  }).describe(DEFAULT_DISCOUNT_DESCRIPTION)
 
 export const numberOfPaymentsDiscountsUpdateSchema =
   numberOfPaymentsDiscountsSelectSchema.partial().extend({
     id: z.string(),
     duration: z.literal(DiscountDuration.NumberOfPayments),
     numberOfPayments: core.safeZodPositiveInteger,
-  })
+  }).describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
 
 export const foreverDiscountsUpdateSchema =
   foreverDiscountsSelectSchema.partial().extend({
     id: z.string(),
     duration: z.literal(DiscountDuration.Forever),
     numberOfPayments: z.null(),
-  })
+  }).describe(FOREVER_DISCOUNT_DESCRIPTION)
 
 export const discountsUpdateSchema = z
   .discriminatedUnion('duration', [
@@ -234,17 +238,17 @@ const clientWriteOmits = R.omit(['position'], {
 export const defaultDiscountClientInsertSchema =
   defaultDiscountsInsertSchema.omit(clientWriteOmits).meta({
     id: 'DefaultDiscountInsert',
-  })
+  }).describe(DEFAULT_DISCOUNT_DESCRIPTION)
 
 export const numberOfPaymentsDiscountClientInsertSchema =
   numberOfPaymentsDiscountsInsertSchema.omit(clientWriteOmits).meta({
     id: 'NumberOfPaymentsDiscountInsert',
-  })
+  }).describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
 
 export const foreverDiscountClientInsertSchema =
   foreverDiscountsInsertSchema.omit(clientWriteOmits).meta({
     id: 'ForeverDiscountInsert',
-  })
+  }).describe(FOREVER_DISCOUNT_DESCRIPTION)
 
 export const discountClientInsertSchema = z
   .discriminatedUnion('duration', [
@@ -260,19 +264,19 @@ export const discountClientInsertSchema = z
 export const defaultDiscountClientUpdateSchema =
   defaultDiscountsUpdateSchema.omit(nonClientEditableColumns).meta({
     id: 'DefaultDiscountUpdate',
-  })
+  }).describe(DEFAULT_DISCOUNT_DESCRIPTION)
 
 export const numberOfPaymentsDiscountClientUpdateSchema =
   numberOfPaymentsDiscountsUpdateSchema
     .omit(nonClientEditableColumns)
     .meta({
       id: 'NumberOfPaymentsDiscountUpdate',
-    })
+    }).describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
 
 export const foreverDiscountClientUpdateSchema =
   foreverDiscountsUpdateSchema.omit(nonClientEditableColumns).meta({
     id: 'ForeverDiscountUpdate',
-  })
+  }).describe(FOREVER_DISCOUNT_DESCRIPTION)
 
 export const discountClientUpdateSchema = z
   .discriminatedUnion('duration', [
@@ -288,17 +292,17 @@ export const discountClientUpdateSchema = z
 export const defaultDiscountClientSelectSchema =
   defaultDiscountsSelectSchema.omit(hiddenColumns).meta({
     id: 'DefaultDiscountRecord',
-  })
+  }).describe(DEFAULT_DISCOUNT_DESCRIPTION)
 
 export const numberOfPaymentsDiscountClientSelectSchema =
   numberOfPaymentsDiscountsSelectSchema.omit(hiddenColumns).meta({
     id: 'NumberOfPaymentsDiscountRecord',
-  })
+  }).describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
 
 export const foreverDiscountClientSelectSchema =
   foreverDiscountsSelectSchema.omit(hiddenColumns).meta({
     id: 'ForeverDiscountRecord',
-  })
+  }).describe(FOREVER_DISCOUNT_DESCRIPTION)
 
 export const discountClientSelectSchema = z
   .discriminatedUnion('duration', [
@@ -348,10 +352,69 @@ export const createDiscountInputSchema = z.object({
   discount: discountClientInsertSchema,
 })
 
-export const createDiscountFormSchema =
-  createDiscountInputSchema.extend({
-    __rawAmountString: z.string(),
+// Form-specific insert schemas separated by amountType intent
+const discountFormInsertSchemaFixed = z.discriminatedUnion('duration', [
+  defaultDiscountClientInsertSchema.omit({ amount: true }),
+  numberOfPaymentsDiscountClientInsertSchema.omit({ amount: true }),
+  foreverDiscountClientInsertSchema.omit({ amount: true }),
+])
+
+const discountFormInsertSchemaPercent = z.discriminatedUnion('duration', [
+  defaultDiscountClientInsertSchema.extend({
+    amount: z.number().int().min(1).max(100),
+  }),
+  numberOfPaymentsDiscountClientInsertSchema.extend({
+    amount: z.number().int().min(1).max(100),
+  }),
+  foreverDiscountClientInsertSchema.extend({
+    amount: z.number().int().min(1).max(100),
+  }),
+])
+
+// Stricter amountType-driven form shape (emulated via union on amountType)
+const createFixedFormSchema = z
+  .object({
+    discount: discountFormInsertSchemaFixed,
+    __rawAmountString: z
+      .string()
+      .regex(/^\d+(\.\d{1,2})?$/, 'Invalid raw amount string'),
   })
+  .superRefine((val, ctx) => {
+    if (val.discount.amountType !== DiscountAmountType.Fixed) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid form variant for non-fixed discount',
+        path: ['discount', 'amountType'],
+      })
+    }
+  })
+
+const createPercentFormSchema = z
+  .object({
+    discount: discountFormInsertSchemaPercent,
+    __rawAmountString: z.string().optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.discount.amountType !== DiscountAmountType.Percent) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid form variant for non-percent discount',
+        path: ['discount', 'amountType'],
+      })
+    }
+    if (typeof val.__rawAmountString !== 'undefined') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Percent discounts must not include raw amount string',
+        path: ['__rawAmountString'],
+      })
+    }
+  })
+
+export const createDiscountFormSchema = z.union([
+  createFixedFormSchema,
+  createPercentFormSchema,
+])
 
 export type CreateDiscountInput = z.infer<
   typeof createDiscountInputSchema
@@ -366,9 +429,111 @@ export const editDiscountInputSchema = z.object({
   id: z.string(),
 })
 
-export const editDiscountFormSchema = editDiscountInputSchema.extend({
-  __rawAmountString: z.string(),
-})
+// Make nested id/amount optional for form input; server payload will include id
+const withOptionalIdAndAmount = <T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+) =>
+  schema.extend({
+    id: z.string().optional(),
+    amount: z.number().int().min(0).optional(),
+  })
+
+const defaultDiscountFormUpdateSchema = withOptionalIdAndAmount(
+  defaultDiscountClientUpdateSchema
+)
+
+const numberOfPaymentsDiscountFormUpdateSchema = withOptionalIdAndAmount(
+  numberOfPaymentsDiscountClientUpdateSchema
+)
+
+const foreverDiscountFormUpdateSchema = withOptionalIdAndAmount(
+  foreverDiscountClientUpdateSchema
+)
+
+// Form-specific update schema: disallow providing amount for Fixed; use __rawAmountString
+const discountFormUpdateSchema = z
+  .discriminatedUnion('duration', [
+    defaultDiscountFormUpdateSchema,
+    numberOfPaymentsDiscountFormUpdateSchema,
+    foreverDiscountFormUpdateSchema,
+  ])
+  .superRefine((val: any, ctx: z.RefinementCtx) => {
+    if (val.amountType === DiscountAmountType.Fixed) {
+      if (val.amount !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Fixed discounts must not provide an amount',
+          path: ['amount'],
+        })
+      }
+    } else if (val.amountType === DiscountAmountType.Percent) {
+      if (val.amount !== undefined) {
+        if (
+          !Number.isInteger(val.amount) ||
+          val.amount <= 0 ||
+          val.amount > 100
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Percent amount must be an integer between 1 and 100',
+            path: ['amount'],
+          })
+        }
+      }
+    }
+  })
+
+const editFixedPayloadSchema = z
+  .object({
+    discount: discountFormUpdateSchema,
+    __rawAmountString: z
+      .string()
+      .regex(/^\d+(\.\d{1,2})?$/, 'Invalid raw amount string'),
+  })
+  .superRefine((val, ctx) => {
+    if (val.discount.amountType !== DiscountAmountType.Fixed) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid form variant for non-fixed discount',
+        path: ['discount', 'amountType'],
+      })
+    }
+    if (typeof (val.discount as any).amount !== 'undefined') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Fixed discounts must not provide an amount',
+        path: ['discount', 'amount'],
+      })
+    }
+  })
+
+const editPercentPayloadSchema = z
+  .object({
+    discount: discountFormUpdateSchema,
+    __rawAmountString: z.string().optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.discount.amountType !== DiscountAmountType.Percent) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid form variant for non-percent discount',
+        path: ['discount', 'amountType'],
+      })
+    }
+    if (typeof val.__rawAmountString !== 'undefined') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Percent discounts must not include raw amount string',
+        path: ['__rawAmountString'],
+      })
+    }
+  })
+
+const editBaseSchema = z.object({ id: z.string() })
+
+export const editDiscountFormSchema = editBaseSchema.and(
+  z.union([editFixedPayloadSchema, editPercentPayloadSchema])
+)
 
 export type EditDiscountInput = z.infer<
   typeof editDiscountInputSchema
