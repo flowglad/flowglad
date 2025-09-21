@@ -14,7 +14,18 @@ import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
 import { z } from 'zod'
 import core from '../core'
 import * as R from 'ramda'
-import { FeatureType, PriceType } from '@/types'
+import { FeatureType, PriceType, CurrencyCode } from '@/types'
+
+// Input validation schemas for security
+export const sanitizedStringSchema = z.string()
+  .min(1, "Field is required")
+  .max(255, "Field must be less than 255 characters")
+
+export const currencyValidationSchema = z.string()
+  .refine(
+    (currency) => Object.values(CurrencyCode).includes(currency as CurrencyCode),
+    "Invalid currency code"
+  )
 
 export const featurePricingModelSetupSchema = z
   .discriminatedUnion('type', [
@@ -50,6 +61,10 @@ const productPricingModelSetupSchema = productsClientInsertSchema
   .omit({
     pricingModelId: true,
   })
+  .extend({
+    name: sanitizedStringSchema.describe('The name of the product'),
+    slug: sanitizedStringSchema.describe('The slug of the product'),
+  })
   .describe(
     'A product, which describes "what" a customer gets when they purchase via features, and how much they pay via prices.'
   )
@@ -58,10 +73,20 @@ const omitProductId = {
   productId: true,
 } as const
 
+const priceOptionalFieldSchema = {
+  currency: currencyValidationSchema.optional(),
+  name: sanitizedStringSchema.optional(),
+  slug: sanitizedStringSchema.optional(),
+} as const
+
 export const setupPricingModelProductPriceInputSchema =
   z.discriminatedUnion('type', [
-    subscriptionPriceClientInsertSchema.omit(omitProductId),
-    singlePaymentPriceClientInsertSchema.omit(omitProductId),
+    subscriptionPriceClientInsertSchema.omit(omitProductId).extend({
+      ...priceOptionalFieldSchema,
+    }),
+    singlePaymentPriceClientInsertSchema.omit(omitProductId).extend({
+      ...priceOptionalFieldSchema,
+    }),
     usagePriceClientInsertSchema
       .omit(omitProductId)
       .omit({
@@ -69,6 +94,7 @@ export const setupPricingModelProductPriceInputSchema =
       })
       .extend({
         usageMeterSlug: z.string(),
+        ...priceOptionalFieldSchema,
       }),
   ])
 
@@ -98,6 +124,7 @@ export type SetupPricingModelProductInput = z.infer<
 
 export const setupPricingModelSchema =
   pricingModelsClientInsertSchema.extend({
+    name: sanitizedStringSchema.describe('The name of the pricing model'),
     isDefault: z
       .boolean()
       .optional()

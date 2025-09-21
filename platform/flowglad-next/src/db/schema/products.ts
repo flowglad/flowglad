@@ -162,6 +162,19 @@ export const productsClientSelectSchema = productsSelectSchema
 
 export const productsClientInsertSchema = productsInsertSchema
   .omit(nonClientEditableColumns)
+  .refine(
+    (data) => {
+      // Allow 'free' slug only for default products
+      if (data.slug === 'free' && !data.default) {
+        return false
+      }
+      return true
+    },
+    {
+      message: "Slug 'free' is reserved for default products only",
+      path: ['slug']
+    }
+  )
   .meta({
     id: 'ProductInsert',
   })

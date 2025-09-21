@@ -2,6 +2,8 @@ import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { TRPCError } from '@trpc/server'
 import * as R from 'ramda'
+import { PriceType } from '@/types'
+import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
 
 /**
  * Fields that can be updated on default products
@@ -163,8 +165,8 @@ export const validateProductCreation = (
         'Default products cannot be created manually. They are automatically created when pricing models are created.',
     })
   }
-}
 
+}
 /**
  * Checks if a field update on a default product is allowed
  */
@@ -172,4 +174,46 @@ export const isDefaultProductFieldUpdateAllowed = (
   fieldName: string
 ): boolean => {
   return DEFAULT_PRODUCT_ALLOWED_FIELDS.includes(fieldName as any)
+}
+
+/**
+ * Validates that a product is a valid default product
+ * Default products must have exactly one price with amount 0
+ */
+export const validateDefaultProductSchema = (product: {
+  name: string
+  slug?: string
+  prices: Array<{
+    amount: number
+    type: PriceType
+    slug?: string
+    trialDays?: number
+    setupFee?: number
+  }>
+}) => {
+  // Exactly one price and it must be the default price
+  if (!product.prices || product.prices.length !== 1) {
+    throw new Error("Default products must have exactly one price")
+  }
+  const price = product.prices[0]
+
+  // Check price is zero
+  if (price.amount !== 0) {
+    throw new Error("Default products must have zero price")
+  }
+  
+  // Check no trials
+  if (price.trialDays && price.trialDays > 0) {
+    throw new Error("Default products cannot have trials")
+  }
+  
+  // Check no setup fees
+  if (price.setupFee && price.setupFee > 0) {
+    throw new Error("Default products cannot have setup fees")
+  }
+  
+  // Check reserved slug usage
+  if (product.slug === 'free') {
+    throw new Error("Slug 'free' is reserved for auto-generated default plans")
+  }
 }

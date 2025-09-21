@@ -429,6 +429,19 @@ export const pricesClientInsertSchema = z
     singlePaymentPriceClientInsertSchema,
     usagePriceClientInsertSchema,
   ])
+  .refine(
+    (data) => {
+      // Allow 'free' slug only for default prices with zero amount
+      if (data.slug === 'free' && (!data.isDefault || data.unitPrice !== 0)) {
+        return false
+      }
+      return true
+    },
+    {
+      message: "Slug 'free' is reserved for default prices with zero amount only",
+      path: ['slug']
+    }
+  )
   .meta({
     id: 'PricesInsert',
   })

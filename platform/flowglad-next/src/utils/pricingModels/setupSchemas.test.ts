@@ -43,7 +43,7 @@ describe('setupPricingModelSchema', () => {
           },
           prices: [
             {
-              name: null,
+              name: 'Test Price',
               intervalCount: 1,
               type: PriceType.Subscription,
               isDefault: false,
@@ -149,7 +149,7 @@ describe('validateSetupPricingModelInput', () => {
               intervalCount: 1,
               unitPrice: 100,
               isDefault: false,
-              name: null,
+              name: 'Test Price',
               usageMeterId: null,
               trialPeriodDays: null,
               setupFeeAmount: null,
@@ -164,7 +164,7 @@ describe('validateSetupPricingModelInput', () => {
               usageMeterSlug: 'm1',
               unitPrice: 10,
               isDefault: false,
-              name: null,
+              name: 'Test Price',
               intervalUnit: IntervalUnit.Month,
               intervalCount: 1,
               trialPeriodDays: null,
@@ -190,7 +190,7 @@ describe('validateSetupPricingModelInput', () => {
       features: [
         {
           type: FeatureType.Toggle,
-          name: '',
+          name: 'Test Product',
           description: '',
           livemode: false,
           slug: 'dup',
@@ -198,7 +198,7 @@ describe('validateSetupPricingModelInput', () => {
         },
         {
           type: FeatureType.Toggle,
-          name: '',
+          name: 'Test Product',
           description: '',
           livemode: false,
           slug: 'dup',
@@ -236,7 +236,7 @@ describe('validateSetupPricingModelInput', () => {
       features: [
         {
           type: FeatureType.Toggle,
-          name: '',
+          name: 'Test Product',
           description: '',
           livemode: false,
           slug: 'f1',
@@ -247,7 +247,7 @@ describe('validateSetupPricingModelInput', () => {
       products: [
         {
           product: {
-            name: '',
+            name: 'Test Product',
             default: false,
             description: '',
             slug: 'p',
@@ -274,7 +274,7 @@ describe('validateSetupPricingModelInput', () => {
       features: [
         {
           type: FeatureType.UsageCreditGrant,
-          name: '',
+          name: 'Test Product',
           description: '',
           livemode: false,
           slug: 'fg',
@@ -288,7 +288,7 @@ describe('validateSetupPricingModelInput', () => {
       products: [
         {
           product: {
-            name: '',
+            name: 'Test Product',
             default: false,
             description: '',
             slug: 'p',
@@ -317,7 +317,7 @@ describe('validateSetupPricingModelInput', () => {
       products: [
         {
           product: {
-            name: '',
+            name: 'Test Product',
             default: false,
             description: '',
             slug: 'p',
@@ -332,7 +332,7 @@ describe('validateSetupPricingModelInput', () => {
             {
               type: PriceType.Subscription,
               isDefault: false,
-              name: null,
+              name: 'Test Price',
               usageMeterId: null,
               trialPeriodDays: null,
               setupFeeAmount: null,
@@ -350,7 +350,7 @@ describe('validateSetupPricingModelInput', () => {
       ],
     }
     expect(() => validateSetupPricingModelInput(input)).toThrowError(
-      /Price slug is required/
+      /Field is required/
     )
   })
 
@@ -363,7 +363,7 @@ describe('validateSetupPricingModelInput', () => {
       products: [
         {
           product: {
-            name: '',
+            name: 'Test Product',
             default: false,
             description: '',
             slug: 'p',
@@ -379,7 +379,7 @@ describe('validateSetupPricingModelInput', () => {
               type: PriceType.Usage,
               slug: 'u1',
               isDefault: false,
-              name: null,
+              name: 'Test Price',
               trialPeriodDays: null,
               setupFeeAmount: null,
               overagePriceId: null,
@@ -409,7 +409,7 @@ describe('validateSetupPricingModelInput', () => {
       products: [
         {
           product: {
-            name: '',
+            name: 'Test Product',
             default: false,
             description: '',
             slug: 'p',
@@ -426,7 +426,7 @@ describe('validateSetupPricingModelInput', () => {
               slug: 'u1',
               usageMeterSlug: 'nope',
               isDefault: false,
-              name: null,
+              name: 'Test Price',
               trialPeriodDays: null,
               setupFeeAmount: null,
               usageEventsPerUnit: 1,
@@ -455,7 +455,7 @@ describe('validateSetupPricingModelInput', () => {
       products: [
         {
           product: {
-            name: '',
+            name: 'Test Product',
             default: false,
             description: '',
             slug: 'p1',
@@ -471,7 +471,7 @@ describe('validateSetupPricingModelInput', () => {
               type: PriceType.Subscription,
               slug: 'dup',
               isDefault: false,
-              name: null,
+              name: 'Test Price',
               usageMeterId: null,
               trialPeriodDays: null,
               setupFeeAmount: null,
@@ -487,7 +487,7 @@ describe('validateSetupPricingModelInput', () => {
         },
         {
           product: {
-            name: '',
+            name: 'Test Product',
             default: false,
             description: '',
             slug: 'p2',
@@ -503,7 +503,7 @@ describe('validateSetupPricingModelInput', () => {
               type: PriceType.Subscription,
               slug: 'dup',
               isDefault: false,
-              name: null,
+              name: 'Test Price',
               usageMeterId: null,
               trialPeriodDays: null,
               setupFeeAmount: null,

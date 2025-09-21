@@ -33,6 +33,7 @@ import { logger } from '@/utils/logger'
 import {
   pricingModelsRouteConfigs,
   getDefaultPricingModelRouteConfig,
+  setupPricingModelRouteConfig,
 } from '@/server/routers/pricingModelsRouter'
 import {
   paymentsRouteConfigs,
@@ -91,6 +92,7 @@ const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
 
 const routes: Record<string, RouteConfig> = {
   ...getDefaultPricingModelRouteConfig,
+  ...setupPricingModelRouteConfig,
   ...refundPaymentRouteConfig,
   ...customerBillingRouteConfig,
   ...discountsRouteConfigs,
