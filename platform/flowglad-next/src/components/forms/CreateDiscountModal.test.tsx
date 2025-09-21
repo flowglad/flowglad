@@ -174,10 +174,6 @@ describe('CreateDiscountModal', () => {
     })
   })
 
-  // Removed overly synthetic percent form submission test relying on internal mocks
-
-  // Dropped noisy console logging test: behavior is covered by data flow assertions
-
   describe('Error Handling', () => {
     it('should handle mutation errors gracefully', async () => {
       const mockError = new Error('Failed to create discount')
