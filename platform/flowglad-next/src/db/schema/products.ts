@@ -165,7 +165,9 @@ export const productsClientInsertSchema = productsInsertSchema
   .refine(
     (data) => {
       // Allow 'free' slug only for default products
-      if (data.slug === 'free' && !data.default) {
+      // Normalize slug by converting to lowercase and trimming whitespace
+      const normalizedSlug = data.slug?.toLowerCase().trim()
+      if (normalizedSlug === 'free' && !data.default) {
         return false
       }
       return true

@@ -18,6 +18,7 @@ import { FeatureType, PriceType, CurrencyCode } from '@/types'
 
 // Input validation schemas for security
 export const sanitizedStringSchema = z.string()
+  .trim()
   .min(1, "Field is required")
   .max(255, "Field must be less than 255 characters")
 
