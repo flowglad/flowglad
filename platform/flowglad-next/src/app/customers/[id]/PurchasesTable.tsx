@@ -81,7 +81,7 @@ const PurchasesTable = ({
           header: 'Name',
           accessorKey: 'name',
           size: 300,
-          minSize: 250,
+          minSize: 150,
           maxSize: 400,
           cell: ({ row: { original: cellData } }) => {
             return (

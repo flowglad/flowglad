@@ -36,11 +36,11 @@ export function CancelSubscriptionDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-md bg-amber-50 p-4">
-            <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">
+          <div className="rounded-md bg-muted p-4">
+            <h4 className="text-sm font-medium text-foreground mb-2">
               What happens when you cancel:
             </h4>
-            <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+            <ul className="text-sm text-muted-foreground space-y-1">
               {currentPeriodEnd && (
                 <li>
                   • Your subscription will remain active until{' '}
@@ -65,20 +65,20 @@ export function CancelSubscriptionDialog({
           )}
         </div>
 
-        <DialogFooter className="sm:flex-row-reverse">
-          <Button
-            variant="destructive"
-            onClick={onConfirm}
-            disabled={loading}
-          >
-            {loading ? 'Canceling...' : 'Cancel Subscription'}
-          </Button>
+        <DialogFooter className="sm:justify-end">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
-            Keep Subscription
+            Go back
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {loading ? 'Canceling...' : 'Cancel subscription'}
           </Button>
         </DialogFooter>
       </DialogContent>

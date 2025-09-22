@@ -28,7 +28,7 @@ const RefundPaymentModal = ({
       title="Refund Payment"
     >
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           This action is non-reversible.
         </p>
       </div>
