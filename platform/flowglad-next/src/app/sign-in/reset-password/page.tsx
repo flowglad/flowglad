@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
               <h2 className="text-2xl font-bold mb-2">
                 Password Reset Successful
               </h2>
-              <p className="text-gray-600">
+              <p className="text-muted">
                 Your password has been reset. Redirecting to
                 sign-in...
               </p>
@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
               <h2 className="text-2xl font-bold mb-2">
                 Invalid Reset Link
               </h2>
-              <p className="text-gray-600 mb-4">
+              <p className="text-muted mb-4">
                 This password reset link is invalid or has expired.
               </p>
               <Button
@@ -124,7 +124,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-2">

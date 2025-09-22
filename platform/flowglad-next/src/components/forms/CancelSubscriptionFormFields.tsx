@@ -64,7 +64,7 @@ const CancelSubscriptionFormFields: React.FC = () => {
                 {options.map((option) => (
                   <div
                     key={option.value}
-                    className="flex items-center space-x-2"
+                    className="flex items-center gap-3"
                   >
                     <RadioGroupItem
                       value={option.value}

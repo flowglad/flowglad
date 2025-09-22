@@ -29,7 +29,12 @@ const PurchasesTable = ({
           minSize: 150,
           maxSize: 250,
           cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.product.name}</span>
+            <div
+              className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap box-border"
+              title={cellData.product.name}
+            >
+              <span className="text-sm">{cellData.product.name}</span>
+            </div>
           ),
         },
         {
