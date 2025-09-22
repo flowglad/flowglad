@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
-import { useRouter } from 'next/navigation'
+// import { useRouter } from 'next/navigation'
 
 import { DataTable } from '@/components/ui/data-table'
 import { Feature } from '@/db/schema/features'
@@ -156,7 +156,7 @@ const FeaturesTable = ({
     []
   )
 
-  const router = useRouter()
+  // const router = useRouter()
 
   const tableData = data?.items || []
   const total = data?.total || 0
@@ -165,7 +165,7 @@ const FeaturesTable = ({
     <DataTable
       columns={columns}
       data={tableData}
-      onClickRow={(row) => {
+      onClickRow={() => {
         // router.push(`/features/${row.feature.id}`) // TODO: Add feature details page
       }}
       className="bg-background"

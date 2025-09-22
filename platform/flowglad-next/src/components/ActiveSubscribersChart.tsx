@@ -1,8 +1,6 @@
 'use client'
-import { differenceInHours } from 'date-fns'
 import React from 'react'
 import { TooltipCallbackProps } from '@/components/charts/AreaChart'
-import { RevenueTooltip } from '@/components/RevenueTooltip'
 import { RevenueChartIntervalUnit } from '@/types'
 import { trpc } from '@/app/_trpc/client'
 import { Skeleton } from './ui/skeleton'
@@ -15,17 +13,6 @@ import {
   getColorClassName,
 } from '@/utils/chartStyles'
 
-/**
- * Two dots make a graph principle: this is the minimum range duration required
- * in hours, required to display a multi-point graph
- */
-const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
-  [RevenueChartIntervalUnit.Year]: 24 * 365 * 2,
-  [RevenueChartIntervalUnit.Month]: 24 * 30 * 2,
-  [RevenueChartIntervalUnit.Week]: 24 * 7 * 2,
-  [RevenueChartIntervalUnit.Day]: 24 * 2,
-  [RevenueChartIntervalUnit.Hour]: 1 * 2,
-} as const
 
 // Define a new TooltipDateLabel component for the new tooltip
 function TooltipDateLabel({ label }: { label: string }) {
@@ -90,13 +77,13 @@ const SubscriberCountTooltip = ({
 export const ActiveSubscribersChart = ({
   fromDate,
   toDate,
-  productId,
+  productId: _productId,
 }: {
   fromDate: Date
   toDate: Date
   productId?: string
 }) => {
-  const [interval, setInterval] =
+  const [interval] =
     React.useState<RevenueChartIntervalUnit>(
       RevenueChartIntervalUnit.Month
     )

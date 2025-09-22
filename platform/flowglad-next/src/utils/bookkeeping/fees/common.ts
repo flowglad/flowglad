@@ -7,21 +7,18 @@ import { Purchase } from '@/db/schema/purchases'
 import { Price } from '@/db/schema/prices'
 import {
   CountryCode,
-  CurrencyCode,
   DiscountAmountType,
   PriceType,
   StripeConnectContractType,
   PaymentMethodType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
-import Stripe from 'stripe'
 import {
   createStripeTaxCalculationByPurchase,
   createStripeTaxCalculationByPrice,
 } from '@/utils/stripe'
 import { isNil, nanoid } from '@/utils/core'
 import {
-  insertFeeCalculation,
   updateFeeCalculation,
 } from '@/db/tableMethods/feeCalculationMethods'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
@@ -248,11 +245,10 @@ export const calculateTaxes = async ({
         product,
         livemode: product.livemode,
       })
-    : await createStripeTaxCalculationByPrice({
+    :       await createStripeTaxCalculationByPrice({
         price,
         billingAddress,
         discountInclusiveAmount,
-        product,
         livemode: product.livemode,
       })
   return {

@@ -1,11 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
 import { User } from '@/db/schema/users'
 import { Membership } from '@/db/schema/memberships'
-import { TableHeader } from '@/components/ui/table-header'
-import { Plus } from 'lucide-react'
-import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
@@ -15,10 +12,9 @@ type OrganizationMembersTableProps = {
 }
 
 const OrganizationMembersTable = ({
-  loading: externalLoading,
+  loading: _externalLoading,
   data: externalData,
 }: OrganizationMembersTableProps) => {
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 
   const {
     pageIndex,

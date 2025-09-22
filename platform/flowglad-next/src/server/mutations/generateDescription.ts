@@ -14,7 +14,7 @@ export const generateDescription = protectedProcedure
   .output(z.object({ description: z.string() }))
   .mutation(async ({ input }) => {
     const description = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction: _transaction }) => {
         // Assuming there's a function to generate description based on input
         const generatedDescription = await generateText({
           model: openai('gpt-4o-mini'),

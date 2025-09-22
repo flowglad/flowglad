@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { pgTable, integer, text, pgPolicy } from 'drizzle-orm/pg-core'
+import { pgTable, integer, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 import {
@@ -14,11 +14,9 @@ import {
   hiddenColumnsForClientSchema,
   pgEnumColumn,
   ommittedColumnsForInsertSchema,
-  merchantPolicy,
   enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import {
-  Invoice,
   invoices,
   invoicesClientInsertSchema,
   invoicesClientSelectSchema,

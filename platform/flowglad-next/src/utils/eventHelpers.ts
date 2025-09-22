@@ -1,5 +1,4 @@
 import { Customer } from '@/db/schema/customers'
-import { Event } from '@/db/schema/events'
 import { Payment } from '@/db/schema/payments'
 import { Purchase } from '@/db/schema/purchases'
 import { Subscription } from '@/db/schema/subscriptions'

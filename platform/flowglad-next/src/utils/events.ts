@@ -1,7 +1,6 @@
 import {
   EventNoun,
   EventCategory,
-  EventRetentionPolicy,
   FlowgladEventType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'

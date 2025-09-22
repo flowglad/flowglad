@@ -12,7 +12,7 @@ import { sendCustomerPaymentFailedNotificationIdempotently } from '../notificati
 
 export const stripeChargeFailedTask = task({
   id: 'stripe-charge-failed',
-  run: async (payload: Stripe.ChargeFailedEvent, { ctx }) => {
+  run: async (payload: Stripe.ChargeFailedEvent) => {
     const paymentRecord = await adminTransaction(
       async ({ transaction }) => {
         const stripeCharge = await getStripeCharge(

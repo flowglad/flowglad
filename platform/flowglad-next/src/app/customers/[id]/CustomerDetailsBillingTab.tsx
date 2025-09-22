@@ -103,8 +103,8 @@ export interface CustomerBillingSubPageProps {
 
 export const CustomerBillingSubPage = ({
   customer,
-  purchases,
-  invoices,
+  // purchases,
+  // invoices,
   payments,
 }: CustomerBillingSubPageProps) => {
   // const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =

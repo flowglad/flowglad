@@ -10,7 +10,6 @@ import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMetho
 import {
   isSubscriptionCurrent,
   safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
-  subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { CheckoutSessionType, InvoiceStatus } from '@/types'
@@ -18,10 +17,8 @@ import { DbTransaction } from '@/db/types'
 import { Customer } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 import {
-  CreateCheckoutSessionInput,
   customerBillingCreatePricedCheckoutSessionSchema,
 } from '@/db/schema/checkoutSessions'
-import { Price } from '@/db/schema/prices'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'

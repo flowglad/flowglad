@@ -40,7 +40,7 @@ export const FileFormFields = ({
         onUploadComplete={({ objectKey }) => {
           form.setValue(objectKeyPath, objectKey)
         }}
-        onUploadDeleted={({ objectKey }) => {
+        onUploadDeleted={() => {
           form.setValue(objectKeyPath, '')
         }}
         directory="files"

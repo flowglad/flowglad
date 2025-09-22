@@ -22,7 +22,6 @@ import {
   lte,
   or,
   between,
-  SQL,
   desc,
 } from 'drizzle-orm'
 import { DbTransaction } from '@/db/types'

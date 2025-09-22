@@ -11,10 +11,8 @@ import {
   lt,
   sql,
   count,
-  SQL,
   ilike,
   or,
-  SQLWrapper,
   isNull,
 } from 'drizzle-orm'
 import core, { gitCommitId } from '@/utils/core'
@@ -44,7 +42,7 @@ import {
 import { CountryCode, TaxType, SupabasePayloadType } from '@/types'
 import { z } from 'zod'
 import { createSelectSchema } from 'drizzle-zod'
-import { noCase, sentenceCase, snakeCase } from 'change-case'
+import { noCase, snakeCase } from 'change-case'
 
 export const merchantRole = pgRole('merchant', {
   createRole: false,
@@ -760,7 +758,7 @@ export const hiddenColumnsForClientSchema = {
 } as const
 
 export const createPaginatedSelectSchema = <T extends {}>(
-  parameters: ZodTableUnionOrType<T>
+  _parameters: ZodTableUnionOrType<T>
 ) => {
   return z.object({
     cursor: z.string().optional(),
@@ -1224,10 +1222,6 @@ export const testEnumColumn = async <T extends PgTableWithId>(
   }
 }
 
-interface TableSearchParams<T extends PgTableWithId> {
-  searchQuery?: string
-  searchableColumns: T['_']['columns'][string][]
-}
 
 interface CursorPaginatedSelectFunctionParams<
   T extends PgTableWithPosition,
@@ -1301,7 +1295,7 @@ const cursorComparison = async <T extends PgTableWithPosition>(
 }
 
 const constructSearchQueryClause = <T extends PgTableWithId>(
-  table: T,
+  _table: T,
   searchQuery: string,
   searchableColumns: T['_']['columns'][string][]
 ) => {

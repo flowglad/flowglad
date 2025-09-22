@@ -2,9 +2,7 @@ import {
   boolean,
   text,
   pgTable,
-  pgPolicy,
   integer,
-  char,
   timestamp,
   jsonb,
 } from 'drizzle-orm/pg-core'
@@ -154,10 +152,6 @@ const createOnlyColumns = {
   subscriptionId: true,
 } as const
 
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
 
 const hiddenColumns = {
   createdByCommit: true,

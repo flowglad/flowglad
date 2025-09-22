@@ -1,6 +1,4 @@
 import CheckoutPage from '@/components/CheckoutPage'
-import core from '@/utils/core'
-import { notFound } from 'next/navigation'
 import { checkoutInfoForPriceWhere } from '@/utils/checkoutHelpers'
 import CheckoutNotValidPage from '@/components/CheckoutNotValidPage'
 

@@ -13,10 +13,8 @@ import NounVerbModal from '@/components/forms/NounVerbModal'
 import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
 import { Country } from '@/db/schema/countries'
 import Markdown from 'react-markdown'
-import Link from 'next/link'
-import Image from 'next/image'
 import { cn } from '@/lib/utils'
-import core from '@/utils/core'
+// import core from '@/utils/core'
 
 interface OnboardingStatusRowProps extends OnboardingChecklistItem {
   onClick?: () => void
@@ -196,12 +194,12 @@ const OnboardingStatusTable = ({
     setIsRequestStripeConnectOnboardingLinkModalOpen,
   ] = useState(false)
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
-  const mcpServerConfig = {
-    url: core.safeUrl('/mcp', process.env.NEXT_PUBLIC_APP_URL!),
-    headers: {
-      Authorization: `Bearer ${secretApiKey}`,
-    },
-  }
+  // const mcpServerConfig = {
+  //   url: core.safeUrl('/mcp', process.env.NEXT_PUBLIC_APP_URL!),
+  //   headers: {
+  //     Authorization: `Bearer ${secretApiKey}`,
+  //   },
+  // }
 
   return (
     <div className="flex flex-col w-full gap-4">

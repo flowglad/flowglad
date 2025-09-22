@@ -1,4 +1,4 @@
-import { logger, task, wait } from '@trigger.dev/sdk'
+import { logger, task } from '@trigger.dev/sdk'
 
 export const helloWorldTask = task({
   id: 'hello-world',

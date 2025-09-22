@@ -80,7 +80,7 @@ export const editWebhook = protectedProcedure
   .output(z.object({ webhook: webhookClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, ctx }) => {
+      async ({ input, transaction }) => {
         const webhook = await updateWebhook(
           {
             ...input.webhook,

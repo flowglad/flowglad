@@ -4,7 +4,6 @@ import core from '@/utils/core'
 // Constants for encryption configuration
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm'
 const IV_LENGTH = 12 // GCM recommended IV length
-const AUTH_TAG_LENGTH = 16
 const SALT_LENGTH = 16
 // Key derivation iterations (adjust based on security vs performance needs)
 const ITERATIONS = 100000

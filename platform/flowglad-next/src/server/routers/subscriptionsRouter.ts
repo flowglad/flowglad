@@ -1,7 +1,5 @@
 import { protectedProcedure, router } from '../trpc'
 import {
-  EventNoun,
-  FlowgladEventType,
   IntervalUnit,
   PriceType,
   SubscriptionCancellationArrangement,
@@ -11,7 +9,6 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
-  eventfulAuthenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
@@ -49,7 +46,6 @@ import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods
 import { TRPCError } from '@trpc/server'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectSubscriptionCountsByStatus } from '@/db/tableMethods/subscriptionMethods'
-import { Event } from '@/db/schema/events'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',

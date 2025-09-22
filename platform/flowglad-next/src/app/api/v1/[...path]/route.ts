@@ -216,7 +216,7 @@ const innerHandler = async (
         const routeMatchingStartTime = Date.now()
         const matchingRoute = Object.entries(routes).find(
           ([key, config]) => {
-            const [routeMethod, routePath] = key.split(' ')
+            const [routeMethod] = key.split(' ')
             return (
               req.method === routeMethod && config.pattern.test(path)
             )

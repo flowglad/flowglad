@@ -3,12 +3,9 @@ import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
 import {
   Customer,
-  InferredCustomerStatus,
   CustomerTableRowData,
 } from '@/db/schema/customers'
 import core from '@/utils/core'
-import { Badge } from '@/components/ui/badge'
-import { sentenceCase } from 'change-case'
 import { trpc } from '@/app/_trpc/client'
 import { useRouter } from 'next/navigation'
 import { CurrencyCode } from '@/types'
@@ -19,31 +16,9 @@ import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import { useCopyTextHandler } from '../hooks/useCopyTextHandler'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { SearchIcon, Pencil, ExternalLink, Copy } from 'lucide-react'
+import { Pencil, ExternalLink, Copy } from 'lucide-react'
 import debounce from 'debounce'
 
-const customerStatusColors: Record<InferredCustomerStatus, string> = {
-  [InferredCustomerStatus.Active]: 'bg-green-100 text-green-800',
-  [InferredCustomerStatus.Archived]: 'bg-red-100 text-red-800',
-  [InferredCustomerStatus.Pending]: 'bg-yellow-100 text-yellow-800',
-  [InferredCustomerStatus.Concluded]: 'bg-gray-100 text-gray-800',
-  [InferredCustomerStatus.PastDue]: 'bg-red-100 text-red-800',
-}
-
-const CustomerStatusCell = ({
-  status,
-}: {
-  status: InferredCustomerStatus
-}) => {
-  return (
-    <Badge
-      variant="secondary"
-      className={customerStatusColors[status]}
-    >
-      {sentenceCase(status)}
-    </Badge>
-  )
-}
 
 const CustomerMoreMenuCell = ({
   customer,

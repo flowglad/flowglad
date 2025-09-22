@@ -7,7 +7,6 @@ import {
   UseTRPCQueryResult,
 } from '@trpc/react-query/shared'
 import { DefaultErrorShape } from '@trpc/server/unstable-core-do-not-import'
-import * as React from 'react'
 import { useState, useEffect } from 'react'
 
 export interface PaginatedTableStateParams<

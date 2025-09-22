@@ -4,7 +4,6 @@ import { Organization } from '@/db/schema/organizations'
 import { Event } from '@/db/schema/events'
 import { generateHmac } from './backendCore'
 import { Webhook } from '@/db/schema/webhooks'
-import { Application } from 'svix/dist/api/application'
 
 export function svix() {
   return new Svix(core.envVariable('SVIX_API_KEY'))

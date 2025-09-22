@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Price } from '@/db/schema/prices'
-import { Clipboard, Ellipsis, Eye, Pencil } from 'lucide-react'
+import { Ellipsis, Pencil } from 'lucide-react'
 import { Product } from '@/db/schema/products'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -16,7 +16,6 @@ import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import { TableHeader } from '@/components/ui/table-header'
 import PricesTable from './PricesTable'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
-import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import PopoverMenu, {
   PopoverMenuItem,
 } from '@/components/PopoverMenu'

@@ -7,7 +7,7 @@ const DemoButton = () => {
 
   const handlePong = async () => {
     try {
-      const result = await pongMutation.mutateAsync({ foo: 'bar' })
+      await pongMutation.mutateAsync({ foo: 'bar' })
     } catch (error) {
       console.error('Error calling pong:', error)
     }

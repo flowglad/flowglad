@@ -361,7 +361,7 @@ const InvoiceFormFields = ({
                       onSelect={(date) =>
                         field.onChange(date ? date.toISOString() : '')
                       }
-                      disabled={(date) => dueOption !== 'Custom Date'}
+                      disabled={() => dueOption !== 'Custom Date'}
                       initialFocus
                     />
                   </PopoverContent>

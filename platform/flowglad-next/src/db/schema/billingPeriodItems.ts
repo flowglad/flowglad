@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { integer, pgTable, text, pgPolicy } from 'drizzle-orm/pg-core'
+import { integer, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   tableBase,
@@ -14,7 +14,6 @@ import {
   merchantPolicy,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
-import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { discountRedemptions } from '@/db/schema/discountRedemptions'
 import core from '@/utils/core'
 import { createSelectSchema } from 'drizzle-zod'
@@ -176,10 +175,6 @@ export const billingPeriodItemsUpdateSchema = z
   ])
   .describe(BILLING_PERIOD_ITEM_UPDATE_SCHEMA_DESCRIPTION)
 
-const createOnlyColumns = {
-  billingPeriodId: true,
-  discountRedemptionId: true,
-} as const
 
 const readOnlyColumns = {} as const
 
@@ -187,11 +182,11 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-  ...createOnlyColumns,
-} as const
+// const nonClientEditableColumns = {
+//   ...hiddenColumns,
+//   ...readOnlyColumns,
+//   ...createOnlyColumns,
+// } as const
 
 const clientWriteOmits = R.omit(['position'], {
   ...hiddenColumns,

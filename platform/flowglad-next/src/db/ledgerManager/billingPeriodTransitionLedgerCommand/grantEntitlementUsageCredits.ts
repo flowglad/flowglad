@@ -1,7 +1,6 @@
 import { DbTransaction } from '@/db/types'
 import {
   BillingPeriodTransitionLedgerCommand,
-  StandardBillingPeriodTransitionPayload,
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   LedgerEntryStatus,

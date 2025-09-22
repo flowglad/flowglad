@@ -105,7 +105,6 @@ describe('Discount Form Validation', () => {
           numberOfPayments: null,
         },
         __rawAmountString: '15.75',
-        // Missing id field
       } as any
 
       const result = editDiscountFormSchema.safeParse(invalidEditDiscount)

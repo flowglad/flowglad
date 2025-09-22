@@ -5,7 +5,6 @@ import SubscriptionsTable, {
 } from './SubscriptionsTable'
 import { SubscriptionStatus } from '@/types'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import { trpc } from '@/app/_trpc/client'
 import { useState } from 'react'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
@@ -14,13 +13,7 @@ import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 function InternalSubscriptionsPage() {
   const [activeFilter, setActiveFilter] = useState<string>('all')
 
-  const { data: countsData } =
-    trpc.subscriptions.getCountsByStatus.useQuery({})
 
-  const countsByStatus = countsData || []
-  const countsByStatusMap = new Map(
-    countsByStatus.map((item) => [item.status, item.count])
-  )
 
   // Filter options for the button group
   const filterOptions = [

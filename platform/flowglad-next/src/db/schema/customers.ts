@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import {
   boolean,
   jsonb,
-  pgPolicy,
   pgTable,
   text,
 } from 'drizzle-orm/pg-core'

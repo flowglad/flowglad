@@ -10,7 +10,7 @@ import {
 
 export const generateInvoicePdfTask = task({
   id: 'generate-invoice-pdf',
-  run: async ({ invoiceId }: { invoiceId: string }, { ctx }) => {
+  run: async ({ invoiceId }: { invoiceId: string }) => {
     const invoice = await adminTransaction(
       async ({ transaction }) => {
         return await selectInvoiceById(invoiceId, transaction)

@@ -27,7 +27,7 @@ const DemoModal: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false)
   const form = useForm<FormData>()
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async () => {
     // Create a promise that resolves after 10 seconds
     await new Promise<void>((resolve) => {
       setTimeout(() => {
@@ -56,7 +56,7 @@ const DemoModal: React.FC = () => {
             control={form.control}
             name="message"
             rules={{ required: 'This field is required' }}
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormControl>
                   <Input placeholder="Enter a message" {...field} />

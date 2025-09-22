@@ -8,7 +8,6 @@ import {
   constructUniqueIndex,
   SelectConditions,
   merchantPolicy,
-  customerRole,
   enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { z } from 'zod'

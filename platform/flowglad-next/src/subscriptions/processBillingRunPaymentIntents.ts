@@ -47,7 +47,6 @@ import {
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import {
   safelyUpdateSubscriptionStatus,
-  updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
@@ -164,9 +163,7 @@ const processFailedNotifications = async (
   })
 }
 
-const processAbortedNotifications = (
-  params: BillingRunNotificationParams
-) => {}
+const processAbortedNotifications = () => {}
 
 const processAwaitingPaymentConfirmationNotifications = async (
   params: BillingRunNotificationParams
@@ -405,7 +402,7 @@ export const processPaymentIntentEventForBillingRun = async (
       transaction
     )
   } else if (billingRunStatus === BillingRunStatus.Aborted) {
-    await processAbortedNotifications(notificationParams)
+    await processAbortedNotifications()
     await safelyUpdateSubscriptionStatus(
       subscription,
       SubscriptionStatus.PastDue,

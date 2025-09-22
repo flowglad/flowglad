@@ -85,7 +85,7 @@ const PostPurchasePage = async ({
   }
 
   if (purchase.status === PurchaseStatus.Pending) {
-    return <PendingPostPurchaseScreen purchaseId={purchase.id} />
+    return <PendingPostPurchaseScreen />
   }
 
   return <AccessResourcesView files={[]} links={[]} />

@@ -12,7 +12,7 @@ const getPresignedURLSchema = z.object({
 
 export const getPresignedURL = protectedProcedure
   .input(getPresignedURLSchema)
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input, ctx: _ctx }) => {
     return authenticatedTransaction(
       async ({ transaction, userId }) => {
         const { key, contentType, directory } = input

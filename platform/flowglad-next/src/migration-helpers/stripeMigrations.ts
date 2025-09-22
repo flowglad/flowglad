@@ -104,7 +104,7 @@ export const stripePriceToPriceInsert = (
   stripePrice: Stripe.Price,
   stripeProduct: Stripe.Product,
   product: Product.Record,
-  params: CoreMigrationParams
+  _params: CoreMigrationParams
 ): Price.Insert => {
   const type = stripePriceToFlowgladPriceType(stripePrice)
   const coreParams = {
@@ -257,7 +257,7 @@ export const getPaymentMethodDataAndExternalId = (
 export const stripePaymentMethodToPaymentMethodInsert = (
   stripePaymentMethod: Stripe.PaymentMethod,
   customer: Customer.Record,
-  params: CoreMigrationParams
+  _params: CoreMigrationParams
 ): PaymentMethod.Insert => {
   if (
     stripePaymentMethod.type !== 'link' &&

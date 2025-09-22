@@ -33,7 +33,6 @@ import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices
 import {
   selectSubscriptionById,
   isSubscriptionCurrent,
-  safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
   cancelSubscriptionImmediately,
@@ -41,34 +40,21 @@ import {
 } from '@/subscriptions/cancelSubscription'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import {
-  CheckoutSessionType,
   SubscriptionCancellationArrangement,
 } from '@/types'
 import { auth } from '@/utils/auth'
 import {
-  selectUserById,
   selectUsers,
 } from '@/db/tableMethods/userMethods'
-import core, { customerBillingPortalURL } from '@/utils/core'
+import core from '@/utils/core'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import { setCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import { headers } from 'next/headers'
-import { stripe } from '@/utils/stripe'
 import {
-  selectPaymentMethodById,
-  safelyUpdatePaymentMethod,
-} from '@/db/tableMethods/paymentMethodMethods'
-import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
-import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
-import {
-  activateSubscriptionCheckoutSessionSchema,
   checkoutSessionClientSelectSchema,
-  createCheckoutSessionSchema,
-  productCheckoutSessionSchema,
   customerBillingCreatePricedCheckoutSessionSchema,
 } from '@/db/schema/checkoutSessions'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
 // Enhanced getBilling procedure with pagination support for invoices
 const getBillingProcedure = customerProtectedProcedure
@@ -506,7 +492,7 @@ const createAddPaymentMethodCheckoutSessionProcedure =
         checkoutSession: checkoutSessionClientSelectSchema,
       })
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ ctx }) => {
       return await customerBillingCreateAddPaymentMethodSession(
         ctx.customer
       )

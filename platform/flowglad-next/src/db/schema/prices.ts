@@ -1,13 +1,5 @@
 import * as R from 'ramda'
-import {
-  integer,
-  pgTable,
-  text,
-  boolean,
-  pgPolicy,
-  PgColumn,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core'
+import { integer, pgTable, text, boolean, PgColumn, uniqueIndex } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
   pgEnumColumn,
@@ -45,7 +37,6 @@ import {
 import { currencyCodeSchema } from '../commonZodSchema'
 import {
   featuresClientSelectSchema,
-  featuresSelectSchema,
 } from './features'
 
 const readOnlyColumns = {

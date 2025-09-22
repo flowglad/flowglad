@@ -5,7 +5,6 @@
 import React from 'react'
 import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react'
 import {
-  CartesianGrid,
   Dot,
   Label,
   Line,
@@ -921,7 +920,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                     strokeLinecap,
                     strokeLinejoin,
                     strokeWidth,
-                    dataKey,
                   } = props
                   return (
                     <Dot
@@ -949,7 +947,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
                     strokeWidth,
                     cx: cxCoord,
                     cy: cyCoord,
-                    dataKey,
                     index,
                   } = props
 

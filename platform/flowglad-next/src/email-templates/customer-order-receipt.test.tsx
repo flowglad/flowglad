@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import { OrderReceiptEmail } from './customer-order-receipt'
 import { CurrencyCode } from '@/types'

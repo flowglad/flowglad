@@ -11,7 +11,6 @@ import { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import { DataTable } from '@/components/ui/data-table'
 import { Product } from '@/db/schema/products'
-import core from '@/utils/core'
 import { Price } from '@/db/schema/prices'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import DeleteProductModal from '@/components/forms/DeleteProductModal'
@@ -243,7 +242,6 @@ export const ProductsTable = ({
 
   const tableData = data?.items || []
   const total = data?.total || 0
-  const pageCount = Math.ceil(total / pageSize)
 
   return (
     <div className="flex-1 h-full w-full flex flex-col gap-6 pb-10">

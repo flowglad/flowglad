@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils'
 import { Organization } from '@/db/schema/organizations'
 import Image from 'next/image'
 import { PoweredByFlowglad } from '../powered-by-flowglad'
-import { Card } from '@/components/ui/card'
 
 export interface PostPaymentSidebarProps {
   className?: string

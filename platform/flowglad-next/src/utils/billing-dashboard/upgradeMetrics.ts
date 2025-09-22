@@ -1,6 +1,5 @@
 import { DbTransaction } from '@/db/types'
 import { Subscription } from '@/db/schema/subscriptions'
-import { Price } from '@/db/schema/prices'
 import { CancellationReason } from '@/types'
 import {
   and,
@@ -13,7 +12,6 @@ import {
 } from 'drizzle-orm'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import { differenceInDays } from 'date-fns'
 
 export interface UpgradeMetrics {

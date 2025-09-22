@@ -665,13 +665,11 @@ export const createStripeTaxCalculationByPrice = async ({
   price,
   billingAddress,
   discountInclusiveAmount,
-  product,
   livemode,
 }: {
   price: Price.Record
   billingAddress: BillingAddress
   discountInclusiveAmount: number
-  product: Product.Record
   livemode: boolean
 }) => {
   const lineItems: Stripe.Tax.CalculationCreateParams.LineItem[] = [

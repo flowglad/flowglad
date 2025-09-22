@@ -6,7 +6,7 @@ import AuthProvider from '../contexts/authContext'
 import TrpcProvider from '@/app/_trpc/Provider'
 import PostHogPageView from './PostHogPageview'
 // import FeaturebaseMessenger from './FeaturebaseMessenger'
-import { usePathname } from 'next/navigation'
+// import { usePathname } from 'next/navigation'
 import { ThemeProvider } from '@/components/theme-provider'
 if (typeof window !== 'undefined') {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
@@ -19,7 +19,7 @@ if (typeof window !== 'undefined') {
 export default function Providers({
   children,
   authContext,
-  isPublicRoute,
+  // isPublicRoute,
 }: {
   children: React.ReactNode
   authContext: Omit<
@@ -28,10 +28,10 @@ export default function Providers({
   >
   isPublicRoute?: boolean
 }) {
-  const pathname = usePathname()
-  const isBillingPortal = Boolean(
-    pathname?.startsWith('/billing-portal')
-  )
+  // const pathname = usePathname()
+  // const isBillingPortal = Boolean(
+  //   pathname?.startsWith('/billing-portal')
+  // )
   return (
     <ThemeProvider
       attribute="class"

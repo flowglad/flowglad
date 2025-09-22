@@ -173,7 +173,7 @@ class TelemetryVerifier {
       name: 'Route with Parameters',
       test: async () => {
         const testId = 'test-123'
-        const response = await fetch(
+        await fetch(
           `${API_BASE_URL}/products/${testId}`,
           {
             method: 'GET',
@@ -252,7 +252,7 @@ class TelemetryVerifier {
       name: 'Small Payload Performance',
       test: async () => {
         const startTime = Date.now()
-        const response = await fetch(`${API_BASE_URL}/utils/ping`, {
+        await fetch(`${API_BASE_URL}/utils/ping`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${TEST_API_KEY}`,
@@ -277,7 +277,7 @@ class TelemetryVerifier {
       name: 'Large Payload Tracking',
       test: async () => {
         const largeData = { data: 'x'.repeat(10000) } // ~10KB
-        const response = await fetch(`${API_BASE_URL}/products`, {
+        await fetch(`${API_BASE_URL}/products`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${TEST_API_KEY}`,
@@ -308,7 +308,6 @@ class TelemetryVerifier {
       name: 'Multiple Failed Auth Attempts Detection',
       test: async () => {
         const invalidKey = 'sk_test_invalid123'
-        let suspiciousDetected = false
 
         // Make 5 failed attempts
         for (let i = 0; i < 5; i++) {
@@ -395,12 +394,6 @@ class TelemetryVerifier {
     await this.testCase({
       name: 'Operation Type Tracking',
       test: async () => {
-        const operations = [
-          { method: 'GET', type: 'read' },
-          { method: 'POST', type: 'write' },
-          { method: 'PUT', type: 'write' },
-          { method: 'DELETE', type: 'delete' },
-        ]
 
         return {
           passed: true,

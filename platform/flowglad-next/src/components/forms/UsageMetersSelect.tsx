@@ -51,7 +51,7 @@ const UsageMetersSelect = ({
         <FormField
           control={control}
           name={name}
-          render={({ field, fieldState }) => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel>Usage Meter</FormLabel>
               <FormControl>

@@ -4,7 +4,6 @@ import {
   jsonb,
   pgTable,
   text,
-  pgPolicy,
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
@@ -15,7 +14,6 @@ import {
   pgEnumColumn,
   livemodePolicy,
   idInputSchema,
-  createSupabaseWebhookSchema,
   ommittedColumnsForInsertSchema,
   SelectConditions,
   hiddenColumnsForClientSchema,
@@ -209,12 +207,12 @@ export const feeCalculationsUpdateSchema = z
   ])
   .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
 
-const readOnlyColumns = {
-  organizationId: true,
-  checkoutSessionId: true,
-  purchaseId: true,
-  livemode: true,
-} as const
+// const readOnlyColumns = { // This was unused
+//   organizationId: true,
+//   checkoutSessionId: true,
+//   purchaseId: true,
+//   livemode: true,
+// } as const
 
 const hiddenColumns = {
   stripeTaxCalculationId: true,

@@ -9,14 +9,10 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { User } from '@/db/schema/users'
 import {
-  insertUser,
-  selectUsers,
-} from '@/db/tableMethods/userMethods'
-import {
   Organization,
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
-import { auth, getSession } from '@/utils/auth'
+import { getSession } from '@/utils/auth'
 import { headers } from 'next/headers'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 

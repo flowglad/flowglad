@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import PurchasesTable from '@/app/customers/[id]/PurchasesTable'
 
 const InnerPurchasesPage = ({
-  organizationId,
+  organizationId: _organizationId,
 }: {
   organizationId: string
 }) => {

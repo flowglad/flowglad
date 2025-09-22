@@ -1,6 +1,5 @@
 import { FieldError, GlobalError } from 'react-hook-form'
 import { cn } from '@/lib/utils'
-import core from '@/utils/core'
 const ErrorLabel = ({
   error,
   className,

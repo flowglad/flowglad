@@ -1,6 +1,5 @@
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { trpc } from '@/app/_trpc/client'
-import { Controller, FieldError } from 'react-hook-form'
 import {
   Select,
   SelectContent,
@@ -32,7 +31,6 @@ export const overagePriceLabelFromPrice = (
 
 const OveragePriceSelect = ({ productId }: { productId: string }) => {
   const {
-    formState: { errors },
     control,
     watch,
     setValue,
@@ -62,7 +60,7 @@ const OveragePriceSelect = ({ productId }: { productId: string }) => {
         <FormField
           control={control}
           name={FIELD_NAME}
-          render={({ field, fieldState }) => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel>Overage Price</FormLabel>
               <FormControl>
@@ -101,8 +99,6 @@ export const RecurringUsageCreditsOveragePriceSelect = ({
   productId: string
 }) => {
   const {
-    formState: { errors },
-    control,
     watch,
     setValue,
   } = usePriceFormContext()

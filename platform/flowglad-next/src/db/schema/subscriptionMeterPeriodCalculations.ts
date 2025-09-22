@@ -1,7 +1,6 @@
 import {
   text,
   pgTable,
-  pgPolicy,
   integer,
   foreignKey,
   uniqueIndex,
@@ -18,7 +17,6 @@ import {
   timestampWithTimezoneColumn,
   ommittedColumnsForInsertSchema,
   merchantPolicy,
-  enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -154,12 +152,6 @@ const baseHiddenClientKeys = {
   updatedByCommit: true,
 } as const
 
-const serverGeneratedKeys = {
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  calculatedAt: true, // Defaulted by DB
-} as const
 
 /*
  * Client Schemas

@@ -25,7 +25,6 @@ const TrialFields = ({
   disabled?: boolean
 }) => {
   const {
-    formState: { errors },
     control,
     watch,
     setValue,
@@ -128,7 +127,7 @@ const TrialFields = ({
           <FormField
             name="price.trialPeriodDays"
             control={control}
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Trial Period Days</FormLabel>
                 <FormControl>

@@ -2,7 +2,6 @@ import {
   boolean,
   integer,
   jsonb,
-  pgPolicy,
   pgTable,
   text,
   timestamp,
@@ -23,15 +22,12 @@ import {
   enableCustomerReadPolicy,
 } from '@/db/tableUtils'
 import {
-  Customer,
   customerClientSelectSchema,
   customers,
-  customersSelectSchema,
 } from '@/db/schema/customers'
 import { organizations } from '@/db/schema/organizations'
 import { prices } from '@/db/schema/prices'
 import {
-  Product,
   productsClientSelectSchema,
 } from '@/db/schema/products'
 import core from '@/utils/core'

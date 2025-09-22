@@ -6,7 +6,6 @@ import {
   Users,
   CircleDollarSign,
   BookOpen,
-  Loader2,
   LogOut,
   TriangleRight,
   type LucideIcon,
@@ -30,12 +29,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Button } from '@/components/ui/button'
-import { signOut } from '@/utils/authClient'
 
 // Official Shadcn navigation interfaces
 type StandaloneNavItem = {
@@ -58,7 +54,7 @@ type MainNavItem = {
 
 export const SideNavigation = () => {
   const pathname = usePathname()
-  const { user, organization } = useAuthContext()
+  const { organization } = useAuthContext()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
     onSuccess: async () => {
       await invalidateTRPC()
@@ -73,7 +69,6 @@ export const SideNavigation = () => {
     initialFocusedMembershipLoading,
     setInitialFocusedMembershipLoading,
   ] = useState(true)
-  const [signingOut, setSigningOut] = useState(false)
   const focusedMembershipData = focusedMembership.data
   useEffect(() => {
     if (focusedMembershipData) {

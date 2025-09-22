@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { loadPreviewCSS, removePreviewCSS } from '../utils/css-loader'
+import { loadPreviewCSS } from '../utils/css-loader'
 
 interface PreviewWrapperProps {
   children: React.ReactNode

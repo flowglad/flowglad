@@ -1,5 +1,4 @@
 'use client'
-import { differenceInHours } from 'date-fns'
 import React from 'react'
 import { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
@@ -15,13 +14,6 @@ import { LineChart } from './charts/LineChart'
  * Two dots make a graph principle: this is the minimum range duration required
  * in hours, required to display a multi-point graph
  */
-const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
-  [RevenueChartIntervalUnit.Year]: 24 * 365 * 2,
-  [RevenueChartIntervalUnit.Month]: 24 * 30 * 2,
-  [RevenueChartIntervalUnit.Week]: 24 * 7 * 2,
-  [RevenueChartIntervalUnit.Day]: 24 * 2,
-  [RevenueChartIntervalUnit.Hour]: 1 * 2,
-} as const
 
 /**
  * Component for displaying Monthly Recurring Revenue (MRR) data in a chart
@@ -29,14 +21,13 @@ const minimumUnitInHours: Record<RevenueChartIntervalUnit, number> = {
 export const RecurringRevenueChart = ({
   fromDate,
   toDate,
-  productId,
 }: {
   fromDate: Date
   toDate: Date
   productId?: string
 }) => {
   const { organization } = useAuthenticatedContext()
-  const [interval, setInterval] =
+  const [interval] =
     React.useState<RevenueChartIntervalUnit>(
       RevenueChartIntervalUnit.Month
     )
@@ -110,7 +101,6 @@ export const RecurringRevenueChart = ({
     )
   }, [mrrData, defaultCurrency, firstPayloadValue])
 
-  const timespanInHours = differenceInHours(toDate, fromDate)
   const tooltipLabel = tooltipData?.label
   let isTooltipLabelDate: boolean = false
   if (tooltipLabel) {

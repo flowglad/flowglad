@@ -1,11 +1,9 @@
 'use client'
 
-import { signOut } from '@/utils/authClient'
 import { Button } from '@/components/ui/button'
 import { LogOut, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
-import { toast } from 'sonner'
 
 interface BillingPortalHeaderProps {
   customer: {

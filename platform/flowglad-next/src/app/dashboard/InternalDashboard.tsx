@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { PageHeader } from '@/components/ui/page-header'
-import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import DateRangeRecurringRevenueChart from '@/components/DateRangeRecurringRevenueChart'
 import DateRangeActiveSubscribersChart from '@/components/DateRangeActiveSubscribersChart'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
@@ -34,7 +33,6 @@ function InternalDashboardPage({
     from: new Date(organizationCreatedAt),
     to: new Date(),
   })
-  console.log('state hook range', range)
   return (
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
@@ -51,7 +49,6 @@ function InternalDashboardPage({
               minDate={new Date(organizationCreatedAt)}
               maxDate={new Date()}
               onSelect={(newRange) => {
-                console.log('newRange', newRange)
                 if (newRange) {
                   setRange({
                     from:

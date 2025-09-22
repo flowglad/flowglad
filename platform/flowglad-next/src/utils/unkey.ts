@@ -4,7 +4,6 @@ import { Organization } from '@/db/schema/organizations'
 import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
 import {
   ApiKey,
-  billingPortalApiKeyMetadataSchema,
   secretApiKeyMetadataSchema,
   apiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'

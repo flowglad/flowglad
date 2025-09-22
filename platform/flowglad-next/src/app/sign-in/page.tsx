@@ -6,14 +6,13 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardFooter,
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useState } from 'react'
-import { Loader2, Key } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { authClient, signIn } from '@/utils/authClient'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -59,7 +58,7 @@ export default function SignIn() {
                   forgotPasswordDisabled &&
                     'opacity-25 cursor-not-allowed'
                 )}
-                onClick={async (e) => {
+                onClick={async () => {
                   if (forgotPasswordDisabled) {
                     return
                   }
@@ -107,14 +106,14 @@ export default function SignIn() {
                   callbackURL: '/',
                 },
                 {
-                  onRequest: (ctx) => {
+                  onRequest: () => {
                     setLoading(true)
                     setError('')
                   },
                   onError: (ctx) => {
                     setError(ctx.error.message)
                   },
-                  onResponse: (ctx) => {
+                  onResponse: () => {
                     setLoading(false)
                   },
                 }
@@ -145,10 +144,10 @@ export default function SignIn() {
                     callbackURL: '/',
                   },
                   {
-                    onRequest: (ctx) => {
+                    onRequest: () => {
                       setLoading(true)
                     },
-                    onResponse: (ctx) => {
+                    onResponse: () => {
                       setLoading(false)
                     },
                   }

@@ -21,7 +21,6 @@ import { Purchase } from '@/db/schema/purchases'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import core from '../core'
-import { Customer } from '@/db/schema/customers'
 
 export const createInitialInvoiceForPurchase = async (
   params: {

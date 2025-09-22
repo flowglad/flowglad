@@ -157,10 +157,8 @@ const PaymentForm = () => {
     redirectUrl,
     currency,
     checkoutSession,
-    product,
     flowType,
     subscriptionDetails,
-    customer,
     editCheckoutSessionCustomerEmail,
     editCheckoutSessionPaymentMethodType,
     editCheckoutSessionBillingAddress,
@@ -168,7 +166,6 @@ const PaymentForm = () => {
     checkoutBlocked,
     feeCalculation,
     readonlyCustomerEmail,
-    sellerOrganization,
   } = checkoutPageContext
   const [emailEmbedReady, setEmailEmbedReady] = useState(true)
   const [paymentEmbedReady, setPaymentEmbedReady] = useState(false)

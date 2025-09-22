@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/node'
 import { puppeteer } from '@trigger.dev/build/extensions/puppeteer'
 import {
   additionalFiles,
-  additionalPackages,
   syncVercelEnvVars,
 } from '@trigger.dev/build/extensions/core'
 

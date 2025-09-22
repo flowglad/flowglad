@@ -972,7 +972,6 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                         strokeLinecap,
                         strokeLinejoin,
                         strokeWidth,
-                        dataKey,
                       } = props
                       return (
                         <Dot
@@ -1002,7 +1001,6 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                         strokeWidth,
                         cx: cxCoord,
                         cy: cyCoord,
-                        dataKey,
                         index,
                       } = props
 

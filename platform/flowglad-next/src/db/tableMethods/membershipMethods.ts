@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import {
   Membership,
   memberships,
-  membershipsClientSelectSchema,
   membershipsInsertSchema,
   membershipsSelectSchema,
   membershipsTableRowDataSchema,
@@ -18,14 +17,13 @@ import {
   createCursorPaginatedSelectFunction,
   whereClauseFromObject,
 } from '@/db/tableUtils'
-import { and, eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import {
   organizations,
   organizationsSelectSchema,
 } from '../schema/organizations'
 import { DbTransaction } from '@/db/types'
 import { users, usersSelectSchema } from '../schema/users'
-import { z } from 'zod'
 import { selectUsers } from './userMethods'
 import { User } from '@/db/schema/users'
 

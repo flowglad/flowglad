@@ -45,7 +45,6 @@ import {
   CurrencyCode,
   InvoiceStatus,
   InvoiceType,
-  LedgerTransactionType,
   PaymentStatus,
   FeatureType,
   SubscriptionItemType,
@@ -709,26 +708,18 @@ export const executeBillingRun = async (billingRunId: string) => {
               new Date(),
               transaction
             )
-          const subscriptionItemFeatures: SubscriptionItemFeature.Record[] =
-            await selectSubscriptionItemFeatures(
-              {
-                subscriptionItemId: subscriptionItems.map(
-                  (item) => item.id
-                ),
-                type: FeatureType.UsageCreditGrant,
-              },
-              transaction
-            )
+          await selectSubscriptionItemFeatures(
+            {
+              subscriptionItemId: subscriptionItems.map(
+                (item) => item.id
+              ),
+              type: FeatureType.UsageCreditGrant,
+            },
+            transaction
+          )
           /**
            * For typesafety
            */
-          const usageCreditGrantFeatures =
-            subscriptionItemFeatures.filter(
-              (feature) =>
-                feature.type === FeatureType.UsageCreditGrant
-            )
-          const currentBillingPeriodObject =
-            resultFromSteps.billingPeriod
 
           return {
             result: resultFromSteps,

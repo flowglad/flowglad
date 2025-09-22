@@ -11,7 +11,6 @@ interface ChangeCustomerButtonProps {
 
 export function ChangeCustomerButton({
   organizationId,
-  currentCustomerId,
 }: ChangeCustomerButtonProps) {
   const router = useRouter()
 

@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import {
   integer,
   pgTable,
-  pgPolicy,
   text,
   timestamp,
   jsonb,

@@ -11,7 +11,6 @@ import {
   usageCreditsInsertSchema,
   usageCreditsSelectSchema,
   usageCreditsUpdateSchema,
-  UsageCredit,
 } from '@/db/schema/usageCredits'
 import { DbTransaction } from '../types'
 import { UsageCreditStatus } from '@/types'

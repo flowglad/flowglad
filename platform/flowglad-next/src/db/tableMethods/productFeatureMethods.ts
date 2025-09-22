@@ -1,4 +1,3 @@
-import { z } from 'zod'
 import {
   createSelectById,
   createInsertFunction,
@@ -6,7 +5,6 @@ import {
   createSelectFunction,
   createUpsertFunction,
   createPaginatedSelectFunction,
-  createDeleteFunction,
   ORMMethodCreatorConfig,
   whereClauseFromObject,
   createBulkInsertFunction,
@@ -25,9 +23,6 @@ import { features, featuresSelectSchema } from '../schema/features'
 import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
 import { Product } from '../schema/products'
 
-// Define a truly empty Zod object schema for the update part
-const emptyUpdateSchema = z.object({}).strict()
-type EmptyUpdateSchemaType = typeof emptyUpdateSchema
 
 const config: ORMMethodCreatorConfig<
   typeof productFeatures,

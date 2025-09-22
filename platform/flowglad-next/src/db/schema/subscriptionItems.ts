@@ -3,7 +3,6 @@ import {
   pgTable,
   jsonb,
   integer,
-  pgPolicy,
   timestamp,
   text,
 } from 'drizzle-orm/pg-core'
@@ -39,10 +38,6 @@ const USAGE_SUBSCRIPTION_ITEM_DESCRIPTION =
   'A usage-based subscription item, where charges are based on recorded usage events.'
 const SUBSCRIPTION_ITEM_SELECT_SCHEMA_DESCRIPTION =
   'A subscription item record, part of a subscription, detailing a specific product or service and its pricing terms. Can be static or usage-based.'
-const SUBSCRIPTION_ITEM_INSERT_SCHEMA_DESCRIPTION =
-  'A new subscription item.'
-const SUBSCRIPTION_ITEM_UPDATE_SCHEMA_DESCRIPTION =
-  'Schema for updating an existing subscription item.'
 
 const columns = {
   ...tableBase('si'),

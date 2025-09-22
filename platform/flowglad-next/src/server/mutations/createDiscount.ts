@@ -6,7 +6,7 @@ import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMe
 
 export const createDiscount = protectedProcedure
   .input(createDiscountInputSchema)
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input, ctx: _ctx }) => {
     const discount = await authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
         const [{ organization }] =

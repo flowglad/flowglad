@@ -15,7 +15,7 @@ import core from '@/utils/core'
 
 export const sendCustomerPaymentSucceededNotificationTask = task({
   id: 'send-customer-payment-succeeded-notification',
-  run: async (payload: { paymentId: string }, { ctx }) => {
+  run: async (payload: { paymentId: string }) => {
     const {
       invoice,
       invoiceLineItems,

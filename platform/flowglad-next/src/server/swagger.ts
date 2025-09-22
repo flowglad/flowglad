@@ -1,8 +1,5 @@
 import { generateOpenApiDocument } from 'trpc-to-openapi'
 import { appRouter } from './index'
-import { FlowgladEventType } from '@/types'
-import { eventPayloadSchema } from '@/db/schema/events'
-import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
 
 export type OpenAPIV3Document = ReturnType<
   typeof generateOpenApiDocument

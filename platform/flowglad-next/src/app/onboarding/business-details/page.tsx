@@ -92,7 +92,7 @@ const BusinessDetails = () => {
                 <FormField
                   control={form.control}
                   name="organization.name"
-                  render={({ field, fieldState }) => (
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>
                         What is your business name?
@@ -111,7 +111,7 @@ const BusinessDetails = () => {
                 <FormField
                   control={form.control}
                   name="organization.countryId"
-                  render={({ field, fieldState }) => (
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>Country</FormLabel>
                       <FormControl>

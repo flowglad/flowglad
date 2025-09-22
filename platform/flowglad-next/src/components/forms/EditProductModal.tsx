@@ -10,7 +10,6 @@ import { encodeCursor } from '@/db/tableUtils'
 import {
   countableCurrencyAmountToRawStringAmount,
   rawStringAmountToCountableCurrencyAmount,
-  isCurrencyZeroDecimal,
 } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 

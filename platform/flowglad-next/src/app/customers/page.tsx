@@ -1,10 +1,6 @@
 import Internal from './Internal'
 
-const CustomersPage = async ({
-  params,
-}: {
-  params: Promise<{ focusedTab: string }>
-}) => {
+const CustomersPage = async () => {
   return <Internal />
 }
 

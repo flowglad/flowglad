@@ -10,8 +10,8 @@ export const echoTest: ToolConstructor<typeof messageSchema> = {
   description: 'Echo a test message',
   schema: messageSchema,
   callbackConstructor:
-    (apiKey: string) =>
-    async ({ message }) => {
+    (_apiKey: string) =>
+    async ({ message: _message }) => {
       return {
         content: [
           {

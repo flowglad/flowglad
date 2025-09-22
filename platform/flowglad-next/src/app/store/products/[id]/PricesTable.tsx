@@ -1,6 +1,5 @@
 import {
   ChartColumnIncreasing,
-  Plus,
   Pencil,
   Copy,
   Archive,
@@ -9,7 +8,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
-import { RotateCw, Check } from 'lucide-react'
+import { RotateCw } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import { DataTable } from '@/components/ui/data-table'
@@ -19,13 +18,11 @@ import {
   PopoverMenuItem,
   PopoverMenuItemState,
 } from '@/components/PopoverMenu'
-import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import EditPriceModal from '@/components/forms/EditPriceModal'
 import ArchivePriceModal from '@/components/forms/ArchivePriceModal'
 import SetPriceAsDefaultModal from '@/components/forms/SetPriceAsDefaultModal'
 import PricingCellView from '@/components/PricingCellView'
 import { PriceType } from '@/types'
-import { TableHeader } from '@/components/ui/table-header'
 import { trpc } from '@/app/_trpc/client'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'

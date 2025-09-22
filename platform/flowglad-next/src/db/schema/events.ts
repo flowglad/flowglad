@@ -1,10 +1,4 @@
-import {
-  jsonb,
-  text,
-  timestamp,
-  pgTable,
-  pgPolicy,
-} from 'drizzle-orm/pg-core'
+import { jsonb, text, timestamp, pgTable } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   constructIndex,
@@ -17,12 +11,7 @@ import {
   SelectConditions,
   merchantPolicy,
 } from '@/db/tableUtils'
-import {
-  FlowgladEventType,
-  EventCategory,
-  EventRetentionPolicy,
-  EventNoun,
-} from '@/types'
+import { FlowgladEventType, EventNoun } from '@/types'
 import core from '@/utils/core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { integer } from 'drizzle-orm/pg-core'

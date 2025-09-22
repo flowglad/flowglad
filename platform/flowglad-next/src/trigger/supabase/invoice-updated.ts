@@ -33,9 +33,6 @@ export const invoiceUpdatedTask = task({
 
     if (invoiceStatusChangedToPaid({ oldRecord, newRecord })) {
       const {
-        invoiceLineItems,
-        customer,
-        organization,
         paymentForInvoice,
       } = await adminTransaction(async ({ transaction }) => {
         const invoiceLineItems = await selectInvoiceLineItems(

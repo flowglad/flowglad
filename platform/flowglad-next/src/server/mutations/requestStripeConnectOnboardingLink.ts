@@ -13,7 +13,7 @@ import { requestStripeConnectOnboardingLinkInputSchema } from '@/db/schema/count
 
 export const requestStripeConnectOnboardingLink = protectedProcedure
   .input(requestStripeConnectOnboardingLinkInputSchema)
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input, ctx: _ctx }) => {
     const { organization, country } = await authenticatedTransaction(
       async ({ transaction, userId }) => {
         const [membership] = await selectMembershipAndOrganizations(

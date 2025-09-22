@@ -175,7 +175,7 @@ export const attemptBillingPeriodClose = async (
     (acc, item) => acc + item.unitPrice * item.quantity,
     0
   )
-  const { total: totalPaid, payments } =
+  const { total: totalPaid } =
     await sumNetTotalSettledPaymentsForBillingPeriod(
       billingPeriod.id,
       transaction
@@ -416,7 +416,7 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
     transaction: DbTransaction
   ) => {
     const { subscription, billingPeriod } = params
-    const { startDate, endDate } = generateNextBillingPeriod({
+    const { startDate } = generateNextBillingPeriod({
       interval: subscription.interval,
       intervalCount: subscription.intervalCount,
       billingCycleAnchorDate: subscription.billingCycleAnchorDate,

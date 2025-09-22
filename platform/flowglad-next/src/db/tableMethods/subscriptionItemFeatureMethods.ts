@@ -16,12 +16,7 @@ import {
   SubscriptionItemFeature,
 } from '@/db/schema/subscriptionItemFeatures'
 import { DbTransaction } from '@/db/types'
-import {
-  SubscriptionItem,
-  subscriptionItems,
-} from '../schema/subscriptionItems'
 import { eq, inArray } from 'drizzle-orm'
-import { productFeatures } from '../schema/productFeatures'
 import { features } from '../schema/features'
 
 const config: ORMMethodCreatorConfig<

@@ -1,10 +1,8 @@
 'use client'
-import { PriceType } from '@/types'
 import { ProductFormFields } from '@/components/forms/ProductFormFields'
 import { createProductFormSchema, Price } from '@/db/schema/prices'
 import {
   CreateProductSchema,
-  createProductSchema,
 } from '@/db/schema/prices'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'

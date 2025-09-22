@@ -1,6 +1,5 @@
 import { TabsTrigger } from '@/components/ui/tabs'
 import { SubscriptionStatus } from '@/types'
-import { useSubscriptionCountsByStatusMap } from '../hooks/useSubscriptionCountsByStatusMap'
 import { sentenceCase } from 'change-case'
 
 interface SubscriptionsTabProps {
@@ -10,7 +9,6 @@ interface SubscriptionsTabProps {
 
 export const SubscriptionsTab = ({
   status,
-  isActive,
 }: SubscriptionsTabProps) => {
   const label = status === 'all' ? 'All' : sentenceCase(status)
 

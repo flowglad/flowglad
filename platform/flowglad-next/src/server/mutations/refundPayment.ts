@@ -21,9 +21,9 @@ export const refundPayment = protectedProcedure
   )
   .input(refundPaymentInputSchema)
   .output(z.object({ payment: paymentsClientSelectSchema }))
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input, ctx: _ctx }) => {
     const payment = await authenticatedTransaction(
-      async ({ transaction, livemode }) => {
+      async ({ transaction, livemode: _livemode }) => {
         return selectPaymentById(input.id, transaction)
       }
     )

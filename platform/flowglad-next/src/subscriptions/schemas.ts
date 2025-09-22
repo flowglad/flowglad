@@ -1,6 +1,4 @@
 import {
-  subscriptionItemsInsertSchema,
-  subscriptionItemsSelectSchema,
   subscriptionItemClientSelectSchema,
   subscriptionItemClientInsertSchema,
   usageSubscriptionItemClientSelectSchema,
@@ -9,7 +7,6 @@ import {
 import {
   nonRenewingSubscriptionClientSelectSchema,
   standardSubscriptionClientSelectSchema,
-  subscriptionClientSelectSchema,
 } from '@/db/schema/subscriptions'
 import { subscribablePriceClientSelectSchema } from '@/db/schema/prices'
 import {

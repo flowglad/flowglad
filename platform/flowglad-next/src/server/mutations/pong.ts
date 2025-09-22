@@ -3,7 +3,7 @@ import { publicProcedure } from '@/server/trpc'
 
 export const pong = publicProcedure
   .input(z.object({ foo: z.string() }))
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async () => {
     return {
       data: { bar: 'baz' },
     }

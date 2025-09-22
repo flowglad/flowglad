@@ -34,7 +34,7 @@ const AutoSlugInput = React.forwardRef<
     },
     ref
   ) => {
-    const { bindSlugInput, isDirty, setDirty } = useAutoSlug({
+    const { bindSlugInput, isDirty } = useAutoSlug({
       name,
       sourceName,
       disabledAuto,

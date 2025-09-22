@@ -13,8 +13,6 @@ export function ChatMessage({
   message,
   classification,
   isLoading,
-  dataOutput,
-  id,
 }: ChatMessageProps) {
   if (isLoading) {
     return (

@@ -15,7 +15,7 @@ const decodeStatusFromId = (
 }
 
 export const stripeHandlers = [
-  http.post('https://api.stripe.com/v1/payment_intents', (req) => {
+  http.post('https://api.stripe.com/v1/payment_intents', () => {
     return HttpResponse.json({
       id: 'pi_mock123',
       amount: 1000,
@@ -119,7 +119,7 @@ export const stripeHandlers = [
   ),
   http.post(
     'https://api.stripe.com/v1/setup_intents',
-    ({ request }) => {
+    () => {
       return HttpResponse.json({
         id: `seti_${nanoid()}`,
         object: 'setup_intent',

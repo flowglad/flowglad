@@ -53,7 +53,7 @@ const CancelSubscriptionFormFields: React.FC = () => {
         name="cancellation.timing"
         control={control}
         defaultValue={SubscriptionCancellationArrangement.Immediately}
-        render={({ field, fieldState }) => (
+        render={({ field }) => (
           <FormItem>
             <FormLabel>Timing</FormLabel>
             <FormControl>
@@ -86,7 +86,7 @@ const CancelSubscriptionFormFields: React.FC = () => {
         <FormField
           name="cancellation.endDate"
           control={control}
-          render={({ field, fieldState }) => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel>End Date</FormLabel>
               <FormControl>

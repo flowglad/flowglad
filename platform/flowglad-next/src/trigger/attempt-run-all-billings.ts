@@ -1,4 +1,4 @@
-import { logger, task, idempotencyKeys } from '@trigger.dev/sdk'
+import { task } from '@trigger.dev/sdk'
 import { attemptBillingRunTask } from './attempt-billing-run'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingRunsDueForExecution } from '@/db/tableMethods/billingRunMethods'
@@ -6,7 +6,7 @@ import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 
 export const attemptBillingRunsTask = task({
   id: 'attempt-billing-runs',
-  run: async (payload: { timestamp: Date }, { ctx }) => {
+  run: async () => {
     const {
       livemodeBillingRunsToAttempt,
       testmodeBillingRunsToAttempt,

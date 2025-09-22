@@ -22,9 +22,7 @@ import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { Price } from '@/db/schema/prices'
 import { Discount } from '@/db/schema/discounts'
 import {
-  ClientInvoiceWithLineItems,
   InvoiceLineItem,
-  InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
 import { Invoice } from '@/db/schema/invoices'
 

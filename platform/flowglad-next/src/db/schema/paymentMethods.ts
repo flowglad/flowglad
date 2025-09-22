@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import {
   pgTable,
   jsonb,
-  pgPolicy,
   text,
   boolean,
 } from 'drizzle-orm/pg-core'
@@ -113,9 +112,6 @@ export const paymentMethodsUpdateSchema = createSelectSchema(
     id: z.string(),
   })
 
-const createOnlyColumns = {
-  customerId: true,
-} as const
 
 const readOnlyColumns = {
   livemode: true,
@@ -127,11 +123,6 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const nonClientEditableColumns = {
-  ...readOnlyColumns,
-  ...hiddenColumns,
-  ...createOnlyColumns,
-} as const
 
 const clientWriteOmits = R.omit(['position'], {
   ...hiddenColumns,

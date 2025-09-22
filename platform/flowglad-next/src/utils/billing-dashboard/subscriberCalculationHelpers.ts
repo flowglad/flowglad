@@ -12,7 +12,7 @@ import {
   getActiveSubscriptionsForPeriod,
 } from '@/db/tableMethods/subscriptionMethods'
 import { subscriptions } from '@/db/schema/subscriptions'
-import { and, eq, gte, gt, lte, or, isNull } from 'drizzle-orm'
+import { and, eq, gt, lte, or, isNull } from 'drizzle-orm'
 
 export interface MonthlyActiveSubscribers {
   month: Date

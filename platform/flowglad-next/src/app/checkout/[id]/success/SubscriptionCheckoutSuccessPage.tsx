@@ -5,7 +5,6 @@ import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
 import { PriceType } from '@/types'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 
 interface SubscriptionCheckoutSuccessPageProps {
   checkoutSession: CheckoutSession.Record

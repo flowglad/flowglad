@@ -54,7 +54,6 @@ import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '../schema/invoiceLineItems'
 import { selectBillingRunById } from '../tableMethods/billingRunMethods'
-import core from '@/utils/core'
 
 /**
  * @description Given a paid invoice line item for usage, creates the insert

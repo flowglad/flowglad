@@ -41,7 +41,6 @@ export const createGetOpenApiMeta = (
 export const createPostOpenApiMetaWithIdParam = (
   params: CreateOpenApiMetaParams
 ): OpenApiMeta => {
-  const { summary, tags } = params
   return createPostOpenApiMeta({
     ...params,
     requireIdParam: true,

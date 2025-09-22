@@ -1,9 +1,8 @@
 import { protectedProcedure } from '@/server/trpc'
-import { z } from 'zod'
 
 export const ping = protectedProcedure
   // .input(z.object({ productId: z.string() }))
-  .query(({ input, ctx }) => {
+  .query(({ ctx }) => {
     return {
       message: 'pong',
       // productId: input.productId,

@@ -266,7 +266,7 @@ export const registryComponents = [
     component: CustomerSelector,
     defaultProps: {
       customers: mockCustomers,
-      onSelect: (customerId: string) => {
+      onSelect: () => {
         // Handle customer selection
       },
       searchable: true,

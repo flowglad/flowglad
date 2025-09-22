@@ -22,7 +22,6 @@ import {
 import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
 import {
-  selectPurchaseById,
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
 import { Customer } from '@/db/schema/customers'
