@@ -127,7 +127,7 @@ export const expireProductFeature = protectedProcedure
   )
 
 export const productFeaturesRouter = router({
-  createOrRestore: createOrRestoreProductFeature,
+  create: createOrRestoreProductFeature,
   list: listProductFeatures,
   get: getProductFeature,
   expire: expireProductFeature,
