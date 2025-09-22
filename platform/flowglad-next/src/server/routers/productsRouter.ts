@@ -109,7 +109,7 @@ export const createProduct = protectedProcedure
     }
   })
 
-export const editProduct = protectedProcedure
+export const updateProduct = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editProductSchema)
   .output(singleProductOutputSchema)
@@ -175,7 +175,7 @@ export const editProduct = protectedProcedure
               existingPrice,
               existingProduct
             )
-            // Disallow slug changes for the default price of a default product (parity with pricesRouter.edit)
+            // Disallow slug changes for the default price of a default product (parity with pricesRouter.update)
             if (
               existingProduct.default &&
               existingPrice.isDefault &&
@@ -353,7 +353,7 @@ export const productsRouter = router({
   list: listProducts,
   get: getProduct,
   create: createProduct,
-  update: editProduct,
+  update: updateProduct,
   getTableRows,
   getCountsByStatus,
 })

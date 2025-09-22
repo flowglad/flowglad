@@ -128,7 +128,7 @@ export const createPrice = protectedProcedure
     )
   })
 
-export const editPrice = protectedProcedure
+export const updatePrice = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editPriceSchema)
   .output(singlePriceOutputSchema)
@@ -230,7 +230,7 @@ export const listUsagePricesForProduct = protectedProcedure
 export const pricesRouter = router({
   list: listPrices,
   create: createPrice,
-  edit: editPrice,
+  update: updatePrice,
   getTableRows,
   listUsagePricesForProduct,
 })

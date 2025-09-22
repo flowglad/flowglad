@@ -49,7 +49,7 @@ const SetPriceAsDefault: React.FC<SetPriceAsDefaultProps> = ({
   price,
 }) => {
   const router = useRouter()
-  const editPrice = trpc.prices.edit.useMutation()
+  const editPrice = trpc.prices.update.useMutation()
 
   const handleMakeDefault = async () => {
     const data = priceToSetPriceAsDefaultInput(price)

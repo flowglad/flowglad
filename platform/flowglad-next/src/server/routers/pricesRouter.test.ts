@@ -275,7 +275,7 @@ describe('pricesRouter - Default Price Constraints', () => {
   })
 
   describe('router-level behaviors', () => {
-    it('pricesRouter.edit: throws NOT_FOUND for missing price id', async () => {
+    it('pricesRouter.update: throws NOT_FOUND for missing price id', async () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
@@ -288,7 +288,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         path: '',
       }
       await expect(
-        pricesRouter.createCaller(ctx).edit({
+        pricesRouter.createCaller(ctx).update({
           price: {
             id: 'price_missing_' + core.nanoid(),
             type: PriceType.Subscription,
@@ -297,7 +297,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       ).rejects.toThrow(TRPCError)
     })
 
-    it('productsRouter.edit: enforces cross-product price guard (BAD_REQUEST)', async () => {
+    it('productsRouter.update: enforces cross-product price guard (BAD_REQUEST)', async () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
         livemode,
@@ -357,7 +357,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           transaction
         )
         await expect(
-          productsRouter.createCaller(ctx).edit({
+          productsRouter.createCaller(ctx).update({
             product: { id: defaultProductId },
             price: { id: otherPrice.id } as any,
           } as any)
