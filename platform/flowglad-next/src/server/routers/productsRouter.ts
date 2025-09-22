@@ -353,7 +353,7 @@ export const productsRouter = router({
   list: listProducts,
   get: getProduct,
   create: createProduct,
-  edit: editProduct,
+  update: editProduct,
   getTableRows,
   getCountsByStatus,
 })
