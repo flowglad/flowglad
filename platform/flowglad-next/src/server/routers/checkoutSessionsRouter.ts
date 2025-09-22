@@ -12,7 +12,7 @@ import {
   selectCheckoutSessionById,
   selectCheckoutSessions,
   selectCheckoutSessionsPaginated,
-  updateCheckoutSession,
+  updateCheckoutSession as updateCheckoutSessionDb,
   updateCheckoutSessionAutomaticallyUpdateSubscriptions,
   updateCheckoutSessionBillingAddress,
   updateCheckoutSessionCustomerEmail,
@@ -81,7 +81,7 @@ export const createCheckoutSession = protectedProcedure
     )
   )
 
-export const editCheckoutSession = protectedProcedure
+export const updateCheckoutSession = protectedProcedure
   //   .meta(openApiMetas.PUT)
   .input(editCheckoutSessionInputSchema)
   .output(singleCheckoutSessionOutputSchema)
@@ -112,7 +112,7 @@ export const editCheckoutSession = protectedProcedure
           })
         }
 
-        const updatedCheckoutSession = await updateCheckoutSession(
+        const updatedCheckoutSession = await updateCheckoutSessionDb(
           {
             ...checkoutSession,
             ...input.checkoutSession,
@@ -253,7 +253,7 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
 
 export const checkoutSessionsRouter = router({
   create: createCheckoutSession,
-  edit: editCheckoutSession,
+  update: updateCheckoutSession,
   get: getCheckoutSessionProcedure,
   list: listCheckoutSessionsProcedure,
   getIntentStatus: getIntentStatusProcedure,

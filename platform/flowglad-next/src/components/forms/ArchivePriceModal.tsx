@@ -48,7 +48,7 @@ const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
   price,
 }) => {
   const router = useRouter()
-  const editPrice = trpc.prices.edit.useMutation()
+  const editPrice = trpc.prices.update.useMutation()
 
   const handleArchive = async () => {
     const data = priceToArchivePriceInput(price)

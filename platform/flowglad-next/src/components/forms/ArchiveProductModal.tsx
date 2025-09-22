@@ -34,7 +34,7 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
   product,
 }) => {
   const router = useRouter()
-  const editProduct = trpc.products.edit.useMutation()
+  const editProduct = trpc.products.update.useMutation()
 
   const handleArchive = async () => {
     const data: EditProductInput = {
