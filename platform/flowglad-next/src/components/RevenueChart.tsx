@@ -13,7 +13,10 @@ import {
   TooltipCallbackProps,
 } from '@/components/charts/AreaChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import {
+  stripeCurrencyAmountToHumanReadableCurrencyAmount,
+  stripeCurrencyAmountToShortReadableCurrencyAmount,
+} from '@/utils/stripe'
 import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { RevenueChartIntervalUnit } from '@/types'
@@ -274,7 +277,7 @@ export function RevenueChart({
             )
           }
           yAxisValueFormatter={(value: number) =>
-            stripeCurrencyAmountToHumanReadableCurrencyAmount(
+            stripeCurrencyAmountToShortReadableCurrencyAmount(
               organization?.defaultCurrency!,
               value
             )

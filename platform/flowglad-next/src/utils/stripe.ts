@@ -303,6 +303,75 @@ export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
   return formatter.format(amount)
 }
 
+/**
+ * Formats currency amounts with shortened notation for y-axis labels
+ * Examples:
+ * - $5.69 -> $5.69 (amounts under $100)
+ * - $489.58 -> $490 (amounts $100-$999 rounded to nearest dollar)
+ * - $9,325.69 -> $9.33K (thousands with K notation)
+ * - $843,901.21 -> $843.9K (larger amounts with K notation)
+ * - $2,843,901.21 -> $2.84M (millions with M notation)
+ * - $23,843,901.21 -> $23.8M (larger millions with M notation)
+ * - $490,239,321.24 -> $490M (hundreds of millions with M notation)
+ */
+export const stripeCurrencyAmountToShortReadableCurrencyAmount = (
+  currency: CurrencyCode,
+  amount: number
+) => {
+  // Convert from stripe cents format if needed
+  const actualAmount = !isCurrencyZeroDecimal(currency)
+    ? amount / 100
+    : amount
+
+  // For amounts under $100, show as-is with cents
+  if (actualAmount < 100) {
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    return formatter.format(actualAmount)
+  }
+
+  // For amounts $100-$999, round to nearest dollar
+  if (actualAmount < 1000) {
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })
+    return formatter.format(Math.round(actualAmount))
+  }
+
+  // For amounts $1000-$999,999, use K notation
+  if (actualAmount < 1000000) {
+    const thousands = actualAmount / 1000
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: thousands >= 100 ? 1 : 2,
+      maximumFractionDigits: thousands >= 100 ? 1 : 2,
+    })
+
+    return formatter.format(thousands) + 'K'
+  }
+
+  // For amounts $1,000,000+, use M notation
+  const millions = actualAmount / 1000000
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits:
+      millions >= 100 ? 0 : millions >= 10 ? 1 : 2,
+    maximumFractionDigits:
+      millions >= 100 ? 0 : millions >= 10 ? 1 : 2,
+  })
+
+  return formatter.format(millions) + 'M'
+}
+
 export const countableCurrencyAmountToRawStringAmount = (
   currencyCode: CurrencyCode,
   amount: number
