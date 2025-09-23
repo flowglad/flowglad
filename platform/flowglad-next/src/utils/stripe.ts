@@ -336,13 +336,27 @@ export const stripeCurrencyAmountToShortReadableCurrencyAmount = (
 
   // For amounts $100-$999, round to nearest dollar
   if (actualAmount < 1000) {
+    const rounded = Math.round(actualAmount)
+    // If rounding pushes us to $1000 or above, use K notation instead
+    if (rounded >= 1000) {
+      const thousands = actualAmount / 1000
+      const formatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+
+      return formatter.format(thousands) + 'K'
+    }
+
     const formatter = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     })
-    return formatter.format(Math.round(actualAmount))
+    return formatter.format(rounded)
   }
 
   // For amounts $1000-$999,999, use K notation
