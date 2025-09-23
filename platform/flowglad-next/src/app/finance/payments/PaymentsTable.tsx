@@ -110,7 +110,7 @@ const PaymentsTable = ({
           accessorKey: 'payment.amount',
           cell: ({ row: { original: cellData } }) => (
             <TableCell
-              className="relative max-w-[160px] truncate text-sm text-muted-foreground"
+              className="relative max-w-[160px] truncate text-sm"
               title={stripeCurrencyAmountToHumanReadableCurrencyAmount(
                 cellData.payment.currency,
                 cellData.payment.amount

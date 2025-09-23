@@ -18,7 +18,7 @@ const SuccessPageContainer = ({
           </div>
         </div>
         <h1 className="text-2xl font-bold mb-4">{title}</h1>
-        <p className="text-gray-600">{message}</p>
+        <p className="text-muted-foreground">{message}</p>
       </div>
     </div>
   )
