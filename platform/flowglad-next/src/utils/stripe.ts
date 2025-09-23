@@ -303,6 +303,46 @@ export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
   return formatter.format(amount)
 }
 
+// Constants for readability and maintainability
+const THRESHOLDS = {
+  SMALL_AMOUNT: 100,
+  THOUSAND: 1000,
+  MILLION: 1000000,
+} as const
+
+/**
+ * Creates a currency formatter with specified decimal places
+ */
+const createCurrencyFormatter = (
+  currency: CurrencyCode,
+  decimals: number,
+  useGrouping = true
+) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping,
+  })
+}
+
+/**
+ * Determines decimal precision for K notation based on magnitude
+ */
+const getKNotationDecimals = (thousands: number): number => {
+  return thousands >= 100 ? 1 : 2
+}
+
+/**
+ * Determines decimal precision for M notation based on magnitude
+ */
+const getMNotationDecimals = (millions: number): number => {
+  if (millions >= 100) return 0
+  if (millions >= 10) return 1
+  return 2
+}
+
 /**
  * Formats currency amounts with shortened notation for y-axis labels
  * Examples:
@@ -324,87 +364,64 @@ export const stripeCurrencyAmountToShortReadableCurrencyAmount = (
     : amount
 
   // For amounts under $100, show as-is with cents
-  if (actualAmount < 100) {
-    const formatter = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-    return formatter.format(actualAmount)
+  if (actualAmount < THRESHOLDS.SMALL_AMOUNT) {
+    return createCurrencyFormatter(currency, 2).format(actualAmount)
   }
 
   // For amounts $100-$999, round to nearest dollar
-  if (actualAmount < 1000) {
+  if (actualAmount < THRESHOLDS.THOUSAND) {
     const rounded = Math.round(actualAmount)
     // If rounding pushes us to $1000 or above, use K notation instead
-    if (rounded >= 1000) {
-      const thousands = actualAmount / 1000
-      const formatter = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })
-
-      return formatter.format(thousands) + 'K'
+    if (rounded >= THRESHOLDS.THOUSAND) {
+      const thousands = actualAmount / THRESHOLDS.THOUSAND
+      return (
+        createCurrencyFormatter(currency, 2).format(thousands) + 'K'
+      )
     }
-
-    const formatter = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })
-    return formatter.format(rounded)
+    return createCurrencyFormatter(currency, 0).format(rounded)
   }
 
   // For amounts $1000-$999,999, use K notation
-  if (actualAmount < 1000000) {
-    const thousands = actualAmount / 1000
-    const decimals = thousands >= 100 ? 1 : 2
+  if (actualAmount < THRESHOLDS.MILLION) {
+    const thousands = actualAmount / THRESHOLDS.THOUSAND
+    const decimals = getKNotationDecimals(thousands)
 
     // Check if rounding would result in >= 1000K, if so use M notation instead
     const roundedThousands =
       Math.round(thousands * Math.pow(10, decimals)) /
       Math.pow(10, decimals)
-    if (roundedThousands >= 1000) {
+    if (roundedThousands >= THRESHOLDS.THOUSAND) {
       // Switch to M notation to avoid displaying "1000K" or higher
-      const millions = actualAmount / 1000000
-      const formatter = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits:
-          millions >= 100 ? 0 : millions >= 10 ? 1 : 2,
-        maximumFractionDigits:
-          millions >= 100 ? 0 : millions >= 10 ? 1 : 2,
-      })
-
-      return formatter.format(millions) + 'M'
+      const millions = actualAmount / THRESHOLDS.MILLION
+      const millionDecimals = getMNotationDecimals(millions)
+      // Disable grouping for large M values to avoid commas
+      return (
+        createCurrencyFormatter(
+          currency,
+          millionDecimals,
+          false
+        ).format(millions) + 'M'
+      )
     }
 
-    const formatter = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    })
-
-    return formatter.format(thousands) + 'K'
+    // Use the correct decimal precision based on the rounded value
+    const finalDecimals = getKNotationDecimals(roundedThousands)
+    return (
+      createCurrencyFormatter(currency, finalDecimals).format(
+        thousands
+      ) + 'K'
+    )
   }
 
   // For amounts $1,000,000+, use M notation
-  const millions = actualAmount / 1000000
-  const formatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits:
-      millions >= 100 ? 0 : millions >= 10 ? 1 : 2,
-    maximumFractionDigits:
-      millions >= 100 ? 0 : millions >= 10 ? 1 : 2,
-  })
-
-  return formatter.format(millions) + 'M'
+  const millions = actualAmount / THRESHOLDS.MILLION
+  const decimals = getMNotationDecimals(millions)
+  // Disable grouping for large M values to avoid commas like $1,000M
+  return (
+    createCurrencyFormatter(currency, decimals, false).format(
+      millions
+    ) + 'M'
+  )
 }
 
 export const countableCurrencyAmountToRawStringAmount = (
