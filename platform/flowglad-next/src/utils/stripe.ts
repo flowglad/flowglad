@@ -348,11 +348,32 @@ export const stripeCurrencyAmountToShortReadableCurrencyAmount = (
   // For amounts $1000-$999,999, use K notation
   if (actualAmount < 1000000) {
     const thousands = actualAmount / 1000
+    const decimals = thousands >= 100 ? 1 : 2
+
+    // Check if rounding would result in >= 1000K, if so use M notation instead
+    const roundedThousands =
+      Math.round(thousands * Math.pow(10, decimals)) /
+      Math.pow(10, decimals)
+    if (roundedThousands >= 1000) {
+      // Switch to M notation to avoid displaying "1000K" or higher
+      const millions = actualAmount / 1000000
+      const formatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits:
+          millions >= 100 ? 0 : millions >= 10 ? 1 : 2,
+        maximumFractionDigits:
+          millions >= 100 ? 0 : millions >= 10 ? 1 : 2,
+      })
+
+      return formatter.format(millions) + 'M'
+    }
+
     const formatter = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
-      minimumFractionDigits: thousands >= 100 ? 1 : 2,
-      maximumFractionDigits: thousands >= 100 ? 1 : 2,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     })
 
     return formatter.format(thousands) + 'K'
