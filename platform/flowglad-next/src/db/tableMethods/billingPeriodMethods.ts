@@ -4,8 +4,6 @@ import {
   createUpdateFunction,
   createSelectFunction,
   ORMMethodCreatorConfig,
-  SelectConditions,
-  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   BillingPeriod,

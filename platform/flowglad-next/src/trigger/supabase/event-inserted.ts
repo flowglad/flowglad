@@ -20,7 +20,6 @@ export const eventInsertedTask = task({
   id: 'event-inserted',
   run: async (
     payload: SupabaseInsertPayload<Event.Record>,
-    { ctx }
   ) => {
     /**
      *  Transform the record to camelCase and convert date strings to Date objects

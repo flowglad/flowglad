@@ -23,11 +23,11 @@ vi.mock('@/app/_trpc/client', () => ({
 
 // Mock the stripe utils
 vi.mock('@/utils/stripe', () => ({
-  rawStringAmountToCountableCurrencyAmount: vi.fn((currency, amount) => {
+  rawStringAmountToCountableCurrencyAmount: vi.fn((_currency, amount) => {
     // Mock conversion: "10.50" -> 1050 (cents)
     return Math.round(parseFloat(amount) * 100)
   }),
-  countableCurrencyAmountToRawStringAmount: vi.fn((currency, amount) => {
+  countableCurrencyAmountToRawStringAmount: vi.fn((_currency, amount) => {
     // Mock conversion: 1050 -> "10.50"
     return (amount / 100).toFixed(2)
   }),

@@ -21,7 +21,6 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { z } from 'zod'
 import { idempotentSendOrganizationSubscriptionCanceledNotification } from '@/trigger/notifications/send-organization-subscription-canceled-notification'
 
 // Cancel a subscription immediately

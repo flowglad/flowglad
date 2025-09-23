@@ -1,8 +1,6 @@
 import {
   boolean,
-  text,
   pgTable,
-  pgPolicy,
   integer,
   timestamp,
 } from 'drizzle-orm/pg-core'
@@ -106,11 +104,6 @@ export const usageCreditApplicationsUpdateSchema =
     .partial()
     .extend({ id: z.string() })
 
-const createOnlyColumns = {} as const
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
 const hiddenColumns = {
   createdByCommit: true,
   updatedByCommit: true,

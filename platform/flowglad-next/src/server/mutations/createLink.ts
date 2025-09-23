@@ -6,7 +6,7 @@ import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMe
 
 export const createLink = protectedProcedure
   .input(createLinkInputSchema)
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input, ctx: _ctx }) => {
     const link = await authenticatedTransaction(
       async ({ transaction, userId, livemode }) => {
         const [{ organization }] =

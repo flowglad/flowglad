@@ -362,9 +362,6 @@ interface PaymentInfoProps {
   payment?: Payment.Record
 }
 
-const constructPaymentLink = (invoice: Invoice.Record) => {
-  return `/invoice/view/${invoice.organizationId}/${invoice.id}`
-}
 
 export const PaymentInfo: React.FC<PaymentInfoProps> = ({
   invoice,
@@ -612,7 +609,7 @@ interface InvoiceFooterProps {
 }
 
 export const InvoiceFooter: React.FC<InvoiceFooterProps> = ({
-  organization,
+  organization: _organization,
 }) => {
   return (
     <Section style={{ marginTop: '50px', textAlign: 'center' }}>

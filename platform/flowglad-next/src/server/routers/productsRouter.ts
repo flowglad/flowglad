@@ -5,7 +5,6 @@ import {
   selectProductsCursorPaginated,
   selectProductPriceAndFeaturesByProductId,
 } from '@/db/tableMethods/productMethods'
-import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import {
   validateProductCreation,
   validateDefaultProductUpdate,
@@ -37,7 +36,6 @@ import {
 } from '@/db/schema/products'
 import {
   safelyUpdatePrice,
-  selectPrices,
   selectPriceById,
 } from '@/db/tableMethods/priceMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'

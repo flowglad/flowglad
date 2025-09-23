@@ -3,7 +3,6 @@ import {
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import {
-  CheckoutSessionType,
   PurchaseAccessSessionSource,
 } from '@/types'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
@@ -29,7 +28,6 @@ import { isNil } from '@/utils/core'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import {
   generateInvoicePdfIdempotently,
-  generateInvoicePdfTask,
 } from '@/trigger/generate-invoice-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { Invoice } from '@/db/schema/invoices'
@@ -200,12 +198,11 @@ const processSetupIntent = async ({
     }
   )
 
-  const { purchase, checkoutSession, type } = setupSuceededResult
+  const { purchase, checkoutSession } = setupSuceededResult
   if (
     isCheckoutSessionSubscriptionCreating(checkoutSession) &&
     setupSuceededResult.billingRun?.id
   ) {
-    const { billingRun } = setupSuceededResult
     await executeBillingRun(setupSuceededResult.billingRun.id)
   }
 

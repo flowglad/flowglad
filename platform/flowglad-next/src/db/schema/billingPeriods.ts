@@ -83,12 +83,11 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const createOnlyColumns = {} as const
 
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-} as const
+// const nonClientEditableColumns = {
+//   ...hiddenColumns,
+//   ...readOnlyColumns,
+// } as const
 
 const clientWriteOmits = R.omit(['position'], {
   ...hiddenColumns,

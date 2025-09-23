@@ -13,7 +13,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 
 export interface ModalInterfaceProps {
@@ -24,7 +23,6 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { cn } from '@/lib/utils'
-import core from '@/utils/core'
 import { useEffect, useId, useState, useCallback } from 'react'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
@@ -114,7 +112,6 @@ export const NestedFormModal = <T extends FieldValues>({
   autoClose = true,
   form,
   onSuccess,
-  mode = 'modal',
 }: NestedFormModalProps<T>) => {
   const shouldRenderContent = useShouldRenderContent({ isOpen })
   const footer = (

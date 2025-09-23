@@ -1,5 +1,4 @@
 import {
-  adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { processSetupIntentSucceeded } from '@/utils/bookkeeping/processSetupIntent'

@@ -5,7 +5,6 @@ import {
   pricesSelectSchema,
   pricesUpdateSchema,
   ProductWithPrices,
-  pricesTableRowDataSchema,
   pricesClientSelectSchema,
 } from '@/db/schema/prices'
 import {
@@ -22,7 +21,7 @@ import {
   createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
 import { DbTransaction } from '@/db/types'
-import { and, asc, eq, SQLWrapper, desc } from 'drizzle-orm'
+import { and, asc, eq, SQLWrapper } from 'drizzle-orm'
 import {
   Product,
   products,

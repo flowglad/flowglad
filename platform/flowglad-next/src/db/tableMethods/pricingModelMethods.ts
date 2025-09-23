@@ -18,11 +18,9 @@ import {
   pricingModelsUpdateSchema,
 } from '@/db/schema/pricingModels'
 import { DbTransaction } from '@/db/types'
-import { count, eq, and, inArray } from 'drizzle-orm'
-import { products } from '../schema/products'
+import { eq, and, inArray } from 'drizzle-orm'
 import {
   selectPricesAndProductsByProductWhere,
-  updatePrice,
 } from './priceMethods'
 import { PricingModelWithProductsAndUsageMeters } from '../schema/prices'
 import { Customer } from '@/db/schema/customers'

@@ -1,9 +1,7 @@
 import {
   insertSubscription,
-  updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
-  IntervalUnit,
   PriceType,
   SubscriptionStatus,
   SubscriptionItemType,

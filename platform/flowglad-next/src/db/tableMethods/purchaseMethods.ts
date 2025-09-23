@@ -6,7 +6,6 @@ import {
   Purchase,
   singlePaymentPurchaseSelectSchema,
   subscriptionPurchaseSelectSchema,
-  purchaseClientInsertSchema,
   purchasesTableRowDataSchema,
 } from '@/db/schema/purchases'
 import {
@@ -21,8 +20,6 @@ import {
 } from '@/db/tableUtils'
 import {
   CheckoutFlowType,
-  PriceType,
-  PurchaseStatus,
   PaymentStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
@@ -38,7 +35,6 @@ import {
   customerClientInsertSchema,
   customers,
   customersSelectSchema,
-  Customer,
 } from '../schema/customers'
 import {
   organizations,
@@ -47,12 +43,10 @@ import {
 import {
   products,
   productsSelectSchema,
-  Product,
 } from '../schema/products'
 import { z } from 'zod'
 import {
   checkoutSessionClientSelectSchema,
-  checkoutSessionsSelectSchema,
 } from '../schema/checkoutSessions'
 import { payments, paymentsSelectSchema } from '../schema/payments'
 import { discountClientSelectSchema } from '../schema/discounts'

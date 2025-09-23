@@ -1,8 +1,6 @@
 import { z } from 'zod'
 import {
-  SupabaseInsertPayload,
   SupabasePayloadType,
-  SupabaseUpdatePayload,
 } from '@/types'
 import core from '@/utils/core'
 

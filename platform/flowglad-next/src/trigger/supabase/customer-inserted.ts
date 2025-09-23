@@ -14,7 +14,6 @@ export const customerCreatedTask = task({
   id: 'customer-inserted',
   run: async (
     payload: SupabaseInsertPayload<Customer.Record>,
-    { ctx }
   ) => {
     const parsedPayload =
       customerInsertPayloadSchema.safeParse(payload)
@@ -26,7 +25,7 @@ export const customerCreatedTask = task({
       throw new Error('Invalid payload')
     }
 
-    const { record } = parsedPayload.data
+    const { } = parsedPayload.data
     return {
       message: 'OK',
     }

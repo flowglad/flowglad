@@ -14,8 +14,6 @@ import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
-import { PriceType, IntervalUnit } from '@/types'
-import core from '@/utils/core'
 import {
   createFreePlanPriceInsert,
   createFreePlanProductInsert,

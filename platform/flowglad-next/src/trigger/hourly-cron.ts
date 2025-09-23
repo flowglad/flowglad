@@ -14,14 +14,7 @@ export const hourlyCron = schedules.task({
       await deleteExpiredCheckoutSessionsAndFeeCalculations(
         transaction
       )
-      await attemptBillingRunsTask.trigger(
-        {
-          timestamp,
-        },
-        {
-          idempotencyKey: `attempt-billing-runs:${timestamp.toISOString()}`,
-        }
-      )
+      await attemptBillingRunsTask.trigger()
       const lastTimestampISO = (
         lastTimestamp ?? new Date(Date.now() - 1000 * 60 * 60)
       ).toISOString()

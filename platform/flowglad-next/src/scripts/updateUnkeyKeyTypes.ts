@@ -10,7 +10,7 @@ import { Unkey } from '@unkey/api'
 import { FlowgladApiKeyType } from '@/types'
 import { secretApiKeyMetadataSchema } from '@/db/schema/apiKeys'
 
-async function updateUnkeyKeyTypes(db: PostgresJsDatabase) {
+async function updateUnkeyKeyTypes(_db: PostgresJsDatabase) {
   const unkey = new Unkey({
     rootKey: core.envVariable('UNKEY_ROOT_KEY'),
   })

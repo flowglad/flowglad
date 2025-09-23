@@ -1,7 +1,6 @@
 import CheckoutNotValidPage from '@/components/CheckoutNotValidPage'
 import CheckoutPage from '@/components/CheckoutPage'
 import { checkoutInfoForPriceWhere } from '@/utils/checkoutHelpers'
-import { notFound } from 'next/navigation'
 
 interface PurchasePageProps {
   params: Promise<{

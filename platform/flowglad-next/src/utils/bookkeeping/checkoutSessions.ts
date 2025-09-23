@@ -24,11 +24,8 @@ import {
   EditCheckoutSessionInput,
   feeReadyCheckoutSessionSelectSchema,
   CheckoutSession,
-  CreateCheckoutSessionInput,
-  CreateCheckoutSessionObject,
 } from '@/db/schema/checkoutSessions'
 import {
-  insertCheckoutSession,
   selectCheckoutSessionById,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
@@ -39,9 +36,7 @@ import {
   checkoutSessionFeeCalculationParametersChanged,
 } from '@/db/schema/feeCalculations'
 import {
-  createCheckoutSessionFeeCalculation,
   createFeeCalculationForCheckoutSession,
-  createInvoiceFeeCalculationForCheckoutSession,
 } from '@/utils/bookkeeping/fees/checkoutSession'
 import {
   calculateTotalDueAmount,
@@ -632,94 +627,3 @@ export const processStripeChargeForCheckoutSession = async (
 // Re-export for backwards compatibility
 export { createFeeCalculationForCheckoutSession }
 
-const checkoutSessionInsertFromInput = ({
-  checkoutSessionInput,
-  customer,
-  organizationId,
-  livemode,
-}: {
-  checkoutSessionInput: CreateCheckoutSessionObject
-  customer: Customer.Record | null
-  organizationId: string
-  livemode: boolean
-}): CheckoutSession.Insert => {
-  const coreFields = {
-    organizationId,
-    status: CheckoutSessionStatus.Open,
-    livemode,
-    successUrl: checkoutSessionInput.successUrl,
-    cancelUrl: checkoutSessionInput.cancelUrl,
-    outputMetadata: checkoutSessionInput.outputMetadata,
-    outputName: checkoutSessionInput.outputName,
-    automaticallyUpdateSubscriptions: null,
-  } as const
-
-  const isAnonymous =
-    'anonymous' in checkoutSessionInput &&
-    checkoutSessionInput.anonymous === true
-
-  if (checkoutSessionInput.type === CheckoutSessionType.Product) {
-    if (!isAnonymous && !customer) {
-      throw new Error(
-        `Required customer not found for Product checkout (anonymous=false). externalId='${checkoutSessionInput.customerExternalId}', organization='${organizationId}'.`
-      )
-    }
-    return {
-      ...coreFields,
-      type: CheckoutSessionType.Product,
-      invoiceId: null,
-      priceId: checkoutSessionInput.priceId,
-      targetSubscriptionId: null,
-      customerId: isAnonymous ? null : customer!.id,
-      customerEmail: isAnonymous ? null : customer!.email,
-      customerName: isAnonymous ? null : customer!.name,
-      preserveBillingCycleAnchor:
-        checkoutSessionInput.preserveBillingCycleAnchor ?? false,
-    }
-  } else if (
-    checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod
-  ) {
-    if (!customer) {
-      throw new Error(
-        'Customer is required for add payment method checkout sessions'
-      )
-    }
-    return {
-      ...coreFields,
-      customerId: customer.id,
-      customerEmail: customer.email,
-      customerName: customer.name,
-      automaticallyUpdateSubscriptions: false,
-      type: CheckoutSessionType.AddPaymentMethod,
-      targetSubscriptionId:
-        checkoutSessionInput.targetSubscriptionId ?? null,
-    }
-  } else if (
-    checkoutSessionInput.type ===
-    CheckoutSessionType.ActivateSubscription
-  ) {
-    if (!customer) {
-      throw new Error(
-        'Customer is required for activate subscription checkout sessions'
-      )
-    }
-    return {
-      ...coreFields,
-      priceId: checkoutSessionInput.priceId,
-      type: CheckoutSessionType.ActivateSubscription,
-      targetSubscriptionId: checkoutSessionInput.targetSubscriptionId,
-      purchaseId: null,
-      invoiceId: null,
-      customerId: customer.id,
-      customerEmail: customer.email,
-      customerName: customer.name,
-      preserveBillingCycleAnchor: false,
-    }
-  }
-  throw new Error(
-    `Invalid checkout session, type: ${
-      // @ts-expect-error - this is a type error because it should never be hit
-      checkoutSessionInput.type
-    }`
-  )
-}

@@ -14,7 +14,6 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
-import { FormDescription, FormMessage } from '@/components/ui/form'
 
 export interface Option {
   value: string
@@ -234,11 +233,9 @@ const MultipleSelector = React.forwardRef<
       triggerSearchOnFocus = false,
       commandProps,
       inputProps,
-      hideClearAllButton = false,
       label,
       helper,
       hint,
-      showHintIcon = false,
       required,
       error,
       id: providedId,

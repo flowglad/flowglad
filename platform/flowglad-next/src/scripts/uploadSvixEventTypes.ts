@@ -8,7 +8,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
 import { FlowgladEventType } from '@/types'
 
-const uploadSvixEventTypes = async (db: PostgresJsDatabase) => {
+const uploadSvixEventTypes = async (_db: PostgresJsDatabase) => {
   const args = process.argv.slice(2)
   const svixSecretKeyArg = args.find((arg) =>
     arg.startsWith('svix_secret_key=')

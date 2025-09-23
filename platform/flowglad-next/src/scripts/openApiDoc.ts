@@ -8,7 +8,7 @@ import yaml from 'json-to-pretty-yaml'
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
 
-async function openApiDoc(db: PostgresJsDatabase) {
+async function openApiDoc(_db: PostgresJsDatabase) {
   // eslint-disable-next-line no-console
   console.log(yaml.stringify(createFlowgladOpenApiDocument()))
 }

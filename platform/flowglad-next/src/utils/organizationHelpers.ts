@@ -2,7 +2,6 @@ import { customAlphabet, nanoid } from 'nanoid'
 import {
   insertOrDoNothingOrganizationByExternalId,
   selectOrganizations,
-  updateOrganization,
 } from '@/db/tableMethods/organizationMethods'
 import { insertMembership } from '@/db/tableMethods/membershipMethods'
 import {
@@ -22,7 +21,6 @@ import {
   Organization,
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
-import { insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { findOrCreateSvixApplication } from './svix'
 
 const generateSubdomainSlug = (name: string) => {
@@ -118,9 +116,7 @@ export const createOrganizationTransaction = async (
     transaction
   )
 
-  const {
-    result: { pricingModel: defaultLivePricingModel },
-  } = await createPricingModelBookkeeping(
+  await createPricingModelBookkeeping(
     {
       pricingModel: {
         name: 'Default',
@@ -134,9 +130,7 @@ export const createOrganizationTransaction = async (
     }
   )
 
-  const {
-    result: { pricingModel: defaultTestmodePricingModel },
-  } = await createPricingModelBookkeeping(
+  await createPricingModelBookkeeping(
     {
       pricingModel: {
         name: 'Default (testmode)',

@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import {
   createSelectById,
   createInsertFunction,
@@ -6,8 +5,6 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
-  SelectConditions,
-  whereClauseFromObject,
   createCursorPaginatedSelectFunction,
   createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
@@ -20,11 +17,6 @@ import {
   usageMetersTableRowDataSchema,
 } from '@/db/schema/usageMeters'
 import { DbTransaction } from '@/db/types'
-import {
-  pricingModels,
-  pricingModelsSelectSchema,
-} from '@/db/schema/pricingModels'
-import { eq } from 'drizzle-orm'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 
 const config: ORMMethodCreatorConfig<

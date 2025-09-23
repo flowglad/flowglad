@@ -191,7 +191,6 @@ export type AuthenticatedProcedureResolver<
 
 export type AuthenticatedProcedureTransactionParams<
   TInput,
-  TOutput,
   TContext extends { apiKey?: string },
 > = AuthenticatedTransactionParams & {
   input: TInput
@@ -206,7 +205,6 @@ export const authenticatedProcedureTransaction = <
   handler: (
     params: AuthenticatedProcedureTransactionParams<
       TInput,
-      TOutput,
       TContext
     >
   ) => Promise<TOutput>
@@ -230,7 +228,6 @@ export const authenticatedProcedureComprehensiveTransaction = <
   handler: (
     params: AuthenticatedProcedureTransactionParams<
       TInput,
-      TOutput,
       TContext
     >
   ) => Promise<TransactionOutput<TOutput>>
@@ -254,7 +251,6 @@ export function eventfulAuthenticatedProcedureTransaction<
   handler: (
     params: AuthenticatedProcedureTransactionParams<
       TInput,
-      TOutput,
       TContext
     >
   ) => Promise<[TOutput, Event.Insert[]]>

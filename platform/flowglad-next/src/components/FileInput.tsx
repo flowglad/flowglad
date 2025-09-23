@@ -56,7 +56,6 @@ const FileInput: React.FC<FileInputProps> = ({
   className,
   initialURL,
   id = 'fileInput',
-  subLabel,
   error,
   hint,
 }) => {
@@ -252,7 +251,7 @@ const FileInput: React.FC<FileInputProps> = ({
           e.stopPropagation()
           setIsDragging(true)
         }}
-        onDragLeave={(e) => {
+        onDragLeave={() => {
           setIsDragging(false)
         }}
         onDrop={(e) => {

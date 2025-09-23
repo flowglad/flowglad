@@ -1,14 +1,12 @@
 'use client'
 import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { DisplayColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
 import { TableCell } from '@/components/ui/table'
 import { Payment } from '@/db/schema/payments'
-import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import Link from 'next/link'
-import { CurrencyCode, PaymentStatus } from '@/types'
+import { PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { Badge } from '@/components/ui/badge'
 import { sentenceCase } from 'change-case'
@@ -22,7 +20,7 @@ import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 const MoreMenuCell = ({
   payment,
-  customer,
+  // customer,
 }: Payment.TableRowData) => {
   const [isRefundOpen, setIsRefundOpen] = useState(false)
   const items: PopoverMenuItem[] = [

@@ -14,7 +14,7 @@ import {
 } from '@/db/schema/apiKeys'
 import { FlowgladApiKeyType } from '@/types'
 
-async function upgradeUnkeyApiKeysToSchema(db: PostgresJsDatabase) {
+async function upgradeUnkeyApiKeysToSchema(_db: PostgresJsDatabase) {
   let allKeys: {
     id: string
     meta?: {

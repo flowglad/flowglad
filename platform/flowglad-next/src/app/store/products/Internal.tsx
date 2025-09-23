@@ -24,7 +24,7 @@ type Props = {
   })[]
 }
 
-function InternalProductsPage({ products: initialProducts }: Props) {
+function InternalProductsPage({ products: _initialProducts }: Props) {
   const [isCreateProductOpen, setIsCreateProductOpen] =
     useState(false)
   const [activeFilter, setActiveFilter] = useState<string>('all')

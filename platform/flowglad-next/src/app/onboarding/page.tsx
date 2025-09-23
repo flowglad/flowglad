@@ -15,7 +15,7 @@ import { redirect } from 'next/navigation'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { ApiKey } from '@/db/schema/apiKeys'
-import { auth, getSession } from '@/utils/auth'
+import { getSession } from '@/utils/auth'
 import { selectUsers } from '@/db/tableMethods/userMethods'
 import { ClientAuthGuard } from '@/components/ClientAuthGuard'
 

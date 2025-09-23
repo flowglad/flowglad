@@ -14,11 +14,9 @@ import {
   apiKeysSelectSchema,
   apiKeysUpdateSchema,
 } from '@/db/schema/apiKeys'
-import { eq, desc, and, lt } from 'drizzle-orm'
+import { eq, and, lt } from 'drizzle-orm'
 import { DbTransaction } from '@/db/types'
-import { organizations } from '../schema/organizations'
 import { FlowgladApiKeyType } from '@/types'
-import core from '@/utils/core'
 import { z } from 'zod'
 import { selectOrganizations } from './organizationMethods'
 

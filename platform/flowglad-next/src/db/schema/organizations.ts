@@ -6,7 +6,6 @@ import {
   boolean,
   jsonb,
   integer,
-  pgPolicy,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
@@ -19,7 +18,6 @@ import {
   notNullStringForeignKey,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  merchantRole,
   merchantPolicy,
 } from '@/db/tableUtils'
 import { countries } from '@/db/schema/countries'
@@ -29,7 +27,6 @@ import {
   CurrencyCode,
   StripeConnectContractType,
 } from '@/types'
-import { generateRandomBytes } from '@/utils/backendCore'
 import { nanoid } from 'nanoid'
 import { sql } from 'drizzle-orm'
 

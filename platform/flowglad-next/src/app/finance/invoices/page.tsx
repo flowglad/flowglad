@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { InvoiceStatus } from '@/types'
 import InvoicesTable from '@/components/InvoicesTable'
-import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
 import { PageHeader } from '@/components/ui/page-header'
 import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 // import { Button } from '@/components/ui/button'
@@ -18,8 +17,6 @@ const InternalInvoicesPage = () => {
   const [selectedStatus, setSelectedStatus] = useState<
     InvoiceStatus | 'all'
   >('all')
-  const { isLoading, getCountForStatus } =
-    useInvoiceCountsByStatusMap()
 
   const handleFilterChange = (value: string) => {
     setSelectedStatus(value as InvoiceStatus | 'all')

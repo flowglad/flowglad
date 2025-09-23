@@ -1,12 +1,6 @@
 'use client'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import {
-  Tabs,
-  TabsList,
-  TabsContent,
-  TabsTrigger,
-} from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -15,23 +9,10 @@ import CustomersTable from './CustomersTable'
 import { PageHeader } from '@/components/ui/page-header'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
-interface CustomerTabProps {
-  label: string
-}
-
-const CustomerTab = ({ label }: CustomerTabProps) => {
-  return (
-    <TabsTrigger value={label}>
-      <div className="flex items-center gap-2">
-        <span>{label}</span>
-      </div>
-    </TabsTrigger>
-  )
-}
 
 function Internal() {
   const { organization } = useAuthenticatedContext()
-  const [activeTab, setActiveTab] = useState('all')
+  const activeTab = 'all'
   const [isCreateCustomerOpen, setIsCreateCustomerOpen] =
     useState(false)
 

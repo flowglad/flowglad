@@ -173,7 +173,7 @@ const listCheckoutSessionsProcedure = protectedProcedure
 
 export const getIntentStatusProcedure = protectedProcedure
   .input(getIntentStatusInputSchema)
-  .query(async ({ input, ctx }) => {
+  .query(async ({ input }) => {
     return adminTransaction(async ({ transaction }) => {
       return getIntentStatus(input, transaction)
     })
@@ -190,7 +190,7 @@ export const setPaymentMethodTypeProcedure = publicProcedure
       paymentMethodType: z.nativeEnum(PaymentMethodType),
     })
   )
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input }) => {
     return adminTransaction(async ({ transaction }) => {
       const checkoutSession =
         await updateCheckoutSessionPaymentMethodType(
@@ -208,7 +208,7 @@ export const setPaymentMethodTypeProcedure = publicProcedure
 
 export const setCustomerEmailProcedure = publicProcedure
   .input(z.object({ id: z.string(), customerEmail: z.string() }))
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input }) => {
     return adminTransaction(async ({ transaction }) => {
       const checkoutSession =
         await updateCheckoutSessionCustomerEmail(input, transaction)
@@ -222,7 +222,7 @@ export const setBillingAddressProcedure = publicProcedure
   .input(
     z.object({ id: z.string(), billingAddress: billingAddressSchema })
   )
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input }) => {
     return adminTransaction(async ({ transaction }) => {
       const checkoutSession =
         await updateCheckoutSessionBillingAddress(input, transaction)
@@ -240,7 +240,7 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
         automaticallyUpdateSubscriptions: z.boolean(),
       })
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       return adminTransaction(async ({ transaction }) => {
         const checkoutSession =
           await updateCheckoutSessionAutomaticallyUpdateSubscriptions(

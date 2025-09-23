@@ -1,11 +1,5 @@
 import * as R from 'ramda'
-import {
-  boolean,
-  pgPolicy,
-  pgTable,
-  text,
-  timestamp,
-} from 'drizzle-orm/pg-core'
+import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
@@ -28,7 +22,6 @@ import {
 } from '@/db/tableUtils'
 import { purchases } from './purchases'
 import {
-  IntervalUnit,
   InvoiceStatus,
   InvoiceType,
   CurrencyCode,
@@ -292,10 +285,6 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const createOnlyColumns = {
-  customerId: true,
-  purchaseId: true,
-} as const
 
 const readOnlyColumns = {
   organizationId: true,

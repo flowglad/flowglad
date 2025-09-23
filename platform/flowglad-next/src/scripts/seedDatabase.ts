@@ -7,7 +7,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
 import { seedDatabase } from '@/../seedDatabase'
 
-async function example(db: PostgresJsDatabase) {
+async function example(_db: PostgresJsDatabase) {
   // eslint-disable-next-line no-console
   console.log(`foo`)
   if (process.env.VERCEL_ENV === 'production') {

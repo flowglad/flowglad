@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { integer, text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
+import { integer, text, pgTable } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   constructIndex,
@@ -89,10 +89,6 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-} as const
 
 const clientWriteOmits = R.omit(['position'], {
   ...hiddenColumns,

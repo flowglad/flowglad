@@ -4,7 +4,6 @@ import {
   text,
   timestamp,
   jsonb,
-  pgPolicy,
   integer,
   boolean,
 } from 'drizzle-orm/pg-core'
@@ -32,7 +31,7 @@ import {
 } from '@/db/schema/customers'
 import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
 import { IntervalUnit, SubscriptionStatus } from '@/types'
-import { uuid, z } from 'zod'
+import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { organizations } from './organizations'
 import core from '@/utils/core'
@@ -247,11 +246,11 @@ const clientWriteOmits = R.omit(['position'], {
   ...createOnlyColumns,
 })
 
-const nonClientEditableColumns = {
-  ...readOnlyColumns,
-  ...hiddenColumns,
-  ...createOnlyColumns,
-} as const
+// const nonClientEditableColumns = { // This was unused
+//   ...readOnlyColumns,
+//   ...hiddenColumns,
+//   ...createOnlyColumns,
+// } as const
 
 /*
  * client schemas

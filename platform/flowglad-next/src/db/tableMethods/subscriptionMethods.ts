@@ -6,8 +6,6 @@ import {
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
   createCursorPaginatedSelectFunction,
-  createBulkInsertOrDoNothingFunction,
-  whereClauseFromObject,
 } from '@/db/tableUtils'
 import {
   nonRenewingStatusSchema,
@@ -24,7 +22,6 @@ import {
   lte,
   gte,
   eq,
-  desc,
   gt,
   isNull,
   or,
@@ -38,7 +35,6 @@ import { DbTransaction } from '@/db/types'
 import { customers, customersSelectSchema } from '../schema/customers'
 import { prices, pricesSelectSchema } from '../schema/prices'
 import { products, productsSelectSchema } from '../schema/products'
-import { z } from 'zod'
 import { PaymentMethod } from '../schema/paymentMethods'
 
 const config: ORMMethodCreatorConfig<

@@ -1,17 +1,10 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Plus } from 'lucide-react'
 import { DataTable } from '@/components/ui/data-table'
 import { Purchase } from '@/db/schema/purchases'
 import core from '@/utils/core'
-import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
-import {
-  PopoverMenuItemState,
-  type PopoverMenuItem,
-} from '@/components/PopoverMenu'
 import { Badge } from '@/components/ui/badge'
-import { TableHeader } from '@/components/ui/table-header'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode, PurchaseStatus } from '@/types'
 import { trpc } from '@/app/_trpc/client'

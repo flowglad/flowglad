@@ -1,11 +1,7 @@
 'use client'
 import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
 
-const PendingPostPurchaseScreen = ({
-  purchaseId,
-}: {
-  purchaseId: string
-}) => {
+const PendingPostPurchaseScreen = () => {
   return <PaymentStatusProcessing />
 }
 

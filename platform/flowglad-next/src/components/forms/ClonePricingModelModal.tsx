@@ -29,7 +29,7 @@ const ClonePricingModelModal: React.FC<
           )
         }
       },
-      onError: (error) => {
+      onError: () => {
         toast.error('Failed to clone pricing model')
       },
     })

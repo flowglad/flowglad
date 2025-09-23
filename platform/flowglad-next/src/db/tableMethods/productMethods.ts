@@ -1,8 +1,6 @@
 import * as R from 'ramda'
-import { z } from 'zod'
 
 import {
-  createUpsertFunction,
   createSelectById,
   createSelectFunction,
   createInsertFunction,
@@ -18,18 +16,15 @@ import {
   productsInsertSchema,
   productsSelectSchema,
   productsUpdateSchema,
-  productsClientSelectSchema,
 } from '@/db/schema/products'
 import { ProperNoun } from '../schema/properNouns'
 import { DbTransaction } from '../types'
 import {
   Price,
-  pricesClientSelectSchema,
   productsTableRowDataSchema,
 } from '@/db/schema/prices'
 import {
   PricingModel,
-  pricingModelsClientSelectSchema,
 } from '@/db/schema/pricingModels'
 import {
   selectPrices,

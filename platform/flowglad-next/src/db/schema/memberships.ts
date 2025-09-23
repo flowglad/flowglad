@@ -96,11 +96,6 @@ const readOnlyColumns = {
 
 const createOnlyColumns = {} as const
 
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-  ...createOnlyColumns,
-} as const
 
 const clientWriteOmits = R.omit(['position'], {
   ...hiddenColumns,

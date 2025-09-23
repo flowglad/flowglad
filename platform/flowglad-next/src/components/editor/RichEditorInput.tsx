@@ -41,13 +41,13 @@ const RichEditorInput = ({
   const CustomEnterHandling = Extension.create({
     addKeyboardShortcuts() {
       return {
-        Enter: ({ editor }) => {
+        Enter: () => {
           if (onEnterSubmit) {
             onEnterSubmit()
           }
           return true
         },
-        'Shift-Enter': ({ editor }) => {
+        'Shift-Enter': () => {
           // Shift+Enter logic
           return true
         },
@@ -95,7 +95,7 @@ const RichEditorInput = ({
   }
 
   if (onChange) {
-    editor.on('update', (e) => {
+    editor.on('update', () => {
       onChange(editor?.getHTML() ?? '')
     })
   }

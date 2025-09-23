@@ -1,6 +1,5 @@
 import { pricingModelsClientInsertSchema } from '@/db/schema/pricingModels'
 import {
-  featuresClientInsertSchema,
   toggleFeatureClientInsertSchema,
   usageCreditGrantFeatureClientInsertSchema,
 } from '@/db/schema/features'

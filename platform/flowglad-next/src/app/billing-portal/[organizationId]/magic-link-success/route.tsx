@@ -6,7 +6,6 @@ import {
   clearCustomerBillingPortalOrganizationId,
   setCustomerBillingPortalOrganizationId,
 } from '@/utils/customerBillingPortalState'
-import { redirect } from 'next/navigation'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const GET = async (

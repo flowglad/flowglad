@@ -1,5 +1,4 @@
 import ReactMarkdown from 'react-markdown'
-import { cn } from '@/lib/utils'
 
 const components = {
   // Override default elements with shadcn semantic colors

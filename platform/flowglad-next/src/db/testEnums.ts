@@ -21,8 +21,6 @@ import {
   PaymentStatus,
   CurrencyCode,
   FlowgladEventType,
-  EventCategory,
-  EventRetentionPolicy,
   EventNoun,
   SubscriptionStatus,
   IntervalUnit,

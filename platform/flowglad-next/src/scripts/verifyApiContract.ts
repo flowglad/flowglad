@@ -8,7 +8,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
 import verifyApiContract from '@/api-contract/verify'
 
-async function verifyApiContractScript(db: PostgresJsDatabase) {
+async function verifyApiContractScript(_db: PostgresJsDatabase) {
   const logger = {
     info: console.log,
     warn: console.log,

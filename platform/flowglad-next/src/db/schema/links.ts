@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
+import { text, pgTable } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { z } from 'zod'
 import {

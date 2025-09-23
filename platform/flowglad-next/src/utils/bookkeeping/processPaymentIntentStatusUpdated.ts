@@ -32,10 +32,6 @@ import { dateFromStripeTimestamp } from '@/utils/stripe'
 import { Payment } from '@/db/schema/payments'
 import { updateInvoiceStatusToReflectLatestPayment } from '../bookkeeping'
 import { updatePurchaseStatusToReflectLatestPayment } from '../bookkeeping'
-import {
-  commitPaymentCanceledEvent,
-  commitPaymentSucceededEvent,
-} from '../events'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
@@ -93,7 +89,6 @@ export const upsertPaymentForStripeCharge = async (
   let livemode: Nullish<boolean> = null
   let customerId: Nullish<string> = null
   let currency: Nullish<CurrencyCode> = null
-  let subscriptionId: Nullish<string> = null
   if (paymentIntentMetadata.type === IntentMetadataType.BillingRun) {
     const billingRun = await selectBillingRunById(
       paymentIntentMetadata.billingRunId,
@@ -120,7 +115,6 @@ export const upsertPaymentForStripeCharge = async (
     customerId = subscription.customerId
     organizationId = subscription.organizationId
     livemode = subscription.livemode
-    subscriptionId = subscription.id
   } else if (
     paymentIntentMetadata.type === IntentMetadataType.CheckoutSession
   ) {
@@ -151,7 +145,6 @@ export const upsertPaymentForStripeCharge = async (
       taxCountry = invoice.taxCountry
       customerId = invoice.customerId
       livemode = invoice.livemode
-      subscriptionId = invoice.subscriptionId
     } else {
       invoiceId = invoice?.id ?? null
       currency = invoice?.currency ?? null
@@ -163,7 +156,6 @@ export const upsertPaymentForStripeCharge = async (
       customerId = purchase?.customerId || invoice?.customerId || null
       // hard assumption
       // checkoutSessionId payment intents are only for anonymous single payment purchases
-      subscriptionId = null
     }
     invoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
@@ -180,7 +172,6 @@ export const upsertPaymentForStripeCharge = async (
     customerId = purchase?.customerId || invoice?.customerId || null
     // hard assumption
     // checkoutSessionId payment intents are only for anonymous single payment purchases
-    subscriptionId = null
   } else {
     throw new Error(
       'No invoice, purchase, or subscription found for payment intent'

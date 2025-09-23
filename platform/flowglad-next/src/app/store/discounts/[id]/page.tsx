@@ -1,7 +1,6 @@
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectDiscountById,
-  selectDiscounts,
 } from '@/db/tableMethods/discountMethods'
 
 interface PageProps {

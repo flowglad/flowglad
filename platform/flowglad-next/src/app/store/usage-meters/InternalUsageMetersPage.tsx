@@ -13,7 +13,7 @@ import Breadcrumb from '@/components/navigation/Breadcrumb'
 export default function UsageMetersPage() {
   const [createUsageMeterModalOpen, setCreateUsageMeterModalOpen] =
     useState(false)
-  const [filters, setFilters] = useState<UsageMetersTableFilters>({})
+  const [filters] = useState<UsageMetersTableFilters>({})
 
   return (
     <InternalPageContainer>

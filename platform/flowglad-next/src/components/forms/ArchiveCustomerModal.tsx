@@ -7,7 +7,6 @@ import {
   Customer,
   editCustomerInputSchema,
 } from '@/db/schema/customers'
-import { z } from 'zod'
 
 interface ArchiveCustomerModalProps {
   trigger?: React.ReactNode
@@ -31,12 +30,6 @@ const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
     router.refresh()
   }
 
-  const formSchema = z.object({
-    customer: z.object({
-      id: z.string(),
-      archived: z.boolean(),
-    }),
-  })
 
   const defaultValues = {
     customer: {

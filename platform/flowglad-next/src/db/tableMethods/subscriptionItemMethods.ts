@@ -5,7 +5,6 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createBulkInsertFunction,
-  createBulkUpsertFunction,
   SelectConditions,
   whereClauseFromObject,
   createBulkInsertOrDoNothingFunction,
@@ -26,10 +25,8 @@ import { and, eq, gt, isNull, or } from 'drizzle-orm'
 import {
   RichSubscription,
   richSubscriptionClientSelectSchema,
-  RichSubscriptionItem,
 } from '@/subscriptions/schemas'
 import {
-  pricesClientSelectSchema,
   subscribablePriceClientSelectSchema,
 } from '../schema/prices'
 import { prices } from '../schema/prices'
@@ -37,7 +34,6 @@ import { isSubscriptionCurrent } from './subscriptionMethods'
 import { SubscriptionItemType, SubscriptionStatus } from '@/types'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItem,
-  selectSubscriptionItemFeatures,
   selectSubscriptionItemFeaturesWithFeatureSlug,
 } from './subscriptionItemFeatureMethods'
 import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
@@ -80,8 +76,6 @@ export const bulkInsertSubscriptionItems = createBulkInsertFunction(
   config
 )
 
-const innerBulkCreateOrDoNothingSubscriptionItems =
-  createBulkInsertOrDoNothingFunction(subscriptionItems, config)
 
 export const selectSubscriptionAndItems = async (
   whereClause: SelectConditions<typeof subscriptions>,

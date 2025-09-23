@@ -21,7 +21,6 @@ import {
 import { createStripeCustomer } from './stripe'
 import { Purchase } from '@/db/schema/purchases'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import core from './core'
 import {
   insertPurchase,
   selectPurchaseById,
@@ -29,30 +28,21 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Customer } from '@/db/schema/customers'
-import { billingAddressSchema } from '@/db/schema/organizations'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { Payment } from '@/db/schema/payments'
 import {
-  selectPriceById,
   selectPricesAndProductsByProductWhere,
 } from '@/db/tableMethods/priceMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
-  selectOpenNonExpiredCheckoutSessions,
-  updateCheckoutSessionsForOpenPurchase,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import {
   selectDefaultPricingModel,
-  insertPricingModel,
   safelyInsertPricingModel,
   selectPricingModelById,
 } from '@/db/tableMethods/pricingModelMethods'
 import {
-  selectProducts,
   insertProduct,
 } from '@/db/tableMethods/productMethods'
 import {
-  selectPrices,
   insertPrice,
 } from '@/db/tableMethods/priceMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
@@ -187,7 +177,6 @@ export const createOpenPurchase = async (
     transaction
   )
 
-  let stripePaymentIntentId: string | null = null
   const purchaseInsert: Purchase.Insert = {
     ...payload,
     organizationId: membershipsAndOrganization.organization.id,
@@ -224,13 +213,12 @@ export const createOpenPurchase = async (
    * Subscriptions need to have their invoices created AFTER the subscription is created
    */
   if (price.type === PriceType.SinglePayment) {
-    const { invoice, invoiceLineItems } =
-      await createInitialInvoiceForPurchase(
-        {
-          purchase,
-        },
-        transaction
-      )
+    await createInitialInvoiceForPurchase(
+      {
+        purchase,
+      },
+      transaction
+    )
   }
   return purchase
 }
@@ -553,7 +541,6 @@ export const createPricingModelBookkeeping = async (
   )
 
   // 5. Create events
-  const timestamp = new Date()
   const eventsToInsert: Event.Insert[] = []
 
   return {

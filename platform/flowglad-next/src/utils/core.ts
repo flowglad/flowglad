@@ -15,7 +15,7 @@ import { camelCase, sentenceCase } from 'change-case'
 import latinMap from './latinMap'
 import { z } from 'zod'
 import axios, { AxiosRequestConfig } from 'axios'
-import { CurrencyCode, Nullish, StripePriceMode } from '@/types'
+import { Nullish, StripePriceMode } from '@/types'
 
 export const envVariable = (key: string) => process.env[key] || ''
 

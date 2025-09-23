@@ -1,4 +1,4 @@
-import { describe, it, vi } from 'vitest'
+import { describe, it } from 'vitest'
 import { overagePriceLabelFromPrice } from './OveragePriceSelect'
 import { usageDummyPrice } from '@/stubs/priceStubs'
 import { Price } from '@/db/schema/prices'

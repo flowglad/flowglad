@@ -2,7 +2,6 @@ import {
   boolean,
   text,
   pgTable,
-  pgPolicy,
   integer,
   timestamp,
   jsonb,
@@ -15,7 +14,6 @@ import {
   nullableStringForeignKey,
   constructIndex,
   livemodePolicy,
-  pgEnumColumn,
   ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
@@ -102,12 +100,7 @@ export const usageCreditBalanceAdjustmentsUpdateSchema =
     .partial()
     .extend({ id: z.string() })
 
-const createOnlyColumns = {} as const
 
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
 
 const hiddenColumns = {
   createdByCommit: true,

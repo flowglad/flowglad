@@ -1,8 +1,6 @@
 import {
-  boolean,
   text,
   pgTable,
-  pgPolicy,
   timestamp,
   integer,
   jsonb,
@@ -26,7 +24,6 @@ import { subscriptions } from '@/db/schema/subscriptions'
 import { ledgerTransactions } from '@/db/schema/ledgerTransactions'
 import { usageEvents } from '@/db/schema/usageEvents'
 import { usageCredits } from '@/db/schema/usageCredits'
-import { payments } from '@/db/schema/payments'
 import { usageCreditApplications } from '@/db/schema/usageCreditApplications'
 import { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
 import { billingPeriods } from '@/db/schema/billingPeriods'
@@ -39,7 +36,6 @@ import {
   LedgerEntryType,
 } from '@/types'
 import { ledgerAccounts } from './ledgerAccounts'
-import { EqualApproximately } from 'lucide-react'
 import { refunds } from './refunds'
 import { billingRuns } from './billingRuns'
 

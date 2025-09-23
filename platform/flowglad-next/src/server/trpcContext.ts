@@ -2,7 +2,6 @@ import * as trpcNext from '@trpc/server/adapters/next'
 import { ApiEnvironment } from '@/types'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
-  selectFocusedMembershipAndOrganization,
   selectMembershipAndOrganizationsByBetterAuthUserId,
 } from '@/db/tableMethods/membershipMethods'
 import { Organization } from '@/db/schema/organizations'

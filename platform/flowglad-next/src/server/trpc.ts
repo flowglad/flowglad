@@ -101,7 +101,7 @@ const isCustomerAuthed = t.middleware(async ({ next, ctx }) => {
 
 const isCustomerBillingAuthed = t.middleware(
   async ({ next, ctx }) => {
-    const { isApi, environment } = ctx as TRPCApiContext
+    const { environment } = ctx as TRPCApiContext
     const livemode = environment === 'live'
     const user = (ctx as TRPCContext).user
     if (!user) {

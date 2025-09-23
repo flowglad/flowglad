@@ -4,7 +4,7 @@ import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceM
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 
 export const getPricesAndProducts = protectedProcedure.query(
-  async ({ input, ctx }) => {
+  async () => {
     return authenticatedTransaction(
       async ({ transaction, userId }) => {
         const [{ organization }] =

@@ -4,7 +4,6 @@ import {
   text,
   boolean,
   timestamp,
-  pgPolicy,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { z } from 'zod'

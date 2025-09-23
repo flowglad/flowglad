@@ -6,7 +6,6 @@ import {
 import { apiKeysClientSelectSchema } from '@/db/schema/apiKeys'
 import {
   selectApiKeyById,
-  selectApiKeys,
   selectApiKeysTableRowData,
 } from '@/db/tableMethods/apiKeyMethods'
 import {
@@ -14,7 +13,7 @@ import {
   createPaginatedTableRowInputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
-import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import { z } from 'zod'
 import { FlowgladApiKeyType } from '@/types'
 import { createApiKeyInputSchema } from '@/db/schema/apiKeys'

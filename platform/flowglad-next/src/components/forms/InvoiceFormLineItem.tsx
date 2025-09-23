@@ -12,7 +12,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { cn } from '@/lib/utils'
 import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
-import { useFormContext, Controller } from 'react-hook-form'
+import { useFormContext } from 'react-hook-form'
 import {
   rawStringAmountToCountableCurrencyAmount,
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
@@ -55,9 +55,6 @@ const InvoiceFormLineItem = ({
     transition,
   }
 
-  const xOnClickHandler = () => {
-    onRemove(id)
-  }
 
   const zeroDecimal = isCurrencyZeroDecimal(
     organization!.defaultCurrency

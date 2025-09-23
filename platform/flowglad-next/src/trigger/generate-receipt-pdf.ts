@@ -14,7 +14,7 @@ import {
 
 export const generatePaymentReceiptPdfTask = task({
   id: 'generate-payment-receipt-pdf',
-  run: async ({ paymentId }: { paymentId: string }, { ctx }) => {
+  run: async ({ paymentId }: { paymentId: string }) => {
     const { payment, invoice } = await adminTransaction(
       async ({ transaction }) => {
         const payment = await selectPaymentById(

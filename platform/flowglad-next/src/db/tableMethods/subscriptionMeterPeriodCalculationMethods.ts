@@ -12,8 +12,6 @@ import {
   subscriptionMeterPeriodCalculationSelectSchema,
   subscriptionMeterPeriodCalculationUpdateSchema,
 } from '@/db/schema/subscriptionMeterPeriodCalculations'
-import { sql } from 'drizzle-orm'
-import { SubscriptionMeterPeriodCalculationStatus } from '@/types'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionMeterPeriodCalculations,

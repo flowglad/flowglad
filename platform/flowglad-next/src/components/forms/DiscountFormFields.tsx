@@ -3,7 +3,6 @@
 import { useFormContext, Controller } from 'react-hook-form'
 import {
   CreateDiscountFormSchema,
-  CreateDiscountInput,
 } from '@/db/schema/discounts'
 import { Input } from '@/components/ui/input'
 import {
@@ -26,7 +25,6 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 
 import { Percent } from 'lucide-react'
-import { core } from '@/utils/core'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { isCurrencyZeroDecimal } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
@@ -39,13 +37,11 @@ export default function DiscountFormFields({
 }) {
   const form = useFormContext<CreateDiscountFormSchema>()
   const {
-    formState: { errors },
     watch,
     control,
   } = form
   const duration = watch('discount.duration')
   const amountType = watch('discount.amountType')
-  const discount = watch('discount')
   const { organization } = useAuthenticatedContext()
   const zeroDecimal = isCurrencyZeroDecimal(
     organization!.defaultCurrency

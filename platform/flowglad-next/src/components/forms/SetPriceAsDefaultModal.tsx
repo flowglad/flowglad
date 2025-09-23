@@ -16,7 +16,6 @@ import {
   EditPriceInput,
   Price,
 } from '@/db/schema/prices'
-import { PriceType } from '@/types'
 
 interface SetPriceAsDefaultProps {
   trigger?: React.ReactNode

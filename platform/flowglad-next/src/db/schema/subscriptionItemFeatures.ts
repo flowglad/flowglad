@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import { z } from 'zod'
-import { pgTable, integer, text, pgPolicy } from 'drizzle-orm/pg-core'
+import { pgTable, integer, text } from 'drizzle-orm/pg-core'
 import {
   tableBase,
   notNullStringForeignKey,

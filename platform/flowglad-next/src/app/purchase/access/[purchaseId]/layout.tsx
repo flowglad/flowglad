@@ -1,4 +1,3 @@
-import { headers } from 'next/headers'
 import PostPaymentSidebar from '@/components/checkout/post-payment-sidebar'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectPurchaseCheckoutParametersById } from '@/db/tableMethods/purchaseMethods'

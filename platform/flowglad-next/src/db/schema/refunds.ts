@@ -1,8 +1,6 @@
 import {
-  boolean,
   text,
   pgTable,
-  pgPolicy,
   timestamp,
   integer,
 } from 'drizzle-orm/pg-core'
@@ -100,10 +98,6 @@ export const refundsUpdateSchema = refundsInsertSchema
   .partial()
   .extend({ id: z.string() })
 
-const createOnlyColumns = {} as const
-const readOnlyColumns = {
-  organizationId: true,
-} as const
 const hiddenColumns = {} as const
 
 export const refundClientSelectSchema = refundsSelectSchema

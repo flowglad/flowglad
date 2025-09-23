@@ -1,12 +1,5 @@
 import * as R from 'ramda'
-import {
-  boolean,
-  text,
-  timestamp,
-  pgTable,
-  pgPolicy,
-  pgEnum,
-} from 'drizzle-orm/pg-core'
+import { boolean, text, timestamp, pgTable } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { z } from 'zod'
 import {
@@ -152,11 +145,6 @@ const readOnlyColumns = {
 const hiddenColumns = {
   unkeyId: true,
   ...hiddenColumnsForClientSchema,
-} as const
-
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
 } as const
 
 const clientWriteOmits = R.omit(['position'], {

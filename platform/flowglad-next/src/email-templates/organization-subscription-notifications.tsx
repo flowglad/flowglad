@@ -1,12 +1,5 @@
 import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Html,
   Img,
-  Link,
-  Preview,
   Section,
   Text,
 } from '@react-email/components'
@@ -45,7 +38,6 @@ const detailsValue = {
 }
 
 export const OrganizationSubscriptionCreatedNotificationEmail = ({
-  organizationName,
   subscriptionName,
   customerId,
   customerName,
@@ -118,7 +110,6 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
 }
 
 export const OrganizationSubscriptionCanceledNotificationEmail = ({
-  organizationName,
   subscriptionName,
   customerId,
   customerName,

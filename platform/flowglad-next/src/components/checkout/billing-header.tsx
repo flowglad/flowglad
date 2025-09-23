@@ -3,18 +3,13 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import {
-  SubscriptionCheckoutDetails,
   useCheckoutPageContext,
 } from '@/contexts/checkoutPageContext'
-import { CheckoutFlowType, CurrencyCode, PriceType } from '@/types'
+import { CheckoutFlowType, PriceType } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { Purchase } from '@/db/schema/purchases'
-import { sentenceCase } from 'change-case'
 import Image from 'next/image'
 import { CheckoutMarkdownView } from '@/components/ui/checkout-markdown-view'
-import { Price } from '@/db/schema/prices'
-import { trpc } from '@/app/_trpc/client'
-import { encodeCursor } from '@/db/tableUtils'
 import { Check } from 'lucide-react'
 
 export interface BillingHeaderProps
@@ -43,12 +38,6 @@ export const pricingSubtitleForSubscriptionFlow = (
     checkoutContext as any
 
   if (!purchase && !price && !product && !checkoutSession) {
-    console.log('pricingSubtitleForSubscriptionFlow', {
-      purchase,
-      price,
-      product,
-      checkoutSession,
-    })
     return ''
   }
 

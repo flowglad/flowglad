@@ -7,7 +7,6 @@ import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import {
   SubscriptionItemFeature,
-  subscriptionItemFeaturesInsertSchema,
 } from '@/db/schema/subscriptionItemFeatures'
 import { bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import * as R from 'ramda'

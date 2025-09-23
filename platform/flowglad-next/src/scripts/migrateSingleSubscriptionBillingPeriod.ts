@@ -21,8 +21,6 @@ import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import type { DbTransaction } from '@/db/types'
 import Stripe from 'stripe'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
 
 /**
  * Migrates a single subscription's billing period from Stripe to Flowglad

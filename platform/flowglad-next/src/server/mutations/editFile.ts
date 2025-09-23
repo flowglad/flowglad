@@ -5,7 +5,7 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 
 export const editFile = protectedProcedure
   .input(editFileInputSchema)
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input, ctx: _ctx }) => {
     const updatedFile = await authenticatedTransaction(
       async ({ transaction }) => {
         return updateFile(input.file, transaction)

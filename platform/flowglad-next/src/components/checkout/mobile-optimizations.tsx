@@ -28,8 +28,6 @@ export const MobileOptimizedContainer = ({
   children: React.ReactNode
   className?: string
 }) => {
-  const isMobile = useIsMobile()
-
   return (
     <div
       className={cn(

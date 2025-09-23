@@ -1,7 +1,6 @@
 import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { adminTransaction } from '@/db/adminTransaction'
-import { z } from 'zod'
 import {
   selectFocusedMembershipAndOrganization,
   selectMemberships,
@@ -18,7 +17,6 @@ import {
 } from '@/db/schema/memberships'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
 import { Organization } from '@/db/schema/organizations'
-import { auth } from '@/utils/auth'
 import core from '@/utils/core'
 
 export const innerInviteUserToOrganizationHandler = async (

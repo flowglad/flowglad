@@ -25,7 +25,7 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
   token: string
   organizationId: string
 }) => {
-  const { email, url, token, organizationId } = params
+  const { email, url, organizationId } = params
   // Get organization and customer info for the email
   const { organization, customer } = await adminTransaction(
     async ({ transaction }) => {
@@ -54,15 +54,7 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
   })
 }
 
-const handleMerchantEmailOTP = async ({
-  email,
-  url,
-  token,
-}: {
-  email: string
-  url: string
-  token: string
-}) => {
+const handleMerchantEmailOTP = async () => {
   throw new Error('Not implemented')
 }
 
@@ -99,7 +91,7 @@ export const auth = betterAuth({
             organizationId: customerBillingPortalOrganizationId,
           })
         } else {
-          await handleMerchantEmailOTP({ email, url, token })
+          await handleMerchantEmailOTP()
         }
       },
     }),
@@ -135,7 +127,7 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
-    sendResetPassword: async ({ user, url, token }, request) => {
+    sendResetPassword: async ({ user, url }) => {
       await sendForgotPasswordEmail({
         to: [user.email],
         url,

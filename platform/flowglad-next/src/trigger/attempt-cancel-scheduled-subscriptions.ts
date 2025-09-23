@@ -1,4 +1,4 @@
-import { task, idempotencyKeys } from '@trigger.dev/sdk'
+import { task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectSubscriptionsToBeCancelled } from '@/db/tableMethods/subscriptionMethods'
 import { attemptSubscriptionCancellationTask } from './attempt-subscription-cancellation'
@@ -11,7 +11,6 @@ export const attemptCancelScheduledSubscriptionsTask = task({
       startDateISO: string
       endDateISO: string
     },
-    { ctx }
   ) => {
     const {
       testmodeSubscriptionsToCancel,

@@ -57,12 +57,12 @@ export const getSetupInstructions: ToolConstructor<
     'Get instructions for a project to integrate billing and payments.',
   schema: getSetupInstructionsSchema,
   callbackConstructor:
-    (apiKey: string) =>
+    (_apiKey: string) =>
     async ({
       projectStructure,
-      pricingComponents,
-      stackDetails,
-      additionalDetails,
+      pricingComponents: _pricingComponents,
+      stackDetails: _stackDetails,
+      additionalDetails: _additionalDetails,
     }) => {
       const instructions = await loadInstructions(
         `${projectStructure}-setup.mdx`

@@ -9,16 +9,9 @@ import {
   CancellationReason,
 } from '@/types'
 import {
-  selectBillingPeriods,
-  selectBillingPeriodsDueForTransition,
-} from '@/db/tableMethods/billingPeriodMethods'
-import {
-  selectBillingPeriodItems,
   selectBillingPeriodsWithItemsAndSubscriptionForDateRange,
 } from '@/db/tableMethods/billingPeriodItemMethods'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
-import { and, between, eq, gte, lte, or } from 'drizzle-orm'
-import { billingPeriods } from '@/db/schema/billingPeriods'
+import { eq } from 'drizzle-orm'
 import { subscriptions } from '@/db/schema/subscriptions'
 import {
   startOfMonth,
@@ -27,7 +20,6 @@ import {
   startOfDay,
   endOfDay,
   differenceInDays,
-  getDaysInMonth,
 } from 'date-fns'
 
 export interface MonthlyRecurringRevenue {

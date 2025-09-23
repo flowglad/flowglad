@@ -17,7 +17,6 @@ import {
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
-  PaymentMethodType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq, inArray, lt, not } from 'drizzle-orm'

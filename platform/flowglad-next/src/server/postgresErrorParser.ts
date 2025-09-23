@@ -457,7 +457,7 @@ const CONSTRAINT_MESSAGES: Record<
   _unique: {
     pattern: /(.+)_(.+)_unique$/,
     getMessage: (matches) => {
-      const [, table, column] = matches
+      const [, _table, column] = matches
       const readableColumn = column.replace(/_/g, ' ')
       return `This ${readableColumn} already exists. Please choose a different value.`
     },
@@ -465,7 +465,7 @@ const CONSTRAINT_MESSAGES: Record<
   _key: {
     pattern: /(.+)_(.+)_key$/,
     getMessage: (matches) => {
-      const [, table, column] = matches
+      const [, _table, column] = matches
       const readableColumn = column.replace(/_/g, ' ')
       return `A record with this ${readableColumn} already exists.`
     },
@@ -473,7 +473,7 @@ const CONSTRAINT_MESSAGES: Record<
   _fkey: {
     pattern: /(.+)_(.+)_fkey$/,
     getMessage: (matches) => {
-      const [, table, column] = matches
+      const [, _table, column] = matches
       const readableColumn = column
         .replace(/_id$/, '')
         .replace(/_/g, ' ')
@@ -483,7 +483,7 @@ const CONSTRAINT_MESSAGES: Record<
   _check: {
     pattern: /(.+)_(.+)_check$/,
     getMessage: (matches) => {
-      const [, table, column] = matches
+      const [, _table, column] = matches
       const readableColumn = column.replace(/_/g, ' ')
       return `The ${readableColumn} value does not meet the required criteria.`
     },
@@ -591,18 +591,6 @@ const RLS_ERROR_PATTERNS: Record<
       'This operation could not be completed due to security restrictions. Please contact support if you believe this is an error.',
     internalNote: 'RLS: Generic policy violation',
   },
-}
-
-// Check constraint patterns
-const CHECK_CONSTRAINTS: Record<string, string> = {
-  positive_amount_check: 'The amount must be a positive value.',
-  valid_percentage_check: 'The percentage must be between 0 and 100.',
-  valid_date_range_check:
-    'The end date must be after the start date.',
-  non_empty_string_check: 'This field cannot be empty.',
-  valid_email_check: 'Please provide a valid email address.',
-  valid_url_check: 'Please provide a valid URL.',
-  valid_currency_check: 'The currency code is not valid.',
 }
 
 // Resource-specific helpful context
@@ -715,7 +703,7 @@ const ERROR_CODE_MESSAGES: Record<
     const errorDetail = error.detail || ''
     const fullError = `${errorMessage} ${errorDetail}`.toLowerCase()
 
-    for (const [key, rlsPattern] of Object.entries(
+    for (const [_key, rlsPattern] of Object.entries(
       RLS_ERROR_PATTERNS
     )) {
       if (rlsPattern.pattern.test(fullError)) {
@@ -786,7 +774,7 @@ function getConstraintMessage(
   }
 
   // Check for pattern matches
-  for (const [key, mapping] of Object.entries(CONSTRAINT_MESSAGES)) {
+  for (const [_key, mapping] of Object.entries(CONSTRAINT_MESSAGES)) {
     if (typeof mapping === 'object' && 'pattern' in mapping) {
       const matches = constraintName.match(mapping.pattern)
       if (matches) {

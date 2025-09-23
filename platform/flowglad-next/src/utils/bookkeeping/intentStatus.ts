@@ -13,7 +13,6 @@ import {
 import { getSetupIntent, stripeIdFromObjectOrId } from '../stripe'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 import {
-  PaymentMethod,
   paymentMethodClientSelectSchema,
 } from '@/db/schema/paymentMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'

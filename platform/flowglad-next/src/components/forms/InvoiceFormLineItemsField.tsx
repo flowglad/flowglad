@@ -36,10 +36,9 @@ export const newInvoiceLineItem: InvoiceLineItem.ClientInsert = {
   priceId: null,
 }
 export const InvoiceFormLineItemsField = () => {
-  const { livemode } = useAuthContext()
   const { control, setValue, watch } =
     useFormContext<CreateInvoiceInput>()
-  const { fields, append, update, remove } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control,
     name: 'invoiceLineItems',
   })

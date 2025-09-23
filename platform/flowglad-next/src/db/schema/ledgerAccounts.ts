@@ -2,7 +2,6 @@ import {
   boolean,
   text,
   pgTable,
-  pgPolicy,
   integer,
   jsonb,
 } from 'drizzle-orm/pg-core'
@@ -17,7 +16,6 @@ import {
   ommittedColumnsForInsertSchema,
   livemodePolicy,
   pgEnumColumn,
-  merchantRole,
   merchantPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'

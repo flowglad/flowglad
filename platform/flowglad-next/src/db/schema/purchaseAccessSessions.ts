@@ -14,7 +14,6 @@ import {
   tableBase,
   notNullStringForeignKey,
   livemodePolicy,
-  createSupabaseWebhookSchema,
   ommittedColumnsForInsertSchema,
   SelectConditions,
 } from '@/db/tableUtils'
