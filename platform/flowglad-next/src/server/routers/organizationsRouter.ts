@@ -16,7 +16,7 @@ import {
   membershipsClientSelectSchema,
   membershipsTableRowDataSchema,
 } from '@/db/schema/memberships'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { updateOrganization as updateOrganizationDB } from '@/db/tableMethods/organizationMethods'
 import { selectRevenueDataForOrganization } from '@/db/tableMethods/paymentMethods'
 import {
   createOrganizationSchema,
@@ -328,7 +328,7 @@ const updateOrganization = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transaction, userId }) => {
         const { organization } = input
-        await updateOrganization(organization, transaction)
+        await updateOrganizationDB(organization, transaction)
         return {
           data: organization,
         }

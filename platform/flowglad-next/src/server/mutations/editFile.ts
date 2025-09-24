@@ -1,6 +1,6 @@
 import { protectedProcedure } from '@/server/trpc'
 import { editFileInputSchema } from '@/db/schema/files'
-import { updateFile } from '@/db/tableMethods/fileMethods'
+import { updateFile as updateFileDB } from '@/db/tableMethods/fileMethods'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 
 export const updateFile = protectedProcedure
@@ -8,7 +8,7 @@ export const updateFile = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const updatedFile = await authenticatedTransaction(
       async ({ transaction }) => {
-        return updateFile(input.file, transaction)
+        return updateFileDB(input.file, transaction)
       }
     )
     return {

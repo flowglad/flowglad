@@ -2,7 +2,7 @@ import { router } from '../trpc'
 import { editDiscountInputSchema } from '@/db/schema/discounts'
 import {
   selectDiscountById,
-  updateDiscount,
+  updateDiscount as updateDiscountDB,
   selectDiscountsTableRowData,
 } from '@/db/tableMethods/discountMethods'
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
@@ -114,7 +114,7 @@ export const updateDiscount = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const discount = await authenticatedTransaction(
       async ({ transaction }) => {
-        const updatedDiscount = await updateDiscount(
+        const updatedDiscount = await updateDiscountDB(
           {
             ...input.discount,
             id: input.id,

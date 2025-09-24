@@ -6,7 +6,7 @@ import {
 import {
   selectWebhookById,
   insertWebhook,
-  updateWebhook,
+  updateWebhook as updateWebhookDB,
   selectWebhookAndOrganizationByWebhookId,
   selectWebhooksTableRowData,
 } from '@/db/tableMethods/webhookMethods'
@@ -81,7 +81,7 @@ export const updateWebhook = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction, ctx }) => {
-        const webhook = await updateWebhook(
+        const webhook = await updateWebhookDB(
           {
             ...input.webhook,
             id: input.id,

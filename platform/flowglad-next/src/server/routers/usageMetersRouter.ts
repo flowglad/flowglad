@@ -8,7 +8,7 @@ import {
 } from '@/db/schema/usageMeters'
 import {
   selectUsageMeterById,
-  updateUsageMeter,
+  updateUsageMeter as updateUsageMeterDB,
   selectUsageMetersPaginated,
   selectUsageMetersCursorPaginated,
 } from '@/db/tableMethods/usageMeterMethods'
@@ -79,7 +79,7 @@ const updateUsageMeter = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const usageMeter = await updateUsageMeter(
+        const usageMeter = await updateUsageMeterDB(
           {
             ...input.usageMeter,
             id: input.id,

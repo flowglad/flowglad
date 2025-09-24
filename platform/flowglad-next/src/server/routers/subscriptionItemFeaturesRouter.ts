@@ -8,7 +8,7 @@ import {
 } from '@/db/schema/subscriptionItemFeatures'
 import {
   selectSubscriptionItemFeatureById,
-  updateSubscriptionItemFeature,
+  updateSubscriptionItemFeature as updateSubscriptionItemFeatureDB,
   insertSubscriptionItemFeature,
   expireSubscriptionItemFeature as expireSubscriptionItemFeatureMethod,
   selectClientSubscriptionItemFeatureAndFeatureById,
@@ -110,7 +110,7 @@ const updateSubscriptionItemFeature = protectedProcedure
           id: input.id,
         } as SubscriptionItemFeature.Update
 
-        await updateSubscriptionItemFeature(
+        await updateSubscriptionItemFeatureDB(
           updatePayload,
           transaction
         )
