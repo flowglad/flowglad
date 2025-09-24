@@ -218,7 +218,7 @@ describe('trpcToRest', () => {
       expect(pattern.test('subscriptions/123/adjust')).toBe(true)
       expect(pattern.test('subscriptions/123')).toBe(false)
 
-      const matches = pattern.exec('subscriptions/123/adjust')!
+      const matches = pattern.exec('subscriptions/123/adjust')!.slice(1)
       const testBody = { amount: 100 }
       expect(
         result['POST /subscriptions/:id/adjust'].mapParams(
