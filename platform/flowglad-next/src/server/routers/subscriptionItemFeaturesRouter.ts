@@ -8,7 +8,7 @@ import {
 } from '@/db/schema/subscriptionItemFeatures'
 import {
   selectSubscriptionItemFeatureById,
-  updateSubscriptionItemFeature,
+  updateSubscriptionItemFeature as updateSubscriptionItemFeatureDB,
   insertSubscriptionItemFeature,
   expireSubscriptionItemFeature as expireSubscriptionItemFeatureMethod,
   selectClientSubscriptionItemFeatureAndFeatureById,
@@ -98,7 +98,7 @@ const createSubscriptionItemFeature = protectedProcedure
     )
   )
 
-const editSubscriptionItemFeature = protectedProcedure
+const updateSubscriptionItemFeature = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
@@ -110,7 +110,7 @@ const editSubscriptionItemFeature = protectedProcedure
           id: input.id,
         } as SubscriptionItemFeature.Update
 
-        await updateSubscriptionItemFeature(
+        await updateSubscriptionItemFeatureDB(
           updatePayload,
           transaction
         )
@@ -194,6 +194,6 @@ const expireSubscriptionItemFeature = protectedProcedure
 export const subscriptionItemFeaturesRouter = router({
   get: getSubscriptionItemFeature,
   create: createSubscriptionItemFeature,
-  update: editSubscriptionItemFeature,
+  update: updateSubscriptionItemFeature,
   deactivate: expireSubscriptionItemFeature,
 })

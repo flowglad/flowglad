@@ -6,7 +6,7 @@ import {
 } from '@/db/schema/features'
 import {
   selectFeatureById,
-  updateFeature,
+  updateFeature as updateFeatureDB,
   insertFeature,
   selectFeaturesPaginated,
   selectFeaturesTableRowData,
@@ -86,14 +86,14 @@ const listFeaturesProcedure = protectedProcedure
     )
   })
 
-export const editFeature = protectedProcedure
+export const updateFeature = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editFeatureSchema)
   .output(z.object({ feature: featuresClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const feature = await updateFeature(
+        const feature = await updateFeatureDB(
           {
             ...input.feature,
             id: input.id,
@@ -161,7 +161,7 @@ const getFeaturesForPricingModel = protectedProcedure
 export const featuresRouter = router({
   get: getFeature,
   create: createFeature,
-  update: editFeature,
+  update: updateFeature,
   list: listFeaturesProcedure,
   getTableRows,
   getFeaturesForPricingModel,
