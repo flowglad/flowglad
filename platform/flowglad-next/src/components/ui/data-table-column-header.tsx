@@ -13,5 +13,9 @@ export function DataTableColumnHeader<TData, TValue>({
   title,
   className,
 }: DataTableColumnHeaderProps<TData, TValue>) {
-  return <div className={cn(className)}>{title}</div>
+  return (
+    <div className={cn('flex items-center space-x-2', className)}>
+      <span>{title}</span>
+    </div>
+  )
 }

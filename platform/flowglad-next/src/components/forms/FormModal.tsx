@@ -127,6 +127,10 @@ export const NestedFormModal = <T extends FieldValues>({
             form.reset(defaultValues)
           }
           setIsOpen(false)
+          // Cleanup any orphaned pointer-events styling
+          setTimeout(() => {
+            document.body.style.pointerEvents = ''
+          }, 100)
         }}
       >
         Cancel
@@ -144,6 +148,10 @@ export const NestedFormModal = <T extends FieldValues>({
           if (onSuccess) {
             onSuccess()
           }
+          // Cleanup any orphaned pointer-events styling
+          setTimeout(() => {
+            document.body.style.pointerEvents = ''
+          }, 100)
         }}
       >
         {submitButtonText ?? 'Submit'}
@@ -175,8 +183,21 @@ export const NestedFormModal = <T extends FieldValues>({
     </div>
   )
 
+  const handleOpenChange = useCallback(
+    (newOpen: boolean) => {
+      setIsOpen(newOpen)
+      if (!newOpen) {
+        // Cleanup any orphaned pointer-events styling when modal closes
+        setTimeout(() => {
+          document.body.style.pointerEvents = ''
+        }, 100)
+      }
+    },
+    [setIsOpen]
+  )
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
         className={cn(
           'flex-1 max-h-[90vh] overflow-hidden flex flex-col',
@@ -247,6 +268,10 @@ const FormModal = <T extends FieldValues>({
         onClick={() => {
           form.reset(defaultValues)
           setIsOpen(false)
+          // Cleanup any orphaned pointer-events styling
+          setTimeout(() => {
+            document.body.style.pointerEvents = ''
+          }, 100)
         }}
       >
         Cancel
@@ -287,8 +312,21 @@ const FormModal = <T extends FieldValues>({
     </div>
   )
 
+  const handleMainOpenChange = useCallback(
+    (newOpen: boolean) => {
+      setIsOpen(newOpen)
+      if (!newOpen) {
+        // Cleanup any orphaned pointer-events styling when modal closes
+        setTimeout(() => {
+          document.body.style.pointerEvents = ''
+        }, 100)
+      }
+    },
+    [setIsOpen]
+  )
+
   let content = (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleMainOpenChange}>
       <DialogContent
         className={cn(
           'flex-1 max-h-[90vh] overflow-hidden flex flex-col',
@@ -314,7 +352,7 @@ const FormModal = <T extends FieldValues>({
     content = (
       <Drawer
         open={isOpen}
-        onOpenChange={setIsOpen}
+        onOpenChange={handleMainOpenChange}
         direction="right"
       >
         <DrawerContent className="h-full flex flex-col">
@@ -348,6 +386,10 @@ const FormModal = <T extends FieldValues>({
               setIsOpen(false)
             }
             hardResetFormValues()
+            // Cleanup any orphaned pointer-events styling
+            setTimeout(() => {
+              document.body.style.pointerEvents = ''
+            }, 100)
           } catch (error) {
             form.setError('root', {
               message: (error as Error).message,

@@ -1,11 +1,10 @@
 'use client'
-import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import CreateDiscountModal from '@/components/forms/CreateDiscountModal'
-import DiscountsTable, {
+import {
+  DiscountsDataTable,
   DiscountsTableFilters,
-} from './DiscountsTable'
+} from './data-table'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { PageHeader } from '@/components/ui/page-header'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
@@ -43,15 +42,7 @@ function InternalDiscountsPage() {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <PageHeader
-          title="Discounts"
-          action={
-            <Button onClick={() => setIsCreateDiscountOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Discount
-            </Button>
-          }
-        />
+        <PageHeader title="Discounts" />
         <div className="w-full">
           <FilterButtonGroup
             options={filterOptions}
@@ -59,7 +50,10 @@ function InternalDiscountsPage() {
             onValueChange={setActiveFilter}
             className="mb-6"
           />
-          <DiscountsTable filters={getFilterForTab(activeFilter)} />
+          <DiscountsDataTable
+            filters={getFilterForTab(activeFilter)}
+            onCreateDiscount={() => setIsCreateDiscountOpen(true)}
+          />
         </div>
         <CreateDiscountModal
           isOpen={isCreateDiscountOpen}

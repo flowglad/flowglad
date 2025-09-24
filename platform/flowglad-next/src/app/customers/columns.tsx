@@ -11,7 +11,6 @@ import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 // Other imports
 import core from '@/utils/core'
@@ -106,34 +105,6 @@ function CustomerActionsMenu({
 }
 
 export const columns: ColumnDef<CustomerTableRowData>[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
-          onCheckedChange={(value) =>
-            table.toggleAllPageRowsSelected(!!value)
-          }
-          aria-label="Select all"
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
   {
     id: 'name',
     accessorFn: (row) => row.customer.name,

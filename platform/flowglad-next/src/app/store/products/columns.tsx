@@ -18,7 +18,6 @@ import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-import { Checkbox } from '@/components/ui/checkbox'
 // Other imports
 import Image from 'next/image'
 import StatusBadge from '@/components/StatusBadge'
@@ -125,36 +124,6 @@ function ProductActionsMenu({
 }
 
 export const columns: ColumnDef<ProductRow>[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
-          onCheckedChange={(value) =>
-            table.toggleAllPageRowsSelected(!!value)
-          }
-          aria-label="Select all"
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-    size: 40,
-    maxSize: 40,
-  },
   {
     id: 'image',
     header: '',

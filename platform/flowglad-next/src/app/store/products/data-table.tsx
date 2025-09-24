@@ -87,7 +87,6 @@ export function ProductsDataTable({
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
 
   const table = useReactTable({
     data: data?.items || [],
@@ -99,7 +98,6 @@ export function ProductsDataTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === 'function'
@@ -120,7 +118,6 @@ export function ProductsDataTable({
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
       pagination: { pageIndex, pageSize: currentPageSize },
     },
   })
@@ -193,7 +190,6 @@ export function ProductsDataTable({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
                   className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
                   onClick={(e) => {
                     const target = e.target as HTMLElement
@@ -238,7 +234,7 @@ export function ProductsDataTable({
 
       {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
-        <DataTablePagination table={table} />
+        <DataTablePagination table={table} totalCount={data?.total} />
       </div>
     </div>
   )

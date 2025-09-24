@@ -30,9 +30,22 @@ export function EnhancedDataTableActionsMenu({
   items,
   children,
 }: EnhancedDataTableActionsMenuProps) {
+  const [open, setOpen] = React.useState(false)
+
+  const handleItemClick = React.useCallback((handler: () => void) => {
+    // Close dropdown first to prevent scroll lock conflicts
+    setOpen(false)
+    // Small delay to ensure dropdown is fully closed before opening modal
+    setTimeout(() => {
+      handler()
+      // Force cleanup of any orphaned pointer-events styling
+      document.body.style.pointerEvents = ''
+    }, 50)
+  }, [])
+
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
@@ -40,14 +53,13 @@ export function EnhancedDataTableActionsMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
           {items.map((item, index) => (
             <React.Fragment key={index}>
               {index > 0 && index % 3 === 0 && (
                 <DropdownMenuSeparator />
               )}
               <DropdownMenuItem
-                onClick={item.handler}
+                onClick={() => handleItemClick(item.handler)}
                 disabled={item.disabled}
                 className={item.destructive ? 'text-red-600' : ''}
                 title={item.helperText}

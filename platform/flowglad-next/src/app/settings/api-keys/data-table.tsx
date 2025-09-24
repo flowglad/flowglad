@@ -24,29 +24,28 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns } from './columns'
+import { columns, ApiKeyTableRowData } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
 import debounce from 'debounce'
-import { CustomerTableRowData } from '@/db/schema/customers'
 import { useRouter } from 'next/navigation'
 import { Plus, Search } from 'lucide-react'
+import { FlowgladApiKeyType } from '@/types'
 
-export interface CustomersTableFilters {
-  archived?: boolean
+export interface ApiKeysTableFilters {
+  type?: FlowgladApiKeyType
   organizationId?: string
-  pricingModelId?: string
 }
 
-interface CustomersDataTableProps {
-  filters?: CustomersTableFilters
-  onCreateCustomer?: () => void
+interface ApiKeysDataTableProps {
+  filters?: ApiKeysTableFilters
+  onCreateApiKey?: () => void
 }
 
-export function CustomersDataTable({
+export function ApiKeysDataTable({
   filters = {},
-  onCreateCustomer,
-}: CustomersDataTableProps) {
+  onCreateApiKey,
+}: ApiKeysDataTableProps) {
   const router = useRouter()
 
   // Server-side filtering (preserve enterprise architecture)
@@ -68,16 +67,15 @@ export function CustomersDataTable({
     data,
     isLoading,
     isFetching,
-  } = usePaginatedTableState<
-    CustomerTableRowData,
-    CustomersTableFilters
-  >({
-    initialCurrentCursor: undefined,
-    pageSize: currentPageSize,
-    filters: filters,
-    searchQuery: searchQuery,
-    useQuery: trpc.customers.getTableRows.useQuery,
-  })
+  } = usePaginatedTableState<ApiKeyTableRowData, ApiKeysTableFilters>(
+    {
+      initialCurrentCursor: undefined,
+      pageSize: currentPageSize,
+      filters: filters,
+      searchQuery: searchQuery,
+      useQuery: trpc.apiKeys.getTableRows.useQuery,
+    }
+  )
 
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -96,6 +94,8 @@ export function CustomersDataTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+
+    // CRITICAL: Bridge TanStack Table pagination to server-side pagination
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === 'function'
@@ -105,17 +105,19 @@ export function CustomersDataTable({
       // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        // Reset to first page when page size changes (standard UX pattern)
-        handlePaginationChange(0)
+        handlePaginationChange(0) // Reset to first page
       }
-      // Handle page index changes (page navigation)
+      // Handle page navigation
       else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
     },
+
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+
+    // CRITICAL: Use dynamic page size in state
     state: {
       sorting,
       columnFilters,
@@ -126,12 +128,12 @@ export function CustomersDataTable({
 
   return (
     <div className="w-full">
-      {/* Hybrid toolbar: server search + client features */}
+      {/* Enhanced toolbar with all improvements */}
       <div className="flex items-center py-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search customers..."
+            placeholder="Search API keys..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             className="max-w-sm pl-9"
@@ -145,10 +147,10 @@ export function CustomersDataTable({
         </div>
         <div className="flex items-center gap-2 ml-auto">
           <DataTableViewOptions table={table} />
-          {onCreateCustomer && (
-            <Button onClick={onCreateCustomer}>
+          {onCreateApiKey && (
+            <Button onClick={onCreateApiKey}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Customer
+              Create API Key
             </Button>
           )}
         </div>
@@ -194,19 +196,16 @@ export function CustomersDataTable({
                   key={row.id}
                   className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
                   onClick={(e) => {
-                    // Only navigate if not clicking on interactive elements
                     const target = e.target as HTMLElement
                     if (
                       target.closest('button') ||
                       target.closest('[role="checkbox"]') ||
-                      target.closest('input[type="checkbox"]') ||
-                      target.closest('[data-radix-collection-item]')
+                      target.closest('input[type="checkbox"]')
                     ) {
                       return // Don't navigate when clicking interactive elements
                     }
-                    router.push(
-                      `/customers/${row.original.customer.id}`
-                    )
+                    // Navigate to API key details if needed
+                    // router.push(`/settings/api-keys/${row.original.apiKey.id}`)
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -233,7 +232,7 @@ export function CustomersDataTable({
         </Table>
       </div>
 
-      {/* Enterprise pagination with built-in selection count */}
+      {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
         <DataTablePagination table={table} totalCount={data?.total} />
       </div>
