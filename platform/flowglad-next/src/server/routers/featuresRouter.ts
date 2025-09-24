@@ -86,7 +86,7 @@ const listFeaturesProcedure = protectedProcedure
     )
   })
 
-export const editFeature = protectedProcedure
+export const updateFeature = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editFeatureSchema)
   .output(z.object({ feature: featuresClientSelectSchema }))
@@ -161,7 +161,7 @@ const getFeaturesForPricingModel = protectedProcedure
 export const featuresRouter = router({
   get: getFeature,
   create: createFeature,
-  update: editFeature,
+  update: updateFeature,
   list: listFeaturesProcedure,
   getTableRows,
   getFeaturesForPricingModel,

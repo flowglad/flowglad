@@ -98,7 +98,7 @@ const createSubscriptionItemFeature = protectedProcedure
     )
   )
 
-const editSubscriptionItemFeature = protectedProcedure
+const updateSubscriptionItemFeature = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
@@ -194,6 +194,6 @@ const expireSubscriptionItemFeature = protectedProcedure
 export const subscriptionItemFeaturesRouter = router({
   get: getSubscriptionItemFeature,
   create: createSubscriptionItemFeature,
-  update: editSubscriptionItemFeature,
+  update: updateSubscriptionItemFeature,
   deactivate: expireSubscriptionItemFeature,
 })

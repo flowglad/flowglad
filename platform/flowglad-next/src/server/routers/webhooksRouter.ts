@@ -74,7 +74,7 @@ export const createWebhook = protectedProcedure
     )
   )
 
-export const editWebhook = protectedProcedure
+export const updateWebhook = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editWebhookInputSchema)
   .output(z.object({ webhook: webhookClientSelectSchema }))
@@ -152,7 +152,7 @@ export const getTableRows = protectedProcedure
 export const webhooksRouter = router({
   get: getWebhook,
   create: createWebhook,
-  update: editWebhook,
+  update: updateWebhook,
   requestSigningSecret: requestWebhookSigningSecret,
   getTableRows,
 })

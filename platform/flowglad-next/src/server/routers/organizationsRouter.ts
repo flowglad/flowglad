@@ -322,7 +322,7 @@ const createOrganization = protectedProcedure
     }
   })
 
-const editOrganization = protectedProcedure
+const updateOrganization = protectedProcedure
   .input(editOrganizationSchema)
   .mutation(
     authenticatedProcedureTransaction(
@@ -411,7 +411,7 @@ const getMembersTableRowData = protectedProcedure
 
 export const organizationsRouter = router({
   create: createOrganization,
-  update: editOrganization,
+  update: updateOrganization,
   requestStripeConnect: requestStripeConnectOnboardingLink,
   getMembers: getMembers,
   getMembersTableRowData: getMembersTableRowData,

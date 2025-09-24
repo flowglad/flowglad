@@ -72,7 +72,7 @@ const listUsageMetersProcedure = protectedProcedure
     )
   )
 
-const editUsageMeter = protectedProcedure
+const updateUsageMeter = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
@@ -127,7 +127,7 @@ const getTableRowsProcedure = protectedProcedure
 export const usageMetersRouter = router({
   get: getUsageMeter,
   create: createUsageMeter,
-  update: editUsageMeter,
+  update: updateUsageMeter,
   list: listUsageMetersProcedure,
   getTableRows: getTableRowsProcedure,
 })

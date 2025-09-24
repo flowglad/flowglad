@@ -107,7 +107,7 @@ const getTableRowsProcedure = protectedProcedure
     authenticatedProcedureTransaction(selectDiscountsTableRowData)
   )
 
-export const editDiscount = protectedProcedure
+export const updateDiscount = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editDiscountInputSchema)
   .output(z.object({ discount: discountClientSelectSchema }))
@@ -160,7 +160,7 @@ export const getDiscount = protectedProcedure
 export const discountsRouter = router({
   get: getDiscount,
   create: createDiscount,
-  update: editDiscount,
+  update: updateDiscount,
   delete: deleteDiscount,
   attempt: attemptDiscountCode,
   clear: clearDiscountCode,

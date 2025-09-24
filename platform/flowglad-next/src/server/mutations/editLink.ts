@@ -3,7 +3,7 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { editLinkInputSchema } from '@/db/schema/links'
 import { updateLink } from '@/db/tableMethods/linkMethods'
 
-export const editLink = protectedProcedure
+export const updateLink = protectedProcedure
   .input(editLinkInputSchema)
   .mutation(async ({ input }) => {
     const link = await authenticatedTransaction(
