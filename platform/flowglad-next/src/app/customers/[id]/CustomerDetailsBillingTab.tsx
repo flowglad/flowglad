@@ -35,7 +35,11 @@ const CustomerDetailsSection = ({
   // Calculate usage events metrics
   const totalUsageEvents = usageEvents.length
   const totalUsageAmount = usageEvents.reduce((sum, event) => sum + event.amount, 0)
-  const latestUsageEvent = usageEvents.length > 0 ? usageEvents[usageEvents.length - 1] : null
+  const latestUsageEvent = usageEvents.length > 0 
+    ? usageEvents.reduce((latest, current) => 
+        new Date(current.usageDate) > new Date(latest.usageDate) ? current : latest
+      )
+    : null
 
   return (
     <div className="w-full min-w-40 flex flex-col gap-4 py-5 pr-5 rounded-md">

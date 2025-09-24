@@ -62,7 +62,7 @@ const UsageEventsTable = ({
         },
         {
           header: 'Amount',
-          accessorKey: 'amount',
+          accessorKey: 'usageEvent.amount',
           size: 100,
           minSize: 80,
           maxSize: 120,
@@ -74,7 +74,7 @@ const UsageEventsTable = ({
         },
         {
           header: 'Usage Date',
-          accessorKey: 'usageDate',
+          accessorKey: 'usageEvent.usageDate',
           size: 125,
           minSize: 125,
           maxSize: 125,
@@ -95,7 +95,7 @@ const UsageEventsTable = ({
         },
         {
           header: 'Transaction ID',
-          accessorKey: 'transactionId',
+          accessorKey: 'usageEvent.transactionId',
           size: 150,
           minSize: 120,
           maxSize: 180,
