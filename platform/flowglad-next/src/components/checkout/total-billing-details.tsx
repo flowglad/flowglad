@@ -50,12 +50,12 @@ const BillingLine = ({
     <div
       className={cn('flex justify-between items-center', className)}
     >
-      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm text-gray-600">{label}</span>
       {isLoading ? (
         <Skeleton className="h-5 w-16" />
       ) : (
         <span
-          className="text-sm font-medium text-foreground"
+          className="text-sm font-medium text-gray-900"
           data-testid={testId}
         >
           {stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -206,7 +206,7 @@ export const TotalBillingDetails = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        'bg-background text-foreground space-y-4 pt-4',
+        'bg-white text-gray-900 space-y-4 pt-4',
         className
       )}
       {...props}
@@ -253,7 +253,7 @@ export const TotalBillingDetails = React.forwardRef<
         <>
           <div className="flex justify-between items-center pt-2">
             <span
-              className="text-lg font-semibold text-foreground"
+              className="text-lg font-semibold text-gray-900"
               data-testid="billing-info-total-due-label"
             >
               {`Total${
@@ -266,7 +266,7 @@ export const TotalBillingDetails = React.forwardRef<
               <Skeleton className="h-6 w-24" />
             ) : (
               <span
-                className="text-lg font-bold text-foreground"
+                className="text-lg font-bold text-gray-900"
                 data-testid="billing-info-total-due-amount"
               >
                 {totalDueAmount == null

@@ -3,7 +3,10 @@ import { differenceInHours } from 'date-fns'
 import React from 'react'
 import { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import {
+  stripeCurrencyAmountToHumanReadableCurrencyAmount,
+  stripeCurrencyAmountToShortReadableCurrencyAmount,
+} from '@/utils/stripe'
 import core from '@/utils/core'
 import { RevenueChartIntervalUnit } from '@/types'
 import { trpc } from '@/app/_trpc/client'
@@ -169,7 +172,7 @@ export const RecurringRevenueChart = ({
             )
           }
           yAxisValueFormatter={(value: number) =>
-            stripeCurrencyAmountToHumanReadableCurrencyAmount(
+            stripeCurrencyAmountToShortReadableCurrencyAmount(
               organization?.defaultCurrency!,
               value
             )

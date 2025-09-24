@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
               <h2 className="text-2xl font-bold mb-2">
                 Password Reset Successful
               </h2>
-              <p className="text-muted">
+              <p className="text-muted-foreground">
                 Your password has been reset. Redirecting to
                 sign-in...
               </p>
@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
               <h2 className="text-2xl font-bold mb-2">
                 Invalid Reset Link
               </h2>
-              <p className="text-muted mb-4">
+              <p className="text-muted-foreground mb-4">
                 This password reset link is invalid or has expired.
               </p>
               <Button
