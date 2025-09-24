@@ -4,6 +4,7 @@ import { Customer } from '@/db/schema/customers'
 import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
+import { UsageEvent } from '@/db/schema/usageEvents'
 import { CustomerBillingSubPage } from './CustomerDetailsBillingTab'
 import { Price } from '@/db/schema/prices'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -26,12 +27,14 @@ function InternalCustomerDetailsScreen({
   purchases,
   invoices,
   payments,
+  usageEvents,
 }: {
   customer: Customer.ClientRecord
   purchases: Purchase.ClientRecord[]
   invoices: InvoiceWithLineItems[]
   payments: Payment.ClientRecord[]
   prices: Price.ClientRecord[]
+  usageEvents: UsageEvent.ClientRecord[]
 }) {
   const [isEditOpen, setIsEditOpen] = useState(false)
 
@@ -85,6 +88,7 @@ function InternalCustomerDetailsScreen({
             purchases={purchases}
             invoices={invoices}
             payments={payments}
+            usageEvents={usageEvents}
           />
         </div>
       </div>
