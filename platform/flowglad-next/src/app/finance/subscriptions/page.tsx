@@ -1,8 +1,9 @@
 'use client'
 
-import SubscriptionsTable, {
+import {
+  SubscriptionsDataTable,
   SubscriptionsTableFilters,
-} from './SubscriptionsTable'
+} from './data-table'
 import { SubscriptionStatus } from '@/types'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { trpc } from '@/app/_trpc/client'
@@ -58,7 +59,7 @@ function InternalSubscriptionsPage() {
             onValueChange={setActiveFilter}
             className="mb-6"
           />
-          <SubscriptionsTable
+          <SubscriptionsDataTable
             filters={getFilterForTab(activeFilter)}
           />
         </div>

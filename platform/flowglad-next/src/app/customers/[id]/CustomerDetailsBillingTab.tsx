@@ -7,7 +7,7 @@ import InvoicesTable from '@/components/InvoicesTable'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
+import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
 import { TableHeader } from '@/components/ui/table-header'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
@@ -119,7 +119,7 @@ export const CustomerBillingSubPage = ({
           />
           <div className="w-full flex flex-col gap-5 pb-20">
             <TableHeader title="Subscriptions" noButtons />
-            <SubscriptionsTable
+            <SubscriptionsDataTable
               filters={{
                 customerId: customer.id,
               }}

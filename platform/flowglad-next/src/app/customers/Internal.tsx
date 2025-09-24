@@ -1,5 +1,4 @@
 'use client'
-import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import {
   Tabs,
@@ -7,7 +6,6 @@ import {
   TabsContent,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { useAuthenticatedContext } from '@/contexts/authContext'
@@ -55,18 +53,11 @@ function Internal() {
       <InternalPageContainer>
         <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
           <Breadcrumb />
-          <PageHeader
-            title="Customers"
-            action={
-              <Button onClick={() => setIsCreateCustomerOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Customer
-              </Button>
-            }
-          />
+          <PageHeader title="Customers" />
           <div>
             <CustomersDataTable
               filters={getFiltersForTab(activeTab)}
+              onCreateCustomer={() => setIsCreateCustomerOpen(true)}
             />
           </div>
         </div>

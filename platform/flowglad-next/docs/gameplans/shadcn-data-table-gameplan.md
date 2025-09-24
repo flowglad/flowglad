@@ -758,6 +758,198 @@ export function CustomerActionsMenu({ customer }: { customer: Customer }) {
 }
 ```
 
+### Enhanced Toolbar Patterns (Critical UI Improvements)
+
+**CRITICAL**: Based on successful customer table implementation, these UI patterns are **MANDATORY** for all table migrations to ensure consistent user experience.
+
+#### **1. Enhanced Search Input with Icon and Loading States**
+
+**✅ Required Pattern (Customers Table Standard):**
+```typescript
+// Enhanced search input with icon and loading feedback
+<div className="flex items-center py-4">
+  <div className="relative">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <Input
+      placeholder="Search [entity]..."
+      value={inputValue}
+      onChange={(e) => setInputValue(e.target.value)}
+      className="max-w-sm pl-9"
+      disabled={isLoading}
+    />
+    {isFetching && (
+      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+      </div>
+    )}
+  </div>
+  {/* Rest of toolbar */}
+</div>
+```
+
+**Key Elements:**
+- ✅ `Search` icon positioned absolutely with `left-3 top-1/2 -translate-y-1/2`
+- ✅ Input with `pl-9` to accommodate the icon
+- ✅ Loading spinner on right side during `isFetching`
+- ✅ Input disabled during `isLoading`
+
+#### **2. Proper Toolbar Layout with Create Button Integration**
+
+**✅ Required Pattern:**
+```typescript
+// Complete toolbar with proper button positioning
+<div className="flex items-center py-4">
+  {/* Search input on left */}
+  <div className="relative">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <Input
+      placeholder="Search [entity]..."
+      value={inputValue}
+      onChange={(e) => setInputValue(e.target.value)}
+      className="max-w-sm pl-9"
+      disabled={isLoading}
+    />
+    {isFetching && (
+      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+      </div>
+    )}
+  </div>
+  
+  {/* Right side controls */}
+  <div className="flex items-center gap-2 ml-auto">
+    <DataTableViewOptions table={table} />
+    {onCreateEntity && (
+      <Button onClick={onCreateEntity}>
+        <Plus className="w-4 h-4 mr-2" />
+        Create [Entity]
+      </Button>
+    )}
+  </div>
+</div>
+```
+
+**Key Layout Rules:**
+- ✅ Search input on the **LEFT** side
+- ✅ Controls grouped on the **RIGHT** with `ml-auto`
+- ✅ Create button **AFTER** DataTableViewOptions
+- ✅ Use `gap-2` for proper spacing between controls
+
+#### **3. Pagination Container with Proper Spacing**
+
+**✅ Required Pattern:**
+```typescript
+// Pagination with proper bottom spacing
+{/* Enterprise pagination with built-in selection count */}
+<div className="py-2">
+  <DataTablePagination table={table} />
+</div>
+```
+
+**Key Requirements:**
+- ✅ **MUST** wrap `DataTablePagination` in `<div className="py-2">`
+- ✅ Provides consistent vertical spacing below table
+- ✅ Ensures pagination doesn't stick to container bottom
+
+#### **4. Complete Enhanced Data Table Template**
+
+**✅ Final Required Template for ALL Tables:**
+```typescript
+'use client'
+
+import * as React from 'react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Search, Plus } from 'lucide-react'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
+// ... other imports
+
+export function EntityDataTable({
+  filters = {},
+  onCreateEntity,
+}: EntityDataTableProps) {
+  // ... state and logic
+
+  return (
+    <div className="w-full">
+      {/* Enhanced toolbar with all improvements */}
+      <div className="flex items-center py-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search [entities]..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className="max-w-sm pl-9"
+            disabled={isLoading}
+          />
+          {isFetching && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
+          <DataTableViewOptions table={table} />
+          {onCreateEntity && (
+            <Button onClick={onCreateEntity}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create [Entity]
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-md border">
+        {/* Table implementation */}
+      </div>
+
+      {/* Enhanced pagination with proper spacing */}
+      <div className="py-2">
+        <DataTablePagination table={table} />
+      </div>
+    </div>
+  )
+}
+```
+
+#### **5. Page-Level Integration Pattern**
+
+**Move Create Buttons from Page Header to Table Toolbar:**
+
+**❌ Old Pattern (Remove):**
+```typescript
+// Remove from page.tsx
+<PageHeader
+  title="Products" 
+  action={
+    <Button onClick={() => setIsCreateOpen(true)}>
+      <Plus className="w-4 h-4 mr-2" />
+      Create Product
+    </Button>
+  }
+/>
+```
+
+**✅ New Pattern (Required):**
+```typescript
+// In page.tsx - pass create handler to table
+<EntityDataTable 
+  filters={filters}
+  onCreateEntity={() => setIsCreateOpen(true)}
+/>
+
+// Table handles the create button in toolbar
+```
+
+**Benefits:**
+- ✅ **Consistent button positioning** across all tables
+- ✅ **Better UX** - create button near table data
+- ✅ **Unified toolbar** - all table controls in one place
+- ✅ **Mobile responsive** - toolbar layout adapts better
+
 ### Server-Side Filtering Integration (Enterprise Pattern)
 
 **Keep Your Advanced Server-Side Architecture** - it's actually superior for enterprise scale:
@@ -1938,6 +2130,10 @@ When migrating each table, follow this exact pattern:
 5. ✅ **Preserve server-side filtering architecture**
 6. ✅ **Add client-side sorting and column filtering**
 7. ✅ **Follow 3-file structure** (columns.tsx, data-table.tsx, page.tsx)
+8. ✅ **CRITICAL UI: Enhanced search input with Search icon and loading states**
+9. ✅ **CRITICAL UI: Proper toolbar layout with create button on RIGHT after settings**
+10. ✅ **CRITICAL UI: Pagination wrapped in `<div className="py-2">` for proper spacing**
+11. ✅ **Move create buttons FROM page header TO table toolbar**
 
 This approach ensures **95% Shadcn alignment** while maintaining **100% of your enterprise functionality**.
 

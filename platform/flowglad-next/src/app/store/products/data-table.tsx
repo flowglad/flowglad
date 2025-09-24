@@ -24,29 +24,34 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns } from './columns'
+import { columns, ProductRow } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
 import debounce from 'debounce'
-import { CustomerTableRowData } from '@/db/schema/customers'
 import { useRouter } from 'next/navigation'
-import { Plus, Search } from 'lucide-react'
+import { Search, Plus } from 'lucide-react'
 
-export interface CustomersTableFilters {
-  archived?: boolean
+export enum FocusedTab {
+  All = 'all',
+  Active = 'active',
+  Archived = 'archived',
+}
+
+export interface ProductsTableFilters {
+  active?: boolean
   organizationId?: string
   pricingModelId?: string
 }
 
-interface CustomersDataTableProps {
-  filters?: CustomersTableFilters
-  onCreateCustomer?: () => void
+interface ProductsDataTableProps {
+  filters?: ProductsTableFilters
+  onCreateProduct?: () => void
 }
 
-export function CustomersDataTable({
+export function ProductsDataTable({
   filters = {},
-  onCreateCustomer,
-}: CustomersDataTableProps) {
+  onCreateProduct,
+}: ProductsDataTableProps) {
   const router = useRouter()
 
   // Server-side filtering (preserve enterprise architecture)
@@ -68,15 +73,12 @@ export function CustomersDataTable({
     data,
     isLoading,
     isFetching,
-  } = usePaginatedTableState<
-    CustomerTableRowData,
-    CustomersTableFilters
-  >({
+  } = usePaginatedTableState<ProductRow, ProductsTableFilters>({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
     searchQuery: searchQuery,
-    useQuery: trpc.customers.getTableRows.useQuery,
+    useQuery: trpc.products.getTableRows.useQuery,
   })
 
   // Client-side features (Shadcn patterns)
@@ -104,14 +106,10 @@ export function CustomersDataTable({
           ? updater({ pageIndex, pageSize: currentPageSize })
           : updater
 
-      // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        // Reset to first page when page size changes (standard UX pattern)
         handlePaginationChange(0)
-      }
-      // Handle page index changes (page navigation)
-      else if (newPagination.pageIndex !== pageIndex) {
+      } else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
     },
@@ -129,12 +127,12 @@ export function CustomersDataTable({
 
   return (
     <div className="w-full">
-      {/* Hybrid toolbar: server search + client features */}
+      {/* Enhanced toolbar with all improvements */}
       <div className="flex items-center py-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search customers..."
+            placeholder="Search products..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             className="max-w-sm pl-9"
@@ -148,10 +146,10 @@ export function CustomersDataTable({
         </div>
         <div className="flex items-center gap-2 ml-auto">
           <DataTableViewOptions table={table} />
-          {onCreateCustomer && (
-            <Button onClick={onCreateCustomer}>
+          {onCreateProduct && (
+            <Button onClick={onCreateProduct}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Customer
+              Create Product
             </Button>
           )}
         </div>
@@ -198,23 +196,24 @@ export function CustomersDataTable({
                   data-state={row.getIsSelected() && 'selected'}
                   className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
                   onClick={(e) => {
-                    // Only navigate if not clicking on interactive elements
                     const target = e.target as HTMLElement
                     if (
                       target.closest('button') ||
                       target.closest('[role="checkbox"]') ||
-                      target.closest('input[type="checkbox"]') ||
-                      target.closest('[data-radix-collection-item]')
+                      target.closest('input[type="checkbox"]')
                     ) {
-                      return // Don't navigate when clicking interactive elements
+                      return
                     }
                     router.push(
-                      `/customers/${row.original.customer.id}`
+                      `/store/products/${row.original.product.id}`
                     )
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      style={{ width: cell.column.getSize() }}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -237,7 +236,7 @@ export function CustomersDataTable({
         </Table>
       </div>
 
-      {/* Enterprise pagination with built-in selection count */}
+      {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
         <DataTablePagination table={table} />
       </div>

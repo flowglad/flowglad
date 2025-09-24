@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { TablePagination } from '@/components/ui/table-pagination'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { cn } from '@/lib/utils'
 
 interface DataTableProps<TData, TValue> {
@@ -319,16 +319,7 @@ export function DataTable<TData, TValue>({
           </Table>
         </div>
       </div>
-      {pagination && (
-        <TablePagination
-          pageIndex={pagination.pageIndex}
-          pageSize={pagination.pageSize}
-          total={pagination.total}
-          onPageChange={pagination.onPageChange}
-          isLoading={pagination.isLoading}
-          isFetching={pagination.isFetching}
-        />
-      )}
+      {pagination && <DataTablePagination table={table} />}
     </div>
   )
 }

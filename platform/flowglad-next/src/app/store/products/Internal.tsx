@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { CreateProductModal } from '@/components/forms/CreateProductModal'
 import { ProductWithPrices } from '@/db/schema/prices'
-import { ProductsTable, ProductsTableFilters } from './ProductsTable'
+import { ProductsDataTable, ProductsTableFilters } from './data-table'
 import { trpc } from '@/app/_trpc/client'
 import { PricingModel } from '@/db/schema/pricingModels'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -52,15 +52,7 @@ function InternalProductsPage({ products: initialProducts }: Props) {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <PageHeader
-          title="Products"
-          action={
-            <Button onClick={() => setIsCreateProductOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Product
-            </Button>
-          }
-        />
+        <PageHeader title="Products" />
         <div className="w-full">
           <FilterButtonGroup
             options={filterOptions}
@@ -68,7 +60,10 @@ function InternalProductsPage({ products: initialProducts }: Props) {
             onValueChange={setActiveFilter}
             className="mb-6"
           />
-          <ProductsTable filters={getFilterForTab(activeFilter)} />
+          <ProductsDataTable
+            filters={getFilterForTab(activeFilter)}
+            onCreateProduct={() => setIsCreateProductOpen(true)}
+          />
         </div>
       </div>
       {defaultPricingModel && (
