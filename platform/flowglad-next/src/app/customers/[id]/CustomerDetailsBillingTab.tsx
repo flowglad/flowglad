@@ -2,7 +2,9 @@ import { Customer } from '@/db/schema/customers'
 import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
+import { UsageEvent } from '@/db/schema/usageEvents'
 import PurchasesTable from './PurchasesTable'
+import UsageEventsTable from './UsageEventsTable'
 import InvoicesTable from '@/components/InvoicesTable'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
@@ -19,14 +21,25 @@ import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 const CustomerDetailsSection = ({
   customer,
   payments,
+  usageEvents,
 }: {
   customer: Customer.ClientRecord
   payments: Payment.ClientRecord[]
+  usageEvents: UsageEvent.ClientRecord[]
 }) => {
   const billingPortalURL = core.customerBillingPortalURL({
     organizationId: customer.organizationId,
     customerId: customer.id,
   })
+
+  // Calculate usage events metrics
+  const totalUsageEvents = usageEvents.length
+  const totalUsageAmount = usageEvents.reduce((sum, event) => sum + event.amount, 0)
+  const latestUsageEvent = usageEvents.length > 0 
+    ? usageEvents.reduce((latest, current) => 
+        new Date(current.usageDate) > new Date(latest.usageDate) ? current : latest
+      )
+    : null
 
   return (
     <div className="w-full min-w-40 flex flex-col gap-4 py-5 pr-5 rounded-md">
@@ -59,8 +72,6 @@ const CustomerDetailsSection = ({
               </CopyableTextTableCell>
             }
           />
-        </div>
-        <div className="flex flex-col gap-4">
           <DetailLabel
             label="Customer Since"
             value={core.formatDate(customer.createdAt)}
@@ -76,6 +87,8 @@ const CustomerDetailsSection = ({
               </CopyableTextTableCell>
             }
           />
+        </div>
+        <div className="flex flex-col gap-4">
           <DetailLabel
             label="Total Spend"
             value={stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -89,6 +102,18 @@ const CustomerDetailsSection = ({
                 .reduce((acc, payment) => acc + payment.amount, 0)
             )}
           />
+          <DetailLabel
+            label="Total Usage Events"
+            value={totalUsageEvents.toString()}
+          />
+          <DetailLabel
+            label="Total Usage Amount"
+            value={totalUsageAmount.toString()}
+          />
+          <DetailLabel
+            label="Latest Usage"
+            value={latestUsageEvent ? core.formatDate(latestUsageEvent.usageDate) : 'None'}
+          />
         </div>
       </div>
     </div>
@@ -99,6 +124,7 @@ export interface CustomerBillingSubPageProps {
   purchases: Purchase.ClientRecord[]
   invoices: InvoiceWithLineItems[]
   payments: Payment.ClientRecord[]
+  usageEvents: UsageEvent.ClientRecord[]
 }
 
 export const CustomerBillingSubPage = ({
@@ -106,6 +132,7 @@ export const CustomerBillingSubPage = ({
   purchases,
   invoices,
   payments,
+  usageEvents,
 }: CustomerBillingSubPageProps) => {
   // const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
   //   useState(false)
@@ -116,6 +143,7 @@ export const CustomerBillingSubPage = ({
           <CustomerDetailsSection
             customer={customer}
             payments={payments}
+            usageEvents={usageEvents}
           />
           <div className="w-full flex flex-col gap-5 pb-20">
             <TableHeader title="Subscriptions" noButtons />
@@ -140,6 +168,12 @@ export const CustomerBillingSubPage = ({
             />
             <TableHeader title="Purchases" noButtons />
             <PurchasesTable
+              filters={{
+                customerId: customer.id,
+              }}
+            />
+            <TableHeader title="Usage Events" noButtons />
+            <UsageEventsTable
               filters={{
                 customerId: customer.id,
               }}
