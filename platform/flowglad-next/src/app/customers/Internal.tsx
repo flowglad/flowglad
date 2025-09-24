@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import CustomersTable from './CustomersTable'
+import { CustomersDataTable } from './data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
@@ -65,7 +65,9 @@ function Internal() {
             }
           />
           <div>
-            <CustomersTable filters={getFiltersForTab(activeTab)} />
+            <CustomersDataTable
+              filters={getFiltersForTab(activeTab)}
+            />
           </div>
         </div>
       </InternalPageContainer>

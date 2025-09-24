@@ -3,10 +3,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DisplayColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
-import { TableCell } from '@/components/ui/table'
 import { Payment } from '@/db/schema/payments'
-import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
-import { PopoverMenuItem } from '@/components/PopoverMenu'
 import Link from 'next/link'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
@@ -16,8 +13,11 @@ import RefundPaymentModal from './RefundPaymentModal'
 import { Check, Hourglass, X, RotateCcw } from 'lucide-react'
 import { formatDate } from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
-import MoreMenuTableCell from '@/components/MoreMenuTableCell'
-import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import {
+  EnhancedDataTableActionsMenu,
+  ActionMenuItem,
+} from '@/components/ui/enhanced-data-table-actions-menu'
+import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 const MoreMenuCell = ({
@@ -25,22 +25,28 @@ const MoreMenuCell = ({
   customer,
 }: Payment.TableRowData) => {
   const [isRefundOpen, setIsRefundOpen] = useState(false)
-  const items: PopoverMenuItem[] = [
+
+  const actionItems: ActionMenuItem[] = [
     {
       label: 'Refund Payment',
-      icon: <RotateCcw />,
+      icon: <RotateCcw className="h-4 w-4" />,
       handler: () => setIsRefundOpen(true),
       disabled: payment.status !== PaymentStatus.Succeeded,
+      helperText:
+        payment.status !== PaymentStatus.Succeeded
+          ? 'Only succeeded payments can be refunded'
+          : undefined,
     },
   ]
+
   return (
-    <MoreMenuTableCell items={items}>
+    <EnhancedDataTableActionsMenu items={actionItems}>
       <RefundPaymentModal
         isOpen={isRefundOpen}
         setIsOpen={setIsRefundOpen}
         payment={payment}
       />
-    </MoreMenuTableCell>
+    </EnhancedDataTableActionsMenu>
   )
 }
 
@@ -109,8 +115,8 @@ const PaymentsTable = ({
           header: 'Amount',
           accessorKey: 'payment.amount',
           cell: ({ row: { original: cellData } }) => (
-            <TableCell
-              className="relative max-w-[160px] truncate text-sm"
+            <div
+              className="relative max-w-[160px] truncate text-sm font-medium"
               title={stripeCurrencyAmountToHumanReadableCurrencyAmount(
                 cellData.payment.currency,
                 cellData.payment.amount
@@ -122,7 +128,7 @@ const PaymentsTable = ({
                   cellData.payment.amount
                 )}
               </span>
-            </TableCell>
+            </div>
           ),
         },
         {
@@ -161,9 +167,9 @@ const PaymentsTable = ({
           header: 'ID',
           accessorKey: 'payment.id',
           cell: ({ row: { original: cellData } }) => (
-            <CopyableTextTableCell copyText={cellData.payment.id}>
+            <DataTableCopyableCell copyText={cellData.payment.id}>
               {cellData.payment.id}
-            </CopyableTextTableCell>
+            </DataTableCopyableCell>
           ),
         },
         {

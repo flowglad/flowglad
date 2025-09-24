@@ -9,7 +9,6 @@ import core from '@/utils/core'
 import { sentenceCase } from 'change-case'
 // import CreateInvoiceModal from './forms/CreateInvoiceModal'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { PopoverMenuItem } from './PopoverMenu'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import EditInvoiceModal from './forms/EditInvoiceModal'
 import { invoiceIsInTerminalState } from '@/db/tableMethods/invoiceMethods'
@@ -17,8 +16,11 @@ import { InvoiceStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import SendInvoiceReminderEmailModal from './forms/SendInvoiceReminderEmailModal'
 import { trpc } from '@/app/_trpc/client'
-import MoreMenuTableCell from '@/components/MoreMenuTableCell'
-import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import {
+  EnhancedDataTableActionsMenu,
+  ActionMenuItem,
+} from '@/components/ui/enhanced-data-table-actions-menu'
+import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 
 const InvoiceStatusBadge = ({
@@ -77,32 +79,32 @@ const MoreMenuCell = ({
     text,
   })
 
-  const items: PopoverMenuItem[] = [
+  const actionItems: ActionMenuItem[] = [
     {
       label: 'Copy URL',
-      icon: <Link />,
+      icon: <Link className="h-4 w-4" />,
       handler: copyInvoiceUrlHandler,
     },
   ]
 
   if (!invoiceIsInTerminalState(invoice)) {
-    items.push({
+    actionItems.push({
       label: 'Edit Invoice',
-      icon: <Pencil />,
+      icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
     })
 
     if (invoice.status !== InvoiceStatus.Draft) {
-      items.push({
+      actionItems.push({
         label: 'Send Reminder Email',
-        icon: <Mail />,
+        icon: <Mail className="h-4 w-4" />,
         handler: () => setIsSendReminderEmailOpen(true),
       })
     }
   }
 
   return (
-    <MoreMenuTableCell items={items}>
+    <EnhancedDataTableActionsMenu items={actionItems}>
       <EditInvoiceModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
@@ -116,7 +118,7 @@ const MoreMenuCell = ({
         setIsOpen={setIsSendReminderEmailOpen}
         invoiceId={invoice.id}
       />
-    </MoreMenuTableCell>
+    </EnhancedDataTableActionsMenu>
   )
 }
 
@@ -214,9 +216,9 @@ const InvoicesTable = ({
           header: 'ID',
           accessorKey: 'invoice.id',
           cell: ({ row: { original: cellData } }) => (
-            <CopyableTextTableCell copyText={cellData.invoice.id}>
+            <DataTableCopyableCell copyText={cellData.invoice.id}>
               {cellData.invoice.id}
-            </CopyableTextTableCell>
+            </DataTableCopyableCell>
           ),
         },
         {
