@@ -13,6 +13,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -23,30 +24,31 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns } from './columns'
+import { columns, OrganizationMemberTableRowData } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
 import debounce from 'debounce'
-import { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionStatus } from '@/types'
-import { useRouter } from 'next/navigation'
-import { Search } from 'lucide-react'
+import { UserPlus, Search } from 'lucide-react'
 
-export interface SubscriptionsTableFilters {
-  status?: SubscriptionStatus
-  customerId?: string
-  organizationId?: string
+export interface OrganizationMembersTableFilters
+  extends Record<string, never> {
+  // No filters needed for this simple table
 }
 
-interface SubscriptionsDataTableProps {
-  filters?: SubscriptionsTableFilters
+interface OrganizationMembersDataTableProps {
+  filters?: OrganizationMembersTableFilters
+  onInviteMember?: () => void
+  // Support for external data (backward compatibility)
+  loading?: boolean
+  data?: OrganizationMemberTableRowData[]
 }
 
-export function SubscriptionsDataTable({
+export function OrganizationMembersDataTable({
   filters = {},
-}: SubscriptionsDataTableProps) {
-  const router = useRouter()
-
+  onInviteMember,
+  loading: externalLoading,
+  data: externalData,
+}: OrganizationMembersDataTableProps) {
   // Server-side filtering (preserve enterprise architecture)
   const [inputValue, setInputValue] = React.useState('')
   const [searchQuery, setSearchQuery] = React.useState('')
@@ -67,14 +69,14 @@ export function SubscriptionsDataTable({
     isLoading,
     isFetching,
   } = usePaginatedTableState<
-    Subscription.TableRowData,
-    SubscriptionsTableFilters
+    OrganizationMemberTableRowData,
+    OrganizationMembersTableFilters
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
     searchQuery: searchQuery,
-    useQuery: trpc.subscriptions.getTableRows.useQuery,
+    useQuery: trpc.organizations.getMembersTableRowData.useQuery,
   })
 
   // Client-side features (Shadcn patterns)
@@ -84,37 +86,59 @@ export function SubscriptionsDataTable({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
 
+  // Use external data if provided (for backward compatibility)
+  const tableData = externalData || data?.items || []
+  const isTableLoading = externalLoading || isLoading
+  const isTableFetching = isFetching
+  const totalCount = data?.total || tableData.length
+
   const table = useReactTable({
-    data: data?.items || [],
+    data: tableData,
     columns,
-    manualPagination: true, // Server-side pagination
+    manualPagination: !externalData, // Use server-side pagination only when not using external data
     manualSorting: false, // Client-side sorting on current page
     manualFiltering: false, // Client-side filtering on current page
-    pageCount: Math.ceil((data?.total || 0) / currentPageSize),
+    pageCount: externalData
+      ? Math.ceil(tableData.length / currentPageSize)
+      : Math.ceil((totalCount || 0) / currentPageSize),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+
+    // CRITICAL: Bridge TanStack Table pagination to server-side pagination
     onPaginationChange: (updater) => {
+      if (externalData) return // Skip if using external data
+
       const newPagination =
         typeof updater === 'function'
           ? updater({ pageIndex, pageSize: currentPageSize })
           : updater
 
+      // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        handlePaginationChange(0)
-      } else if (newPagination.pageIndex !== pageIndex) {
+        handlePaginationChange(0) // Reset to first page
+      }
+      // Handle page navigation
+      else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
     },
+
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+
+    // CRITICAL: Use dynamic page size in state
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      pagination: { pageIndex, pageSize: currentPageSize },
+      pagination: {
+        pageIndex: externalData ? 0 : pageIndex,
+        pageSize: currentPageSize,
+      },
     },
   })
 
@@ -125,13 +149,13 @@ export function SubscriptionsDataTable({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search subscriptions..."
+            placeholder="Search team members..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             className="max-w-sm pl-9"
-            disabled={isLoading}
+            disabled={isTableLoading}
           />
-          {isFetching && (
+          {isTableFetching && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
             </div>
@@ -139,6 +163,12 @@ export function SubscriptionsDataTable({
         </div>
         <div className="flex items-center gap-2 ml-auto">
           <DataTableViewOptions table={table} />
+          {onInviteMember && (
+            <Button onClick={onInviteMember}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Invite Member
+            </Button>
+          )}
         </div>
       </div>
 
@@ -150,10 +180,7 @@ export function SubscriptionsDataTable({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead
-                      key={header.id}
-                      style={{ width: header.getSize() }}
-                    >
+                    <TableHead key={header.id}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -167,7 +194,7 @@ export function SubscriptionsDataTable({
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isTableLoading ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -180,26 +207,10 @@ export function SubscriptionsDataTable({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement
-                    if (
-                      target.closest('button') ||
-                      target.closest('[role="checkbox"]') ||
-                      target.closest('input[type="checkbox"]')
-                    ) {
-                      return
-                    }
-                    router.push(
-                      `/finance/subscriptions/${row.original.subscription.id}`
-                    )
-                  }}
+                  className={isTableFetching ? 'opacity-50' : ''}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      style={{ width: cell.column.getSize() }}
-                    >
+                    <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -214,7 +225,7 @@ export function SubscriptionsDataTable({
                   colSpan={columns.length}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  No results.
+                  No team members found.
                 </TableCell>
               </TableRow>
             )}
@@ -224,7 +235,7 @@ export function SubscriptionsDataTable({
 
       {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
-        <DataTablePagination table={table} totalCount={data?.total} />
+        <DataTablePagination table={table} totalCount={totalCount} />
       </div>
     </div>
   )

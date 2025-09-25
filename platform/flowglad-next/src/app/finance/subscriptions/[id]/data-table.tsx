@@ -2,19 +2,16 @@
 
 import * as React from 'react'
 import {
-  ColumnDef,
   ColumnFiltersState,
-  ColumnSizingState,
+  SortingState,
+  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  SortingState,
   useReactTable,
-  VisibilityState,
 } from '@tanstack/react-table'
-
 import {
   Table,
   TableBody,
@@ -23,83 +20,64 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { cn } from '@/lib/utils'
+import { columns } from './columns'
+import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  onClickRow?: (row: TData) => void
-  className?: string
-  bordered?: boolean
-  pagination?: {
-    pageIndex: number
-    pageSize: number
-    total: number
-    onPageChange: (page: number) => void
-    isLoading?: boolean
-    isFetching?: boolean
-  }
+export interface SubscriptionItemsTableFilters {
+  subscriptionId?: string
 }
 
-export function DataTable<TData, TValue>({
-  columns,
-  data,
-  onClickRow,
-  className,
-  bordered = true,
-  pagination,
-}: DataTableProps<TData, TValue>) {
+interface SubscriptionItemsDataTableProps {
+  subscriptionItems: SubscriptionItem.ClientRecord[]
+  filters?: SubscriptionItemsTableFilters
+  loading?: boolean
+}
+
+export function SubscriptionItemsDataTable({
+  subscriptionItems,
+  filters = {},
+  loading = false,
+}: SubscriptionItemsDataTableProps) {
+  // Client-side features (Shadcn patterns) - since data is provided externally
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
-  const [columnSizing, setColumnSizing] =
-    React.useState<ColumnSizingState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
 
   const table = useReactTable({
-    data,
+    data: subscriptionItems,
     columns,
-    enableColumnResizing: true,
-    columnResizeMode: 'onEnd',
+    manualPagination: false, // Client-side pagination for small datasets
+    manualSorting: false, // Client-side sorting
+    manualFiltering: false, // Client-side filtering
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onColumnSizingChange: setColumnSizing,
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    manualPagination: !!pagination,
-    pageCount: pagination
-      ? Math.ceil(pagination.total / pagination.pageSize)
-      : -1,
+    getPaginationRowModel: getPaginationRowModel(),
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      columnSizing,
-      rowSelection,
-      ...(pagination && {
-        pagination: {
-          pageIndex: pagination.pageIndex,
-          pageSize: pagination.pageSize,
-        },
-      }),
     },
   })
 
   return (
-    <div className={cn('w-full', className)}>
-      <div
-        className={cn(
-          'rounded-md border',
-          !bordered && 'border-none'
-        )}
-      >
+    <div className="w-full">
+      {/* Simple toolbar - no search needed for subscription items */}
+      <div className="flex items-center py-4">
+        <div className="flex items-center gap-2 ml-auto">
+          <DataTableViewOptions table={table} />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -123,7 +101,7 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {pagination?.isLoading ? (
+            {loading ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -134,17 +112,7 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className={cn(
-                    onClickRow && 'cursor-pointer',
-                    pagination?.isFetching && 'opacity-50'
-                  )}
-                  onClick={() =>
-                    onClickRow && onClickRow(row.original)
-                  }
-                >
+                <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
@@ -161,21 +129,18 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  No results.
+                  No subscription items found.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      {pagination && (
-        <div className="py-2">
-          <DataTablePagination
-            table={table}
-            totalCount={pagination.total}
-          />
-        </div>
-      )}
+
+      {/* Enhanced pagination with proper spacing - auto-hides for small datasets */}
+      <div className="py-2">
+        <DataTablePagination table={table} />
+      </div>
     </div>
   )
 }

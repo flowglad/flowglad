@@ -4,7 +4,7 @@
 
 This document outlines a comprehensive analysis of our current data table implementation versus Shadcn's recommended patterns, based on thorough research of the [Shadcn data table documentation](https://ui.shadcn.com/docs/components/data-table) and [TanStack Table v8](https://tanstack.com/table/v8) best practices, **enhanced with real implementation experience and critical learnings from hands-on development**.
 
-**Key Finding**: We already have all the required Shadcn reusable components built (`data-table-column-header.tsx`, `data-table-pagination.tsx`, `data-table-view-options.tsx`) but we're not using them. This represents a massive opportunity for immediate improvement with minimal effort.
+**Key Finding**: We have most of the required Shadcn reusable components built (`data-table-pagination.tsx`, `data-table-view-options.tsx`) and have adopted a simplified approach for column headers using simple text labels for cleaner, more readable tables without interaction complexity.
 
 **Implementation Status**: **Phase 0 substantially completed (75%)** with 6 tables fully migrated to Shadcn structure, revealing critical integration complexities and UX improvements implemented based on real-world usage.
 
@@ -18,7 +18,7 @@ This document outlines a comprehensive analysis of our current data table implem
 
 ### **Core Principles:**
 
-1. **Foundation**: Use Shadcn's reusable components (`DataTableColumnHeader`, `DataTablePagination`, `DataTableViewOptions`) as the base
+1. **Foundation**: Use Shadcn's reusable components (`DataTablePagination`, `DataTableViewOptions`) as the base, with simple text labels for clean column headers
 2. **Enhancement**: Create enterprise wrapper components that follow Shadcn patterns but handle additional complexity
 3. **Preservation**: Keep superior enterprise features (server-side filtering, complex action menus, modal management)
 4. **Integration**: Combine the best of both worlds - Shadcn consistency + enterprise functionality
@@ -27,7 +27,7 @@ This document outlines a comprehensive analysis of our current data table implem
 
 | Aspect | Pure Shadcn | Pure Custom | Our Hybrid Approach |
 |--------|-------------|-------------|-------------------|
-| **Column Headers** | Manual buttons OR DataTableColumnHeader | Custom string headers | **DataTableColumnHeader everywhere** |
+| **Column Headers** | Manual buttons OR DataTableColumnHeader | Custom string headers | **Simple text labels (clean & minimal)** |
 | **Action Menus** | Simple DropdownMenu | Custom MoreMenuTableCell | **EnhancedDataTableActionsMenu** (Shadcn pattern + modal management + no label clutter) |
 | **Filtering** | Client-side only | Server-side only | **Server-side search + client-side column filtering** |
 | **Pagination** | DataTablePagination | Custom TablePagination | **DataTablePagination with server-side data** |
@@ -49,7 +49,8 @@ According to Shadcn documentation, these areas have multiple valid implementatio
 ### 1. **Column Header Implementation**
 - **Option A**: Manual sorting buttons (main demo pattern)  
 - **Option B**: `DataTableColumnHeader` reusable component
-- **Our Recommendation**: **Option B** for enterprise consistency across 16+ tables
+- **Option C**: Simple text labels (no sorting, no buttons, no popovers)
+- **Our Recommendation**: **Option C** for clean, minimal headers focused on readability
 
 ### 2. **Column Visibility Controls**
 - **Option A**: Inline `DropdownMenu` with column checkboxes
@@ -194,7 +195,7 @@ app/
 #### Component Inventory
 
 **Shadcn Components We Have (Fully Implemented):**
-- ✅ `/components/ui/data-table-column-header.tsx` - Full sorting + hiding functionality
+- ~~`/components/ui/data-table-column-header.tsx`~~ - **Not used** (switched to simple text headers)
 - ✅ `/components/ui/data-table-pagination.tsx` - Complete pagination with page size controls + smart visibility (hides when ≤10 rows) + clean "X results" display (no page numbers)
 - ✅ `/components/ui/data-table-view-options.tsx` - Column visibility management
 - ✅ `/components/ui/data-table.tsx` - Base table component
@@ -307,50 +308,65 @@ useQuery: trpc.customers.getTableRows.useQuery,
 
 ### 5. Column Header Implementation
 
-**Current Problem**: We have `DataTableColumnHeader` component but use manual implementations:
+**Updated Approach**: Simple text headers for clean, minimal design without interaction complexity:
 
 ```typescript
-// ❌ What we do now
-{
-  header: 'Email',  // Just a string - no sorting UI
-  accessorKey: 'customer.email',
-}
+// ❌ Previous complex approaches (removed)
+// DataTableColumnHeader with sorting buttons and popovers
+// Manual sorting buttons with click handlers
 
-// ❌ Or manual sorting buttons
-header: ({ column }) => (
-  <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-    Email <ArrowUpDown />
-  </Button>
-)
-```
-
-**Shadcn provides TWO valid approaches (Our Enterprise Recommendation: Option B):**
-
-```typescript
-// ✅ Option A: Manual sorting button (main Shadcn demo approach)
-{
-  accessorKey: "email",
-  header: ({ column }) => {
-    return (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Email
-        <ArrowUpDown />
-      </Button>
-    )
-  },
-}
-
-// ✅ Option B: Reusable component (RECOMMENDED for enterprise consistency)
+// ✅ NEW APPROACH: Simple text headers (RECOMMENDED for clean UX)
 {
   accessorKey: "customer.email",
-  header: ({ column }) => (
-    <DataTableColumnHeader column={column} title="Email" />
+  header: "Email",  // Simple string - clean and readable
+}
+
+// ✅ Alternative: Static header function (for consistent styling)
+{
+  accessorKey: "customer.email",
+  header: () => (
+    <div className="font-medium text-muted-foreground">Email</div>
   ),
 }
 ```
+
+**Benefits of Simple Text Headers:**
+- **Clean design** - no visual clutter from buttons or interactive elements
+- **Better readability** - focus stays on the data, not the interface
+- **Simplified implementation** - no complex state management or event handling
+- **Consistent experience** - headers look the same across all tables
+- **Mobile friendly** - no tap targets that might be accidentally triggered
+
+### **Cell Alignment Preferences**
+
+**Alignment Standard**: All numeric, currency, and count cells should use **left alignment** for consistency and readability.
+
+```typescript
+// ✅ PREFERRED: Left-aligned currency cells
+cell: ({ row }) => {
+  const amount = parseFloat(row.getValue("totalSpend") || "0")
+  const formatted = stripeCurrencyAmountToHumanReadableCurrencyAmount(
+    CurrencyCode.USD, 
+    amount
+  )
+  return <div className="font-medium">{formatted}</div>
+}
+
+// ✅ PREFERRED: Left-aligned count cells  
+cell: ({ row }) => (
+  <div>{row.getValue('payments') || 0}</div>
+)
+
+// ❌ AVOID: Right or center alignment
+return <div className="text-right font-medium">{formatted}</div>  // Don't use
+return <div className="text-center">{count}</div>                // Don't use
+```
+
+**Rationale:**
+- **Consistent reading pattern** - users scan left-to-right consistently
+- **Better for responsive design** - left alignment adapts better to various screen sizes
+- **Accessibility** - screen readers follow natural text flow
+- **Reduced cognitive load** - no need to switch alignment expectations between columns
 
 ### 6. Pagination Limitations
 
@@ -405,40 +421,33 @@ app/customers/
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 import { CustomerTableRowData } from "@/db/schema/customers"
 
 export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     accessorKey: "customer.name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    header: "Name",  // Simple text header - clean and readable
     cell: ({ row }) => (
       <div className="font-medium">{row.getValue("customer.name")}</div>
     ),
   },
   {
     accessorKey: "customer.email", 
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Email" />
-    ),
+    header: "Email",  // Simple text header
     cell: ({ row }) => (
       <div className="lowercase">{row.getValue("customer.email")}</div>
     ),
   },
   {
     accessorKey: "customer.totalSpend",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Total Spend" />
-    ),
+    header: "Total Spend",  // Simple text header
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("customer.totalSpend") || "0")
       const formatted = new Intl.NumberFormat("en-US", {
         style: "currency", 
         currency: "USD",
       }).format(amount)
-      return <div className="text-right font-medium">{formatted}</div>
+      return <div className="font-medium">{formatted}</div>
     },
   },
   {
@@ -1224,14 +1233,14 @@ cell: ({ row }) => (
   <div className="font-medium">{row.getValue("name")}</div>
 )
 
-// Numeric cells (right-aligned)
+// Numeric cells (left-aligned)
 cell: ({ row }) => {
   const amount = parseFloat(row.getValue("amount"))
   const formatted = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
   }).format(amount)
-  return <div className="text-right font-medium">{formatted}</div>
+  return <div className="font-medium">{formatted}</div>
 }
 
 // Status badges
@@ -1708,8 +1717,8 @@ After automated renaming:
    - ✅ DataTableViewOptions for column visibility
    - ✅ Create buttons moved to table toolbars
    - ✅ Server-side search integrated with Shadcn patterns
-3. **Implemented reusable components enterprise-wide**:
-   - ✅ `DataTableColumnHeader` for ALL sortable columns (consistency)
+3. **Implemented simple, consistent patterns enterprise-wide**:
+   - ✅ Simple text labels for ALL column headers (clean & minimal)
    - ✅ `DataTablePagination` with smart visibility and clean display
    - ✅ `DataTableViewOptions` for column visibility
 4. **Created Enhanced Action Menu Component**:
@@ -1966,9 +1975,7 @@ export const columns: ColumnDef<TableRowData>[] = [
   {
     id: "name",                                    // ✅ REQUIRED for nested data
     accessorFn: (row) => row.customer.name,      // ✅ REQUIRED for nested data
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    header: "Name",                               // ✅ Simple text label - clean & minimal
     cell: ({ row }) => (
       <div className="font-medium">{row.getValue("name")}</div>
     ),
@@ -2094,11 +2101,11 @@ Use this checklist to ensure each migrated table follows Shadcn patterns exactly
 - [ ] Focus on individual row actions instead of bulk operations
 - [ ] Cleaner interface without selection complexity
 
-### ✅ **Column Headers (Enterprise Recommendation)**
-- [ ] Uses `DataTableColumnHeader` for ALL sortable columns (consistency at scale)
-- [ ] Plain string headers only for non-sortable columns
-- [ ] Alternative: Manual sorting buttons acceptable for simple tables
-- [ ] Consistent title prop naming across all columns
+### ✅ **Column Headers (Updated Approach)**
+- [ ] Uses simple text labels for ALL columns (clean & minimal design)
+- [ ] No buttons, popovers, or interactive elements in headers
+- [ ] Consistent header naming across all columns
+- [ ] Focus on readability over functionality
 
 ### ✅ **Action Menus (Enterprise Pattern)**
 - [ ] Column has `id: "actions", enableHiding: false`
@@ -2161,7 +2168,7 @@ Use this checklist to ensure each migrated table follows Shadcn patterns exactly
 
 **Key Success Factors for Enterprise Implementation (VALIDATED):**
 1. ✅ Enhanced components successfully wrap Shadcn patterns (EnhancedDataTableActionsMenu, DataTableCopyableCell)
-2. ✅ `DataTableColumnHeader` used for ALL sortable columns (consistency at scale achieved)
+2. ✅ Simple text labels used for ALL column headers (clean, minimal design achieved)
 3. ✅ `DataTablePagination` and `DataTableViewOptions` deployed throughout
 4. ✅ Server-side filtering performance preserved and enhanced
 5. ✅ Client-side features added (sorting, column visibility) for UX enhancement - selection removed for simplicity
@@ -2192,10 +2199,10 @@ The investment in this hybrid Shadcn implementation will establish a world-class
 
 Based on thorough analysis of your enterprise-scale complexity, these are our **final confirmed recommendations**:
 
-#### **1. Column Headers: DataTableColumnHeader (Option B)**
-- **Use**: `DataTableColumnHeader` for ALL sortable columns
-- **Reason**: Consistency across 16+ tables is more important than individual customization
-- **Exception**: Simple tables can use manual buttons if preferred
+#### **1. Column Headers: Simple Text Labels (Option C)**
+- **Use**: Simple text strings for ALL column headers
+- **Reason**: Clean, minimal design focused on readability without interaction complexity
+- **Benefits**: No buttons, no popovers, no visual clutter - just clean data presentation
 
 #### **2. Column Visibility: DataTableViewOptions (Option B)**  
 - **Use**: `DataTableViewOptions` reusable component
@@ -2222,7 +2229,7 @@ Based on thorough analysis of your enterprise-scale complexity, these are our **
 
 When migrating each table, follow this exact proven pattern:
 
-1. ✅ **Use `DataTableColumnHeader` for ALL sortable columns** (PROVEN WORKING)
+1. ✅ **Use simple text labels for ALL column headers** (CLEAN & MINIMAL)
 2. ✅ **Use `DataTablePagination` with totalCount prop for server-side data** (CRITICAL FIX)
 3. ✅ **Use `DataTableViewOptions` for column visibility** (PROVEN WORKING)
 4. ✅ **Use `EnhancedDataTableActionsMenu` for action menus** (PROVEN WORKING)

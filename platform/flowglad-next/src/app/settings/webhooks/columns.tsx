@@ -5,7 +5,6 @@ import { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Eye, Pencil } from 'lucide-react'
 // UI components last
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   EnhancedDataTableActionsMenu,
@@ -81,9 +80,7 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
   {
     id: 'name',
     accessorFn: (row) => row.webhook.name,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    header: 'Name',
     cell: ({ row }) => (
       <div className="font-medium">{row.getValue('name')}</div>
     ),
@@ -94,9 +91,7 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
   {
     id: 'url',
     accessorFn: (row) => row.webhook.url,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="URL" />
-    ),
+    header: 'URL',
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <DataTableCopyableCell copyText={row.getValue('url')}>
@@ -111,9 +106,7 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
   {
     id: 'active',
     accessorFn: (row) => row.webhook.active,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
+    header: 'Status',
     cell: ({ row }) => (
       <StatusBadge active={row.getValue('active')} />
     ),
@@ -124,9 +117,7 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
   {
     id: 'webhookId',
     accessorFn: (row) => row.webhook.id,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ID" />
-    ),
+    header: 'ID',
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <DataTableCopyableCell copyText={row.getValue('webhookId')}>

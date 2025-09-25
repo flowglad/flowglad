@@ -2,8 +2,8 @@ import { Customer } from '@/db/schema/customers'
 import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
-import PurchasesTable from './PurchasesTable'
-import InvoicesTable from '@/components/InvoicesTable'
+import { PurchasesDataTable } from './purchases/data-table'
+import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
@@ -131,7 +131,11 @@ export const CustomerBillingSubPage = ({
               // buttonIcon={<Plus size={16} />}
               // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
             />
-            <InvoicesTable customer={customer} />
+            <InvoicesDataTable
+              filters={{
+                customerId: customer.id,
+              }}
+            />
             <TableHeader title="Payments" noButtons />
             <PaymentsTable
               filters={{
@@ -139,7 +143,7 @@ export const CustomerBillingSubPage = ({
               }}
             />
             <TableHeader title="Purchases" noButtons />
-            <PurchasesTable
+            <PurchasesDataTable
               filters={{
                 customerId: customer.id,
               }}

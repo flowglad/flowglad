@@ -5,7 +5,6 @@ import { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Pencil, ExternalLink, Copy } from 'lucide-react'
 // UI components last
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   EnhancedDataTableActionsMenu,
@@ -108,9 +107,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'name',
     accessorFn: (row) => row.customer.name,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    header: 'Name',
     cell: ({ row }) => (
       <div className="font-medium">{row.getValue('name')}</div>
     ),
@@ -121,9 +118,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'email',
     accessorFn: (row) => row.customer.email,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Email" />
-    ),
+    header: 'Email',
     cell: ({ row }) => (
       <div className="lowercase truncate">
         {row.getValue('email')}
@@ -135,9 +130,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   },
   {
     accessorKey: 'status',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
+    header: 'Status',
     cell: ({ row }) => {
       const status = row.getValue('status') as InferredCustomerStatus
       return <CustomerStatusCell status={status} />
@@ -148,9 +141,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   },
   {
     accessorKey: 'totalSpend',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Total Spend" />
-    ),
+    header: 'Total Spend',
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('totalSpend') || '0')
       const formatted =
@@ -158,7 +149,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
           CurrencyCode.USD,
           amount
         )
-      return <div className="text-right font-medium">{formatted}</div>
+      return <div className="font-medium">{formatted}</div>
     },
     size: 100,
     minSize: 80,
@@ -166,14 +157,8 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   },
   {
     accessorKey: 'payments',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Payments" />
-    ),
-    cell: ({ row }) => (
-      <div className="text-center">
-        {row.getValue('payments') || 0}
-      </div>
-    ),
+    header: 'Payments',
+    cell: ({ row }) => <div>{row.getValue('payments') || 0}</div>,
     size: 100,
     minSize: 80,
     maxSize: 100,
@@ -181,9 +166,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'createdAt',
     accessorFn: (row) => row.customer.createdAt,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created" />
-    ),
+    header: 'Created',
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {core.formatDate(row.getValue('createdAt'))}
@@ -196,9 +179,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'customerId',
     accessorFn: (row) => row.customer.id,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ID" />
-    ),
+    header: 'ID',
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <DataTableCopyableCell copyText={row.getValue('customerId')}>

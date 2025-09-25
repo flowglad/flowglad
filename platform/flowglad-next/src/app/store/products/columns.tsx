@@ -12,7 +12,6 @@ import {
   Plus,
 } from 'lucide-react'
 // UI components last
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   EnhancedDataTableActionsMenu,
@@ -126,22 +125,27 @@ function ProductActionsMenu({
 export const columns: ColumnDef<ProductRow>[] = [
   {
     id: 'image',
+    accessorFn: (row) => row.product.imageURL,
     header: '',
-    cell: ({ row }) => (
-      <div className="bg-muted h-10 w-10 hover:bg-muted overflow-clip flex items-center justify-center rounded-md shrink-0">
-        {row.original.product.imageURL ? (
-          <Image
-            src={row.original.product.imageURL}
-            alt={row.original.product.name}
-            width={40}
-            height={40}
-            className="object-cover object-center overflow-hidden h-10 w-10"
-          />
-        ) : (
-          <ImageIcon size={16} className="text-muted-foreground" />
-        )}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const imageURL = row.getValue('image') as string | null
+      const productName = row.original.product.name // OK to use original for alt text
+      return (
+        <div className="bg-muted h-10 w-10 hover:bg-muted overflow-clip flex items-center justify-center rounded-md shrink-0">
+          {imageURL ? (
+            <Image
+              src={imageURL}
+              alt={productName}
+              width={40}
+              height={40}
+              className="object-cover object-center overflow-hidden h-10 w-10"
+            />
+          ) : (
+            <ImageIcon size={16} className="text-muted-foreground" />
+          )}
+        </div>
+      )
+    },
     enableSorting: false,
     enableHiding: false,
     size: 50,
@@ -150,9 +154,7 @@ export const columns: ColumnDef<ProductRow>[] = [
   {
     id: 'name',
     accessorFn: (row) => row.product.name,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    header: 'Name',
     cell: ({ row }) => (
       <div className="min-w-0">
         <span
@@ -167,10 +169,9 @@ export const columns: ColumnDef<ProductRow>[] = [
     maxSize: 300,
   },
   {
-    accessorKey: 'prices',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Pricing" />
-    ),
+    id: 'prices',
+    accessorFn: (row) => row.prices,
+    header: 'Pricing',
     cell: ({ row }) => (
       <div className="min-w-[105px] max-w-[120px]">
         <PricingCellView prices={row.getValue('prices')} />
@@ -183,9 +184,7 @@ export const columns: ColumnDef<ProductRow>[] = [
   {
     id: 'status',
     accessorFn: (row) => row.product.active,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
+    header: 'Status',
     cell: ({ row }) => (
       <div className="min-w-0">
         <StatusBadge active={row.getValue('status')} />
@@ -198,9 +197,7 @@ export const columns: ColumnDef<ProductRow>[] = [
   {
     id: 'productId',
     accessorFn: (row) => row.product.id,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ID" />
-    ),
+    header: 'ID',
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <div className="min-w-0 max-w-[250px]">

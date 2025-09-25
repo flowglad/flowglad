@@ -5,7 +5,6 @@ import { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Pencil, Trash2 } from 'lucide-react'
 // UI components last
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
@@ -101,9 +100,7 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
   {
     id: 'name',
     accessorFn: (row) => row.discount.name,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    header: 'Name',
     cell: ({ row }) => (
       <div className="font-medium truncate">
         {row.getValue('name')}
@@ -116,9 +113,7 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
   {
     id: 'code',
     accessorFn: (row) => row.discount.code,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Code" />
-    ),
+    header: 'Code',
     cell: ({ row }) => (
       <div className="font-mono text-sm truncate">
         {row.getValue('code')}
@@ -131,9 +126,7 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
   {
     id: 'amount',
     accessorFn: (row) => row.discount.amount,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Amount" />
-    ),
+    header: 'Amount',
     cell: ({ row }) => (
       <DiscountTableAmountCell amount={row.original.discount} />
     ),
@@ -144,9 +137,7 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
   {
     id: 'duration',
     accessorFn: (row) => row.discount.duration,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Duration" />
-    ),
+    header: 'Duration',
     cell: ({ row }) => (
       <DiscountTableDurationCell duration={row.original.discount} />
     ),
@@ -157,14 +148,8 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
   {
     id: 'redemptions',
     accessorFn: (row) => row.discountRedemptionsCount,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Redemptions" />
-    ),
-    cell: ({ row }) => (
-      <div className="text-center">
-        {row.getValue('redemptions') || 0}
-      </div>
-    ),
+    header: 'Redemptions',
+    cell: ({ row }) => <div>{row.getValue('redemptions') || 0}</div>,
     size: 120,
     minSize: 100,
     maxSize: 150,
@@ -172,9 +157,7 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
   {
     id: 'active',
     accessorFn: (row) => row.discount.active,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
+    header: 'Status',
     cell: ({ row }) => (
       <StatusBadge active={row.getValue('active')} />
     ),

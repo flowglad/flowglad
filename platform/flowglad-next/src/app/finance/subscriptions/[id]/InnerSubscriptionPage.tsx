@@ -14,7 +14,7 @@ import { CardPaymentMethodLabel } from '@/components/PaymentMethodLabel'
 import { PaymentMethodType } from '@/types'
 import { Label } from '@/components/ui/label'
 
-import InvoicesTable from '@/components/InvoicesTable'
+import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -76,7 +76,7 @@ const InnerSubscriptionPage = ({
           subscriptionItems={subscription.subscriptionItems}
         />
         <TableHeader title="Invoices" noButtons />
-        <InvoicesTable
+        <InvoicesDataTable
           filters={{ subscriptionId: subscription.id }}
         />
         <TableHeader title="Payments" noButtons />

@@ -5,7 +5,6 @@ import { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Trash2 } from 'lucide-react'
 // UI components last
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   EnhancedDataTableActionsMenu,
@@ -58,9 +57,7 @@ export const columns: ColumnDef<ApiKeyTableRowData>[] = [
   {
     id: 'name',
     accessorFn: (row) => row.apiKey.name,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    header: 'Name',
     cell: ({ row }) => (
       <div className="font-medium truncate max-w-24">
         {row.getValue('name')}
@@ -73,9 +70,7 @@ export const columns: ColumnDef<ApiKeyTableRowData>[] = [
   {
     id: 'token',
     accessorFn: (row) => row.apiKey.token,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Token" />
-    ),
+    header: 'Token',
     cell: ({ row }) => {
       const apiKey = row.original.apiKey
       // Only allow copying for non-live tokens
@@ -101,9 +96,7 @@ export const columns: ColumnDef<ApiKeyTableRowData>[] = [
   {
     id: 'createdAt',
     accessorFn: (row) => row.apiKey.createdAt,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created" />
-    ),
+    header: 'Created',
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {core.formatDate(row.getValue('createdAt'))}

@@ -13,6 +13,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -23,28 +24,29 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns } from './columns'
+import { columns, InvoiceTableRowData } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
 import debounce from 'debounce'
-import { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionStatus } from '@/types'
 import { useRouter } from 'next/navigation'
-import { Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
+import { InvoiceStatus } from '@/types'
 
-export interface SubscriptionsTableFilters {
-  status?: SubscriptionStatus
+export interface InvoicesTableFilters {
+  status?: InvoiceStatus
   customerId?: string
-  organizationId?: string
+  subscriptionId?: string
 }
 
-interface SubscriptionsDataTableProps {
-  filters?: SubscriptionsTableFilters
+interface InvoicesDataTableProps {
+  filters?: InvoicesTableFilters
+  onCreateInvoice?: () => void
 }
 
-export function SubscriptionsDataTable({
+export function InvoicesDataTable({
   filters = {},
-}: SubscriptionsDataTableProps) {
+  onCreateInvoice,
+}: InvoicesDataTableProps) {
   const router = useRouter()
 
   // Server-side filtering (preserve enterprise architecture)
@@ -67,14 +69,14 @@ export function SubscriptionsDataTable({
     isLoading,
     isFetching,
   } = usePaginatedTableState<
-    Subscription.TableRowData,
-    SubscriptionsTableFilters
+    InvoiceTableRowData,
+    InvoicesTableFilters
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
     searchQuery: searchQuery,
-    useQuery: trpc.subscriptions.getTableRows.useQuery,
+    useQuery: trpc.invoices.getTableRows.useQuery,
   })
 
   // Client-side features (Shadcn patterns)
@@ -94,22 +96,30 @@ export function SubscriptionsDataTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+
+    // CRITICAL: Bridge TanStack Table pagination to server-side pagination
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === 'function'
           ? updater({ pageIndex, pageSize: currentPageSize })
           : updater
 
+      // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        handlePaginationChange(0)
-      } else if (newPagination.pageIndex !== pageIndex) {
+        handlePaginationChange(0) // Reset to first page
+      }
+      // Handle page navigation
+      else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
     },
+
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+
+    // CRITICAL: Use dynamic page size in state
     state: {
       sorting,
       columnFilters,
@@ -125,7 +135,7 @@ export function SubscriptionsDataTable({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search subscriptions..."
+            placeholder="Search invoices..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             className="max-w-sm pl-9"
@@ -139,6 +149,12 @@ export function SubscriptionsDataTable({
         </div>
         <div className="flex items-center gap-2 ml-auto">
           <DataTableViewOptions table={table} />
+          {onCreateInvoice && (
+            <Button onClick={onCreateInvoice}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Invoice
+            </Button>
+          )}
         </div>
       </div>
 
@@ -188,18 +204,16 @@ export function SubscriptionsDataTable({
                       target.closest('[role="checkbox"]') ||
                       target.closest('input[type="checkbox"]')
                     ) {
-                      return
+                      return // Don't navigate when clicking interactive elements
                     }
-                    router.push(
-                      `/finance/subscriptions/${row.original.subscription.id}`
-                    )
+                    // Navigate to invoice details
+                    const invoice = row.original.invoice
+                    const invoiceUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invoice/view/${invoice.organizationId}/${invoice.id}`
+                    window.open(invoiceUrl, '_blank')
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      style={{ width: cell.column.getSize() }}
-                    >
+                    <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

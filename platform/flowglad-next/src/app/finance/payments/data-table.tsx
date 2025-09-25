@@ -27,26 +27,25 @@ import { columns } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
 import debounce from 'debounce'
-import { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionStatus } from '@/types'
-import { useRouter } from 'next/navigation'
+import { Payment } from '@/db/schema/payments'
+import { PaymentStatus } from '@/types'
 import { Search } from 'lucide-react'
 
-export interface SubscriptionsTableFilters {
-  status?: SubscriptionStatus
+export interface PaymentsTableFilters {
+  status?: PaymentStatus
   customerId?: string
   organizationId?: string
+  subscriptionId?: string
+  invoiceId?: string
 }
 
-interface SubscriptionsDataTableProps {
-  filters?: SubscriptionsTableFilters
+interface PaymentsDataTableProps {
+  filters?: PaymentsTableFilters
 }
 
-export function SubscriptionsDataTable({
+export function PaymentsDataTable({
   filters = {},
-}: SubscriptionsDataTableProps) {
-  const router = useRouter()
-
+}: PaymentsDataTableProps) {
   // Server-side filtering (preserve enterprise architecture)
   const [inputValue, setInputValue] = React.useState('')
   const [searchQuery, setSearchQuery] = React.useState('')
@@ -67,14 +66,14 @@ export function SubscriptionsDataTable({
     isLoading,
     isFetching,
   } = usePaginatedTableState<
-    Subscription.TableRowData,
-    SubscriptionsTableFilters
+    Payment.TableRowData,
+    PaymentsTableFilters
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
     searchQuery: searchQuery,
-    useQuery: trpc.subscriptions.getTableRows.useQuery,
+    useQuery: trpc.payments.getTableRows.useQuery,
   })
 
   // Client-side features (Shadcn patterns)
@@ -125,7 +124,7 @@ export function SubscriptionsDataTable({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search subscriptions..."
+            placeholder="Search payments..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             className="max-w-sm pl-9"
@@ -180,20 +179,7 @@ export function SubscriptionsDataTable({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement
-                    if (
-                      target.closest('button') ||
-                      target.closest('[role="checkbox"]') ||
-                      target.closest('input[type="checkbox"]')
-                    ) {
-                      return
-                    }
-                    router.push(
-                      `/finance/subscriptions/${row.original.subscription.id}`
-                    )
-                  }}
+                  className={isFetching ? 'opacity-50' : ''}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

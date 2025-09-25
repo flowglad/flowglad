@@ -16,7 +16,6 @@ import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import { TableHeader } from '@/components/ui/table-header'
 import PricesTable from './PricesTable'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
-import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import PopoverMenu, {
   PopoverMenuItem,
 } from '@/components/PopoverMenu'

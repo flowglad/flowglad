@@ -1,84 +1,29 @@
 'use client'
-import { useMemo } from 'react'
-import { DisplayColumnDef } from '@tanstack/react-table'
-import { DataTable } from '@/components/ui/data-table'
+
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import CopyableTextTableCell from '@/components/CopyableTextTableCell'
-import core from '@/utils/core'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { useAuthContext } from '@/contexts/authContext'
+import {
+  SubscriptionItemsDataTable,
+  SubscriptionItemsTableFilters,
+} from './data-table'
 
-export interface SubscriptionItemsTableFilters {
-  subscriptionId?: string
-}
-
+// Backward compatibility wrapper - maintains same interface for existing imports
 const SubscriptionItemsTable = ({
   subscriptionItems,
+  loading = false,
 }: {
   subscriptionItems: SubscriptionItem.ClientRecord[]
+  loading?: boolean
 }) => {
-  const { organization } = useAuthContext()
-
-  const columns = useMemo(
-    () =>
-      [
-        {
-          header: 'Name',
-          accessorKey: 'name' as const,
-          cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.name}</span>
-          ),
-        },
-        {
-          header: 'Quantity',
-          accessorKey: 'quantity' as const,
-          cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">{cellData.quantity}</span>
-          ),
-        },
-        {
-          header: 'Per Unit Price',
-          accessorKey: 'unitPrice' as const,
-          cell: ({ row: { original: cellData } }) => (
-            <span className="text-sm">
-              {organization &&
-                stripeCurrencyAmountToHumanReadableCurrencyAmount(
-                  organization.defaultCurrency,
-                  cellData.unitPrice
-                )}
-            </span>
-          ),
-        },
-        {
-          header: 'Added Date',
-          accessorKey: 'addedDate' as const,
-          cell: ({ row: { original: cellData } }) => (
-            <>{core.formatDate(cellData.addedDate)}</>
-          ),
-        },
-        {
-          header: 'ID',
-          id: 'id' as const,
-          cell: ({ row: { original: cellData } }) => (
-            <CopyableTextTableCell copyText={cellData.id}>
-              {cellData.id}
-            </CopyableTextTableCell>
-          ),
-        },
-      ] as DisplayColumnDef<SubscriptionItem.ClientRecord>[],
-    [organization]
-  )
-
-  const tableData = subscriptionItems
-
   return (
-    <DataTable
-      columns={columns}
-      data={tableData}
-      className="bg-background"
-      bordered
+    <SubscriptionItemsDataTable
+      subscriptionItems={subscriptionItems}
+      loading={loading}
     />
   )
 }
+
+// Re-export interface and new component for direct use
+export type { SubscriptionItemsTableFilters }
+export { SubscriptionItemsDataTable }
 
 export default SubscriptionItemsTable

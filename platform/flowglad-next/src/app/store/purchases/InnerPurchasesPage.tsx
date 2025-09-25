@@ -2,7 +2,7 @@
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
-import PurchasesTable from '@/app/customers/[id]/PurchasesTable'
+import { PurchasesDataTable } from '@/app/customers/[id]/purchases/data-table'
 
 const InnerPurchasesPage = ({
   organizationId,
@@ -15,7 +15,7 @@ const InnerPurchasesPage = ({
         <Breadcrumb />
         <PageHeader title="Purchases" className="mb-6" />
       </div>
-      <PurchasesTable />
+      <PurchasesDataTable />
     </InternalPageContainer>
   )
 }

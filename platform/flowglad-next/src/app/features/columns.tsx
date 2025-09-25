@@ -5,7 +5,6 @@ import { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Pencil } from 'lucide-react'
 // UI components last
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   EnhancedDataTableActionsMenu,
@@ -73,9 +72,7 @@ export const columns: ColumnDef<FeatureRow>[] = [
   {
     id: 'name',
     accessorFn: (row) => row.feature.name,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    header: 'Name',
     cell: ({ row }) => (
       <div className="font-medium">{row.getValue('name')}</div>
     ),
@@ -86,9 +83,7 @@ export const columns: ColumnDef<FeatureRow>[] = [
   {
     id: 'status',
     accessorFn: (row) => row.feature.active,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
+    header: 'Status',
     cell: ({ row }) => (
       <StatusBadge active={row.getValue('status')} />
     ),
@@ -99,9 +94,7 @@ export const columns: ColumnDef<FeatureRow>[] = [
   {
     id: 'type',
     accessorFn: (row) => row.feature.type,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Type" />
-    ),
+    header: 'Type',
     cell: ({ row }) => (
       <FeatureTypeCell feature={row.original.feature} />
     ),
@@ -112,9 +105,7 @@ export const columns: ColumnDef<FeatureRow>[] = [
   {
     id: 'slug',
     accessorFn: (row) => row.feature.slug,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Slug" />
-    ),
+    header: 'Slug',
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <DataTableCopyableCell copyText={row.getValue('slug')}>
@@ -129,9 +120,7 @@ export const columns: ColumnDef<FeatureRow>[] = [
   {
     id: 'catalog',
     accessorFn: (row) => row.pricingModel?.name,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Catalog" />
-    ),
+    header: 'Catalog',
     cell: ({ row }) => {
       const pricingModelName = row.getValue('catalog') as
         | string
@@ -145,9 +134,7 @@ export const columns: ColumnDef<FeatureRow>[] = [
   {
     id: 'featureId',
     accessorFn: (row) => row.feature.id,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ID" />
-    ),
+    header: 'ID',
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <DataTableCopyableCell copyText={row.getValue('featureId')}>

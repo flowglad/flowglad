@@ -10,11 +10,11 @@ import { Pencil, Plus } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { CustomersDataTable } from '@/app/customers/data-table'
 import { TableHeader } from '@/components/ui/table-header'
-import FeaturesTable from '@/app/features/FeaturesTable'
+import { FeaturesDataTable } from '@/app/features/data-table'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
 import DefaultBadge from '@/components/DefaultBadge'
-import UsageMetersTable from '@/app/store/usage-meters/UsageMetersTable'
+import { UsageMetersDataTable } from '@/app/store/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 
 export type InnerPricingModelDetailsPageProps = {
@@ -84,7 +84,7 @@ function InnerPricingModelDetailsPage({
               setIsCreateFeatureModalOpen(true)
             }}
           />
-          <FeaturesTable
+          <FeaturesDataTable
             filters={{ pricingModelId: pricingModel.id }}
           />
         </div>
@@ -97,7 +97,7 @@ function InnerPricingModelDetailsPage({
               setIsCreateUsageMeterModalOpen(true)
             }}
           />
-          <UsageMetersTable
+          <UsageMetersDataTable
             filters={{ pricingModelId: pricingModel.id }}
           />
         </div>

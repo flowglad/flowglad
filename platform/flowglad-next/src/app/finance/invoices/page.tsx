@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { InvoiceStatus } from '@/types'
-import InvoicesTable from '@/components/InvoicesTable'
+import { InvoicesDataTable } from './data-table'
 import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
 import { PageHeader } from '@/components/ui/page-header'
 import { FilterButtonGroup } from '@/components/ui/filter-button-group'
@@ -54,7 +54,7 @@ const InternalInvoicesPage = () => {
             onValueChange={handleFilterChange}
             className="mb-6"
           />
-          <InvoicesTable filters={filters} />
+          <InvoicesDataTable filters={filters} />
         </div>
         {/* <CreateInvoiceModal
           isOpen={createInvoiceModalOpen}
