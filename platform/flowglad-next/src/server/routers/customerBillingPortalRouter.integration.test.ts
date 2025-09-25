@@ -289,10 +289,16 @@ describe('Customer Billing Portal Router', () => {
           pricingModel: expect.objectContaining({
             id: pricingModel.id,
           }),
+          billingPortalUrl: expect.any(String),
         })
 
         // Verify all invoices are returned when no pagination
         expect(result.invoices.length).toBeGreaterThanOrEqual(3)
+        
+        // Verify billing portal URL is properly formatted
+        expect(result.billingPortalUrl).toContain('/billing-portal/')
+        expect(result.billingPortalUrl).toContain(customer.organizationId)
+        expect(result.billingPortalUrl).toContain(customer.externalId)
       }
     )
 
