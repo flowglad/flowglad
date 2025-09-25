@@ -107,7 +107,7 @@ const getBillingProcedure = customerProtectedProcedure
         ),
       catalog: pricingModelWithProductsAndUsageMetersSchema,
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
-      billingPortalUrl: z.string().describe('The billing portal URL for the customer'),
+      billingPortalUrl: z.url().describe('The billing portal URL for the customer'),
     })
   )
   .query(async ({ ctx, input }) => {

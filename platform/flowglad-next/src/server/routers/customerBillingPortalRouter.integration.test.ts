@@ -407,6 +407,38 @@ describe('Customer Billing Portal Router', () => {
       }
     )
 
+    test(
+      'generates correct billing portal URL with proper format and validation',
+      { timeout: 10000 },
+      async () => {
+        const ctx = createTestContext()
+        const input = {}
+
+        const result = await customerBillingPortalRouter
+          .createCaller(ctx)
+          .getBilling(input)
+
+        // Test that billingPortalUrl is a valid URL
+        expect(result.billingPortalUrl).toBeDefined()
+        expect(typeof result.billingPortalUrl).toBe('string')
+        
+        // Validate URL format using URL constructor
+        expect(() => new URL(result.billingPortalUrl)).not.toThrow()
+        
+        // Test specific URL structure
+        const url = new URL(result.billingPortalUrl)
+        expect(url.pathname).toBe(`/billing-portal/${organization.id}/${customer.externalId}`)
+        
+        // Test that URL contains expected components
+        expect(result.billingPortalUrl).toContain('/billing-portal/')
+        expect(result.billingPortalUrl).toContain(organization.id)
+        expect(result.billingPortalUrl).toContain(customer.externalId)
+        
+        // Test that URL is properly formatted (starts with http/https)
+        expect(result.billingPortalUrl).toMatch(/^https?:\/\//)
+      }
+    )
+
     test.skip('throws error when organizationId is missing from context', async () => {
       // Skip this test as the procedure doesn't actually check for missing organizationId in the way we're testing
       const ctxWithoutOrgId = {
