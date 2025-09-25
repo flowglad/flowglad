@@ -35,9 +35,9 @@ import {
 } from 'drizzle-orm'
 import { SubscriptionStatus, CancellationReason } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { customers, customersSelectSchema } from '../schema/customers'
-import { prices, pricesSelectSchema } from '../schema/prices'
-import { products, productsSelectSchema } from '../schema/products'
+import { customers, customerClientSelectSchema } from '../schema/customers'
+import { prices, pricesClientSelectSchema } from '../schema/prices'
+import { products, productsClientSelectSchema } from '../schema/products'
 import { z } from 'zod'
 import { PaymentMethod } from '../schema/paymentMethods'
 
@@ -233,9 +233,9 @@ export const selectSubscriptionsTableRowData =
               subscription.cancellationReason
             ),
           },
-          price: pricesSelectSchema.parse(price),
-          product: productsSelectSchema.parse(product),
-          customer: customersSelectSchema.parse(customer),
+          price: pricesClientSelectSchema.parse(price),
+          product: productsClientSelectSchema.parse(product),
+          customer: customerClientSelectSchema.parse(customer),
         }
       })
     }

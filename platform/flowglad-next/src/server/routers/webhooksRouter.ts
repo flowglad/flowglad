@@ -6,7 +6,7 @@ import {
 import {
   selectWebhookById,
   insertWebhook,
-  updateWebhook,
+  updateWebhook as updateWebhookDB,
   selectWebhookAndOrganizationByWebhookId,
   selectWebhooksTableRowData,
 } from '@/db/tableMethods/webhookMethods'
@@ -74,14 +74,14 @@ export const createWebhook = protectedProcedure
     )
   )
 
-export const editWebhook = protectedProcedure
+export const updateWebhook = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editWebhookInputSchema)
   .output(z.object({ webhook: webhookClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction, ctx }) => {
-        const webhook = await updateWebhook(
+        const webhook = await updateWebhookDB(
           {
             ...input.webhook,
             id: input.id,
@@ -152,7 +152,7 @@ export const getTableRows = protectedProcedure
 export const webhooksRouter = router({
   get: getWebhook,
   create: createWebhook,
-  update: editWebhook,
+  update: updateWebhook,
   requestSigningSecret: requestWebhookSigningSecret,
   getTableRows,
 })

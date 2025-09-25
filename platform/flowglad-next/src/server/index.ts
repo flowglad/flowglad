@@ -2,9 +2,9 @@ import { router } from './trpc'
 import { pong } from '@/server/mutations/pong'
 import { generateDescription } from '@/server/mutations/generateDescription'
 import { getPresignedURL } from '@/server/mutations/getPresignedURL'
-import { editFile } from '@/server/mutations/editFile'
+import { updateFile } from '@/server/mutations/editFile'
 import { createLink } from '@/server/mutations/createLink'
-import { editLink } from '@/server/mutations/editLink'
+import { updateLink } from '@/server/mutations/editLink'
 import { deleteLinkProcedure } from '@/server/mutations/deleteLink'
 import { deleteFileProcedure } from '@/server/mutations/deleteFile'
 import { getProperNouns } from '@/server/queries/getProperNouns'
@@ -41,13 +41,13 @@ import { setReferralSelection } from './mutations/setReferralSelection'
 
 const filesRouter = router({
   create: createFile,
-  update: editFile,
+  update: updateFile,
   delete: deleteFileProcedure,
 })
 
 const linksRouter = router({
   create: createLink,
-  update: editLink,
+  update: updateLink,
   delete: deleteLinkProcedure,
 })
 

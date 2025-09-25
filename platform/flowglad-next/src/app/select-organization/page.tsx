@@ -140,7 +140,7 @@ const SelectOrganizationPage = () => {
                     {sortedOrganizations.map((org) => (
                       <div
                         key={org.id}
-                        className="flex items-center space-x-2"
+                        className="flex items-center gap-3"
                       >
                         <RadioGroupItem value={org.id} id={org.id} />
                         <Label htmlFor={org.id}>{org.name}</Label>

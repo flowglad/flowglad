@@ -126,7 +126,7 @@ const createPricingModelProcedure = protectedProcedure
     }
   })
 
-const editPricingModelProcedure = protectedProcedure
+const updatePricingModelProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editPricingModelSchema)
   .output(
@@ -300,7 +300,7 @@ export const pricingModelsRouter = router({
   get: getPricingModelProcedure,
   getDefault: getDefaultPricingModelProcedure,
   create: createPricingModelProcedure,
-  update: editPricingModelProcedure,
+  update: updatePricingModelProcedure,
   clone: clonePricingModelProcedure,
   getTableRows: getTableRowsProcedure,
 })

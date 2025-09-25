@@ -19,8 +19,9 @@ import { CurrencyCode, Nullish, StripePriceMode } from '@/types'
 
 export const envVariable = (key: string) => process.env[key] || ''
 
-export const localizedEnvVariable = (key: string) =>
-  envVariable(`${envVariable('LOCAL_USER')}_${key}`)
+//This would make self hosting more complicated to implement, we currently only use stripping user suffix from env vars on vercel:env-pull post processing step.
+// export const localizedEnvVariable = (key: string) =>
+//   envVariable(`${envVariable('LOCAL_USER')}_${key}`)
 
 export const safeUrl = (path: string, urlBase: string) => {
   const protocol = urlBase.match('localhost') ? 'http' : 'https'
@@ -509,7 +510,7 @@ export const core = {
   fetch: middlewareFetch,
   post,
   sliceIntoChunks,
-  localizedEnvVariable,
+  // localizedEnvVariable,
   formatDate,
   safeContactList,
   devPrefixString,

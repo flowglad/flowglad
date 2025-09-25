@@ -8,7 +8,7 @@ import {
 } from '@/db/schema/usageMeters'
 import {
   selectUsageMeterById,
-  updateUsageMeter,
+  updateUsageMeter as updateUsageMeterDB,
   selectUsageMetersPaginated,
   selectUsageMetersCursorPaginated,
 } from '@/db/tableMethods/usageMeterMethods'
@@ -72,14 +72,14 @@ const listUsageMetersProcedure = protectedProcedure
     )
   )
 
-const editUsageMeter = protectedProcedure
+const updateUsageMeter = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const usageMeter = await updateUsageMeter(
+        const usageMeter = await updateUsageMeterDB(
           {
             ...input.usageMeter,
             id: input.id,
@@ -127,7 +127,7 @@ const getTableRowsProcedure = protectedProcedure
 export const usageMetersRouter = router({
   get: getUsageMeter,
   create: createUsageMeter,
-  update: editUsageMeter,
+  update: updateUsageMeter,
   list: listUsageMetersProcedure,
   getTableRows: getTableRowsProcedure,
 })

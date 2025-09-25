@@ -26,7 +26,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   setIsOpen,
   product,
 }) => {
-  const editProduct = trpc.products.edit.useMutation()
+  const editProduct = trpc.products.update.useMutation()
 
   const { data: pricesData, isLoading: pricesLoading } =
     trpc.prices.list.useQuery({

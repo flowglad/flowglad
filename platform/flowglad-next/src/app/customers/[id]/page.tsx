@@ -7,6 +7,7 @@ import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
 import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import { selectUsageEvents } from '@/db/tableMethods/usageEventMethods'
 
 export type CustomerPageParams = {
   id: string
@@ -24,6 +25,7 @@ const CustomerPage = async ({
     invoices,
     prices,
     paymentsForCustomer,
+    usageEvents,
   } = await authenticatedTransaction(
     async ({ transaction, userId }) => {
       await selectMembershipAndOrganizations(
@@ -62,12 +64,19 @@ const CustomerPage = async ({
         result.customer.organizationId,
         transaction
       )
+      const usageEvents = await selectUsageEvents(
+        {
+          customerId: result.customer.id,
+        },
+        transaction
+      )
       return {
         customer: result.customer,
         purchases,
         invoices,
         prices,
         paymentsForCustomer,
+        usageEvents,
       }
     }
   )
@@ -85,6 +94,7 @@ const CustomerPage = async ({
         .filter(({ product }) => product.active)
         .map(({ price }) => price)}
       payments={paymentsForCustomer}
+      usageEvents={usageEvents}
     />
   )
 }

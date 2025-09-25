@@ -25,7 +25,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
   setIsOpen,
   price,
 }) => {
-  const editPrice = trpc.prices.edit.useMutation()
+  const editPrice = trpc.prices.update.useMutation()
   const editPriceInput: EditPriceInput = {
     id: price.id,
     price,

@@ -340,7 +340,7 @@ export const trpcToRest = (
           pattern: new RegExp(`^${entity}\/([^\\/]+)\/${action}$`),
           mapParams: (matches, body) => ({
             ...body,
-            id: matches[1],
+            id: matches[0],
           }),
         },
       }

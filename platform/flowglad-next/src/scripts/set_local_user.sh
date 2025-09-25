@@ -32,6 +32,7 @@ local_user=$(grep '^LOCAL_USER=' "$src_env_file" | cut -d '=' -f2)
 # Mac OS's implementation of sed forces us to write to a tmp file. This is compatible across all Linux systems
 sed -e "s/${local_user}_TRIGGER_API_KEY/TRIGGER_API_KEY/" \
     -e "s/${local_user}_TRIGGER_SECRET_KEY/TRIGGER_SECRET_KEY/" \
+    -e "s/${local_user}_DEV_EMAIL_REDIRECT/DEV_EMAIL_REDIRECT/" \
     "$target_env_file" > tmp_file
 
 # Overwrite the target env file with the modified content
