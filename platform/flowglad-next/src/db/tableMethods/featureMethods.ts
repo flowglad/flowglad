@@ -113,5 +113,7 @@ export const selectFeaturesTableRowData =
           name: pricingModelsById.get(feature.pricingModelId)!.name,
         },
       }))
-    }
+    },
+    // Searchable columns for features table
+    [features.name, features.description, features.slug]
   )

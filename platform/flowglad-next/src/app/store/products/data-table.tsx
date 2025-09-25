@@ -24,12 +24,13 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import { columns, ProductRow } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
 import debounce from 'debounce'
 import { useRouter } from 'next/navigation'
-import { Search, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 export enum FocusedTab {
   All = 'all',
@@ -126,22 +127,14 @@ export function ProductsDataTable({
     <div className="w-full">
       {/* Enhanced toolbar with all improvements */}
       <div className="flex items-center py-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search products..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="max-w-sm pl-9"
-            disabled={isLoading}
-          />
-          {isFetching && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-            </div>
-          )}
-        </div>
         <div className="flex items-center gap-2 ml-auto">
+          <CollapsibleSearch
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder="Search products..."
+            disabled={isLoading}
+            isLoading={isFetching}
+          />
           <DataTableViewOptions table={table} />
           {onCreateProduct && (
             <Button onClick={onCreateProduct}>

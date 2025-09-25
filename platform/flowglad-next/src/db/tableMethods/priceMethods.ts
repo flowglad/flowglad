@@ -353,7 +353,9 @@ export const selectPricesTableRowData =
           name: productsById.get(price.productId)!.name,
         },
       }))
-    }
+    },
+    // Searchable columns for prices table
+    [prices.name, prices.externalId, prices.slug]
   )
 
 export const makePriceDefault = async (
