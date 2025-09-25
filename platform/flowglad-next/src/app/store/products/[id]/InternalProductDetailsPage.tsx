@@ -14,7 +14,7 @@ import { Plus } from 'lucide-react'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import { TableHeader } from '@/components/ui/table-header'
-import PricesTable from './PricesTable'
+import { PricesDataTable } from './prices/data-table'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import PopoverMenu, {
   PopoverMenuItem,
@@ -127,7 +127,7 @@ function InternalProductDetailsPage(
               : 'Product must be selected'
           }
         />
-        <PricesTable
+        <PricesDataTable
           productId={product.id}
           filters={{
             productId: product.id,

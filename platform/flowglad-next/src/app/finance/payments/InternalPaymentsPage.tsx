@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import PaymentsTable from './PaymentsTable'
+import { PaymentsDataTable } from './data-table'
 import { PaymentStatus } from '@/types'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -37,7 +37,7 @@ export default function InternalPaymentsPage() {
           <PageHeader title="Payments" />
         </div>
         <div className="w-full">
-          <PaymentsTable
+          <PaymentsDataTable
             filters={getFiltersForTab(activeFilter)}
             filterOptions={filterOptions}
             activeFilter={activeFilter}

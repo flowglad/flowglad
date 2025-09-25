@@ -10,42 +10,13 @@ import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-import { Badge } from '@/components/ui/badge'
 // Other imports
 import core from '@/utils/core'
-import { sentenceCase } from 'change-case'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
-import {
-  Customer,
-  InferredCustomerStatus,
-  CustomerTableRowData,
-} from '@/db/schema/customers'
+import { Customer, CustomerTableRowData } from '@/db/schema/customers'
 import { CurrencyCode } from '@/types'
-
-const customerStatusColors: Record<InferredCustomerStatus, string> = {
-  [InferredCustomerStatus.Active]: 'bg-green-100 text-green-800',
-  [InferredCustomerStatus.Archived]: 'bg-red-100 text-red-800',
-  [InferredCustomerStatus.Pending]: 'bg-yellow-100 text-yellow-800',
-  [InferredCustomerStatus.Concluded]: 'bg-gray-100 text-gray-800',
-  [InferredCustomerStatus.PastDue]: 'bg-red-100 text-red-800',
-}
-
-const CustomerStatusCell = ({
-  status,
-}: {
-  status: InferredCustomerStatus
-}) => {
-  return (
-    <Badge
-      variant="secondary"
-      className={customerStatusColors[status]}
-    >
-      {sentenceCase(status)}
-    </Badge>
-  )
-}
 
 function CustomerActionsMenu({
   customer,
@@ -127,17 +98,6 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     size: 200,
     minSize: 150,
     maxSize: 300,
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => {
-      const status = row.getValue('status') as InferredCustomerStatus
-      return <CustomerStatusCell status={status} />
-    },
-    size: 100,
-    minSize: 80,
-    maxSize: 120,
   },
   {
     accessorKey: 'totalSpend',

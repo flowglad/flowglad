@@ -4,9 +4,9 @@ import InternalPageContainer from '@/components/InternalPageContainer'
 import { PageHeader } from '@/components/ui/page-header'
 import { RichSubscription } from '@/subscriptions/schemas'
 import { TableHeader } from '@/components/ui/table-header'
-import PaymentsTable from '../../payments/PaymentsTable'
+import { PaymentsDataTable } from '../../payments/data-table'
 import { useAuthContext } from '@/contexts/authContext'
-import SubscriptionItemsTable from './SubscriptionItemsTable'
+import { SubscriptionItemsDataTable } from './data-table'
 import SubscriptionStatusBadge from '../SubscriptionStatusBadge'
 import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -72,7 +72,7 @@ const InnerSubscriptionPage = ({
           </div>
         </div>
         <TableHeader title="Items" noButtons />
-        <SubscriptionItemsTable
+        <SubscriptionItemsDataTable
           subscriptionItems={subscription.subscriptionItems}
         />
         <TableHeader title="Invoices" noButtons />
@@ -80,7 +80,7 @@ const InnerSubscriptionPage = ({
           filters={{ subscriptionId: subscription.id }}
         />
         <TableHeader title="Payments" noButtons />
-        <PaymentsTable
+        <PaymentsDataTable
           filters={{ subscriptionId: subscription.id }}
         />
       </div>

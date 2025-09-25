@@ -15,11 +15,7 @@ import {
 } from '@/../seedDatabase'
 import { selectCustomers } from './customerMethods'
 import core from '@/utils/core'
-import {
-  InferredCustomerStatus,
-  Customer,
-  customers,
-} from '@/db/schema/customers'
+import { Customer, customers } from '@/db/schema/customers'
 import { setupPurchase } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { User } from '@/db/schema/users'
