@@ -289,10 +289,16 @@ describe('Customer Billing Portal Router', () => {
           pricingModel: expect.objectContaining({
             id: pricingModel.id,
           }),
+          billingPortalUrl: expect.any(String),
         })
 
         // Verify all invoices are returned when no pagination
         expect(result.invoices.length).toBeGreaterThanOrEqual(3)
+        
+        // Verify billing portal URL is properly formatted
+        expect(result.billingPortalUrl).toContain('/billing-portal/')
+        expect(result.billingPortalUrl).toContain(customer.organizationId)
+        expect(result.billingPortalUrl).toContain(customer.externalId)
       }
     )
 
@@ -398,6 +404,38 @@ describe('Customer Billing Portal Router', () => {
           totalCount: 10, // 3 original + 7 new
           totalPages: 2, // 10 invoices / 5 per page
         })
+      }
+    )
+
+    test(
+      'generates correct billing portal URL with proper format and validation',
+      { timeout: 10000 },
+      async () => {
+        const ctx = createTestContext()
+        const input = {}
+
+        const result = await customerBillingPortalRouter
+          .createCaller(ctx)
+          .getBilling(input)
+
+        // Test that billingPortalUrl is a valid URL
+        expect(result.billingPortalUrl).toBeDefined()
+        expect(typeof result.billingPortalUrl).toBe('string')
+        
+        // Validate URL format using URL constructor
+        expect(() => new URL(result.billingPortalUrl)).not.toThrow()
+        
+        // Test specific URL structure
+        const url = new URL(result.billingPortalUrl)
+        expect(url.pathname).toBe(`/billing-portal/${organization.id}/${customer.externalId}`)
+        
+        // Test that URL contains expected components
+        expect(result.billingPortalUrl).toContain('/billing-portal/')
+        expect(result.billingPortalUrl).toContain(organization.id)
+        expect(result.billingPortalUrl).toContain(customer.externalId)
+        
+        // Test that URL is properly formatted (starts with http/https)
+        expect(result.billingPortalUrl).toMatch(/^https?:\/\//)
       }
     )
 
