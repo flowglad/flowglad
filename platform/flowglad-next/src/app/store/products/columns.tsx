@@ -171,7 +171,7 @@ export const columns: ColumnDef<ProductRow>[] = [
   {
     id: 'prices',
     accessorFn: (row) => row.prices,
-    header: 'Pricing',
+    header: 'Price',
     cell: ({ row }) => (
       <div className="min-w-[105px] max-w-[120px]">
         <PricingCellView prices={row.getValue('prices')} />
