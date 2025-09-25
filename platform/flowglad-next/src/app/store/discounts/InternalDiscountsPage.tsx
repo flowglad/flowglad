@@ -8,7 +8,6 @@ import {
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { PageHeader } from '@/components/ui/page-header'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 
 export enum FocusedTab {
   All = 'all',
@@ -44,15 +43,12 @@ function InternalDiscountsPage() {
         <Breadcrumb />
         <PageHeader title="Discounts" />
         <div className="w-full">
-          <FilterButtonGroup
-            options={filterOptions}
-            value={activeFilter}
-            onValueChange={setActiveFilter}
-            className="mb-6"
-          />
           <DiscountsDataTable
             filters={getFilterForTab(activeFilter)}
             onCreateDiscount={() => setIsCreateDiscountOpen(true)}
+            filterOptions={filterOptions}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
           />
         </div>
         <CreateDiscountModal

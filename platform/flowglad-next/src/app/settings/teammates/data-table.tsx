@@ -14,6 +14,7 @@ import {
 } from '@tanstack/react-table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import {
   Table,
   TableBody,
@@ -146,22 +147,14 @@ export function OrganizationMembersDataTable({
     <div className="w-full">
       {/* Enhanced toolbar with all improvements */}
       <div className="flex items-center py-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search team members..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="max-w-sm pl-9"
-            disabled={isTableLoading}
-          />
-          {isTableFetching && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-            </div>
-          )}
-        </div>
         <div className="flex items-center gap-2 ml-auto">
+          <CollapsibleSearch
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder="Search team members..."
+            disabled={isTableLoading}
+            isLoading={isTableFetching}
+          />
           <DataTableViewOptions table={table} />
           {onInviteMember && (
             <Button onClick={onInviteMember}>
@@ -235,7 +228,14 @@ export function OrganizationMembersDataTable({
 
       {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
-        <DataTablePagination table={table} totalCount={totalCount} />
+        <DataTablePagination
+          table={table}
+          totalCount={totalCount}
+          isFiltered={
+            !!searchQuery || Object.keys(filters).length > 0
+          }
+          filteredCount={data?.total}
+        />
       </div>
     </div>
   )

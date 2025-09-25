@@ -14,6 +14,7 @@ import {
 } from '@tanstack/react-table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import {
   Table,
   TableBody,
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 import { columns, InvoiceTableRowData } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
@@ -41,11 +43,17 @@ export interface InvoicesTableFilters {
 interface InvoicesDataTableProps {
   filters?: InvoicesTableFilters
   onCreateInvoice?: () => void
+  filterOptions?: { value: string; label: string }[]
+  activeFilter?: string
+  onFilterChange?: (value: string) => void
 }
 
 export function InvoicesDataTable({
   filters = {},
   onCreateInvoice,
+  filterOptions,
+  activeFilter,
+  onFilterChange,
 }: InvoicesDataTableProps) {
   const router = useRouter()
 
@@ -131,23 +139,27 @@ export function InvoicesDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar with all improvements */}
-      <div className="flex items-center py-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search invoices..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="max-w-sm pl-9"
-            disabled={isLoading}
-          />
-          {isFetching && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-            </div>
+      <div className="flex items-center justify-between py-4">
+        {/* Filter buttons on the left */}
+        <div className="flex items-center">
+          {filterOptions && activeFilter && onFilterChange && (
+            <FilterButtonGroup
+              options={filterOptions}
+              value={activeFilter}
+              onValueChange={onFilterChange}
+            />
           )}
         </div>
-        <div className="flex items-center gap-2 ml-auto">
+
+        {/* Search, toggle columns, and create button on the right */}
+        <div className="flex items-center gap-2">
+          <CollapsibleSearch
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder="Search invoices..."
+            disabled={isLoading}
+            isLoading={isFetching}
+          />
           <DataTableViewOptions table={table} />
           {onCreateInvoice && (
             <Button onClick={onCreateInvoice}>
@@ -238,7 +250,14 @@ export function InvoicesDataTable({
 
       {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
-        <DataTablePagination table={table} totalCount={data?.total} />
+        <DataTablePagination
+          table={table}
+          totalCount={data?.total}
+          isFiltered={
+            !!searchQuery || Object.keys(filters).length > 0
+          }
+          filteredCount={data?.total}
+        />
       </div>
     </div>
   )

@@ -1520,7 +1520,7 @@ export const createCursorPaginatedSelectFunction = <
         .select({ count: count() })
         .from(table as SelectTable)
         .$dynamic()
-        .where(filterClause)
+        .where(and(filterClause, searchQueryClause))
 
       const data: z.infer<S>[] = queryResult
         .map((item) => selectSchema.parse(item))

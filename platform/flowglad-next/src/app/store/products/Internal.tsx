@@ -10,7 +10,6 @@ import { PricingModel } from '@/db/schema/pricingModels'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 
 export enum FocusedTab {
   All = 'all',
@@ -54,15 +53,12 @@ function InternalProductsPage({ products: initialProducts }: Props) {
         <Breadcrumb />
         <PageHeader title="Products" />
         <div className="w-full">
-          <FilterButtonGroup
-            options={filterOptions}
-            value={activeFilter}
-            onValueChange={setActiveFilter}
-            className="mb-6"
-          />
           <ProductsDataTable
             filters={getFilterForTab(activeFilter)}
             onCreateProduct={() => setIsCreateProductOpen(true)}
+            filterOptions={filterOptions}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
           />
         </div>
       </div>

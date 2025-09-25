@@ -25,6 +25,7 @@ import {
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { CollapsibleSearch } from '@/components/ui/collapsible-search'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 import { columns, ProductRow } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
@@ -47,11 +48,17 @@ export interface ProductsTableFilters {
 interface ProductsDataTableProps {
   filters?: ProductsTableFilters
   onCreateProduct?: () => void
+  filterOptions?: { value: string; label: string }[]
+  activeFilter?: string
+  onFilterChange?: (value: string) => void
 }
 
 export function ProductsDataTable({
   filters = {},
   onCreateProduct,
+  filterOptions,
+  activeFilter,
+  onFilterChange,
 }: ProductsDataTableProps) {
   const router = useRouter()
 
@@ -126,8 +133,20 @@ export function ProductsDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar with all improvements */}
-      <div className="flex items-center py-4">
-        <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center justify-between py-4">
+        {/* Filter buttons on the left */}
+        <div className="flex items-center">
+          {filterOptions && activeFilter && onFilterChange && (
+            <FilterButtonGroup
+              options={filterOptions}
+              value={activeFilter}
+              onValueChange={onFilterChange}
+            />
+          )}
+        </div>
+
+        {/* Search, toggle columns, and create button on the right */}
+        <div className="flex items-center gap-2">
           <CollapsibleSearch
             value={inputValue}
             onChange={setInputValue}
@@ -227,7 +246,14 @@ export function ProductsDataTable({
 
       {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
-        <DataTablePagination table={table} totalCount={data?.total} />
+        <DataTablePagination
+          table={table}
+          totalCount={data?.total}
+          isFiltered={
+            !!searchQuery || Object.keys(filters).length > 0
+          }
+          filteredCount={data?.total}
+        />
       </div>
     </div>
   )

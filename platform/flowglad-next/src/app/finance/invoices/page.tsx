@@ -5,7 +5,6 @@ import { InvoiceStatus } from '@/types'
 import { InvoicesDataTable } from './data-table'
 import { useInvoiceCountsByStatusMap } from './hooks/useInvoiceCountsByStatusMap'
 import { PageHeader } from '@/components/ui/page-header'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 // import { Button } from '@/components/ui/button'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
@@ -48,13 +47,12 @@ const InternalInvoicesPage = () => {
         />
 
         <div className="w-full">
-          <FilterButtonGroup
-            options={filterOptions}
-            value={selectedStatus}
-            onValueChange={handleFilterChange}
-            className="mb-6"
+          <InvoicesDataTable
+            filters={filters}
+            filterOptions={filterOptions}
+            activeFilter={selectedStatus}
+            onFilterChange={handleFilterChange}
           />
-          <InvoicesDataTable filters={filters} />
         </div>
         {/* <CreateInvoiceModal
           isOpen={createInvoiceModalOpen}

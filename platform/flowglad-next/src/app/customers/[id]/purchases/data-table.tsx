@@ -13,6 +13,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { Input } from '@/components/ui/input'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import {
   Table,
   TableBody,
@@ -126,22 +127,14 @@ export function PurchasesDataTable({
     <div className="w-full">
       {/* Enhanced toolbar */}
       <div className="flex items-center py-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search purchases..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="max-w-sm pl-9"
-            disabled={isLoading}
-          />
-          {isFetching && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-            </div>
-          )}
-        </div>
         <div className="flex items-center gap-2 ml-auto">
+          <CollapsibleSearch
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder="Search purchases..."
+            disabled={isLoading}
+            isLoading={isFetching}
+          />
           <DataTableViewOptions table={table} />
         </div>
       </div>
@@ -209,7 +202,14 @@ export function PurchasesDataTable({
 
       {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
-        <DataTablePagination table={table} totalCount={data?.total} />
+        <DataTablePagination
+          table={table}
+          totalCount={data?.total}
+          isFiltered={
+            !!searchQuery || Object.keys(filters).length > 0
+          }
+          filteredCount={data?.total}
+        />
       </div>
     </div>
   )

@@ -10,7 +10,6 @@ import { trpc } from '@/app/_trpc/client'
 import { useState } from 'react'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 
 function InternalSubscriptionsPage() {
   const [activeFilter, setActiveFilter] = useState<string>('all')
@@ -53,14 +52,11 @@ function InternalSubscriptionsPage() {
         <PageHeader title="Subscriptions" />
 
         <div className="w-full">
-          <FilterButtonGroup
-            options={filterOptions}
-            value={activeFilter}
-            onValueChange={setActiveFilter}
-            className="mb-6"
-          />
           <SubscriptionsDataTable
             filters={getFilterForTab(activeFilter)}
+            filterOptions={filterOptions}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
           />
         </div>
       </div>

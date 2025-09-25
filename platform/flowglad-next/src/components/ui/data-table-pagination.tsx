@@ -1,3 +1,4 @@
+import React from 'react'
 import { Table } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -13,15 +14,29 @@ import {
 interface DataTablePaginationProps<TData> {
   table: Table<TData>
   totalCount?: number // For server-side pagination
+  isFiltered?: boolean // Whether search/filter is active
+  filteredCount?: number // Count of filtered results (when different from totalCount)
 }
 
 export function DataTablePagination<TData>({
   table,
   totalCount,
+  isFiltered = false,
+  filteredCount,
 }: DataTablePaginationProps<TData>) {
-  // Use server-side total if provided, otherwise fall back to client-side count
-  const totalRows =
-    totalCount ?? table.getFilteredRowModel().rows.length
+  // Determine the correct count to display
+  // Priority: filteredCount (when filtered) > totalCount (server-side) > client-side count
+  const totalRows = React.useMemo(() => {
+    if (isFiltered && typeof filteredCount === 'number') {
+      return filteredCount
+    }
+    if (typeof totalCount === 'number') {
+      return totalCount
+    }
+    // Fallback to client-side count (only accurate for client-side pagination)
+    return table.getFilteredRowModel().rows.length
+  }, [isFiltered, filteredCount, totalCount, table])
+
   const shouldHidePagination = totalRows <= 10
 
   return (

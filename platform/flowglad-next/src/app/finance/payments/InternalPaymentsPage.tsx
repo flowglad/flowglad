@@ -6,7 +6,6 @@ import { PaymentStatus } from '@/types'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { PageHeader } from '@/components/ui/page-header'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 
 export default function InternalPaymentsPage() {
   const [activeFilter, setActiveFilter] = useState<string>('all')
@@ -38,13 +37,12 @@ export default function InternalPaymentsPage() {
           <PageHeader title="Payments" />
         </div>
         <div className="w-full">
-          <FilterButtonGroup
-            options={filterOptions}
-            value={activeFilter}
-            onValueChange={setActiveFilter}
-            className="mb-6"
+          <PaymentsTable
+            filters={getFiltersForTab(activeFilter)}
+            filterOptions={filterOptions}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
           />
-          <PaymentsTable filters={getFiltersForTab(activeFilter)} />
         </div>
       </div>
     </InternalPageContainer>
