@@ -642,7 +642,6 @@ describe('selectPricingModelForCustomer', () => {
     const customer = await setupCustomer({
       organizationId: organization.id,
       email: 'default@example.com',
-      pricingModelId: null,
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
