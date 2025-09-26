@@ -20,5 +20,10 @@ describe('FlowgladServer Billing Integration Tests', () => {
     const billing = await server.getBilling()
     expect(billing).toBeDefined()
     expect(billing.customer.externalId).toBe('test-user')
+    expect(billing.billingPortalUrl).toBeDefined()
+    expect(typeof billing.billingPortalUrl).toBe('string')
+    expect(() => new URL(billing.billingPortalUrl)).not.toThrow()
+    expect(billing.billingPortalUrl).toContain('/billing-portal/')
+    expect(billing.billingPortalUrl).toMatch(/^https?:\/\//) // Should be a valid URL
   })
 })

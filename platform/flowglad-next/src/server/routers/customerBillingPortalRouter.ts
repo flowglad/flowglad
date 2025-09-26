@@ -49,7 +49,7 @@ import {
   selectUserById,
   selectUsers,
 } from '@/db/tableMethods/userMethods'
-import core, { organizationBillingPortalURL } from '@/utils/core'
+import core from '@/utils/core'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import { setCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
@@ -107,7 +107,6 @@ const getBillingProcedure = customerProtectedProcedure
         ),
       catalog: pricingModelWithProductsAndUsageMetersSchema,
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
-      billingPortalUrl: z.url().describe('The billing portal URL for the customer'),
     })
   )
   .query(async ({ ctx, input }) => {
@@ -182,9 +181,6 @@ const getBillingProcedure = customerProtectedProcedure
       subscriptions,
       catalog: pricingModel,
       pricingModel,
-      billingPortalUrl: organizationBillingPortalURL({
-        organizationId: organizationId!,
-      }),
     }
   })
 
