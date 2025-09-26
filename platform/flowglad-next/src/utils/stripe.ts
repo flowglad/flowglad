@@ -866,10 +866,9 @@ export const getConnectedAccountOnboardingStatus = async (
     requirements?.pending_verification || []
   const eventuallyDueFields = requirements?.eventually_due || []
   const isFullyOnboarded =
-    remainingFields.length === 0 &&
-    pastDueFields.length === 0 &&
-    pendingVerificationFields.length === 0 &&
-    eventuallyDueFields.length === 0
+    account.capabilities?.card_payments === 'active' &&
+    account.capabilities?.transfers === 'active' &&
+    account.tos_acceptance?.date
   const payoutsEnabled = account.capabilities?.transfers === 'active'
   let onboardingStatus = BusinessOnboardingStatus.FullyOnboarded
   if (!isFullyOnboarded) {
