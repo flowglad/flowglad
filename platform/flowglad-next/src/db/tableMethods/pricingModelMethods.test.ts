@@ -15,8 +15,11 @@ import {
   selectPricingModelById,
   safelyInsertPricingModel,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
+  selectPricingModelForCustomer,
 } from './pricingModelMethods'
 import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
+import { setupCustomer } from '@/../seedDatabase'
+import { Customer } from '@/db/schema/customers'
 
 describe('safelyUpdatePricingModel', () => {
   let organization: Organization.Record
@@ -526,5 +529,197 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     expect(productResult?.features).toBeDefined()
     expect(Array.isArray(productResult?.features)).toBe(true)
     expect(productResult?.features).toHaveLength(0)
+  })
+})
+
+describe('selectPricingModelForCustomer', () => {
+  let organization: Organization.Record
+  let defaultPricingModel: PricingModel.Record
+  let specificPricingModel: PricingModel.Record
+  let activeProduct: any
+  let inactiveProduct: any
+
+  beforeEach(async () => {
+    // Set up organization and pricing models
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    defaultPricingModel = orgData.pricingModel // This is created as default
+
+    // Create a specific (non-default) pricing model
+    specificPricingModel = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Ion Pricing Model',
+      isDefault: false,
+    })
+
+    // Create active product for both pricing models
+    activeProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: specificPricingModel.id,
+      name: 'Active Product',
+      active: true,
+    })
+
+    // Create inactive product for both pricing models
+    inactiveProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: specificPricingModel.id,
+      name: 'Inactive Product',
+      active: false,
+    })
+
+    // Add products to default pricing model too
+    await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: defaultPricingModel.id,
+      name: 'Default Active Product',
+      active: true,
+    })
+
+    await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: defaultPricingModel.id,
+      name: 'Default Inactive Product',
+      active: false,
+    })
+
+    // Create prices for products (required for the query to work)
+    await setupPrice({
+      productId: activeProduct.id,
+      name: 'Active Product Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      setupFeeAmount: 0,
+      trialPeriodDays: 0,
+    })
+
+    await setupPrice({
+      productId: inactiveProduct.id,
+      name: 'Inactive Product Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 2000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      setupFeeAmount: 0,
+      trialPeriodDays: 0,
+    })
+  })
+
+  it('should filter inactive products for customers with specific pricing model', async () => {
+    // Create customer with specific pricing model
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test@example.com',
+      pricingModelId: specificPricingModel.id,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelForCustomer(customer, transaction)
+    })
+
+    // Should return the specific pricing model
+    expect(result.id).toBe(specificPricingModel.id)
+    
+    // Should only include active products
+    const productNames = result.products.map(p => p.name)
+    expect(productNames).toContain('Active Product')
+    expect(productNames).not.toContain('Inactive Product')
+    
+    // Verify all returned products are active
+    expect(result.products.every(p => p.active)).toBe(true)
+  })
+
+  it('should filter inactive products for customers with default pricing model', async () => {
+    // Create customer without specific pricing model (uses default)
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'default@example.com',
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelForCustomer(customer, transaction)
+    })
+
+    // Should return the default pricing model
+    expect(result.id).toBe(defaultPricingModel.id)
+    expect(result.isDefault).toBe(true)
+    
+    // Should only include active products
+    const productNames = result.products.map(p => p.name)
+    expect(productNames).not.toContain('Default Inactive Product')
+    
+    // Verify all returned products are active
+    expect(result.products.every(p => p.active)).toBe(true)
+  })
+
+  it('should fallback to default pricing model when specific model not found', async () => {
+    // Create customer with non-existent pricing model ID
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'fallback@example.com',
+    })
+
+    // Manually set a non-existent pricing model ID
+    const customerWithBadId = { ...customer, pricingModelId: 'nonexistent-id' }
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelForCustomer(customerWithBadId, transaction)
+    })
+
+    // Should fallback to default pricing model
+    expect(result.id).toBe(defaultPricingModel.id)
+    expect(result.isDefault).toBe(true)
+    
+    // Should still filter inactive products
+    expect(result.products.every(p => p.active)).toBe(true)
+  })
+
+  it('should throw error when no default pricing model exists', async () => {
+    // Simulate a scenario where no default pricing model exists by using a fake org ID
+    const fakeOrgId = 'org_fake_no_default'
+    
+    const customer = await setupCustomer({
+      organizationId: organization.id, // Use real org for customer creation
+      email: 'nodefault@example.com',
+    })
+
+    // Override the organization ID to simulate missing default
+    const customerWithFakeOrg = { ...customer, organizationId: fakeOrgId }
+
+    await expect(async () => {
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelForCustomer(customerWithFakeOrg, transaction)
+      })
+    }).rejects.toThrow(`No default pricing model found for organization ${fakeOrgId}`)
+  })
+
+  it('should handle customers with specific pricing model that has no products', async () => {
+    // Create empty pricing model
+    const emptyPricingModel = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Empty Pricing Model',
+      isDefault: false,
+    })
+
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'empty@example.com',
+      pricingModelId: emptyPricingModel.id,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelForCustomer(customer, transaction)
+    })
+
+    expect(result.id).toBe(emptyPricingModel.id)
+    expect(result.products).toHaveLength(0)
   })
 })
