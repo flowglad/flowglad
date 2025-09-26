@@ -295,6 +295,10 @@ export const updatePaymentToReflectLatestChargeStatus = async (
         amount: updatedPayment.amount,
         currency: updatedPayment.currency,
         invoiceNumber: updatedPayment.invoiceId,
+        failureReason:
+          updatedPayment.failureMessage ||
+          updatedPayment.failureCode ||
+          undefined,
       })
     }
   }
