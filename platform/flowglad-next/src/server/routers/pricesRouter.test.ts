@@ -526,6 +526,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       ).rejects.toThrow('Cannot create additional prices for the default plan')
     })
 
+    // TODO: cleanup the types here
     it('should allow default prices on non-default products to have non-zero unitPrice', async () => {
       const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
       const ctx = {

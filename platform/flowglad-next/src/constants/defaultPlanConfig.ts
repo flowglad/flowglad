@@ -11,7 +11,7 @@ export const createDefaultPriceConfig = () => ({
   slug: 'free',
   unitPrice: 0,
   isDefault: true,
-  type: PriceType.Subscription,
+  type: PriceType.Subscription as const,
   intervalCount: 1,
   intervalUnit: IntervalUnit.Month,
 })

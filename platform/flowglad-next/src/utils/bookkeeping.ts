@@ -306,7 +306,7 @@ export const createFreePlanPriceInsert = (
       slug: config.slug,
       startsWithCreditTrial: false,
       overagePriceId: null,
-    } as Price.Insert
+    }
   } else {
     // Return single payment price when no interval unit is provided
     return {
@@ -328,7 +328,7 @@ export const createFreePlanPriceInsert = (
       slug: config.slug,
       startsWithCreditTrial: null,
       overagePriceId: null,
-    } as Price.Insert
+    }
   }
 }
 export const createCustomerBookkeeping = async (

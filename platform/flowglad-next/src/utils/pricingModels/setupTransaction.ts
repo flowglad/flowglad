@@ -205,7 +205,7 @@ export const setupPricingModelTransaction = async (
               livemode,
               externalId: null,
               usageMeterId,
-            } as Price.Insert
+            }
           }
           
           case PriceType.Subscription:
@@ -228,7 +228,7 @@ export const setupPricingModelTransaction = async (
               livemode,
               externalId: null,
               usageMeterId: null,
-            } as Price.Insert
+            }
           
           case PriceType.SinglePayment:
             return {
@@ -250,7 +250,7 @@ export const setupPricingModelTransaction = async (
               livemode,
               externalId: null,
               usageMeterId: null,
-            } as Price.Insert
+            }
 
             default:
               throw new Error(`Unknown or unhandled price type on price: ${price}`)
@@ -305,7 +305,7 @@ export const setupPricingModelTransaction = async (
       livemode,
       externalId: null,
       usageMeterId: null
-    } as Price.Insert
+    }
     
     // Add default price to priceInserts
     priceInserts.push(defaultPriceInsert)
