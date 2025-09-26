@@ -18,7 +18,9 @@ export function DataTableCopyableCell({
 }: DataTableCopyableCellProps) {
   const [copied, setCopied] = React.useState(false)
 
-  const handleCopy = async (e: React.MouseEvent) => {
+  const handleCopy = async (
+    e: React.MouseEvent | React.KeyboardEvent
+  ) => {
     e.stopPropagation()
     try {
       await navigator.clipboard.writeText(copyText)
@@ -32,17 +34,34 @@ export function DataTableCopyableCell({
   return (
     <div
       className={cn(
-        'flex items-center justify-between group',
+        'flex items-center gap-0.5 group cursor-pointer transition-colors select-none',
         className
       )}
+      onClick={handleCopy}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleCopy(e)
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      title={`Click to copy ${copyText}`}
+      aria-label={`Copy ${copyText}`}
     >
-      <span className="truncate">{children}</span>
+      <span className="truncate group-hover:underline transition-colors">
+        {children}
+      </span>
       <Button
         variant="ghost"
         size="sm"
-        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={handleCopy}
+        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+        onClick={(e) => {
+          e.stopPropagation() // Prevent double triggering
+          handleCopy(e)
+        }}
         title={`Copy ${copyText}`}
+        tabIndex={-1} // Remove from tab order since container is focusable
       >
         {copied ? (
           <Check className="h-3 w-3 text-green-600" />

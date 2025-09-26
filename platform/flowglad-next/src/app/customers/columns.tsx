@@ -80,24 +80,32 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     accessorFn: (row) => row.customer.name,
     header: 'Name',
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue('name')}</div>
+      <div
+        className="font-medium truncate"
+        title={row.getValue('name')}
+      >
+        {row.getValue('name')}
+      </div>
     ),
-    size: 150,
-    minSize: 120,
-    maxSize: 200,
+    minSize: 140,
   },
   {
     id: 'email',
     accessorFn: (row) => row.customer.email,
     header: 'Email',
     cell: ({ row }) => (
-      <div className="lowercase truncate">
-        {row.getValue('email')}
+      <div onClick={(e) => e.stopPropagation()}>
+        <DataTableCopyableCell
+          copyText={row.getValue('email')}
+          className="lowercase"
+        >
+          {row.getValue('email')}
+        </DataTableCopyableCell>
       </div>
     ),
-    size: 200,
-    minSize: 150,
-    maxSize: 300,
+    size: 220,
+    minSize: 120,
+    maxSize: 250,
   },
   {
     accessorKey: 'totalSpend',
@@ -109,7 +117,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
           CurrencyCode.USD,
           amount
         )
-      return <div className="font-medium">{formatted}</div>
+      return <div className="whitespace-nowrap">{formatted}</div>
     },
     size: 100,
     minSize: 80,
@@ -118,7 +126,11 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     accessorKey: 'payments',
     header: 'Payments',
-    cell: ({ row }) => <div>{row.getValue('payments') || 0}</div>,
+    cell: ({ row }) => (
+      <div className="whitespace-nowrap">
+        {row.getValue('payments') || 0}
+      </div>
+    ),
     size: 100,
     minSize: 80,
     maxSize: 100,
@@ -132,8 +144,8 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
         {core.formatDate(row.getValue('createdAt'))}
       </div>
     ),
-    size: 125,
-    minSize: 125,
+    size: 100,
+    minSize: 100,
     maxSize: 150,
   },
   {
@@ -147,9 +159,9 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
         </DataTableCopyableCell>
       </div>
     ),
-    size: 180,
-    minSize: 125,
-    maxSize: 250,
+    size: 120, // SMALLER: Gets minimal extra space
+    minSize: 80,
+    maxSize: 180, // Reduced max to keep constrained
   },
   {
     id: 'actions',
@@ -157,12 +169,15 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     cell: ({ row }) => {
       const customer = row.original.customer
       return (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div
+          className="w-8 flex justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
           <CustomerActionsMenu customer={customer} />
         </div>
       )
     },
-    size: 40,
-    maxSize: 40,
+    size: 50,
+    maxSize: 50,
   },
 ]

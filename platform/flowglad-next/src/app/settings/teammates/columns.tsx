@@ -2,6 +2,8 @@
 
 import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
+// UI components
+import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 // Other imports
 import { User } from '@/db/schema/users'
 import { Membership } from '@/db/schema/memberships'
@@ -25,8 +27,13 @@ export const columns: ColumnDef<OrganizationMemberTableRowData>[] = [
     accessorFn: (row) => row.user.email,
     header: 'Email',
     cell: ({ row }) => (
-      <div className="text-muted-foreground">
-        {row.getValue('email')}
+      <div onClick={(e) => e.stopPropagation()}>
+        <DataTableCopyableCell
+          copyText={row.getValue('email')}
+          className="text-muted-foreground lowercase"
+        >
+          {row.getValue('email')}
+        </DataTableCopyableCell>
       </div>
     ),
   },
