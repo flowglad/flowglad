@@ -201,7 +201,7 @@ const Sidebar = React.forwardRef<
       return (
         <div
           className={cn(
-            'flex h-full w-[--sidebar-width] flex-col bg-background text-sidebar-foreground',
+            'flex h-full w-[--sidebar-width] flex-col bg-secondary text-sidebar-foreground',
             className
           )}
           ref={ref}
@@ -222,7 +222,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden !bg-background"
+            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden !bg-secondary"
             style={
               {
                 '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
@@ -280,7 +280,7 @@ const Sidebar = React.forwardRef<
         >
           <div
             data-sidebar="sidebar"
-            className="flex h-full w-full flex-col py-3 px-3 bg-background group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
+            className="flex h-full w-full flex-col py-3 px-3 bg-secondary group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
           >
             {children}
           </div>
@@ -354,7 +354,7 @@ const SidebarInset = React.forwardRef<
     <main
       ref={ref}
       className={cn(
-        'relative flex w-full flex-1 flex-col bg-background',
+        'relative flex flex-1 min-w-0 flex-col bg-secondary',
         'md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow',
         className
       )}
@@ -373,7 +373,7 @@ const SidebarInput = React.forwardRef<
       ref={ref}
       data-sidebar="input"
       className={cn(
-        'h-8 w-full bg-background shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+        'h-8 w-full bg-secondary shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
         className
       )}
       {...props}
@@ -554,7 +554,7 @@ const sidebarMenuButtonVariants = cva(
         default:
           'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[13px] hover:opacity-100',
         outline:
-          'bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[13px] hover:opacity-100 hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]',
+          'bg-secondary shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:pl-[13px] hover:opacity-100 hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]',
       },
       size: {
         default: 'h-10 text-sm [&>svg]:size-[18px]', // 18px icons
