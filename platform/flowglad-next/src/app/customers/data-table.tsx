@@ -160,7 +160,7 @@ export function CustomersDataTable({
       </div>
 
       {/* Table */}
-      <div className="border-t border-b">
+      <div className="border rounded-2xl overflow-hidden bg-card">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
