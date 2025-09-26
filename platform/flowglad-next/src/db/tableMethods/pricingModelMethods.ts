@@ -374,7 +374,12 @@ export const selectPricingModelForCustomer = async (
         transaction
       )
     if (pricingModel) {
-      return pricingModel
+      return {
+        ...pricingModel,
+        products: pricingModel.products.filter(
+          (product) => product.active
+        ),
+      }
     }
   }
   const [pricingModel] =
