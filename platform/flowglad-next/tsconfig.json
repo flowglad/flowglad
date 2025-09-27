@@ -37,6 +37,7 @@
     "trigger.config.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "scripts/generate-discount-email-previews.ts"
   ]
 }

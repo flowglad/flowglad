@@ -44,6 +44,8 @@ import {
   selectInvoiceLineItems,
   selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
 } from '@/db/tableMethods/invoiceLineItemMethods'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
+import { adminTransaction } from '@/db/adminTransaction'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import {
   safelyUpdateSubscriptionStatus,
@@ -136,18 +138,29 @@ const processFailedNotifications = async (
 ) => {
   const organizationName = params.organization.name
   const currency = params.invoice.currency
+
+  // Fetch discount information if this invoice is from a billing period (subscription)
+  const discountInfo = await fetchDiscountInfoForInvoice(
+    params.invoice
+  )
+
   await sendPaymentFailedEmail({
     organizationName: params.organization.name,
     to: [params.customer.email],
     invoiceNumber: params.invoice.invoiceNumber,
     orderDate: params.invoice.invoiceDate,
+    invoice: {
+      subtotal: params.invoice.subtotal,
+      taxAmount: params.invoice.taxAmount,
+      currency: params.invoice.currency,
+    },
     lineItems: params.invoiceLineItems.map((item) => ({
       name: item.description ?? '',
       price: item.price,
       quantity: item.quantity,
     })),
     retryDate: params.retryDate,
-    currency,
+    discountInfo,
   })
 
   await sendOrganizationPaymentFailedNotificationEmail({

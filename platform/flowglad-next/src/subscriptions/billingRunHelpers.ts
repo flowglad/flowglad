@@ -551,6 +551,21 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       billingRunId: billingRun.id,
     })
   await insertInvoiceLineItems(invoiceLineItemInserts, transaction)
+
+  // Update invoice with accurate subtotal and tax amounts from fee calculation
+  // This ensures email templates display correct totals including discounts
+  await updateInvoice(
+    {
+      id: invoice.id,
+      type: invoice.type, // Required for discriminated union schema
+      billingPeriodId: invoice.billingPeriodId, // Required for subscription invoices
+      subscriptionId: invoice.subscriptionId, // Required for subscription invoices
+      subtotal: feeCalculation.pretaxTotal,
+      taxAmount: feeCalculation.taxAmountFixed,
+    } as Invoice.Update,
+    transaction
+  )
+
   if (totalDueAmount <= 0) {
     const processBillingPeriodResult =
       await processNoMoreDueForBillingPeriod(

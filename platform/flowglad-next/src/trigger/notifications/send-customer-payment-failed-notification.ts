@@ -5,6 +5,7 @@ import {
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import { sendPaymentFailedEmail } from '@/utils/email'
 import { idempotencyKeys, logger, task } from '@trigger.dev/sdk'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
@@ -15,6 +16,7 @@ import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
+import core from '@/utils/core'
 
 export const sendCustomerPaymentFailedNotificationTask = task({
   id: 'send-customer-payment-failed-notification',
@@ -73,18 +75,40 @@ export const sendCustomerPaymentFailedNotificationTask = task({
         return { mostUpToDateInvoice, orgAndFirstMember }
       })
 
+    // Prepare failure reason from payment
+    const failureReason =
+      payment.failureMessage || payment.failureCode || undefined
+
+    // Generate customer portal URL
+    const customerPortalUrl = core.customerBillingPortalURL({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    // Fetch discount information if this invoice is from a billing period (subscription)
+    const discountInfo = await fetchDiscountInfoForInvoice(
+      mostUpToDateInvoice
+    )
+
     const result = await sendPaymentFailedEmail({
       invoiceNumber: mostUpToDateInvoice.invoiceNumber,
       orderDate: mostUpToDateInvoice.createdAt,
+      invoice: {
+        subtotal: mostUpToDateInvoice.subtotal,
+        taxAmount: mostUpToDateInvoice.taxAmount,
+        currency: mostUpToDateInvoice.currency,
+      },
       lineItems: invoiceLineItems.map((item) => ({
         name: item.description ?? '-',
         price: item.price,
         quantity: item.quantity,
       })),
-      currency: mostUpToDateInvoice.currency,
       organizationName: organization.name,
       to: [customer.email],
       replyTo: orgAndFirstMember?.user.email,
+      discountInfo,
+      failureReason,
+      customerPortalUrl,
     })
 
     if (result?.error) {

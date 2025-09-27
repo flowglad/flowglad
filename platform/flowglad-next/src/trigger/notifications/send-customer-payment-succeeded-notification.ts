@@ -8,6 +8,7 @@ import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { sendReceiptEmail } from '@/utils/email'
 import { logger, task } from '@trigger.dev/sdk'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import { generateInvoicePdfTask } from '../generate-invoice-pdf'
 import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
@@ -73,6 +74,12 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
           )
         return { mostUpToDateInvoice, orgAndFirstMember }
       })
+
+    // Fetch discount information if this invoice is from a billing period (subscription)
+    const discountInfo = await fetchDiscountInfoForInvoice(
+      mostUpToDateInvoice
+    )
+
     const result = await sendReceiptEmail({
       invoice: mostUpToDateInvoice,
       invoiceLineItems,
@@ -81,6 +88,7 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
       organizationId: organization.id,
       customerId: customer.id,
       replyTo: orgAndFirstMember?.user.email ?? null,
+      discountInfo,
     })
 
     if (result?.error) {

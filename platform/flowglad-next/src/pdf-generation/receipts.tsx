@@ -17,6 +17,7 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
   customer,
   organization,
   paymentDataItems = [],
+  discountInfo,
 }) => {
   const paymentData =
     paymentDataItems.length > 0 ? paymentDataItems[0] : undefined
@@ -115,6 +116,14 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
             currency={invoice.currency}
             mode="receipt"
             payment={paymentData.payment}
+            discountInfo={
+              discountInfo
+                ? {
+                    ...discountInfo,
+                    currency: invoice.currency,
+                  }
+                : null
+            }
           />
           <InvoiceFooter organization={organization} />
         </Container>
