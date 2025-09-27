@@ -19,6 +19,9 @@ import { hashData } from '@/utils/backendCore'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { ProductFeature } from '@/db/schema/productFeatures'
+import { validateDefaultProductSchema } from '@/utils/defaultProductValidation'
+import { IntervalUnit } from '@/types'
+import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
 
 export const externalIdFromProductData = (
   product: SetupPricingModelProductInput,
@@ -40,6 +43,29 @@ export const setupPricingModelTransaction = async (
   transaction: DbTransaction
 ) => {
   const input = validateSetupPricingModelInput(rawInput)
+  
+  // Check for multiple default products
+  const defaultProducts = input.products.filter(p => p.product.default)
+  if (defaultProducts.length > 1) {
+    throw new Error("Multiple default products not allowed")
+  }
+  
+  // Validate single default product if provided
+  if (defaultProducts.length === 1) {
+    const defaultProduct = defaultProducts[0]
+    validateDefaultProductSchema({
+      name: defaultProduct.product.name,
+      slug: defaultProduct.product.slug || undefined,
+      prices: defaultProduct.prices.map(p => ({
+        amount: p.unitPrice,
+        type: p.type,
+        slug: p.slug || undefined,
+        trialDays: p.trialPeriodDays || undefined,
+        setupFee: p.setupFeeAmount || undefined
+      }))
+    })
+  }
+  
   const pricingModelInsert: PricingModel.Insert = {
     name: input.name,
     livemode,
@@ -150,34 +176,140 @@ export const setupPricingModelTransaction = async (
         throw new Error(`Product ${product.product.name} not found`)
       }
       return product.prices.map((price) => {
-        if (price.type === PriceType.Usage) {
-          const usageMeterId = usageMetersBySlug.get(
-            price.usageMeterSlug
-          )?.id
-          if (!usageMeterId) {
-            throw new Error(
-              `Usage meter ${price.usageMeterSlug} not found`
-            )
+        switch (price.type) {
+          case PriceType.Usage: {
+            const usageMeterId = usageMetersBySlug.get(
+              price.usageMeterSlug
+            )?.id
+            if (!usageMeterId) {
+              throw new Error(
+                `Usage meter ${price.usageMeterSlug} not found`
+              )
+            }
+            return {
+              type: PriceType.Usage,
+              name: price.name ?? null,
+              slug: price.slug ?? null,
+              unitPrice: price.unitPrice,
+              isDefault: price.isDefault,
+              active: price.active,
+              intervalCount: price.intervalCount,
+              intervalUnit: price.intervalUnit,
+              trialPeriodDays: price.trialPeriodDays,
+              setupFeeAmount: price.setupFeeAmount,
+              usageEventsPerUnit: price.usageEventsPerUnit,
+              overagePriceId: price.overagePriceId,
+              startsWithCreditTrial: price.startsWithCreditTrial,
+              currency: organization.defaultCurrency,
+              productId,
+              livemode,
+              externalId: null,
+              usageMeterId,
+            }
           }
-          return {
-            ...price,
-            currency: organization.defaultCurrency,
-            productId,
-            livemode,
-            externalId: null,
-            usageMeterId,
-          }
-        }
-        return {
-          ...price,
-          currency: organization.defaultCurrency,
-          productId,
-          livemode,
-          externalId: null,
+          
+          case PriceType.Subscription:
+            return {
+              type: PriceType.Subscription,
+              name: price.name ?? null,
+              slug: price.slug ?? null,
+              unitPrice: price.unitPrice,
+              isDefault: price.isDefault,
+              active: price.active,
+              intervalCount: price.intervalCount,
+              intervalUnit: price.intervalUnit,
+              trialPeriodDays: price.trialPeriodDays,
+              setupFeeAmount: price.setupFeeAmount,
+              usageEventsPerUnit: price.usageEventsPerUnit,
+              overagePriceId: price.overagePriceId,
+              startsWithCreditTrial: price.startsWithCreditTrial,
+              currency: organization.defaultCurrency,
+              productId,
+              livemode,
+              externalId: null,
+              usageMeterId: null,
+            }
+          
+          case PriceType.SinglePayment:
+            return {
+              type: PriceType.SinglePayment,
+              name: price.name ?? null,
+              slug: price.slug ?? null,
+              unitPrice: price.unitPrice,
+              isDefault: price.isDefault,
+              active: price.active,
+              intervalCount: null,
+              intervalUnit: null,
+              trialPeriodDays: price.trialPeriodDays,
+              setupFeeAmount: price.setupFeeAmount,
+              usageEventsPerUnit: price.usageEventsPerUnit,
+              overagePriceId: null,
+              startsWithCreditTrial: null,
+              currency: organization.defaultCurrency,
+              productId,
+              livemode,
+              externalId: null,
+              usageMeterId: null,
+            }
+
+            default:
+              throw new Error(`Unknown or unhandled price type on price: ${price}`)
         }
       })
     }
   )
+
+  // Auto-generate default plan if none provided
+  if (defaultProducts.length === 0) {
+    const defaultPlanConfig = createDefaultPlanConfig()
+    
+    // Create the default product
+    const defaultProductInsert: Product.Insert = {
+      ...defaultPlanConfig.product,
+      pricingModelId: pricingModel.id,
+      organizationId,
+      livemode,
+      externalId: hashData(JSON.stringify({ name: 'Free Plan', pricingModelId: pricingModel.id })),
+      displayFeatures: null,
+      description: null,
+      imageURL: null,
+      active: true,
+      singularQuantityLabel: null,
+      pluralQuantityLabel: null
+    }
+    
+    const defaultProductsResult = await bulkInsertProducts([defaultProductInsert], transaction)
+    const defaultProduct = defaultProductsResult[0]
+    
+    // Add the default product to our products array
+    products.push(defaultProduct)
+    productsByExternalId.set(defaultProduct.externalId, defaultProduct)
+    
+    // Create the default price
+    const defaultPriceInsert: Price.Insert = {
+      type: defaultPlanConfig.price.type,
+      name: defaultPlanConfig.price.name,
+      slug: defaultPlanConfig.price.slug,
+      unitPrice: defaultPlanConfig.price.unitPrice,
+      isDefault: defaultPlanConfig.price.isDefault,
+      active: true,
+      intervalCount: defaultPlanConfig.price.intervalCount,
+      intervalUnit: defaultPlanConfig.price.intervalUnit,
+      trialPeriodDays: null,
+      setupFeeAmount: null,
+      usageEventsPerUnit: null,
+      overagePriceId: null,
+      startsWithCreditTrial: null,
+      currency: organization.defaultCurrency,
+      productId: defaultProduct.id,
+      livemode,
+      externalId: null,
+      usageMeterId: null
+    }
+    
+    // Add default price to priceInserts
+    priceInserts.push(defaultPriceInsert)
+  }
 
   const prices = await bulkInsertPrices(priceInserts, transaction)
   const featuresBySlug = new Map(
