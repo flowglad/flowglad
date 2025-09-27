@@ -100,6 +100,14 @@ export const createPrice = protectedProcedure
               'There must be exactly one default price per product',
           })
         }
+
+        // Validate that default prices on default products must have unitPrice = 0
+        if (price.isDefault && product.default && price.unitPrice !== 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Default prices on default products must have unitPrice = 0',
+          })
+        }
         const organization = await selectOrganizationById(
           ctx.organizationId!,
           transaction
