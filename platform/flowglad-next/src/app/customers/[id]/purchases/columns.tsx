@@ -51,10 +51,13 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
     accessorFn: (row) => row.purchase.name,
     header: 'Name',
     cell: ({ row }) => (
-      <div className="font-medium truncate max-w-[300px]">
+      <div className="font-medium truncate">
         {row.getValue('name')}
       </div>
     ),
+    size: 300,
+    minSize: 120,
+    maxSize: 350,
   },
   {
     id: 'status',
@@ -64,6 +67,9 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
       const purchase = row.original.purchase
       return <PurchaseStatusCell purchase={purchase} />
     },
+    size: 110,
+    minSize: 105,
+    maxSize: 115,
   },
   {
     id: 'revenue',
@@ -72,7 +78,7 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
     cell: ({ row }) => {
       const revenue = row.getValue('revenue') as number | undefined
       return (
-        <div className="font-medium">
+        <div className="font-normal whitespace-nowrap">
           {stripeCurrencyAmountToHumanReadableCurrencyAmount(
             CurrencyCode.USD,
             revenue ?? 0
@@ -80,6 +86,9 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
         </div>
       )
     },
+    size: 100,
+    minSize: 80,
+    maxSize: 120,
   },
   {
     id: 'customer',
@@ -88,13 +97,16 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
     cell: ({ row }) => {
       const customer = row.original.customer
       return (
-        <div className="truncate max-w-[150px]">
+        <div className="truncate">
           {customer.name.length === 0
             ? customer.email
             : customer.name}
         </div>
       )
     },
+    size: 180,
+    minSize: 120,
+    maxSize: 220,
   },
   {
     id: 'purchaseDate',
@@ -103,11 +115,14 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
     cell: ({ row }) => {
       const date = row.getValue('purchaseDate') as Date | null
       return (
-        <div className="w-[125px]">
+        <div className="whitespace-nowrap">
           {date ? core.formatDate(date) : '-'}
         </div>
       )
     },
+    size: 100,
+    minSize: 100,
+    maxSize: 150,
   },
   {
     id: 'id',
@@ -121,5 +136,8 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
         </DataTableCopyableCell>
       )
     },
+    size: 120,
+    minSize: 80,
+    maxSize: 180,
   },
 ]

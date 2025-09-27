@@ -3,6 +3,7 @@
 import * as React from 'react'
 import {
   ColumnFiltersState,
+  ColumnSizingState,
   SortingState,
   VisibilityState,
   flexRender,
@@ -46,16 +47,26 @@ export function SubscriptionItemsDataTable({
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
+  const [columnSizing, setColumnSizing] =
+    React.useState<ColumnSizingState>({})
 
   const table = useReactTable({
     data: subscriptionItems,
     columns,
+    enableColumnResizing: true,
+    columnResizeMode: 'onEnd',
+    defaultColumn: {
+      size: 150,
+      minSize: 50,
+      maxSize: 500,
+    },
     manualPagination: false, // Client-side pagination for small datasets
     manualSorting: false, // Client-side sorting
     manualFiltering: false, // Client-side filtering
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -64,6 +75,7 @@ export function SubscriptionItemsDataTable({
       sorting,
       columnFilters,
       columnVisibility,
+      columnSizing,
     },
   })
 

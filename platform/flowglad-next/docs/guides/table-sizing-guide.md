@@ -444,6 +444,7 @@ const columns = [
 - Changing `minSize`/`maxSize` has no effect
 - Columns don't shrink when browser narrows
 - `header.getSize()` returns values but no visual change
+- Table appears visually normal but doesn't respond to sizing properties
 
 **Root Cause:**
 Missing TanStack Table column sizing configuration (most common)
@@ -457,6 +458,11 @@ const table = useReactTable({
   enableColumnResizing: true,         // ← CRITICAL: Must be true
   columnResizeMode: 'onEnd',         // ← Required for proper behavior
   onColumnSizingChange: setColumnSizing, // ← Must handle size changes
+  defaultColumn: {                   // ← Recommended for consistency
+    size: 150,
+    minSize: 50, 
+    maxSize: 500,
+  },
   state: {
     columnSizing,                     // ← Must include in state
     // ... other state
@@ -465,6 +471,8 @@ const table = useReactTable({
 ```
 
 **Debug Check:** Missing ANY of these four parts will cause silent failure.
+
+**⚠️ SILENT FAILURE WARNING:** Tables without proper TanStack configuration often appear to work normally but won't respect column sizing properties. The table renders, data displays correctly, but `size`/`minSize`/`maxSize` properties are completely ignored. This creates a false sense that everything is working when the sizing system is actually disabled.
 
 ### Issue 2: Columns Exceed MaxSize Constraints
 
@@ -538,7 +546,43 @@ CSS max-width classes conflict with dynamic column sizing
 
 **Key Insight:** `truncate` responds to parent container width (column), not arbitrary CSS classes.
 
-### Issue 5: Copy Button at Column Edge
+### Issue 5: Truncation Not Working on Inline Elements
+
+**Symptoms:**
+- `truncate` class applied but no truncation occurs
+- Text overflows table cells without ellipsis
+- Content extends beyond column boundaries
+
+**Root Cause:**
+The `truncate` class only works on **block-level elements**, not inline elements
+
+**Solution:**
+```tsx
+// ❌ BROKEN: span is inline by default
+<span className="truncate" title={content}>
+  {content}
+</span>
+
+// ✅ WORKS: div is block-level by default
+<div className="truncate" title={content}>
+  {content}
+</div>
+
+// ✅ ALTERNATIVE: Force span to be block-level
+<span className="block truncate" title={content}>
+  {content}
+</span>
+```
+
+**Technical Details:**
+- `truncate` applies: `text-overflow: ellipsis`, `overflow: hidden`, `white-space: nowrap`
+- These properties require `display: block` or `display: inline-block` to work
+- `<span>` elements are `display: inline` by default
+- `<div>` elements are `display: block` by default
+
+**Key Insight:** Always use block-level elements or add `block`/`inline-block` classes when applying `truncate`.
+
+### Issue 6: Copy Button at Column Edge
 
 **Symptoms:**
 - Action buttons appear at far right of column
@@ -563,7 +607,7 @@ CSS max-width classes conflict with dynamic column sizing
 </div>
 ```
 
-### Issue 6: Using Invalid TanStack Properties
+### Issue 7: Using Invalid TanStack Properties
 
 **Symptoms:**
 - TypeScript errors about unknown properties
@@ -592,7 +636,7 @@ Mixing up Material React Table properties with TanStack Table
 }
 ```
 
-### Issue 7: Inconsistent Column Behavior
+### Issue 8: Inconsistent Column Behavior
 
 **Symptoms:**
 - Some columns resize, others don't
@@ -711,7 +755,7 @@ const calculateMinTableWidth = (columns) => {
 // Text content with proper truncation
 cell: ({ row }) => (
   <div 
-    className="truncate"                    // Truncates at column boundary
+    className="truncate"                    // ← CRITICAL: Use div, not span
     title={row.getValue('content')}        // Shows full content on hover
   >
     {row.getValue('content')}
@@ -827,6 +871,35 @@ const debugColumnSizes = (table) => {
   }}
 >
 ```
+
+### 9. Pre-Deployment Checklist
+
+**✅ Use this checklist to verify every table has proper sizing configuration:**
+
+**TanStack Configuration:**
+- [ ] `enableColumnResizing: true` in useReactTable config
+- [ ] `columnResizeMode: 'onEnd'` for performance
+- [ ] `onColumnSizingChange: setColumnSizing` handler
+- [ ] `columnSizing` included in table state object
+- [ ] `ColumnSizingState` imported and state created
+
+**CSS & DOM:**
+- [ ] `style={{ tableLayout: 'fixed' }}` on table element
+- [ ] `style={{ width: header.getSize() }}` on all TableHead elements
+- [ ] Proper space distribution strategy chosen (auto vs full width)
+
+**Column Definitions:**
+- [ ] All columns have appropriate `size` values
+- [ ] Critical columns have `minSize` for responsive behavior
+- [ ] Content-aware `maxSize` limits where needed
+- [ ] Cell components use `truncate` class on **block elements** (div, not span)
+- [ ] Truncated content has `title` attributes for accessibility
+
+**Testing:**
+- [ ] Resize window - columns should respond appropriately
+- [ ] Inspect HTML - `<th>` elements should have explicit `width` styles
+- [ ] Check React DevTools - `columnSizing` state should exist
+- [ ] Modify `size` in column definitions - should see visual changes
 
 ### 8. Common Patterns for Different Table Types
 
@@ -967,6 +1040,7 @@ When column sizing isn't working, verify:
    ```tsx
    // Check these are all present:
    enableColumnResizing: true,
+   columnResizeMode: 'onEnd',
    onColumnSizingChange: setColumnSizing,
    state: { columnSizing }
    ```
@@ -991,6 +1065,50 @@ When column sizing isn't working, verify:
    maxSize: number
    ```
 
+### Real-World Debugging Scenario
+
+**Case Study: Table Appears to Work But Sizing Is Broken**
+
+A recent debugging session revealed a common but deceptive issue:
+
+```html
+<!-- Table HTML looked correct: -->
+<table class="w-full" style="table-layout: fixed;">
+  <thead>
+    <tr>
+      <!-- ❌ BUT: No width styles on headers! -->
+      <th class="h-12 px-3...">Name</th>
+      <th class="h-12 px-3...">Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Batmobile Ride Share Subscription</td>
+      <td>Paid</td>
+    </tr>
+  </tbody>
+</table>
+```
+
+**The Problem:**
+1. ✅ Table had `table-layout: fixed`
+2. ✅ Column definitions had proper `size`/`minSize`/`maxSize`  
+3. ❌ **Missing TanStack column sizing configuration**
+4. ❌ **Missing `style={{ width: header.getSize() }}` on headers**
+
+**The Deception:**
+- Table rendered normally with reasonable column widths
+- Data displayed correctly
+- No obvious visual issues
+- BUT: Column sizing properties were completely ignored
+
+**The Solution:**
+1. Added complete TanStack configuration
+2. Applied `header.getSize()` widths to `<TableHead>` elements
+3. Result: Column sizing properties now work as expected
+
+**Key Lesson:** Tables can appear functional while having completely broken sizing systems. Always verify the complete configuration chain, not just visual appearance.
+
 ### Browser Developer Tools
 
 1. **Inspect table element** - Should show `table-layout: fixed`
@@ -998,14 +1116,27 @@ When column sizing isn't working, verify:
 3. **Monitor TanStack state** - Use React DevTools to verify `columnSizing` state
 4. **Test responsiveness** - Resize window and verify column behavior
 
-### Common Error Messages
+### Debugging Steps for Silent Failures
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `header.getSize is not a function` | Missing TanStack config | Add `enableColumnResizing: true` |
-| Columns not shrinking | `table-layout: auto` | Add `tableLayout: 'fixed'` |
-| Early truncation | Fixed CSS widths | Remove `max-w-*` classes |
-| Poor performance | Missing memoization | Add `useMemo` for columns |
+When a table looks normal but sizing doesn't work:
+
+1. **Check HTML output** - Look for missing `width` styles on `<th>` elements
+2. **Verify TanStack configuration** - Ensure all four required parts are present
+3. **Test column property changes** - Modify `size` values and see if they take effect
+4. **Inspect React DevTools** - Look for `columnSizing` in table state
+5. **Console log `header.getSize()`** - Should return numeric values
+
+### Common Error Messages & Silent Failures
+
+| Issue | Symptoms | Cause | Solution |
+|-------|----------|-------|----------|
+| `header.getSize is not a function` | React error | Missing TanStack config | Add `enableColumnResizing: true` |
+| Columns not shrinking | Visual issue | `table-layout: auto` | Add `tableLayout: 'fixed'` |
+| Early truncation | Visual issue | Fixed CSS widths | Remove `max-w-*` classes |
+| **Table looks normal but sizing ignored** | **Silent failure** | **Missing TanStack config** | **Add complete configuration** |
+| **Headers without width styles** | **Silent failure** | **Missing `header.getSize()`** | **Add `style={{ width: header.getSize() }}`** |
+| **Truncation not working** | **Visual issue** | **Using inline elements** | **Use `<div>` instead of `<span>`** |
+| Poor performance | Slow rendering | Missing memoization | Add `useMemo` for columns |
 
 ## Migration Guide
 

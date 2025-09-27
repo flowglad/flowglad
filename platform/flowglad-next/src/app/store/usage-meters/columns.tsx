@@ -57,14 +57,32 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
     accessorFn: (row) => row.usageMeter.name,
     header: 'Name',
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue('name')}</div>
+      <div
+        className="font-medium truncate"
+        title={row.getValue('name')}
+      >
+        {row.getValue('name')}
+      </div>
     ),
+    size: 200,
+    minSize: 120,
+    maxSize: 300,
   },
   {
     id: 'pricingModelName',
     accessorFn: (row) => row.pricingModel.name,
     header: 'Pricing Model',
-    cell: ({ row }) => <div>{row.getValue('pricingModelName')}</div>,
+    cell: ({ row }) => (
+      <div
+        className="truncate"
+        title={row.getValue('pricingModelName')}
+      >
+        {row.getValue('pricingModelName')}
+      </div>
+    ),
+    size: 180,
+    minSize: 120,
+    maxSize: 250,
   },
   {
     id: 'aggregationType',
@@ -75,13 +93,16 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
         'aggregationType'
       ) as string
       return (
-        <div>
+        <div className="whitespace-nowrap">
           {aggregationType === 'sum'
             ? 'Sum'
             : 'Count Distinct Properties'}
         </div>
       )
     },
+    size: 140,
+    minSize: 120,
+    maxSize: 180,
   },
   {
     id: 'createdAt',
@@ -89,8 +110,15 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
     header: 'Created',
     cell: ({ row }) => {
       const date = row.getValue('createdAt') as Date
-      return <div>{core.formatDate(date)}</div>
+      return (
+        <div className="whitespace-nowrap">
+          {core.formatDate(date)}
+        </div>
+      )
     },
+    size: 100,
+    minSize: 100,
+    maxSize: 150,
   },
   {
     id: 'id',
@@ -104,6 +132,9 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
         </DataTableCopyableCell>
       )
     },
+    size: 120,
+    minSize: 80,
+    maxSize: 180,
   },
   {
     id: 'actions',
@@ -116,6 +147,7 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
         </div>
       )
     },
-    size: 40,
+    size: 50,
+    maxSize: 50,
   },
 ]

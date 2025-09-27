@@ -78,11 +78,16 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
       const pricingModel = row.original.pricingModel
       return (
         <div className="flex items-center gap-2">
-          <span className="font-medium">{row.getValue('name')}</span>
+          <span
+            className="font-medium truncate"
+            title={row.getValue('name')}
+          >
+            {row.getValue('name')}
+          </span>
           {pricingModel.isDefault && (
             <Badge
               variant="secondary"
-              className="bg-green-100 text-green-800 text-xs"
+              className="bg-green-100 text-green-800 text-xs flex-shrink-0"
             >
               Default
             </Badge>
@@ -90,12 +95,21 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
         </div>
       )
     },
+    size: 250,
+    minSize: 150,
   },
   {
     id: 'productsCount',
     accessorFn: (row) => row.productsCount,
     header: 'Products',
-    cell: ({ row }) => <div>{row.getValue('productsCount')}</div>,
+    cell: ({ row }) => (
+      <div className="whitespace-nowrap">
+        {row.getValue('productsCount')}
+      </div>
+    ),
+    size: 100,
+    minSize: 80,
+    maxSize: 120,
   },
   {
     id: 'id',
@@ -109,6 +123,8 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
         </DataTableCopyableCell>
       )
     },
+    size: 120,
+    minSize: 80,
   },
   {
     id: 'actions',
@@ -117,5 +133,7 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
       const pricingModel = row.original.pricingModel
       return <PricingModelActionsMenu pricingModel={pricingModel} />
     },
+    size: 40,
+    maxSize: 40,
   },
 ]

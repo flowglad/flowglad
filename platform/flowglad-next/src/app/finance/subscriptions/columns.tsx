@@ -77,8 +77,16 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
     accessorFn: (row) => row.customer.name,
     header: 'Customer',
     cell: ({ row }) => (
-      <span className="text-sm">{row.getValue('customerName')}</span>
+      <div
+        className="text-sm truncate"
+        title={row.getValue('customerName')}
+      >
+        {row.getValue('customerName')}
+      </div>
     ),
+    size: 180,
+    minSize: 120,
+    maxSize: 250,
   },
   {
     id: 'status',
@@ -96,8 +104,16 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
     accessorFn: (row) => row.product.name,
     header: 'Product',
     cell: ({ row }) => (
-      <span className="text-sm">{row.getValue('productName')}</span>
+      <div
+        className="text-sm truncate"
+        title={row.getValue('productName')}
+      >
+        {row.getValue('productName')}
+      </div>
     ),
+    size: 200,
+    minSize: 120,
+    maxSize: 300,
   },
   {
     id: 'createdAt',
@@ -108,6 +124,9 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
         {core.formatDate(row.getValue('createdAt'))}
       </div>
     ),
+    size: 100,
+    minSize: 100,
+    maxSize: 150,
   },
   {
     id: 'canceledAt',
@@ -120,6 +139,9 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
           : '-'}
       </div>
     ),
+    size: 100,
+    minSize: 100,
+    maxSize: 150,
   },
   {
     id: 'subscriptionId',
@@ -134,6 +156,9 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
         </DataTableCopyableCell>
       </div>
     ),
+    size: 120,
+    minSize: 80,
+    maxSize: 180,
   },
   {
     id: 'actions',

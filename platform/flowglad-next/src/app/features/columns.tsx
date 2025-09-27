@@ -74,7 +74,12 @@ export const columns: ColumnDef<FeatureRow>[] = [
     accessorFn: (row) => row.feature.name,
     header: 'Name',
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue('name')}</div>
+      <div
+        className="font-medium truncate"
+        title={row.getValue('name')}
+      >
+        {row.getValue('name')}
+      </div>
     ),
     size: 200,
     minSize: 150,

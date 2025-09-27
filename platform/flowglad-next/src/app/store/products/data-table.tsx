@@ -3,6 +3,7 @@
 import * as React from 'react'
 import {
   ColumnFiltersState,
+  ColumnSizingState,
   SortingState,
   VisibilityState,
   flexRender,
@@ -95,10 +96,19 @@ export function ProductsDataTable({
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
+  const [columnSizing, setColumnSizing] =
+    React.useState<ColumnSizingState>({})
 
   const table = useReactTable({
     data: data?.items || [],
     columns,
+    enableColumnResizing: true,
+    columnResizeMode: 'onEnd',
+    defaultColumn: {
+      size: 150,
+      minSize: 50,
+      maxSize: 500,
+    },
     manualPagination: true, // Server-side pagination
     manualSorting: false, // Client-side sorting on current page
     manualFiltering: false, // Client-side filtering on current page
@@ -106,6 +116,7 @@ export function ProductsDataTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === 'function'
@@ -126,6 +137,7 @@ export function ProductsDataTable({
       sorting,
       columnFilters,
       columnVisibility,
+      columnSizing,
       pagination: { pageIndex, pageSize: currentPageSize },
     },
   })

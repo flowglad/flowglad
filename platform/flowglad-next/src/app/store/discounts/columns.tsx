@@ -153,9 +153,9 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
     accessorFn: (row) => row.discountRedemptionsCount,
     header: 'Redemptions',
     cell: ({ row }) => <div>{row.getValue('redemptions') || 0}</div>,
-    size: 120,
-    minSize: 100,
-    maxSize: 150,
+    size: 100,
+    minSize: 80,
+    maxSize: 100,
   },
   {
     id: 'active',

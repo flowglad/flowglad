@@ -137,7 +137,10 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     accessorFn: (row) => row.customer.name,
     header: 'Customer',
     cell: ({ row }) => (
-      <div className="font-medium">
+      <div
+        className="font-medium truncate"
+        title={row.getValue('customerName')}
+      >
         {row.getValue('customerName')}
       </div>
     ),
@@ -186,7 +189,11 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
           'usd' as CurrencyCode,
           total
         )
-      return <div className="font-medium">{formatted}</div>
+      return (
+        <div className="font-medium whitespace-nowrap">
+          {formatted}
+        </div>
+      )
     },
     size: 100,
     minSize: 80,

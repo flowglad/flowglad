@@ -158,6 +158,7 @@ export const columns: ColumnDef<ProductRow>[] = [
       )
     },
     size: 300,
+    minSize: 120,
     maxSize: 350,
   },
   {
