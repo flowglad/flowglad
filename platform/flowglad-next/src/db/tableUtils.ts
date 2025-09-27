@@ -328,15 +328,23 @@ export const whereClauseFromObject = <T extends PgTableWithId>(
   table: T,
   selectConditions: SelectConditions<T>
 ) => {
-  const keys = Object.keys(selectConditions)
+  const keys = Object.keys(selectConditions).filter((key) => {
+    const value = selectConditions[key]
+    // Filter out undefined and empty strings to prevent invalid SQL parameters
+    // null values are kept and handled separately by isNull() condition
+    // Arrays (including empty arrays) are kept for inArray() processing
+    return value !== undefined && value !== ''
+  })
   if (keys.length === 0) {
     return undefined
   }
   const conditions = keys.map((key) => {
     if (Array.isArray(selectConditions[key])) {
+      // Filter out undefined and empty strings from arrays to prevent SQL parameter issues
+      const cleanArray = selectConditions[key].filter((item: any) => item !== undefined && item !== '')
       return inArray(
         table[key as keyof typeof table] as PgColumn,
-        selectConditions[key]
+        cleanArray
       )
     }
     if (selectConditions[key] === null) {
@@ -1520,7 +1528,7 @@ export const createCursorPaginatedSelectFunction = <
         .select({ count: count() })
         .from(table as SelectTable)
         .$dynamic()
-        .where(filterClause)
+        .where(and(filterClause, searchQueryClause))
 
       const data: z.infer<S>[] = queryResult
         .map((item) => selectSchema.parse(item))
