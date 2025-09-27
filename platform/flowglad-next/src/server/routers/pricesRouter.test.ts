@@ -611,7 +611,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       
       // Test the validation by trying to update the existing default price on default product
       await expect(
-        pricesRouter.createCaller(ctx).edit({
+        pricesRouter.createCaller(ctx).update({
           id: defaultPriceId,
           price: {
             id: defaultPriceId,
