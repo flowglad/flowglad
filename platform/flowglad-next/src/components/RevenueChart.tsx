@@ -211,7 +211,7 @@ export function RevenueChart({
               setInterval(value as RevenueChartIntervalUnit)
             }
           >
-            <SelectTrigger className="border-none bg-transparent px-1">
+            <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

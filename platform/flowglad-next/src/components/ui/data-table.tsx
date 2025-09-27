@@ -47,7 +47,7 @@ export function DataTable<TData, TValue>({
   data,
   onClickRow,
   className,
-  bordered = true,
+  bordered = false,
   pagination,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -94,12 +94,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className={cn('w-full', className)}>
-      <div
-        className={cn(
-          'rounded-md border',
-          !bordered && 'border-none'
-        )}
-      >
+      <div className={cn(bordered && 'rounded-md border')}>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
