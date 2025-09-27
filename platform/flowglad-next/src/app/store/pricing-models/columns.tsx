@@ -78,10 +78,7 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
       const pricingModel = row.original.pricingModel
       return (
         <div className="flex items-center gap-2">
-          <span
-            className="font-medium truncate"
-            title={row.getValue('name')}
-          >
+          <span className="truncate" title={row.getValue('name')}>
             {row.getValue('name')}
           </span>
           {pricingModel.isDefault && (

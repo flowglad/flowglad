@@ -81,9 +81,7 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
     id: 'name',
     accessorFn: (row) => row.webhook.name,
     header: 'Name',
-    cell: ({ row }) => (
-      <div className="font-medium">{row.getValue('name')}</div>
-    ),
+    cell: ({ row }) => <div>{row.getValue('name')}</div>,
     size: 150,
     minSize: 120,
     maxSize: 200,

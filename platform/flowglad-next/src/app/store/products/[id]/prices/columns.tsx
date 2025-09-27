@@ -173,9 +173,7 @@ export const columns: ColumnDef<PriceTableRowData>[] = [
     id: 'name',
     accessorFn: (row) => row.price.name,
     header: 'Price',
-    cell: ({ row }) => (
-      <div className="font-medium">{row.getValue('name')}</div>
-    ),
+    cell: ({ row }) => <div>{row.getValue('name')}</div>,
     size: 150,
     minSize: 120,
     maxSize: 200,

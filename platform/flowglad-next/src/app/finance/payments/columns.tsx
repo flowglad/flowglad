@@ -90,7 +90,7 @@ export const columns: ColumnDef<Payment.TableRowData>[] = [
         )
       return (
         <div
-          className="relative max-w-[160px] truncate font-medium"
+          className="relative max-w-[160px] truncate"
           title={formatted}
         >
           <span className="block overflow-hidden text-ellipsis whitespace-nowrap">

@@ -59,9 +59,7 @@ export const columns: ColumnDef<ApiKeyTableRowData>[] = [
     accessorFn: (row) => row.apiKey.name,
     header: 'Name',
     cell: ({ row }) => (
-      <div className="font-medium truncate max-w-24">
-        {row.getValue('name')}
-      </div>
+      <div className="truncate max-w-24">{row.getValue('name')}</div>
     ),
     size: 150,
     minSize: 120,

@@ -137,10 +137,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     accessorFn: (row) => row.customer.name,
     header: 'Customer',
     cell: ({ row }) => (
-      <div
-        className="font-medium truncate"
-        title={row.getValue('customerName')}
-      >
+      <div className="truncate" title={row.getValue('customerName')}>
         {row.getValue('customerName')}
       </div>
     ),
@@ -153,8 +150,14 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     accessorFn: (row) => row.invoice.invoiceNumber,
     header: 'Number',
     cell: ({ row }) => (
-      <div className="font-mono text-sm">
-        {row.getValue('invoiceNumber')}
+      <div onClick={(e) => e.stopPropagation()}>
+        <DataTableCopyableCell
+          copyText={row.getValue('invoiceNumber')}
+        >
+          <span className="font-mono text-sm">
+            {row.getValue('invoiceNumber')}
+          </span>
+        </DataTableCopyableCell>
       </div>
     ),
     size: 120,
@@ -169,9 +172,9 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
       const invoice = row.original.invoice
       return <InvoiceStatusBadge invoice={invoice} />
     },
-    size: 110,
-    minSize: 105,
-    maxSize: 115,
+    size: 115,
+    minSize: 115,
+    maxSize: 120,
   },
   {
     id: 'total',
@@ -190,14 +193,14 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
           total
         )
       return (
-        <div className="font-medium whitespace-nowrap">
+        <div className="whitespace-nowrap truncate" title={formatted}>
           {formatted}
         </div>
       )
     },
-    size: 100,
+    size: 120,
     minSize: 80,
-    maxSize: 120,
+    maxSize: 140,
   },
   {
     id: 'dueDate',
@@ -212,7 +215,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
       )
     },
     size: 125,
-    minSize: 125,
+    minSize: 100,
     maxSize: 150,
   },
   {
@@ -225,7 +228,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
       </div>
     ),
     size: 125,
-    minSize: 125,
+    minSize: 100,
     maxSize: 150,
   },
   {
@@ -239,8 +242,8 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
         </DataTableCopyableCell>
       </div>
     ),
-    size: 180,
-    minSize: 125,
+    size: 125,
+    minSize: 80,
     maxSize: 250,
   },
   {

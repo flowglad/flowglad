@@ -103,9 +103,7 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
     accessorFn: (row) => row.discount.name,
     header: 'Name',
     cell: ({ row }) => (
-      <div className="font-medium truncate">
-        {row.getValue('name')}
-      </div>
+      <div className="truncate">{row.getValue('name')}</div>
     ),
     size: 150,
     minSize: 120,

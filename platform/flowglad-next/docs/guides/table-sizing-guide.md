@@ -282,7 +282,7 @@ const columns: ColumnDef<YourDataType>[] = [
 | **Names** | 200px | 120px | 400px | High growth priority | Variable length, user-friendly |
 | **Email** | 220px | 180px | 250px | Fixed constraint | Predictable format, limit expansion |
 | **IDs/Keys** | 180px | 80px | 250px | Flexible compression | Can truncate heavily with tooltips |
-| **Currency** | 100px | 80px | 120px | Fixed width | Consistent formatting, right-align |
+| **Currency** | 100px | 80px | 120px | Fixed width | Consistent formatting, left-align |
 | **Counts** | 100px | 80px | 100px | No expansion | Simple numbers, minimal space |
 | **Dates** | 100px | 100px | 150px | Minimal expansion | Consistent format |
 | **Actions** | 50px | 50px | 50px | Fixed width | Icon buttons only |
@@ -706,7 +706,7 @@ const columns = [
 // NUMERIC: Currency, counts, percentages (low priority)
 {
   accessorKey: 'amount',
-  header: ({ column }) => <div className="text-right">Amount</div>,
+  header: 'Amount',
   size: 100,        // Compact for numbers
   minSize: 80,      // Still readable
   maxSize: 120,     // No need for much expansion
@@ -764,7 +764,7 @@ cell: ({ row }) => (
 
 // Numeric content with consistent alignment
 cell: ({ row }) => (
-  <div className="text-right whitespace-nowrap">  // Prevent wrapping
+  <div className="whitespace-nowrap truncate" title={formatCurrency(row.getValue('amount'))}>  // Prevent wrapping
     {formatCurrency(row.getValue('amount'))}
   </div>
 ),
@@ -800,11 +800,7 @@ cell: ({ row }) => (
 
 // Consistent alignment patterns
 // Headers should match cell alignment
-header: ({ column }) => (
-  <div className="text-right">               // Matches cell alignment
-    <DataTableColumnHeader column={column} title="Amount" />
-  </div>
-),
+header: 'Amount',  // Simple header for left-aligned currency
 
 // Loading states during resize
 {isResizing && (
@@ -1006,12 +1002,12 @@ export const columns: ColumnDef<CustomerData>[] = [
   },
   {
     accessorKey: 'revenue',
-    header: ({ column }) => <div className="text-right">Revenue</div>,
+    header: 'Revenue',
     size: 100,
     minSize: 80,
     maxSize: 120,
     cell: ({ row }) => (
-      <div className="text-right font-medium whitespace-nowrap">
+      <div className="whitespace-nowrap truncate" title={formatCurrency(row.getValue('revenue'))}>
         {formatCurrency(row.getValue('revenue'))}
       </div>
     ),

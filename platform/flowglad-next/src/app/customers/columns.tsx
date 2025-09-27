@@ -80,10 +80,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     accessorFn: (row) => row.customer.name,
     header: 'Name',
     cell: ({ row }) => (
-      <div
-        className="font-medium truncate"
-        title={row.getValue('name')}
-      >
+      <div className="truncate" title={row.getValue('name')}>
         {row.getValue('name')}
       </div>
     ),

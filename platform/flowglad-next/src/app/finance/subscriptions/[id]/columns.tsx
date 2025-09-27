@@ -15,9 +15,7 @@ export const columns: ColumnDef<SubscriptionItem.ClientRecord>[] = [
     id: 'name',
     accessorFn: (row) => row.name,
     header: 'Name',
-    cell: ({ row }) => (
-      <div className="font-medium">{row.getValue('name')}</div>
-    ),
+    cell: ({ row }) => <div>{row.getValue('name')}</div>,
     size: 200,
     minSize: 150,
     maxSize: 300,
@@ -42,7 +40,7 @@ export const columns: ColumnDef<SubscriptionItem.ClientRecord>[] = [
           CurrencyCode.USD,
           unitPrice
         )
-      return <div className="font-medium">{formatted}</div>
+      return <div>{formatted}</div>
     },
     size: 120,
     minSize: 100,

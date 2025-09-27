@@ -18,9 +18,7 @@ export const columns: ColumnDef<OrganizationMemberTableRowData>[] = [
     id: 'name',
     accessorFn: (row) => row.user.name,
     header: 'Name',
-    cell: ({ row }) => (
-      <div className="font-medium">{row.getValue('name')}</div>
-    ),
+    cell: ({ row }) => <div>{row.getValue('name')}</div>,
   },
   {
     id: 'email',
