@@ -2,11 +2,17 @@ import { router } from '../trpc'
 import {
   createUsageEventSchema,
   bulkInsertUsageEventsSchema,
+  usageEventPaginatedSelectSchema,
+  usageEventPaginatedListSchema,
+  usageEventsPaginatedTableRowInputSchema,
+  usageEventsPaginatedTableRowOutputSchema,
   UsageEvent,
 } from '@/db/schema/usageEvents'
 import {
   bulkInsertOrDoNothingUsageEventsByTransactionId,
   selectUsageEventById,
+  selectUsageEventsPaginated,
+  selectUsageEventsTableRowData,
 } from '@/db/tableMethods/usageEventMethods'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { usageEventsClientSelectSchema } from '@/db/schema/usageEvents'
@@ -15,6 +21,7 @@ import { protectedProcedure } from '@/server/trpc'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedTransaction,
+  authenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
 import { idInputSchema } from '@/db/tableUtils'
 import { z } from 'zod'
@@ -158,8 +165,46 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
     return { usageEvents }
   })
 
+// List usage events with pagination
+const listUsageEventsProcedure = protectedProcedure
+  .meta(openApiMetas.LIST)
+  .input(usageEventPaginatedSelectSchema)
+  .output(usageEventPaginatedListSchema)
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const result = await selectUsageEventsPaginated(
+          {
+            cursor: input.cursor,
+            limit: input.limit,
+          },
+          transaction
+        )
+        return {
+          items: result.data,
+          total: result.total,
+          hasMore: result.hasMore,
+          nextCursor: result.nextCursor,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+// Get table rows for usage events with joins
+const getTableRowsProcedure = protectedProcedure
+  .input(usageEventsPaginatedTableRowInputSchema)
+  .output(usageEventsPaginatedTableRowOutputSchema)
+  .query(
+    authenticatedProcedureTransaction(selectUsageEventsTableRowData)
+  )
+
 export const usageEventsRouter = router({
   get: getUsageEvent,
   create: createUsageEvent,
   bulkInsert: bulkInsertUsageEventsProcedure,
+  list: listUsageEventsProcedure,
+  getTableRows: getTableRowsProcedure,
 })

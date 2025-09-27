@@ -11,7 +11,7 @@ import {
   selectCustomerById,
   selectCustomers,
   selectCustomersPaginated,
-  updateCustomer,
+  updateCustomer as updateCustomerDb,
   selectCustomersCursorPaginatedWithTableRowData,
   selectCustomerByExternalIdAndOrganizationId,
 } from '@/db/tableMethods/customerMethods'
@@ -136,7 +136,7 @@ const createCustomerProcedure = protectedProcedure
     )
   )
 
-export const editCustomer = protectedProcedure
+export const updateCustomer = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editCustomerInputSchema)
   .output(editCustomerOutputSchema)
@@ -160,7 +160,7 @@ export const editCustomer = protectedProcedure
               message: `Customer with externalId ${input.externalId} not found`,
             })
           }
-          const updatedCustomer = await updateCustomer(
+          const updatedCustomer = await updateCustomerDb(
             {
               ...customer,
               id: customerRecord.id,
@@ -355,7 +355,7 @@ export const customersRouter = router({
   /**
    * Forward/backward compatibility with the old update endpoint
    */
-  update: editCustomer,
+  update: updateCustomer,
   getBilling: getCustomerBilling,
   get: getCustomer,
   internal__getById: getCustomerById,

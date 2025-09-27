@@ -28,6 +28,16 @@ import { billingPeriods } from '@/db/schema/billingPeriods'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { subscriptions } from './subscriptions'
 import { prices } from './prices'
+import {
+  createPaginatedSelectSchema,
+  createPaginatedListQuerySchema,
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@/db/tableUtils'
+import { customerClientSelectSchema } from './customers'
+import { subscriptionClientSelectSchema } from './subscriptions'
+import { usageMetersClientSelectSchema } from './usageMeters'
+import { pricesClientSelectSchema } from './prices'
 
 const TABLE_NAME = 'usage_events'
 
@@ -247,6 +257,9 @@ export namespace UsageEvent {
     typeof usageEventsClientSelectSchema
   >
   export type Where = SelectConditions<typeof usageEvents>
+  export type UsageEventTableRowData = z.infer<
+    typeof usageEventsTableRowDataSchema
+  >
 }
 
 export const createUsageEventSchema = z.object({
@@ -263,4 +276,55 @@ export const bulkInsertUsageEventsSchema = z.object({
 
 export type BulkInsertUsageEventsInput = z.infer<
   typeof bulkInsertUsageEventsSchema
+>
+
+// Pagination schemas
+export const usageEventPaginatedSelectSchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.number().min(1).max(100).default(10),
+  customerId: z.string().optional(),
+  usageMeterId: z.string().optional(),
+  subscriptionId: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+})
+
+export const usageEventPaginatedListSchema = z.object({
+  items: z.array(usageEventsClientSelectSchema),
+  total: z.number(),
+  hasMore: z.boolean(),
+  nextCursor: z.string().optional(),
+})
+
+// Table row data schema for enriched usage events with joins
+export const usageEventsTableRowDataSchema = z.object({
+  usageEvent: usageEventsClientSelectSchema,
+  customer: customerClientSelectSchema,
+  subscription: subscriptionClientSelectSchema,
+  usageMeter: usageMetersClientSelectSchema,
+  price: pricesClientSelectSchema,
+})
+
+// Paginated table row input schema
+export const usageEventsPaginatedTableRowInputSchema =
+  createPaginatedTableRowInputSchema(
+    z.object({
+      customerId: z.string().optional(),
+      usageMeterId: z.string().optional(),
+      subscriptionId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    })
+  )
+
+export type UsageEventsPaginatedTableRowInput = z.infer<
+  typeof usageEventsPaginatedTableRowInputSchema
+>
+
+// Paginated table row output schema
+export const usageEventsPaginatedTableRowOutputSchema =
+  createPaginatedTableRowOutputSchema(usageEventsTableRowDataSchema)
+
+export type UsageEventsPaginatedTableRowOutput = z.infer<
+  typeof usageEventsPaginatedTableRowOutputSchema
 >

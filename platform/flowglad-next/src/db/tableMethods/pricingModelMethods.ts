@@ -376,7 +376,12 @@ export const selectPricingModelForCustomer = async (
         transaction
       )
     if (pricingModel) {
-      return pricingModel
+      return {
+        ...pricingModel,
+        products: pricingModel.products.filter(
+          (product) => product.active
+        ),
+      }
     }
   }
   const [pricingModel] =
@@ -384,6 +389,12 @@ export const selectPricingModelForCustomer = async (
       { isDefault: true, organizationId: customer.organizationId },
       transaction
     )
+
+  if (!pricingModel) {
+    throw new Error(
+      `No default pricing model found for organization ${customer.organizationId}`
+    )
+  }
 
   return {
     ...pricingModel,

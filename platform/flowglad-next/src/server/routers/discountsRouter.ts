@@ -2,7 +2,7 @@ import { router } from '../trpc'
 import { editDiscountInputSchema } from '@/db/schema/discounts'
 import {
   selectDiscountById,
-  updateDiscount,
+  updateDiscount as updateDiscountDB,
   selectDiscountsTableRowData,
 } from '@/db/tableMethods/discountMethods'
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
@@ -107,14 +107,14 @@ const getTableRowsProcedure = protectedProcedure
     authenticatedProcedureTransaction(selectDiscountsTableRowData)
   )
 
-export const editDiscount = protectedProcedure
+export const updateDiscount = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editDiscountInputSchema)
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
     const discount = await authenticatedTransaction(
       async ({ transaction }) => {
-        const updatedDiscount = await updateDiscount(
+        const updatedDiscount = await updateDiscountDB(
           {
             ...input.discount,
             id: input.id,
@@ -160,7 +160,7 @@ export const getDiscount = protectedProcedure
 export const discountsRouter = router({
   get: getDiscount,
   create: createDiscount,
-  update: editDiscount,
+  update: updateDiscount,
   delete: deleteDiscount,
   attempt: attemptDiscountCode,
   clear: clearDiscountCode,
