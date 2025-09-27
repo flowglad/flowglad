@@ -5,6 +5,7 @@ import { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Pencil, Trash2 } from 'lucide-react'
 // UI components last
+import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
@@ -55,7 +56,7 @@ const DiscountTableAmountCell = ({
   } else if (amount.amountType === DiscountAmountType.Percent) {
     amountText = `${amount.amount}%`
   }
-  return <div className="text-sm font-medium">{amountText}</div>
+  return <div className="text-sm font-normal">{amountText}</div>
 }
 
 function DiscountActionsMenu({
@@ -115,8 +116,10 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
     accessorFn: (row) => row.discount.code,
     header: 'Code',
     cell: ({ row }) => (
-      <div className="font-mono text-sm truncate">
-        {row.getValue('code')}
+      <div onClick={(e) => e.stopPropagation()}>
+        <DataTableCopyableCell copyText={row.getValue('code')}>
+          {row.getValue('code')}
+        </DataTableCopyableCell>
       </div>
     ),
     size: 150,

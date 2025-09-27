@@ -124,49 +124,41 @@ function ProductActionsMenu({
 
 export const columns: ColumnDef<ProductRow>[] = [
   {
-    id: 'image',
-    accessorFn: (row) => row.product.imageURL,
-    header: '',
+    id: 'name',
+    accessorFn: (row) => row.product.name,
+    header: 'Product',
     cell: ({ row }) => {
-      const imageURL = row.getValue('image') as string | null
-      const productName = row.original.product.name // OK to use original for alt text
+      const imageURL = row.original.product.imageURL
+      const productName = row.getValue('name') as string
       return (
-        <div className="bg-muted h-10 w-10 hover:bg-muted overflow-clip flex items-center justify-center rounded-md shrink-0">
-          {imageURL ? (
-            <Image
-              src={imageURL}
-              alt={productName}
-              width={40}
-              height={40}
-              className="object-cover object-center overflow-hidden h-10 w-10"
-            />
-          ) : (
-            <ImageIcon size={16} className="text-muted-foreground" />
-          )}
+        <div className="flex items-center">
+          <div className="mr-4 h-6 w-8 flex-shrink-0 rounded bg-muted flex items-center justify-center overflow-hidden bg-cover bg-center bg-no-repeat">
+            {imageURL ? (
+              <Image
+                src={imageURL}
+                alt={productName}
+                width={32}
+                height={24}
+                className="object-cover object-center h-6 w-8"
+              />
+            ) : (
+              <ImageIcon
+                size={16}
+                className="text-muted-foreground/25"
+              />
+            )}
+          </div>
+          <span
+            className="font-normal text-sm truncate max-w-48 lg:max-w-64"
+            title={productName}
+          >
+            {productName}
+          </span>
         </div>
       )
     },
-    enableSorting: false,
-    enableHiding: false,
-    size: 50,
-    maxSize: 50,
-  },
-  {
-    id: 'name',
-    accessorFn: (row) => row.product.name,
-    header: 'Name',
-    cell: ({ row }) => (
-      <div className="min-w-0">
-        <span
-          className="font-normal text-sm truncate block"
-          title={row.getValue('name')}
-        >
-          {row.getValue('name')}
-        </span>
-      </div>
-    ),
-    size: 250,
-    maxSize: 300,
+    size: 300,
+    maxSize: 350,
   },
   {
     id: 'prices',
