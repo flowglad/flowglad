@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
   const event = `${payload.table}:${payload.type}`
   switch (event) {
-    case `users:${SupabasePayloadType.INSERT}`:
+    case `memberships:${SupabasePayloadType.INSERT}`:
       const userPayload =
         payload as SupabaseInsertPayload<User.Record>
       const email = userPayload.record.email
