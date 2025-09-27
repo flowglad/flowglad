@@ -145,9 +145,9 @@ export function ProductsDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar with all improvements */}
-      <div className="flex items-center justify-between py-4">
+      <div className="flex items-center justify-between py-4 gap-4 min-w-0">
         {/* Filter buttons on the left */}
-        <div className="flex items-center">
+        <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
           {filterOptions && activeFilter && onFilterChange && (
             <FilterButtonGroup
               options={filterOptions}
@@ -158,7 +158,7 @@ export function ProductsDataTable({
         </div>
 
         {/* Search, toggle columns, and create button on the right */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <CollapsibleSearch
             value={inputValue}
             onChange={setInputValue}
