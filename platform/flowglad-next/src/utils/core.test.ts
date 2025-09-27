@@ -21,3 +21,14 @@ describe('customerBillingPortalURL', () => {
     )
   })
 })
+
+describe('organizationBillingPortalURL', () => {
+  it('creates correct URL for billing portal with organization ID only', () => {
+    const url = core.organizationBillingPortalURL({
+      organizationId: 'organizationid',
+    })
+    expect(url).toBe(
+      'http://localhost:3000/billing-portal/organizationid'
+    )
+  })
+})

@@ -47,6 +47,7 @@ import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
+import { organizationBillingPortalURL } from '@/utils/core'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'customer',
@@ -285,6 +286,9 @@ export const getCustomerBilling = protectedProcedure
         ),
       catalog: pricingModelWithProductsAndUsageMetersSchema,
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
+      billingPortalUrl: z
+        .url()
+        .describe('The billing portal URL for the customer'),
     })
   )
   .query(async ({ input, ctx }) => {
@@ -325,6 +329,9 @@ export const getCustomerBilling = protectedProcedure
       subscriptions,
       catalog: pricingModel,
       pricingModel,
+      billingPortalUrl: organizationBillingPortalURL({
+        organizationId,
+      }),
       experimental: {},
     }
   })
