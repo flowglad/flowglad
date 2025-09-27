@@ -222,7 +222,9 @@ export const selectPricingModelsTableRows =
         productsCount:
           productsByPricingModelId.get(pricingModel.id) || 0,
       }))
-    }
+    },
+    // Searchable columns for pricing models table
+    [pricingModels.name]
   )
 
 export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
@@ -389,7 +391,9 @@ export const selectPricingModelForCustomer = async (
     )
 
   if (!pricingModel) {
-    throw new Error(`No default pricing model found for organization ${customer.organizationId}`)
+    throw new Error(
+      `No default pricing model found for organization ${customer.organizationId}`
+    )
   }
 
   return {

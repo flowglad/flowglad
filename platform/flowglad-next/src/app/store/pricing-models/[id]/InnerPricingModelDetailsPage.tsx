@@ -1,20 +1,19 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ProductsTable } from '@/app/store/products/ProductsTable'
+import { ProductsDataTable } from '@/app/store/products/data-table'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
-import { Pencil, Plus } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
-import CustomersTable from '@/app/customers/CustomersTable'
-import { TableHeader } from '@/components/ui/table-header'
-import FeaturesTable from '@/app/features/FeaturesTable'
+import { CustomersDataTable } from '@/app/customers/data-table'
+import { FeaturesDataTable } from '@/app/features/data-table'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
 import DefaultBadge from '@/components/DefaultBadge'
-import UsageMetersTable from '@/app/store/usage-meters/UsageMetersTable'
+import { UsageMetersDataTable } from '@/app/store/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 
 export type InnerPricingModelDetailsPageProps = {
@@ -57,48 +56,32 @@ function InnerPricingModelDetailsPage({
         </div>
 
         <div className="flex flex-col gap-5">
-          <TableHeader
-            title="Products"
-            buttonLabel="Create Product"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
-              setIsCreateProductModalOpen(true)
-            }}
+          <h2 className="text-lg font-semibold">Products</h2>
+          <ProductsDataTable
+            filters={{ pricingModelId: pricingModel.id }}
+            onCreateProduct={() => setIsCreateProductModalOpen(true)}
           />
-          <ProductsTable
+        </div>
+        <div className="flex flex-col gap-5">
+          <h2 className="text-lg font-semibold">Customers</h2>
+          <CustomersDataTable
             filters={{ pricingModelId: pricingModel.id }}
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableHeader title="Customers" noButtons />
-          <CustomersTable
+          <h2 className="text-lg font-semibold">Features</h2>
+          <FeaturesDataTable
             filters={{ pricingModelId: pricingModel.id }}
+            onCreateFeature={() => setIsCreateFeatureModalOpen(true)}
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableHeader
-            title="Features"
-            buttonLabel="Create Feature"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
-              setIsCreateFeatureModalOpen(true)
-            }}
-          />
-          <FeaturesTable
+          <h2 className="text-lg font-semibold">Usage Meters</h2>
+          <UsageMetersDataTable
             filters={{ pricingModelId: pricingModel.id }}
-          />
-        </div>
-        <div className="flex flex-col gap-5">
-          <TableHeader
-            title="Usage Meters"
-            buttonLabel="Create Usage Meter"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
+            onCreateUsageMeter={() =>
               setIsCreateUsageMeterModalOpen(true)
-            }}
-          />
-          <UsageMetersTable
-            filters={{ pricingModelId: pricingModel.id }}
+            }
           />
         </div>
       </div>

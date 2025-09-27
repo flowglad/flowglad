@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { setupOrg, setupCustomer, setupSubscription, setupUsageMeter, setupUsageEvent, setupPrice, setupBillingPeriod, setupUserAndApiKey, setupPaymentMethod } from '@/../seedDatabase'
+import {
+  setupOrg,
+  setupCustomer,
+  setupSubscription,
+  setupUsageMeter,
+  setupUsageEvent,
+  setupPrice,
+  setupBillingPeriod,
+  setupUserAndApiKey,
+  setupPaymentMethod,
+} from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Customer } from '@/db/schema/customers'
 import { Subscription } from '@/db/schema/subscriptions'
@@ -8,7 +18,12 @@ import { UsageEvent } from '@/db/schema/usageEvents'
 import { Price } from '@/db/schema/prices'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { PaymentMethodType, SubscriptionStatus, PriceType, IntervalUnit } from '@/types'
+import {
+  PaymentMethodType,
+  SubscriptionStatus,
+  PriceType,
+  IntervalUnit,
+} from '@/types'
 import { usageEventsRouter } from './usageEventsRouter'
 import { http, HttpResponse } from 'msw'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -194,14 +209,14 @@ describe('usageEventsRouter', () => {
       // Should return only the 5 usage events from organization 1
       expect(result.total).toBe(5)
       expect(result.hasMore).toBe(false)
-      
+
       // Should respect RLS policies - verify exact events by ID
-      const org1EventIds = result.items.map(event => event.id)
-      const expectedEventIds = usageEvents1.map(event => event.id)
+      const org1EventIds = result.items.map((event) => event.id)
+      const expectedEventIds = usageEvents1.map((event) => event.id)
       expect(org1EventIds.sort()).toEqual(expectedEventIds.sort())
-      
+
       // Verify all returned events belong to org1 (through customer relationship)
-      result.items.forEach(event => {
+      result.items.forEach((event) => {
         expect(event.customerId).toBe(customer1.id)
       })
     })
@@ -267,17 +282,17 @@ describe('usageEventsRouter', () => {
       expect(result.total).toBe(10)
       expect(result.hasMore).toBe(true)
       expect(result.nextCursor).toBeDefined()
-      
+
       // Verify returned events are from our created events
-      const returnedEventIds = result.items.map(event => event.id)
-      const createdEventIds = createdEvents.map(event => event.id)
+      const returnedEventIds = result.items.map((event) => event.id)
+      const createdEventIds = createdEvents.map((event) => event.id)
       expect(returnedEventIds).toHaveLength(3)
-      returnedEventIds.forEach(eventId => {
+      returnedEventIds.forEach((eventId) => {
         expect(createdEventIds).toContain(eventId)
       })
-      
+
       // Verify all returned events belong to org1 (through customer relationship)
-      result.items.forEach(event => {
+      result.items.forEach((event) => {
         expect(event.customerId).toBe(customer1.id)
       })
     })
@@ -319,9 +334,11 @@ describe('usageEventsRouter', () => {
       // Should return 3 enriched usage events - verify by specific IDs
       expect(result.total).toBe(3)
       expect(result.hasNextPage).toBe(false)
-      
-      const returnedEventIds = result.items.map(item => item.usageEvent.id)
-      const expectedEventIds = createdEvents.map(event => event.id)
+
+      const returnedEventIds = result.items.map(
+        (item) => item.usageEvent.id
+      )
+      const expectedEventIds = createdEvents.map((event) => event.id)
       expect(returnedEventIds.sort()).toEqual(expectedEventIds.sort())
 
       // Each event should have customer, subscription, usageMeter, price data
@@ -407,13 +424,19 @@ describe('usageEventsRouter', () => {
       expect(secondResult.hasNextPage).toBe(true)
 
       // Should not return duplicate events
-      const firstEventIds = firstResult.items.map(event => event.usageEvent.id)
-      const secondEventIds = secondResult.items.map(event => event.usageEvent.id)
+      const firstEventIds = firstResult.items.map(
+        (event) => event.usageEvent.id
+      )
+      const secondEventIds = secondResult.items.map(
+        (event) => event.usageEvent.id
+      )
       expect(firstEventIds).toHaveLength(3)
       expect(secondEventIds).toHaveLength(3)
-      
+
       // Verify no duplicate events between pages
-      const overlap = firstEventIds.filter(id => secondEventIds.includes(id))
+      const overlap = firstEventIds.filter((id) =>
+        secondEventIds.includes(id)
+      )
       expect(overlap).toEqual([])
     })
   })
@@ -449,7 +472,9 @@ describe('usageEventsRouter', () => {
       })
 
       // Should return usage event for organization 1
-      expect(result.items.map(item => item.id)).toEqual([usageEvent.id])
+      expect(result.items.map((item) => item.id)).toEqual([
+        usageEvent.id,
+      ])
     })
 
     it('should DENY merchants from reading usage events for other organizations', async () => {

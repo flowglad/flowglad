@@ -627,14 +627,14 @@ describe('selectPricingModelForCustomer', () => {
 
     // Should return the specific pricing model
     expect(result.id).toBe(specificPricingModel.id)
-    
+
     // Should only include active products
-    const productNames = result.products.map(p => p.name)
+    const productNames = result.products.map((p) => p.name)
     expect(productNames).toContain('Active Product')
     expect(productNames).not.toContain('Inactive Product')
-    
+
     // Verify all returned products are active
-    expect(result.products.every(p => p.active)).toBe(true)
+    expect(result.products.every((p) => p.active)).toBe(true)
   })
 
   it('should filter inactive products for customers with default pricing model', async () => {
@@ -651,13 +651,13 @@ describe('selectPricingModelForCustomer', () => {
     // Should return the default pricing model
     expect(result.id).toBe(defaultPricingModel.id)
     expect(result.isDefault).toBe(true)
-    
+
     // Should only include active products
-    const productNames = result.products.map(p => p.name)
+    const productNames = result.products.map((p) => p.name)
     expect(productNames).not.toContain('Default Inactive Product')
-    
+
     // Verify all returned products are active
-    expect(result.products.every(p => p.active)).toBe(true)
+    expect(result.products.every((p) => p.active)).toBe(true)
   })
 
   it('should fallback to default pricing model when specific model not found', async () => {
@@ -668,37 +668,51 @@ describe('selectPricingModelForCustomer', () => {
     })
 
     // Manually set a non-existent pricing model ID
-    const customerWithBadId = { ...customer, pricingModelId: 'nonexistent-id' }
+    const customerWithBadId = {
+      ...customer,
+      pricingModelId: 'nonexistent-id',
+    }
 
     const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelForCustomer(customerWithBadId, transaction)
+      return selectPricingModelForCustomer(
+        customerWithBadId,
+        transaction
+      )
     })
 
     // Should fallback to default pricing model
     expect(result.id).toBe(defaultPricingModel.id)
     expect(result.isDefault).toBe(true)
-    
+
     // Should still filter inactive products
-    expect(result.products.every(p => p.active)).toBe(true)
+    expect(result.products.every((p) => p.active)).toBe(true)
   })
 
   it('should throw error when no default pricing model exists', async () => {
     // Simulate a scenario where no default pricing model exists by using a fake org ID
     const fakeOrgId = 'org_fake_no_default'
-    
+
     const customer = await setupCustomer({
       organizationId: organization.id, // Use real org for customer creation
       email: 'nodefault@example.com',
     })
 
     // Override the organization ID to simulate missing default
-    const customerWithFakeOrg = { ...customer, organizationId: fakeOrgId }
+    const customerWithFakeOrg = {
+      ...customer,
+      organizationId: fakeOrgId,
+    }
 
     await expect(async () => {
       await adminTransaction(async ({ transaction }) => {
-        return selectPricingModelForCustomer(customerWithFakeOrg, transaction)
+        return selectPricingModelForCustomer(
+          customerWithFakeOrg,
+          transaction
+        )
       })
-    }).rejects.toThrow(`No default pricing model found for organization ${fakeOrgId}`)
+    }).rejects.toThrow(
+      `No default pricing model found for organization ${fakeOrgId}`
+    )
   })
 
   it('should handle customers with specific pricing model that has no products', async () => {

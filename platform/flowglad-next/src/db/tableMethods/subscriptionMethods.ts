@@ -35,9 +35,15 @@ import {
 } from 'drizzle-orm'
 import { SubscriptionStatus, CancellationReason } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { customers, customerClientSelectSchema } from '../schema/customers'
+import {
+  customers,
+  customerClientSelectSchema,
+} from '../schema/customers'
 import { prices, pricesClientSelectSchema } from '../schema/prices'
-import { products, productsClientSelectSchema } from '../schema/products'
+import {
+  products,
+  productsClientSelectSchema,
+} from '../schema/products'
 import { z } from 'zod'
 import { PaymentMethod } from '../schema/paymentMethods'
 
@@ -238,7 +244,9 @@ export const selectSubscriptionsTableRowData =
           customer: customerClientSelectSchema.parse(customer),
         }
       })
-    }
+    },
+    // Searchable columns for subscriptions table
+    [subscriptions.name, subscriptions.externalId]
   )
 
 export const selectSubscriptionsPaginated =

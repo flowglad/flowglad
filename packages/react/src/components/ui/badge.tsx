@@ -10,13 +10,12 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          'flowglad-border-transparent flowglad-bg-primary flowglad-text-primary-foreground [a&]:hover:flowglad-bg-primary/90',
+          'flowglad-border-transparent flowglad-bg-primary flowglad-text-primary-foreground',
         secondary:
-          'flowglad-border-transparent flowglad-bg-secondary flowglad-text-secondary-foreground [a&]:hover:flowglad-bg-secondary/90',
+          'flowglad-border-transparent flowglad-bg-secondary flowglad-text-secondary-foreground',
         destructive:
-          'flowglad-border-transparent flowglad-bg-destructive flowglad-text-white [a&]:hover:flowglad-bg-destructive/90 flowglad-focus-visible:ring-destructive/20 flowglad-dark:focus-visible:ring-destructive/40',
-        outline:
-          'flowglad-text-foreground [a&]:hover:flowglad-bg-accent [a&]:hover:flowglad-text-accent-foreground',
+          'flowglad-border-transparent flowglad-bg-destructive flowglad-text-white flowglad-focus-visible:ring-destructive/20 flowglad-dark:focus-visible:ring-destructive/40',
+        outline: 'flowglad-text-foreground',
       },
     },
     defaultVariants: {

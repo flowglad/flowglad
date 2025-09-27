@@ -28,7 +28,7 @@ import { billingPeriods } from '@/db/schema/billingPeriods'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { subscriptions } from './subscriptions'
 import { prices } from './prices'
-import { 
+import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   createPaginatedTableRowInputSchema,
@@ -257,7 +257,9 @@ export namespace UsageEvent {
     typeof usageEventsClientSelectSchema
   >
   export type Where = SelectConditions<typeof usageEvents>
-  export type UsageEventTableRowData = z.infer<typeof usageEventsTableRowDataSchema>
+  export type UsageEventTableRowData = z.infer<
+    typeof usageEventsTableRowDataSchema
+  >
 }
 
 export const createUsageEventSchema = z.object({

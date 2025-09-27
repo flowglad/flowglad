@@ -11,7 +11,7 @@ import { trpc } from '@/app/_trpc/client'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import StatusBadge from '@/components/StatusBadge'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
-import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
 import EditFeatureModal from '@/components/forms/EditFeatureModal'
 
@@ -43,13 +43,14 @@ const MoreMenuCell = ({
   ]
 
   return (
-    <MoreMenuTableCell items={items}>
+    <>
+      <TableRowPopoverMenu items={items} />
       <EditFeatureModal
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
         feature={feature}
       />
-    </MoreMenuTableCell>
+    </>
   )
 }
 

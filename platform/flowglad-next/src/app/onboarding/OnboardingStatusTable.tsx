@@ -47,21 +47,15 @@ const OnboardingStatusRow = ({
 }: OnboardingStatusRowProps) => {
   return (
     <>
-      <div
-        className="flex flex-col gap-6 border border-border rounded-[28px] bg-card p-6"
-        style={{
-          boxShadow:
-            '-3px 4px 21px 0px rgba(0, 0, 0, 0.05), -2px 2px 4px 0px rgba(0, 0, 0, 0.04)',
-        }}
-      >
+      <div className="flex flex-col gap-6 border border-border rounded-[28px] bg-card p-6 shadow-medium">
         <div className="flex flex-col justify-start w-full gap-3">
           <div className="flex flex-col gap-1">
             <div className="w-6 h-6 bg-secondary rounded-full flex items-center justify-center">
-              <p className="text-sm font-semibold text-secondary-foreground">
+              <p className="text-sm text-secondary-foreground">
                 {title.match(/^\d+/)?.[0] || ''}
               </p>
             </div>
-            <p className="font-semibold text-foreground">
+            <p className="text-foreground">
               {title.replace(/^\d+\.\s*/, '')}
             </p>
             <OnboardingItemDescriptionLabel>
@@ -144,7 +138,7 @@ const CodeblockGroup = ({
             onClick={() => setSelectedSection(section.title)}
             className={cn(
               // Base styling
-              'px-3 py-1 text-sm font-medium transition-all duration-200 rounded-full',
+              'px-3 py-1 text-sm transition-all duration-200 rounded-full',
               // Active/inactive styling
               selectedSection === section.title
                 ? 'bg-accent text-foreground' // Active state

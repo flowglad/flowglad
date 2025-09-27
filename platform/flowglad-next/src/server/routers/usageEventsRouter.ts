@@ -197,7 +197,9 @@ const listUsageEventsProcedure = protectedProcedure
 const getTableRowsProcedure = protectedProcedure
   .input(usageEventsPaginatedTableRowInputSchema)
   .output(usageEventsPaginatedTableRowOutputSchema)
-  .query(authenticatedProcedureTransaction(selectUsageEventsTableRowData))
+  .query(
+    authenticatedProcedureTransaction(selectUsageEventsTableRowData)
+  )
 
 export const usageEventsRouter = router({
   get: getUsageEvent,

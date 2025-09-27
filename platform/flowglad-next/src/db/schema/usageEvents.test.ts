@@ -22,7 +22,12 @@ import { UsageEvent } from '@/db/schema/usageEvents'
 import { Price } from '@/db/schema/prices'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { PaymentMethodType, SubscriptionStatus, PriceType, IntervalUnit } from '@/types'
+import {
+  PaymentMethodType,
+  SubscriptionStatus,
+  PriceType,
+  IntervalUnit,
+} from '@/types'
 import core from '@/utils/core'
 
 describe('usage_events RLS policies', () => {
@@ -157,18 +162,21 @@ describe('usage_events RLS policies', () => {
     // Create usage event for organization 1
     const usageEvent = await authenticatedTransaction(
       async ({ transaction }) => {
-        return insertUsageEvent({
-          customerId: customer1.id,
-          subscriptionId: subscription1.id,
-          usageMeterId: usageMeter1.id,
-          priceId: price1.id,
-          billingPeriodId: billingPeriod1.id,
-          amount: 100,
-          transactionId: 'txn_org1_allowed',
-          usageDate: new Date(),
-          livemode: true,
-          properties: {},
-        }, transaction)
+        return insertUsageEvent(
+          {
+            customerId: customer1.id,
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter1.id,
+            priceId: price1.id,
+            billingPeriodId: billingPeriod1.id,
+            amount: 100,
+            transactionId: 'txn_org1_allowed',
+            usageDate: new Date(),
+            livemode: true,
+            properties: {},
+          },
+          transaction
+        )
       },
       { apiKey: org1ApiKeyToken }
     )
@@ -195,18 +203,21 @@ describe('usage_events RLS policies', () => {
     // Create usage event for organization 2
     const usageEvent = await authenticatedTransaction(
       async ({ transaction }) => {
-        return insertUsageEvent({
-          customerId: customer2.id,
-          subscriptionId: subscription2.id,
-          usageMeterId: usageMeter2.id,
-          priceId: price2.id,
-          billingPeriodId: billingPeriod2.id,
-          amount: 200,
-          transactionId: 'txn_org2_denied',
-          usageDate: new Date(),
-          livemode: true,
-          properties: {},
-        }, transaction)
+        return insertUsageEvent(
+          {
+            customerId: customer2.id,
+            subscriptionId: subscription2.id,
+            usageMeterId: usageMeter2.id,
+            priceId: price2.id,
+            billingPeriodId: billingPeriod2.id,
+            amount: 200,
+            transactionId: 'txn_org2_denied',
+            usageDate: new Date(),
+            livemode: true,
+            properties: {},
+          },
+          transaction
+        )
       },
       { apiKey: org2ApiKeyToken }
     )
@@ -287,18 +298,21 @@ describe('usage_events RLS policies', () => {
     // Create usage event in livemode
     const usageEvent = await authenticatedTransaction(
       async ({ transaction }) => {
-        return insertUsageEvent({
-          customerId: customer1.id,
-          subscriptionId: subscription1.id,
-          usageMeterId: usageMeter1.id,
-          priceId: price1.id,
-          billingPeriodId: billingPeriod1.id,
-          amount: 100,
-          transactionId: 'txn_livemode',
-          usageDate: new Date(),
-          livemode: true,
-          properties: {},
-        }, transaction)
+        return insertUsageEvent(
+          {
+            customerId: customer1.id,
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter1.id,
+            priceId: price1.id,
+            billingPeriodId: billingPeriod1.id,
+            amount: 100,
+            transactionId: 'txn_livemode',
+            usageDate: new Date(),
+            livemode: true,
+            properties: {},
+          },
+          transaction
+        )
       },
       { apiKey: org1ApiKeyToken }
     )

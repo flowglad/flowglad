@@ -3,18 +3,18 @@ import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import { UsageEvent } from '@/db/schema/usageEvents'
-import PurchasesTable from './PurchasesTable'
+import { PurchasesDataTable } from './purchases/data-table'
+import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
 import UsageEventsTable from './UsageEventsTable'
-import InvoicesTable from '@/components/InvoicesTable'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
+import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
 import { TableHeader } from '@/components/ui/table-header'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 // import { useState } from 'react'
-import PaymentsTable from '@/app/finance/payments/PaymentsTable'
+import { PaymentsDataTable } from '@/app/finance/payments/data-table'
 import { DetailLabel } from '@/components/DetailLabel'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
@@ -34,12 +34,18 @@ const CustomerDetailsSection = ({
 
   // Calculate usage events metrics
   const totalUsageEvents = usageEvents.length
-  const totalUsageAmount = usageEvents.reduce((sum, event) => sum + event.amount, 0)
-  const latestUsageEvent = usageEvents.length > 0 
-    ? usageEvents.reduce((latest, current) => 
-        new Date(current.usageDate) > new Date(latest.usageDate) ? current : latest
-      )
-    : null
+  const totalUsageAmount = usageEvents.reduce(
+    (sum, event) => sum + event.amount,
+    0
+  )
+  const latestUsageEvent =
+    usageEvents.length > 0
+      ? usageEvents.reduce((latest, current) =>
+          new Date(current.usageDate) > new Date(latest.usageDate)
+            ? current
+            : latest
+        )
+      : null
 
   return (
     <div className="w-full min-w-40 flex flex-col gap-4 py-5 pr-5 rounded-md">
@@ -112,7 +118,11 @@ const CustomerDetailsSection = ({
           />
           <DetailLabel
             label="Latest Usage"
-            value={latestUsageEvent ? core.formatDate(latestUsageEvent.usageDate) : 'None'}
+            value={
+              latestUsageEvent
+                ? core.formatDate(latestUsageEvent.usageDate)
+                : 'None'
+            }
           />
         </div>
       </div>
@@ -147,7 +157,7 @@ export const CustomerBillingSubPage = ({
           />
           <div className="w-full flex flex-col gap-5 pb-20">
             <TableHeader title="Subscriptions" noButtons />
-            <SubscriptionsTable
+            <SubscriptionsDataTable
               filters={{
                 customerId: customer.id,
               }}
@@ -159,15 +169,19 @@ export const CustomerBillingSubPage = ({
               // buttonIcon={<Plus size={16} />}
               // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
             />
-            <InvoicesTable customer={customer} />
+            <InvoicesDataTable
+              filters={{
+                customerId: customer.id,
+              }}
+            />
             <TableHeader title="Payments" noButtons />
-            <PaymentsTable
+            <PaymentsDataTable
               filters={{
                 customerId: customer.id,
               }}
             />
             <TableHeader title="Purchases" noButtons />
-            <PurchasesTable
+            <PurchasesDataTable
               filters={{
                 customerId: customer.id,
               }}

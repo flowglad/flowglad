@@ -159,5 +159,11 @@ export const selectInvoicesTableRowData =
           invoiceLineItemsByInvoiceId[invoice.id] || [],
         customer: customersById.get(invoice.customerId)!,
       }))
-    }
+    },
+    // Searchable columns for invoices table
+    [
+      invoices.invoiceNumber,
+      invoices.memo,
+      invoices.stripePaymentIntentId,
+    ]
   )
