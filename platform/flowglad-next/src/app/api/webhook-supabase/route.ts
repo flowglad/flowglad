@@ -10,10 +10,9 @@ import { customerCreatedTask } from '@/trigger/supabase/customer-inserted'
 import { eventInsertedTask } from '@/trigger/supabase/event-inserted'
 import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
-import { Product } from '@/db/schema/products'
 import { Event } from '@/db/schema/events'
-import { subscribeToNewsletter } from '@/utils/newsletter'
-import { User } from '@/db/schema/users'
+import { Membership } from '@/db/schema/memberships'
+import { memberInsertedTask } from '@/trigger/supabase/member-inserted'
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get('Authorization')
@@ -34,12 +33,9 @@ export async function POST(request: Request) {
   const event = `${payload.table}:${payload.type}`
   switch (event) {
     case `memberships:${SupabasePayloadType.INSERT}`:
-      const userPayload =
-        payload as SupabaseInsertPayload<User.Record>
-      const email = userPayload.record.email
-      if (email) {
-        await subscribeToNewsletter(email)
-      }
+      await memberInsertedTask.trigger(
+        payload as SupabaseInsertPayload<Membership.Record>
+      )
       break
     case `invoices:${SupabasePayloadType.UPDATE}`:
       await invoiceUpdatedTask.trigger(
