@@ -39,7 +39,9 @@ const InnerSubscriptionPage = ({
                 className="flex flex-row items-center gap-2"
               />
             </div>
-            <SubscriptionStatusBadge status={subscription.status} />
+            <div className="w-fit">
+              <SubscriptionStatusBadge status={subscription.status} />
+            </div>
           </div>
         </div>
         <TableHeader title="Details" noButtons />
