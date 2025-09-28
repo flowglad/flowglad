@@ -31,6 +31,7 @@ import {
   selectCurrentBillingPeriodForSubscription,
   updateBillingPeriod,
 } from '@/db/tableMethods/billingPeriodMethods'
+import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { Customer } from '@/db/schema/customers'
@@ -947,6 +948,307 @@ describe('adjustSubscription Integration Tests', async () => {
             )
           })
         ).rejects.toThrow()
+      })
+    })
+  })
+
+  /* ==========================================================================
+     Subscription Record Update (Data Consistency Fix)
+  ========================================================================== */
+  describe('Subscription Record Update', () => {
+    it('should update subscription record when subscription items change to maintain data consistency', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create initial subscription item
+        const initialItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Cheap Plan - Monthly',
+          quantity: 1,
+          unitPrice: 999, // $9.99
+        })
+
+        // Create billing period
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: new Date(Date.now() - 3600000),
+            endDate: new Date(Date.now() + 3600000),
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Adjust to a different subscription item (simulating plan change)
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Expensive Plan - Monthly',
+            quantity: 1,
+            unitPrice: 9999, // $99.99
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          transaction
+        )
+
+        // Verify that the returned subscription has updated information
+        expect(result.subscription.name).toBe('Expensive Plan - Monthly')
+        expect(result.subscription.priceId).toBe(price.id)
+
+        // Verify that the subscription record in the database was actually updated
+        const dbResult = await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+          subscription.id,
+          transaction
+        )
+        expect(dbResult).not.toBeNull()
+        if (!dbResult) {
+          throw new Error('Result is null')
+        }
+
+        // The subscription record should have been updated to match the primary subscription item
+        expect(dbResult.subscription.name).toBe('Expensive Plan - Monthly')
+        expect(dbResult.subscription.priceId).toBe(price.id)
+        
+        // With the new sync logic, we expect both items (expired old item + new active item)
+        expect(dbResult.subscriptionItems.length).toBe(2)
+        
+        // Find the active item (should have no expiredAt)
+        const activeItem = dbResult.subscriptionItems.find(item => !item.expiredAt)
+        expect(activeItem).toBeDefined()
+        expect(activeItem?.name).toBe('Expensive Plan - Monthly')
+        expect(activeItem?.unitPrice).toBe(9999)
+        
+        // Find the expired item (should have expiredAt set)
+        const expiredItem = dbResult.subscriptionItems.find(item => item.expiredAt)
+        expect(expiredItem).toBeDefined()
+        expect(expiredItem?.name).toBe('Cheap Plan - Monthly')
+        expect(expiredItem?.unitPrice).toBe(999)
+      })
+    })
+
+    it('should use the most expensive subscription item when multiple items exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create billing period
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: new Date(Date.now() - 3600000),
+            endDate: new Date(Date.now() + 3600000),
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        // Adjust to multiple subscription items
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Primary Plan - Monthly',
+            quantity: 1,
+            unitPrice: 5000,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+          {
+            ...subscriptionItemCore,
+            name: 'Add-on Feature',
+            quantity: 1,
+            unitPrice: 1000,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          transaction
+        )
+
+        // Verify that the subscription record uses the most expensive item's information
+        // Primary Plan (5000) is more expensive than Add-on Feature (1000)
+        expect(result.subscription.name).toBe('Primary Plan - Monthly')
+        expect(result.subscription.priceId).toBe(price.id)
+
+        // Verify in database as well
+        const dbResult = await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+          subscription.id,
+          transaction
+        )
+        expect(dbResult).not.toBeNull()
+        if (!dbResult) {
+          throw new Error('Result is null')
+        }
+
+        expect(dbResult.subscription.name).toBe('Primary Plan - Monthly')
+        expect(dbResult.subscriptionItems.length).toBe(2) // Both new items should be present
+      })
+    })
+
+    it('should NOT sync subscription record with future-dated items (At End of Current Billing Period)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create initial subscription item
+        const initialItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Current Plan',
+          quantity: 1,
+          unitPrice: 1000, // $10.00
+        })
+
+        // Create active billing period (current period)
+        const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: new Date(Date.now() - 3600000), // 1 hour ago
+            endDate: futureDate, // 7 days from now
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+        
+        // Also update the subscription's currentBillingPeriodEnd to match
+        await updateSubscription({
+          id: subscription.id,
+          currentBillingPeriodEnd: futureDate,
+          renews: true, // Required field
+        }, transaction)
+        
+        // Update local reference too
+        subscription.currentBillingPeriodEnd = futureDate
+
+        // Adjust subscription to a more expensive plan at END of current billing period
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Future Plan',
+            quantity: 1,
+            unitPrice: 5000, // $50.00 (more expensive)
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+            },
+          },
+          transaction
+        )
+
+        // CRITICAL: Subscription should still show the CURRENT plan, NOT the future plan
+        // because the new item has addedDate = futureDate (end of billing period)
+        expect(result.subscription.name).toBe('Current Plan')
+        expect(result.subscription.priceId).toBe(price.id) // Should match current plan's priceId
+
+        // Verify in database as well
+        const dbResult = await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+          subscription.id,
+          transaction
+        )
+        expect(dbResult).not.toBeNull()
+        if (!dbResult) {
+          throw new Error('Result is null')
+        }
+
+        // Subscription record should reflect CURRENT active plan, not future plan
+        expect(dbResult.subscription.name).toBe('Current Plan')
+        
+        // Should have both items: current (active) and future (not yet active)
+        expect(dbResult.subscriptionItems.length).toBe(2)
+        
+        // Verify we have one expired current item and one future item
+        const expiredCurrentItem = dbResult.subscriptionItems.find(item => 
+          item.name === 'Current Plan' && item.expiredAt
+        )
+        const futureItem = dbResult.subscriptionItems.find(item => 
+          item.name === 'Future Plan' && !item.expiredAt
+        )
+        
+        expect(expiredCurrentItem).toBeDefined()
+        expect(expiredCurrentItem?.expiredAt).toBeDefined() // Should be expired at billing period end
+        expect(futureItem).toBeDefined()
+        expect(futureItem?.addedDate.getTime()).toBe(futureDate.getTime())
+      })
+    })
+
+    it('should handle subscription record update with proration enabled', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create initial subscription item
+        await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Original Plan',
+          quantity: 1,
+          unitPrice: 2000,
+        })
+
+        // Create active billing period
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: new Date(Date.now() - 3600000),
+            endDate: new Date(Date.now() + 3600000),
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        const newItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Updated Plan - Pro',
+            quantity: 1,
+            unitPrice: 4000,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+        ]
+
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
+          },
+          transaction
+        )
+
+        // Even with proration, subscription record should be updated
+        expect(result.subscription.name).toBe('Updated Plan - Pro')
+        expect(result.subscription.priceId).toBe(price.id)
       })
     })
   })

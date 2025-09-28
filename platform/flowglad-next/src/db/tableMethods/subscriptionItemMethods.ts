@@ -22,7 +22,7 @@ import {
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
-import { and, eq, gt, isNull, or } from 'drizzle-orm'
+import { and, eq, gt, isNull, lte, or } from 'drizzle-orm'
 import {
   RichSubscription,
   richSubscriptionClientSelectSchema,
@@ -385,6 +385,9 @@ export const selectCurrentlyActiveSubscriptionItems = async (
     .where(
       and(
         whereClauseFromObject(subscriptionItems, whereConditions),
+        // Item must have started (addedDate <= anchorDate)
+        lte(subscriptionItems.addedDate, anchorDate),
+        // Item must not have expired (expiredAt is null OR expiredAt > anchorDate)
         or(
           isNull(subscriptionItems.expiredAt),
           gt(subscriptionItems.expiredAt, anchorDate)
