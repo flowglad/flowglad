@@ -526,6 +526,104 @@ describe('pricesRouter - Default Price Constraints', () => {
       ).rejects.toThrow('Cannot create additional prices for the default plan')
     })
 
+    // TODO: cleanup the types here
+    it('should allow default prices on non-default products to have non-zero unitPrice', async () => {
+      const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true as any,
+        path: '',
+      } as any
+      
+      // First, create a new product without any prices in the same organization
+      const newProduct = await adminTransaction(async ({ transaction }) => {
+        const pricingModel = await createPricingModelBookkeeping(
+          {
+            pricingModel: {
+              name: 'Test Pricing Model 2',
+              isDefault: false,
+            },
+          },
+          {
+            transaction,
+            organizationId,
+            livemode,
+          }
+        )
+        
+        const product = await insertProduct(
+          {
+            name: 'New Product',
+            slug: 'new-product',
+            default: false,
+            description: null,
+            imageURL: null,
+            displayFeatures: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId: pricingModel.result.pricingModel.id,
+            organizationId,
+            livemode,
+            active: true,
+          },
+          transaction
+        )
+        
+        return product
+      })
+      
+      // This should succeed - default price on non-default product with non-zero price
+      const result = await pricesRouter.createCaller(ctx).create({
+        price: {
+          productId: newProduct.id,
+          unitPrice: 2500, // Non-zero price for a default price on non-default product
+          isDefault: true,
+          type: PriceType.Subscription,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          name: 'Premium Default Price',
+          setupFeeAmount: 0,
+          trialPeriodDays: 0,
+          slug: 'premium-default',
+          active: true,
+        } as any,
+      } as any)
+
+      expect(result.price).toBeDefined()
+      expect(result.price.unitPrice).toBe(2500)
+      expect(result.price.isDefault).toBe(true)
+    })
+
+    it('should forbid default prices on default products to have non-zero unitPrice', async () => {
+      const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true as any,
+        path: '',
+      } as any
+      
+      // Test the validation by trying to update the existing default price on default product
+      await expect(
+        pricesRouter.createCaller(ctx).update({
+          id: defaultPriceId,
+          price: {
+            id: defaultPriceId,
+            unitPrice: 1000, // Non-zero price for default price on default product - should fail
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+          } as any,
+        } as any)
+      ).rejects.toThrow('Default prices for default products must have a unitPrice of 0')
+    })
+
     it('should enforce single default price per product constraint', async () => {
       await expect(
         adminTransaction(async ({ transaction }) => {

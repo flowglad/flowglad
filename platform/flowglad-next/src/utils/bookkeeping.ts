@@ -1,4 +1,5 @@
 import * as R from 'ramda'
+import { createDefaultPriceConfig } from '@/constants/defaultPlanConfig'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   insertCustomer,
@@ -283,25 +284,26 @@ export const createFreePlanPriceInsert = (
   defaultCurrency: CurrencyCode,
   defaultPlanIntervalUnit?: IntervalUnit
 ): Price.Insert => {
+  const config = createDefaultPriceConfig()
   if (defaultPlanIntervalUnit) {
     // Return subscription price when interval unit is provided
     return {
       productId: defaultProduct.id,
-      unitPrice: 0,
-      isDefault: true,
+      unitPrice: config.unitPrice,
+      isDefault: config.isDefault,
       type: PriceType.Subscription,
       intervalUnit: defaultPlanIntervalUnit,
-      intervalCount: 1,
+      intervalCount: config.intervalCount,
       currency: defaultCurrency,
       livemode: defaultProduct.livemode,
       active: true,
-      name: 'Free Plan',
+      name: config.name,
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageEventsPerUnit: null,
       usageMeterId: null,
       externalId: null,
-      slug: 'free',
+      slug: config.slug,
       startsWithCreditTrial: false,
       overagePriceId: null,
     }
@@ -309,21 +311,21 @@ export const createFreePlanPriceInsert = (
     // Return single payment price when no interval unit is provided
     return {
       productId: defaultProduct.id,
-      unitPrice: 0,
-      isDefault: true,
+      unitPrice: config.unitPrice,
+      isDefault: config.isDefault,
       type: PriceType.SinglePayment,
       intervalUnit: null,
       intervalCount: null,
       currency: defaultCurrency,
       livemode: defaultProduct.livemode,
       active: true,
-      name: 'Free Plan',
+      name: config.name,
       trialPeriodDays: null,
       setupFeeAmount: null,
       usageEventsPerUnit: null,
       usageMeterId: null,
       externalId: null,
-      slug: 'free',
+      slug: config.slug,
       startsWithCreditTrial: null,
       overagePriceId: null,
     }
