@@ -32,7 +32,7 @@ describe('OrderReceiptEmail', () => {
   }
 
   it('should render the email template with all components', () => {
-    const { getByTestId, getByAltText } = render(
+    const { getByTestId, getByAltText, queryByTestId } = render(
       <OrderReceiptEmail {...mockProps} />
     )
 
@@ -76,11 +76,9 @@ describe('OrderReceiptEmail', () => {
       'Quantity: 1'
     )
 
-    // Check totals
-    expect(getByTestId('subtotal-label')).toHaveTextContent(
-      'Subtotal'
-    )
-    expect(getByTestId('subtotal-amount')).toHaveTextContent('$60.00')
+    // Check totals - should not show subtotal when there's no tax
+    expect(queryByTestId('subtotal-label')).not.toBeInTheDocument()
+    expect(queryByTestId('subtotal-amount')).not.toBeInTheDocument()
     expect(getByTestId('total-label')).toHaveTextContent('Total')
     expect(getByTestId('total-amount')).toHaveTextContent('$60.00')
 
@@ -106,7 +104,7 @@ describe('OrderReceiptEmail', () => {
   })
 
   it('should calculate and display correct total amounts', () => {
-    const { getByTestId } = render(
+    const { getByTestId, queryByTestId } = render(
       <OrderReceiptEmail {...mockProps} />
     )
 
@@ -114,7 +112,7 @@ describe('OrderReceiptEmail', () => {
     expect(getByTestId('payment-amount')).toHaveTextContent(
       'Payment: $60.00'
     )
-    expect(getByTestId('subtotal-amount')).toHaveTextContent('$60.00')
+    expect(queryByTestId('subtotal-amount')).not.toBeInTheDocument()
     expect(getByTestId('total-amount')).toHaveTextContent('$60.00')
   })
 
@@ -149,7 +147,7 @@ describe('OrderReceiptEmail', () => {
     expect(getByTestId('payment-amount')).toHaveTextContent(
       'Payment: $0.00'
     )
-    expect(getByTestId('subtotal-amount')).toHaveTextContent('$0.00')
+    expect(queryByTestId('subtotal-amount')).not.toBeInTheDocument()
     expect(getByTestId('total-amount')).toHaveTextContent('$0.00')
     expect(queryByTestId('line-item-0')).not.toBeInTheDocument()
   })
@@ -170,7 +168,7 @@ describe('OrderReceiptEmail', () => {
         },
       }
 
-      const { getByTestId } = render(
+      const { getByTestId, queryByTestId } = render(
         <OrderReceiptEmail {...propsWithDiscount} />
       )
 
@@ -195,10 +193,8 @@ describe('OrderReceiptEmail', () => {
         '-$10.00'
       )
 
-      // Should show subtotal and total as post-discount amounts
-      expect(getByTestId('subtotal-amount')).toHaveTextContent(
-        '$50.00'
-      )
+      // Should not show subtotal when there's no tax
+      expect(queryByTestId('subtotal-amount')).not.toBeInTheDocument()
       expect(getByTestId('total-amount')).toHaveTextContent('$50.00')
     })
 
@@ -218,7 +214,7 @@ describe('OrderReceiptEmail', () => {
         },
       }
 
-      const { getByTestId } = render(
+      const { getByTestId, queryByTestId } = render(
         <OrderReceiptEmail {...propsWithDiscountAndTax} />
       )
 
@@ -266,10 +262,8 @@ describe('OrderReceiptEmail', () => {
       expect(queryByTestId('discount-label')).not.toBeInTheDocument()
       expect(queryByTestId('discount-amount')).not.toBeInTheDocument()
 
-      // Should show normal subtotal and total
-      expect(getByTestId('subtotal-amount')).toHaveTextContent(
-        '$60.00'
-      )
+      // Should not show subtotal when there's no tax
+      expect(queryByTestId('subtotal-amount')).not.toBeInTheDocument()
       expect(getByTestId('total-amount')).toHaveTextContent('$60.00')
     })
 
@@ -289,24 +283,23 @@ describe('OrderReceiptEmail', () => {
         },
       }
 
-      const { getByTestId } = render(
+      const { getByTestId, queryByTestId } = render(
         <OrderReceiptEmail {...propsWithEuroCurrency} />
       )
 
       // Should handle EUR currency throughout
       expect(getByTestId('payment-amount')).toHaveTextContent(
-        'Payment: €40.00'
+        'Payment: €50.00'
       )
       expect(getByTestId('original-amount')).toHaveTextContent(
-        '€50.00'
+        '€60.00'
       )
       expect(getByTestId('discount-amount')).toHaveTextContent(
         '-€10.00'
       )
-      expect(getByTestId('subtotal-amount')).toHaveTextContent(
-        '€40.00'
-      )
-      expect(getByTestId('total-amount')).toHaveTextContent('€40.00')
+      // Should not show subtotal when there's no tax
+      expect(queryByTestId('subtotal-amount')).not.toBeInTheDocument()
+      expect(getByTestId('total-amount')).toHaveTextContent('€50.00')
     })
 
     it('should maintain correct test IDs for discount elements', () => {
@@ -324,7 +317,7 @@ describe('OrderReceiptEmail', () => {
         },
       }
 
-      const { getByTestId } = render(
+      const { getByTestId, queryByTestId } = render(
         <OrderReceiptEmail {...propsWithDiscount} />
       )
 

@@ -3,6 +3,7 @@ import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 import { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { calculateInvoiceBaseAmount } from '@/utils/bookkeeping/fees/common'
 
 export interface DiscountInfo {
   discountName: string
@@ -60,11 +61,9 @@ export interface InvoiceTotals {
 }
 
 /**
- * Converts invoice totals from Stripe format (cents) to human-readable format.
- * Uses pre-calculated invoice totals to ensure discounts are properly reflected.
- *
- * @param invoice - The invoice record with subtotal, taxAmount, and currency
- * @returns Formatted totals for display
+ * Formats invoice totals from pre-calculated values.
+ * Note: This function cannot display discounts as it doesn't have access to line items.
+ * Use calculateInvoiceTotalsFromLineItems() for discount scenarios.
  */
 export const formatInvoiceTotals = (invoice: {
   subtotal: number | null
@@ -93,6 +92,78 @@ export const formatInvoiceTotals = (invoice: {
     )
 
   return {
+    subtotalAmount,
+    taxAmount,
+    totalAmount,
+  }
+}
+
+export interface InvoiceTotalsWithOriginal {
+  originalAmount: string
+  subtotalAmount: string
+  taxAmount: string | null
+  totalAmount: string
+}
+
+/**
+ * Calculates invoice totals from line items using the CTO approach.
+ * This avoids the reverse engineering logic by calculating from line items directly.
+ *
+ * @param invoice - The invoice record with taxAmount and currency
+ * @param invoiceLineItems - The line items to calculate from
+ * @param discountInfo - Optional discount information
+ * @returns Calculated totals for display
+ */
+export const calculateInvoiceTotalsFromLineItems = (
+  invoice: {
+    taxAmount: number | null
+    currency: CurrencyCode
+  },
+  invoiceLineItems: { price: number; quantity: number }[],
+  discountInfo?: DiscountInfo | null
+): InvoiceTotalsWithOriginal => {
+  // Calculate base amount from line items (like payment receipt PDF)
+  const baseAmount = calculateInvoiceBaseAmount({ invoiceLineItems })
+
+  // Calculate discount amount
+  const discountAmount = discountInfo
+    ? discountInfo.discountAmount
+    : 0
+
+  // Calculate totals
+  const originalAmountInCents = baseAmount
+  const subtotalInCents = baseAmount - discountAmount
+  const taxAmountInCents = invoice.taxAmount || 0
+  const totalInCents = subtotalInCents + taxAmountInCents
+
+  // Convert to human-readable format
+  const originalAmount =
+    stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      invoice.currency,
+      originalAmountInCents
+    )
+
+  const subtotalAmount =
+    stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      invoice.currency,
+      subtotalInCents
+    )
+
+  const taxAmount = invoice.taxAmount
+    ? stripeCurrencyAmountToHumanReadableCurrencyAmount(
+        invoice.currency,
+        taxAmountInCents
+      )
+    : null
+
+  const totalAmount =
+    stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      invoice.currency,
+      totalInCents
+    )
+
+  return {
+    originalAmount,
     subtotalAmount,
     taxAmount,
     totalAmount,

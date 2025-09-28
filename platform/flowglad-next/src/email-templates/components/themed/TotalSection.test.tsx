@@ -86,6 +86,7 @@ describe('TotalSection', () => {
     it('should display original amount, discount, and total when discount is provided (no tax)', () => {
       const { getByTestId, queryByTestId } = render(
         <TotalSection
+          originalAmount="$50.00"
           subtotal="$40.00"
           total="$40.00"
           discountInfo={{
@@ -127,6 +128,7 @@ describe('TotalSection', () => {
     it('should calculate original amount correctly for different currencies', () => {
       const { getByTestId, queryByTestId } = render(
         <TotalSection
+          originalAmount="€50.00"
           subtotal="€30.00"
           total="€30.00"
           discountInfo={{
@@ -159,6 +161,7 @@ describe('TotalSection', () => {
     it('should handle discount with tax correctly', () => {
       const { getByTestId } = render(
         <TotalSection
+          originalAmount="$50.00"
           subtotal="$40.00"
           tax="$4.00"
           total="$44.00"
@@ -196,6 +199,7 @@ describe('TotalSection', () => {
     it('should show original amount when there is a discount (auto-detection)', () => {
       const { getByTestId, queryByTestId } = render(
         <TotalSection
+          originalAmount="$50.00"
           subtotal="$40.00"
           total="$40.00"
           discountInfo={{
@@ -262,6 +266,7 @@ describe('TotalSection', () => {
     it('should handle zero discount amount', () => {
       const { getByTestId, queryByTestId } = render(
         <TotalSection
+          originalAmount="$50.00"
           subtotal="$50.00"
           total="$50.00"
           discountInfo={{

@@ -1,5 +1,5 @@
 import { CurrencyCode } from '@/types'
-import { formatInvoiceTotals } from '@/utils/discountHelpers'
+import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
 import core from '@/utils/core'
@@ -48,10 +48,12 @@ export const OrderReceiptEmail = ({
     discountAmountType: string
   } | null
 }) => {
-  // Use pre-calculated invoice totals instead of calculating from line items
-  // This ensures discounts are properly reflected in the totals
-  const { subtotalAmount, taxAmount, totalAmount } =
-    formatInvoiceTotals(invoice)
+  const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
+    calculateInvoiceTotalsFromLineItems(
+      invoice,
+      lineItems,
+      discountInfo
+    )
 
   // Prepare discount info with currency for TotalSection
   const discountInfoWithCurrency = discountInfo
@@ -92,7 +94,8 @@ export const OrderReceiptEmail = ({
       ))}
 
       <TotalSection
-        subtotal={subtotalAmount || totalAmount}
+        originalAmount={originalAmount}
+        subtotal={subtotalAmount}
         tax={taxAmount}
         total={totalAmount}
         discountInfo={discountInfoWithCurrency}

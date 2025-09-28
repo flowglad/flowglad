@@ -1,4 +1,4 @@
-import { formatInvoiceTotals } from '@/utils/discountHelpers'
+import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
 import * as React from 'react'
 import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
@@ -32,10 +32,12 @@ export const InvoiceNotificationEmail = ({
     discountAmountType: string
   } | null
 }) => {
-  // Use pre-calculated invoice totals instead of calculating from line items
-  // This ensures discounts are properly reflected in the totals
-  const { subtotalAmount, taxAmount, totalAmount } =
-    formatInvoiceTotals(invoice)
+  const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
+    calculateInvoiceTotalsFromLineItems(
+      invoice,
+      invoiceLineItems,
+      discountInfo
+    )
 
   // Prepare discount info with currency for TotalSection
   const discountInfoWithCurrency = discountInfo
@@ -66,7 +68,8 @@ export const InvoiceNotificationEmail = ({
       </DetailSection>
 
       <TotalSection
-        subtotal={subtotalAmount || totalAmount}
+        originalAmount={originalAmount}
+        subtotal={subtotalAmount}
         tax={taxAmount}
         total={totalAmount}
         totalLabelText="Total Amount Due"

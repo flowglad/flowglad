@@ -14,12 +14,14 @@ const totalSection = {
 }
 
 export const TotalSection = ({
+  originalAmount,
   subtotal,
   total,
   totalLabelText = 'Total',
   tax,
   discountInfo,
 }: {
+  originalAmount?: string
   subtotal: string
   total: string
   totalLabelText?: string
@@ -32,30 +34,12 @@ export const TotalSection = ({
     currency: CurrencyCode
   } | null
 }) => {
-  // Calculate the original amount (before discount) if there's a discount
-  const originalAmount = discountInfo
-    ? (() => {
-        // Parse the discounted subtotal back to cents
-        const discountedSubtotalInCents =
-          parseFloat(subtotal.replace(/[^0-9.-]+/g, '')) * 100
-
-        // Add the discount amount to get the original amount
-        const originalAmountInCents =
-          discountedSubtotalInCents + discountInfo!.discountAmount
-
-        // Convert back to human-readable format
-        return stripeCurrencyAmountToHumanReadableCurrencyAmount(
-          discountInfo!.currency,
-          originalAmountInCents
-        )
-      })()
-    : null
   return (
     <>
       <Hr style={hr} data-testid="total-divider" />
       <Section style={totalSection}>
-        {/* Show original amount whenever there's a discount */}
-        {originalAmount && (
+        {/* Show original amount and discount whenever there's discount info */}
+        {discountInfo && (
           <>
             <DetailItem
               dataTestId="original-amount-label"
@@ -66,12 +50,7 @@ export const TotalSection = ({
             <DetailItem dataTestId="original-amount">
               {originalAmount}
             </DetailItem>
-          </>
-        )}
 
-        {/* Show discount whenever there's discount info */}
-        {discountInfo && (
-          <>
             <DetailItem
               dataTestId="discount-label"
               style={{ fontWeight: 'bold' }}
@@ -91,7 +70,7 @@ export const TotalSection = ({
           </>
         )}
 
-        {/* Show subtotal when there's tax */}
+        {/* Show subtotal and tax whenever it exists */}
         {tax && (
           <>
             <DetailItem
@@ -103,12 +82,7 @@ export const TotalSection = ({
             <DetailItem dataTestId="subtotal-amount">
               {subtotal}
             </DetailItem>
-          </>
-        )}
 
-        {/* Show tax whenever it exists */}
-        {tax && (
-          <>
             <DetailItem
               dataTestId="tax-label"
               style={{ fontWeight: 'bold' }}

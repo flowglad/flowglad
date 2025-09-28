@@ -1,6 +1,6 @@
 import { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
-import { formatInvoiceTotals } from '@/utils/discountHelpers'
+import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
 import * as React from 'react'
 import {
   DetailItem,
@@ -50,10 +50,12 @@ export const PaymentFailedEmail = ({
   failureReason?: string
   customerPortalUrl?: string
 }) => {
-  // Use pre-calculated invoice totals instead of calculating from line items
-  // This ensures discounts are properly reflected in the totals
-  const { subtotalAmount, taxAmount, totalAmount } =
-    formatInvoiceTotals(invoice)
+  const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
+    calculateInvoiceTotalsFromLineItems(
+      invoice,
+      lineItems,
+      discountInfo
+    )
 
   // Prepare discount info with currency for TotalSection
   const discountInfoWithCurrency = discountInfo
@@ -108,7 +110,8 @@ export const PaymentFailedEmail = ({
       ))}
 
       <TotalSection
-        subtotal={subtotalAmount || totalAmount}
+        originalAmount={originalAmount}
+        subtotal={subtotalAmount}
         tax={taxAmount}
         total={totalAmount}
         discountInfo={discountInfoWithCurrency}
