@@ -15,17 +15,20 @@ import {
   FeatureUsageGrantFrequency,
   PriceType,
   IntervalUnit,
+  CurrencyCode,
 } from '@/types'
 import type { Organization } from '@/db/schema/organizations'
 
 let organization: Organization.Record
 
 beforeEach(async () => {
+  // Set up a fresh organization for each test to ensure isolation
   const orgData = await setupOrg()
   organization = orgData.organization
 })
 
 afterEach(async () => {
+  // Clean up the organization and all related data after each test
   if (organization) {
     await teardownOrg({ organizationId: organization.id })
   }
@@ -186,7 +189,7 @@ describe('setupPricingModelTransaction (integration)', () => {
               type: PriceType.Subscription,
               slug: 'ps',
               isDefault: false,
-              name: null,
+              name: 'Test Price',
               usageMeterId: null,
               trialPeriodDays: null,
               setupFeeAmount: null,
@@ -202,7 +205,7 @@ describe('setupPricingModelTransaction (integration)', () => {
               type: PriceType.Usage,
               slug: 'pu',
               isDefault: false,
-              name: null,
+              name: 'Test Price',
               usageMeterSlug: 'um',
               trialPeriodDays: null,
               setupFeeAmount: null,
@@ -242,21 +245,28 @@ describe('setupPricingModelTransaction (integration)', () => {
       input.features.map((f) => f.slug)
     )
 
-    // Products
-    expect(result.products).toHaveLength(input.products.length)
-    expect(result.products.map((p) => p.slug)).toEqual(
-      input.products.map((p) => p.product.slug)
+    // Products - should have user products + auto-generated default product
+    expect(result.products).toHaveLength(input.products.length + 1) // +1 for auto-generated default
+    const userProductSlugs = input.products.map((p) => p.product.slug)
+    const resultProductSlugs = result.products.map((p) => p.slug)
+    expect(resultProductSlugs).toEqual(
+      expect.arrayContaining(userProductSlugs)
     )
+    expect(resultProductSlugs).toContain('free') // Auto-generated default product
     expect(
       result.products.every((p) => typeof p.externalId === 'string')
     ).toBe(true)
 
-    // Prices
+    // Prices - should have user prices + auto-generated default price
     const allPriceSlugs = input.products.flatMap((p) =>
       p.prices.map((pr) => pr.slug!)
     )
-    expect(result.prices).toHaveLength(allPriceSlugs.length)
-    expect(result.prices.map((pr) => pr.slug)).toEqual(allPriceSlugs)
+    expect(result.prices).toHaveLength(allPriceSlugs.length + 1) // +1 for auto-generated default
+    const resultPriceSlugs = result.prices.map((pr) => pr.slug)
+    expect(resultPriceSlugs).toEqual(
+      expect.arrayContaining(allPriceSlugs)
+    )
+    expect(resultPriceSlugs).toContain('free') // Auto-generated default price
 
     // ProductFeatures
     const totalFeatures = input.products.flatMap((p) => p.features)
@@ -266,6 +276,508 @@ describe('setupPricingModelTransaction (integration)', () => {
     result.productFeatures.forEach((pf) => {
       expect(productIds).toContain(pf.productId)
       expect(featureIds).toContain(pf.featureId)
+    })
+  })
+
+  describe('Default Product Auto-Generation', () => {
+    it('should auto-generate default free plan when no default product provided', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [], // No products provided
+      }
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          transaction
+        )
+      )
+
+      // Should have auto-generated default product
+      expect(result.products).toHaveLength(1)
+      const defaultProduct = result.products[0]
+      expect(defaultProduct.name).toEqual('Free Plan')
+      expect(defaultProduct.slug).toEqual('free')
+      expect(defaultProduct.default).toBe(true)
+
+      // Should have auto-generated default price
+      expect(result.prices).toHaveLength(1)
+      const defaultPrice = result.prices[0]
+      expect(defaultPrice.name).toEqual('Free Plan')
+      expect(defaultPrice.slug).toEqual('free')
+      expect(defaultPrice.unitPrice).toEqual(0)
+      expect(defaultPrice.isDefault).toBe(true)
+      expect(defaultPrice.type).toEqual(PriceType.Subscription)
+      expect(defaultPrice.intervalUnit).toEqual(IntervalUnit.Month)
+      expect(defaultPrice.intervalCount).toEqual(1)
+    })
+
+    it('should use organization default currency for auto-generated price', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [],
+      }
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          transaction
+        )
+      )
+
+      const defaultPrice = result.prices[0]
+      expect(defaultPrice.currency).toEqual(
+        organization.defaultCurrency
+      )
+    })
+  })
+
+  describe('Default Product Validation', () => {
+    it('should accept valid user-provided default product', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [
+          {
+            product: {
+              name: 'Custom Free Plan',
+              default: true,
+              description: 'Custom free plan',
+              slug: 'custom-free',
+              active: true,
+              imageURL: null,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+            },
+            prices: [
+              {
+                type: PriceType.Subscription,
+                slug: 'custom-free-price',
+                isDefault: true,
+                name: 'Custom Free',
+                usageMeterId: null,
+                trialPeriodDays: null,
+                setupFeeAmount: null,
+                usageEventsPerUnit: null,
+                overagePriceId: null,
+                active: true,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                unitPrice: 0, // Zero price
+                startsWithCreditTrial: false,
+              },
+            ],
+            features: [],
+          },
+        ],
+      }
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          transaction
+        )
+      )
+
+      // Should have user-provided default product, no auto-generated one
+      expect(result.products).toHaveLength(1)
+      expect(result.products[0].name).toEqual('Custom Free Plan')
+      expect(result.products[0].default).toBe(true)
+    })
+
+    it('should reject multiple default products', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [
+          {
+            product: {
+              name: 'Default Product 1',
+              default: true,
+              description: '',
+              slug: 'default-1',
+              active: true,
+              imageURL: null,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+            },
+            prices: [],
+            features: [],
+          },
+          {
+            product: {
+              name: 'Default Product 2',
+              default: true,
+              description: '',
+              slug: 'default-2',
+              active: true,
+              imageURL: null,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+            },
+            prices: [],
+            features: [],
+          },
+        ],
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow('Multiple default products not allowed')
+    })
+
+    it('should reject default product with non-zero price', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [
+          {
+            product: {
+              name: 'Invalid Default',
+              default: true,
+              description: '',
+              slug: 'invalid-default',
+              active: true,
+              imageURL: null,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+            },
+            prices: [
+              {
+                type: PriceType.Subscription,
+                slug: 'invalid-price',
+                isDefault: true,
+                name: 'Invalid Price',
+                usageMeterId: null,
+                trialPeriodDays: null,
+                setupFeeAmount: null,
+                usageEventsPerUnit: null,
+                overagePriceId: null,
+                active: true,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                unitPrice: 100, // Non-zero price - should fail
+                startsWithCreditTrial: false,
+              },
+            ],
+            features: [],
+          },
+        ],
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow('Default products must have zero price')
+    })
+
+    it('should reject default product with trials', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [
+          {
+            product: {
+              name: 'Invalid Default',
+              default: true,
+              description: '',
+              slug: 'invalid-default',
+              active: true,
+              imageURL: null,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+            },
+            prices: [
+              {
+                type: PriceType.Subscription,
+                slug: 'invalid-price',
+                isDefault: true,
+                name: 'Invalid Price',
+                usageMeterId: null,
+                trialPeriodDays: 7, // Trial days - should fail
+                setupFeeAmount: null,
+                usageEventsPerUnit: null,
+                overagePriceId: null,
+                active: true,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                unitPrice: 0,
+                startsWithCreditTrial: false,
+              },
+            ],
+            features: [],
+          },
+        ],
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow('Default products cannot have trials')
+    })
+
+    it('should reject default product with setup fees', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [
+          {
+            product: {
+              name: 'Invalid Default',
+              default: true,
+              description: '',
+              slug: 'invalid-default',
+              active: true,
+              imageURL: null,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+            },
+            prices: [
+              {
+                type: PriceType.Subscription,
+                slug: 'invalid-price',
+                isDefault: true,
+                name: 'Invalid Price',
+                usageMeterId: null,
+                trialPeriodDays: null,
+                setupFeeAmount: 50, // Setup fee - should fail
+                usageEventsPerUnit: null,
+                overagePriceId: null,
+                active: true,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                unitPrice: 0,
+                startsWithCreditTrial: false,
+              },
+            ],
+            features: [],
+          },
+        ],
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow('Default products cannot have setup fees')
+    })
+
+    it('should reject default product using reserved "free" slug', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [
+          {
+            product: {
+              name: 'Invalid Default',
+              default: true,
+              description: '',
+              slug: 'free', // Reserved slug - should fail
+              active: true,
+              imageURL: null,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+            },
+            prices: [
+              {
+                type: PriceType.Subscription,
+                slug: 'free-price',
+                isDefault: true,
+                name: 'Free Price',
+                usageMeterId: null,
+                trialPeriodDays: null,
+                setupFeeAmount: null,
+                usageEventsPerUnit: null,
+                overagePriceId: null,
+                active: true,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                unitPrice: 0,
+                startsWithCreditTrial: false,
+              },
+            ],
+            features: [],
+          },
+        ],
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow(
+        "Slug 'free' is reserved for auto-generated default plans"
+      )
+    })
+  })
+
+  describe('Input Validation', () => {
+    it('should reject input with names exceeding length limits', async () => {
+      const longName = 'A'.repeat(300) // Exceeds 255 character limit
+      const input: SetupPricingModelInput = {
+        name: longName,
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [],
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow('Field must be less than 255 characters')
+    })
+
+    it('should reject input with empty name', async () => {
+      const input: SetupPricingModelInput = {
+        name: '',
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [],
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow('Field is required')
+    })
+
+    it('should reject input with invalid currency codes', async () => {
+      const input: SetupPricingModelInput = {
+        name: 'Test Pricing Model',
+        isDefault: false,
+        usageMeters: [],
+        features: [],
+        products: [
+          {
+            product: {
+              name: 'Test Product',
+              default: false,
+              description: '',
+              slug: 'test-product',
+              active: true,
+              imageURL: null,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+            },
+            prices: [
+              {
+                type: PriceType.Subscription,
+                slug: 'test-price',
+                isDefault: false,
+                name: 'Test Price',
+                usageMeterId: null,
+                trialPeriodDays: null,
+                setupFeeAmount: null,
+                usageEventsPerUnit: null,
+                overagePriceId: null,
+                active: true,
+                intervalUnit: IntervalUnit.Month,
+                intervalCount: 1,
+                unitPrice: 100,
+                startsWithCreditTrial: false,
+                currency: 'INVALID_CURRENCY' as any, // Invalid currency
+              },
+            ],
+            features: [],
+          },
+        ],
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow('Invalid currency code')
     })
   })
 })
