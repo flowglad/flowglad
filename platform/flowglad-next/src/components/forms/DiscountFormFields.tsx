@@ -101,11 +101,17 @@ export default function DiscountFormFields({
                     if (value === DiscountAmountType.Percent) {
                       form.setValue('discount.amount', 1)
                       // Clear raw amount string when switching to percent
-                      form.setValue('__rawAmountString', undefined as any)
+                      form.setValue(
+                        '__rawAmountString',
+                        undefined as any
+                      )
                     } else {
                       form.setValue('__rawAmountString', '0')
                       // Remove amount when switching to fixed
-                      form.setValue('discount.amount', undefined as any)
+                      form.setValue(
+                        'discount.amount',
+                        undefined as any
+                      )
                     }
                     field.onChange(value)
                   }}
@@ -132,10 +138,12 @@ export default function DiscountFormFields({
             control={control}
             name="discount.amount"
             render={({ field }) => {
-              const amountFieldState = form.getFieldState('discount.amount')
+              const amountFieldState =
+                form.getFieldState('discount.amount')
               const parseError =
-                (amountFieldState.error?.message as string | undefined) ||
-                undefined
+                (amountFieldState.error?.message as
+                  | string
+                  | undefined) || undefined
               const moreThan100 = field.value && field.value > 100
               const lessThan0 = field.value && field.value < 0
               let logicError: string | undefined

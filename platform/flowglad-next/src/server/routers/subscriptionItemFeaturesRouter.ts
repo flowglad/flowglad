@@ -27,7 +27,7 @@ import { kebabCase } from 'change-case'
 
 const resourceName = 'subscriptionItemFeature' // Using camelCase for resource name consistent with other routers
 const pluralResourceName = 'subscriptionItemFeatures' // Explicitly define plural for openapi path
-const tags = ['SubscriptionItemFeatures']
+const tags = ['Subscription Item Features']
 
 const { openApiMetas, routeConfigs: baseRouteConfigsObj } =
   generateOpenApiMetas({

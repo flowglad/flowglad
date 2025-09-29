@@ -25,8 +25,13 @@ export default function DiscountCodeInput() {
     'idle' | 'loading' | 'success' | 'error'
   >(discount ? 'success' : 'idle')
   const [isTouched, setIsTouched] = useState(false)
-  const [hasUserModifiedAfterResponse, setHasUserModifiedAfterResponse] = useState(false)
-  const [lastAttemptedCode, setLastAttemptedCode] = useState<string | null>(null)
+  const [
+    hasUserModifiedAfterResponse,
+    setHasUserModifiedAfterResponse,
+  ] = useState(false)
+  const [lastAttemptedCode, setLastAttemptedCode] = useState<
+    string | null
+  >(null)
   const inputElementRef = useRef<HTMLInputElement | null>(null)
 
   const form = useForm<DiscountCodeFormData>({
@@ -54,12 +59,15 @@ export default function DiscountCodeInput() {
     async (data: DiscountCodeFormData) => {
       try {
         const code = data.discountCode.trim()
-        
+
         // Don't retry if the code hasn't changed since last attempt
-        if (lastAttemptedCode === code && discountCodeStatus !== 'idle') {
+        if (
+          lastAttemptedCode === code &&
+          discountCodeStatus !== 'idle'
+        ) {
           return
         }
-        
+
         let discountSucceeded = false
         setDiscountCodeStatus('loading')
         setLastAttemptedCode(code)
@@ -88,7 +96,13 @@ export default function DiscountCodeInput() {
         setHasUserModifiedAfterResponse(false)
       }
     },
-    [attemptDiscountCode, purchase, product, lastAttemptedCode, discountCodeStatus]
+    [
+      attemptDiscountCode,
+      purchase,
+      product,
+      lastAttemptedCode,
+      discountCodeStatus,
+    ]
   )
 
   const debouncedAttemptHandlerRef = useRef<ReturnType<
@@ -107,37 +121,40 @@ export default function DiscountCodeInput() {
       }
     }
   }, [attemptHandler])
-  const clearDiscountCodeHandler = useCallback(async (shouldFocus: boolean = false) => {
-    setDiscountCodeStatus('idle')
-    setIsTouched(false)
-    setHasUserModifiedAfterResponse(false)
-    setLastAttemptedCode(null)
-    form.setValue('discountCode', '')
-    
-    // Focus the input field after clearing
-    if (shouldFocus) {
-      setTimeout(() => {
-        inputElementRef.current?.focus()
-      }, 0)
-    }
-    /**
-     * NOTE: this optimistically clears the discount code
-     * without waiting for the server to respond. In almost all
-     * cases, this should be fine.
-     *
-     * The rare edge cases is if the clearDiscountCode mutation
-     * fails
-     */
-    if (purchase?.id) {
-      await clearDiscountCode({
-        purchaseId: purchase.id!,
-      })
-    } else if (product?.id) {
-      await clearDiscountCode({
-        productId: product.id!,
-      })
-    }
-  }, [clearDiscountCode, purchase, product])
+  const clearDiscountCodeHandler = useCallback(
+    async (shouldFocus: boolean = false) => {
+      setDiscountCodeStatus('idle')
+      setIsTouched(false)
+      setHasUserModifiedAfterResponse(false)
+      setLastAttemptedCode(null)
+      form.setValue('discountCode', '')
+
+      // Focus the input field after clearing
+      if (shouldFocus) {
+        setTimeout(() => {
+          inputElementRef.current?.focus()
+        }, 0)
+      }
+      /**
+       * NOTE: this optimistically clears the discount code
+       * without waiting for the server to respond. In almost all
+       * cases, this should be fine.
+       *
+       * The rare edge cases is if the clearDiscountCode mutation
+       * fails
+       */
+      if (purchase?.id) {
+        await clearDiscountCode({
+          purchaseId: purchase.id!,
+        })
+      } else if (product?.id) {
+        await clearDiscountCode({
+          productId: product.id!,
+        })
+      }
+    },
+    [clearDiscountCode, purchase, product]
+  )
 
   const debouncedAttemptHandler = debouncedAttemptHandlerRef.current
 
@@ -151,9 +168,13 @@ export default function DiscountCodeInput() {
   let hint: string | undefined = undefined
   const currentCode = discountCode?.trim()
   const isCurrentCodeApplied =
-    !!currentCode && !!discount?.code && currentCode === discount?.code
+    !!currentCode &&
+    !!discount?.code &&
+    currentCode === discount?.code
   const isCurrentCodeLastFailed =
-    !!currentCode && !!lastAttemptedCode && currentCode === lastAttemptedCode
+    !!currentCode &&
+    !!lastAttemptedCode &&
+    currentCode === lastAttemptedCode
 
   if (
     discountCodeStatus === 'error' &&
@@ -187,9 +208,10 @@ export default function DiscountCodeInput() {
     <Button
       onClick={form.handleSubmit(attemptHandler)}
       disabled={
-        discountCodeStatus === 'loading' || 
-        !discountCode.trim() || 
-        (lastAttemptedCode === discountCode.trim() && discountCodeStatus !== 'idle')
+        discountCodeStatus === 'loading' ||
+        !discountCode.trim() ||
+        (lastAttemptedCode === discountCode.trim() &&
+          discountCodeStatus !== 'idle')
       }
       variant="ghost"
       className="px-0 hover:bg-transparent focus-visible:ring-0 text-gray-600 hover:text-gray-800"
@@ -227,20 +249,30 @@ export default function DiscountCodeInput() {
                         autoCapitalize="characters"
                         value={field.value}
                         name={field.name}
-                        ref={(el) => { inputElementRef.current = el; field.ref(el) }}
+                        ref={(el) => {
+                          inputElementRef.current = el
+                          field.ref(el)
+                        }}
                         onChange={(e) => {
                           const code = e.target.value.toUpperCase()
                           field.onChange(code)
                           setIsTouched(true)
-                          
+
                           // If we're in success or error state and user is modifying the input,
                           // clear the hint and show apply button
-                          if (discountCodeStatus === 'success' || discountCodeStatus === 'error') {
+                          if (
+                            discountCodeStatus === 'success' ||
+                            discountCodeStatus === 'error'
+                          ) {
                             // Mark modified only when diverging from the last known result code
                             const divergedFromResult =
-                              (discountCodeStatus === 'success' && code !== (discount?.code ?? '')) ||
-                              (discountCodeStatus === 'error' && code !== (lastAttemptedCode ?? ''))
-                            setHasUserModifiedAfterResponse(divergedFromResult)
+                              (discountCodeStatus === 'success' &&
+                                code !== (discount?.code ?? '')) ||
+                              (discountCodeStatus === 'error' &&
+                                code !== (lastAttemptedCode ?? ''))
+                            setHasUserModifiedAfterResponse(
+                              divergedFromResult
+                            )
                           }
                         }}
                         onBlur={async (e) => {
@@ -265,8 +297,8 @@ export default function DiscountCodeInput() {
                         {hasUserModifiedAfterResponse
                           ? applyDiscountCodeButton
                           : discount || discountCodeStatus !== 'idle'
-                          ? clearDiscountCodeButton
-                          : applyDiscountCodeButton}
+                            ? clearDiscountCodeButton
+                            : applyDiscountCodeButton}
                       </div>
                     </div>
                   </FormControl>
