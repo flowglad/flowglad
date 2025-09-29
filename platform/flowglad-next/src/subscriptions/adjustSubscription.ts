@@ -103,18 +103,17 @@ const calculateCorrectProrationAmount = async (
   // IMPORTANT: Never issue credits/refunds for downgrades - cap at 0
   const netChargeAmount = Math.max(0, rawNetCharge)
 
-  let message = `Fair value: $${(totalFairValue / 100).toFixed(2)} (${(percentThroughPeriod * 100).toFixed(1)}% old plan + ${((1 - percentThroughPeriod) * 100).toFixed(1)}% new plan)`
-  message += `, Already paid/processing: $${(totalExistingAmount / 100).toFixed(2)}`
+  let message = `Prorated for ${(percentThroughPeriod * 100).toFixed(0)}% of billing period used`
 
   if (netChargeAmount === 0) {
     if (rawNetCharge < 0) {
-      message += `, No refund for downgrade (would have been -$${(Math.abs(rawNetCharge) / 100).toFixed(2)})`
+      message += `, No additional charge for downgrade`
     } else {
       message += ', No additional charge needed'
     }
     return { netChargeAmount: 0, message }
   } else {
-    message += `, Net charge: $${(netChargeAmount / 100).toFixed(2)}`
+    message += `, Additional charge: $${(netChargeAmount / 100).toFixed(2)}`
   }
 
   return { netChargeAmount, message }
@@ -290,69 +289,80 @@ export const adjustSubscription = async (
     .filter((item) => !('id' in item))
     .reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
 
-  // Use the new correct proration calculation
-  const { netChargeAmount, message } = await calculateCorrectProrationAmount(
-    currentBillingPeriodForSubscription,
-    oldPlanTotalPrice,
-    newPlanTotalPrice,
-    split.beforePercentage,
-    transaction
-  )
+  // Handle different scenarios
+  let netChargeAmount: number
+  let message: string
 
-  // Create detailed proration adjustments for transparency, even if net charge is 0
+  if (existingSubscriptionItemsToRemove.length === 0 && newSubscriptionItems.filter((item) => !('id' in item)).length > 0) {
+    // Add-only scenario: only adding new items, no removals
+    // Calculate prorated amount for new items only
+    const proratedNewPlanPrice = Math.round(newPlanTotalPrice * split.afterPercentage)
+    netChargeAmount = proratedNewPlanPrice
+    message = `Add-on prorated for ${(split.afterPercentage * 100).toFixed(0)}% of remaining billing period`
+  } else if (existingSubscriptionItemsToRemove.length > 0 && newSubscriptionItems.filter((item) => !('id' in item)).length === 0) {
+    // Remove-only scenario: only removing items, no additions
+    // No net charge for remove-only scenarios
+    netChargeAmount = 0
+    message = `Items removed for ${(split.afterPercentage * 100).toFixed(0)}% of remaining billing period`
+  } else {
+    // Upgrade/downgrade scenario: using the existing proration calculation
+    const result = await calculateCorrectProrationAmount(
+      currentBillingPeriodForSubscription,
+      oldPlanTotalPrice,
+      newPlanTotalPrice,
+      split.beforePercentage,
+      transaction
+    )
+    netChargeAmount = result.netChargeAmount
+    message = result.message
+  }
+
+  // Create single net adjustment item for clean customer experience
   const prorationAdjustments: BillingPeriodItem.Insert[] = []
   
-  // Add removal adjustments for old items (credits)
-  const removedAdjustments: BillingPeriodItem.Insert[] =
-    existingSubscriptionItemsToRemove.map((item) => ({
-      billingPeriodId: currentBillingPeriodForSubscription.id,
-      quantity: item.quantity,
-      unitPrice: -Math.round(item.unitPrice * split.afterPercentage),
-      name: `Proration: Removal of ${item.name ?? ''} x ${item.quantity}`,
-      description: `Prorated removal adjustment for unused period; ${(split.afterPercentage * 100).toFixed(1)}% of billing period remaining (from ${adjustmentDate} - ${currentBillingPeriodForSubscription.endDate})`,
-      livemode: item.livemode,
-      type: SubscriptionItemType.Static,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
-      discountRedemptionId: null,
-    }))
+  // Create adjustment for audit trail when there are new items to track
+  if (newSubscriptionItems.length > 0) {
+    // Format plan names with proper English grammar for multiple items
+    const formatPlanNames = (items: SubscriptionItem.Record[], isNew: boolean) => {
+      if (items.length === 0) return isNew ? 'new plan' : 'previous plan'
+      if (items.length === 1) return items[0].name
+      if (items.length === 2) return `${items[0].name} and ${items[1].name}`
+      if (items.length >= 3) {
+        const allButLast = items.slice(0, -1).map(item => item.name).join(', ')
+        const last = items[items.length - 1].name
+        return `${allButLast}, and ${last}`
+      }
+    }
 
-  // Add addition adjustments for new items 
-  const addedAdjustments: BillingPeriodItem.Insert[] =
-    newSubscriptionItems
-      .filter((item) => !('id' in item))
-      .map((item) => ({
-        billingPeriodId: currentBillingPeriodForSubscription.id,
-        quantity: item.quantity,
-        unitPrice: Math.round(item.unitPrice * split.afterPercentage),
-        name: `Proration: Addition of ${item.name} x ${item.quantity}`,
-        description: `Prorated addition adjustment for remaining period; ${split.afterPercentage}% of billing period remaining (from ${adjustmentDate} - ${currentBillingPeriodForSubscription.endDate})`,
-        livemode: subscription.livemode,
-        type: SubscriptionItemType.Static,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
-        discountRedemptionId: null,
-      }))
-
-  prorationAdjustments.push(...removedAdjustments, ...addedAdjustments)
-  
-  // The new logic using calculateCorrectProrationAmount handles all correction scenarios
-  
-  // Add a correction adjustment to reach the correct net charge
-  // The netChargeAmount is the total amount that should be charged to the customer
-  // The proration adjustments may not add up to this amount, so we need a correction
-  const currentTotal = prorationAdjustments.reduce((sum, adj) => sum + (adj.unitPrice * adj.quantity), 0)
-  const adjustmentNeeded = netChargeAmount - currentTotal
-  
-  console.log(`DEBUG: currentTotal=${currentTotal}, netChargeAmount=${netChargeAmount}, adjustmentNeeded=${adjustmentNeeded}`)
-  
-  if (Math.abs(adjustmentNeeded) > 0) {
+    const oldPlanName = formatPlanNames(existingSubscriptionItemsToRemove, false)
+    const newPlanName = formatPlanNames(
+      newSubscriptionItems.filter((item) => !('id' in item)) as SubscriptionItem.Record[], 
+      true
+    )
+    
+    // Format dates for display
+    const adjustmentDateStr = adjustmentDate.toISOString().split('T')[0]
+    const billingPeriodEndDateStr = currentBillingPeriodForSubscription.endDate.toISOString().split('T')[0]
+    
+    // Create appropriate description based on scenario
+    let description: string
+    if (existingSubscriptionItemsToRemove.length === 0 && newSubscriptionItems.filter((item) => !('id' in item)).length > 0) {
+      // Add-only scenario
+      description = `Added ${newPlanName} on ${adjustmentDateStr}. ${message}`
+    } else if (existingSubscriptionItemsToRemove.length > 0 && newSubscriptionItems.filter((item) => !('id' in item)).length === 0) {
+      // Remove-only scenario (shouldn't happen since netChargeAmount would be 0)
+      description = `Removed ${oldPlanName} on ${adjustmentDateStr}. ${message}`
+    } else {
+      // Upgrade/downgrade scenario
+      description = `Changed from ${oldPlanName} to ${newPlanName} on ${adjustmentDateStr}. ${message}`
+    }
+    
     prorationAdjustments.push({
       billingPeriodId: currentBillingPeriodForSubscription.id,
       quantity: 1,
-      unitPrice: adjustmentNeeded,
-      name: `Proration: Net charge adjustment`,
-      description: `Adjustment to reach correct net charge. ${message}. Current total: $${(currentTotal/100).toFixed(2)}, Target: $${(netChargeAmount/100).toFixed(2)}`,
+      unitPrice: netChargeAmount,
+      name: `${newPlanName} (${adjustmentDateStr} - ${billingPeriodEndDateStr})`,
+      description,
       livemode: subscription.livemode,
       type: SubscriptionItemType.Static,
       usageMeterId: null,

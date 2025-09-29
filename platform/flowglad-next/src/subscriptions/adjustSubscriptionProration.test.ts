@@ -23,14 +23,11 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { Payment } from '@/db/schema/payments'
 import { Invoice } from '@/db/schema/invoices'
 
 // Database query functions
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import core from '@/utils/core'
 
 describe("Proration Logic - Payment Status Scenarios", () => {
@@ -169,29 +166,26 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       // Since we set billing period to be 30 days before and after current date, we're at 50%
       const percentRemaining = 0.5
 
-      // Verify proration items are created
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction'))
+      // Verify single net adjustment item is created
+      const netAdjustmentItems = bpItems.filter(item => item.name?.includes('Premium Plan'))
+      expect(netAdjustmentItems).toHaveLength(1)
 
-      expect(removalItems).toHaveLength(1)
-      expect(additionItems).toHaveLength(1)
-
-      // Verify removal adjustment (should be negative, proportional to remaining period)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-      const expectedRemoval = Math.round(999 * percentRemaining)
-      expect(Math.abs(removalItems[0].unitPrice)).toBeCloseTo(expectedRemoval, -1) // Within 10 cents
-
-      // Verify addition adjustment (should be positive, proportional to remaining period) 
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-      const expectedAddition = Math.round(4999 * percentRemaining)
-      expect(additionItems[0].unitPrice).toBeCloseTo(expectedAddition, -1) // Within 10 cents
+      // Verify the net adjustment has the correct amount and naming
+      const netAdjustment = netAdjustmentItems[0]
+      expect(netAdjustment.unitPrice).toBeGreaterThan(0)
+      
+      // Verify the name includes plan name and date range
+      expect(netAdjustment.name).toContain('Premium Plan')
+      expect(netAdjustment.name).toContain(' - ') // Date range format
+      
+      // Verify description includes upgrade information
+      expect(netAdjustment.description).toContain('Changed from Base Plan to Premium Plan')
+      expect(netAdjustment.description).toContain('Prorated for')
 
       // Verify subscription record reflects new plan
       expect(result.subscription.name).toBe('Premium Plan')
 
-      // Verify proration logic is working (removal credit + addition charge)
-      // The exact amounts depend on current date, but we verify the pattern is correct
+      // Verify the net charge amount is correct
       const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
       
       // Should have net positive charge since upgrading from $9.99 to $49.99
@@ -253,20 +247,20 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       )
 
       // Verify: Behavior should be identical to Processing payment test
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-
-      expect(removalItems).toHaveLength(1)
-      expect(additionItems).toHaveLength(1)
+      const netAdjustmentItems = bpItems.filter(item => item.name?.includes('Premium Plan'))
+      expect(netAdjustmentItems).toHaveLength(1)
 
       // Processing and Succeeded payments should be treated identically
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-      expect(Math.abs(removalItems[0].unitPrice)).toBeGreaterThanOrEqual(499) // ~$5.00, allow 1 cent tolerance
-      expect(Math.abs(removalItems[0].unitPrice)).toBeLessThanOrEqual(501) // ~$5.00, allow 1 cent tolerance, allow 2 cent tolerance
-
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(additionItems[0].unitPrice).toBeGreaterThanOrEqual(2499) // ~$25.00, allow 1 cent tolerance
-      expect(additionItems[0].unitPrice).toBeLessThanOrEqual(2501) // ~$25.00, allow 1 cent tolerance
+      const netAdjustment = netAdjustmentItems[0]
+      expect(netAdjustment.unitPrice).toBeGreaterThan(0)
+      
+      // Verify the name includes plan name and date range
+      expect(netAdjustment.name).toContain('Premium Plan')
+      expect(netAdjustment.name).toContain(' - ') // Date range format
+      
+      // Verify description includes upgrade information
+      expect(netAdjustment.description).toContain('Changed from Base Plan to Premium Plan')
+      expect(netAdjustment.description).toContain('Prorated for')
 
       // Verify final charge calculation
       const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
@@ -327,20 +321,20 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
+      const netAdjustmentItems = bpItems.filter(item => item.name?.includes('Premium Plan'))
+      expect(netAdjustmentItems).toHaveLength(1)
 
-      expect(removalItems).toHaveLength(1)
-      expect(additionItems).toHaveLength(1)
-
-      // Verify proration amounts are same as other tests (50% through period)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-      expect(Math.abs(removalItems[0].unitPrice)).toBeGreaterThanOrEqual(499) // ~$5.00, allow 1 cent tolerance
-      expect(Math.abs(removalItems[0].unitPrice)).toBeLessThanOrEqual(501) // ~$5.00, allow 1 cent tolerance
-
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(additionItems[0].unitPrice).toBeGreaterThanOrEqual(2499) // ~$25.00, allow 1 cent tolerance
-      expect(additionItems[0].unitPrice).toBeLessThanOrEqual(2501) // ~$25.00, allow 1 cent tolerance
+      // Verify the net adjustment has the correct amount and naming
+      const netAdjustment = netAdjustmentItems[0]
+      expect(netAdjustment.unitPrice).toBeGreaterThan(0)
+      
+      // Verify the name includes plan name and date range
+      expect(netAdjustment.name).toContain('Premium Plan')
+      expect(netAdjustment.name).toContain(' - ') // Date range format
+      
+      // Verify description includes upgrade information
+      expect(netAdjustment.description).toContain('Changed from Base Plan to Premium Plan')
+      expect(netAdjustment.description).toContain('Prorated for')
 
       // Critical difference: Since failed payment is ignored, customer pays FULL fair value
       const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
@@ -424,17 +418,20 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      // Should have addition adjustment for new item only (no removal)
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
 
-      expect(removalItems).toHaveLength(0) // No items removed
-      expect(additionItems).toHaveLength(1) // Only new add-on item
+      // Should have net adjustment for new item only (no removal)
+      const netAdjustmentItems = bpItems.filter(item => item.name?.includes('Add-on Feature'))
+      expect(netAdjustmentItems).toHaveLength(1) // Only new add-on item
 
-      // Verify addition adjustment (should be positive, ~50% of $20.00)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(additionItems[0].unitPrice).toBeGreaterThanOrEqual(999) // ~$10.00, allow 1 cent tolerance
-      expect(additionItems[0].unitPrice).toBeLessThanOrEqual(1001) // ~$10.00, allow 1 cent tolerance
+      // Verify net adjustment (should be positive, ~50% of $20.00)
+      const netAdjustment = netAdjustmentItems[0]
+      expect(netAdjustment.unitPrice).toBeGreaterThan(0)
+      // Check that the amount is approximately 50% of $20.00 = $10.00 (1000 cents)
+      expect(netAdjustment.unitPrice).toBeCloseTo(1000, 1) // ~$10.00, allow 1 cent tolerance
+      
+      // Verify the name includes plan name and date range
+      expect(netAdjustment.name).toContain('Add-on Feature')
+      expect(netAdjustment.name).toContain(' - ') // Date range format
 
       // Verify subscription record reflects most expensive item
       expect(result.subscription.name).toBe('Add-on Feature')
@@ -484,17 +481,11 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      // Should have removal adjustment for expired item only (no addition)
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-
-      expect(removalItems).toHaveLength(1) // Only expired item
-      expect(additionItems).toHaveLength(0) // No new items added
-
-      // Verify removal adjustment (should be negative, ~50% of $9.99)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-      expect(Math.abs(removalItems[0].unitPrice)).toBeGreaterThanOrEqual(499) // ~$5.00, allow 1 cent tolerance
-      expect(Math.abs(removalItems[0].unitPrice)).toBeLessThanOrEqual(501) // ~$5.00, allow 1 cent tolerance
+      // Should have net adjustment for expired item only (no addition)
+      // Since this is a remove-only scenario, there should be no net adjustment items
+      // because the net charge amount would be 0 (no new items to charge for)
+      const netAdjustmentItems = bpItems.filter(item => item.name?.includes('Base Plan'))
+      expect(netAdjustmentItems).toHaveLength(0) // No net adjustment for remove-only scenario
 
       // Verify subscription record name remains unchanged when no active items
       // (The sync logic doesn't update when there are no active items)
@@ -588,34 +579,12 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction') || item.name?.includes('adjustment'))
+      const netAdjustmentItems = bpItems.filter(item => item.name?.includes('Basic Plan'))
 
-      // Debug: Print all billing period items
-      console.log('All billing period items:')
-      bpItems.forEach(item => {
-        console.log(`- ${item.name}: ${item.unitPrice}`)
-      })
-      console.log('Correction items:', correctionItems.map(item => item.name))
 
-      expect(removalItems).toHaveLength(1) // Only expensive item (original was expired)
-      expect(additionItems).toHaveLength(1)
-
-      // Verify removal adjustments (negative, ~50% of $49.99)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-      // Should be ~$25.00 (expensive item)
-      const removalAmounts = removalItems.map(item => Math.abs(item.unitPrice))
-      expect(removalAmounts[0]).toBeGreaterThanOrEqual(2499) // ~$25.00, allow 1 cent tolerance
-      expect(removalAmounts[0]).toBeLessThanOrEqual(2501) // ~$25.00, allow 1 cent tolerance
-
-      // Verify addition adjustment (positive, ~50% of $9.99)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(additionItems[0].unitPrice).toBeGreaterThanOrEqual(499) // ~$5.00, allow 1 cent tolerance
-      expect(additionItems[0].unitPrice).toBeLessThanOrEqual(501) // ~$5.00, allow 1 cent tolerance
-
-      // Should have correction item to zero out the negative net charge
-      expect(correctionItems).toHaveLength(1)
+      // For downgrade scenarios, we still create billing period items for audit trail
+      // even though the net charge amount is capped at 0 (no refunds for downgrades)
+      expect(netAdjustmentItems).toHaveLength(1) // Audit trail item for downgrade scenario
 
       // Verify total billing adjustments result in $0 additional charge (no credits)
       const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
@@ -687,25 +656,123 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      // Should have both removal and addition adjustments
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
+      // Should have net adjustment for the replacement
+      const netAdjustmentItems = bpItems.filter(item => item.name?.includes('Replacement Plan'))
+      expect(netAdjustmentItems).toHaveLength(1) // Net adjustment for replacement
 
-      expect(removalItems).toHaveLength(1) // Removed old item
-      expect(additionItems).toHaveLength(1) // Added new item
-
-      // Verify removal adjustment (should be negative, ~50% of $9.99)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-      expect(Math.abs(removalItems[0].unitPrice)).toBeGreaterThanOrEqual(499) // ~$5.00, allow 1 cent tolerance
-      expect(Math.abs(removalItems[0].unitPrice)).toBeLessThanOrEqual(501) // ~$5.00, allow 1 cent tolerance
-
-      // Verify addition adjustment (should be positive, ~50% of $29.99)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(additionItems[0].unitPrice).toBeGreaterThanOrEqual(1499) // ~$15.00, allow 1 cent tolerance
-      expect(additionItems[0].unitPrice).toBeLessThanOrEqual(1501) // ~$15.00, allow 1 cent tolerance
+      // Verify net adjustment has the correct amount and naming
+      const netAdjustment = netAdjustmentItems[0]
+      expect(netAdjustment.unitPrice).toBeGreaterThan(0)
+      
+      // Verify the name includes plan name and date range
+      expect(netAdjustment.name).toContain('Replacement Plan')
+      expect(netAdjustment.name).toContain(' - ') // Date range format
+      
+      // Verify description includes upgrade information
+      expect(netAdjustment.description).toContain('Changed from Base Plan to Replacement Plan')
+      expect(netAdjustment.description).toContain('Prorated for')
 
       // Verify subscription record reflects new plan
       expect(result.subscription.name).toBe('Replacement Plan')
+    })
+  })
+
+  it("should format multiple items correctly in descriptions", async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // Setup: Create payment for existing plan
+      await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 999, // $9.99 for existing plan
+        customerId: customer.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: subscription.id,
+        paymentMethodId: paymentMethod.id,
+        livemode: true,
+      })
+
+      // Setup: Add multiple new subscription items
+      const multipleAddItems: SubscriptionItem.Upsert[] = [
+        {
+          // Keep existing item
+          id: subscriptionItem.id,
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Base Plan',
+          quantity: 1,
+          unitPrice: 999,
+          addedDate: subscription.currentBillingPeriodStart || new Date(),
+          type: SubscriptionItemType.Static,
+          expiredAt: null,
+          livemode: true,
+          externalId: null,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+        },
+        {
+          // Add first new item
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Premium Feature',
+          quantity: 1,
+          unitPrice: 2000, // $20.00
+          addedDate: new Date(),
+          type: SubscriptionItemType.Static,
+          expiredAt: null,
+          livemode: true,
+          externalId: null,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+        },
+        {
+          // Add second new item
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Advanced Analytics',
+          quantity: 1,
+          unitPrice: 1500, // $15.00
+          addedDate: new Date(),
+          type: SubscriptionItemType.Static,
+          expiredAt: null,
+          livemode: true,
+          externalId: null,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+        }
+      ]
+
+      // Execute: Perform subscription adjustment
+      const result = await adjustSubscription(
+        {
+          id: subscription.id,
+          adjustment: {
+            newSubscriptionItems: multipleAddItems,
+            timing: SubscriptionAdjustmentTiming.Immediately,
+            prorateCurrentBillingPeriod: true,
+          },
+        },
+        transaction
+      )
+
+      // Verify: Get billing period items
+      const bpItems = await selectBillingPeriodItems(
+        { billingPeriodId: billingPeriod.id },
+        transaction
+      )
+
+      // Should have net adjustment for new items
+      const netAdjustmentItems = bpItems.filter(item => 
+        item.name?.includes('Premium Feature') || 
+        item.name?.includes('Advanced Analytics')
+      )
+      expect(netAdjustmentItems).toHaveLength(1) // Single net adjustment
+
+      // Verify the description uses proper English formatting for multiple items
+      const netAdjustment = netAdjustmentItems[0]
+      expect(netAdjustment.description).toContain('Added Premium Feature and Advanced Analytics')
+      expect(netAdjustment.description).toContain('Add-on prorated for')
     })
   })
 
