@@ -54,7 +54,10 @@ export const getDefaultPricingModelRouteConfig: Record<
   },
 }
 
-export const setupPricingModelRouteConfig: Record<string, RouteConfig> = {
+export const setupPricingModelRouteConfig: Record<
+  string,
+  RouteConfig
+> = {
   'POST /pricing-models/setup': {
     procedure: 'pricingModels.setup',
     pattern: new RegExp(`^pricing-models\/setup$`),

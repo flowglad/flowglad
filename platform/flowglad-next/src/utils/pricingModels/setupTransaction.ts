@@ -43,29 +43,31 @@ export const setupPricingModelTransaction = async (
   transaction: DbTransaction
 ) => {
   const input = validateSetupPricingModelInput(rawInput)
-  
+
   // Check for multiple default products
-  const defaultProducts = input.products.filter(p => p.product.default)
+  const defaultProducts = input.products.filter(
+    (p) => p.product.default
+  )
   if (defaultProducts.length > 1) {
-    throw new Error("Multiple default products not allowed")
+    throw new Error('Multiple default products not allowed')
   }
-  
+
   // Validate single default product if provided
   if (defaultProducts.length === 1) {
     const defaultProduct = defaultProducts[0]
     validateDefaultProductSchema({
       name: defaultProduct.product.name,
       slug: defaultProduct.product.slug || undefined,
-      prices: defaultProduct.prices.map(p => ({
+      prices: defaultProduct.prices.map((p) => ({
         amount: p.unitPrice,
         type: p.type,
         slug: p.slug || undefined,
         trialDays: p.trialPeriodDays || undefined,
-        setupFee: p.setupFeeAmount || undefined
-      }))
+        setupFee: p.setupFeeAmount || undefined,
+      })),
     })
   }
-  
+
   const pricingModelInsert: PricingModel.Insert = {
     name: input.name,
     livemode,
@@ -207,7 +209,7 @@ export const setupPricingModelTransaction = async (
               usageMeterId,
             }
           }
-          
+
           case PriceType.Subscription:
             return {
               type: PriceType.Subscription,
@@ -229,7 +231,7 @@ export const setupPricingModelTransaction = async (
               externalId: null,
               usageMeterId: null,
             }
-          
+
           case PriceType.SinglePayment:
             return {
               type: PriceType.SinglePayment,
@@ -252,8 +254,10 @@ export const setupPricingModelTransaction = async (
               usageMeterId: null,
             }
 
-            default:
-              throw new Error(`Unknown or unhandled price type on price: ${price}`)
+          default:
+            throw new Error(
+              `Unknown or unhandled price type on price: ${price}`
+            )
         }
       })
     }
@@ -262,29 +266,40 @@ export const setupPricingModelTransaction = async (
   // Auto-generate default plan if none provided
   if (defaultProducts.length === 0) {
     const defaultPlanConfig = createDefaultPlanConfig()
-    
+
     // Create the default product
     const defaultProductInsert: Product.Insert = {
       ...defaultPlanConfig.product,
       pricingModelId: pricingModel.id,
       organizationId,
       livemode,
-      externalId: hashData(JSON.stringify({ name: 'Free Plan', pricingModelId: pricingModel.id })),
+      externalId: hashData(
+        JSON.stringify({
+          name: 'Free Plan',
+          pricingModelId: pricingModel.id,
+        })
+      ),
       displayFeatures: null,
       description: null,
       imageURL: null,
       active: true,
       singularQuantityLabel: null,
-      pluralQuantityLabel: null
+      pluralQuantityLabel: null,
     }
-    
-    const defaultProductsResult = await bulkInsertProducts([defaultProductInsert], transaction)
+
+    const defaultProductsResult = await bulkInsertProducts(
+      [defaultProductInsert],
+      transaction
+    )
     const defaultProduct = defaultProductsResult[0]
-    
+
     // Add the default product to our products array
     products.push(defaultProduct)
-    productsByExternalId.set(defaultProduct.externalId, defaultProduct)
-    
+    productsByExternalId.set(
+      defaultProduct.externalId,
+      defaultProduct
+    )
+
     // Create the default price
     const defaultPriceInsert: Price.Insert = {
       type: defaultPlanConfig.price.type,
@@ -304,9 +319,9 @@ export const setupPricingModelTransaction = async (
       productId: defaultProduct.id,
       livemode,
       externalId: null,
-      usageMeterId: null
+      usageMeterId: null,
     }
-    
+
     // Add default price to priceInserts
     priceInserts.push(defaultPriceInsert)
   }

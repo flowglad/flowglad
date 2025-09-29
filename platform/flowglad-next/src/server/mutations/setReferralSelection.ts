@@ -25,9 +25,9 @@ export const setReferralSelection = protectedProcedure
   .mutation(async ({ ctx, input }) => {
     const organizationId = ctx.organizationId
     if (!organizationId) {
-      throw new TRPCError({ 
-        code: 'BAD_REQUEST', 
-        message: 'Organization ID is required' 
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required',
       })
     }
     return innerSetReferralSelectionHandler({
@@ -35,5 +35,3 @@ export const setReferralSelection = protectedProcedure
       source: input.source,
     })
   })
-
-

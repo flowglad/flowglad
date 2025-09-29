@@ -40,7 +40,9 @@ describe('Products Schema Validation', () => {
       const result = productsClientInsertSchema.safeParse(invalidData)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe("Slug 'free' is reserved for default products only")
+        expect(result.error.issues[0].message).toBe(
+          "Slug 'free' is reserved for default products only"
+        )
         expect(result.error.issues[0].path).toEqual(['slug'])
       }
     })
@@ -103,7 +105,9 @@ describe('Products Schema Validation', () => {
       const result = productsClientInsertSchema.safeParse(invalidData)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe("Slug 'free' is reserved for default products only")
+        expect(result.error.issues[0].message).toBe(
+          "Slug 'free' is reserved for default products only"
+        )
         expect(result.error.issues[0].path).toEqual(['slug'])
       }
     })
@@ -126,7 +130,9 @@ describe('Products Schema Validation', () => {
       const result = productsClientInsertSchema.safeParse(invalidData)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe("Slug 'free' is reserved for default products only")
+        expect(result.error.issues[0].message).toBe(
+          "Slug 'free' is reserved for default products only"
+        )
         expect(result.error.issues[0].path).toEqual(['slug'])
       }
     })
@@ -149,7 +155,9 @@ describe('Products Schema Validation', () => {
       const result = productsClientInsertSchema.safeParse(invalidData)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe("Slug 'free' is reserved for default products only")
+        expect(result.error.issues[0].message).toBe(
+          "Slug 'free' is reserved for default products only"
+        )
         expect(result.error.issues[0].path).toEqual(['slug'])
       }
     })

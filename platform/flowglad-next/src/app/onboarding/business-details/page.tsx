@@ -2,7 +2,10 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { REFERRAL_OPTIONS, type ReferralOption } from '@/utils/referrals'
+import {
+  REFERRAL_OPTIONS,
+  type ReferralOption,
+} from '@/utils/referrals'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { trpc } from '@/app/_trpc/client'
@@ -53,7 +56,7 @@ const BusinessDetails = () => {
       const { organization } =
         await createOrganization.mutateAsync(data)
 
-        if (referralSource) {
+      if (referralSource) {
         try {
           await setReferralSelection.mutateAsync({
             source: referralSource,
@@ -168,7 +171,9 @@ const BusinessDetails = () => {
                 variant="default"
                 size="default"
                 type="submit"
-                disabled={form.formState.isSubmitting || !referralSource}
+                disabled={
+                  form.formState.isSubmitting || !referralSource
+                }
                 className="w-full"
               >
                 Continue

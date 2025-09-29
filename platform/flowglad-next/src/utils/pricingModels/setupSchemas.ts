@@ -17,15 +17,18 @@ import * as R from 'ramda'
 import { FeatureType, PriceType, CurrencyCode } from '@/types'
 
 // Input validation schemas for security
-export const sanitizedStringSchema = z.string()
+export const sanitizedStringSchema = z
+  .string()
   .trim()
-  .min(1, "Field is required")
-  .max(255, "Field must be less than 255 characters")
+  .min(1, 'Field is required')
+  .max(255, 'Field must be less than 255 characters')
 
-export const currencyValidationSchema = z.string()
+export const currencyValidationSchema = z
+  .string()
   .refine(
-    (currency) => Object.values(CurrencyCode).includes(currency as CurrencyCode),
-    "Invalid currency code"
+    (currency) =>
+      Object.values(CurrencyCode).includes(currency as CurrencyCode),
+    'Invalid currency code'
   )
 
 export const featurePricingModelSetupSchema = z
@@ -125,7 +128,9 @@ export type SetupPricingModelProductInput = z.infer<
 
 export const setupPricingModelSchema =
   pricingModelsClientInsertSchema.extend({
-    name: sanitizedStringSchema.describe('The name of the pricing model'),
+    name: sanitizedStringSchema.describe(
+      'The name of the pricing model'
+    ),
     isDefault: z
       .boolean()
       .optional()

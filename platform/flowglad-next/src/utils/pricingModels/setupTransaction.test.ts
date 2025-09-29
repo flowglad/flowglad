@@ -189,7 +189,7 @@ describe('setupPricingModelTransaction (integration)', () => {
               type: PriceType.Subscription,
               slug: 'ps',
               isDefault: false,
-                name: 'Test Price',
+              name: 'Test Price',
               usageMeterId: null,
               trialPeriodDays: null,
               setupFeeAmount: null,
@@ -205,7 +205,7 @@ describe('setupPricingModelTransaction (integration)', () => {
               type: PriceType.Usage,
               slug: 'pu',
               isDefault: false,
-                name: 'Test Price',
+              name: 'Test Price',
               usageMeterSlug: 'um',
               trialPeriodDays: null,
               setupFeeAmount: null,
@@ -249,7 +249,9 @@ describe('setupPricingModelTransaction (integration)', () => {
     expect(result.products).toHaveLength(input.products.length + 1) // +1 for auto-generated default
     const userProductSlugs = input.products.map((p) => p.product.slug)
     const resultProductSlugs = result.products.map((p) => p.slug)
-    expect(resultProductSlugs).toEqual(expect.arrayContaining(userProductSlugs))
+    expect(resultProductSlugs).toEqual(
+      expect.arrayContaining(userProductSlugs)
+    )
     expect(resultProductSlugs).toContain('free') // Auto-generated default product
     expect(
       result.products.every((p) => typeof p.externalId === 'string')
@@ -261,7 +263,9 @@ describe('setupPricingModelTransaction (integration)', () => {
     )
     expect(result.prices).toHaveLength(allPriceSlugs.length + 1) // +1 for auto-generated default
     const resultPriceSlugs = result.prices.map((pr) => pr.slug)
-    expect(resultPriceSlugs).toEqual(expect.arrayContaining(allPriceSlugs))
+    expect(resultPriceSlugs).toEqual(
+      expect.arrayContaining(allPriceSlugs)
+    )
     expect(resultPriceSlugs).toContain('free') // Auto-generated default price
 
     // ProductFeatures
@@ -328,7 +332,9 @@ describe('setupPricingModelTransaction (integration)', () => {
       )
 
       const defaultPrice = result.prices[0]
-      expect(defaultPrice.currency).toEqual(organization.defaultCurrency)
+      expect(defaultPrice.currency).toEqual(
+        organization.defaultCurrency
+      )
     })
   })
 
@@ -431,7 +437,11 @@ describe('setupPricingModelTransaction (integration)', () => {
       await expect(
         adminTransaction(async ({ transaction }) =>
           setupPricingModelTransaction(
-            { input, organizationId: organization.id, livemode: false },
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
             transaction
           )
         )
@@ -483,7 +493,11 @@ describe('setupPricingModelTransaction (integration)', () => {
       await expect(
         adminTransaction(async ({ transaction }) =>
           setupPricingModelTransaction(
-            { input, organizationId: organization.id, livemode: false },
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
             transaction
           )
         )
@@ -535,7 +549,11 @@ describe('setupPricingModelTransaction (integration)', () => {
       await expect(
         adminTransaction(async ({ transaction }) =>
           setupPricingModelTransaction(
-            { input, organizationId: organization.id, livemode: false },
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
             transaction
           )
         )
@@ -587,7 +605,11 @@ describe('setupPricingModelTransaction (integration)', () => {
       await expect(
         adminTransaction(async ({ transaction }) =>
           setupPricingModelTransaction(
-            { input, organizationId: organization.id, livemode: false },
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
             transaction
           )
         )
@@ -639,16 +661,21 @@ describe('setupPricingModelTransaction (integration)', () => {
       await expect(
         adminTransaction(async ({ transaction }) =>
           setupPricingModelTransaction(
-            { input, organizationId: organization.id, livemode: false },
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
             transaction
           )
         )
-      ).rejects.toThrow("Slug 'free' is reserved for auto-generated default plans")
+      ).rejects.toThrow(
+        "Slug 'free' is reserved for auto-generated default plans"
+      )
     })
   })
 
   describe('Input Validation', () => {
-
     it('should reject input with names exceeding length limits', async () => {
       const longName = 'A'.repeat(300) // Exceeds 255 character limit
       const input: SetupPricingModelInput = {
@@ -662,7 +689,11 @@ describe('setupPricingModelTransaction (integration)', () => {
       await expect(
         adminTransaction(async ({ transaction }) =>
           setupPricingModelTransaction(
-            { input, organizationId: organization.id, livemode: false },
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
             transaction
           )
         )
@@ -681,7 +712,11 @@ describe('setupPricingModelTransaction (integration)', () => {
       await expect(
         adminTransaction(async ({ transaction }) =>
           setupPricingModelTransaction(
-            { input, organizationId: organization.id, livemode: false },
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
             transaction
           )
         )
@@ -734,7 +769,11 @@ describe('setupPricingModelTransaction (integration)', () => {
       await expect(
         adminTransaction(async ({ transaction }) =>
           setupPricingModelTransaction(
-            { input, organizationId: organization.id, livemode: false },
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
             transaction
           )
         )

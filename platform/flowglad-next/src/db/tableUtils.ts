@@ -341,7 +341,9 @@ export const whereClauseFromObject = <T extends PgTableWithId>(
   const conditions = keys.map((key) => {
     if (Array.isArray(selectConditions[key])) {
       // Filter out undefined and empty strings from arrays to prevent SQL parameter issues
-      const cleanArray = selectConditions[key].filter((item: any) => item !== undefined && item !== '')
+      const cleanArray = selectConditions[key].filter(
+        (item: any) => item !== undefined && item !== ''
+      )
       return inArray(
         table[key as keyof typeof table] as PgColumn,
         cleanArray

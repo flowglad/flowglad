@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react'
 import EditDiscountModal from './EditDiscountModal'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import { useAuthenticatedContext } from '@/contexts/authContext'
@@ -23,31 +28,44 @@ vi.mock('@/app/_trpc/client', () => ({
 
 // Mock the stripe utils
 vi.mock('@/utils/stripe', () => ({
-  rawStringAmountToCountableCurrencyAmount: vi.fn((currency, amount) => {
-    // Mock conversion: "10.50" -> 1050 (cents)
-    return Math.round(parseFloat(amount) * 100)
-  }),
-  countableCurrencyAmountToRawStringAmount: vi.fn((currency, amount) => {
-    // Mock conversion: 1050 -> "10.50"
-    return (amount / 100).toFixed(2)
-  }),
+  rawStringAmountToCountableCurrencyAmount: vi.fn(
+    (currency, amount) => {
+      // Mock conversion: "10.50" -> 1050 (cents)
+      return Math.round(parseFloat(amount) * 100)
+    }
+  ),
+  countableCurrencyAmountToRawStringAmount: vi.fn(
+    (currency, amount) => {
+      // Mock conversion: 1050 -> "10.50"
+      return (amount / 100).toFixed(2)
+    }
+  ),
 }))
 
 // Mock the form modal and wrap children with FormProvider
 vi.mock('@/components/forms/FormModal', async () => {
   const React = await import('react')
   const { useForm, FormProvider } = await import('react-hook-form')
-  function FormModalMock({ children, onSubmit, defaultValues, setIsOpen }: any) {
+  function FormModalMock({
+    children,
+    onSubmit,
+    defaultValues,
+    setIsOpen,
+  }: any) {
     const form = useForm({ defaultValues })
     return (
       <FormProvider {...form}>
         <div data-testid="form-modal">
-          <div data-testid="default-values">{JSON.stringify(defaultValues)}</div>
+          <div data-testid="default-values">
+            {JSON.stringify(defaultValues)}
+          </div>
           <button
             data-testid="submit-button"
             onClick={() => {
               // Simulate submit based on defaultValues (fixed vs percent)
-              const isPercent = defaultValues?.discount?.amountType === DiscountAmountType.Percent
+              const isPercent =
+                defaultValues?.discount?.amountType ===
+                DiscountAmountType.Percent
               const mockInput = isPercent
                 ? {
                     discount: {
@@ -75,7 +93,10 @@ vi.mock('@/components/forms/FormModal', async () => {
                     id: defaultValues?.id ?? 'discount_123',
                   }
               const maybePromise = onSubmit(mockInput)
-              if (maybePromise && typeof maybePromise.then === 'function') {
+              if (
+                maybePromise &&
+                typeof maybePromise.then === 'function'
+              ) {
                 maybePromise
                   .then(() => setIsOpen?.(false))
                   .catch(() => {
@@ -162,7 +183,9 @@ describe('EditDiscountModal', () => {
       user: undefined as any,
       apiKey: undefined as any,
     } as any)
-    vi.mocked(trpc.discounts.update.useMutation).mockReturnValue(mockEditDiscount as any)
+    vi.mocked(trpc.discounts.update.useMutation).mockReturnValue(
+      mockEditDiscount as any
+    )
   })
 
   describe('Modal Rendering', () => {
@@ -176,8 +199,12 @@ describe('EditDiscountModal', () => {
       )
 
       expect(screen.getByTestId('form-modal')).toBeInTheDocument()
-      expect(screen.getByTestId('discount-form-fields')).toBeInTheDocument()
-      expect(screen.getByTestId('discount-form-fields')).toHaveAttribute('data-edit', 'true')
+      expect(
+        screen.getByTestId('discount-form-fields')
+      ).toBeInTheDocument()
+      expect(
+        screen.getByTestId('discount-form-fields')
+      ).toHaveAttribute('data-edit', 'true')
     })
 
     it('should render with correct default values', () => {
@@ -189,7 +216,9 @@ describe('EditDiscountModal', () => {
         />
       )
 
-      const defaultValues = JSON.parse(screen.getByTestId('default-values').textContent!)
+      const defaultValues = JSON.parse(
+        screen.getByTestId('default-values').textContent!
+      )
       expect(defaultValues.discount.id).toBe('discount_123')
       expect(defaultValues.__rawAmountString).toBe('10.00')
     })
@@ -197,8 +226,9 @@ describe('EditDiscountModal', () => {
 
   describe('Form Submission - Fixed Amount', () => {
     it('should calculate amount correctly for fixed discount type', async () => {
-      const { rawStringAmountToCountableCurrencyAmount } = await import('@/utils/stripe')
-      
+      const { rawStringAmountToCountableCurrencyAmount } =
+        await import('@/utils/stripe')
+
       render(
         <EditDiscountModal
           isOpen={true}
@@ -211,10 +241,9 @@ describe('EditDiscountModal', () => {
       fireEvent.click(submitButton)
 
       await waitFor(() => {
-        expect(rawStringAmountToCountableCurrencyAmount).toHaveBeenCalledWith(
-          'USD',
-          '15.75'
-        )
+        expect(
+          rawStringAmountToCountableCurrencyAmount
+        ).toHaveBeenCalledWith('USD', '15.75')
         expect(mockMutateAsync).toHaveBeenCalledWith({
           discount: {
             name: 'Updated Discount',
@@ -260,7 +289,9 @@ describe('EditDiscountModal', () => {
       await waitFor(() => {
         expect(mutateSpy).toHaveBeenCalled()
         const payload = mutateSpy.mock.calls[0][0]
-        expect(payload.discount.amountType).toBe(DiscountAmountType.Percent)
+        expect(payload.discount.amountType).toBe(
+          DiscountAmountType.Percent
+        )
         // Should round 30.7 to 31
         expect(payload.discount.amount).toBe(31)
       })
@@ -269,8 +300,9 @@ describe('EditDiscountModal', () => {
 
   describe('Default Values Conversion', () => {
     it('should convert countable amount to raw string for display', async () => {
-      const { countableCurrencyAmountToRawStringAmount } = await import('@/utils/stripe')
-      
+      const { countableCurrencyAmountToRawStringAmount } =
+        await import('@/utils/stripe')
+
       render(
         <EditDiscountModal
           isOpen={true}
@@ -279,10 +311,9 @@ describe('EditDiscountModal', () => {
         />
       )
 
-      expect(countableCurrencyAmountToRawStringAmount).toHaveBeenCalledWith(
-        'USD',
-        1000
-      )
+      expect(
+        countableCurrencyAmountToRawStringAmount
+      ).toHaveBeenCalledWith('USD', 1000)
     })
 
     it('should handle different currency amounts correctly', () => {
@@ -299,7 +330,9 @@ describe('EditDiscountModal', () => {
         />
       )
 
-      const defaultValues = JSON.parse(screen.getByTestId('default-values').textContent!)
+      const defaultValues = JSON.parse(
+        screen.getByTestId('default-values').textContent!
+      )
       expect(defaultValues.__rawAmountString).toBe('25.00')
     })
   })
@@ -361,8 +394,12 @@ describe('EditDiscountModal', () => {
         />
       )
 
-      const defaultValues = JSON.parse(screen.getByTestId('default-values').textContent!)
-      expect(defaultValues.discount.amountType).toBe(DiscountAmountType.Percent)
+      const defaultValues = JSON.parse(
+        screen.getByTestId('default-values').textContent!
+      )
+      expect(defaultValues.discount.amountType).toBe(
+        DiscountAmountType.Percent
+      )
       expect(defaultValues.discount.amount).toBe(15)
     })
 
@@ -381,8 +418,12 @@ describe('EditDiscountModal', () => {
         />
       )
 
-      const defaultValues = JSON.parse(screen.getByTestId('default-values').textContent!)
-      expect(defaultValues.discount.duration).toBe(DiscountDuration.NumberOfPayments)
+      const defaultValues = JSON.parse(
+        screen.getByTestId('default-values').textContent!
+      )
+      expect(defaultValues.discount.duration).toBe(
+        DiscountDuration.NumberOfPayments
+      )
       expect(defaultValues.discount.numberOfPayments).toBe(3)
     })
   })

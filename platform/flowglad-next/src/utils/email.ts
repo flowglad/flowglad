@@ -45,7 +45,10 @@ export const safeSend = (
 }
 
 const safeTo = (email: string) =>
-  core.IS_PROD ? email : core.envVariable('DEV_EMAIL_REDIRECT') || 'agree.ahmed@flowglad.com'
+  core.IS_PROD
+    ? email
+    : core.envVariable('DEV_EMAIL_REDIRECT') ||
+      'agree.ahmed@flowglad.com'
 
 export const sendReceiptEmail = async (params: {
   to: string[]
