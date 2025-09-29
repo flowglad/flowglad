@@ -5,7 +5,7 @@ import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import { UsageEvent } from '@/db/schema/usageEvents'
 import { PurchasesDataTable } from './purchases/data-table'
 import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
-import UsageEventsTable from './UsageEventsTable'
+import { UsageEventsDataTable } from './usage-events/data-table'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
@@ -187,7 +187,7 @@ export const CustomerBillingSubPage = ({
               }}
             />
             <TableHeader title="Usage Events" noButtons />
-            <UsageEventsTable
+            <UsageEventsDataTable
               filters={{
                 customerId: customer.id,
               }}

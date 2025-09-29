@@ -13,8 +13,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import {
   Table,
@@ -29,28 +27,37 @@ import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { columns } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
+import { UsageEvent } from '@/db/schema/usageEvents'
+import { Customer } from '@/db/schema/customers'
+import { Subscription } from '@/db/schema/subscriptions'
+import { UsageMeter } from '@/db/schema/usageMeters'
+import { Price } from '@/db/schema/prices'
 import debounce from 'debounce'
-import { CustomerTableRowData } from '@/db/schema/customers'
-import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
 
-export interface CustomersTableFilters {
-  archived?: boolean
-  organizationId?: string
-  pricingModelId?: string
+export interface UsageEventsTableFilters {
+  customerId?: string
+  usageMeterId?: string
+  subscriptionId?: string
+  dateFrom?: string
+  dateTo?: string
+  searchQuery?: string
 }
 
-interface CustomersDataTableProps {
-  filters?: CustomersTableFilters
-  onCreateCustomer?: () => void
+interface UsageEventRow {
+  usageEvent: UsageEvent.ClientRecord
+  customer: Customer.ClientRecord
+  subscription: Subscription.ClientRecord
+  usageMeter: UsageMeter.ClientRecord
+  price: Price.ClientRecord
 }
 
-export function CustomersDataTable({
+interface UsageEventsDataTableProps {
+  filters?: UsageEventsTableFilters
+}
+
+export function UsageEventsDataTable({
   filters = {},
-  onCreateCustomer,
-}: CustomersDataTableProps) {
-  const router = useRouter()
-
+}: UsageEventsDataTableProps) {
   // Server-side filtering (preserve enterprise architecture)
   const [inputValue, setInputValue] = React.useState('')
   const [searchQuery, setSearchQuery] = React.useState('')
@@ -70,15 +77,11 @@ export function CustomersDataTable({
     data,
     isLoading,
     isFetching,
-  } = usePaginatedTableState<
-    CustomerTableRowData,
-    CustomersTableFilters
-  >({
+  } = usePaginatedTableState<UsageEventRow, UsageEventsTableFilters>({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
-    filters: filters,
-    searchQuery: searchQuery,
-    useQuery: trpc.customers.getTableRows.useQuery,
+    filters: { ...filters, searchQuery },
+    useQuery: trpc.usageEvents.getTableRows.useQuery,
   })
 
   // Client-side features (Shadcn patterns)
@@ -106,8 +109,10 @@ export function CustomersDataTable({
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
+
+    // CRITICAL: Bridge TanStack Table pagination to server-side pagination
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === 'function'
@@ -117,17 +122,19 @@ export function CustomersDataTable({
       // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        // Reset to first page when page size changes (standard UX pattern)
-        handlePaginationChange(0)
+        handlePaginationChange(0) // Reset to first page
       }
-      // Handle page index changes (page navigation)
+      // Handle page navigation
       else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
     },
+
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+
+    // CRITICAL: Use dynamic page size in state
     state: {
       sorting,
       columnFilters,
@@ -145,17 +152,11 @@ export function CustomersDataTable({
           <CollapsibleSearch
             value={inputValue}
             onChange={setInputValue}
-            placeholder="Search customers..."
+            placeholder="Search usage events..."
             disabled={isLoading}
             isLoading={isFetching}
           />
           <DataTableViewOptions table={table} />
-          {onCreateCustomer && (
-            <Button onClick={onCreateCustomer}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Customer
-            </Button>
-          )}
         </div>
       </div>
 
@@ -199,22 +200,8 @@ export function CustomersDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
-                onClick={(e) => {
-                  // Only navigate if not clicking on interactive elements
-                  const target = e.target as HTMLElement
-                  if (
-                    target.closest('button') ||
-                    target.closest('[role="checkbox"]') ||
-                    target.closest('input[type="checkbox"]') ||
-                    target.closest('[data-radix-collection-item]')
-                  ) {
-                    return // Don't navigate when clicking interactive elements
-                  }
-                  router.push(
-                    `/customers/${row.original.customer.id}`
-                  )
-                }}
+                data-state={row.getIsSelected() && 'selected'}
+                className={`${isFetching ? 'opacity-50' : ''}`}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>

@@ -13,6 +13,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { Plus } from 'lucide-react'
+
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { CollapsibleSearch } from '@/components/ui/collapsible-search'
@@ -26,30 +28,34 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns, FeatureRow } from './columns'
+import { columns } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
+import { Feature } from '@/db/schema/features'
 import debounce from 'debounce'
-import { useRouter } from 'next/navigation'
-import { Plus, Search } from 'lucide-react'
 
 export interface FeaturesTableFilters {
   pricingModelId?: string
+  searchQuery?: string
+}
+
+interface FeatureRow {
+  feature: Feature.ClientRecord
+  pricingModel: {
+    id: string
+    name: string
+  }
 }
 
 interface FeaturesDataTableProps {
   filters?: FeaturesTableFilters
   onCreateFeature?: () => void
-  onRowClick?: (row: FeatureRow) => void
 }
 
 export function FeaturesDataTable({
   filters = {},
   onCreateFeature,
-  onRowClick,
 }: FeaturesDataTableProps) {
-  const router = useRouter()
-
   // Server-side filtering (preserve enterprise architecture)
   const [inputValue, setInputValue] = React.useState('')
   const [searchQuery, setSearchQuery] = React.useState('')
@@ -72,8 +78,7 @@ export function FeaturesDataTable({
   } = usePaginatedTableState<FeatureRow, FeaturesTableFilters>({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
-    filters: filters,
-    searchQuery: searchQuery,
+    filters: { ...filters, searchQuery },
     useQuery: trpc.features.getTableRows.useQuery,
   })
 
@@ -199,6 +204,7 @@ export function FeaturesDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
+                data-state={row.getIsSelected() && 'selected'}
                 className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
                 onClick={(e) => {
                   const target = e.target as HTMLElement
@@ -209,10 +215,7 @@ export function FeaturesDataTable({
                   ) {
                     return // Don't navigate when clicking interactive elements
                   }
-                  // Call the onRowClick handler if provided
-                  if (onRowClick) {
-                    onRowClick(row.original)
-                  }
+                  // router.push(`/features/${row.original.feature.id}`) // TODO: Add feature details page
                 }}
               >
                 {row.getVisibleCells().map((cell) => (
@@ -238,7 +241,7 @@ export function FeaturesDataTable({
         </TableBody>
       </Table>
 
-      {/* Enhanced pagination with proper spacing */}
+      {/* Enterprise pagination with built-in selection count */}
       <div className="py-2">
         <DataTablePagination
           table={table}

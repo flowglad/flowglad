@@ -2,21 +2,20 @@
 
 import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-// Icons come next
 import { Pencil } from 'lucide-react'
-// UI components last
+import { useState } from 'react'
+
+import { Feature } from '@/db/schema/features'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import StatusBadge from '@/components/StatusBadge'
 import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-// Other imports
-import { Feature } from '@/db/schema/features'
-import StatusBadge from '@/components/StatusBadge'
 import EditFeatureModal from '@/components/forms/EditFeatureModal'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 
-export interface FeatureRow {
+interface FeatureRow {
   feature: Feature.ClientRecord
   pricingModel: {
     id: string
@@ -24,30 +23,12 @@ export interface FeatureRow {
   }
 }
 
-const FeatureTypeCell = ({
-  feature,
-}: {
-  feature: Feature.ClientRecord
-}) => {
-  let typeText = 'Toggle'
-  if (feature.type === FeatureType.UsageCreditGrant) {
-    if (
-      feature.renewalFrequency === FeatureUsageGrantFrequency.Once
-    ) {
-      typeText = 'One time grant'
-    } else {
-      typeText = 'Renews every cycle'
-    }
-  }
-  return <div className="text-sm">{typeText}</div>
-}
-
 function FeatureActionsMenu({
   feature,
 }: {
   feature: Feature.ClientRecord
 }) {
-  const [isEditOpen, setIsEditOpen] = React.useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
   const actionItems: ActionMenuItem[] = [
     {
@@ -78,31 +59,37 @@ export const columns: ColumnDef<FeatureRow>[] = [
         {row.getValue('name')}
       </div>
     ),
-    size: 200,
-    minSize: 150,
-    maxSize: 300,
+    minSize: 140,
   },
   {
     id: 'status',
     accessorFn: (row) => row.feature.active,
     header: 'Status',
-    cell: ({ row }) => (
-      <StatusBadge active={row.getValue('status')} />
-    ),
     size: 110,
     minSize: 105,
     maxSize: 115,
+    cell: ({ row }) => (
+      <StatusBadge active={row.getValue('status')} />
+    ),
   },
   {
     id: 'type',
     accessorFn: (row) => row.feature.type,
     header: 'Type',
-    cell: ({ row }) => (
-      <FeatureTypeCell feature={row.original.feature} />
-    ),
-    size: 150,
-    minSize: 120,
-    maxSize: 180,
+    cell: ({ row }) => {
+      const feature = row.original.feature
+      let typeText = 'Toggle'
+      if (feature.type === FeatureType.UsageCreditGrant) {
+        if (
+          feature.renewalFrequency === FeatureUsageGrantFrequency.Once
+        ) {
+          typeText = 'One time grant'
+        } else {
+          typeText = 'Renews every cycle'
+        }
+      }
+      return <div className="text-sm">{typeText}</div>
+    },
   },
   {
     id: 'slug',
@@ -115,42 +102,33 @@ export const columns: ColumnDef<FeatureRow>[] = [
         </DataTableCopyableCell>
       </div>
     ),
-    size: 180,
-    minSize: 120,
-    maxSize: 250,
   },
   {
     id: 'catalog',
-    accessorFn: (row) => row.pricingModel?.name,
+    accessorFn: (row) => row.pricingModel?.name || '',
     header: 'Catalog',
     cell: ({ row }) => {
-      const pricingModelName = row.getValue('catalog') as
-        | string
-        | undefined
-      return <div className="truncate">{pricingModelName || '-'}</div>
+      const catalogName = row.getValue('catalog') as string
+      return <div className="w-fit">{catalogName || '-'}</div>
     },
-    size: 150,
-    minSize: 100,
-    maxSize: 200,
   },
   {
-    id: 'featureId',
+    id: 'id',
     accessorFn: (row) => row.feature.id,
     header: 'ID',
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <DataTableCopyableCell copyText={row.getValue('featureId')}>
-          {row.getValue('featureId')}
+        <DataTableCopyableCell copyText={row.getValue('id')}>
+          {row.getValue('id')}
         </DataTableCopyableCell>
       </div>
     ),
-    size: 180,
-    minSize: 125,
-    maxSize: 250,
   },
   {
     id: 'actions',
     enableHiding: false,
+    size: 40,
+    maxSize: 40,
     cell: ({ row }) => {
       const feature = row.original.feature
       return (
@@ -159,7 +137,5 @@ export const columns: ColumnDef<FeatureRow>[] = [
         </div>
       )
     },
-    size: 40,
-    maxSize: 40,
   },
 ]
