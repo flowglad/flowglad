@@ -32,7 +32,7 @@ import { Customer } from '@/db/schema/customers'
 import { Subscription } from '@/db/schema/subscriptions'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { Price } from '@/db/schema/prices'
-import debounce from 'debounce'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 
 export interface UsageEventsTableFilters {
   customerId?: string
@@ -58,17 +58,12 @@ interface UsageEventsDataTableProps {
 export function UsageEventsDataTable({
   filters = {},
 }: UsageEventsDataTableProps) {
-  // Server-side filtering (preserve enterprise architecture)
-  const [inputValue, setInputValue] = React.useState('')
-  const [searchQuery, setSearchQuery] = React.useState('')
-  const debouncedSetSearchQuery = debounce(setSearchQuery, 1000)
+  // Server-side filtering (preserve enterprise architecture) - FIXED: Using stable debounced hook
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(1000)
 
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
-
-  React.useEffect(() => {
-    debouncedSetSearchQuery(inputValue)
-  }, [inputValue, debouncedSetSearchQuery])
 
   const {
     pageIndex,

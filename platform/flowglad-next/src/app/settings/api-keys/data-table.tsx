@@ -29,7 +29,7 @@ import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { columns, ApiKeyTableRowData } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
-import debounce from 'debounce'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { useRouter } from 'next/navigation'
 import { Plus, Search } from 'lucide-react'
 import { FlowgladApiKeyType } from '@/types'
@@ -50,17 +50,12 @@ export function ApiKeysDataTable({
 }: ApiKeysDataTableProps) {
   const router = useRouter()
 
-  // Server-side filtering (preserve enterprise architecture)
-  const [inputValue, setInputValue] = React.useState('')
-  const [searchQuery, setSearchQuery] = React.useState('')
-  const debouncedSetSearchQuery = debounce(setSearchQuery, 1000)
+  // Server-side filtering (preserve enterprise architecture) - FIXED: Using stable debounced hook
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(1000)
 
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
-
-  React.useEffect(() => {
-    debouncedSetSearchQuery(inputValue)
-  }, [inputValue, debouncedSetSearchQuery])
 
   const {
     pageIndex,

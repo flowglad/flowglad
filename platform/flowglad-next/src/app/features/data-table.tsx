@@ -30,9 +30,9 @@ import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { columns } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { trpc } from '@/app/_trpc/client'
 import { Feature } from '@/db/schema/features'
-import debounce from 'debounce'
 
 export interface FeaturesTableFilters {
   pricingModelId?: string
@@ -56,17 +56,12 @@ export function FeaturesDataTable({
   filters = {},
   onCreateFeature,
 }: FeaturesDataTableProps) {
-  // Server-side filtering (preserve enterprise architecture)
-  const [inputValue, setInputValue] = React.useState('')
-  const [searchQuery, setSearchQuery] = React.useState('')
-  const debouncedSetSearchQuery = debounce(setSearchQuery, 1000)
+  // Server-side filtering (preserve enterprise architecture) - FIXED: Using stable debounced hook
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(1000)
 
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
-
-  React.useEffect(() => {
-    debouncedSetSearchQuery(inputValue)
-  }, [inputValue, debouncedSetSearchQuery])
 
   const {
     pageIndex,

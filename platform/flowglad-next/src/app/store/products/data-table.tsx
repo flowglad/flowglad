@@ -29,8 +29,8 @@ import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 import { columns, ProductRow } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { trpc } from '@/app/_trpc/client'
-import debounce from 'debounce'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 
@@ -63,17 +63,12 @@ export function ProductsDataTable({
 }: ProductsDataTableProps) {
   const router = useRouter()
 
-  // Server-side filtering (preserve enterprise architecture)
-  const [inputValue, setInputValue] = React.useState('')
-  const [searchQuery, setSearchQuery] = React.useState('')
-  const debouncedSetSearchQuery = debounce(setSearchQuery, 1000)
+  // Server-side filtering (preserve enterprise architecture) - FIXED: Using stable debounced hook
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(1000)
 
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
-
-  React.useEffect(() => {
-    debouncedSetSearchQuery(inputValue)
-  }, [inputValue, debouncedSetSearchQuery])
 
   const {
     pageIndex,
