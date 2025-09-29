@@ -98,24 +98,21 @@ const calculateCorrectProrationAmount = async (
   }, 0)
 
   // Calculate net charge (fair value - already paid/processing)
-  // This can be negative (credit) in downgrade scenarios
-  const netChargeAmount = totalFairValue - totalExistingAmount
+  const rawNetCharge = totalFairValue - totalExistingAmount
+  
+  // IMPORTANT: Never issue credits/refunds for downgrades - cap at 0
+  const netChargeAmount = Math.max(0, rawNetCharge)
 
   let message = `Fair value: $${(totalFairValue / 100).toFixed(2)} (${(percentThroughPeriod * 100).toFixed(1)}% old plan + ${((1 - percentThroughPeriod) * 100).toFixed(1)}% new plan)`
   message += `, Already paid/processing: $${(totalExistingAmount / 100).toFixed(2)}`
 
-  // Debug logging for downgrade scenarios
-  console.log(`DEBUG: oldPlanTotalPrice=${oldPlanTotalPrice}, newPlanTotalPrice=${newPlanTotalPrice}`)
-  console.log(`DEBUG: percentThroughPeriod=${percentThroughPeriod}`)
-  console.log(`DEBUG: oldPlanValue=${oldPlanValue}, newPlanValue=${newPlanValue}`)
-  console.log(`DEBUG: totalFairValue=${totalFairValue}, totalExistingAmount=${totalExistingAmount}`)
-  console.log(`DEBUG: netChargeAmount=${netChargeAmount}`)
-
   if (netChargeAmount === 0) {
-    message += ', No additional charge needed'
+    if (rawNetCharge < 0) {
+      message += `, No refund for downgrade (would have been -$${(Math.abs(rawNetCharge) / 100).toFixed(2)})`
+    } else {
+      message += ', No additional charge needed'
+    }
     return { netChargeAmount: 0, message }
-  } else if (netChargeAmount < 0) {
-    message += `, Net credit: $${(Math.abs(netChargeAmount) / 100).toFixed(2)} (downgrade protection)`
   } else {
     message += `, Net charge: $${(netChargeAmount / 100).toFixed(2)}`
   }
@@ -126,16 +123,16 @@ const calculateCorrectProrationAmount = async (
 /**
  * Synchronizes the subscription record with the currently active and most expensive subscription item.
  * This ensures the subscription header reflects what the customer is actually being charged for.
+ * Always uses the current time to determine what's active NOW.
  */
-const syncSubscriptionWithActiveItems = async (
+export const syncSubscriptionWithActiveItems = async (
   subscriptionId: string,
-  transaction: DbTransaction,
-  anchorDate: Date = new Date()
+  transaction: DbTransaction
 ): Promise<Subscription.StandardRecord> => {
-  // Get all currently active subscription items
+  // Get all currently active subscription items at the current time
   const activeItems = await selectCurrentlyActiveSubscriptionItems(
     { subscriptionId },
-    anchorDate,
+    new Date(), // Always use current time - what's active NOW
     transaction
   )
   
@@ -295,22 +292,19 @@ export const adjustSubscription = async (
     throw new Error('Current billing period not found')
   }
 
-  if (
-    timing !== SubscriptionAdjustmentTiming.Immediately ||
-    !adjustment.prorateCurrentBillingPeriod
-  ) {
-    // For "AtEndOfCurrentBillingPeriod", sync based on currently active items (use current time, not future adjustment date)
-    // For immediate adjustments without proration, sync with active items (use adjustment date)
-    const syncDate = timing === SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod 
-      ? new Date() // Use current time for future adjustments
-      : adjustmentDate // Use adjustment date for immediate adjustments
-    
+  // Only sync for immediate adjustments - future adjustments will sync during billing period rollover
+  if (timing === SubscriptionAdjustmentTiming.Immediately && !adjustment.prorateCurrentBillingPeriod) {
     const updatedSubscription = await syncSubscriptionWithActiveItems(
       subscription.id,
-      transaction,
-      syncDate
+      transaction
     )
     return { subscription: updatedSubscription, subscriptionItems }
+  }
+  
+  // For future adjustments (AtEndOfCurrentBillingPeriod), don't sync now
+  // The sync will happen when the billing period rolls over
+  if (timing === SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod) {
+    return { subscription, subscriptionItems }
   }
 
   const split = calculateSplitInBillingPeriodBasedOnAdjustmentDate(
@@ -425,11 +419,10 @@ export const adjustSubscription = async (
   )
   
   // Sync subscription record with currently active items (including new ones)
-  // For immediate adjustments with proration, use adjustment date
+  // For immediate adjustments with proration
   const updatedSubscription = await syncSubscriptionWithActiveItems(
     subscription.id,
-    transaction,
-    adjustmentDate
+    transaction
   )
   return { subscription: updatedSubscription, subscriptionItems }
 }
