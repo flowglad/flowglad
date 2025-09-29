@@ -216,7 +216,10 @@ describe('pricesRouter - Default Price Constraints', () => {
 
           // This should throw an error
           validateDefaultPriceUpdate(
-            { intervalUnit: IntervalUnit.Year, type: PriceType.Subscription },
+            {
+              intervalUnit: IntervalUnit.Year,
+              type: PriceType.Subscription,
+            },
             existingPrice,
             product
           )
@@ -497,7 +500,10 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('createPrice', () => {
     it('should forbid creating additional prices for default products', async () => {
-      const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -506,7 +512,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         isApi: true as any,
         path: '',
       } as any
-      
+
       await expect(
         pricesRouter.createCaller(ctx).create({
           price: {
@@ -523,12 +529,17 @@ describe('pricesRouter - Default Price Constraints', () => {
             active: true,
           } as any,
         } as any)
-      ).rejects.toThrow('Cannot create additional prices for the default plan')
+      ).rejects.toThrow(
+        'Cannot create additional prices for the default plan'
+      )
     })
 
     // TODO: cleanup the types here
     it('should allow default prices on non-default products to have non-zero unitPrice', async () => {
-      const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -537,45 +548,47 @@ describe('pricesRouter - Default Price Constraints', () => {
         isApi: true as any,
         path: '',
       } as any
-      
+
       // First, create a new product without any prices in the same organization
-      const newProduct = await adminTransaction(async ({ transaction }) => {
-        const pricingModel = await createPricingModelBookkeeping(
-          {
-            pricingModel: {
-              name: 'Test Pricing Model 2',
-              isDefault: false,
+      const newProduct = await adminTransaction(
+        async ({ transaction }) => {
+          const pricingModel = await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Test Pricing Model 2',
+                isDefault: false,
+              },
             },
-          },
-          {
-            transaction,
-            organizationId,
-            livemode,
-          }
-        )
-        
-        const product = await insertProduct(
-          {
-            name: 'New Product',
-            slug: 'new-product',
-            default: false,
-            description: null,
-            imageURL: null,
-            displayFeatures: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-            externalId: null,
-            pricingModelId: pricingModel.result.pricingModel.id,
-            organizationId,
-            livemode,
-            active: true,
-          },
-          transaction
-        )
-        
-        return product
-      })
-      
+            {
+              transaction,
+              organizationId,
+              livemode,
+            }
+          )
+
+          const product = await insertProduct(
+            {
+              name: 'New Product',
+              slug: 'new-product',
+              default: false,
+              description: null,
+              imageURL: null,
+              displayFeatures: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+              externalId: null,
+              pricingModelId: pricingModel.result.pricingModel.id,
+              organizationId,
+              livemode,
+              active: true,
+            },
+            transaction
+          )
+
+          return product
+        }
+      )
+
       // This should succeed - default price on non-default product with non-zero price
       const result = await pricesRouter.createCaller(ctx).create({
         price: {
@@ -599,7 +612,10 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should forbid default prices on default products to have non-zero unitPrice', async () => {
-      const { apiKey } = await setupUserAndApiKey({ organizationId, livemode })
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -608,7 +624,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         isApi: true as any,
         path: '',
       } as any
-      
+
       // Test the validation by trying to update the existing default price on default product
       await expect(
         pricesRouter.createCaller(ctx).update({
@@ -621,7 +637,9 @@ describe('pricesRouter - Default Price Constraints', () => {
             intervalCount: 1,
           } as any,
         } as any)
-      ).rejects.toThrow('Default prices for default products must have a unitPrice of 0')
+      ).rejects.toThrow(
+        'Default prices for default products must have a unitPrice of 0'
+      )
     })
 
     it('should enforce single default price per product constraint', async () => {

@@ -1,6 +1,9 @@
 import { PriceType, SubscriptionStatus } from '@/types'
 
-type MinimalSub = { status: SubscriptionStatus; isFreePlan: boolean | null }
+type MinimalSub = {
+  status: SubscriptionStatus
+  isFreePlan: boolean | null
+}
 
 export function shouldBlockCheckout({
   currentSubscriptions,
@@ -12,7 +15,8 @@ export function shouldBlockCheckout({
   allowMultipleSubscriptionsPerCustomer: boolean | null
 }): boolean {
   const hasActivePaid = (currentSubscriptions ?? []).some(
-    (s) => s.status === SubscriptionStatus.Active && s.isFreePlan === false
+    (s) =>
+      s.status === SubscriptionStatus.Active && s.isFreePlan === false
   )
   return (
     hasActivePaid &&
@@ -20,5 +24,3 @@ export function shouldBlockCheckout({
     !(allowMultipleSubscriptionsPerCustomer ?? false)
   )
 }
-
-

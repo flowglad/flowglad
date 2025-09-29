@@ -100,7 +100,9 @@ const UsageEventsTable = ({
           minSize: 120,
           maxSize: 180,
           cell: ({ row: { original: cellData } }) => (
-            <CopyableTextTableCell copyText={cellData.usageEvent.transactionId}>
+            <CopyableTextTableCell
+              copyText={cellData.usageEvent.transactionId}
+            >
               {cellData.usageEvent.transactionId}
             </CopyableTextTableCell>
           ),
@@ -112,7 +114,9 @@ const UsageEventsTable = ({
           minSize: 150,
           maxSize: 200,
           cell: ({ row: { original: cellData } }) => (
-            <CopyableTextTableCell copyText={cellData.subscription.id}>
+            <CopyableTextTableCell
+              copyText={cellData.subscription.id}
+            >
               {cellData.subscription.id}
             </CopyableTextTableCell>
           ),

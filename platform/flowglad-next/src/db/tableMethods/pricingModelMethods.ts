@@ -389,7 +389,9 @@ export const selectPricingModelForCustomer = async (
     )
 
   if (!pricingModel) {
-    throw new Error(`No default pricing model found for organization ${customer.organizationId}`)
+    throw new Error(
+      `No default pricing model found for organization ${customer.organizationId}`
+    )
   }
 
   return {

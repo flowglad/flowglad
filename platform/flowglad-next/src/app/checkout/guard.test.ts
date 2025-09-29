@@ -70,5 +70,3 @@ describe('shouldBlockCheckout', () => {
     expect(result).toBe(false)
   })
 })
-
-

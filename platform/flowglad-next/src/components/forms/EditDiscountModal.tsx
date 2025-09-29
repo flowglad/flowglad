@@ -9,9 +9,7 @@ import {
 import DiscountFormFields from '@/components/forms/DiscountFormFields'
 import { trpc } from '@/app/_trpc/client'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import {
-  countableCurrencyAmountToRawStringAmount,
-} from '@/utils/stripe'
+import { countableCurrencyAmountToRawStringAmount } from '@/utils/stripe'
 import { toEditDiscountInput } from './discountFormHelpers'
 
 interface EditDiscountModalProps {
