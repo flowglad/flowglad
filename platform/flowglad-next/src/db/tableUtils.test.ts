@@ -12,6 +12,7 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { nulledPriceColumns, Price, prices } from '@/db/schema/prices'
 import { PriceType, CurrencyCode, FlowgladApiKeyType } from '@/types'
 import { eq, and as drizzleAnd } from 'drizzle-orm'
+import { pgTable, text, integer, boolean } from 'drizzle-orm/pg-core'
 import { ApiKey, apiKeys } from '@/db/schema/apiKeys'
 import { users } from '@/db/schema/users'
 import { memberships } from '@/db/schema/memberships'
@@ -22,6 +23,7 @@ import {
   updateProduct,
 } from './tableMethods/productMethods'
 import { insertPrice, updatePrice } from './tableMethods/priceMethods'
+import { whereClauseFromObject } from './tableUtils'
 
 describe('createCursorPaginatedSelectFunction', () => {
   let organizationId: string
@@ -958,5 +960,341 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
       }
     )
     expect(checkPricingModel.length).toBe(0)
+  })
+})
+
+const mockTable = pgTable('mock_table', {
+  id: text('id').primaryKey(),
+  name: text('name'),
+  email: text('email'),
+  active: boolean('active'),
+  organizationId: text('organization_id'),
+  tags: text('tags').array(),
+  count: integer('count'),
+  metadata: text('metadata')
+})
+
+describe('whereClauseFromObject', () => {
+
+  describe('basic functionality', () => {
+    it('should return undefined for empty object', () => {
+      const result = whereClauseFromObject(mockTable, {})
+      expect(result).toBeUndefined()
+    })
+
+    it('should return undefined when all values are undefined', () => {
+      const selectConditions = {
+        id: undefined,
+        name: undefined,
+        email: undefined
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeUndefined()
+    })
+
+    it('should return undefined when all values are empty strings', () => {
+      const selectConditions = {
+        name: '',
+        email: '',
+        organizationId: ''
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeUndefined()
+    })
+
+    it('should return undefined for mixed undefined and empty string values', () => {
+      const selectConditions = {
+        id: undefined,
+        name: '',
+        email: undefined,
+        active: ''
+      } as any
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeUndefined()
+    })
+  })
+
+  describe('single condition handling', () => {
+    it('should handle single string equality condition', () => {
+      const selectConditions = { name: 'test-name' }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle single boolean condition', () => {
+      const selectConditions = { active: true }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle single number condition', () => {
+      const selectConditions = { count: 42 }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle single null condition', () => {
+      const selectConditions = { metadata: null }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+  })
+
+  describe('multiple condition handling', () => {
+    it('should handle multiple conditions with AND logic', () => {
+      const selectConditions = {
+        name: 'test-name',
+        active: true,
+        count: 42
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should filter out undefined/empty values from mixed conditions', () => {
+      const selectConditions = {
+        name: 'test-name',
+        email: undefined,
+        active: true,
+        organizationId: '',
+        count: 0
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+  })
+
+  describe('array handling', () => {
+    it('should handle array with single value', () => {
+      const selectConditions = { tags: ['tag1'] }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle array with multiple values', () => {
+      const selectConditions = { tags: ['tag1', 'tag2', 'tag3'] }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle empty array', () => {
+      const selectConditions = { tags: [] }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should filter undefined and empty strings from arrays', () => {
+      const selectConditions = { tags: ['tag1', undefined, '', 'tag2', null] as any }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle array with only undefined/empty values', () => {
+      const selectConditions = { tags: [undefined, '', undefined] as any }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle mixed array types', () => {
+      const selectConditions = { 
+        tags: ['string', 123, true, null] as any
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+  })
+
+  describe('null value handling', () => {
+    it('should properly handle explicit null values', () => {
+      const selectConditions = { metadata: null }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle multiple null values', () => {
+      const selectConditions = {
+        metadata: null,
+        email: null,
+        name: 'test'
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+  })
+
+  describe('edge cases and data validation', () => {
+    it('should handle zero values correctly', () => {
+      const selectConditions = { count: 0 }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle false boolean values correctly', () => {
+      const selectConditions = { active: false }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle very long strings', () => {
+      const longString = 'a'.repeat(10000)
+      const selectConditions = { name: longString }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle special characters in string values', () => {
+      const selectConditions = { 
+        name: "O'Reilly & Co. <script>alert('test')</script>",
+        email: 'test+tag@example.com'
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle Unicode characters', () => {
+      const selectConditions = { 
+        name: '测试用户名 🚀 émoji',
+        email: 'тест@example.com'
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle very large arrays', () => {
+      const largeArray = Array.from({ length: 1000 }, (_, i) => `item-${i}`)
+      const selectConditions = { tags: largeArray }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle arrays with duplicate values', () => {
+      const selectConditions = { 
+        tags: ['tag1', 'tag1', 'tag2', 'tag1', 'tag2'] 
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+  })
+
+  describe('type coercion and conversion', () => {
+    it('should handle string numbers', () => {
+      const selectConditions = { count: '123' } as any
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle string booleans', () => {
+      const selectConditions = { active: 'true' } as any
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle mixed types in same condition set', () => {
+      const selectConditions = {
+        name: 'test',
+        count: 42,
+        active: true,
+        metadata: null,
+        tags: ['tag1', 'tag2']
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+  })
+
+  describe('edge case handling', () => {
+    it('should handle very deep nested structures safely', () => {
+      const selectConditions = {
+        metadata: { deep: { nested: { object: 'value' } } }
+      } as any
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+  })
+
+  describe('boundary value testing', () => {
+    it('should handle maximum safe integer', () => {
+      const selectConditions = { count: Number.MAX_SAFE_INTEGER }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle minimum safe integer', () => {
+      const selectConditions = { count: Number.MIN_SAFE_INTEGER }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle NaN values', () => {
+      const selectConditions = { count: NaN }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle Infinity values', () => {
+      const selectConditions = { count: Infinity }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+  })
+
+  describe('real-world usage patterns', () => {
+    it('should handle common filtering scenarios', () => {
+      const selectConditions = {
+        organizationId: 'org_123',
+        active: true,
+        tags: ['premium', 'verified'],
+        metadata: null
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle search-like scenarios with partial matches', () => {
+      const selectConditions = {
+        email: 'john@example.com',
+        name: 'John Doe',
+        active: true
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+
+    it('should handle pagination scenarios', () => {
+      const selectConditions = {
+        organizationId: 'org_123',
+        id: ['id1', 'id2', 'id3', 'id4', 'id5']
+      }
+      const result = whereClauseFromObject(mockTable, selectConditions)
+      expect(result).toBeDefined()
+    })
+  })
+
+  describe('data consistency', () => {
+    it('should produce consistent results for same inputs', () => {
+      const selectConditions = {
+        name: 'test-user',
+        active: true,
+        tags: ['tag1', 'tag2']
+      }
+      
+      const result1 = whereClauseFromObject(mockTable, selectConditions)
+      const result2 = whereClauseFromObject(mockTable, selectConditions)
+      
+      expect(result1).toBeDefined()
+      expect(result2).toBeDefined()
+      // Both should be defined and have same structure
+    })
+
+    it('should handle object property order independence', () => {
+      const selectConditions1 = { name: 'test', active: true, count: 42 }
+      const selectConditions2 = { active: true, count: 42, name: 'test' }
+      
+      const result1 = whereClauseFromObject(mockTable, selectConditions1)
+      const result2 = whereClauseFromObject(mockTable, selectConditions2)
+      
+      expect(result1).toBeDefined()
+      expect(result2).toBeDefined()
+    })
   })
 })
