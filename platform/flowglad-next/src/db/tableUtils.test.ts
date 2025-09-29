@@ -12,6 +12,7 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { nulledPriceColumns, Price, prices } from '@/db/schema/prices'
 import { PriceType, CurrencyCode, FlowgladApiKeyType } from '@/types'
 import { eq, and as drizzleAnd } from 'drizzle-orm'
+import { pgTable, text, integer, boolean } from 'drizzle-orm/pg-core'
 import { ApiKey, apiKeys } from '@/db/schema/apiKeys'
 import { users } from '@/db/schema/users'
 import { memberships } from '@/db/schema/memberships'
@@ -962,22 +963,19 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
   })
 })
 
+// Create a properly typed mock table for testing whereClauseFromObject
+const mockTable = pgTable('mock_table', {
+  id: text('id').primaryKey(),
+  name: text('name'),
+  email: text('email'),
+  active: boolean('active'),
+  organizationId: text('organization_id'),
+  tags: text('tags').array(),
+  count: integer('count'),
+  metadata: text('metadata')
+})
+
 describe('whereClauseFromObject', () => {
-  let mockTable: any
-  
-  beforeEach(() => {
-    // Create a mock table with mock columns for testing
-    mockTable = {
-      id: { name: 'id' },
-      name: { name: 'name' },
-      email: { name: 'email' },
-      active: { name: 'active' },
-      organizationId: { name: 'organization_id' },
-      tags: { name: 'tags' },
-      count: { name: 'count' },
-      metadata: { name: 'metadata' }
-    }
-  })
 
   describe('basic functionality', () => {
     it('should return undefined for empty object', () => {
