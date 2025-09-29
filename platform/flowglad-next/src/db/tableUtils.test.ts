@@ -963,7 +963,6 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
   })
 })
 
-// Create a properly typed mock table for testing whereClauseFromObject
 const mockTable = pgTable('mock_table', {
   id: text('id').primaryKey(),
   name: text('name'),
