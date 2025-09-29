@@ -1130,14 +1130,19 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         
         // Also update the subscription's currentBillingPeriodEnd to match
+        // And sync the name/priceId with the current active item
         await updateSubscription({
           id: subscription.id,
           currentBillingPeriodEnd: futureDate,
+          name: 'Current Plan', // Set the subscription name to match the initial item
+          priceId: price.id, // Set the priceId
           renews: true, // Required field
         }, transaction)
         
         // Update local reference too
         subscription.currentBillingPeriodEnd = futureDate
+        subscription.name = 'Current Plan' // Update local reference
+        subscription.priceId = price.id
 
         // Adjust subscription to a more expensive plan at END of current billing period
         const newItems: SubscriptionItem.Upsert[] = [
