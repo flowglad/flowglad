@@ -49,7 +49,7 @@ import {
   selectUserById,
   selectUsers,
 } from '@/db/tableMethods/userMethods'
-import core, { customerBillingPortalURL } from '@/utils/core'
+import core from '@/utils/core'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import { setCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
