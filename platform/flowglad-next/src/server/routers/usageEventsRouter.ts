@@ -33,7 +33,7 @@ import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageEvent',
-  tags: ['UsageEvents'],
+  tags: ['Usage Events'],
 })
 
 export const usageEventsRouteConfigs = routeConfigs
