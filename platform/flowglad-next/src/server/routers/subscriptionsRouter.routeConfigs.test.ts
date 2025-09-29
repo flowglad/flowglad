@@ -127,7 +127,9 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/test-id/adjust'
       )
-      const result = routeConfig!.mapParams(fullMatch!.slice(1) as any)
+      const result = routeConfig!.mapParams(
+        fullMatch!.slice(1) as any
+      )
       expect(result).toEqual({ id: 'test-id' })
     })
 
@@ -156,7 +158,9 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/test-id/cancel'
       )
-      const result = routeConfig!.mapParams(fullMatch!.slice(1) as any)
+      const result = routeConfig!.mapParams(
+        fullMatch!.slice(1) as any
+      )
       expect(result).toEqual({ id: 'test-id' })
     })
   })
@@ -342,7 +346,9 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/subscription-adjust-123/adjust'
       )
-      const result = routeConfig!.mapParams(fullMatch!.slice(1) as any)
+      const result = routeConfig!.mapParams(
+        fullMatch!.slice(1) as any
+      )
 
       expect(result).toEqual({
         id: 'subscription-adjust-123',
@@ -358,7 +364,9 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/subscription-cancel-456/cancel'
       )
-      const result = routeConfig!.mapParams(fullMatch!.slice(1) as any)
+      const result = routeConfig!.mapParams(
+        fullMatch!.slice(1) as any
+      )
 
       expect(result).toEqual({
         id: 'subscription-cancel-456',
@@ -445,9 +453,12 @@ describe('subscriptionsRouteConfigs', () => {
             ? 'subscriptions/test-id/adjust'
             : 'subscriptions/test-id/cancel'
           const fullMatch = config!.pattern.exec(path)
-          const result = config!.mapParams(fullMatch!.slice(1) as any, {
-            someData: 'value',
-          })
+          const result = config!.mapParams(
+            fullMatch!.slice(1) as any,
+            {
+              someData: 'value',
+            }
+          )
           expect(result).toHaveProperty('id', 'test-id')
         } else {
           // Standard routes use sliced array

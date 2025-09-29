@@ -206,7 +206,7 @@ const clonePricingModelProcedure = protectedProcedure
       method: 'POST',
       path: '/api/v1/pricing-models/{id}/clone',
       summary: 'Clone a PricingModel',
-      tags: ['PricingModels'],
+      tags: ['Pricing Models'],
       protect: true,
     },
   })
@@ -270,7 +270,7 @@ const setupPricingModelProcedure = protectedProcedure
       method: 'POST',
       path: '/api/v1/pricing-models/setup',
       summary: 'Setup a PricingModel',
-      tags: ['PricingModels'],
+      tags: ['Pricing Models'],
       protect: true,
     },
   })

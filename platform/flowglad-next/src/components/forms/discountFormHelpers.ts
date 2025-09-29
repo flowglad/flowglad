@@ -19,7 +19,8 @@ export function normalizeDiscountAmount(
   },
   currency: CurrencyCode
 ): number {
-  const amountType = form.discount.amountType ?? DiscountAmountType.Fixed
+  const amountType =
+    form.discount.amountType ?? DiscountAmountType.Fixed
   if (amountType === DiscountAmountType.Fixed) {
     return rawStringAmountToCountableCurrencyAmount(
       currency,
@@ -81,5 +82,3 @@ export function toEditDiscountInput(
   editDiscountInputSchema.parse(input)
   return input
 }
-
-

@@ -131,12 +131,15 @@ describe('createOrganizationTransaction', () => {
       expect(liveDefaultProduct.organizationId).toBe(organization.id)
       expect(liveDefaultProduct.livemode).toBe(true)
 
-      const liveProductWithPrices = await selectPricesAndProductByProductId(
-        liveDefaultProduct.id,
-        transaction
-      )
+      const liveProductWithPrices =
+        await selectPricesAndProductByProductId(
+          liveDefaultProduct.id,
+          transaction
+        )
       expect(liveProductWithPrices.defaultPrice?.id).toBeDefined()
-      expect(liveProductWithPrices.defaultPrice.name).toBe('Free Plan')
+      expect(liveProductWithPrices.defaultPrice.name).toBe(
+        'Free Plan'
+      )
       expect(liveProductWithPrices.defaultPrice.unitPrice).toBe(0)
       expect(liveProductWithPrices.defaultPrice.livemode).toBe(true)
       expect(liveProductWithPrices.defaultPrice.currency).toBe(
@@ -166,12 +169,15 @@ describe('createOrganizationTransaction', () => {
       expect(testDefaultProduct.organizationId).toBe(organization.id)
       expect(testDefaultProduct.livemode).toBe(false)
 
-      const testProductWithPrices = await selectPricesAndProductByProductId(
-        testDefaultProduct.id,
-        transaction
-      )
+      const testProductWithPrices =
+        await selectPricesAndProductByProductId(
+          testDefaultProduct.id,
+          transaction
+        )
       expect(testProductWithPrices.defaultPrice?.id).toBeDefined()
-      expect(testProductWithPrices.defaultPrice.name).toBe('Free Plan')
+      expect(testProductWithPrices.defaultPrice.name).toBe(
+        'Free Plan'
+      )
       expect(testProductWithPrices.defaultPrice.unitPrice).toBe(0)
       expect(testProductWithPrices.defaultPrice.livemode).toBe(false)
       expect(testProductWithPrices.defaultPrice.currency).toBe(
