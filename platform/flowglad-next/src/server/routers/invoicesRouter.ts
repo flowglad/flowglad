@@ -49,6 +49,7 @@ import {
   selectOrganizationById,
   selectOrganizationAndFirstMemberByOrganizationId,
 } from '@/db/tableMethods/organizationMethods'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
 import { InvoiceStatus, SubscriptionItemType } from '@/types'
 
@@ -165,6 +166,10 @@ const createInvoiceProcedure = protectedProcedure
               organization.id,
               transaction
             )
+
+          const discountInfo =
+            await fetchDiscountInfoForInvoice(invoice)
+
           await sendInvoiceNotificationEmail({
             to: [customer.email],
             invoice,
@@ -172,6 +177,7 @@ const createInvoiceProcedure = protectedProcedure
             organizationName: organization.name,
             organizationLogoUrl: organization.logoURL ?? undefined,
             replyTo: orgAndFirstMember?.user.email,
+            discountInfo,
           })
         }
 

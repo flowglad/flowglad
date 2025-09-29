@@ -1,5 +1,5 @@
 import { CurrencyCode } from '@/types'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
 import core from '@/utils/core'
@@ -17,15 +17,21 @@ import {
 export const OrderReceiptEmail = ({
   invoiceNumber,
   orderDate,
+  invoice,
   lineItems,
   organizationLogoUrl,
   organizationName,
-  currency,
   organizationId,
   customerId,
+  discountInfo,
 }: {
   invoiceNumber: string
   orderDate: string
+  invoice: {
+    subtotal: number | null
+    taxAmount: number | null
+    currency: CurrencyCode
+  }
   organizationLogoUrl?: string
   organizationId: string
   customerId: string
@@ -34,17 +40,28 @@ export const OrderReceiptEmail = ({
     price: number
     quantity: number
   }[]
-  currency: CurrencyCode
   organizationName: string
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+  } | null
 }) => {
-  const totalAmount =
-    stripeCurrencyAmountToHumanReadableCurrencyAmount(
-      currency,
-      lineItems.reduce(
-        (acc, item) => acc + item.price * item.quantity,
-        0
-      )
+  const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
+    calculateInvoiceTotalsFromLineItems(
+      invoice,
+      lineItems,
+      discountInfo
     )
+
+  // Prepare discount info with currency for TotalSection
+  const discountInfoWithCurrency = discountInfo
+    ? {
+        ...discountInfo,
+        currency: invoice.currency,
+      }
+    : null
 
   return (
     <EmailLayout previewText="Thanks for your order!">
@@ -72,11 +89,17 @@ export const OrderReceiptEmail = ({
           name={item.name}
           price={item.price}
           quantity={item.quantity}
-          currency={currency}
+          currency={invoice.currency}
         />
       ))}
 
-      <TotalSection subtotal={totalAmount} total={totalAmount} />
+      <TotalSection
+        originalAmount={originalAmount}
+        subtotal={subtotalAmount}
+        tax={taxAmount}
+        total={totalAmount}
+        discountInfo={discountInfoWithCurrency}
+      />
 
       <Paragraph
         style={{ margin: '30px 0 10px' }}
