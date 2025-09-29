@@ -37,7 +37,6 @@ function UsageMeterActionsMenu({
       icon: <Copy className="h-4 w-4" />,
       handler: () => navigator.clipboard.writeText(usageMeter.id),
     },
-    // TODO: Add delete functionality when backend endpoint is implemented
   ]
 
   return (
