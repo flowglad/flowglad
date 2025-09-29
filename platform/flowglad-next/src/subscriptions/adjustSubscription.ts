@@ -175,37 +175,6 @@ export const syncSubscriptionWithActiveItems = async (
 }
 
 /**
- * Updates the subscription record with information from the primary subscription item
- * to maintain data consistency between the subscriptions and subscription_items tables.
- * This follows the same pattern used in createStandardSubscriptionAndItems.
- * @deprecated Use syncSubscriptionWithActiveItems instead for better primary item selection
- */
-const updateSubscriptionRecord = async (
-  subscriptionId: string,
-  newSubscriptionItems: SubscriptionItem.Record[],
-  currentSubscription: Subscription.StandardRecord,
-  transaction: DbTransaction
-): Promise<Subscription.StandardRecord> => {
-  // Get the primary (first) subscription item for legacy fields
-  const primaryItem = newSubscriptionItems[0]
-  
-  if (!primaryItem) {
-    throw new Error('No subscription items provided for subscription record update')
-  }
-  
-  // Update subscription with primary item's information
-  const subscriptionUpdate: Subscription.Update = {
-    id: subscriptionId,
-    name: primaryItem.name,
-    priceId: primaryItem.priceId,
-    renews: currentSubscription.renews, // Required field for schema validation
-  }
-  
-  const updatedSubscription = await updateSubscription(subscriptionUpdate, transaction)
-  return updatedSubscription as Subscription.StandardRecord
-}
-
-/**
  * This function
  * 1. Creates new subscription items if inputs are provided that do not have an id (meanign they don't exist yet)
  * 2. Updates existing subscription items if inputs are provided that have an id (meaning they already exist)
