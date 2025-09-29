@@ -239,7 +239,8 @@ const OnboardingStatusTable = ({
               onClick={() => {
                 window.open(
                   'https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration',
-                  '_blank'
+                  '_blank',
+                  'noopener,noreferrer'
                 )
               }}
             >
@@ -251,7 +252,8 @@ const OnboardingStatusTable = ({
               onClick={() => {
                 window.open(
                   'https://docs.flowglad.com/quickstart#4-server-setup',
-                  '_blank'
+                  '_blank',
+                  'noopener,noreferrer'
                 )
               }}
             >

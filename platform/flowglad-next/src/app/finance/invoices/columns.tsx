@@ -189,7 +189,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
       const total = row.getValue('total') as number
       const formatted =
         stripeCurrencyAmountToHumanReadableCurrencyAmount(
-          'usd' as CurrencyCode,
+          row.original.invoice.currency,
           total
         )
       return (

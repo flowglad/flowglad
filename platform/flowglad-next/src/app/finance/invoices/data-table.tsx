@@ -230,7 +230,11 @@ export function InvoicesDataTable({
                   // Navigate to invoice details
                   const invoice = row.original.invoice
                   const invoiceUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invoice/view/${invoice.organizationId}/${invoice.id}`
-                  window.open(invoiceUrl, '_blank')
+                  window.open(
+                    invoiceUrl,
+                    '_blank',
+                    'noopener,noreferrer'
+                  )
                 }}
               >
                 {row.getVisibleCells().map((cell) => (

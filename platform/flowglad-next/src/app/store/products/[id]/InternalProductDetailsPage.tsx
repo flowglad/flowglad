@@ -46,7 +46,7 @@ function InternalProductDetailsPage(
     text: productURL,
   })
   const previewProductHandler = () => {
-    window.open(productURL, '_blank')
+    window.open(productURL, '_blank', 'noopener,noreferrer')
   }
 
   const moreMenuItems: PopoverMenuItem[] = [

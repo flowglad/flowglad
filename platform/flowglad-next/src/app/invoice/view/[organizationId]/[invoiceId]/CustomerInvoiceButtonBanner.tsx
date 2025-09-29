@@ -28,7 +28,11 @@ export const CustomerInvoicePayButtonBanner = ({
         {invoice.receiptPdfURL && (
           <Button
             onClick={() => {
-              window.open(invoice.receiptPdfURL!, '_blank')
+              window.open(
+                invoice.receiptPdfURL!,
+                '_blank',
+                'noopener,noreferrer'
+              )
             }}
           >
             Pay via Manual Bank Transfer
@@ -55,7 +59,11 @@ export const CustomerInvoiceDownloadReceiptButtonBanner = ({
       {invoice.pdfURL && (
         <Button
           onClick={() => {
-            window.open(invoice.pdfURL!, '_blank')
+            window.open(
+              invoice.pdfURL!,
+              '_blank',
+              'noopener,noreferrer'
+            )
           }}
         >
           Download invoice
@@ -65,7 +73,11 @@ export const CustomerInvoiceDownloadReceiptButtonBanner = ({
       {invoice.receiptPdfURL && (
         <Button
           onClick={() => {
-            window.open(invoice.receiptPdfURL!, '_blank')
+            window.open(
+              invoice.receiptPdfURL!,
+              '_blank',
+              'noopener,noreferrer'
+            )
           }}
         >
           Download receipt
