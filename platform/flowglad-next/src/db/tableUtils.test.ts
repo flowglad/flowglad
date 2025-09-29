@@ -1009,7 +1009,7 @@ describe('whereClauseFromObject', () => {
         name: '',
         email: undefined,
         active: ''
-      }
+      } as any
       const result = whereClauseFromObject(mockTable, selectConditions)
       expect(result).toBeUndefined()
     })
@@ -1085,20 +1085,20 @@ describe('whereClauseFromObject', () => {
     })
 
     it('should filter undefined and empty strings from arrays', () => {
-      const selectConditions = { tags: ['tag1', undefined, '', 'tag2', null] }
+      const selectConditions = { tags: ['tag1', undefined, '', 'tag2', null] as any }
       const result = whereClauseFromObject(mockTable, selectConditions)
       expect(result).toBeDefined()
     })
 
     it('should handle array with only undefined/empty values', () => {
-      const selectConditions = { tags: [undefined, '', undefined] }
+      const selectConditions = { tags: [undefined, '', undefined] as any }
       const result = whereClauseFromObject(mockTable, selectConditions)
       expect(result).toBeDefined()
     })
 
     it('should handle mixed array types', () => {
       const selectConditions = { 
-        tags: ['string', 123, true, null]
+        tags: ['string', 123, true, null] as any
       }
       const result = whereClauseFromObject(mockTable, selectConditions)
       expect(result).toBeDefined()
@@ -1179,13 +1179,13 @@ describe('whereClauseFromObject', () => {
 
   describe('type coercion and conversion', () => {
     it('should handle string numbers', () => {
-      const selectConditions = { count: '123' }
+      const selectConditions = { count: '123' } as any
       const result = whereClauseFromObject(mockTable, selectConditions)
       expect(result).toBeDefined()
     })
 
     it('should handle string booleans', () => {
-      const selectConditions = { active: 'true' }
+      const selectConditions = { active: 'true' } as any
       const result = whereClauseFromObject(mockTable, selectConditions)
       expect(result).toBeDefined()
     })
@@ -1207,7 +1207,7 @@ describe('whereClauseFromObject', () => {
     it('should handle very deep nested structures safely', () => {
       const selectConditions = {
         metadata: { deep: { nested: { object: 'value' } } }
-      }
+      } as any
       const result = whereClauseFromObject(mockTable, selectConditions)
       expect(result).toBeDefined()
     })
