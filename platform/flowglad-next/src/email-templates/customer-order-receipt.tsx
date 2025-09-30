@@ -1,5 +1,6 @@
-import { CurrencyCode } from '@/types'
-import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
+import { CurrencyCode, DiscountAmountType } from '@/types'
+import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
 import core from '@/utils/core'
@@ -48,20 +49,7 @@ export const OrderReceiptEmail = ({
     discountAmountType: string
   } | null
 }) => {
-  const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
-    calculateInvoiceTotalsFromLineItems(
-      invoice,
-      lineItems,
-      discountInfo
-    )
-
-  // Prepare discount info with currency for TotalSection
-  const discountInfoWithCurrency = discountInfo
-    ? {
-        ...discountInfo,
-        currency: invoice.currency,
-      }
-    : null
+  const totals = calculateInvoiceTotalsWithDiscounts(lineItems, invoice, discountInfo)
 
   return (
     <EmailLayout previewText="Thanks for your order!">
@@ -78,7 +66,7 @@ export const OrderReceiptEmail = ({
           Date: {orderDate}
         </DetailItem>
         <DetailItem dataTestId="payment-amount">
-          Payment: {totalAmount}
+          Payment: {totals.totalAmount}
         </DetailItem>
       </DetailSection>
 
@@ -94,11 +82,11 @@ export const OrderReceiptEmail = ({
       ))}
 
       <TotalSection
-        originalAmount={originalAmount}
-        subtotal={subtotalAmount}
-        tax={taxAmount}
-        total={totalAmount}
-        discountInfo={discountInfoWithCurrency}
+        originalAmount={totals.originalAmount}
+        subtotal={totals.subtotalAmount}
+        tax={totals.taxAmount}
+        total={totals.totalAmount}
+        discountInfo={totals.discountInfoWithCurrency}
       />
 
       <Paragraph
@@ -113,7 +101,6 @@ export const OrderReceiptEmail = ({
           organizationId,
           customerId,
         })}
-        testId="view-order-button"
       >
         View Order →
       </EmailButton>

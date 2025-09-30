@@ -10,6 +10,7 @@ import {
   InvoiceFooter,
   InvoiceTemplateProps,
 } from '@/pdf-generation/invoices'
+import { calculateInvoiceTotalsRaw } from '@/utils/discountHelpers'
 
 export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
   invoice,
@@ -24,9 +25,7 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
   if (!paymentData) {
     throw new Error('No payment data items provided')
   }
-  const subtotal = invoice.subtotal ?? 0
-  const taxAmount = invoice.taxAmount || 0
-  const total = subtotal + taxAmount
+  const totals = calculateInvoiceTotalsRaw(invoiceLineItems, invoice, discountInfo)
   const billingAddress = customer.billingAddress
 
   return (
@@ -101,7 +100,7 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
           )}
           <PaymentInfo
             invoice={invoice}
-            total={total}
+            total={totals.total}
             mode="receipt"
             payment={paymentData.payment}
           />
@@ -110,12 +109,13 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
             currency={invoice.currency}
           />
           <InvoiceTotals
-            subtotal={subtotal}
-            taxAmount={taxAmount}
-            total={total}
+            subtotal={totals.subtotal}
+            taxAmount={totals.taxAmount}
+            total={totals.total}
             currency={invoice.currency}
             mode="receipt"
             payment={paymentData.payment}
+            originalAmount={totals.baseAmount}
             discountInfo={
               discountInfo
                 ? {

@@ -22,6 +22,7 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { paymentMethodSummaryLabel } from '@/utils/paymentMethodHelpers'
 import { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { calculateInvoiceTotalsRaw, calculateDiscountAmountSafe } from '@/utils/discountHelpers'
 import { CurrencyCode } from '@/types'
 
 /**
@@ -444,6 +445,7 @@ interface InvoiceTotalsProps {
     discountAmountType: string
     currency: CurrencyCode
   } | null
+  originalAmount?: number
 }
 
 export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
@@ -454,11 +456,10 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
   mode,
   payment,
   discountInfo,
+  originalAmount,
 }) => {
-  // Calculate the original amount (before discount) if there's a discount
-  const originalAmount = discountInfo
-    ? subtotal + discountInfo.discountAmount
-    : null
+  // Calculate discount amount using shared logic
+  const calculatedDiscountAmount = calculateDiscountAmountSafe(originalAmount || subtotal, discountInfo)
   return (
     <Row data-testid="invoice-totals">
       <Column style={{ width: '60%' }}></Column>
@@ -509,7 +510,7 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
                   -
                   {stripeCurrencyAmountToHumanReadableCurrencyAmount(
                     currency as CurrencyCode,
-                    discountInfo.discountAmount
+                    calculatedDiscountAmount
                   )}
                 </td>
               </tr>
@@ -716,12 +717,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   paymentLink,
   discountInfo,
 }) => {
-  const subtotal = invoiceLineItems.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0
-  )
-  const taxAmount = invoice.taxAmount ?? 0
-  const total = subtotal + taxAmount
+  const totals = calculateInvoiceTotalsRaw(invoiceLineItems, invoice, discountInfo)
   const billingAddress = customer.billingAddress
 
   return (
@@ -794,7 +790,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           )}
           <PaymentInfo
             invoice={invoice}
-            total={total}
+            total={totals.total}
             paymentLink={paymentLink}
             mode="invoice"
           />
@@ -803,11 +799,12 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
             currency={invoice.currency}
           />
           <InvoiceTotals
-            subtotal={subtotal}
-            taxAmount={taxAmount}
-            total={total}
+            subtotal={totals.subtotal}
+            taxAmount={totals.taxAmount}
+            total={totals.total}
             currency={invoice.currency}
             mode="invoice"
+            originalAmount={totals.baseAmount}
             discountInfo={
               discountInfo
                 ? {
