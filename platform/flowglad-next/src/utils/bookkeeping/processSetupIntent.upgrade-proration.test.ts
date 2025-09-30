@@ -382,7 +382,7 @@ describe('Subscription Upgrade with Proration', () => {
         isFreePlan: true,
         currentBillingPeriodStart: billingStart,
         currentBillingPeriodEnd: billingEnd,
-        billingCycleAnchorDate: billingCycleAnchor,
+        billingCycleAnchorDate: billingStart,
       })
 
       // Create checkout session WITH preserve flag
