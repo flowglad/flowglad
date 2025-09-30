@@ -6,7 +6,7 @@ import { CurrencyCode } from '@/types'
 describe('PaymentFailedEmail', () => {
   const mockProps = {
     invoiceNumber: 'INV-123',
-    orderDate: new Date('2024-03-20'),
+    orderDate: new Date('2024-03-20T00:00:00.000Z'),
     invoice: {
       subtotal: 6000, // $60.00 - matches the total of line items
       taxAmount: null,

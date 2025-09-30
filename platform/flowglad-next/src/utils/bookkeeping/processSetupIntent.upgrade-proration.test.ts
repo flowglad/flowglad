@@ -552,7 +552,7 @@ describe('Subscription Upgrade with Proration', () => {
       // Calculate expected minimal proration (about 1 second out of ~30 days)
       const split =
         calculateSplitInBillingPeriodBasedOnAdjustmentDate(
-          new Date('2025-09-01T00:00:01.000Z'), // Fixed upgrade time (1 second after period start)
+          new Date('2025-09-15T00:00:01.000Z'), // Fixed upgrade time (1 second after period start, aligned with mocked clock)
           billingPeriod!
         )
 
@@ -756,7 +756,7 @@ describe('Subscription Upgrade with Proration', () => {
       // Calculate the exact expected proration
       const split =
         calculateSplitInBillingPeriodBasedOnAdjustmentDate(
-          upgradeDate, // upgrade date
+          new Date('2025-09-15T00:00:01.000Z'), // upgrade date aligned with mocked clock
           billingPeriod!
         )
       const expectedProratedAmount = Math.round(
@@ -865,7 +865,7 @@ describe('Subscription Upgrade with Proration', () => {
       // Calculate expected prorated amount
       const split =
         calculateSplitInBillingPeriodBasedOnAdjustmentDate(
-          upgradeDate,
+          new Date('2025-09-15T00:00:01.000Z'), // upgrade date aligned with mocked clock
           billingPeriod!
         )
       const expectedProratedUnitPrice = Math.round(
