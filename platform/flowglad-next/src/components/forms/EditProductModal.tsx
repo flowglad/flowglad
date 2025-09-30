@@ -40,6 +40,12 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     })
   const prices = pricesData?.data
   const { organization } = useAuthenticatedContext()
+
+  // Don't render modal if organization is not loaded yet
+  if (!organization) {
+    return null
+  }
+
   return (
     <FormModal
       isOpen={isOpen}
@@ -51,7 +57,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         price: prices?.[0],
         id: product.id,
         __rawPriceString: countableCurrencyAmountToRawStringAmount(
-          organization!.defaultCurrency,
+          organization.defaultCurrency,
           prices?.[0]?.unitPrice!
         ),
       }}
@@ -59,7 +65,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         let price = input.price
         if (input.price) {
           const unitPrice = rawStringAmountToCountableCurrencyAmount(
-            organization!.defaultCurrency,
+            organization.defaultCurrency,
             input.__rawPriceString!
           )
           price = {

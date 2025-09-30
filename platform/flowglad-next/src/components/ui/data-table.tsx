@@ -96,13 +96,12 @@ export function DataTable<TData, TValue>({
     <div className={cn('flex flex-col', className)}>
       <div
         className={cn(
-          'rounded-xl overflow-hidden',
+          'overflow-hidden',
           'w-full',
           // Responsive horizontal scroll with proper shadows
           'overflow-x-auto scrollbar-hidden',
           // Minimum width to prevent cramping
-          'min-w-0',
-          bordered && 'border'
+          'min-w-0'
         )}
       >
         <div className="w-full">
