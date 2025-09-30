@@ -65,7 +65,6 @@ export const stripeHandlers = [
     // All request path params are provided in the "params"
     // argument of the response resolver.
     const { id } = req.params
-    console.log('----Getting payment intent', id)
     let status = 'succeeded'
     if (typeof id === 'string' && id.includes('___')) {
       status = id.split('___')[1]

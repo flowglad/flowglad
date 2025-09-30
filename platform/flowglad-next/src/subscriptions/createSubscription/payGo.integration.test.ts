@@ -156,6 +156,7 @@ describe('Pay as You Go Workflow E2E', () => {
     if (!subscription) {
       throw new Error('No subscription')
     }
+
     // 1. Expect usage credits and initial billing
     await adminTransaction(async ({ transaction }) => {
       // expect there to be a usageCredit record for the meter and subscription
@@ -167,7 +168,7 @@ describe('Pay as You Go Workflow E2E', () => {
         transaction
       )
 
-      // For non-renewing subscriptions, both Once and EveryBillingPeriod credits are granted initially
+      // For non-renewing subscriptions, Once credits are granted initially
       expect(usageCredits).toHaveLength(1)
       expect(usageCredits[0].usageMeterId).toBe(usageMeter.id)
       expect(usageCredits[0].status).toBe('posted')
@@ -271,8 +272,8 @@ describe('Pay as You Go Workflow E2E', () => {
         1
       )
       /**
-       * Expect the available balance to be 1000 because the usage event was actually redundant
-       * (Started with 1100, used 100 once, redundant usage doesn't consume more)
+       * Expect the available balance to be 0
+       * (Started with 100 credits, used 100 credits)
        */
       expect(
         sub2Prime.experimental?.usageMeterBalances?.[0]
@@ -342,7 +343,7 @@ describe('Pay as You Go Workflow E2E', () => {
     )
 
     await comprehensiveAdminTransaction(async ({ transaction }) => {
-      // 4. Call @processSetupIntentSucceeded with a stubbed setupIntent
+      // 4. Call @processSetupIntentSucceeded with a stubbed paymentIntent
       const paymentIntent: CoreStripePaymentIntent = {
         id: 'si_123',
         status: 'succeeded',
