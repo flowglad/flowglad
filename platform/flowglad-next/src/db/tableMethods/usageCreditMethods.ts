@@ -5,6 +5,7 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createBulkInsertFunction,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import {
   usageCredits,
@@ -55,6 +56,25 @@ export const bulkInsertUsageCredits = createBulkInsertFunction(
   usageCredits,
   config
 )
+
+export const bulkInsertOrDoNothingUsageCredits =
+  createBulkInsertOrDoNothingFunction(usageCredits, config)
+
+export const bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter =
+  async (
+    usageCreditInserts: UsageCredit.Insert[],
+    transaction: DbTransaction
+  ) => {
+    return bulkInsertOrDoNothingUsageCredits(
+      usageCreditInserts,
+      [
+        usageCredits.paymentId,
+        usageCredits.subscriptionId,
+        usageCredits.usageMeterId,
+      ],
+      transaction
+    )
+  }
 
 /**
  * Safely finalizes usage credits for a succeeded payment.
