@@ -233,14 +233,17 @@ const CustomersTable = ({
   const total = data?.total || 0
   return (
     <>
-      <Input
-        value={innerSearch}
-        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-          setInnerSearch(e.target.value)
-        }
-        placeholder="Search"
-        className="mb-4"
-      />
+      <div className="relative mb-4">
+        <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={innerSearch}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setInnerSearch(e.target.value)
+          }
+          placeholder="Search"
+          className="pl-9"
+        />
+      </div>
       <DataTable
         columns={columns}
         data={tableData}
