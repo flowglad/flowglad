@@ -23,10 +23,49 @@ export const stripeHandlers = [
       status: 'processing',
     })
   }),
+  // Some HTTP clients include the explicit :443 port in the URL. Handle that too.
+  http.post(
+    'https://api.stripe.com:443/v1/payment_intents',
+    (req) => {
+      return HttpResponse.json({
+        id: 'pi_mock123',
+        amount: 1000,
+        currency: 'usd',
+        status: 'processing',
+      })
+    }
+  ),
+  // Stripe SDK updates PaymentIntents via POST /v1/payment_intents/:id
+  http.post(
+    'https://api.stripe.com/v1/payment_intents/:id',
+    (req) => {
+      const { id } = req.params
+      return HttpResponse.json({
+        id,
+        amount: 1000,
+        currency: 'usd',
+        status: 'succeeded',
+      })
+    }
+  ),
+  // Port-explicit variant
+  http.post(
+    'https://api.stripe.com:443/v1/payment_intents/:id',
+    (req) => {
+      const { id } = req.params
+      return HttpResponse.json({
+        id,
+        amount: 1000,
+        currency: 'usd',
+        status: 'succeeded',
+      })
+    }
+  ),
   http.get('https://api.stripe.com/v1/payment_intents/:id', (req) => {
     // All request path params are provided in the "params"
     // argument of the response resolver.
     const { id } = req.params
+    console.log('----Getting payment intent', id)
     let status = 'succeeded'
     if (typeof id === 'string' && id.includes('___')) {
       status = id.split('___')[1]

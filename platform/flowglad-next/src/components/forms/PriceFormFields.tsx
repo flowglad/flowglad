@@ -424,4 +424,5 @@ const PriceFormFields = ({
     </div>
   )
 }
+
 export default PriceFormFields
