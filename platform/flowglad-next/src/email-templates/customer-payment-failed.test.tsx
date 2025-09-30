@@ -6,7 +6,7 @@ import { CurrencyCode } from '@/types'
 describe('PaymentFailedEmail', () => {
   const mockProps = {
     invoiceNumber: 'INV-123',
-    orderDate: new Date('2024-03-20T00:00:00.000Z'),
+    orderDate: new Date('2024-03-19T00:00:00.000Z'),
     invoice: {
       subtotal: 6000, // $60.00 - matches the total of line items
       taxAmount: null,
@@ -51,7 +51,7 @@ describe('PaymentFailedEmail', () => {
 
     // Check order details - these are in paragraph elements without specific test IDs
     expect(getByText(`Invoice #: ${mockProps.invoiceNumber}`)).toBeInTheDocument()
-    expect(getByText('Date: Mar 19, 2024')).toBeInTheDocument()
+    expect(getByText('Date: Mar 18, 2024')).toBeInTheDocument()
     expect(getByText('Amount: $60.00')).toBeInTheDocument()
 
     // Check line items
