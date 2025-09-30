@@ -856,6 +856,34 @@ export const getStripeTaxCalculation = async (
   return stripe(livemode).tax.calculations.retrieve(id)
 }
 
+const deriveFullyOnboardedStatusFromStripeAccount = (
+  account: Stripe.Account
+): boolean => {
+  if (!account.tos_acceptance?.date) {
+    return false
+  }
+  /**
+   * MOR accounts use the recipient service agreement,
+   * which doesn't allow them to have card payments.
+   */
+  if (account.tos_acceptance?.service_agreement === 'recipient') {
+    return (
+      account.capabilities?.transfers === 'active' &&
+      account.payouts_enabled
+    )
+  }
+  /**
+   * Platform / self-settlement accounts can have
+   * card payments, and their accounts
+   * have no tos_acceptance.service_agreement property
+   */
+  return (
+    account.capabilities?.card_payments === 'active' &&
+    account.capabilities?.transfers === 'active' &&
+    account.payouts_enabled
+  )
+}
+
 export const getConnectedAccountOnboardingStatus = async (
   accountId: string,
   livemode: boolean
@@ -869,9 +897,7 @@ export const getConnectedAccountOnboardingStatus = async (
     requirements?.pending_verification || []
   const eventuallyDueFields = requirements?.eventually_due || []
   const isFullyOnboarded =
-    account.capabilities?.card_payments === 'active' &&
-    account.capabilities?.transfers === 'active' &&
-    account.tos_acceptance?.date
+    deriveFullyOnboardedStatusFromStripeAccount(account)
   const payoutsEnabled = account.capabilities?.transfers === 'active'
   let onboardingStatus = BusinessOnboardingStatus.FullyOnboarded
   if (!isFullyOnboarded) {
