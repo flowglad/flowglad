@@ -144,7 +144,6 @@ const ApiKeysTable = ({
               columns={columns}
               data={tableData}
               className="bg-background"
-              bordered
               pagination={{
                 pageIndex,
                 pageSize,

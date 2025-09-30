@@ -183,7 +183,6 @@ const PurchasesTable = ({
         columns={columns}
         data={tableData}
         className="bg-background w-full"
-        bordered
         pagination={{
           pageIndex,
           pageSize,

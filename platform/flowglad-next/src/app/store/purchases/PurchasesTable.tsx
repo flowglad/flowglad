@@ -72,7 +72,6 @@ const PurchasesTable = ({
       columns={columns}
       data={data}
       className="bg-background"
-      bordered
     />
   )
 }

@@ -248,7 +248,6 @@ const CustomersTable = ({
         columns={columns}
         data={tableData}
         className="bg-background"
-        bordered
         pagination={{
           pageIndex,
           pageSize,

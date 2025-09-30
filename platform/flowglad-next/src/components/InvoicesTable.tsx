@@ -250,7 +250,6 @@ const InvoicesTable = ({
         columns={columns}
         data={tableData}
         className="w-full rounded-lg"
-        bordered
         pagination={{
           pageIndex,
           pageSize,
