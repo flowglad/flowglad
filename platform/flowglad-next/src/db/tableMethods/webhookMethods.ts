@@ -72,5 +72,7 @@ export const selectWebhooksTableRowData =
       return data.map((webhook) => ({
         webhook,
       }))
-    }
+    },
+    // Searchable columns for webhooks table
+    [webhooks.name, webhooks.url]
   )

@@ -74,5 +74,7 @@ export const selectDiscountsTableRowData =
     discounts,
     config,
     discountsTableRowDataSchema,
-    enrichmentFunction
+    enrichmentFunction,
+    // Searchable columns for discounts table
+    [discounts.name, discounts.code]
   )

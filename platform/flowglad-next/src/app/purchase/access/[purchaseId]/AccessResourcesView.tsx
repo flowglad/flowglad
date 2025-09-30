@@ -71,7 +71,7 @@ const AccessResourcesView = ({
             buttonIcon={<SquareArrowOutUpRight size={16} />}
             buttonOnClick={() => {
               links.forEach((link) => {
-                window.open(link.url, '_blank')
+                window.open(link.url, '_blank', 'noopener,noreferrer')
               })
             }}
           />

@@ -222,7 +222,9 @@ export const selectPricingModelsTableRows =
         productsCount:
           productsByPricingModelId.get(pricingModel.id) || 0,
       }))
-    }
+    },
+    // Searchable columns for pricing models table
+    [pricingModels.name]
   )
 
 export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =

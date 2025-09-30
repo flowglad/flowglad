@@ -4,7 +4,6 @@ import {
   customersInsertSchema,
   customersSelectSchema,
   customersUpdateSchema,
-  InferredCustomerStatus,
   type CustomerTableRowData,
   customersPaginatedTableRowDataSchema,
   customers,
@@ -138,21 +137,12 @@ export const selectCustomerAndCustomerTableRows = async (
 
   return customerAndCustomer.map((row) => {
     const data = dataByCustomerId.get(`${row.customer.id}`)
-    let status: InferredCustomerStatus = InferredCustomerStatus.Active
-    if (row.customer.archived) {
-      status = InferredCustomerStatus.Archived
-    } else if (!data?.earliestPurchase) {
-      status = InferredCustomerStatus.Pending
-    }
-    // TODO: else / if for customers with purchases that have ended
-    // TODO: else / if for customers with unpaid invoices
     return {
       customer: customersSelectSchema.parse(row.customer),
       totalSpend: dataByCustomerId.get(`${row.customer.id}`)
         ?.totalSpend,
       payments: dataByCustomerId.get(`${row.customer.id}`)
         ?.totalInvoices,
-      status,
     }
   })
 }
@@ -274,14 +264,6 @@ export const selectCustomersTableRowData = async (
 
   return customerAndCustomer.map((row) => {
     const data = dataByCustomerId.get(`${row.customer.id}`)
-    let status: InferredCustomerStatus = InferredCustomerStatus.Active
-    if (row.customer.archived) {
-      status = InferredCustomerStatus.Archived
-    } else if (!data?.earliestPurchase) {
-      status = InferredCustomerStatus.Pending
-    }
-    // TODO: else / if for customers with purchases that have ended
-    // TODO: else / if for customers with unpaid invoices
     return {
       customer: customersSelectSchema.parse(row.customer),
       totalSpend: Number(
@@ -290,7 +272,6 @@ export const selectCustomersTableRowData = async (
       payments: Number(
         dataByCustomerId.get(`${row.customer.id}`)?.totalInvoices ?? 0
       ),
-      status,
     }
   })
 }
@@ -392,15 +373,6 @@ export const selectCustomersCursorPaginatedWithTableRowData =
 
       const customersWithTableRowData = customersResult.map((row) => {
         const data = dataByCustomerId.get(`${row.id}`)
-        let status: InferredCustomerStatus =
-          InferredCustomerStatus.Active
-        if (row.archived) {
-          status = InferredCustomerStatus.Archived
-        } else if (!data?.earliestPurchase) {
-          status = InferredCustomerStatus.Pending
-        }
-        // TODO: else / if for customers with purchases that have ended
-        // TODO: else / if for customers with unpaid invoices
         return {
           customer: customersSelectSchema.parse(row),
           totalSpend: Number(
@@ -409,7 +381,6 @@ export const selectCustomersCursorPaginatedWithTableRowData =
           payments: Number(
             dataByCustomerId.get(`${row.id}`)?.totalInvoices ?? 0
           ),
-          status,
         }
       })
       return customersWithTableRowData

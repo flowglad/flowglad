@@ -553,23 +553,14 @@ const MultipleSelector = React.forwardRef<
         >
           <div
             className={cn(
-              'flex items-center w-full rounded-2xl border text-sm text-foreground',
-              'transition-all',
-              'min-h-10 h-auto',
-              'overflow-hidden',
-              'px-1 py-2',
+              'flex items-center w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground transition-colors min-h-10 h-auto overflow-hidden',
               {
-                [disabled ? 'bg-muted' : 'bg-background']: true,
-                'hover:border-outline': !disabled && !resolvedError,
-                'focus-within:danger-focus border-danger hover:border-danger':
+                'focus-within:outline-none focus-within:ring-2 focus-within:ring-foreground/20 focus-within:border-foreground cursor-text':
+                  !disabled && !resolvedError,
+                'bg-muted border-input opacity-50 cursor-not-allowed pointer-events-none':
+                  disabled,
+                'border-destructive focus-within:border-destructive cursor-text':
                   resolvedError && !disabled,
-                'focus-within:primary-focus focus-within:border-border-primary':
-                  !resolvedError && !disabled,
-                'border-danger': resolvedError && !disabled,
-                'border-border': !resolvedError && !disabled,
-                'border-border-disabled text-on-disabled': disabled,
-                'pointer-events-none': disabled,
-                'cursor-text': !disabled,
               },
               className
             )}

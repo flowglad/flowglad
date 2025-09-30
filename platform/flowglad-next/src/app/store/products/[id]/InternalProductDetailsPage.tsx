@@ -14,9 +14,8 @@ import { Plus } from 'lucide-react'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
 import { TableHeader } from '@/components/ui/table-header'
-import PricesTable from './PricesTable'
+import { PricesDataTable } from './prices/data-table'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
-import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import PopoverMenu, {
   PopoverMenuItem,
 } from '@/components/PopoverMenu'
@@ -47,7 +46,7 @@ function InternalProductDetailsPage(
     text: productURL,
   })
   const previewProductHandler = () => {
-    window.open(productURL, '_blank')
+    window.open(productURL, '_blank', 'noopener,noreferrer')
   }
 
   const moreMenuItems: PopoverMenuItem[] = [
@@ -128,7 +127,7 @@ function InternalProductDetailsPage(
               : 'Product must be selected'
           }
         />
-        <PricesTable
+        <PricesDataTable
           productId={product.id}
           filters={{
             productId: product.id,

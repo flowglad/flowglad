@@ -239,7 +239,9 @@ export const selectProductsCursorPaginated =
         prices: pricesByProductId[product.id] ?? [],
         pricingModel: pricingModelsById[product.pricingModelId]?.[0],
       }))
-    }
+    },
+    // Searchable columns for products table
+    [products.name, products.description, products.slug]
   )
 
 export const selectProductPriceAndFeaturesByProductId = async (

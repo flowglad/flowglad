@@ -122,7 +122,11 @@ export const FilePostPurchaseAssetRow = ({
               variant="ghost"
               size="sm"
               onClick={() => {
-                window.open(file.cdnUrl, '_blank')
+                window.open(
+                  file.cdnUrl,
+                  '_blank',
+                  'noopener,noreferrer'
+                )
               }}
             >
               {downloadIcon}
@@ -178,7 +182,9 @@ export const LinkPostPurchaseAssetRow = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.open(link.url, '_blank')}
+              onClick={() =>
+                window.open(link.url, '_blank', 'noopener,noreferrer')
+              }
             >
               <SquareArrowOutUpRight className="w-4 h-4 mr-2" />
               Open

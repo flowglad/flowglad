@@ -3,18 +3,18 @@ import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import { UsageEvent } from '@/db/schema/usageEvents'
-import PurchasesTable from './PurchasesTable'
-import UsageEventsTable from './UsageEventsTable'
-import InvoicesTable from '@/components/InvoicesTable'
+import { PurchasesDataTable } from './purchases/data-table'
+import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
+import { UsageEventsDataTable } from './usage-events/data-table'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
+import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
 import { TableHeader } from '@/components/ui/table-header'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 // import { useState } from 'react'
-import PaymentsTable from '@/app/finance/payments/PaymentsTable'
+import { PaymentsDataTable } from '@/app/finance/payments/data-table'
 import { DetailLabel } from '@/components/DetailLabel'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
@@ -157,7 +157,7 @@ export const CustomerBillingSubPage = ({
           />
           <div className="w-full flex flex-col gap-5 pb-20">
             <TableHeader title="Subscriptions" noButtons />
-            <SubscriptionsTable
+            <SubscriptionsDataTable
               filters={{
                 customerId: customer.id,
               }}
@@ -169,21 +169,25 @@ export const CustomerBillingSubPage = ({
               // buttonIcon={<Plus size={16} />}
               // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
             />
-            <InvoicesTable customer={customer} />
+            <InvoicesDataTable
+              filters={{
+                customerId: customer.id,
+              }}
+            />
             <TableHeader title="Payments" noButtons />
-            <PaymentsTable
+            <PaymentsDataTable
               filters={{
                 customerId: customer.id,
               }}
             />
             <TableHeader title="Purchases" noButtons />
-            <PurchasesTable
+            <PurchasesDataTable
               filters={{
                 customerId: customer.id,
               }}
             />
             <TableHeader title="Usage Events" noButtons />
-            <UsageEventsTable
+            <UsageEventsDataTable
               filters={{
                 customerId: customer.id,
               }}

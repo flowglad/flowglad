@@ -43,7 +43,11 @@ function InternalCustomerDetailsScreen({
       label: 'Email customer',
       handler: () => {
         if (customer.email) {
-          window.open(`mailto:${customer.email}`)
+          window.open(
+            `mailto:${customer.email}`,
+            undefined,
+            'noopener,noreferrer'
+          )
         }
       },
     },

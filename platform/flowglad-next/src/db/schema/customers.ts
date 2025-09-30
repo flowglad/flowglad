@@ -240,19 +240,10 @@ export namespace Customer {
   export type Where = SelectConditions<typeof customers>
 }
 
-export enum InferredCustomerStatus {
-  Active = 'active',
-  Archived = 'archived',
-  Pending = 'pending',
-  Concluded = 'concluded',
-  PastDue = 'past_due',
-}
-
 export interface CustomerTableRowData {
   customer: Customer.ClientRecord
   totalSpend?: number
   payments?: number
-  status: InferredCustomerStatus
 }
 
 export const requestBillingPortalLinkSchema = z.object({
@@ -282,7 +273,6 @@ export const customersPaginatedTableRowDataSchema = z.object({
   customer: customerClientSelectSchema,
   totalSpend: z.number().optional(),
   payments: z.number().optional(),
-  status: z.nativeEnum(InferredCustomerStatus),
 })
 
 export const customersPaginatedTableRowOutputSchema =

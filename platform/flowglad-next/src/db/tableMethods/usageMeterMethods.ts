@@ -116,5 +116,7 @@ export const selectUsageMetersCursorPaginated =
           },
         }
       })
-    }
+    },
+    // Searchable columns for usage meters table
+    [usageMeters.name, usageMeters.slug]
   )

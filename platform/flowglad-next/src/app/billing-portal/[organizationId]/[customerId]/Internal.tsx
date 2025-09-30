@@ -138,7 +138,8 @@ function BillingPortalPage() {
         `/invoice/view/${organizationId}/${invoiceId}`,
         process.env.NEXT_PUBLIC_APP_URL!
       ),
-      '_blank'
+      '_blank',
+      'noopener,noreferrer'
     )
   }
 

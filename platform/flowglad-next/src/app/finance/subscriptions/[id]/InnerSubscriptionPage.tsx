@@ -4,9 +4,9 @@ import InternalPageContainer from '@/components/InternalPageContainer'
 import { PageHeader } from '@/components/ui/page-header'
 import { RichSubscription } from '@/subscriptions/schemas'
 import { TableHeader } from '@/components/ui/table-header'
-import PaymentsTable from '../../payments/PaymentsTable'
+import { PaymentsDataTable } from '../../payments/data-table'
 import { useAuthContext } from '@/contexts/authContext'
-import SubscriptionItemsTable from './SubscriptionItemsTable'
+import { SubscriptionItemsDataTable } from './data-table'
 import SubscriptionStatusBadge from '../SubscriptionStatusBadge'
 import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -14,7 +14,7 @@ import { CardPaymentMethodLabel } from '@/components/PaymentMethodLabel'
 import { PaymentMethodType } from '@/types'
 import { Label } from '@/components/ui/label'
 
-import InvoicesTable from '@/components/InvoicesTable'
+import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -39,7 +39,9 @@ const InnerSubscriptionPage = ({
                 className="flex flex-row items-center gap-2"
               />
             </div>
-            <SubscriptionStatusBadge status={subscription.status} />
+            <div className="w-fit">
+              <SubscriptionStatusBadge status={subscription.status} />
+            </div>
           </div>
         </div>
         <TableHeader title="Details" noButtons />
@@ -72,15 +74,15 @@ const InnerSubscriptionPage = ({
           </div>
         </div>
         <TableHeader title="Items" noButtons />
-        <SubscriptionItemsTable
+        <SubscriptionItemsDataTable
           subscriptionItems={subscription.subscriptionItems}
         />
         <TableHeader title="Invoices" noButtons />
-        <InvoicesTable
+        <InvoicesDataTable
           filters={{ subscriptionId: subscription.id }}
         />
         <TableHeader title="Payments" noButtons />
-        <PaymentsTable
+        <PaymentsDataTable
           filters={{ subscriptionId: subscription.id }}
         />
       </div>

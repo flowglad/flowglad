@@ -87,7 +87,9 @@ export const selectApiKeysTableRowData =
     apiKeys,
     config,
     apiKeyWithOrganizationSchema,
-    enrichApiKeysWithOrganizations
+    enrichApiKeysWithOrganizations,
+    // Searchable columns for api keys table
+    [apiKeys.name, apiKeys.unkeyId]
   )
 
 export const safelyFilterExpiredBillingPortalApiKeys = (

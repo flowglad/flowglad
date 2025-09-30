@@ -244,7 +244,9 @@ export const selectSubscriptionsTableRowData =
           customer: customerClientSelectSchema.parse(customer),
         }
       })
-    }
+    },
+    // Searchable columns for subscriptions table
+    [subscriptions.name, subscriptions.externalId]
   )
 
 export const selectSubscriptionsPaginated =
