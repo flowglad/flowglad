@@ -4,9 +4,12 @@ import { PaymentFailedEmail } from './customer-payment-failed'
 import { CurrencyCode } from '@/types'
 
 describe('PaymentFailedEmail', () => {
+  // Use a fixed date to avoid timezone issues
+  const testDate = new Date('2024-03-19T12:00:00.000Z') // Noon UTC to avoid timezone edge cases
+  
   const mockProps = {
     invoiceNumber: 'INV-123',
-    orderDate: new Date('2024-03-19T00:00:00.000Z'),
+    orderDate: testDate,
     invoice: {
       subtotal: 6000, // $60.00 - matches the total of line items
       taxAmount: null,
@@ -51,7 +54,8 @@ describe('PaymentFailedEmail', () => {
 
     // Check order details - these are in paragraph elements without specific test IDs
     expect(getByText(`Invoice #: ${mockProps.invoiceNumber}`)).toBeInTheDocument()
-    expect(getByText('Date: Mar 18, 2024')).toBeInTheDocument()
+    // Use dynamic date formatting instead of hardcoded dates
+    expect(getByText(new RegExp(`Date: ${testDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`))).toBeInTheDocument()
     expect(getByText('Amount: $60.00')).toBeInTheDocument()
 
     // Check line items
@@ -245,9 +249,10 @@ describe('PaymentFailedEmail', () => {
 
   describe('retry scenarios', () => {
     it('should show retry message when retryDate is provided', () => {
+      const retryDate = new Date('2024-03-20T12:00:00.000Z') // Noon UTC to avoid timezone edge cases
       const propsWithRetry = {
         ...mockProps,
-        retryDate: new Date('2024-03-21'),
+        retryDate,
       }
 
       const { getByTestId, getByText } = render(
@@ -255,7 +260,8 @@ describe('PaymentFailedEmail', () => {
       )
 
       expect(getByText(/We will retry on/)).toBeInTheDocument()
-      expect(getByText(/Mar 20, 2024/)).toBeInTheDocument()
+      // Use dynamic date formatting instead of hardcoded dates
+      expect(getByText(new RegExp(retryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })))).toBeInTheDocument()
       expect(getByText(/with the same payment method/)).toBeInTheDocument()
     })
 
