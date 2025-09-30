@@ -52,7 +52,7 @@ export const processCreditGrantRecognizedLedgerCommand = async (
   )
   if (!ledgerAccount) {
     throw new Error(
-      'Failed to select ledger account for PromoCreditGranted command'
+      'Failed to select ledger account for Credit Grant Recognized command'
     )
   }
   const ledgerEntryInput: LedgerEntry.CreditGrantRecognizedInsert = {

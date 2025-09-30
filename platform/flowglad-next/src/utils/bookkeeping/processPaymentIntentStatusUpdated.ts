@@ -6,6 +6,12 @@ import {
   FlowgladEventType,
   EventNoun,
   PurchaseStatus,
+  FeatureType,
+  UsageCreditStatus,
+  UsageCreditType,
+  UsageCreditSourceReferenceType,
+  LedgerTransactionType,
+  PriceType,
 } from '@/types'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { CountryCode } from '@/types'
@@ -36,7 +42,10 @@ import {
   commitPaymentCanceledEvent,
   commitPaymentSucceededEvent,
 } from '../events'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import {
+  selectCurrentSubscriptionForCustomer,
+  selectSubscriptionById,
+} from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
@@ -49,6 +58,18 @@ import {
 } from '@/utils/eventHelpers'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectProductPriceAndFeaturesByProductId } from '@/db/tableMethods/productMethods'
+import {
+  CreditGrantRecognizedLedgerCommand,
+  LedgerCommand,
+} from '@/db/ledgerManager/ledgerManagerTypes'
+import { UsageCredit } from '@/db/schema/usageCredits'
+import {
+  bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter,
+  insertUsageCredit,
+} from '@/db/tableMethods/usageCreditMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
 export const chargeStatusToPaymentStatus = (
   chargeStatus: Stripe.Charge.Status
@@ -328,6 +349,92 @@ export const updatePaymentToReflectLatestChargeStatus = async (
   return updatedPayment
 }
 
+export type CoreStripePaymentIntent = Pick<
+  Stripe.PaymentIntent,
+  'id' | 'metadata' | 'latest_charge' | 'status'
+>
+
+/**
+ * A slightly odd method that applies usage credits for a single payment checkout session.
+ * It's meant for pay go scenarios where the customer is topping up a specific usage meter.
+ * - It only applies to payments from checkout sessions that are explictly associated with a single payment price
+ * - It only applies if the customer has an active subscription (which, by default, they should due to free plans)
+ * - It only applies if the associated product has usage credits as features associated with it
+ * - It only applies the first usage credit feature associated with the product (this will create issues if there are somehow multiple usage credit features associated with the product - due to the way ledger commands only handle single usage credit grants.)
+ *
+ * @param params
+ * @param transaction
+ * @returns
+ */
+export const ledgerCommandForPaymentSucceeded = async (
+  params: { priceId: string; payment: Payment.Record },
+  transaction: DbTransaction
+): Promise<CreditGrantRecognizedLedgerCommand | undefined> => {
+  const price = await selectPriceById(params.priceId, transaction)
+  if (price.type !== PriceType.SinglePayment) {
+    return undefined
+  }
+  const { features } = await selectProductPriceAndFeaturesByProductId(
+    price.productId,
+    transaction
+  )
+  const usageCreditFeature = features.find(
+    (feature) => feature.type === FeatureType.UsageCreditGrant
+  )
+
+  if (!usageCreditFeature) {
+    return undefined
+  }
+
+  const subscription = await selectCurrentSubscriptionForCustomer(
+    params.payment.customerId,
+    transaction
+  )
+  if (!subscription) {
+    return undefined
+  }
+  const { payment } = params
+  const usageCreditInsert: UsageCredit.Insert = {
+    issuedAmount: usageCreditFeature.amount,
+    organizationId: subscription.organizationId,
+    usageMeterId: usageCreditFeature.usageMeterId,
+    creditType: UsageCreditType.Payment,
+    status: UsageCreditStatus.Posted,
+    subscriptionId: subscription.id,
+    livemode: subscription.livemode,
+    sourceReferenceId: payment.invoiceId,
+    billingPeriodId: null,
+    paymentId: payment.id,
+    issuedAt: new Date(),
+    expiresAt: null,
+    sourceReferenceType:
+      UsageCreditSourceReferenceType.InvoiceSettlement,
+    metadata: {},
+    notes: null,
+  }
+  const [usageCredit] =
+    await bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter(
+      [usageCreditInsert],
+      transaction
+    )
+  /**
+   * If the usage credit was not inserted because it already exists,
+   * return undefined
+   */
+  if (!usageCredit) {
+    return undefined
+  }
+  return {
+    type: LedgerTransactionType.CreditGrantRecognized,
+    payload: {
+      usageCredit,
+    },
+    organizationId: subscription.organizationId,
+    livemode: subscription.livemode,
+    subscriptionId: subscription.id,
+  }
+}
+
 /**
  * If the payment has already been marked succeeded, return.
  * Otherwise, we need to create a payment record and mark it succeeded.
@@ -336,10 +443,12 @@ export const updatePaymentToReflectLatestChargeStatus = async (
  * @returns
  */
 export const processPaymentIntentStatusUpdated = async (
-  paymentIntent: Stripe.PaymentIntent,
+  paymentIntent: CoreStripePaymentIntent,
   transaction: DbTransaction
 ): Promise<TransactionOutput<{ payment: Payment.Record }>> => {
-  const metadata = paymentIntent.metadata
+  const metadata = stripeIntentMetadataSchema.parse(
+    paymentIntent.metadata
+  )
   if (!metadata) {
     throw new Error(
       `No metadata found for payment intent ${paymentIntent.id}`
@@ -379,6 +488,7 @@ export const processPaymentIntentStatusUpdated = async (
   )
   const timestamp = new Date()
   const eventInserts: Event.Insert[] = []
+  let ledgerCommand: LedgerCommand | undefined
   if (paymentIntent.status === 'succeeded') {
     eventInserts.push({
       type: FlowgladEventType.PaymentSucceeded,
@@ -398,6 +508,21 @@ export const processPaymentIntentStatusUpdated = async (
       metadata: {},
       processedAt: null,
     })
+    if (metadata.type === IntentMetadataType.CheckoutSession) {
+      const checkoutSession = await selectCheckoutSessionById(
+        metadata.checkoutSessionId,
+        transaction
+      )
+      if (checkoutSession.priceId) {
+        ledgerCommand = await ledgerCommandForPaymentSucceeded(
+          {
+            priceId: checkoutSession.priceId,
+            payment,
+          },
+          transaction
+        )
+      }
+    }
   } else if (paymentIntent.status === 'canceled') {
     eventInserts.push({
       type: FlowgladEventType.PaymentFailed,
@@ -430,5 +555,9 @@ export const processPaymentIntentStatusUpdated = async (
       processedAt: null,
     })
   }
-  return { result: { payment }, eventsToInsert: eventInserts }
+  return {
+    result: { payment },
+    eventsToInsert: eventInserts,
+    ledgerCommand,
+  }
 }
