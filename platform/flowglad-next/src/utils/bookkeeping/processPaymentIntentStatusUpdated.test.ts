@@ -67,7 +67,10 @@ import core from '../core'
 import { vi } from 'vitest'
 import Stripe from 'stripe'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
-import { selectUsageCreditById } from '@/db/tableMethods/usageCreditMethods'
+import {
+  selectUsageCreditById,
+  selectUsageCredits,
+} from '@/db/tableMethods/usageCreditMethods'
 
 // Mock helper functions
 const createMockStripeCharge = (
@@ -193,7 +196,7 @@ vi.mock('../stripe', async () => {
   }
 })
 
-describe('ledgerCommandForPaymentSucceeded (planning stubs)', () => {
+describe('ledgerCommandForPaymentSucceeded', () => {
   // Shared globals for setup reused across tests
   let organization: Organization.Record
   let product: Product.Record
@@ -468,6 +471,49 @@ describe('ledgerCommandForPaymentSucceeded (planning stubs)', () => {
     )
     expect(reselected).toBeDefined()
     expect(reselected!.id).toBe(command!.payload.usageCredit.id)
+  })
+
+  it('is idempotent: does not re-insert UsageCredit when called twice for same payment', async () => {
+    await setupTestFeaturesAndProductFeatures({
+      organizationId: organization.id,
+      productId: product.id,
+      livemode: true,
+      featureSpecs: [
+        {
+          name: 'UC Grant',
+          type: FeatureType.UsageCreditGrant,
+          amount: 321,
+          usageMeterName: 'UM-UC',
+        },
+      ],
+    })
+
+    // First call should create the usage credit
+    await adminTransaction(async ({ transaction }) => {
+      return ledgerCommandForPaymentSucceeded(
+        { priceId: singlePaymentPrice.id, payment },
+        transaction
+      )
+    })
+
+    // Second call should no-op due to unique index and bulkInsertOrDoNothing
+    const secondLedgerCommand = await adminTransaction(
+      async ({ transaction }) => {
+        return ledgerCommandForPaymentSucceeded(
+          { priceId: singlePaymentPrice.id, payment },
+          transaction
+        )
+      }
+    )
+    expect(secondLedgerCommand).toBeUndefined()
+
+    // Assert only one usage credit exists for this payment
+    const credits = await adminTransaction(async ({ transaction }) =>
+      selectUsageCredits({ paymentId: payment.id }, transaction)
+    )
+    expect(credits.length).toBe(1)
+    expect(credits[0].issuedAmount).toBe(321)
+    expect(credits[0].paymentId).toBe(payment.id)
   })
 })
 

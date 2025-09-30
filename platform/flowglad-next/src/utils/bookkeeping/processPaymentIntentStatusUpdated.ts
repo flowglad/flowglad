@@ -65,7 +65,10 @@ import {
   LedgerCommand,
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import { UsageCredit } from '@/db/schema/usageCredits'
-import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
+import {
+  bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter,
+  insertUsageCredit,
+} from '@/db/tableMethods/usageCreditMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
 export const chargeStatusToPaymentStatus = (
@@ -405,10 +408,18 @@ export const ledgerCommandForPaymentSucceeded = async (
     metadata: {},
     notes: null,
   }
-  const usageCredit = await insertUsageCredit(
-    usageCreditInsert,
-    transaction
-  )
+  const [usageCredit] =
+    await bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter(
+      [usageCreditInsert],
+      transaction
+    )
+  /**
+   * If the usage credit was not inserted because it already exists,
+   * return undefined
+   */
+  if (!usageCredit) {
+    return undefined
+  }
   return {
     type: LedgerTransactionType.CreditGrantRecognized,
     payload: {
