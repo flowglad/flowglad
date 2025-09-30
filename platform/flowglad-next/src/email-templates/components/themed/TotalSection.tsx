@@ -1,6 +1,8 @@
 import { Hr, Section } from '@react-email/components'
 import * as React from 'react'
 import { DetailItem } from './DetailItem'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { CurrencyCode } from '@/types'
 
 const hr = {
   borderColor: '#cccccc',
@@ -12,21 +14,64 @@ const totalSection = {
 }
 
 export const TotalSection = ({
+  originalAmount,
   subtotal,
   total,
-  showSubtotal = true,
   totalLabelText = 'Total',
+  tax,
+  discountInfo,
 }: {
+  originalAmount?: string
   subtotal: string
   total: string
-  showSubtotal?: boolean
   totalLabelText?: string
+  tax?: string | null
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+    currency: CurrencyCode
+  } | null
 }) => {
   return (
     <>
       <Hr style={hr} data-testid="total-divider" />
       <Section style={totalSection}>
-        {showSubtotal && (
+        {/* Show original amount and discount whenever there's discount info */}
+        {discountInfo && (
+          <>
+            <DetailItem
+              dataTestId="original-amount-label"
+              style={{ fontWeight: 'bold' }}
+            >
+              Amount
+            </DetailItem>
+            <DetailItem dataTestId="original-amount">
+              {originalAmount}
+            </DetailItem>
+
+            <DetailItem
+              dataTestId="discount-label"
+              style={{ fontWeight: 'bold' }}
+            >
+              Discount ({discountInfo.discountCode})
+            </DetailItem>
+            <DetailItem
+              dataTestId="discount-amount"
+              style={{ color: '#22c55e' }}
+            >
+              -
+              {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                discountInfo.currency as any,
+                discountInfo.discountAmount
+              )}
+            </DetailItem>
+          </>
+        )}
+
+        {/* Show subtotal and tax whenever it exists */}
+        {tax && (
           <>
             <DetailItem
               dataTestId="subtotal-label"
@@ -37,8 +82,18 @@ export const TotalSection = ({
             <DetailItem dataTestId="subtotal-amount">
               {subtotal}
             </DetailItem>
+
+            <DetailItem
+              dataTestId="tax-label"
+              style={{ fontWeight: 'bold' }}
+            >
+              Tax
+            </DetailItem>
+            <DetailItem dataTestId="tax-amount">{tax}</DetailItem>
           </>
         )}
+
+        {/* Always show total */}
         <DetailItem
           dataTestId="total-label"
           style={{ fontWeight: 'bold' }}

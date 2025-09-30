@@ -5,6 +5,7 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { notFound } from 'next/navigation'
 import { InvoiceTemplateProps } from '@/pdf-generation/invoices'
 import { selectPaymentsAndPaymentMethodsByPaymentsWhere } from '@/db/tableMethods/paymentMethods'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 
 export const CustomerFacingInvoicePage = (
   InnerComponent: React.FC<InvoiceTemplateProps>
@@ -38,12 +39,18 @@ export const CustomerFacingInvoicePage = (
           { invoiceId: invoiceId },
           transaction
         )
+
+      // Fetch discount information if there's a billing period
+      const invoice = invoicesWithLineItems[0].invoice
+      const discountInfo = await fetchDiscountInfoForInvoice(invoice)
+
       return {
-        invoice: invoicesWithLineItems[0].invoice,
+        invoice: invoice,
         invoiceLineItems: invoicesWithLineItems[0].invoiceLineItems,
         customer: customer,
         organization: organization,
         payments,
+        discountInfo,
       }
     })
 
@@ -56,6 +63,7 @@ export const CustomerFacingInvoicePage = (
       customer,
       organization,
       payments,
+      discountInfo,
     } = result
     if (invoice.organizationId !== organizationId) {
       return notFound()
@@ -67,6 +75,7 @@ export const CustomerFacingInvoicePage = (
         customer={customer}
         organization={organization}
         paymentDataItems={payments}
+        discountInfo={discountInfo}
       />
     )
   }

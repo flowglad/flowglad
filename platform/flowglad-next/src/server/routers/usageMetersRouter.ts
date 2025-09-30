@@ -27,7 +27,7 @@ import { z } from 'zod'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageMeter',
-  tags: ['UsageMeters'],
+  tags: ['Usage Meters'],
 })
 
 export const usageMetersRouteConfigs = routeConfigs

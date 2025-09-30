@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react'
 import { useForm, FormProvider } from 'react-hook-form'
 import DiscountFormFields from './DiscountFormFields'
 import { CreateDiscountFormSchema } from '@/db/schema/discounts'
@@ -199,7 +204,9 @@ describe('DiscountFormFields', () => {
       fireEvent.change(amountInput, { target: { value: 'invalid' } })
 
       await waitFor(() => {
-        const input = screen.getByPlaceholderText('1') as HTMLInputElement
+        const input = screen.getByPlaceholderText(
+          '1'
+        ) as HTMLInputElement
         expect(input.value).toBe('')
       })
     })
@@ -310,7 +317,9 @@ describe('DiscountFormFields', () => {
       )
 
       await waitFor(() => {
-        expect(screen.getByText('Amount must be less than 100')).toBeInTheDocument()
+        expect(
+          screen.getByText('Amount must be less than 100')
+        ).toBeInTheDocument()
       })
     })
 
@@ -335,7 +344,9 @@ describe('DiscountFormFields', () => {
       )
 
       await waitFor(() => {
-        expect(screen.getByText('Amount must be greater than 0')).toBeInTheDocument()
+        expect(
+          screen.getByText('Amount must be greater than 0')
+        ).toBeInTheDocument()
       })
     })
   })
@@ -348,7 +359,9 @@ describe('DiscountFormFields', () => {
         </TestWrapper>
       )
 
-      const codeInput = screen.getByPlaceholderText("Your Discount's Code")
+      const codeInput = screen.getByPlaceholderText(
+        "Your Discount's Code"
+      )
       fireEvent.change(codeInput, { target: { value: 'test123' } })
       fireEvent.blur(codeInput)
 
@@ -387,7 +400,9 @@ describe('DiscountFormFields', () => {
 
       // The numberOfPayments field should be hidden when duration is not NumberOfPayments
       await waitFor(() => {
-        expect(screen.queryByLabelText('Number of Payments')).not.toBeInTheDocument()
+        expect(
+          screen.queryByLabelText('Number of Payments')
+        ).not.toBeInTheDocument()
       })
     })
 
@@ -411,7 +426,9 @@ describe('DiscountFormFields', () => {
         </TestWrapper>
       )
 
-      expect(screen.getByLabelText('Number of Payments')).toBeInTheDocument()
+      expect(
+        screen.getByLabelText('Number of Payments')
+      ).toBeInTheDocument()
     })
   })
 

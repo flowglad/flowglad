@@ -54,6 +54,17 @@ export const getDefaultPricingModelRouteConfig: Record<
   },
 }
 
+export const setupPricingModelRouteConfig: Record<
+  string,
+  RouteConfig
+> = {
+  'POST /pricing-models/setup': {
+    procedure: 'pricingModels.setup',
+    pattern: new RegExp(`^pricing-models\/setup$`),
+    mapParams: (matches, body) => body,
+  },
+}
+
 const listPricingModelsProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(pricingModelsPaginatedSelectSchema)
@@ -195,7 +206,7 @@ const clonePricingModelProcedure = protectedProcedure
       method: 'POST',
       path: '/api/v1/pricing-models/{id}/clone',
       summary: 'Clone a PricingModel',
-      tags: ['PricingModels'],
+      tags: ['Pricing Models'],
       protect: true,
     },
   })
@@ -259,7 +270,7 @@ const setupPricingModelProcedure = protectedProcedure
       method: 'POST',
       path: '/api/v1/pricing-models/setup',
       summary: 'Setup a PricingModel',
-      tags: ['PricingModels'],
+      tags: ['Pricing Models'],
       protect: true,
     },
   })

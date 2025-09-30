@@ -688,6 +688,7 @@ export type CheckoutSessionStripeIntentMetadata = z.infer<
 export type BillingRunStripeIntentMetadata = z.infer<
   typeof billingRunIntentMetadataSchema
 >
+
 const stripeConnectTransferDataForOrganization = ({
   organization,
   livemode,
@@ -702,9 +703,11 @@ const stripeConnectTransferDataForOrganization = ({
 } => {
   const stripeAccountId = organization.stripeAccountId
   let on_behalf_of: string | undefined
+
   let transfer_data:
     | Stripe.PaymentIntentCreateParams['transfer_data']
     | undefined
+
   if (livemode) {
     if (!stripeAccountId) {
       throw new Error(
@@ -713,7 +716,7 @@ const stripeConnectTransferDataForOrganization = ({
     }
     if (!organization.payoutsEnabled) {
       throw new Error(
-        `Organization ${organization.id} has payouts enabled but the invoice is not in livemode. This is a configuration error.`
+        `Organization ${organization.id} does not have payouts enabled.`
       )
     }
     if (

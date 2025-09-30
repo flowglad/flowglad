@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createCustomerBookkeeping,
   createPricingModelBookkeeping,
+  createFreePlanPriceInsert,
 } from './bookkeeping'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -1729,6 +1730,368 @@ describe('createPricingModelBookkeeping', () => {
         )
         expect(result.result.defaultPrice.intervalCount).toBe(1)
       }
+    })
+  })
+})
+
+describe('createFreePlanPriceInsert', () => {
+  let defaultProduct: Product.Record
+  const defaultCurrency = CurrencyCode.USD
+
+  beforeEach(async () => {
+    // Set up a basic organization and product for testing
+    const { product } = await setupOrg()
+    defaultProduct = product
+  })
+
+  describe('basic functionality', () => {
+    it('should create a single payment price when no interval unit is provided', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+
+      expect(result).toBeDefined()
+      expect(result.productId).toBe(defaultProduct.id)
+      expect(result.unitPrice).toBe(0)
+      expect(result.isDefault).toBe(true)
+      expect(result.type).toBe(PriceType.SinglePayment)
+      expect(result.intervalUnit).toBeNull()
+      expect(result.intervalCount).toBeNull()
+      expect(result.currency).toBe(defaultCurrency)
+      expect(result.livemode).toBe(defaultProduct.livemode)
+      expect(result.active).toBe(true)
+      expect(result.name).toBe('Free Plan')
+      expect(result.trialPeriodDays).toBeNull()
+      expect(result.setupFeeAmount).toBeNull()
+      expect(result.usageEventsPerUnit).toBeNull()
+      expect(result.usageMeterId).toBeNull()
+      expect(result.externalId).toBeNull()
+      expect(result.slug).toBe('free')
+      expect(result.startsWithCreditTrial).toBeNull()
+      expect(result.overagePriceId).toBeNull()
+    })
+
+    it('should create a subscription price when interval unit is provided', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Month
+      )
+
+      expect(result).toBeDefined()
+      expect(result.productId).toBe(defaultProduct.id)
+      expect(result.unitPrice).toBe(0)
+      expect(result.isDefault).toBe(true)
+      expect(result.type).toBe(PriceType.Subscription)
+      expect(result.intervalUnit).toBe(IntervalUnit.Month)
+      expect(result.intervalCount).toBe(1)
+      expect(result.currency).toBe(defaultCurrency)
+      expect(result.livemode).toBe(defaultProduct.livemode)
+      expect(result.active).toBe(true)
+      expect(result.name).toBe('Free Plan')
+      expect(result.trialPeriodDays).toBeNull()
+      expect(result.setupFeeAmount).toBeNull()
+      expect(result.usageEventsPerUnit).toBeNull()
+      expect(result.usageMeterId).toBeNull()
+      expect(result.externalId).toBeNull()
+      expect(result.slug).toBe('free')
+      expect(result.startsWithCreditTrial).toBe(false)
+      expect(result.overagePriceId).toBeNull()
+    })
+  })
+
+  describe('different interval units', () => {
+    it('should create subscription price with Day interval', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Day
+      )
+
+      expect(result.type).toBe(PriceType.Subscription)
+      expect(result.intervalUnit).toBe(IntervalUnit.Day)
+      expect(result.intervalCount).toBe(1)
+    })
+
+    it('should create subscription price with Week interval', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Week
+      )
+
+      expect(result.type).toBe(PriceType.Subscription)
+      expect(result.intervalUnit).toBe(IntervalUnit.Week)
+      expect(result.intervalCount).toBe(1)
+    })
+
+    it('should create subscription price with Month interval', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Month
+      )
+
+      expect(result.type).toBe(PriceType.Subscription)
+      expect(result.intervalUnit).toBe(IntervalUnit.Month)
+      expect(result.intervalCount).toBe(1)
+    })
+
+    it('should create subscription price with Year interval', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Year
+      )
+
+      expect(result.type).toBe(PriceType.Subscription)
+      expect(result.intervalUnit).toBe(IntervalUnit.Year)
+      expect(result.intervalCount).toBe(1)
+    })
+  })
+
+  describe('different currencies', () => {
+    it('should work with USD currency', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        CurrencyCode.USD
+      )
+
+      expect(result.currency).toBe(CurrencyCode.USD)
+    })
+
+    it('should work with EUR currency', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        CurrencyCode.EUR
+      )
+
+      expect(result.currency).toBe(CurrencyCode.EUR)
+    })
+
+    it('should work with GBP currency', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        CurrencyCode.GBP
+      )
+
+      expect(result.currency).toBe(CurrencyCode.GBP)
+    })
+
+    it('should work with CAD currency', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        CurrencyCode.CAD
+      )
+
+      expect(result.currency).toBe(CurrencyCode.CAD)
+    })
+  })
+
+  describe('product inheritance', () => {
+    it('should inherit product ID correctly', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+
+      expect(result.productId).toBe(defaultProduct.id)
+    })
+
+    it('should inherit livemode from product', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+
+      expect(result.livemode).toBe(defaultProduct.livemode)
+    })
+  })
+
+  describe('default values verification', () => {
+    it('should always set unitPrice to 0', () => {
+      const singlePaymentResult = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+      const subscriptionResult = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Month
+      )
+
+      expect(singlePaymentResult.unitPrice).toBe(0)
+      expect(subscriptionResult.unitPrice).toBe(0)
+    })
+
+    it('should always set isDefault to true', () => {
+      const singlePaymentResult = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+      const subscriptionResult = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Month
+      )
+
+      expect(singlePaymentResult.isDefault).toBe(true)
+      expect(subscriptionResult.isDefault).toBe(true)
+    })
+
+    it('should always set active to true', () => {
+      const singlePaymentResult = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+      const subscriptionResult = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Month
+      )
+
+      expect(singlePaymentResult.active).toBe(true)
+      expect(subscriptionResult.active).toBe(true)
+    })
+
+    it('should always set name to "Free Plan"', () => {
+      const singlePaymentResult = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+      const subscriptionResult = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Month
+      )
+
+      expect(singlePaymentResult.name).toBe('Free Plan')
+      expect(subscriptionResult.name).toBe('Free Plan')
+    })
+
+    it('should always set slug to "free"', () => {
+      const singlePaymentResult = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+      const subscriptionResult = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Month
+      )
+
+      expect(singlePaymentResult.slug).toBe('free')
+      expect(subscriptionResult.slug).toBe('free')
+    })
+  })
+
+  describe('subscription vs single payment differences', () => {
+    it('should set startsWithCreditTrial to false for subscription prices', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Month
+      )
+
+      expect(result.startsWithCreditTrial).toBe(false)
+    })
+
+    it('should set startsWithCreditTrial to null for single payment prices', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+
+      expect(result.startsWithCreditTrial).toBeNull()
+    })
+
+    it('should set interval fields correctly for subscription prices', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Month
+      )
+
+      expect(result.intervalUnit).toBe(IntervalUnit.Month)
+      expect(result.intervalCount).toBe(1)
+    })
+
+    it('should set interval fields to null for single payment prices', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+
+      expect(result.intervalUnit).toBeNull()
+      expect(result.intervalCount).toBeNull()
+    })
+  })
+
+  describe('edge cases', () => {
+    it('should handle undefined interval unit parameter', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        undefined
+      )
+
+      expect(result.type).toBe(PriceType.SinglePayment)
+      expect(result.intervalUnit).toBeNull()
+      expect(result.intervalCount).toBeNull()
+    })
+
+    it('should handle null interval unit parameter', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        null as any
+      )
+
+      expect(result.type).toBe(PriceType.SinglePayment)
+      expect(result.intervalUnit).toBeNull()
+      expect(result.intervalCount).toBeNull()
+    })
+  })
+
+  describe('return type validation', () => {
+    it('should return a valid Price.Insert object for single payment', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency
+      )
+
+      // Check that all required fields are present
+      expect(result.productId).toBeDefined()
+      expect(result.unitPrice).toBeDefined()
+      expect(result.isDefault).toBeDefined()
+      expect(result.type).toBeDefined()
+      expect(result.currency).toBeDefined()
+      expect(result.livemode).toBeDefined()
+      expect(result.active).toBeDefined()
+      expect(result.name).toBeDefined()
+      expect(result.slug).toBeDefined()
+    })
+
+    it('should return a valid Price.Insert object for subscription', () => {
+      const result = createFreePlanPriceInsert(
+        defaultProduct,
+        defaultCurrency,
+        IntervalUnit.Month
+      )
+
+      // Check that all required fields are present
+      expect(result.productId).toBeDefined()
+      expect(result.unitPrice).toBeDefined()
+      expect(result.isDefault).toBeDefined()
+      expect(result.type).toBeDefined()
+      expect(result.currency).toBeDefined()
+      expect(result.livemode).toBeDefined()
+      expect(result.active).toBeDefined()
+      expect(result.name).toBeDefined()
+      expect(result.slug).toBeDefined()
+      expect(result.intervalUnit).toBeDefined()
+      expect(result.intervalCount).toBeDefined()
     })
   })
 })

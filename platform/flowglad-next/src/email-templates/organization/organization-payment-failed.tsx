@@ -20,6 +20,7 @@ export interface OrganizationPaymentFailedNotificationEmailProps {
   currency: CurrencyCode
   customerId: string
   customerName: string
+  failureReason?: string
 }
 
 export const OrganizationPaymentFailedNotificationEmail = ({
@@ -29,6 +30,7 @@ export const OrganizationPaymentFailedNotificationEmail = ({
   currency,
   customerId,
   customerName,
+  failureReason,
 }: OrganizationPaymentFailedNotificationEmailProps) => {
   const humanReadableAmount =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -50,8 +52,13 @@ export const OrganizationPaymentFailedNotificationEmail = ({
       <Header title="Payment Failed" variant="organization" />
       <Paragraph variant="organization">
         A payment of {humanReadableAmount} from {customerName} has
-        failed to process. Please review your payment details and try
-        again.
+        failed to process.
+        {failureReason && (
+          <>
+            <br />
+            <strong>Reason:</strong> {failureReason}
+          </>
+        )}
       </Paragraph>
       <DetailSection>
         <DetailItem variant="organization">Customer</DetailItem>

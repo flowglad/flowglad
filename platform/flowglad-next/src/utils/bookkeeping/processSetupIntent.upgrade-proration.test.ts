@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+  afterAll,
+  vi,
+} from 'vitest'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -339,17 +347,26 @@ describe('Subscription Upgrade with Proration', () => {
 
   describe('Preserved billing cycle (preserveBillingCycleAnchor = true)', () => {
     beforeEach(async () => {
-      // Create free subscription with billing period in the future
+      // Create free subscription with billing period covering "today"
+      // Use end-of-day to ensure preservation still applies on the last day
       const today = new Date()
       const billingStart = new Date(
         today.getFullYear(),
         today.getMonth(),
-        1
+        1,
+        0,
+        0,
+        0,
+        0
       )
       const billingEnd = new Date(
         today.getFullYear(),
         today.getMonth() + 1,
-        0
+        0,
+        23,
+        59,
+        59,
+        999
       )
 
       freeSubscription = await setupSubscription({

@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { innerSetReferralSelectionHandler } from './setReferralSelection'
 import { REFERRAL_OPTIONS } from '@/utils/referrals'
 import { setReferralSelection as setReferralSelectionInRedis } from '@/utils/redis'
-import { setupOrg, setupUserAndApiKey, teardownOrg } from '@/../seedDatabase'
+import {
+  setupOrg,
+  setupUserAndApiKey,
+  teardownOrg,
+} from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 
 describe('innerSetReferralSelectionHandler', () => {
@@ -32,13 +36,11 @@ describe('innerSetReferralSelectionHandler', () => {
 
   it('accepts any allowed referral option', async () => {
     for (const source of REFERRAL_OPTIONS) {
-      const result = await innerSetReferralSelectionHandler({ 
-        organizationId: organization.id, 
-        source 
+      const result = await innerSetReferralSelectionHandler({
+        organizationId: organization.id,
+        source,
       })
       expect(result).toEqual({ success: true })
     }
   })
 })
-
-

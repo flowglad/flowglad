@@ -30,5 +30,3 @@ export const REFERRAL_OPTIONS = [
 
 export const referralOptionEnum = z.enum(REFERRAL_OPTIONS)
 export type ReferralOption = z.infer<typeof referralOptionEnum>
-
-

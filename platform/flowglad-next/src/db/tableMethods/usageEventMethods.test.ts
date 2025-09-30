@@ -28,7 +28,12 @@ import { UsageEvent } from '@/db/schema/usageEvents'
 import { Price } from '@/db/schema/prices'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { PaymentMethodType, SubscriptionStatus, PriceType, IntervalUnit } from '@/types'
+import {
+  PaymentMethodType,
+  SubscriptionStatus,
+  PriceType,
+  IntervalUnit,
+} from '@/types'
 import core from '@/utils/core'
 
 describe('selectUsageEventsPaginated', () => {
@@ -198,14 +203,14 @@ describe('selectUsageEventsPaginated', () => {
     // Should return only the 5 usage events from organization 1
     expect(result.total).toBe(5)
     expect(result.hasMore).toBe(false)
-    
+
     // Should respect RLS policies - verify exact events by ID
-    const org1EventIds = result.data.map(event => event.id)
-    const expectedEventIds = usageEvents1.map(event => event.id)
+    const org1EventIds = result.data.map((event) => event.id)
+    const expectedEventIds = usageEvents1.map((event) => event.id)
     expect(org1EventIds.sort()).toEqual(expectedEventIds.sort())
-    
+
     // Verify all returned events belong to org1 (through customer relationship)
-    result.data.forEach(event => {
+    result.data.forEach((event) => {
       expect(event.customerId).toBe(customer1.id)
     })
   })
@@ -267,17 +272,17 @@ describe('selectUsageEventsPaginated', () => {
     expect(result.total).toBe(10)
     expect(result.hasMore).toBe(true)
     expect(result.nextCursor).toBeDefined()
-    
+
     // Verify returned events are from our created events
-    const returnedEventIds = result.data.map(event => event.id)
-    const createdEventIds = createdEvents.map(event => event.id)
+    const returnedEventIds = result.data.map((event) => event.id)
+    const createdEventIds = createdEvents.map((event) => event.id)
     expect(returnedEventIds).toHaveLength(3)
-    returnedEventIds.forEach(eventId => {
+    returnedEventIds.forEach((eventId) => {
       expect(createdEventIds).toContain(eventId)
     })
-    
+
     // Verify all returned events belong to org1 (through customer relationship)
-    result.data.forEach(event => {
+    result.data.forEach((event) => {
       expect(event.customerId).toBe(customer1.id)
     })
   })
@@ -287,7 +292,7 @@ describe('selectUsageEventsPaginated', () => {
     const createdEvents = []
     for (let i = 0; i < 10; i++) {
       // Add a small delay to ensure different timestamps
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await new Promise((resolve) => setTimeout(resolve, 10))
       const event = await setupUsageEvent({
         organizationId: org1Data.organization.id,
         customerId: customer1.id,
@@ -305,14 +310,12 @@ describe('selectUsageEventsPaginated', () => {
     // First call with pageSize of 3
     const firstResult = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectUsageEventsTableRowData(
-          {
-            input: {
-              pageSize: 3,
-            },
-            transaction,
-          }
-        )
+        return selectUsageEventsTableRowData({
+          input: {
+            pageSize: 3,
+          },
+          transaction,
+        })
       },
       { apiKey: org1ApiKeyToken }
     )
@@ -320,15 +323,13 @@ describe('selectUsageEventsPaginated', () => {
     // Second call using pageAfter from first result
     const secondResult = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectUsageEventsTableRowData(
-          {
-            input: {
-              pageAfter: firstResult.endCursor ?? undefined,
-              pageSize: 3,
-            },
-            transaction,
-          }
-        )
+        return selectUsageEventsTableRowData({
+          input: {
+            pageAfter: firstResult.endCursor ?? undefined,
+            pageSize: 3,
+          },
+          transaction,
+        })
       },
       { apiKey: org1ApiKeyToken }
     )
@@ -337,29 +338,35 @@ describe('selectUsageEventsPaginated', () => {
     expect(firstResult.hasNextPage).toBe(true)
     expect(firstResult.endCursor).toBeDefined()
 
-    // Second call should return next 3 events  
+    // Second call should return next 3 events
     expect(secondResult.hasNextPage).toBe(true)
 
     // Should not return duplicate events
-    const firstEventIds = firstResult.items.map(event => event.usageEvent.id)
-    const secondEventIds = secondResult.items.map(event => event.usageEvent.id)
+    const firstEventIds = firstResult.items.map(
+      (event) => event.usageEvent.id
+    )
+    const secondEventIds = secondResult.items.map(
+      (event) => event.usageEvent.id
+    )
     expect(firstEventIds).toHaveLength(3)
     expect(secondEventIds).toHaveLength(3)
-    
+
     // Verify no duplicate events between pages
-    const overlap = firstEventIds.filter(id => secondEventIds.includes(id))
+    const overlap = firstEventIds.filter((id) =>
+      secondEventIds.includes(id)
+    )
     expect(overlap).toEqual([])
-    
+
     // All events should belong to org1 (RLS should filter out org2 events)
     const allEvents = [...firstResult.items, ...secondResult.items]
-    allEvents.forEach(event => {
+    allEvents.forEach((event) => {
       expect(event.usageEvent.customerId).toBe(customer1.id)
     })
-    
+
     // Verify the events are from our created events
-    const createdEventIds = createdEvents.map(event => event.id)
+    const createdEventIds = createdEvents.map((event) => event.id)
     const allReturnedEventIds = [...firstEventIds, ...secondEventIds]
-    allReturnedEventIds.forEach(eventId => {
+    allReturnedEventIds.forEach((eventId) => {
       expect(createdEventIds).toContain(eventId)
     })
   })
@@ -491,14 +498,12 @@ describe('selectUsageEventsTableRowData', () => {
     // Call selectUsageEventsTableRowData with org1 API key
     const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectUsageEventsTableRowData(
-          {
-            input: {
-              pageSize: 10,
-            },
-            transaction,
-          }
-        )
+        return selectUsageEventsTableRowData({
+          input: {
+            pageSize: 10,
+          },
+          transaction,
+        })
       },
       { apiKey: org1ApiKeyToken }
     )
@@ -506,9 +511,11 @@ describe('selectUsageEventsTableRowData', () => {
     // Should return 3 enriched usage events - verify by specific IDs
     expect(result.total).toBe(3)
     expect(result.hasNextPage).toBe(false)
-    
-    const returnedEventIds = result.items.map(item => item.usageEvent.id)
-    const expectedEventIds = createdEvents.map(event => event.id)
+
+    const returnedEventIds = result.items.map(
+      (item) => item.usageEvent.id
+    )
+    const expectedEventIds = createdEvents.map((event) => event.id)
     expect(returnedEventIds.sort()).toEqual(expectedEventIds.sort())
 
     // Each event should have customer, subscription, usageMeter, price data
@@ -526,7 +533,6 @@ describe('selectUsageEventsTableRowData', () => {
       expect(enrichedEvent.price.id).toBe(price1.id)
     })
   })
-
 })
 
 describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
@@ -543,7 +549,7 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
   beforeEach(async () => {
     // Setup organization
     org1Data = await setupOrg()
-    
+
     // Setup API key
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: org1Data.organization.id,

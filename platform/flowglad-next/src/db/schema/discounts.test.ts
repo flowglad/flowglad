@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { createDiscountFormSchema, editDiscountFormSchema } from './discounts'
+import {
+  createDiscountFormSchema,
+  editDiscountFormSchema,
+} from './discounts'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 
 describe('Discount Form Validation', () => {
@@ -18,7 +21,9 @@ describe('Discount Form Validation', () => {
         __rawAmountString: '10.50',
       }
 
-      const result = createDiscountFormSchema.safeParse(validFixedDiscount)
+      const result = createDiscountFormSchema.safeParse(
+        validFixedDiscount
+      )
       expect(result.success).toBe(true)
     })
 
@@ -35,7 +40,9 @@ describe('Discount Form Validation', () => {
         },
       }
 
-      const result = createDiscountFormSchema.safeParse(validPercentDiscount)
+      const result = createDiscountFormSchema.safeParse(
+        validPercentDiscount
+      )
       expect(result.success).toBe(true)
     })
 
@@ -52,7 +59,9 @@ describe('Discount Form Validation', () => {
         },
       }
 
-      const result = createDiscountFormSchema.safeParse(validRecurringDiscount)
+      const result = createDiscountFormSchema.safeParse(
+        validRecurringDiscount
+      )
       expect(result.success).toBe(true)
     })
 
@@ -69,7 +78,9 @@ describe('Discount Form Validation', () => {
         },
       }
 
-      const result = createDiscountFormSchema.safeParse(validForeverDiscount)
+      const result = createDiscountFormSchema.safeParse(
+        validForeverDiscount
+      )
       expect(result.success).toBe(true)
     })
   })
@@ -90,7 +101,8 @@ describe('Discount Form Validation', () => {
         id: 'discount_123',
       }
 
-      const result = editDiscountFormSchema.safeParse(validEditDiscount)
+      const result =
+        editDiscountFormSchema.safeParse(validEditDiscount)
       expect(result.success).toBe(true)
     })
 
@@ -107,10 +119,16 @@ describe('Discount Form Validation', () => {
         __rawAmountString: '15.75',
       } as any
 
-      const result = editDiscountFormSchema.safeParse(invalidEditDiscount)
+      const result = editDiscountFormSchema.safeParse(
+        invalidEditDiscount
+      )
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues.some(issue => issue.path.includes('id'))).toBe(true)
+        expect(
+          result.error.issues.some((issue) =>
+            issue.path.includes('id')
+          )
+        ).toBe(true)
       }
     })
   })
@@ -130,7 +148,9 @@ describe('Discount Form Validation', () => {
         __rawAmountString: '10.50',
       }
 
-      const result = createDiscountFormSchema.safeParse(discountWithLowercaseCode)
+      const result = createDiscountFormSchema.safeParse(
+        discountWithLowercaseCode
+      )
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.discount.code).toBe('TEST10')
@@ -139,10 +159,26 @@ describe('Discount Form Validation', () => {
 
     it('should validate code length requirements', () => {
       const testCases = [
-        { code: 'AB', valid: false, description: 'too short (2 chars)' },
-        { code: 'ABC', valid: true, description: 'minimum length (3 chars)' },
-        { code: 'ABCDEFGHIJKLMNOPQRST', valid: true, description: 'maximum length (20 chars)' },
-        { code: 'ABCDEFGHIJKLMNOPQRSTU', valid: false, description: 'too long (21 chars)' },
+        {
+          code: 'AB',
+          valid: false,
+          description: 'too short (2 chars)',
+        },
+        {
+          code: 'ABC',
+          valid: true,
+          description: 'minimum length (3 chars)',
+        },
+        {
+          code: 'ABCDEFGHIJKLMNOPQRST',
+          valid: true,
+          description: 'maximum length (20 chars)',
+        },
+        {
+          code: 'ABCDEFGHIJKLMNOPQRSTU',
+          valid: false,
+          description: 'too long (21 chars)',
+        },
       ]
 
       testCases.forEach(({ code, valid, description }) => {
@@ -159,7 +195,8 @@ describe('Discount Form Validation', () => {
           __rawAmountString: '10.50',
         }
 
-        const result = createDiscountFormSchema.safeParse(discountWithCode)
+        const result =
+          createDiscountFormSchema.safeParse(discountWithCode)
         expect(result.success).toBe(valid)
       })
     })
@@ -169,7 +206,11 @@ describe('Discount Form Validation', () => {
     it('should validate positive integer amounts', () => {
       const testCases = [
         { amount: 0, valid: false, description: 'zero amount' },
-        { amount: 1, valid: true, description: 'minimum positive amount' },
+        {
+          amount: 1,
+          valid: true,
+          description: 'minimum positive amount',
+        },
         { amount: 100, valid: true, description: 'valid amount' },
         { amount: -1, valid: false, description: 'negative amount' },
         { amount: 1.5, valid: false, description: 'decimal amount' },
@@ -188,7 +229,9 @@ describe('Discount Form Validation', () => {
           },
         }
 
-        const result = createDiscountFormSchema.safeParse(discountWithAmount)
+        const result = createDiscountFormSchema.safeParse(
+          discountWithAmount
+        )
         expect(result.success).toBe(valid)
       })
     })
@@ -201,50 +244,56 @@ describe('Discount Form Validation', () => {
           duration: DiscountDuration.Once,
           numberOfPayments: null,
           valid: true,
-          description: 'once duration with null numberOfPayments'
+          description: 'once duration with null numberOfPayments',
         },
         {
           duration: DiscountDuration.Forever,
           numberOfPayments: null,
           valid: true,
-          description: 'forever duration with null numberOfPayments'
+          description: 'forever duration with null numberOfPayments',
         },
         {
           duration: DiscountDuration.NumberOfPayments,
           numberOfPayments: 3,
           valid: true,
-          description: 'number of payments duration with valid numberOfPayments'
+          description:
+            'number of payments duration with valid numberOfPayments',
         },
         {
           duration: DiscountDuration.NumberOfPayments,
           numberOfPayments: null,
           valid: false,
-          description: 'number of payments duration with null numberOfPayments'
+          description:
+            'number of payments duration with null numberOfPayments',
         },
         {
           duration: DiscountDuration.Once,
           numberOfPayments: 3,
           valid: false,
-          description: 'once duration with numberOfPayments'
+          description: 'once duration with numberOfPayments',
         },
       ]
 
-      testCases.forEach(({ duration, numberOfPayments, valid, description }) => {
-        const discountWithDuration = {
-          discount: {
-            name: 'Test Discount',
-            code: 'TEST10',
-            amountType: DiscountAmountType.Percent,
-            amount: 10,
-            duration,
-            active: true,
-            numberOfPayments,
-          },
-        }
+      testCases.forEach(
+        ({ duration, numberOfPayments, valid, description }) => {
+          const discountWithDuration = {
+            discount: {
+              name: 'Test Discount',
+              code: 'TEST10',
+              amountType: DiscountAmountType.Percent,
+              amount: 10,
+              duration,
+              active: true,
+              numberOfPayments,
+            },
+          }
 
-        const result = createDiscountFormSchema.safeParse(discountWithDuration)
-        expect(result.success).toBe(valid)
-      })
+          const result = createDiscountFormSchema.safeParse(
+            discountWithDuration
+          )
+          expect(result.success).toBe(valid)
+        }
+      )
     })
   })
 
@@ -272,7 +321,9 @@ describe('Discount Form Validation', () => {
           __rawAmountString: '10.50',
         }
 
-        const result = createDiscountFormSchema.safeParse(discountWithMissingField)
+        const result = createDiscountFormSchema.safeParse(
+          discountWithMissingField
+        )
         expect(result.success).toBe(valid)
       })
     })
@@ -281,11 +332,31 @@ describe('Discount Form Validation', () => {
   describe('Raw Amount String Validation', () => {
     it('should validate raw amount string format', () => {
       const testCases = [
-        { rawAmountString: '0', valid: true, description: 'zero amount' },
-        { rawAmountString: '10.50', valid: true, description: 'decimal amount' },
-        { rawAmountString: '100', valid: true, description: 'whole number amount' },
-        { rawAmountString: '', valid: false, description: 'empty string' },
-        { rawAmountString: 'invalid', valid: false, description: 'non-numeric string' },
+        {
+          rawAmountString: '0',
+          valid: true,
+          description: 'zero amount',
+        },
+        {
+          rawAmountString: '10.50',
+          valid: true,
+          description: 'decimal amount',
+        },
+        {
+          rawAmountString: '100',
+          valid: true,
+          description: 'whole number amount',
+        },
+        {
+          rawAmountString: '',
+          valid: false,
+          description: 'empty string',
+        },
+        {
+          rawAmountString: 'invalid',
+          valid: false,
+          description: 'non-numeric string',
+        },
       ]
 
       testCases.forEach(({ rawAmountString, valid, description }) => {
@@ -302,7 +373,9 @@ describe('Discount Form Validation', () => {
           __rawAmountString: rawAmountString,
         }
 
-        const result = createDiscountFormSchema.safeParse(discountWithRawAmount)
+        const result = createDiscountFormSchema.safeParse(
+          discountWithRawAmount
+        )
         expect(result.success).toBe(valid)
       })
     })
@@ -333,22 +406,28 @@ describe('Discount Form Validation', () => {
         },
       ]
 
-      boundaryTestCases.forEach(({ name, code, amount, numberOfPayments, valid }) => {
-        const discountWithBoundaryValues = {
-          discount: {
-            name: 'Test Discount',
-            code: code || 'TEST10',
-            amountType: DiscountAmountType.Percent,
-            amount: amount || 10,
-            duration: numberOfPayments ? DiscountDuration.NumberOfPayments : DiscountDuration.Once,
-            active: true,
-            numberOfPayments: numberOfPayments || null,
-          },
-        }
+      boundaryTestCases.forEach(
+        ({ name, code, amount, numberOfPayments, valid }) => {
+          const discountWithBoundaryValues = {
+            discount: {
+              name: 'Test Discount',
+              code: code || 'TEST10',
+              amountType: DiscountAmountType.Percent,
+              amount: amount || 10,
+              duration: numberOfPayments
+                ? DiscountDuration.NumberOfPayments
+                : DiscountDuration.Once,
+              active: true,
+              numberOfPayments: numberOfPayments || null,
+            },
+          }
 
-        const result = createDiscountFormSchema.safeParse(discountWithBoundaryValues)
-        expect(result.success).toBe(valid)
-      })
+          const result = createDiscountFormSchema.safeParse(
+            discountWithBoundaryValues
+          )
+          expect(result.success).toBe(valid)
+        }
+      )
     })
   })
 })

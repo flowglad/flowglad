@@ -45,7 +45,10 @@ export const safeSend = (
 }
 
 const safeTo = (email: string) =>
-  core.IS_PROD ? email : core.envVariable('DEV_EMAIL_REDIRECT') || 'agree.ahmed@flowglad.com'
+  core.IS_PROD
+    ? email
+    : core.envVariable('DEV_EMAIL_REDIRECT') ||
+      'agree.ahmed@flowglad.com'
 
 export const sendReceiptEmail = async (params: {
   to: string[]
@@ -56,6 +59,12 @@ export const sendReceiptEmail = async (params: {
   organizationId: string
   customerId: string
   replyTo?: string | null
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+  } | null
 }) => {
   const { invoice } = params
   const attachments: {
@@ -90,16 +99,21 @@ export const sendReceiptEmail = async (params: {
     react: await OrderReceiptEmail({
       invoiceNumber: invoice.invoiceNumber,
       orderDate: core.formatDate(invoice.createdAt!),
+      invoice: {
+        subtotal: invoice.subtotal,
+        taxAmount: invoice.taxAmount,
+        currency: invoice.currency,
+      },
       lineItems: params.invoiceLineItems.map((item) => ({
         name: item.description ?? '',
         price: item.price,
         quantity: item.quantity,
       })),
-      currency: invoice.currency,
       organizationName: params.organizationName,
       organizationLogoUrl: params.organizationLogoUrl,
       organizationId: invoice.organizationId,
       customerId: params.customerId,
+      discountInfo: params.discountInfo,
     }),
   })
 }
@@ -154,14 +168,26 @@ export const sendPaymentFailedEmail = async (params: {
   organizationLogoUrl?: string
   invoiceNumber: string
   orderDate: Date
+  invoice: {
+    subtotal: number | null
+    taxAmount: number | null
+    currency: CurrencyCode
+  }
   lineItems: {
     name: string
     price: number
     quantity: number
   }[]
   retryDate?: Date
-  currency: CurrencyCode
   replyTo?: string | null
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+  } | null
+  failureReason?: string
+  customerPortalUrl?: string
 }) => {
   return safeSend({
     from: 'notifications@flowglad.com',
@@ -172,11 +198,14 @@ export const sendPaymentFailedEmail = async (params: {
     react: await PaymentFailedEmail({
       invoiceNumber: params.invoiceNumber,
       orderDate: new Date(params.orderDate),
+      invoice: params.invoice,
       organizationName: params.organizationName,
       organizationLogoUrl: params.organizationLogoUrl,
       lineItems: params.lineItems,
       retryDate: params.retryDate,
-      currency: params.currency,
+      discountInfo: params.discountInfo,
+      failureReason: params.failureReason,
+      customerPortalUrl: params.customerPortalUrl,
     }),
   })
 }
@@ -229,6 +258,7 @@ export const sendInvoiceReminderEmail = async ({
   organizationName,
   organizationLogoUrl,
   replyTo,
+  discountInfo,
 }: {
   to: string[]
   cc?: string[]
@@ -237,6 +267,12 @@ export const sendInvoiceReminderEmail = async ({
   organizationName: string
   organizationLogoUrl?: string
   replyTo?: string | null
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+  } | null
 }) => {
   return safeSend({
     from: 'notifs@flowglad.com',
@@ -256,6 +292,7 @@ export const sendInvoiceReminderEmail = async ({
       invoiceLineItems,
       organizationName,
       organizationLogoUrl,
+      discountInfo,
     }),
   })
 }
@@ -268,6 +305,7 @@ export const sendInvoiceNotificationEmail = async ({
   organizationName,
   organizationLogoUrl,
   replyTo,
+  discountInfo,
 }: {
   to: string[]
   cc?: string[]
@@ -276,6 +314,12 @@ export const sendInvoiceNotificationEmail = async ({
   organizationName: string
   organizationLogoUrl?: string
   replyTo?: string | null
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+  } | null
 }) => {
   return safeSend({
     from: 'notifs@flowglad.com',
@@ -295,6 +339,7 @@ export const sendInvoiceNotificationEmail = async ({
       invoiceLineItems,
       organizationName,
       organizationLogoUrl,
+      discountInfo,
     }),
   })
 }

@@ -20,6 +20,7 @@ import {
   ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  constructUniqueIndex,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -96,6 +97,11 @@ export const usageCredits = pgTable(
       constructIndex(TABLE_NAME, [table.creditType]),
       constructIndex(TABLE_NAME, [table.status]),
       constructIndex(TABLE_NAME, [table.paymentId]),
+      constructUniqueIndex(TABLE_NAME, [
+        table.paymentId,
+        table.subscriptionId,
+        table.usageMeterId,
+      ]),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
