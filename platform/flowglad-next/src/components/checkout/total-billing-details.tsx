@@ -217,7 +217,6 @@ export const TotalBillingDetails = React.forwardRef<
           amount={baseAmount}
           currency={currency}
           isLoading={editCheckoutSessionLoading}
-          testId="billing-info-subtotal-amount"
           className="text-base"
         />
       )}
@@ -245,7 +244,6 @@ export const TotalBillingDetails = React.forwardRef<
           label={afterwardsTotalLabel}
           amount={afterwardsTotal}
           currency={currency}
-          testId="billing-info-total-afterwards-amount"
         />
       )}
 
