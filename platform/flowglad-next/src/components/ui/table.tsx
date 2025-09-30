@@ -5,11 +5,15 @@ import { cn } from '@/lib/utils'
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+>(({ className, style, ...props }, ref) => (
+  <div className="relative w-full overflow-auto border rounded-3xl bg-card">
     <table
       ref={ref}
       className={cn('w-full caption-bottom text-sm', className)}
+      style={{
+        tableLayout: 'fixed',
+        ...style,
+      }}
       {...props}
     />
   </div>
@@ -62,7 +66,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      'border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
+      'border-b transition-colors hover:bg-muted data-[state=selected]:bg-muted',
       className
     )}
     {...props}
@@ -77,7 +81,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      'h-12 px-3 text-left align-middle font-normal text-muted-foreground [&:has([role=checkbox])]:pr-0',
+      'h-12 px-3 pt-1 text-left align-middle font-normal text-muted-foreground [&:has([role=checkbox])]:pr-0 first:pl-6 last:pr-6',
       className
     )}
     {...props}
@@ -92,7 +96,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      'px-3 py-2 align-middle [&:has([role=checkbox])]:pr-0 [&:has(img)]:pl-4 [&:has(img)]:pr-2 [&:has(img)]:py-2',
+      'px-3 py-2 align-middle [&:has([role=checkbox])]:pr-0 [&:has(img)]:pl-4 [&:has(img)]:pr-2 [&:has(img)]:py-2 first:pl-6 last:pr-6',
       className
     )}
     {...props}
