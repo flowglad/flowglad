@@ -9,12 +9,19 @@ import {
   FlowgladEventType,
   EventNoun,
   PaymentMethodType,
+  PriceType,
+  IntervalUnit,
+  FeatureType,
+  LedgerTransactionType,
+  UsageCreditStatus,
+  UsageCreditSourceReferenceType,
 } from '@/types'
 import {
   chargeStatusToPaymentStatus,
   updatePaymentToReflectLatestChargeStatus,
   upsertPaymentForStripeCharge,
   processPaymentIntentStatusUpdated,
+  ledgerCommandForPaymentSucceeded,
 } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { Payment } from '@/db/schema/payments'
 import { Purchase } from '@/db/schema/purchases'
@@ -34,6 +41,8 @@ import {
   setupSubscription,
   setupCheckoutSession,
   setupInvoice,
+  setupPrice,
+  setupTestFeaturesAndProductFeatures,
 } from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
@@ -58,6 +67,7 @@ import core from '../core'
 import { vi } from 'vitest'
 import Stripe from 'stripe'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
+import { selectUsageCreditById } from '@/db/tableMethods/usageCreditMethods'
 
 // Mock helper functions
 const createMockStripeCharge = (
@@ -181,6 +191,284 @@ vi.mock('../stripe', async () => {
     ...actual,
     getStripeCharge: vi.fn(),
   }
+})
+
+describe('ledgerCommandForPaymentSucceeded (planning stubs)', () => {
+  // Shared globals for setup reused across tests
+  let organization: Organization.Record
+  let product: Product.Record
+  let subscriptionPrice: Price.Record
+  let singlePaymentPrice: Price.Record
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let subscription:
+    | import('@/db/schema/subscriptions').Subscription.Record
+    | null
+  let invoice: Invoice.Record
+  let payment: Payment.Record
+
+  beforeEach(async () => {
+    // setup shared state used by multiple tests
+    // - create organization, default product and a subscription price from setupOrg
+    // - create customer and payment method
+    // - create an active subscription for the customer on the subscription price
+    // - create a SinglePayment price to use in positive-path cases
+    // - create invoice and payment linked to the customer and organization
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    product = orgData.product
+    subscriptionPrice = orgData.price
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: subscriptionPrice.id,
+    })
+
+    singlePaymentPrice = await setupPrice({
+      productId: product.id,
+      name: 'Single Payment Test Price',
+      type: PriceType.SinglePayment,
+      unitPrice: 2000,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      setupFeeAmount: 0,
+      currency: organization.defaultCurrency,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: subscriptionPrice.id,
+    })
+    payment = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Processing,
+      amount: 1000,
+      livemode: true,
+      organizationId: organization.id,
+      customerId: customer.id,
+      invoiceId: invoice.id,
+    })
+  })
+  it('returns undefined when price type is not SinglePayment', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return ledgerCommandForPaymentSucceeded(
+        { priceId: subscriptionPrice.id, payment },
+        transaction
+      )
+    })
+    expect(result).toBeUndefined()
+  })
+
+  it('returns undefined when product has no features', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return ledgerCommandForPaymentSucceeded(
+        { priceId: singlePaymentPrice.id, payment },
+        transaction
+      )
+    })
+    expect(result).toBeUndefined()
+  })
+
+  it('returns undefined when product has only non-UsageCredit features', async () => {
+    await setupTestFeaturesAndProductFeatures({
+      organizationId: organization.id,
+      productId: product.id,
+      livemode: true,
+      featureSpecs: [
+        { name: 'Toggle Only', type: FeatureType.Toggle },
+      ],
+    })
+    const result = await adminTransaction(async ({ transaction }) => {
+      return ledgerCommandForPaymentSucceeded(
+        { priceId: singlePaymentPrice.id, payment },
+        transaction
+      )
+    })
+    expect(result).toBeUndefined()
+  })
+
+  it('returns undefined when customer has no current subscription', async () => {
+    await setupTestFeaturesAndProductFeatures({
+      organizationId: organization.id,
+      productId: product.id,
+      livemode: true,
+      featureSpecs: [
+        {
+          name: 'Grant A',
+          type: FeatureType.UsageCreditGrant,
+          amount: 123,
+          usageMeterName: 'UM-A',
+        },
+      ],
+    })
+    const altCustomer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const altInvoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: altCustomer.id,
+      priceId: singlePaymentPrice.id,
+    })
+    const altPayment = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Processing,
+      amount: 500,
+      livemode: true,
+      organizationId: organization.id,
+      customerId: altCustomer.id,
+      invoiceId: altInvoice.id,
+    })
+    const result = await adminTransaction(async ({ transaction }) => {
+      return ledgerCommandForPaymentSucceeded(
+        { priceId: singlePaymentPrice.id, payment: altPayment },
+        transaction
+      )
+    })
+    expect(result).toBeUndefined()
+  })
+
+  it('creates UsageCredit and returns CreditGrantRecognized ledger command (happy path)', async () => {
+    const [featureData] = await setupTestFeaturesAndProductFeatures({
+      organizationId: organization.id,
+      productId: product.id,
+      livemode: true,
+      featureSpecs: [
+        {
+          name: 'Grant A',
+          type: FeatureType.UsageCreditGrant,
+          amount: 777,
+          usageMeterName: 'UM-A',
+        },
+      ],
+    })
+    const command = await adminTransaction(
+      async ({ transaction }) => {
+        return ledgerCommandForPaymentSucceeded(
+          { priceId: singlePaymentPrice.id, payment },
+          transaction
+        )
+      }
+    )
+    expect(command).toBeDefined()
+    expect(command!.type).toBe(
+      LedgerTransactionType.CreditGrantRecognized
+    )
+    expect(command!.organizationId).toBe(organization.id)
+    expect(command!.subscriptionId).toBe(subscription!.id)
+    expect(command!.livemode).toBe(true)
+    const usageCredit = command!.payload.usageCredit
+    expect(usageCredit.issuedAmount).toBe(777)
+    expect(usageCredit.usageMeterId).toBeDefined()
+    expect(usageCredit.sourceReferenceId).toBe(payment.invoiceId)
+    expect(usageCredit.paymentId).toBe(payment.id)
+    expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
+    expect(usageCredit.sourceReferenceType).toBe(
+      UsageCreditSourceReferenceType.InvoiceSettlement
+    )
+  })
+
+  it('uses the first UsageCreditGrant feature when multiple exist', async () => {
+    await setupTestFeaturesAndProductFeatures({
+      organizationId: organization.id,
+      productId: product.id,
+      livemode: true,
+      featureSpecs: [
+        {
+          name: 'Grant A',
+          type: FeatureType.UsageCreditGrant,
+          amount: 111,
+          usageMeterName: 'UM-A',
+        },
+        {
+          name: 'Grant B',
+          type: FeatureType.UsageCreditGrant,
+          amount: 999,
+          usageMeterName: 'UM-B',
+        },
+      ],
+    })
+    const command = await adminTransaction(
+      async ({ transaction }) => {
+        return ledgerCommandForPaymentSucceeded(
+          { priceId: singlePaymentPrice.id, payment },
+          transaction
+        )
+      }
+    )
+    expect(command).toBeDefined()
+    expect(command!.payload.usageCredit.issuedAmount).toBe(111)
+  })
+
+  it('fails when usage credit grant amount is zero', async () => {
+    await setupTestFeaturesAndProductFeatures({
+      organizationId: organization.id,
+      productId: product.id,
+      livemode: true,
+      featureSpecs: [
+        {
+          name: 'Grant Zero',
+          type: FeatureType.UsageCreditGrant,
+          amount: 0,
+          usageMeterName: 'UM-Z',
+        },
+      ],
+    })
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        return ledgerCommandForPaymentSucceeded(
+          { priceId: singlePaymentPrice.id, payment },
+          transaction
+        )
+      })
+    ).rejects.toThrow('Value must be a positive integer')
+  })
+
+  it('ensures transaction is passed to all DB methods as last argument', async () => {
+    await setupTestFeaturesAndProductFeatures({
+      organizationId: organization.id,
+      productId: product.id,
+      livemode: true,
+      featureSpecs: [
+        {
+          name: 'Grant A',
+          type: FeatureType.UsageCreditGrant,
+          amount: 5,
+          usageMeterName: 'UM-A',
+        },
+      ],
+    })
+    const command = await adminTransaction(
+      async ({ transaction }) => {
+        return ledgerCommandForPaymentSucceeded(
+          { priceId: singlePaymentPrice.id, payment },
+          transaction
+        )
+      }
+    )
+    expect(command).toBeDefined()
+    // additionally re-select the usage credit to ensure it was persisted via the same transactional flow
+    const reselected = await adminTransaction(
+      async ({ transaction }) => {
+        const id = command!.payload.usageCredit.id
+        return selectUsageCreditById(id, transaction)
+      }
+    )
+    expect(reselected).toBeDefined()
+    expect(reselected!.id).toBe(command!.payload.usageCredit.id)
+  })
 })
 
 const succeededCharge = {

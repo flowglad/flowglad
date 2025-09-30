@@ -37,7 +37,6 @@ vi.mock('@trigger.dev/core', async () => {
 
 // Start the mock server before all tests
 beforeAll(async () => {
-  console.log('Starting mock servers------')
   stripeServer.listen()
   triggerServer.listen()
   svixServer.listen()

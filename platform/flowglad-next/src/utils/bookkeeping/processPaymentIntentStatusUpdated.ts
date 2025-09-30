@@ -11,6 +11,7 @@ import {
   UsageCreditType,
   UsageCreditSourceReferenceType,
   LedgerTransactionType,
+  PriceType,
 } from '@/types'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { CountryCode } from '@/types'
@@ -346,11 +347,26 @@ export type CoreStripePaymentIntent = Pick<
   'id' | 'metadata' | 'latest_charge' | 'status'
 >
 
-const ledgerCommandForPaymentSucceeded = async (
+/**
+ * A slightly odd method that applies usage credits for a single payment checkout session.
+ * It's meant for pay go scenarios where the customer is topping up a specific usage meter.
+ * - It only applies to payments from checkout sessions that are explictly associated with a single payment price
+ * - It only applies if the customer has an active subscription (which, by default, they should due to free plans)
+ * - It only applies if the associated product has usage credits as features associated with it
+ * - It only applies the first usage credit feature associated with the product (this will create issues if there are somehow multiple usage credit features associated with the product - due to the way ledger commands only handle single usage credit grants.)
+ *
+ * @param params
+ * @param transaction
+ * @returns
+ */
+export const ledgerCommandForPaymentSucceeded = async (
   params: { priceId: string; payment: Payment.Record },
   transaction: DbTransaction
 ): Promise<CreditGrantRecognizedLedgerCommand | undefined> => {
   const price = await selectPriceById(params.priceId, transaction)
+  if (price.type !== PriceType.SinglePayment) {
+    return undefined
+  }
   const { features } = await selectProductPriceAndFeaturesByProductId(
     price.productId,
     transaction
@@ -381,7 +397,7 @@ const ledgerCommandForPaymentSucceeded = async (
     livemode: subscription.livemode,
     sourceReferenceId: payment.invoiceId,
     billingPeriodId: null,
-    paymentId: null,
+    paymentId: payment.id,
     issuedAt: new Date(),
     expiresAt: null,
     sourceReferenceType:
