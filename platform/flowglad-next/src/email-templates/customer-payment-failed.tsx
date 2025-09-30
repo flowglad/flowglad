@@ -1,6 +1,7 @@
 import { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
-import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
+import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import * as React from 'react'
 import {
   DetailItem,
@@ -50,20 +51,7 @@ export const PaymentFailedEmail = ({
   failureReason?: string
   customerPortalUrl?: string
 }) => {
-  const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
-    calculateInvoiceTotalsFromLineItems(
-      invoice,
-      lineItems,
-      discountInfo
-    )
-
-  // Prepare discount info with currency for TotalSection
-  const discountInfoWithCurrency = discountInfo
-    ? {
-        ...discountInfo,
-        currency: invoice.currency,
-      }
-    : null
+  const totals = calculateInvoiceTotalsWithDiscounts(lineItems, invoice, discountInfo)
 
   return (
     <EmailLayout previewText="Payment Failed for Your Order">
@@ -95,7 +83,7 @@ export const PaymentFailedEmail = ({
       <DetailSection>
         <DetailItem>Invoice #: {invoiceNumber}</DetailItem>
         <DetailItem>Date: {formatDate(orderDate)}</DetailItem>
-        <DetailItem>Amount: {totalAmount}</DetailItem>
+        <DetailItem>Amount: {totals.totalAmount}</DetailItem>
       </DetailSection>
 
       {lineItems.map((item, index) => (
@@ -110,11 +98,11 @@ export const PaymentFailedEmail = ({
       ))}
 
       <TotalSection
-        originalAmount={originalAmount}
-        subtotal={subtotalAmount}
-        tax={taxAmount}
-        total={totalAmount}
-        discountInfo={discountInfoWithCurrency}
+        originalAmount={totals.originalAmount}
+        subtotal={totals.subtotalAmount}
+        tax={totals.taxAmount}
+        total={totals.totalAmount}
+        discountInfo={totals.discountInfoWithCurrency}
       />
 
       {customerPortalUrl && (

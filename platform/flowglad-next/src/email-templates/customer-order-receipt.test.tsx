@@ -117,11 +117,11 @@ describe('OrderReceiptEmail', () => {
   })
 
   it('should render the email button with correct billing portal URL', () => {
-    const { getByTestId } = render(
+    const { getByRole } = render(
       <OrderReceiptEmail {...mockProps} />
     )
 
-    const button = getByTestId('view-order-button')
+    const button = getByRole('link', { name: 'View Order →' })
     const expectedUrl = core.customerBillingPortalURL({
       organizationId: mockProps.organizationId,
       customerId: mockProps.customerId,
@@ -330,6 +330,111 @@ describe('OrderReceiptEmail', () => {
       // Discount amount should have green color styling
       expect(getByTestId('discount-amount')).toHaveStyle({
         color: '#22c55e',
+      })
+    })
+
+    describe('percentage discounts', () => {
+      it('should correctly calculate 10% discount on $60.00', () => {
+        const propsWithPercentageDiscount = {
+          ...mockProps,
+          invoice: {
+            ...mockProps.invoice,
+            subtotal: 5400, // $54.00 after 10% discount
+          },
+          discountInfo: {
+            discountName: '10% Off',
+            discountCode: 'SAVE10',
+            discountAmount: 10, // 10% (stored as percentage, not amount)
+            discountAmountType: 'percent',
+          },
+        }
+
+        const { getByTestId } = render(
+          <OrderReceiptEmail {...propsWithPercentageDiscount} />
+        )
+
+        // 10% of $60.00 = $6.00
+        expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+        expect(getByTestId('discount-amount')).toHaveTextContent('-$6.00')
+        expect(getByTestId('total-amount')).toHaveTextContent('$54.00')
+      })
+
+      it('should correctly calculate 25% discount on $60.00', () => {
+        const propsWithPercentageDiscount = {
+          ...mockProps,
+          invoice: {
+            ...mockProps.invoice,
+            subtotal: 4500, // $45.00 after 25% discount
+          },
+          discountInfo: {
+            discountName: 'Quarter Off',
+            discountCode: 'SAVE25',
+            discountAmount: 25, // 25% (stored as percentage)
+            discountAmountType: 'percent',
+          },
+        }
+
+        const { getByTestId } = render(
+          <OrderReceiptEmail {...propsWithPercentageDiscount} />
+        )
+
+        // 25% of $60.00 = $15.00
+        expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+        expect(getByTestId('discount-amount')).toHaveTextContent('-$15.00')
+        expect(getByTestId('total-amount')).toHaveTextContent('$45.00')
+      })
+
+      it('should correctly calculate percentage discount with tax', () => {
+        const propsWithPercentageDiscountAndTax = {
+          ...mockProps,
+          invoice: {
+            ...mockProps.invoice,
+            subtotal: 5400, // $54.00 after 10% discount
+            taxAmount: 540, // $5.40 tax (10% of subtotal)
+          },
+          discountInfo: {
+            discountName: '10% Off',
+            discountCode: 'SAVE10',
+            discountAmount: 10, // 10%
+            discountAmountType: 'percent',
+          },
+        }
+
+        const { getByTestId } = render(
+          <OrderReceiptEmail {...propsWithPercentageDiscountAndTax} />
+        )
+
+        // 10% of $60.00 = $6.00 discount
+        expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+        expect(getByTestId('discount-amount')).toHaveTextContent('-$6.00')
+        expect(getByTestId('subtotal-amount')).toHaveTextContent('$54.00')
+        expect(getByTestId('tax-amount')).toHaveTextContent('$5.40')
+        expect(getByTestId('total-amount')).toHaveTextContent('$59.40')
+      })
+
+      it('should cap percentage discount at 100%', () => {
+        const propsWithLargePercentage = {
+          ...mockProps,
+          invoice: {
+            ...mockProps.invoice,
+            subtotal: 0, // $0.00 after 100% discount
+          },
+          discountInfo: {
+            discountName: 'Full Discount',
+            discountCode: 'FREE',
+            discountAmount: 150, // 150% (should be capped at 100%)
+            discountAmountType: 'percent',
+          },
+        }
+
+        const { getByTestId } = render(
+          <OrderReceiptEmail {...propsWithLargePercentage} />
+        )
+
+        // 100% of $60.00 = $60.00 (capped)
+        expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+        expect(getByTestId('discount-amount')).toHaveTextContent('-$60.00')
+        expect(getByTestId('total-amount')).toHaveTextContent('$0.00')
       })
     })
   })

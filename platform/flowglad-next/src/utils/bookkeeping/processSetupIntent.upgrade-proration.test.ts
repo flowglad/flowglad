@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -80,6 +80,18 @@ describe('Subscription Upgrade with Proration', () => {
   let freeSubscription: Subscription.Record
   let checkoutSession: CheckoutSession.Record
   let purchase: Purchase.Record
+
+  // Mock the system time to a fixed date
+  const mockDate = new Date('2025-09-15T12:00:00.000Z') // September 15th, 2025
+
+  beforeAll(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(mockDate)
+  })
+
+  afterAll(() => {
+    vi.useRealTimers()
+  })
 
   beforeEach(async () => {
     // Set up organization
@@ -217,11 +229,11 @@ describe('Subscription Upgrade with Proration', () => {
       )
 
       expect(paidSubscription).toBeDefined()
-      // The billing cycle anchor should be the upgrade date (today)
-      const today = new Date()
+      // The billing cycle anchor should be the upgrade date (fixed date)
+      const upgradeDate = new Date('2025-09-15') // Fixed upgrade date
       expect(
         paidSubscription!.billingCycleAnchorDate?.toDateString()
-      ).toBe(today.toDateString())
+      ).toBe(upgradeDate.toDateString())
       // Should not match the old free subscription's anchor
       expect(
         paidSubscription!.billingCycleAnchorDate?.toDateString()
@@ -339,18 +351,13 @@ describe('Subscription Upgrade with Proration', () => {
 
   describe('Preserved billing cycle (preserveBillingCycleAnchor = true)', () => {
     beforeEach(async () => {
-      // Create free subscription with billing period in the future
-      const today = new Date()
-      const billingStart = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        1
-      )
-      const billingEnd = new Date(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        0
-      )
+      // Create free subscription with billing period using fixed dates
+      // Use a fixed date to avoid test flakiness based on when tests run
+      const billingStart = new Date('2025-09-01') // September 1st, 2025
+      const billingEnd = new Date('2025-09-30')   // September 30th, 2025
+      
+      // Ensure we're using the start of month as anchor, not end of month
+      const billingCycleAnchor = new Date(billingStart)
 
       freeSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -362,7 +369,7 @@ describe('Subscription Upgrade with Proration', () => {
         isFreePlan: true,
         currentBillingPeriodStart: billingStart,
         currentBillingPeriodEnd: billingEnd,
-        billingCycleAnchorDate: billingStart,
+        billingCycleAnchorDate: billingCycleAnchor,
       })
 
       // Create checkout session WITH preserve flag
@@ -454,11 +461,9 @@ describe('Subscription Upgrade with Proration', () => {
     })
 
     it('should create minimal proration when upgrade occurs just after period start', async () => {
-      // Set billing period to start 1 second ago - proration will be minimal
-      const now = new Date()
-      const periodStart = new Date(now.getTime() - 1000) // 1 second ago
-      const periodEnd = new Date(periodStart)
-      periodEnd.setMonth(periodEnd.getMonth() + 1)
+      // Set billing period to start just before upgrade - proration will be minimal
+      const periodStart = new Date('2025-09-01T00:00:00.000Z') // September 1st
+      const periodEnd = new Date('2025-09-30T23:59:59.999Z')   // September 30th
 
       // Update the free subscription in the database
       await adminTransaction(async ({ transaction }) => {
@@ -547,7 +552,7 @@ describe('Subscription Upgrade with Proration', () => {
       // Calculate expected minimal proration (about 1 second out of ~30 days)
       const split =
         calculateSplitInBillingPeriodBasedOnAdjustmentDate(
-          new Date(), // approximate upgrade time
+          new Date('2025-09-01T00:00:01.000Z'), // Fixed upgrade time (1 second after period start)
           billingPeriod!
         )
 
@@ -568,11 +573,8 @@ describe('Subscription Upgrade with Proration', () => {
 
     it('should fallback to new billing cycle when preserve=true but period has ended', async () => {
       // Update the existing free subscription's dates to be in the past
-      const today = new Date()
-      const yesterday = new Date(today)
-      yesterday.setDate(yesterday.getDate() - 1)
-      const twoDaysAgo = new Date(today)
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+      const yesterday = new Date('2025-08-30') // August 30th
+      const twoDaysAgo = new Date('2025-08-29') // August 29th
 
       // Update the free subscription in the database
       await adminTransaction(async ({ transaction }) => {
@@ -654,11 +656,11 @@ describe('Subscription Upgrade with Proration', () => {
         }
       )
 
-      // Should fallback to new billing cycle starting today
-      const currentDate = new Date()
+      // Should fallback to new billing cycle starting on upgrade date
+      const upgradeDate = new Date('2025-09-15') // Fixed upgrade date
       expect(
         paidSubscription!.billingCycleAnchorDate?.toDateString()
-      ).toBe(currentDate.toDateString())
+      ).toBe(upgradeDate.toDateString())
 
       // Should NOT preserve the old anchor
       expect(
@@ -679,21 +681,7 @@ describe('Subscription Upgrade with Proration', () => {
 
     it('should create prorated billing items with exact calculated amounts', async () => {
       // Use the free subscription set up in beforeEach
-      const today = new Date()
-      const endOfMonth = new Date(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        0
-      )
-
-      // Only run this test if we're not at the start or end of month
-      if (
-        today.getDate() === 1 ||
-        today.getDate() === endOfMonth.getDate()
-      ) {
-        // Skip test if we're at month boundary
-        return
-      }
+      const upgradeDate = new Date('2025-09-15') // Fixed upgrade date (mid-month)
 
       checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -768,7 +756,7 @@ describe('Subscription Upgrade with Proration', () => {
       // Calculate the exact expected proration
       const split =
         calculateSplitInBillingPeriodBasedOnAdjustmentDate(
-          today, // upgrade date
+          upgradeDate, // upgrade date
           billingPeriod!
         )
       const expectedProratedAmount = Math.round(
@@ -788,7 +776,7 @@ describe('Subscription Upgrade with Proration', () => {
         `${(split.afterPercentage * 100).toFixed(1)}%`
       )
       expect(proratedItem!.description).toContain(
-        today.toISOString().split('T')[0]
+        upgradeDate.toISOString().split('T')[0]
       )
       expect(proratedItem!.description).toContain(
         billingPeriod!.endDate.toISOString().split('T')[0]
@@ -796,26 +784,8 @@ describe('Subscription Upgrade with Proration', () => {
     })
 
     it('should propagate quantity to prorated billing items', async () => {
-      // Use a date mid-month to ensure proration
-      const today = new Date()
-      const startOfMonth = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        1
-      )
-      const endOfMonth = new Date(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        0
-      )
-
-      // Skip if at month boundary
-      if (
-        today.getDate() === 1 ||
-        today.getDate() === endOfMonth.getDate()
-      ) {
-        return
-      }
+      // Use a fixed date mid-month to ensure proration
+      const upgradeDate = new Date('2025-09-15') // Fixed upgrade date (mid-month)
 
       // Use the free subscription from beforeEach, no need to create another
 
@@ -895,7 +865,7 @@ describe('Subscription Upgrade with Proration', () => {
       // Calculate expected prorated amount
       const split =
         calculateSplitInBillingPeriodBasedOnAdjustmentDate(
-          today,
+          upgradeDate,
           billingPeriod!
         )
       const expectedProratedUnitPrice = Math.round(
@@ -914,10 +884,9 @@ describe('Subscription Upgrade with Proration', () => {
 
   describe('Edge cases', () => {
     it('should handle upgrade on billing period boundary', async () => {
-      // Create subscription that ends today
-      const today = new Date()
-      const yesterday = new Date(today)
-      yesterday.setDate(yesterday.getDate() - 1)
+      // Create subscription that ends on upgrade date
+      const upgradeDate = new Date('2025-09-15') // Fixed upgrade date
+      const yesterday = new Date('2025-09-14') // Day before upgrade
 
       freeSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -928,7 +897,7 @@ describe('Subscription Upgrade with Proration', () => {
         livemode: true,
         isFreePlan: true,
         currentBillingPeriodStart: yesterday,
-        currentBillingPeriodEnd: today,
+        currentBillingPeriodEnd: upgradeDate,
         billingCycleAnchorDate: yesterday,
       })
 
