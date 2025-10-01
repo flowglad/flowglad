@@ -159,6 +159,7 @@ export const validateSetupPricingModelInput = (
   input: SetupPricingModelInput
 ) => {
   const parsed = setupPricingModelSchema.parse(input)
+
   const featuresBySlug = core.groupBy(R.prop('slug'), parsed.features)
   const usageMetersBySlug = core.groupBy(
     R.prop('slug'),
