@@ -90,7 +90,7 @@ export const refundPaymentTransaction = async (
       status: PaymentStatus.Refunded,
       refunded: true,
       refundedAmount: payment.amount,
-      refundedAt: dateFromStripeTimestamp(refund.created),
+      refundedAt: dateFromStripeTimestamp(refund.created).getTime(),
     },
     transaction
   )

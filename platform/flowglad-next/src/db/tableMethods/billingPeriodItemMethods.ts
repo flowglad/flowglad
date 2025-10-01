@@ -131,7 +131,7 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByB
 
 export const selectBillingPeriodAndItemsForDate = async (
   whereConditions: SelectConditions<typeof billingPeriods>,
-  date: Date,
+  date: Date | number,
   transaction: DbTransaction
 ) => {
   const result = await transaction
@@ -146,8 +146,8 @@ export const selectBillingPeriodAndItemsForDate = async (
     )
     .where(
       and(
-        lte(billingPeriods.startDate, date),
-        gte(billingPeriods.endDate, date),
+        lte(billingPeriods.startDate, new Date(date).getTime()),
+        gte(billingPeriods.endDate, new Date(date).getTime()),
         whereClauseFromObject(billingPeriods, whereConditions)
       )
     )
@@ -207,8 +207,8 @@ export const selectBillingPeriodAndItemsByBillingPeriodWhere = async (
 export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange =
   async (
     organizationId: string,
-    startDate: Date,
-    endDate: Date,
+    startDate: Date | number,
+    endDate: Date | number,
     transaction: DbTransaction
   ): Promise<
     {
@@ -217,16 +217,18 @@ export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange =
       billingPeriodItems: BillingPeriodItem.Record[]
     }[]
   > => {
+    const startDateMs = new Date(startDate).getTime()
+    const endDateMs = new Date(endDate).getTime()
     // Create the condition to find billing periods that overlap with the date range
     const dateRangeCondition = or(
       // Billing period starts within the date range
-      between(billingPeriods.startDate, startDate, endDate),
+      between(billingPeriods.startDate, startDateMs, endDateMs),
       // Billing period ends within the date range
-      between(billingPeriods.endDate, startDate, endDate),
+      between(billingPeriods.endDate, startDateMs, endDateMs),
       // Billing period spans the entire date range
       and(
-        lte(billingPeriods.startDate, startDate),
-        gte(billingPeriods.endDate, endDate)
+        lte(billingPeriods.startDate, startDateMs),
+        gte(billingPeriods.endDate, endDateMs)
       )
     )
 

@@ -158,7 +158,7 @@ export const bulkCreateOrUpdateSubscriptionItems = async (
 
 export const expireSubscriptionItem = async (
   subscriptionItemId: string,
-  expiredAt: Date,
+  expiredAt: Date | number,
   transaction: DbTransaction
 ) => {
   const subscriptionItem = await selectSubscriptionItemById(
@@ -171,7 +171,7 @@ export const expireSubscriptionItem = async (
   await updateSubscriptionItem(
     {
       id: subscriptionItemId,
-      expiredAt,
+      expiredAt: new Date(expiredAt).getTime(),
       type: subscriptionItem.type,
       usageMeterId: subscriptionItem.usageMeterId,
       usageEventsPerUnit: subscriptionItem.usageEventsPerUnit,
@@ -180,7 +180,7 @@ export const expireSubscriptionItem = async (
   )
   await expireSubscriptionItemFeaturesForSubscriptionItem(
     subscriptionItemId,
-    expiredAt,
+    new Date(expiredAt).getTime(),
     transaction
   )
 }
@@ -245,7 +245,7 @@ const processSubscriptionRow = (
 const isSubscriptionItemActive = (
   item: typeof subscriptionItems.$inferSelect
 ): boolean => {
-  return !item.expiredAt || item.expiredAt > new Date()
+  return !item.expiredAt || item.expiredAt > Date.now()
 }
 
 /**
@@ -377,7 +377,7 @@ export const bulkInsertOrDoNothingSubscriptionItemsByExternalId = (
 
 export const selectCurrentlyActiveSubscriptionItems = async (
   whereConditions: SelectConditions<typeof subscriptionItems>,
-  anchorDate: Date,
+  anchorDate: Date | number,
   transaction: DbTransaction
 ) => {
   const result = await transaction
@@ -388,7 +388,10 @@ export const selectCurrentlyActiveSubscriptionItems = async (
         whereClauseFromObject(subscriptionItems, whereConditions),
         or(
           isNull(subscriptionItems.expiredAt),
-          gt(subscriptionItems.expiredAt, anchorDate)
+          gt(
+            subscriptionItems.expiredAt,
+            new Date(anchorDate).getTime()
+          )
         )
       )
     )

@@ -91,7 +91,7 @@ export const expireProductFeaturesByFeatureId = async (
   // Then expire the product feature
   const expiredProductFeature = await transaction
     .update(productFeatures)
-    .set({ expiredAt: new Date() })
+    .set({ expiredAt: Date.now() })
     .where(inArray(productFeatures.id, productFeatureIds))
     .returning()
 

@@ -13,7 +13,7 @@ export function timestamptzMs(name: string) {
     driverData: Date | string
   }>({
     dataType: () => 'timestamptz',
-    toDriver: (n) => new Date(n),
+    toDriver: (n) => new Date(n).toISOString(),
     fromDriver: (v) =>
       v instanceof Date ? v.getTime() : Date.parse(v as string),
   })(name)
@@ -28,7 +28,7 @@ export function timestamptzMs(name: string) {
   return withDefaultNow as typeof withDefaultNow & EpochBrand
 }
 
-export const zEpochMs = z.coerce
+export const zodEpochMs = z.coerce
   .date()
   .transform((v) =>
     v instanceof Date

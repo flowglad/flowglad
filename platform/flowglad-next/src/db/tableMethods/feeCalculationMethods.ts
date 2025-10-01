@@ -55,7 +55,7 @@ export const selectLatestFeeCalculation = async (
     transaction
   )
   const latestFeeCalculation = feeCalculations.sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    (a, b) => b.createdAt - a.createdAt
   )[0]
   if (!latestFeeCalculation) {
     return null

@@ -14,6 +14,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   timestampWithTimezoneColumn,
+  zodEpochMs,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { FlowgladApiKeyType } from '@/types'
@@ -82,7 +83,7 @@ export const coreApiKeysUpdateSchema = coreApiKeysInsertSchema
 
 const hostedBillingApiKeyColumns = {
   type: z.literal(FlowgladApiKeyType.BillingPortalToken),
-  expiresAt: z.date(),
+  expiresAt: zodEpochMs,
   stackAuthHostedBillingUserId: z.string(),
 }
 

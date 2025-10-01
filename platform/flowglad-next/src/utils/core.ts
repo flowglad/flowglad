@@ -509,6 +509,8 @@ export const organizationBillingPortalURL = (params: {
   )
 }
 
+export const nowTime = () => Date.now()
+
 export const core = {
   IS_PROD,
   IS_TEST,
@@ -549,6 +551,7 @@ export const core = {
   gitCommitId,
   customerBillingPortalURL,
   organizationBillingPortalURL,
+  nowTime,
   safeZodNullOrUndefined,
   safeZodNullishString,
   safeZodPositiveInteger,

@@ -134,7 +134,7 @@ export const createSubscriptionWorkflow = async (
     )
   }
 
-  const timestamp = new Date()
+  const timestamp = Date.now()
   const eventInserts: Event.Insert[] = [
     {
       type: FlowgladEventType.SubscriptionCreated,

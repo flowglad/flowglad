@@ -51,7 +51,7 @@ export const selectBillingRunsDueForExecution = async (
   { livemode }: { livemode: boolean },
   transaction: DbTransaction
 ) => {
-  const now = new Date()
+  const now = Date.now()
   const result = await transaction
     .select()
     .from(billingRuns)

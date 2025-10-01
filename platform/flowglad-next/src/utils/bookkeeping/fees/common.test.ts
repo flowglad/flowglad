@@ -973,7 +973,7 @@ describe('finalizeFeeCalculation', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoice.id,
-          chargeDate: lastMonth,
+          chargeDate: lastMonth.getTime(),
           currency: CurrencyCode.USD,
           paymentMethod: PaymentMethodType.Card,
           refunded: false,

@@ -19,6 +19,7 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
+  zodEpochMs,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
@@ -87,7 +88,7 @@ export const refunds = pgTable(
 
 const columnRefinements = {
   amount: core.safeZodPositiveInteger,
-  refundProcessedAt: core.safeZodDate.nullable(),
+  refundProcessedAt: zodEpochMs.nullable(),
   status: core.createSafeZodEnum(RefundStatus),
   currency: currencyCodeSchema,
 }

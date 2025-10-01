@@ -320,9 +320,10 @@ export const dbInfoForCustomerBillingPortal = async ({
         aud: 'stub',
         email: user.email!,
         role: 'customer',
-        created_at: user.createdAt.toISOString(),
-        updated_at:
-          user.updatedAt?.toISOString() || new Date().toISOString(),
+        created_at: new Date(user.createdAt).toISOString(),
+        updated_at: user.updatedAt
+          ? new Date(user.updatedAt).toISOString()
+          : new Date().toISOString(),
         app_metadata: {
           provider: 'customerBillingPortal',
         },

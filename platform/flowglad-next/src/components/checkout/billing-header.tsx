@@ -43,12 +43,6 @@ export const pricingSubtitleForSubscriptionFlow = (
     checkoutContext as any
 
   if (!purchase && !price && !product && !checkoutSession) {
-    console.log('pricingSubtitleForSubscriptionFlow', {
-      purchase,
-      price,
-      product,
-      checkoutSession,
-    })
     return ''
   }
 

@@ -26,6 +26,7 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
+  zodEpochMs,
 } from '@/db/tableUtils'
 import {
   customerClientSelectSchema,
@@ -149,15 +150,15 @@ const standardSubscriptionStatuses = Object.values(
 
 const standardColumnRefinements = {
   status: z.enum(standardSubscriptionStatuses),
-  currentBillingPeriodStart: z.date(),
-  currentBillingPeriodEnd: z.date(),
-  trialEnd: z.date().nullable().optional(),
-  canceledAt: z.date().nullable().optional(),
-  cancelScheduledAt: z.date().nullable().optional(),
+  currentBillingPeriodStart: zodEpochMs,
+  currentBillingPeriodEnd: zodEpochMs,
+  trialEnd: zodEpochMs.nullable().optional(),
+  canceledAt: zodEpochMs.nullable().optional(),
+  cancelScheduledAt: zodEpochMs.nullable().optional(),
   metadata: metadataSchema.nullable().optional(),
   interval: core.createSafeZodEnum(IntervalUnit),
   intervalCount: core.safeZodPositiveInteger,
-  billingCycleAnchorDate: z.date(),
+  billingCycleAnchorDate: zodEpochMs,
   renews: z.literal(true),
 }
 
@@ -435,8 +436,7 @@ export const createSubscriptionInputSchema = z.object({
   quantity: z
     .number()
     .describe('The quantity of the price purchased.'),
-  startDate: z
-    .date()
+  startDate: zodEpochMs
     .optional()
     .describe(
       'The time when the subscription starts. If not provided, defaults to current time.'
@@ -448,8 +448,7 @@ export const createSubscriptionInputSchema = z.object({
     .describe(
       'The number of intervals that each billing period will last. If not provided, defaults to 1'
     ),
-  trialEnd: z
-    .date()
+  trialEnd: zodEpochMs
     .optional()
     .describe(
       `The time when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`

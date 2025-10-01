@@ -384,7 +384,7 @@ export const createCustomerBookkeeping = async (
     )
   }
 
-  const timestamp = new Date()
+  const timestamp = Date.now()
   const eventsToInsert: Event.Insert[] = []
 
   // Create customer created event

@@ -16,6 +16,7 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
+  zodEpochMs,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -102,10 +103,10 @@ const baseColumnRefinements = {
   quantity: core.safeZodPositiveInteger,
   metadata: metadataSchema.nullable().optional(),
   // Accept ISO datetime strings or Date objects
-  addedDate: z.coerce.date(),
-  expiredAt: z.coerce
-    .date()
+  addedDate: zodEpochMs,
+  expiredAt: zodEpochMs
     .nullable()
+    .optional()
     .describe(
       'Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list.'
     ),

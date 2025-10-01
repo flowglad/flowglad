@@ -26,6 +26,7 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
+  zodEpochMs,
 } from '@/db/tableUtils'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
@@ -140,9 +141,9 @@ const columnEnhancements = {
   amount: core.safeZodPositiveIntegerOrZero,
   status: core.createSafeZodEnum(PaymentStatus),
   currency: currencyCodeSchema,
-  chargeDate: core.safeZodDate,
-  settlementDate: core.safeZodDate.nullable().optional(),
-  refundedAt: core.safeZodDate.nullable().optional(),
+  chargeDate: zodEpochMs,
+  settlementDate: zodEpochMs.nullable().optional(),
+  refundedAt: zodEpochMs.nullable().optional(),
   paymentMethod: core.createSafeZodEnum(PaymentMethodType),
   receiptNumber: zodOptionalNullableString,
   receiptURL: z.url().nullable().optional(),
@@ -218,8 +219,8 @@ export const getRevenueDataInputSchema = z.object({
     RevenueChartIntervalUnit
   ),
   productId: z.string().nullish(),
-  fromDate: core.safeZodDate,
-  toDate: core.safeZodDate,
+  fromDate: zodEpochMs,
+  toDate: zodEpochMs,
 })
 
 export type GetRevenueDataInput = z.infer<

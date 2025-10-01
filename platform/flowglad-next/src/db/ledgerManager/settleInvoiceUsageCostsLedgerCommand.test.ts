@@ -788,7 +788,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         creditType: UsageCreditType.Grant,
         issuedAmount: priorCreditAmount,
         usageMeterId: usageMeter.id,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // expires in 30 days
+        expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30, // expires in 30 days
       })
       const grantTx = await setupLedgerTransaction({
         organizationId: organization.id,
@@ -862,7 +862,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         creditType: UsageCreditType.Grant,
         issuedAmount: expiringAmount,
         usageMeterId: usageMeter.id,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+        expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30,
       })
 
       const grantTx = await setupLedgerTransaction({

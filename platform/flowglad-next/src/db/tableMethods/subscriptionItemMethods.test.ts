@@ -128,7 +128,7 @@ describe('subscriptionItemMethods', async () => {
         unitPrice: 2000,
         priceId: price.id,
         livemode: true,
-        addedDate: new Date(),
+        addedDate: Date.now(),
         expiredAt: null,
         externalId: core.nanoid(),
         metadata: {},
@@ -254,7 +254,7 @@ describe('subscriptionItemMethods', async () => {
           unitPrice: 100,
           priceId: price.id,
           livemode: true,
-          addedDate: new Date(),
+          addedDate: Date.now(),
           expiredAt: null,
           externalId: core.nanoid(),
           metadata: {},
@@ -269,7 +269,7 @@ describe('subscriptionItemMethods', async () => {
           unitPrice: 200,
           priceId: price.id,
           livemode: true,
-          addedDate: new Date(),
+          addedDate: Date.now(),
           expiredAt: null,
           externalId: core.nanoid(),
           metadata: {},
@@ -379,7 +379,7 @@ describe('subscriptionItemMethods', async () => {
           unitPrice: 500,
           priceId: price.id,
           livemode: true,
-          addedDate: new Date(),
+          addedDate: Date.now(),
           expiredAt: null,
           externalId: newItemExternalId,
           metadata: {},
@@ -468,9 +468,9 @@ describe('subscriptionItemMethods', async () => {
 
   describe('selectRichSubscriptionsAndActiveItems', () => {
     it('should return rich subscriptions with only active items', async () => {
-      const now = new Date()
-      const futureDate = new Date(now.getTime() + 24 * 60 * 60 * 1000) // tomorrow
-      const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000) // yesterday
+      const now = Date.now()
+      const futureDate = now + 24 * 60 * 60 * 1000 // tomorrow
+      const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
 
       await adminTransaction(async ({ transaction }) => {
         // Create an expired item
@@ -596,8 +596,8 @@ describe('subscriptionItemMethods', async () => {
     })
 
     it('should only include feature items for active subscription items', async () => {
-      const now = new Date()
-      const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000) // yesterday
+      const now = Date.now()
+      const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
 
       await adminTransaction(async ({ transaction }) => {
         // First expire the original subscription item from beforeEach
@@ -733,7 +733,7 @@ describe('subscriptionItemMethods', async () => {
           subscriptionId: scenario1.subscription.id,
           amount: 100,
           usageMeterId: secondUsageMeter.id,
-          usageDate: new Date(),
+          usageDate: Date.now(),
           organizationId: organization.id,
           priceId: price.id,
           billingPeriodId: scenario1.billingPeriod.id,
@@ -805,7 +805,7 @@ describe('subscriptionItemMethods', async () => {
         await updateSubscriptionItem(
           {
             id: subscriptionItem.id,
-            expiredAt: new Date(0), // Set to epoch to ensure it's expired
+            expiredAt: 0, // Set to epoch to ensure it's expired
             type: SubscriptionItemType.Static,
             usageMeterId: null,
             usageEventsPerUnit: null,
@@ -852,7 +852,7 @@ describe('subscriptionItemMethods', async () => {
         quantity: 1,
         unitPrice: 100,
         livemode: true,
-        addedDate: new Date(),
+        addedDate: Date.now(),
         expiredAt: null,
         externalId: itemExternalId1,
         metadata: {},
@@ -865,7 +865,7 @@ describe('subscriptionItemMethods', async () => {
         quantity: 2,
         unitPrice: 200,
         livemode: true,
-        addedDate: new Date(),
+        addedDate: Date.now(),
         expiredAt: null,
         externalId: itemExternalId2,
         metadata: {},
@@ -954,12 +954,8 @@ describe('subscriptionItemMethods', async () => {
 
   describe('selectCurrentlyActiveSubscriptionItems', () => {
     const anchorDate = new Date()
-    const futureDate = new Date(
-      anchorDate.getTime() + 1000 * 60 * 60 * 24
-    ) // 1 day after anchor
-    const pastDate = new Date(
-      anchorDate.getTime() - 1000 * 60 * 60 * 24
-    ) // 1 day before anchor
+    const futureDate = anchorDate.getTime() + 1000 * 60 * 60 * 24 // 1 day after anchor
+    const pastDate = anchorDate.getTime() - 1000 * 60 * 60 * 24 // 1 day before anchor
 
     it('should return items not expired or expiring after anchorDate', async () => {
       await adminTransaction(async ({ transaction }) => {

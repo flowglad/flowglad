@@ -400,7 +400,7 @@ describe('Customer Role RLS Policies', () => {
       customerId: customerA_Org1.id,
       organizationId: org1.id,
       paymentMethodId: paymentMethodA_Org1.id,
-      chargeDate: new Date(),
+      chargeDate: Date.now(),
       livemode: true,
     })
 
@@ -412,7 +412,7 @@ describe('Customer Role RLS Policies', () => {
       customerId: customerB_Org1.id,
       organizationId: org1.id,
       paymentMethodId: paymentMethodB_Org1.id,
-      chargeDate: new Date(),
+      chargeDate: Date.now(),
       livemode: true,
     })
   })
@@ -1134,7 +1134,7 @@ describe('Customer Role RLS Policies', () => {
             {
               id: subscriptionB_Org1.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: new Date(),
+              canceledAt: Date.now(),
               renews: false,
             },
             transaction

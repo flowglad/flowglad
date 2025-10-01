@@ -20,6 +20,7 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
+  zodEpochMs,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
@@ -82,7 +83,7 @@ export const usageCreditBalanceAdjustments = pgTable(
 
 const columnRefinements = {
   amountAdjusted: core.safeZodPositiveInteger,
-  adjustmentInitiatedAt: core.safeZodDate,
+  adjustmentInitiatedAt: zodEpochMs,
   notes: z.string().nullable(),
   metadata: z.record(z.string(), z.any()).nullable(),
   adjustedByUserId: z.string().nullable(),

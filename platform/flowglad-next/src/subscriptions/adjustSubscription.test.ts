@@ -77,10 +77,9 @@ describe('adjustSubscription Integration Tests', async () => {
       customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
-      currentBillingPeriodEnd: new Date(Date.now() - 3000),
-      currentBillingPeriodStart: new Date(
-        Date.now() - 30 * 24 * 60 * 60 * 1000
-      ),
+      currentBillingPeriodEnd: Date.now() - 3000,
+      currentBillingPeriodStart:
+        Date.now() - 30 * 24 * 60 * 60 * 1000,
     })
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
@@ -99,6 +98,7 @@ describe('adjustSubscription Integration Tests', async () => {
       quantity: 1,
       unitPrice: 100,
     })
+    const now = Date.now()
     subscriptionItemCore = {
       subscriptionId: subscription.id,
       priceId: price.id,
@@ -106,10 +106,10 @@ describe('adjustSubscription Integration Tests', async () => {
       quantity: 1,
       unitPrice: 100,
       livemode: subscription.livemode,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
       metadata: null,
-      addedDate: new Date(),
+      addedDate: now,
       externalId: null,
       type: SubscriptionItemType.Static,
       usageMeterId: null,
@@ -135,8 +135,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 10 * 60 * 1000),
-            endDate: new Date(Date.now() + 10 * 60 * 1000),
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -169,8 +169,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 10 * 60 * 1000),
-            endDate: new Date(Date.now() + 10 * 60 * 1000),
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -288,11 +288,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
           const approximatelyImmediateBillingRuns =
             billingRuns.filter((run) => {
-              return (
-                Math.abs(
-                  run.scheduledFor.getTime() - new Date().getTime()
-                ) < 10000
-              )
+              return Math.abs(run.scheduledFor - Date.now()) < 10000
             })
           expect(approximatelyImmediateBillingRuns.length).toBe(1)
         })
@@ -311,8 +307,8 @@ describe('adjustSubscription Integration Tests', async () => {
           await updateBillingPeriod(
             {
               id: billingPeriod.id,
-              startDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
-              endDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              startDate: Date.now() - 24 * 60 * 60 * 1000,
+              endDate: Date.now() + 24 * 60 * 60 * 1000,
               status: BillingPeriodStatus.Active,
             },
             transaction
@@ -429,10 +425,11 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 2,
         unitPrice: 200,
       })
+      const now = Date.now()
       billingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
-        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        startDate: now - 30 * 24 * 60 * 60 * 1000,
+        endDate: now + 30 * 24 * 60 * 60 * 1000,
         status: BillingPeriodStatus.Active,
       })
       await adminTransaction(async ({ transaction }) => {
@@ -454,7 +451,9 @@ describe('adjustSubscription Integration Tests', async () => {
             unitPrice: 300,
             livemode: subscription.livemode,
             metadata: null,
-            addedDate: new Date(),
+            addedDate: now,
+            createdAt: now,
+            updatedAt: now,
             priceId: price.id,
             externalId: null,
             expiredAt: null,
@@ -516,10 +515,8 @@ describe('adjustSubscription Integration Tests', async () => {
       expect(split.afterPercentage).toBe(0)
 
       adjustmentDate = new Date(
-        billingPeriod.startDate.getTime() +
-          (billingPeriod.endDate.getTime() -
-            billingPeriod.startDate.getTime()) /
-            2
+        billingPeriod.startDate +
+          (billingPeriod.endDate - billingPeriod.startDate) / 2
       )
       split = calculateSplitInBillingPeriodBasedOnAdjustmentDate(
         adjustmentDate,
@@ -531,7 +528,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should throw an error if the adjustment date is outside the billing period', () => {
       const tooEarlyAdjustmentDate = new Date(
-        billingPeriod.startDate.getTime() - 1000
+        billingPeriod.startDate - 1000
       )
       expect(() => {
         calculateSplitInBillingPeriodBasedOnAdjustmentDate(
@@ -540,7 +537,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
       }).toThrow()
       const tooLateAdjustmentDate = new Date(
-        billingPeriod.endDate.getTime() + 1000
+        billingPeriod.endDate + 1000
       )
       expect(() => {
         calculateSplitInBillingPeriodBasedOnAdjustmentDate(
@@ -568,6 +565,7 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 100,
       })
+      const now = Date.now()
       await adminTransaction(async ({ transaction }) => {
         const newItems: SubscriptionItem.Upsert[] = [
           {
@@ -576,10 +574,10 @@ describe('adjustSubscription Integration Tests', async () => {
             quantity: 1,
             unitPrice: 100,
             livemode: subscription.livemode,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: now,
+            updatedAt: now,
             metadata: null,
-            addedDate: new Date(),
+            addedDate: now,
             subscriptionId: subscription.id,
             priceId: price.id,
             externalId: null,
@@ -611,8 +609,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 3600000),
-            endDate: new Date(Date.now() + 3600000),
+            startDate: Date.now() - 3600000,
+            endDate: Date.now() + 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -757,8 +755,8 @@ describe('adjustSubscription Integration Tests', async () => {
           await updateBillingPeriod(
             {
               id: billingPeriod.id,
-              startDate: new Date(Date.now() - 3600000),
-              endDate: new Date(Date.now() + 3600000),
+              startDate: Date.now() - 3600000,
+              endDate: Date.now() + 3600000,
             },
             transaction
           )
@@ -794,8 +792,8 @@ describe('adjustSubscription Integration Tests', async () => {
           {
             id: billingPeriod.id,
             subscriptionId: subscription.id,
-            startDate: new Date(Date.now() - 7200000),
-            endDate: new Date(Date.now() - 3600000),
+            startDate: Date.now() - 7200000,
+            endDate: Date.now() - 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -847,8 +845,8 @@ describe('adjustSubscription Integration Tests', async () => {
         billingPeriod = await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 3600000),
-            endDate: new Date(Date.now() + 3600000),
+            startDate: Date.now() - 3600000,
+            endDate: Date.now() + 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -911,8 +909,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 3600000),
-            endDate: new Date(Date.now() + 3600000),
+            startDate: Date.now() - 3600000,
+            endDate: Date.now() + 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction

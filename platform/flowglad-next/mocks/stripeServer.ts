@@ -85,7 +85,7 @@ export const stripeHandlers = [
       currency: 'usd',
       status,
       payment_intent: 'pi_mock123',
-      created: new Date().getTime() / 1000,
+      created: Date.now() / 1000,
       payment_method_details: {
         id: `pm_${nanoid()}`,
         type: PaymentMethodType.Card,

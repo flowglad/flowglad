@@ -916,7 +916,7 @@ describe('clonePricingModelTransaction', () => {
           // Mark it as expired
           return await transaction
             .update(productFeatures)
-            .set({ expiredAt: new Date() })
+            .set({ expiredAt: Date.now() })
             .where(eq(productFeatures.id, pf.id))
             .returning()
             .then((rows) => rows[0])

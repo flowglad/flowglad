@@ -12,6 +12,7 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
+  zodEpochMs,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
@@ -76,7 +77,7 @@ export const usageCreditApplications = pgTable(
 
 const columnRefinements = {
   amountApplied: core.safeZodPositiveInteger,
-  appliedAt: core.safeZodDate,
+  appliedAt: zodEpochMs,
   status: core.createSafeZodEnum(UsageCreditApplicationStatus),
   targetUsageMeterId: z.string().nullable().optional(),
 }

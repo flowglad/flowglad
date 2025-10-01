@@ -141,12 +141,8 @@ beforeEach(async () => {
     priceId: price.id,
     status: SubscriptionStatus.Active,
     livemode: true,
-    currentBillingPeriodStart: new Date(
-      Date.now() - 15 * 24 * 60 * 60 * 1000
-    ), // 15 days ago
-    currentBillingPeriodEnd: new Date(
-      Date.now() + 15 * 24 * 60 * 60 * 1000
-    ), // 15 days from now
+    currentBillingPeriodStart: Date.now() - 15 * 24 * 60 * 60 * 1000, // 15 days ago
+    currentBillingPeriodEnd: Date.now() + 15 * 24 * 60 * 60 * 1000, // 15 days from now
   })
 
   // Set up billing period for subscription

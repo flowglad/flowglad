@@ -469,10 +469,7 @@ export const activeColumn = () =>
 
 export const descriptionColumn = () => text('description')
 
-export const timestampWithTimezoneColumn = (name: string) =>
-  timestamp(name, {
-    withTimezone: true,
-  })
+export const timestampWithTimezoneColumn = timestamptzMs
 
 export const createdAtColumn = () =>
   timestampWithTimezoneColumn('created_at').notNull().defaultNow()
@@ -490,7 +487,7 @@ export const tableBase = (idPrefix?: string) => ({
   createdAt: createdAtColumn(),
   updatedAt: timestampWithTimezoneColumn('updated_at')
     .defaultNow()
-    .$onUpdate(() => new Date()),
+    .$onUpdate(() => Date.now()),
   createdByCommit: text('created_by_commit').$defaultFn(gitCommitId),
   updatedByCommit: text('updated_by_commit').$defaultFn(gitCommitId),
   livemode: boolean('livemode').notNull(),
@@ -1605,7 +1602,7 @@ export interface CreateSelectSchema<
 
 export const TIMESTAMPTZ_MS = Symbol('timestamptzMs')
 
-export const zEpochMs = z
+export const zodEpochMs = z
   .union([z.number(), z.string(), z.date()])
   .transform((v) =>
     v instanceof Date
@@ -1623,7 +1620,7 @@ function epochOverridesFromTable(table: any) {
   const cols = table._.columns as Record<string, any>
   for (const [key, col] of Object.entries(cols)) {
     if ((col as any).__brand === TIMESTAMPTZ_MS) {
-      overrides[key] = zEpochMs // parse → number for inputs/unknowns
+      overrides[key] = zodEpochMs // parse → number for inputs/unknowns
     }
   }
   return overrides

@@ -87,7 +87,7 @@ const columns = {
    */
   expires: timestampWithTimezoneColumn('expires')
     .notNull()
-    .$defaultFn(() => new Date(Date.now() + 1000 * 60 * 60 * 24)),
+    .$defaultFn(() => Date.now() + 1000 * 60 * 60 * 24),
   paymentMethodType: pgEnumColumn({
     enumName: 'PaymentMethodType',
     columnName: 'payment_method_type',

@@ -75,12 +75,9 @@ describe('ledgerEntryMethods', () => {
       },
       subscriptionArgs: {
         status: SubscriptionStatus.Active,
-        currentBillingPeriodStart: new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
-        ),
-        currentBillingPeriodEnd: new Date(
-          Date.now() + 1 * 24 * 60 * 60 * 1000
-        ),
+        currentBillingPeriodStart:
+          Date.now() - 30 * 24 * 60 * 60 * 1000,
+        currentBillingPeriodEnd: Date.now() + 1 * 24 * 60 * 60 * 1000,
         livemode: true,
       },
     })
@@ -140,7 +137,7 @@ describe('ledgerEntryMethods', () => {
           amount: 100,
           status: LedgerEntryStatus.Posted,
           livemode: true,
-          entryTimestamp: new Date(),
+          entryTimestamp: Date.now(),
           sourceUsageEventId: usageEvent.id,
         }
         const result = await bulkInsertLedgerEntries(
@@ -184,7 +181,7 @@ describe('ledgerEntryMethods', () => {
           amount: 100,
           status: LedgerEntryStatus.Posted,
           livemode: true,
-          entryTimestamp: new Date(),
+          entryTimestamp: Date.now(),
           sourceUsageEventId: usageEvent.id,
         }
         const usageCredit = await setupUsageCredit({
@@ -211,7 +208,7 @@ describe('ledgerEntryMethods', () => {
           status: LedgerEntryStatus.Posted,
           livemode: true,
           sourceUsageCreditId: usageCredit.id,
-          entryTimestamp: new Date(),
+          entryTimestamp: Date.now(),
         }
         const result = await bulkInsertLedgerEntries(
           [entryData1, entryData2],
@@ -254,7 +251,7 @@ describe('ledgerEntryMethods', () => {
           amount: 100,
           status: LedgerEntryStatus.Posted,
           livemode: true,
-          entryTimestamp: new Date(),
+          entryTimestamp: Date.now(),
           sourceUsageEventId: usageEvent.id,
         }
         const usageCredit = await setupUsageCredit({
@@ -280,7 +277,7 @@ describe('ledgerEntryMethods', () => {
           amount: 50,
           status: LedgerEntryStatus.Posted,
           livemode: false,
-          entryTimestamp: new Date(),
+          entryTimestamp: Date.now(),
           sourceUsageCreditId: usageCredit.id,
         }
         const result = await bulkInsertLedgerEntries(
@@ -325,7 +322,7 @@ describe('ledgerEntryMethods', () => {
           amount: 100,
           status: LedgerEntryStatus.Posted,
           livemode: true,
-          entryTimestamp: new Date(),
+          entryTimestamp: Date.now(),
           sourceUsageEventId: usageEvent.id,
         }
         const result = await bulkInsertLedgerEntries(
@@ -590,7 +587,7 @@ describe('ledgerEntryMethods', () => {
           creditType: UsageCreditType.Grant,
           issuedAmount: 1000,
         })
-        const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000) // Yesterday
+        const pastDate = Date.now() - 24 * 60 * 60 * 1000 // Yesterday
 
         await setupLedgerEntries({
           organizationId: organization.id,
@@ -637,7 +634,7 @@ describe('ledgerEntryMethods', () => {
         expect(balance).toBe(1000)
       })
       it('should include posted entries with future discardedAt dates', async () => {
-        const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000) // Tomorrow
+        const futureDate = Date.now() + 24 * 60 * 60 * 1000 // Tomorrow
 
         await setupCreditLedgerEntry({
           organizationId: organization.id,
@@ -744,7 +741,7 @@ describe('ledgerEntryMethods', () => {
             amount: 100,
             usageMeterId: ledgerAccount.usageMeterId!,
             status: LedgerEntryStatus.Pending,
-            discardedAt: new Date(Date.now() - 1000),
+            discardedAt: Date.now() - 1000,
             sourceUsageCreditId: usageCreditId,
           })
           const balance =
@@ -868,7 +865,7 @@ describe('ledgerEntryMethods', () => {
       })
       it('should ignore discarded pending entries', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000)
+          const pastDate = Date.now() - 24 * 60 * 60 * 1000
           await setupLedgerEntries({
             organizationId: organization.id,
             subscriptionId: subscription.id,
@@ -1010,7 +1007,7 @@ describe('ledgerEntryMethods', () => {
                 entryType: LedgerEntryType.CreditGrantRecognized,
                 amount: 100,
                 status: LedgerEntryStatus.Posted,
-                discardedAt: new Date(Date.now() - 1000),
+                discardedAt: Date.now() - 1000,
                 sourceUsageCreditId: usageCreditId,
               },
               {
@@ -1023,7 +1020,7 @@ describe('ledgerEntryMethods', () => {
                 entryType: LedgerEntryType.UsageCost,
                 amount: 300,
                 status: LedgerEntryStatus.Pending,
-                discardedAt: new Date(Date.now() - 1000),
+                discardedAt: Date.now() - 1000,
                 sourceUsageEventId: usageEventId,
               },
             ],
@@ -1115,7 +1112,7 @@ describe('ledgerEntryMethods', () => {
               entryType: LedgerEntryType.UsageCost,
               amount: 200,
               status: LedgerEntryStatus.Pending,
-              discardedAt: new Date(Date.now() - 1000),
+              discardedAt: Date.now() - 1000,
               sourceUsageEventId: usageEventId,
             },
           ],
@@ -1270,7 +1267,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.UsageCost,
             amount: 75,
             status: LedgerEntryStatus.Pending,
-            discardedAt: new Date(Date.now() - 1000),
+            discardedAt: Date.now() - 1000,
             sourceUsageEventId: usageEventId,
           })
           const balance =
@@ -1307,7 +1304,7 @@ describe('ledgerEntryMethods', () => {
             entryType: LedgerEntryType.CreditGrantRecognized,
             amount: 120,
             status: LedgerEntryStatus.Pending,
-            discardedAt: new Date(Date.now() - 1000),
+            discardedAt: Date.now() - 1000,
             sourceUsageCreditId: usageCreditId,
           })
           const balance =
@@ -1553,9 +1550,7 @@ describe('ledgerEntryMethods', () => {
       })
       it('should include entries with future discardedAt dates', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const futureDate = new Date(
-            Date.now() + 24 * 60 * 60 * 1000
-          ) // Tomorrow
+          const futureDate = Date.now() + 24 * 60 * 60 * 1000 // Tomorrow
           // Posted Credit, future discard: +100
           await setupLedgerEntries({
             organizationId: organization.id,
@@ -1672,7 +1667,7 @@ describe('ledgerEntryMethods', () => {
           usageMeterId: usageMeter.id,
         })
         await adminTransaction(async ({ transaction }) => {
-          const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000)
+          const pastDate = Date.now() - 24 * 60 * 60 * 1000
           const includedAmount = 1000
 
           await setupLedgerEntries({
@@ -1805,9 +1800,7 @@ describe('ledgerEntryMethods', () => {
 
       it('should correctly handle the discardedAt logic: include entries if discardedAt is in the future', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const futureDate = new Date(
-            Date.now() + 24 * 60 * 60 * 1000
-          )
+          const futureDate = Date.now() + 24 * 60 * 60 * 1000
           const postedCreditAmount = 200
           const pendingDebitAmount = 75
           const usageCredit = await setupUsageCredit({
@@ -2546,7 +2539,7 @@ describe('ledgerEntryMethods', () => {
       // Expected:
       // - Empty array (no usageCreditId should appear in results).
       await adminTransaction(async ({ transaction }) => {
-        const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000) // Yesterday
+        const pastDate = Date.now() - 24 * 60 * 60 * 1000 // Yesterday
 
         // Create two distinct usage credits
         const usageCreditAlpha = await setupUsageCredit({
@@ -2808,7 +2801,7 @@ describe('ledgerEntryMethods', () => {
       // - Array containing balances for sourceUsageCreditId_A and sourceUsageCreditId_C.
       // - sourceUsageCreditId_B should not be in the result array.
       await adminTransaction(async ({ transaction }) => {
-        const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000) // Yesterday
+        const pastDate = Date.now() - 24 * 60 * 60 * 1000 // Yesterday
 
         // 1. Set up Three Usage Credits
         const usageCreditA = await setupUsageCredit({
@@ -2977,7 +2970,7 @@ describe('ledgerEntryMethods', () => {
           issuedAmount: creditBalance, // Initial issued amount
           usageMeterId: usageMeter.id,
           livemode: true,
-          expiresAt: specificExpiryDate,
+          expiresAt: specificExpiryDate.getTime(),
         })
 
         await setupCreditLedgerEntry({
@@ -3077,7 +3070,7 @@ describe('ledgerEntryMethods', () => {
           issuedAmount: balanceA,
           usageMeterId: usageMeter.id,
           livemode: true,
-          expiresAt: dateA,
+          expiresAt: dateA.getTime(),
         })
         await setupCreditLedgerEntry({
           organizationId: organization.id,
@@ -3122,7 +3115,7 @@ describe('ledgerEntryMethods', () => {
           issuedAmount: balanceC,
           usageMeterId: usageMeter.id,
           livemode: true,
-          expiresAt: dateC,
+          expiresAt: dateC.getTime(),
         })
         await setupCreditLedgerEntry({
           organizationId: organization.id,
@@ -3198,7 +3191,7 @@ describe('ledgerEntryMethods', () => {
           issuedAmount: creditBalance,
           usageMeterId: usageMeter.id,
           livemode: true,
-          expiresAt: pastExpiryDate,
+          expiresAt: pastExpiryDate.getTime(),
         })
 
         await setupCreditLedgerEntry({

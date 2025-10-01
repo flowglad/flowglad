@@ -11,6 +11,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   timestampWithTimezoneColumn,
+  zodEpochMs,
 } from '@/db/tableUtils'
 import core from '@/utils/core'
 import { z } from 'zod'
@@ -62,7 +63,7 @@ export const messages = pgTable(
 
 // Common refinements for both SELECT and INSERT schemas
 const commonColumnRefinements = {
-  messageSentAt: core.safeZodDate,
+  messageSentAt: zodEpochMs,
   payload: z.unknown(),
 }
 

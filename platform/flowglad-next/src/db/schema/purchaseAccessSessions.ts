@@ -38,9 +38,7 @@ export const purchaseAccessSessions = pgTable(
     }).notNull(),
     expires: timestampWithTimezoneColumn('expires')
       .notNull()
-      .$defaultFn(
-        () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
-      ),
+      .$defaultFn(() => Date.now() + 1000 * 60 * 60 * 24 * 7),
     granted: boolean('granted').default(false),
     metadata: jsonb('metadata'),
   },

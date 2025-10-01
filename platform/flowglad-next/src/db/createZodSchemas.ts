@@ -6,7 +6,7 @@ import {
   createInsertSchema,
   createUpdateSchema,
 } from 'drizzle-zod'
-import { TIMESTAMPTZ_MS, zEpochMs } from './timestampMs'
+import { TIMESTAMPTZ_MS, zodEpochMs } from './timestampMs'
 import { PgTable } from 'drizzle-orm/pg-core'
 import { PgTableWithId } from './types'
 import { ommittedColumnsForInsertSchema } from './tableUtils'
@@ -41,7 +41,7 @@ function epochRefineForInsert<TTable>(
   const cols = (table as any)._.columns as Record<string, any>
   const out: Record<string, z.ZodTypeAny> = {}
   for (const [k, col] of Object.entries(cols)) {
-    if ((col as any).__brand === TIMESTAMPTZ_MS) out[k] = zEpochMs
+    if ((col as any).__brand === TIMESTAMPTZ_MS) out[k] = zodEpochMs
   }
   return out as any
 }
@@ -56,7 +56,7 @@ function epochRefineForUpdate<TTable>(
   const out: Record<string, z.ZodTypeAny> = {}
   for (const [k, col] of Object.entries(cols)) {
     if ((col as any).__brand === TIMESTAMPTZ_MS)
-      out[k] = zEpochMs.optional()
+      out[k] = zodEpochMs.optional()
   }
   return out as any
 }

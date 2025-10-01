@@ -414,19 +414,19 @@ export const setupSubscription = async (params: {
   interval?: IntervalUnit
   intervalCount?: number
   livemode?: boolean
-  currentBillingPeriodEnd?: Date
-  currentBillingPeriodStart?: Date
+  currentBillingPeriodEnd?: number
+  currentBillingPeriodStart?: number
   status?: SubscriptionStatus
-  trialEnd?: Date
+  trialEnd?: number
   renews?: boolean
-  startDate?: Date
-  cancelScheduledAt?: Date
+  startDate?: number
+  cancelScheduledAt?: number
   isFreePlan?: boolean
   cancellationReason?: string | null
   replacedBySubscriptionId?: string | null
-  canceledAt?: Date | null
+  canceledAt?: number | null
   metadata?: any
-  billingCycleAnchorDate?: Date
+  billingCycleAnchorDate?: number
 }): Promise<Subscription.Record> => {
   const status = params.status ?? SubscriptionStatus.Active
   return adminTransaction(async ({ transaction }) => {
@@ -461,7 +461,7 @@ export const setupSubscription = async (params: {
           runBillingAtPeriodStart:
             price.type === PriceType.Subscription ? true : false,
           externalId: null,
-          startDate: new Date(),
+          startDate: Date.now(),
           renews: false,
           isFreePlan: params.isFreePlan ?? false,
           cancellationReason: params.cancellationReason ?? null,
@@ -491,12 +491,12 @@ export const setupSubscription = async (params: {
             | SubscriptionStatus.Paused,
           livemode: params.livemode ?? true,
           billingCycleAnchorDate:
-            params.billingCycleAnchorDate ?? new Date(),
+            params.billingCycleAnchorDate ?? Date.now(),
           currentBillingPeriodEnd:
             params.currentBillingPeriodEnd ??
-            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(),
           currentBillingPeriodStart:
-            params.currentBillingPeriodStart ?? new Date(),
+            params.currentBillingPeriodStart ?? Date.now(),
           canceledAt: params.canceledAt ?? null,
           cancelScheduledAt: params.cancelScheduledAt ?? null,
           trialEnd: params.trialEnd ?? null,
@@ -510,7 +510,7 @@ export const setupSubscription = async (params: {
           runBillingAtPeriodStart:
             price.type === PriceType.Subscription ? true : false,
           externalId: null,
-          startDate: params.startDate ?? new Date(),
+          startDate: params.startDate ?? Date.now(),
           renews: isNil(params.renews) ? true : params.renews,
           isFreePlan: params.isFreePlan ?? false,
           cancellationReason: params.cancellationReason ?? null,
@@ -531,8 +531,8 @@ export const setupBillingPeriod = async ({
   livemode = true,
 }: {
   subscriptionId: string
-  startDate: Date
-  endDate: Date
+  startDate: number | Date
+  endDate: number | Date
   status?: BillingPeriodStatus
   livemode?: boolean
 }) => {
@@ -540,8 +540,10 @@ export const setupBillingPeriod = async ({
     return insertBillingPeriod(
       {
         subscriptionId,
-        startDate,
-        endDate,
+        startDate:
+          startDate instanceof Date ? startDate.getTime() : startDate,
+        endDate:
+          endDate instanceof Date ? endDate.getTime() : endDate,
         status,
         livemode,
       },
@@ -554,7 +556,7 @@ export const setupBillingRun = async ({
   billingPeriodId,
   paymentMethodId,
   status = BillingRunStatus.Scheduled,
-  scheduledFor = new Date(),
+  scheduledFor = Date.now(),
   subscriptionId,
   livemode = true,
   stripePaymentIntentId,
@@ -783,8 +785,8 @@ export const setupInvoice = async ({
         status,
         livemode,
         invoiceNumber: `TEST-001-${core.nanoid()}`,
-        invoiceDate: new Date(),
-        dueDate: new Date(),
+        invoiceDate: Date.now(),
+        dueDate: Date.now(),
         billingPeriodStartDate: billingPeriod?.startDate ?? null,
         billingPeriodEndDate: billingPeriod?.endDate ?? null,
         type: billingPeriod
@@ -960,8 +962,8 @@ export const setupPayment = async ({
   subscriptionId?: string
   refunded?: boolean
   refundedAmount?: number
-  refundedAt?: Date
-  chargeDate?: Date
+  refundedAt?: number
+  chargeDate?: number
   purchaseId?: string
   paymentMethodId?: string
 }): Promise<Payment.Record> => {
@@ -979,7 +981,7 @@ export const setupPayment = async ({
         billingPeriodId,
         currency: CurrencyCode.USD,
         paymentMethod: paymentMethod ?? PaymentMethodType.Card,
-        chargeDate: chargeDate ?? new Date(),
+        chargeDate: chargeDate ?? Date.now(),
         taxCountry: CountryCode.US,
         subscriptionId: subscriptionId ?? null,
         purchaseId: purchaseId ?? null,
@@ -1038,8 +1040,8 @@ export const setupSubscriptionItem = async ({
   quantity: number
   unitPrice: number
   priceId?: string
-  addedDate?: Date
-  removedDate?: Date
+  addedDate?: number
+  removedDate?: number
   metadata?: Record<string, any>
   type?: SubscriptionItemType
   usageMeterId?: string
@@ -1072,7 +1074,7 @@ export const setupSubscriptionItem = async ({
         unitPrice,
         livemode: subscription.livemode,
         priceId: priceId ?? subscription.priceId!,
-        addedDate: addedDate ?? new Date(),
+        addedDate: addedDate ?? Date.now(),
         expiredAt: null,
         metadata: metadata ?? {},
         externalId: null,
@@ -1099,7 +1101,7 @@ export const setupSubscriptionItem = async ({
         unitPrice,
         livemode: subscription.livemode,
         priceId: priceId ?? subscription.priceId!,
-        addedDate: addedDate ?? new Date(),
+        addedDate: addedDate ?? Date.now(),
         expiredAt: null,
         metadata: metadata ?? {},
         externalId: null,
@@ -1670,7 +1672,7 @@ export const setupUsageEvent = async (
     return insertUsageEvent(
       {
         livemode: true,
-        usageDate: params.usageDate ?? new Date(),
+        usageDate: params.usageDate ?? Date.now(),
         properties: params.properties ?? {},
         ...params,
       },
@@ -1710,12 +1712,12 @@ interface CoreLedgerEntryUserParams {
   amount: number // User provides positive amount; sign/direction handled by logic
 
   description?: string
-  entryTimestamp?: Date
+  entryTimestamp?: number
   status?: LedgerEntryStatus
   livemode?: boolean
   metadata?: Record<string, any> | null
-  discardedAt?: Date | null
-  expiredAt?: Date | null
+  discardedAt?: number | null
+  expiredAt?: number | null
   billingPeriodId?: string | null
   usageMeterId: string
   appliedToLedgerItemId?: string | null
@@ -1777,7 +1779,7 @@ const baseLedgerEntryInsertFieldsFromParams = (
     status?: LedgerEntryStatus
   }
 ) => {
-  const now = new Date()
+  const now = Date.now()
   const dbAmount = Math.abs(params.amount)
   return {
     ...ledgerEntryNulledSourceIdColumns,
@@ -1899,14 +1901,14 @@ export const setupDebitLedgerEntry = async (
 interface SetupLedgerEntryCoreParams {
   amount: number
   status?: LedgerEntryStatus
-  discardedAt?: Date | null
+  discardedAt?: number | null
 }
 // --- Credit Ledger Entry Setup ---
 interface SetupCreditCreditGrantRecognizedParams
   extends SetupLedgerEntryCoreParams {
   entryType: LedgerEntryType.CreditGrantRecognized
   sourceUsageCreditId: string
-  expiresAt?: Date | null
+  expiresAt?: number | null
 }
 
 interface SetupCreditCreditBalanceAdjustedParams
@@ -2025,7 +2027,7 @@ export const setupUsageCredit = async (
     return insertUsageCredit(
       {
         livemode: params.livemode ?? true,
-        issuedAt: params.issuedAt ?? now,
+        issuedAt: params.issuedAt ?? now.getTime(),
         sourceReferenceId:
           params.sourceReferenceId ?? `src_ref_${core.nanoid()}`,
         metadata: params.metadata ?? {},
@@ -2056,7 +2058,7 @@ export const setupUsageCreditApplication = async (
     return insertUsageCreditApplication(
       {
         livemode: true,
-        appliedAt: now,
+        appliedAt: now.getTime(),
         status: params.status ?? UsageCreditApplicationStatus.Posted,
         ...params,
       },
@@ -2110,7 +2112,7 @@ export const setupRefund = async (
         status: RefundStatus.Succeeded,
         reason: 'Test Refund',
         gatewayRefundId: `ref_gw_${core.nanoid()}`,
-        refundProcessedAt: new Date(),
+        refundProcessedAt: Date.now(),
         notes: 'Test Refund Notes',
         ...params,
       },
@@ -2320,7 +2322,7 @@ export const setupProductFeature = async (
   params: Partial<ProductFeature.Insert> & {
     productId: string
     featureId: string
-    expiredAt?: Date | null
+    expiredAt?: number | null
     organizationId: string
   }
 ) => {
@@ -2466,10 +2468,10 @@ export const setupUsageLedgerScenario = async (params: {
   })
   const billingPeriod = await setupBillingPeriod({
     subscriptionId: subscription.id,
-    startDate: subscription.currentBillingPeriodStart || new Date(),
+    startDate: subscription.currentBillingPeriodStart ?? Date.now(),
     endDate:
-      subscription.currentBillingPeriodEnd ||
-      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      subscription.currentBillingPeriodEnd ??
+      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(),
     status: BillingPeriodStatus.Active,
     livemode,
   })

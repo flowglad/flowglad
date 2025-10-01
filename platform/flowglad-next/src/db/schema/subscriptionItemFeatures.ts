@@ -16,6 +16,7 @@ import {
   parentForeignKeyIntegrityCheckPolicy,
   merchantPolicy,
   enableCustomerReadPolicy,
+  zodEpochMs,
 } from '@/db/tableUtils'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { features } from '@/db/schema/features'
@@ -113,7 +114,7 @@ const columnRefinements = {
   amount: z.number().int().nullable().optional(),
   usageMeterId: zodOptionalNullableString,
   productFeatureId: zodOptionalNullableString,
-  detachedAt: z.date().nullable().optional(),
+  detachedAt: zodEpochMs.nullable().optional(),
   detachedReason: zodOptionalNullableString,
 }
 
@@ -377,7 +378,7 @@ export type EditSubscriptionItemFeatureInput = z.infer<
 
 export const expireSubscriptionItemFeatureInputSchema = z.object({
   id: z.string(),
-  expiredAt: z.date().optional(),
+  expiredAt: zodEpochMs.optional(),
 })
 
 export type DeactivateSubscriptionItemFeatureInput = z.infer<

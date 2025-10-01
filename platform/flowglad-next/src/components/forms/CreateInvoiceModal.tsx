@@ -22,7 +22,7 @@ export const constructInvoiceDefaultValues = (
 ) => {
   const defaultValues: CreateInvoiceInput = {
     invoice: {
-      invoiceDate: new Date(),
+      invoiceDate: Date.now(),
       customerId: customer?.id ?? '',
       currency: organization!.defaultCurrency,
       invoiceNumber: core.createInvoiceNumber(

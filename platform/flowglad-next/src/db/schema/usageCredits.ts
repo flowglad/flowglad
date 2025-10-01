@@ -22,6 +22,7 @@ import {
   enableCustomerReadPolicy,
   constructUniqueIndex,
   timestampWithTimezoneColumn,
+  zodEpochMs,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -126,8 +127,8 @@ const columnRefinements = {
     UsageCreditSourceReferenceType
   ),
   issuedAmount: core.safeZodPositiveInteger,
-  issuedAt: z.date(),
-  expiresAt: z.date().nullable(),
+  issuedAt: zodEpochMs,
+  expiresAt: zodEpochMs.nullable(),
   metadata: z.record(z.string(), z.string()).nullable(),
   paymentId: z.string().nullable(),
 }

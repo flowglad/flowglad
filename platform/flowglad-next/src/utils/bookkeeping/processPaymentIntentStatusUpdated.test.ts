@@ -1113,7 +1113,7 @@ describe('Process payment intent status updated', async () => {
       const fakeCharge = createMockStripeCharge({
         id: `ch_paid_${core.nanoid()}`,
         payment_intent: `pi_paid_${core.nanoid()}`,
-        created: new Date().getTime() / 1000,
+        created: Date.now() / 1000,
         amount: 5000,
         status: 'succeeded',
         metadata,
@@ -1192,9 +1192,7 @@ describe('Process payment intent status updated', async () => {
           subscriptionId: subscription.id,
           livemode: true,
           startDate: new Date(),
-          endDate: new Date(
-            new Date().getTime() + 1000 * 60 * 60 * 24 * 30
-          ),
+          endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
         })
         const billingRun = await setupBillingRun({
           subscriptionId: subscription.id,

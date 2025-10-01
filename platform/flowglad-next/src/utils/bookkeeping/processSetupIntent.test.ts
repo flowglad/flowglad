@@ -777,7 +777,7 @@ describe('Process setup intent', async () => {
         // expects:
         const result = calculateTrialEnd(params)
         expect(result).toBeInstanceOf(Date)
-        expect(result?.getTime()).toEqual(expectedDate.getTime())
+        expect(result).toEqual(expectedDate.getTime())
       })
 
       it('should return a future date for trialPeriodDays = 30', () => {
@@ -789,7 +789,7 @@ describe('Process setup intent', async () => {
         // expects:
         const result = calculateTrialEnd(params)
         expect(result).toBeInstanceOf(Date)
-        expect(result?.getTime()).toEqual(expectedDate.getTime())
+        expect(result).toEqual(expectedDate.getTime())
       })
 
       it('should return a future date for trialPeriodDays = 1', () => {
@@ -801,7 +801,7 @@ describe('Process setup intent', async () => {
         // expects:
         const result = calculateTrialEnd(params)
         expect(result).toBeInstanceOf(Date)
-        expect(result?.getTime()).toEqual(expectedDate.getTime())
+        expect(result).toEqual(expectedDate.getTime())
       })
     })
   })
@@ -991,7 +991,7 @@ describe('Process setup intent', async () => {
           priceId: price.id,
           livemode: true,
           paymentMethodId: localPaymentMethod.id,
-          trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          trialEnd: Date.now() + 14 * 24 * 60 * 60 * 1000,
         })
 
         // Create a local first checkout session
