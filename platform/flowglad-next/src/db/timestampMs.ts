@@ -13,7 +13,7 @@ export function timestamptzMs(name: string) {
     driverData: Date | string
   }>({
     dataType: () => 'timestamptz',
-    toDriver: (n) => new Date(n < 1e12 ? n * 1000 : n),
+    toDriver: (n) => new Date(n),
     fromDriver: (v) =>
       v instanceof Date ? v.getTime() : Date.parse(v as string),
   })(name)
