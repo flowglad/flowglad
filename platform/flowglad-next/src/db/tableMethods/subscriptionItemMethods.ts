@@ -30,7 +30,6 @@ import {
 } from '@/subscriptions/schemas'
 import {
   pricesClientSelectSchema,
-  subscribablePriceClientSelectSchema,
 } from '../schema/prices'
 import { prices } from '../schema/prices'
 import { isSubscriptionCurrent } from './subscriptionMethods'
@@ -222,8 +221,9 @@ const processSubscriptionRow = (
     row.subscriptionItems &&
     isSubscriptionItemActive(row.subscriptionItems)
   ) {
+    console.log(`====row.price====`, row.price)
     const price = row.price
-      ? subscribablePriceClientSelectSchema.parse(row.price)
+      ? pricesClientSelectSchema.parse(row.price)
       : undefined
     if (price) {
       richSubscriptionsMap
