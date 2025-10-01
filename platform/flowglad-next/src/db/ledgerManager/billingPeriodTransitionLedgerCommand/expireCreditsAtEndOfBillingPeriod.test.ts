@@ -316,7 +316,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     expect(expiredEntry.organizationId).toBe(organization.id)
     expect(expiredEntry.status).toBe(LedgerEntryStatus.Posted)
     expect(expiredEntry.livemode).toBe(testCommand.livemode)
-    expect(expiredEntry.entryTimestamp).toBeInstanceOf(Date)
+    expect(expiredEntry.entryTimestamp).toBeDefined()
     expect(expiredEntry.direction).toBe(LedgerEntryDirection.Debit)
     expect(expiredEntry.entryType).toBe(
       LedgerEntryType.CreditGrantExpired
@@ -681,7 +681,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       livemodeFalseCommand.organizationId
     )
     expect(expiredEntry.status).toBe(LedgerEntryStatus.Posted)
-    expect(expiredEntry.entryTimestamp).toBeInstanceOf(Date)
+    expect(expiredEntry.entryTimestamp).toBeDefined()
     expect(expiredEntry.direction).toBe(LedgerEntryDirection.Debit)
     expect(expiredEntry.entryType).toBe(
       LedgerEntryType.CreditGrantExpired

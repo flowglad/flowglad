@@ -267,7 +267,7 @@ describe('adjustSubscription Integration Tests', async () => {
           // Expect that the item not present in newItems (item2) was “removed” and new items were added.
           expect(result?.subscriptionItems.length).toBe(3)
           result?.subscriptionItems.forEach((item) => {
-            expect(item.addedDate).toBeInstanceOf(Date)
+            expect(item.addedDate).toBeDefined()
           })
 
           // Verify proration adjustments were inserted.

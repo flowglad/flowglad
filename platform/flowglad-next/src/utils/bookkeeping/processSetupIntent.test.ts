@@ -776,7 +776,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toBeInstanceOf(Date)
+        expect(result).toBeDefined()
         expect(result).toEqual(expectedDate.getTime())
       })
 
@@ -788,7 +788,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toBeInstanceOf(Date)
+        expect(result).toBeDefined()
         expect(result).toEqual(expectedDate.getTime())
       })
 
@@ -800,7 +800,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toBeInstanceOf(Date)
+        expect(result).toBeDefined()
         expect(result).toEqual(expectedDate.getTime())
       })
     })

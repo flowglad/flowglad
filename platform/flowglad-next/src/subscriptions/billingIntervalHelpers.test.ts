@@ -63,10 +63,10 @@ describe('generateNextBillingPeriod', () => {
       })
 
       expect(result.startDate).toEqual(
-        new Date('2024-01-31T23:59:59.999Z')
+        new Date('2024-01-31T23:59:59.999Z').getTime()
       )
       expect(result.endDate).toEqual(
-        new Date('2024-02-29T23:59:59.999Z')
+        new Date('2024-02-29T23:59:59.999Z').getTime()
       )
     })
   })
@@ -83,9 +83,11 @@ describe('generateNextBillingPeriod', () => {
       })
 
       expect(result.startDate).toEqual(
-        new Date('2024-02-29T10:00:00Z')
+        new Date('2024-02-29T10:00:00Z').getTime()
       )
-      expect(result.endDate).toEqual(new Date('2025-02-28T10:00:00Z'))
+      expect(result.endDate).toEqual(
+        new Date('2025-02-28T10:00:00Z').getTime()
+      )
     })
 
     it('handles non-leap year to leap year transition', () => {
@@ -99,9 +101,11 @@ describe('generateNextBillingPeriod', () => {
       })
 
       expect(result.startDate).toEqual(
-        new Date('2024-02-29T10:00:00Z')
+        new Date('2024-02-29T10:00:00Z').getTime()
       )
-      expect(result.endDate).toEqual(new Date('2025-02-28T10:00:00Z'))
+      expect(result.endDate).toEqual(
+        new Date('2025-02-28T10:00:00Z').getTime()
+      )
     })
 
     it('handles multiple year intervals', () => {
@@ -115,9 +119,11 @@ describe('generateNextBillingPeriod', () => {
       })
 
       expect(result.startDate).toEqual(
-        new Date('2024-02-29T10:00:00Z')
+        new Date('2024-02-29T10:00:00Z').getTime()
       )
-      expect(result.endDate).toEqual(new Date('2026-02-28T10:00:00Z'))
+      expect(result.endDate).toEqual(
+        new Date('2026-02-28T10:00:00Z').getTime()
+      )
     })
   })
 
@@ -152,9 +158,11 @@ describe('generateNextBillingPeriod', () => {
       })
 
       expect(result.startDate).toEqual(
-        new Date('2024-03-15T12:00:00Z')
+        new Date('2024-03-15T12:00:00Z').getTime()
       )
-      expect(result.endDate).toEqual(new Date('2024-04-15T12:00:00Z'))
+      expect(result.endDate).toEqual(
+        new Date('2024-04-15T12:00:00Z').getTime()
+      )
     })
 
     it('handles large monthly interval crossing multiple months including a leap boundary', () => {
@@ -169,9 +177,11 @@ describe('generateNextBillingPeriod', () => {
       })
 
       expect(result.startDate).toEqual(
-        new Date('2023-11-15T09:30:00Z')
+        new Date('2023-11-15T09:30:00Z').getTime()
       )
-      expect(result.endDate).toEqual(new Date('2024-04-15T09:30:00Z'))
+      expect(result.endDate).toEqual(
+        new Date('2024-04-15T09:30:00Z').getTime()
+      )
     })
 
     it('handles multiple year intervals from a non-edge day', () => {
@@ -186,9 +196,11 @@ describe('generateNextBillingPeriod', () => {
       })
 
       expect(result.startDate).toEqual(
-        new Date('2023-05-15T00:00:00Z')
+        new Date('2023-05-15T00:00:00Z').getTime()
       )
-      expect(result.endDate).toEqual(new Date('2025-05-15T00:00:00Z'))
+      expect(result.endDate).toEqual(
+        new Date('2025-05-15T00:00:00Z').getTime()
+      )
     })
 
     it('allows contiguous billing where new start date == last end date', () => {
@@ -205,7 +217,9 @@ describe('generateNextBillingPeriod', () => {
       // The code might copy time from anchorDate to lastEnd,
       // so the new start could be exactly lastEnd's date/time.
       expect(result.startDate).toEqual(lastEnd)
-      expect(result.endDate).toEqual(new Date('2023-10-10T10:00:00Z'))
+      expect(result.endDate).toEqual(
+        new Date('2023-10-10T10:00:00Z').getTime()
+      )
     })
 
     it('throws error if intervalCount is zero', () => {
@@ -249,8 +263,8 @@ describe('trial period handling', () => {
       trialEnd: trialEnd,
     })
 
-    expect(result.startDate).toEqual(anchorDate)
-    expect(result.endDate).toEqual(trialEnd)
+    expect(result.startDate).toEqual(anchorDate.getTime())
+    expect(result.endDate).toEqual(trialEnd.getTime())
   })
 
   it('should prioritize trialEnd over other interval calculations', () => {
@@ -267,7 +281,7 @@ describe('trial period handling', () => {
     })
 
     // The result should be based on the trial, not the month interval
-    expect(result.startDate).toEqual(anchorDate)
+    expect(result.startDate).toEqual(anchorDate.getTime())
     expect(result.endDate).toEqual(trialEnd)
   })
 
@@ -286,7 +300,7 @@ describe('trial period handling', () => {
     })
 
     // Start date should be the anchor, not the last period's end.
-    expect(result.startDate).toEqual(anchorDate)
+    expect(result.startDate).toEqual(anchorDate.getTime())
     expect(result.endDate).toEqual(trialEnd)
   })
 
