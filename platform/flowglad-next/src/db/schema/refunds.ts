@@ -18,6 +18,7 @@ import {
   ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
@@ -54,9 +55,9 @@ export const refunds = pgTable(
       columnName: 'status',
       enumBase: RefundStatus,
     }).notNull(),
-    refundProcessedAt: timestamp('refund_processed_at', {
-      withTimezone: true,
-    }),
+    refundProcessedAt: timestampWithTimezoneColumn(
+      'refund_processed_at'
+    ),
     gatewayRefundId: text('gateway_refund_id'),
     notes: text('notes'),
     initiatedByUserId: text('initiated_by_user_id'),

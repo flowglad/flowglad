@@ -24,6 +24,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   customerPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { billingAddressSchema } from '@/db/schema/organizations'
 import core from '@/utils/core'
@@ -84,7 +85,7 @@ const columns = {
   /**
    * Default to 24 hours from now
    */
-  expires: timestamp('expires')
+  expires: timestampWithTimezoneColumn('expires')
     .notNull()
     .$defaultFn(() => new Date(Date.now() + 1000 * 60 * 60 * 24)),
   paymentMethodType: pgEnumColumn({

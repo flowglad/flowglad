@@ -19,6 +19,7 @@ import {
   ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
@@ -46,9 +47,9 @@ export const usageCreditBalanceAdjustments = pgTable(
       'adjusted_by_user_id',
       users
     ),
-    adjustmentInitiatedAt: timestamp('adjustment_initiated_at', {
-      withTimezone: true,
-    })
+    adjustmentInitiatedAt: timestampWithTimezoneColumn(
+      'adjustment_initiated_at'
+    )
       .notNull()
       .defaultNow(),
     notes: text('notes'),
@@ -77,7 +78,7 @@ export const usageCreditBalanceAdjustments = pgTable(
       livemodePolicy(TABLE_NAME),
     ]
   }
-)
+).enableRLS()
 
 const columnRefinements = {
   amountAdjusted: core.safeZodPositiveInteger,

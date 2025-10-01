@@ -17,6 +17,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import core from '@/utils/core'
@@ -36,9 +37,10 @@ export const billingRuns = pgTable(
       'billing_period_id',
       billingPeriods
     ),
-    scheduledFor: timestamp('scheduled_for').notNull(),
-    startedAt: timestamp('started_at'),
-    completedAt: timestamp('completed_at'),
+    scheduledFor:
+      timestampWithTimezoneColumn('scheduled_for').notNull(),
+    startedAt: timestampWithTimezoneColumn('started_at'),
+    completedAt: timestampWithTimezoneColumn('completed_at'),
     status: pgEnumColumn({
       enumName: 'BillingRunStatus',
       columnName: 'status',
@@ -58,7 +60,7 @@ export const billingRuns = pgTable(
     /**
      * Used to deal with out-of-order event deliveries.
      */
-    lastPaymentIntentEventTimestamp: timestamp(
+    lastPaymentIntentEventTimestamp: timestampWithTimezoneColumn(
       'last_stripe_payment_intent_event_timestamp'
     ),
   },

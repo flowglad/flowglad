@@ -16,6 +16,7 @@ import {
   livemodePolicy,
   SelectConditions,
   merchantPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import {
   FlowgladEventType,
@@ -51,9 +52,10 @@ export const events = pgTable(
     //   enumBase: EventRetentionPolicy,
     // }).notNull(),
     payload: jsonb('payload').notNull(),
-    occurredAt: timestamp('occurred_at').notNull(),
-    submittedAt: timestamp('submitted_at').notNull(),
-    processedAt: timestamp('processed_at'),
+    occurredAt: timestampWithTimezoneColumn('occurred_at').notNull(),
+    submittedAt:
+      timestampWithTimezoneColumn('submitted_at').notNull(),
+    processedAt: timestampWithTimezoneColumn('processed_at'),
     metadata: jsonb('metadata').notNull(),
     // source: text('source').notNull(),
     // subjectEntity: pgEnumColumn({

@@ -803,6 +803,7 @@ describe('Customer uniqueness constraints', () => {
       // Attempt to create duplicate using raw insert
       await expect(
         adminTransaction(async ({ transaction }) => {
+          // @ts-expect-error - intentionally setting null for test
           await transaction.insert(customers).values({
             id: `cust_${core.nanoid()}`,
             organizationId: organization1.id,
@@ -810,7 +811,7 @@ describe('Customer uniqueness constraints', () => {
             email: `customer2_${core.nanoid()}@test.com`,
             name: 'Customer 2',
             livemode: true,
-            createdAt: new Date(),
+            createdAt: new Date().getTime(),
             updatedAt: new Date(),
           })
         })
@@ -839,16 +840,16 @@ describe('Customer uniqueness constraints', () => {
       await expect(
         adminTransaction(async ({ transaction }) => {
           // Attempt raw SQL to bypass TypeScript checks
-          // @ts-expect-error - intentionally setting null for test
           await transaction.insert(customers).values({
+            // @ts-expect-error - intentionally setting null for test
             id: `cust_${core.nanoid()}`,
             organizationId: organization1.id,
             externalId: null,
             email: `customer_${core.nanoid()}@test.com`,
             name: 'Customer with null externalId',
             livemode: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: new Date().getTime(),
+            updatedAt: new Date().getTime(),
           })
         })
       ).rejects.toThrow()

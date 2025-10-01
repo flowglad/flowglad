@@ -11,6 +11,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
@@ -28,8 +29,8 @@ export const billingPeriods = pgTable(
       'subscription_id',
       subscriptions
     ),
-    startDate: timestamp('start_date').notNull(),
-    endDate: timestamp('end_date').notNull(),
+    startDate: timestampWithTimezoneColumn('start_date').notNull(),
+    endDate: timestampWithTimezoneColumn('end_date').notNull(),
     status: pgEnumColumn({
       enumName: 'BillingPeriodStatus',
       columnName: 'status',
