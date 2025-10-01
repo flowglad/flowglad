@@ -221,7 +221,6 @@ const processSubscriptionRow = (
     row.subscriptionItems &&
     isSubscriptionItemActive(row.subscriptionItems)
   ) {
-    console.log(`====row.price====`, row.price)
     const price = row.price
       ? pricesClientSelectSchema.parse(row.price)
       : undefined
