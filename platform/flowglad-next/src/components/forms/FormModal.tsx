@@ -92,6 +92,11 @@ interface FormModalProps<T extends FieldValues>
    */
   hideFooter?: boolean
   mode?: 'drawer' | 'modal'
+  /**
+   * Allow content to overflow the modal (e.g., for dropdowns, popovers).
+   * Defaults to false for backward compatibility.
+   */
+  allowContentOverflow?: boolean
 }
 
 interface NestedFormModalProps<T extends FieldValues>
@@ -115,6 +120,7 @@ export const NestedFormModal = <T extends FieldValues>({
   form,
   onSuccess,
   mode = 'modal',
+  allowContentOverflow = false,
 }: NestedFormModalProps<T>) => {
   const shouldRenderContent = useShouldRenderContent({ isOpen })
   const footer = (
@@ -178,8 +184,9 @@ export const NestedFormModal = <T extends FieldValues>({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent
+        allowContentOverflow={allowContentOverflow}
         className={cn(
-          'flex-1 max-h-[90vh] overflow-hidden flex flex-col',
+          'flex-1 max-h-[90vh] flex flex-col',
           // Mobile-first responsive width
           'w-[calc(100vw-32px)]', // Ensure 16px padding on mobile
           extraWide && 'sm:w-full sm:max-w-6xl',
@@ -211,6 +218,7 @@ const FormModal = <T extends FieldValues>({
   autoClose = true,
   hideFooter = false,
   mode = 'modal',
+  allowContentOverflow = false,
 }: FormModalProps<T>) => {
   const id = useId()
   const router = useRouter()
@@ -290,8 +298,9 @@ const FormModal = <T extends FieldValues>({
   let content = (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent
+        allowContentOverflow={allowContentOverflow}
         className={cn(
-          'flex-1 max-h-[90vh] overflow-hidden flex flex-col',
+          'flex-1 max-h-[90vh] flex flex-col',
           // Mobile-first responsive width
           'w-[calc(100vw-32px)]', // Ensure 16px padding on mobile
           extraWide && 'sm:w-full sm:max-w-6xl',
