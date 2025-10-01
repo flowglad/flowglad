@@ -25,6 +25,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
@@ -66,8 +67,8 @@ export const payments = pgTable(
       columnName: 'status',
       enumBase: PaymentStatus,
     }).notNull(),
-    chargeDate: timestamp('charge_date').notNull(),
-    settlementDate: timestamp('settlement_date'),
+    chargeDate: timestampWithTimezoneColumn('charge_date').notNull(),
+    settlementDate: timestampWithTimezoneColumn('settlement_date'),
     description: text('description'),
     receiptNumber: text('receipt_number'),
     receiptURL: text('receipt_url'),
@@ -97,7 +98,7 @@ export const payments = pgTable(
      */
     refunded: boolean('refunded').notNull().default(false),
     refundedAmount: integer('refunded_amount'),
-    refundedAt: timestamp('refunded_at'),
+    refundedAt: timestampWithTimezoneColumn('refunded_at'),
     failureMessage: text('failure_message'),
     failureCode: text('failure_code'),
   },

@@ -17,6 +17,7 @@ import {
   createSupabaseWebhookSchema,
   ommittedColumnsForInsertSchema,
   SelectConditions,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { PurchaseAccessSessionSource } from '@/types'
 import core from '@/utils/core'
@@ -35,7 +36,7 @@ export const purchaseAccessSessions = pgTable(
       columnName: 'source',
       enumBase: PurchaseAccessSessionSource,
     }).notNull(),
-    expires: timestamp('expires')
+    expires: timestampWithTimezoneColumn('expires')
       .notNull()
       .$defaultFn(
         () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)

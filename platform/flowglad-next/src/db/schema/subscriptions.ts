@@ -25,6 +25,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import {
   customerClientSelectSchema,
@@ -43,7 +44,7 @@ const TABLE_NAME = 'subscriptions'
 
 const columns = {
   ...tableBase('sub'),
-  startDate: timestamp('start_date').notNull(),
+  startDate: timestampWithTimezoneColumn('start_date').notNull(),
   customerId: notNullStringForeignKey('customer_id', customers),
   organizationId: notNullStringForeignKey(
     'organization_id',
@@ -63,14 +64,18 @@ const columns = {
     paymentMethods
   ),
   stripeSetupIntentId: text('stripe_setup_intent_id'),
-  trialEnd: timestamp('trial_end'),
-  currentBillingPeriodStart: timestamp(
+  trialEnd: timestampWithTimezoneColumn('trial_end'),
+  currentBillingPeriodStart: timestampWithTimezoneColumn(
     'current_billing_period_start'
   ),
-  currentBillingPeriodEnd: timestamp('current_billing_period_end'),
+  currentBillingPeriodEnd: timestampWithTimezoneColumn(
+    'current_billing_period_end'
+  ),
   metadata: jsonb('metadata'),
-  canceledAt: timestamp('canceled_at'),
-  cancelScheduledAt: timestamp('cancel_scheduled_at'),
+  canceledAt: timestampWithTimezoneColumn('canceled_at'),
+  cancelScheduledAt: timestampWithTimezoneColumn(
+    'cancel_scheduled_at'
+  ),
   cancellationReason: text('cancellation_reason'),
   replacedBySubscriptionId: text('replaced_by_subscription_id'),
   isFreePlan: boolean('is_free_plan').default(false),
@@ -84,7 +89,9 @@ const columns = {
     enumBase: IntervalUnit,
   }),
   intervalCount: integer('interval_count'),
-  billingCycleAnchorDate: timestamp('billing_cycle_anchor_date'),
+  billingCycleAnchorDate: timestampWithTimezoneColumn(
+    'billing_cycle_anchor_date'
+  ),
   name: text('name'),
   renews: boolean('renews').notNull().default(true),
   /**

@@ -30,7 +30,9 @@ const SidebarLayout = ({
   // Read the sidebar state from cookies on client side to persist across navigation
   useEffect(() => {
     const sidebarState = getCookieValue('sidebar_state')
-    const shouldOpen = sidebarState === 'true'
+    // Default to expanded for new users (when no cookie exists)
+    // Only collapse if explicitly set to 'false'
+    const shouldOpen = sidebarState !== 'false'
     setDefaultOpen(shouldOpen)
     setIsInitialized(true)
   }, [])

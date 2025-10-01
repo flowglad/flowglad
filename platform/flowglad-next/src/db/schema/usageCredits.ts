@@ -21,6 +21,7 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   constructUniqueIndex,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -71,14 +72,10 @@ export const usageCredits = pgTable(
     ),
     paymentId: nullableStringForeignKey('payment_id', payments),
     issuedAmount: integer('issued_amount').notNull(),
-    issuedAt: timestamp('issued_at', {
-      withTimezone: true,
-    })
+    issuedAt: timestampWithTimezoneColumn('issued_at')
       .notNull()
       .defaultNow(),
-    expiresAt: timestamp('expires_at', {
-      withTimezone: true,
-    }),
+    expiresAt: timestampWithTimezoneColumn('expires_at'),
     status: pgEnumColumn({
       enumName: 'UsageCreditStatus',
       columnName: 'status',

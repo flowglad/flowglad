@@ -21,6 +21,7 @@ import {
   ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -64,7 +65,9 @@ export const usageEvents = pgTable(
       billingPeriods
     ),
     amount: integer('amount').notNull(),
-    usageDate: timestamp('usage_date').notNull().defaultNow(),
+    usageDate: timestampWithTimezoneColumn('usage_date')
+      .notNull()
+      .defaultNow(),
     transactionId: text('transaction_id').notNull(),
     priceId: notNullStringForeignKey('price_id', prices),
     properties: jsonb('properties'),
