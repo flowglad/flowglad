@@ -11,7 +11,7 @@ import {
   standardSubscriptionClientSelectSchema,
   subscriptionClientSelectSchema,
 } from '@/db/schema/subscriptions'
-import { subscribablePriceClientSelectSchema } from '@/db/schema/prices'
+import { pricesClientSelectSchema } from '@/db/schema/prices'
 import {
   SubscriptionAdjustmentTiming,
   SubscriptionCancellationArrangement,
@@ -59,10 +59,10 @@ export type AdjustSubscriptionParams = z.infer<
 export const richSubscriptionItemClientSelectSchema =
   z.discriminatedUnion('type', [
     usageSubscriptionItemClientSelectSchema.extend({
-      price: subscribablePriceClientSelectSchema,
+      price: pricesClientSelectSchema,
     }),
     staticSubscriptionItemClientSelectSchema.extend({
-      price: subscribablePriceClientSelectSchema,
+      price: pricesClientSelectSchema,
     }),
   ])
 
