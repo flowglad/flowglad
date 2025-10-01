@@ -623,13 +623,6 @@ const PaymentForm = () => {
               >
                 Privacy
               </a>
-              <span>·</span>
-              <a
-                href="/help"
-                className="hover:text-gray-800 transition-colors"
-              >
-                Support
-              </a>
             </div>
           </div>
         </div>
