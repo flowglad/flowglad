@@ -152,7 +152,6 @@ const PricingModelsTable = ({
       columns={columns}
       data={tableData}
       className="bg-background"
-      bordered
       onClickRow={(row) => {
         router.push(`/store/pricing-models/${row.pricingModel.id}`)
       }}

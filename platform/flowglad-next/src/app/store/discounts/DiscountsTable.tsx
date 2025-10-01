@@ -31,14 +31,13 @@ const MoreMenuCell = ({
   const [isEditOpen, setIsEditOpen] = useState(false)
   const items: PopoverMenuItem[] = [
     {
-      label: 'Edit Discount',
+      label: 'Edit',
       icon: <Pencil />,
       handler: () => setIsEditOpen(true),
     },
     {
-      label: 'Delete Discount',
+      label: 'Delete',
       icon: <Trash2 />,
-      state: PopoverMenuItemState.Danger,
       handler: () => setIsDeleteOpen(true),
     },
   ]
@@ -199,7 +198,6 @@ const DiscountsTable = ({
       columns={columns}
       data={tableData}
       className="bg-background"
-      bordered
       pagination={{
         pageIndex,
         pageSize,

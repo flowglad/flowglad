@@ -256,7 +256,6 @@ export const ProductsTable = ({
               router.push(`/store/products/${row.product.id}`)
             }}
             className="bg-background w-full"
-            bordered
             pagination={{
               pageIndex,
               pageSize,
