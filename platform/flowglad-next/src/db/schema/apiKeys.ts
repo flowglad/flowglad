@@ -1,12 +1,5 @@
 import * as R from 'ramda'
-import {
-  boolean,
-  text,
-  timestamp,
-  pgTable,
-  pgPolicy,
-  pgEnum,
-} from 'drizzle-orm/pg-core'
+import { boolean, text, pgTable } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { z } from 'zod'
 import {
@@ -20,6 +13,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { FlowgladApiKeyType } from '@/types'
@@ -46,9 +40,7 @@ export const apiKeys = pgTable(
       columnName: 'type',
       enumBase: FlowgladApiKeyType,
     }).notNull(),
-    expiresAt: timestamp('expires_at', {
-      withTimezone: true,
-    }),
+    expiresAt: timestampWithTimezoneColumn('expires_at'),
     stackAuthHostedBillingUserId: text(
       'stack_auth_hosted_billing_user_id'
     ),
@@ -106,6 +98,7 @@ export const hostedBillingPortalApiKeysUpdateSchema =
 const secretApiKeyColumns = {
   type: z.literal(FlowgladApiKeyType.Secret),
 }
+
 export const secretApiKeysInsertSchema =
   coreApiKeysInsertSchema.extend(secretApiKeyColumns)
 export const secretApiKeysSelectSchema =

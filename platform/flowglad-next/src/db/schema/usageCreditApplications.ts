@@ -1,11 +1,4 @@
-import {
-  boolean,
-  text,
-  pgTable,
-  pgPolicy,
-  integer,
-  timestamp,
-} from 'drizzle-orm/pg-core'
+import { boolean, pgTable, integer } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import {
@@ -18,6 +11,7 @@ import {
   ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
@@ -47,9 +41,7 @@ export const usageCreditApplications = pgTable(
       usageEvents
     ),
     amountApplied: integer('amount_applied').notNull(),
-    appliedAt: timestamp('applied_at', {
-      withTimezone: true,
-    }).defaultNow(),
+    appliedAt: timestampWithTimezoneColumn('applied_at').defaultNow(),
     targetUsageMeterId: nullableStringForeignKey(
       'target_usage_meter_id',
       usageMeters
@@ -59,9 +51,7 @@ export const usageCreditApplications = pgTable(
       organizations
     ),
     livemode: boolean('livemode').notNull(),
-    createdAt: timestamp('created_at', {
-      withTimezone: true,
-    }).defaultNow(),
+    createdAt: timestampWithTimezoneColumn('created_at').defaultNow(),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.usageCreditId]),
@@ -82,7 +72,7 @@ export const usageCreditApplications = pgTable(
     ),
     livemodePolicy(TABLE_NAME),
   ]
-)
+).enableRLS()
 
 const columnRefinements = {
   amountApplied: core.safeZodPositiveInteger,

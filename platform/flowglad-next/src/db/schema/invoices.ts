@@ -25,6 +25,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { purchases } from './purchases'
 import {
@@ -64,7 +65,9 @@ export const invoices = pgTable(
     ...tableBase('inv'),
     purchaseId: nullableStringForeignKey('purchase_id', purchases),
     invoiceNumber: text('invoice_number').notNull().unique(),
-    invoiceDate: timestamp('invoice_date').notNull().defaultNow(),
+    invoiceDate: timestampWithTimezoneColumn('invoice_date')
+      .notNull()
+      .defaultNow(),
     billingPeriodId: nullableStringForeignKey(
       'billing_period_id',
       billingPeriods
@@ -72,7 +75,7 @@ export const invoices = pgTable(
     /**
      * If this is null, the invoice is due upon receipt
      */
-    dueDate: timestamp('due_date'),
+    dueDate: timestampWithTimezoneColumn('due_date'),
     stripePaymentIntentId: text('stripe_payment_intent_id'),
     customerId: notNullStringForeignKey(
       'customer_id',
@@ -97,8 +100,12 @@ export const invoices = pgTable(
       'billing_run_id',
       billingRuns
     ),
-    billingPeriodStartDate: timestamp('billing_period_start_date'),
-    billingPeriodEndDate: timestamp('billing_period_end_date'),
+    billingPeriodStartDate: timestampWithTimezoneColumn(
+      'billing_period_start_date'
+    ),
+    billingPeriodEndDate: timestampWithTimezoneColumn(
+      'billing_period_end_date'
+    ),
     ownerMembershipId: nullableStringForeignKey(
       'owner_membership_id',
       memberships

@@ -65,9 +65,7 @@ export const ledgerEntries = pgTable(
       'subscription_id',
       subscriptions
     ),
-    entryTimestamp: timestamp('entry_timestamp', {
-      withTimezone: true,
-    })
+    entryTimestamp: timestampWithTimezoneColumn('entry_timestamp')
       .notNull()
       .defaultNow(),
     status: pgEnumColumn({
@@ -90,7 +88,7 @@ export const ledgerEntries = pgTable(
     }).notNull(),
     amount: integer('amount').notNull(),
     description: text('description'),
-    discardedAt: timestamp('discarded_at', { withTimezone: true }),
+    discardedAt: timestampWithTimezoneColumn('discarded_at'),
     sourceUsageEventId: nullableStringForeignKey(
       'source_usage_event_id',
       usageEvents

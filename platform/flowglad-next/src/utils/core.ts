@@ -161,7 +161,7 @@ export const safeContactList = (
 }
 
 export const formatDate = (
-  date: Date | string,
+  date: Date | string | number,
   includeTime?: boolean
 ) =>
   format(

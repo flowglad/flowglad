@@ -10,6 +10,7 @@ import {
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import core from '@/utils/core'
 import { z } from 'zod'
@@ -23,7 +24,8 @@ export const messages = pgTable(
   {
     ...tableBase('msg'),
     customerId: nullableStringForeignKey('customer_id', customers),
-    messageSentAt: timestamp('message_sent_at').notNull(),
+    messageSentAt:
+      timestampWithTimezoneColumn('message_sent_at').notNull(),
     organizationMemberId: nullableStringForeignKey(
       'organization_member_id',
       memberships
