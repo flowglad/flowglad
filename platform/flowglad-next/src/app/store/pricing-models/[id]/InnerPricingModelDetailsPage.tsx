@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ProductsTable } from '@/app/store/products/ProductsTable'
+import { ProductsDataTable } from '@/app/store/products/data-table'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -65,7 +65,7 @@ function InnerPricingModelDetailsPage({
               setIsCreateProductModalOpen(true)
             }}
           />
-          <ProductsTable
+          <ProductsDataTable
             filters={{ pricingModelId: pricingModel.id }}
           />
         </div>

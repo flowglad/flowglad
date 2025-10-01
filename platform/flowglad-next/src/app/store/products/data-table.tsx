@@ -171,7 +171,8 @@ export function ProductsDataTable({
       </div>
 
       {/* Table */}
-      <Table>
+      <div className="rounded-3xl border bg-card">
+        <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
@@ -250,6 +251,7 @@ export function ProductsDataTable({
           )}
         </TableBody>
       </Table>
+      </div>
 
       {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
