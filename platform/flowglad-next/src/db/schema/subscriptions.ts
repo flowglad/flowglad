@@ -26,6 +26,7 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import {
   customerClientSelectSchema,
@@ -248,7 +249,7 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
   ...createOnlyColumns,

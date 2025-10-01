@@ -21,6 +21,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantRole,
   merchantPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { countries } from '@/db/schema/countries'
 import core, { zodOptionalNullableString } from '@/utils/core'
@@ -178,8 +179,6 @@ const hiddenColumns = {
   stripeAccountId: true,
   stripeConnectContractType: true,
   externalId: true,
-  createdByCommit: true,
-  updatedByCommit: true,
   ...hiddenColumnsForClientSchema,
   securitySalt: true,
   upfrontProcessingCredits: true,
@@ -201,13 +200,10 @@ export const organizationsClientSelectSchema =
     id: 'OrganizationRecord',
   })
 
-const clientWriteOmits = R.omit(
-  ['position', 'createdByCommit', 'updatedByCommit'],
-  {
-    ...hiddenColumns,
-    ...readOnlyColumns,
-  }
-)
+const clientWriteOmits = clientWriteOmitsConstructor({
+  ...hiddenColumns,
+  ...readOnlyColumns,
+})
 export const organizationsClientUpdateSchema =
   organizationsUpdateSchema.omit(clientWriteOmits).meta({
     id: 'OrganizationUpdate',

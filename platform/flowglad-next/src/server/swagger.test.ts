@@ -79,6 +79,14 @@ describe('Swagger Configuration', () => {
               `Schema contains forbidden output field "${key}" at path: ${path}`
             )
           }
+          if (
+            key.startsWith('createdAtCommit') ||
+            key.startsWith('updatedAtCommit')
+          ) {
+            throw new Error(
+              `Schema contains forbidden output field "${key}" at path: ${path}`
+            )
+          }
         })
       }
 
@@ -90,7 +98,7 @@ describe('Swagger Configuration', () => {
       })
     }
 
-    it('should not have "stripe*" or "position" fields in any output schemas', () => {
+    it('should not have "stripe*" or "position" or "createdAtCommit" or "updatedAtCommit" fields in any output schemas', () => {
       Object.values(paths || {}).forEach((path: any) => {
         Object.values(path).forEach((method: any) => {
           if (method.responses) {

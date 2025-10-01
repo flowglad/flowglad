@@ -43,7 +43,6 @@ export const setupPricingModelTransaction = async (
   transaction: DbTransaction
 ) => {
   const input = validateSetupPricingModelInput(rawInput)
-
   // Check for multiple default products
   const defaultProducts = input.products.filter(
     (p) => p.product.default
@@ -165,6 +164,7 @@ export const setupPricingModelTransaction = async (
     productInserts,
     transaction
   )
+
   const productsByExternalId = new Map(
     products.map((product) => [product.externalId, product])
   )
@@ -291,6 +291,7 @@ export const setupPricingModelTransaction = async (
       [defaultProductInsert],
       transaction
     )
+
     const defaultProduct = defaultProductsResult[0]
 
     // Add the default product to our products array

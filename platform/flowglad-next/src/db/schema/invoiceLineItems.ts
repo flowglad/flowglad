@@ -16,6 +16,7 @@ import {
   ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import {
   Invoice,
@@ -203,7 +204,7 @@ const hiddenColumns = {
   billingRunId: true,
 } as const
 
-const clientNonEditableColumns = R.omit(['position'], {
+const clientNonEditableColumns = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
   ...createOnlyColumns,
