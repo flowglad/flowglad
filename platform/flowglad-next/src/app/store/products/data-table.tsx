@@ -72,6 +72,7 @@ export function ProductsDataTable({
     pageIndex,
     pageSize,
     handlePaginationChange,
+    goToFirstPage,
     data,
     isLoading,
     isFetching,
@@ -117,7 +118,7 @@ export function ProductsDataTable({
 
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        handlePaginationChange(0)
+        goToFirstPage()
       } else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
@@ -171,8 +172,7 @@ export function ProductsDataTable({
       </div>
 
       {/* Table */}
-      <div className="rounded-3xl border bg-card">
-        <Table>
+      <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
@@ -251,7 +251,6 @@ export function ProductsDataTable({
           )}
         </TableBody>
       </Table>
-      </div>
 
       {/* Enhanced pagination with proper spacing */}
       <div className="py-2">
@@ -262,7 +261,6 @@ export function ProductsDataTable({
           //   !!searchQuery || Object.keys(filters).length > 0
           // }
           isFiltered={Object.keys(filters).length > 0}
-
           filteredCount={data?.total}
         />
       </div>
