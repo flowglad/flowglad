@@ -121,6 +121,9 @@ export function buildSchemas<T extends PgTableWithId>(
     // @ts-expect-error
     select: createSelectSchema(table, selectRefine),
     insert: insertSchema,
-    update: insertSchema.partial().extend(updateRefine),
+    update: insertSchema
+      .extend(updateRefine)
+      .partial()
+      .extend({ id: z.string() }),
   }
 }
