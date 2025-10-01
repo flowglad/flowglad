@@ -149,7 +149,7 @@ export const columns: ColumnDef<ProductRow>[] = [
             )}
           </div>
           <span
-            className="font-normal text-sm truncate max-w-48 lg:max-w-64"
+            className="font-normal text-sm truncate"
             title={productName}
           >
             {productName}
