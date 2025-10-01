@@ -125,6 +125,7 @@ function CollapsibleSearch({
             'p-0 rounded-full hover:bg-muted'
           )}
           disabled={disabled}
+          aria-label="Open search"
         >
           <Search className={iconSizeVariants[currentSize]} />
         </Button>
@@ -173,6 +174,7 @@ function CollapsibleSearch({
                 'absolute top-1/2 -translate-y-1/2 p-0 rounded-full hover:bg-muted',
                 closeButtonSizeVariants[currentSize]
               )}
+              aria-label="Clear search"
             >
               <X className={closeIconSizeVariants[currentSize]} />
             </Button>

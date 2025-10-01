@@ -17,6 +17,7 @@ export function DataTableCopyableCell({
   className,
 }: DataTableCopyableCellProps) {
   const [copied, setCopied] = React.useState(false)
+  const timeoutRef = React.useRef<NodeJS.Timeout>()
 
   const handleCopy = async (
     e: React.MouseEvent | React.KeyboardEvent
@@ -25,11 +26,27 @@ export function DataTableCopyableCell({
     try {
       await navigator.clipboard.writeText(copyText)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+
+      // Clear the previous timeout if it exists
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+
+      // Set new timeout
+      timeoutRef.current = setTimeout(() => setCopied(false), 2000)
     } catch (error) {
       console.error('Failed to copy text:', error)
     }
   }
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   return (
     <div

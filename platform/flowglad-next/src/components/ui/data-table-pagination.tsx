@@ -35,7 +35,13 @@ export function DataTablePagination<TData>({
     }
     // Fallback to client-side count (only accurate for client-side pagination)
     return table.getFilteredRowModel().rows.length
-  }, [isFiltered, filteredCount, totalCount, table])
+  }, [
+    isFiltered,
+    filteredCount,
+    totalCount,
+    table,
+    table.getFilteredRowModel().rows,
+  ])
 
   const shouldHidePagination = totalRows <= 10
 

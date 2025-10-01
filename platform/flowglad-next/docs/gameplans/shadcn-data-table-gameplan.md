@@ -6,9 +6,12 @@ This document outlines a comprehensive analysis of our current data table implem
 
 **Key Finding**: We have most of the required Shadcn reusable components built (`data-table-pagination.tsx`, `data-table-view-options.tsx`) and have adopted a simplified approach for column headers using simple text labels for cleaner, more readable tables without interaction complexity.
 
-**Implementation Status**: Full migration of 16+ enterprise tables to Shadcn patterns with 95% compliance while preserving 100% enterprise functionality.
+**Implementation Status**: **MIGRATION IN PROGRESS** - Enhanced Shadcn components are built and ready for deployment, but legacy table components still exist throughout the codebase. Current status shows:
+- ✅ **Foundation Components Ready**: `EnhancedDataTableActionsMenu`, `DataTableCopyableCell`, `DataTablePagination`, `DataTableViewOptions` 
+- ⚠️ **Legacy Components Still Active**: Multiple tables (PaymentsTable, DiscountsTable, CustomersTable, ProductsTable, etc.) still use `MoreMenuTableCell`
+- 🔄 **Migration Required**: 16+ enterprise tables need systematic migration from legacy patterns to new Shadcn structure
 
-**Proven Approach**: The **Hybrid Shadcn Implementation** using **reusable components (Option 2)** has been validated across all complexity levels with enhanced components, smart UX improvements, and production-ready enterprise patterns.
+**Planned Approach**: The **Hybrid Shadcn Implementation** using **reusable components (Option 2)** is designed and components are built, but systematic table-by-table migration is still needed to achieve enterprise-wide compliance.
 
 **Critical Learnings Added**: This document now includes **comprehensive troubleshooting guidance** and **proven implementation patterns** based on real development experience, including solutions for TanStack Table column ID issues, event propagation conflicts, HTML structure violations, loading state management, and server-side pagination integration.
 
@@ -194,7 +197,7 @@ app/
 
 #### Component Inventory
 
-**Shadcn Components Available:**
+**Shadcn Components Built and Ready:**
 - `/components/ui/data-table-column-header.tsx` - Available but not used (switched to simple text headers)
 - `/components/ui/data-table-pagination.tsx` - Pagination with page size controls + smart visibility (hides when ≤10 rows) + clean "X results" display (no page numbers)
 - `/components/ui/data-table-view-options.tsx` - Column visibility management
@@ -202,10 +205,16 @@ app/
 - `/components/ui/enhanced-data-table-actions-menu.tsx` - Enterprise action menu wrapper
 - `/components/ui/data-table-copyable-cell.tsx` - Shadcn-compliant copyable cell component
 
-**Implementation Approach:**
-- Standard 3-file structure (columns.tsx, data-table.tsx, page.tsx)
-- Enhanced components built for enterprise functionality
-- Legacy component elimination strategy for MoreMenuTableCell
+**Legacy Components Still in Active Use:**
+- `/components/MoreMenuTableCell.tsx` - **Still used by multiple tables** (PaymentsTable, DiscountsTable, CustomersTable, etc.)
+- `/components/CopyableTextTableCell.tsx` - Legacy copyable cell implementation
+- `/components/TableRowPopoverMenu.tsx` - Legacy action menu implementation
+
+**Migration Approach Needed:**
+- Replace `MoreMenuTableCell` usage with `EnhancedDataTableActionsMenu` across all tables
+- Replace `CopyableTextTableCell` with `DataTableCopyableCell` patterns
+- Convert existing tables to standard 3-file structure (columns.tsx, data-table.tsx, page.tsx)
+- Systematic table-by-table migration following proven patterns
 
 ## Problems Identified
 
@@ -1566,14 +1575,14 @@ cell: ({ row: { original: cellData } }) => (
 ### Phase 0: Foundation & Simple Table Migration
 **Goal**: Establish Shadcn patterns and migrate simple/medium complexity tables
 
-**TARGETS:**
-- Tables migrated to Shadcn structure (CustomersDataTable, ProductsDataTable, SubscriptionsDataTable, ApiKeysDataTable, WebhooksDataTable, DiscountsDataTable)
-- Enhanced components built (EnhancedDataTableActionsMenu, DataTableCopyableCell)
-- Pagination UX improvements (smart hiding ≤10 rows, clean "X results" text, no page numbers)
-- Checkbox removal for simplified interface (no row selection complexity)
-- Legacy component elimination (MoreMenuTableCell usage completely removed)
-- Create button optimization (moved from page headers to table toolbars)
-- Critical bug fixes (server-side pagination totalCount prop, event propagation)
+**CURRENT STATUS:**
+- ✅ **Enhanced components built** (EnhancedDataTableActionsMenu, DataTableCopyableCell)
+- ✅ **Pagination UX improvements designed** (smart hiding ≤10 rows, clean "X results" text, no page numbers)
+- ✅ **Checkbox removal strategy defined** for simplified interface (no row selection complexity)
+- ⚠️ **Tables still need migration**: CustomersTable, ProductsTable, SubscriptionsTable, ApiKeysTable, WebhooksTable, DiscountsTable all still use legacy MoreMenuTableCell
+- ⚠️ **Legacy component elimination pending**: MoreMenuTableCell still actively used across multiple tables
+- ⚠️ **Create button optimization pending**: buttons still in page headers vs table toolbars
+- ⚠️ **Critical bug fixes pending**: server-side pagination totalCount prop, event propagation
 
 #### Component Renaming Checklist
 
@@ -1739,10 +1748,11 @@ After automated renaming:
    - `OrganizationMembersDataTable` - Role management, invitations
    - `PurchasesDataTable` - Transaction history, customer linking (all instances)
 
-**TARGETS:**
-- Enterprise patterns validation across ALL complexity levels
-- Enhanced components validation in production across 16+ tables
-- UX improvements implemented (smart pagination, simplified interface, enhanced search)
+**TARGETS (Remaining Work):**
+- Complete migration of all 16+ tables from legacy MoreMenuTableCell to EnhancedDataTableActionsMenu
+- Enterprise patterns validation across ALL complexity levels through systematic migration
+- Enhanced components deployment in production across all tables
+- UX improvements implementation (smart pagination, simplified interface, enhanced search)
 
 **Create Enterprise Templates:**
 4. **Build template generators** for:
@@ -2124,19 +2134,18 @@ export function DataTable({ filters = {} }) {
 
 This migration strategy outlines a comprehensive Shadcn data table implementation across enterprise-scale applications while maintaining sophisticated functionality.
 
-**Hybrid Approach Summary:**
-- **Reusable Components (Option 2)** as primary pattern across 16+ tables
-- **Enhanced Action Menu Component** bridges Shadcn patterns with enterprise complexity
-- **Server-Side Filtering Enhancement** - maintains superior performance with Shadcn integration
-- **Client-Side Features** - sorting, column visibility (selection removed for simplified UX)
-- **Smart UX Improvements** - pagination auto-hiding, clean results display, simplified interface
+**Hybrid Approach Design (Components Ready):**
+- **Enhanced Components Built**: `EnhancedDataTableActionsMenu`, `DataTableCopyableCell`, `DataTablePagination`, `DataTableViewOptions`
+- **Architecture Designed**: Reusable Components (Option 2) pattern for 16+ tables
+- **Integration Patterns Defined**: Server-side filtering preservation with Shadcn integration
+- **UX Improvements Designed**: Smart pagination auto-hiding, clean results display, simplified interface
 
-**Enterprise Implementation Plan:**
-1. **Enhanced component patterns** - production-ready across all complexity levels
-2. **Table migration by complexity level** - simple to complex
-3. **Enterprise templates** - standardized patterns for all column types
-4. **Performance advantages preservation** with server-side architecture enhancement
-5. **Critical production bug prevention** - scroll lock race condition mitigation
+**Implementation Status (Migration Required):**
+1. **Foundation Complete** - Enhanced component patterns built and ready for deployment
+2. **Legacy Components Active** - MoreMenuTableCell still used across multiple tables (PaymentsTable, DiscountsTable, CustomersTable, ProductsTable, etc.)
+3. **Migration Needed** - Systematic table-by-table conversion from legacy patterns to new Shadcn structure
+4. **Templates Ready** - Standardized patterns documented for all column types
+5. **Bug Prevention Documented** - Critical production issues identified and solutions provided
 
 **Target Success Factors:**
 1. Enhanced components that wrap Shadcn patterns (EnhancedDataTableActionsMenu, DataTableCopyableCell)
@@ -2145,15 +2154,15 @@ This migration strategy outlines a comprehensive Shadcn data table implementatio
 4. Server-side filtering performance preserved and enhanced
 5. Client-side features (sorting, column visibility) for UX enhancement
 
-**Target Enterprise Benefits:**
-- **75%+ code reduction** across migrated tables
-- **Consistent UX** while preserving sophisticated functionality  
-- **Superior performance** with enhanced hybrid server/client architecture
-- **Scalable patterns** for future table development
-- **Maintainable codebase** with standardized components
-- **Smart UI behavior** - pagination controls auto-hide when ≤10 rows + clean "X results" text
-- **Simplified interface** - checkbox complexity removed, focused on core functionality
-- **Developer experience** - new table creation <20 minutes with proven templates
+**Target Enterprise Benefits (Upon Migration Completion):**
+- **75%+ code reduction potential** across tables once migrated from legacy MoreMenuTableCell patterns
+- **Consistent UX achievement** while preserving sophisticated functionality through enhanced components
+- **Superior performance maintenance** with enhanced hybrid server/client architecture
+- **Scalable patterns ready** for future table development with proven enhanced components
+- **Maintainable codebase potential** with standardized components once legacy components are replaced
+- **Smart UI behavior designed** - pagination controls auto-hide when ≤10 rows + clean "X results" text
+- **Simplified interface strategy** - checkbox complexity removal strategy defined
+- **Developer experience target** - new table creation <20 minutes with proven templates and enhanced components
 
 **Technical Debt Elimination Targets:**
 - Remove 200+ lines of manual width calculations per table
