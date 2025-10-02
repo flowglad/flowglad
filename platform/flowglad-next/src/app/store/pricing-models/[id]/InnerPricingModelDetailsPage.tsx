@@ -8,7 +8,7 @@ import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
 import { Pencil, Plus } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
-import CustomersTable from '@/app/customers/CustomersTable'
+import { CustomersDataTable } from '@/app/customers/data-table'
 import { TableHeader } from '@/components/ui/table-header'
 import FeaturesTable from '@/app/features/FeaturesTable'
 import CreateProductModal from '@/components/forms/CreateProductModal'
@@ -71,7 +71,7 @@ function InnerPricingModelDetailsPage({
         </div>
         <div className="flex flex-col gap-5">
           <TableHeader title="Customers" noButtons />
-          <CustomersTable
+          <CustomersDataTable
             filters={{ pricingModelId: pricingModel.id }}
           />
         </div>
