@@ -98,6 +98,7 @@ const createOnlyColumns = {
   pricingModelId: true,
 } as const
 
+console.log('====calling buildSchemas for usageMeters')
 export const {
   select: usageMetersSelectSchema,
   insert: usageMetersInsertSchema,
@@ -117,7 +118,7 @@ export const {
   },
   entityName: 'UsageMeter',
 })
-
+console.log('====called buildSchemas for usageMeters')
 const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,

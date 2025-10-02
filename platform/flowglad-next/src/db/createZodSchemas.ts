@@ -65,8 +65,9 @@ function epochRefineForUpdate<TTable extends PgTable>(
   const cols = getTableColumns(table as any) as Record<string, any>
   const out: Record<string, z.ZodTypeAny> = {}
   for (const [k, col] of Object.entries(cols)) {
-    if ((col as any).__brand === TIMESTAMPTZ_MS)
+    if ((col as any).__brand === TIMESTAMPTZ_MS) {
       out[k] = zodEpochMs.optional()
+    }
   }
   return out as any
 }
@@ -77,8 +78,13 @@ function epochRefineForSelect<TTable extends PgTable>(
   const cols = getTableColumns(table as any) as Record<string, any>
   const out: Record<string, z.ZodTypeAny> = {}
   for (const [k, col] of Object.entries(cols)) {
-    if ((col as any).__brand === TIMESTAMPTZ_MS)
-      out[k] = z.number().int()
+    if (
+      (col as any).__brand === TIMESTAMPTZ_MS ||
+      k === 'createdAt' ||
+      k === 'updatedAt'
+    ) {
+      out[k] = zodEpochMs
+    }
   }
   return out as any
 }
@@ -130,11 +136,11 @@ export function buildSchemas<
     selectRefine: providedSelectRefine,
     refine: providedRefine,
   } = params ?? {}
+
   // Mode-specific epoch overrides
   const insertEpoch = epochRefineForInsert<T>(table)
   const updateEpoch = epochRefineForUpdate<T>(table)
   const selectEpoch = epochRefineForSelect<T>(table)
-
   // Merge caller refine with epoch overrides (insert/update)
   const insertRefine = {
     ...(providedRefine ?? ({} as CR)),
@@ -270,12 +276,17 @@ export function buildSchemas<
 
   const clientSelectBuilt = (
     Object.keys(hiddenColumns).length
-      ? (selectSchemaRaw as unknown as z.ZodObject<any>).omit(
-          hiddenColumns as unknown as Partial<
+      ? (selectSchemaRaw as unknown as z.ZodObject<any>).omit({
+          ...hiddenColumns,
+          ...ommittedColumnsForInsertSchema,
+        } as unknown as Partial<
+          Record<keyof ObjShape<typeof selectSchemaRaw>, true>
+        >)
+      : (selectSchemaRaw as unknown as z.ZodObject<any>).omit(
+          ommittedColumnsForInsertSchema as unknown as Partial<
             Record<keyof ObjShape<typeof selectSchemaRaw>, true>
           >
         )
-      : (selectSchemaRaw as unknown as z.ZodObject<any>)
   ).extend(
     selectRefine as unknown as Partial<
       ObjShape<typeof selectSchemaRaw>
@@ -310,6 +321,7 @@ export function buildSchemas<
   } else {
     clientInsertBase = insertSchemaRaw as unknown as z.ZodObject<any>
   }
+
   const clientInsertBuilt = clientInsertBase.extend(
     insertRefine as unknown as Partial<
       ObjShape<typeof insertSchemaRaw>
@@ -329,10 +341,13 @@ export function buildSchemas<
   >
 
   let clientUpdateBase: z.ZodObject<any>
-  const updateOmitMask = clientWriteOmitsConstructor({
-    ...hiddenColumns,
-    ...readOnlyColumns,
-  } as Record<string, true>)
+  const updateOmitMask = {
+    ...clientWriteOmitsConstructor({
+      ...hiddenColumns,
+      ...readOnlyColumns,
+    } as Record<string, true>),
+    ...ommittedColumnsForInsertSchema,
+  }
   if (Object.keys(updateOmitMask).length) {
     clientUpdateBase = (
       updateSchemaRaw as unknown as z.ZodObject<any>
@@ -342,7 +357,13 @@ export function buildSchemas<
       >
     )
   } else {
-    clientUpdateBase = updateSchemaRaw as unknown as z.ZodObject<any>
+    clientUpdateBase = (
+      updateSchemaRaw as unknown as z.ZodObject<any>
+    ).omit(
+      ommittedColumnsForInsertSchema as unknown as Partial<
+        Record<keyof ObjShape<typeof updateSchemaRaw>, true>
+      >
+    )
   }
   if (Object.keys(createOnlyColumns).length) {
     clientUpdateBase = clientUpdateBase.omit(
@@ -404,17 +425,6 @@ export function buildSchemas<
   type ReadOnlyKeysOnUpdate = Extract<keyof ROC, keyof UpdateOut>
 
   type CreateOnlyKeysOnUpdate = Extract<keyof COC, keyof UpdateOut>
-
-  // Client-facing inferred types after omitting restricted keys
-  type ClientSelectOut = Omit<SelectOut, HiddenKeysOnSelect>
-  type ClientInsertOut = Omit<
-    InsertOut,
-    HiddenKeysOnInsert | ReadOnlyKeysOnInsert
-  >
-  type ClientUpdateOut = Omit<
-    UpdateOut,
-    HiddenKeysOnUpdate | ReadOnlyKeysOnUpdate | CreateOnlyKeysOnUpdate
-  >
 
   return {
     select: selectSchema,

@@ -59,14 +59,6 @@ export const pricingModels = pgTable(
   }
 ).enableRLS()
 
-const { select, insert, update } = buildSchemas(pricingModels)
-
-export const pricingModelsSelectSchema = select
-
-export const pricingModelsInsertSchema = insert
-
-export const pricingModelsUpdateSchema = update
-
 const readOnlyColumns = {
   organizationId: true,
   livemode: true,
@@ -76,20 +68,21 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 }
 
-export const pricingModelsClientSelectSchema =
-  pricingModelsSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'PricingModelsClientSelectSchema' })
-
-export const pricingModelsClientUpdateSchema =
-  pricingModelsUpdateSchema
-    .omit(readOnlyColumns)
-    .meta({ id: 'PricingModelsClientUpdateSchema' })
-
-export const pricingModelsClientInsertSchema =
-  pricingModelsInsertSchema
-    .omit(readOnlyColumns)
-    .meta({ id: 'PricingModelsClientInsertSchema' })
+export const {
+  select: pricingModelsSelectSchema,
+  insert: pricingModelsInsertSchema,
+  update: pricingModelsUpdateSchema,
+  client: {
+    select: pricingModelsClientSelectSchema,
+    insert: pricingModelsClientInsertSchema,
+    update: pricingModelsClientUpdateSchema,
+  },
+} = buildSchemas(pricingModels, {
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+})
 
 export const pricingModelsPaginatedSelectSchema =
   createPaginatedSelectSchema(pricingModelsClientSelectSchema)

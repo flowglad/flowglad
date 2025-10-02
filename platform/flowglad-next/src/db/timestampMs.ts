@@ -22,8 +22,8 @@ export function timestamptzMs(name: string) {
     defaultNow() {
       return base.notNull().default(sql`now()`)
     },
+    __brand: TIMESTAMPTZ_MS,
   })
-
   // Make the brand visible to the type system:
   return withDefaultNow as typeof withDefaultNow & EpochBrand
 }
