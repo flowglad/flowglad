@@ -26,6 +26,7 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { purchases } from './purchases'
 import {
@@ -336,7 +337,7 @@ export const invoicesClientSelectSchema = z
   })
   .describe(INVOICES_BASE_DESCRIPTION)
 
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
 })

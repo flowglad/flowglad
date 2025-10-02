@@ -25,6 +25,7 @@ import {
   constructGinIndex,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import {
   organizations,
@@ -158,8 +159,7 @@ export const customersUpdateSchema = customersInsertSchema
   .partial()
   .extend({ id: z.string() })
 
-const clientWriteOmits = R.omit(
-  ['position'],
+const clientWriteOmits = clientWriteOmitsConstructor(
   nonClientEditableColumns
 )
 

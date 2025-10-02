@@ -21,12 +21,9 @@ export const memberInsertedTask = task({
       )
     }
     if (!user.email) {
-      logger.warn(
+      throw new Error(
         `User with id ${user.id} does not have an email address`
       )
-      return {
-        message: 'OK',
-      }
     }
     logger.info(`Subscribing user ${user.email} to newsletter`)
     await subscribeToNewsletter(user.email)

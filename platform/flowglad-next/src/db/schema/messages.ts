@@ -11,6 +11,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   timestampWithTimezoneColumn,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import core from '@/utils/core'
 import { z } from 'zod'
@@ -108,7 +109,7 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
 })
