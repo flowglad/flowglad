@@ -7,15 +7,17 @@ import debounce from 'debounce'
  * A reusable hook that creates a stable debounced function.
  *
  * This hook ensures that:
- * - The debounced function has a stable identity across renders
+ * - The debounced function has a stable identity across renders (unless delay changes)
  * - Inline callbacks work correctly without needing manual memoization
  * - Always calls the latest version of the callback
- * - Pending debounced calls are properly cleaned up on unmount
+ * - Pending debounced calls are properly cleaned up on unmount or delay change
  * - Memory leaks are prevented by clearing timers appropriately
+ * - When delay changes, pending calls are cleared and the function identity updates
+ *   to trigger dependent effects to reschedule with the new delay
  *
  * @param callback The function to debounce (can be inline, doesn't need memoization)
  * @param delay The debounce delay in milliseconds
- * @returns A stable debounced version of the callback
+ * @returns A stable debounced version of the callback (identity changes when delay changes)
  *
  * @example
  * ```tsx
@@ -72,6 +74,6 @@ export function useDebounce<T extends (...args: any[]) => any>(
     ((...args: Parameters<T>) => {
       debouncedFnRef.current?.(...args)
     }) as T,
-    []
+    [delay] // Include delay so function identity changes when delay changes
   )
 }
