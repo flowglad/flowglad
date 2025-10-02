@@ -16,9 +16,10 @@ import {
   constructUniqueIndex,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import { UsageMeterAggregationType } from '@/types'
 import { pricingModels } from '@/db/schema/pricingModels'
 import core from '@/utils/core'
@@ -84,22 +85,6 @@ const columnRefinements = {
     ),
 }
 
-export const usageMetersInsertSchema = createInsertSchema(usageMeters)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-  .extend({
-    aggregationType: columnRefinements.aggregationType.optional(),
-  })
-
-export const usageMetersSelectSchema =
-  createSelectSchema(usageMeters).extend(columnRefinements)
-
-export const usageMetersUpdateSchema = usageMetersSelectSchema
-  .partial()
-  .extend({
-    id: z.string(),
-  })
-
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
@@ -113,26 +98,36 @@ const createOnlyColumns = {
   pricingModelId: true,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+export const {
+  select: usageMetersSelectSchema,
+  insert: usageMetersInsertSchema,
+  update: usageMetersUpdateSchema,
+  client,
+} = buildSchemas(usageMeters, {
+  selectRefine: {
+    ...columnRefinements,
+  },
+  insertRefine: {
+    aggregationType: columnRefinements.aggregationType.optional(),
+  },
+  client: {
+    hiddenColumns,
+    createOnlyColumns,
+    readOnlyColumns,
+  },
+  entityName: 'UsageMeter',
+})
+
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
 })
 
-export const usageMetersClientSelectSchema = usageMetersSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'UsageMetersClientSelectSchema' })
+export const usageMetersClientSelectSchema = client.select
 
-export const usageMetersClientUpdateSchema = usageMetersUpdateSchema
-  .omit({
-    ...hiddenColumns,
-    ...readOnlyColumns,
-  })
-  .omit(createOnlyColumns)
-  .meta({ id: 'UsageMetersClientUpdateSchema' })
+export const usageMetersClientUpdateSchema = client.update
 
-export const usageMetersClientInsertSchema = usageMetersInsertSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'UsageMetersClientInsertSchema' })
+export const usageMetersClientInsertSchema = client.insert
 
 export const usageMeterPaginatedSelectSchema =
   createPaginatedSelectSchema(usageMetersClientSelectSchema)
@@ -150,17 +145,17 @@ export const usageMetersTableRowDataSchema = z.object({
 
 export namespace UsageMeter {
   export type Insert = z.infer<typeof usageMetersInsertSchema>
+  type FOO1 = Insert['aggregationType']
   export type Update = z.infer<typeof usageMetersUpdateSchema>
+  type FOO2 = Update['aggregationType']
   export type Record = z.infer<typeof usageMetersSelectSchema>
-  export type ClientInsert = z.infer<
-    typeof usageMetersClientInsertSchema
-  >
-  export type ClientUpdate = z.infer<
-    typeof usageMetersClientUpdateSchema
-  >
-  export type ClientRecord = z.infer<
-    typeof usageMetersClientSelectSchema
-  >
+  type FOO3 = Record['aggregationType']
+  export type ClientInsert = z.infer<typeof client.insert>
+  type FOO4 = ClientInsert['aggregationType']
+  export type ClientUpdate = z.infer<typeof client.update>
+  type FOO5 = ClientUpdate['aggregationType']
+  export type ClientRecord = z.infer<typeof client.select>
+  type FOO6 = ClientRecord['aggregationType']
   export type PaginatedList = z.infer<
     typeof usageMeterPaginatedListSchema
   >

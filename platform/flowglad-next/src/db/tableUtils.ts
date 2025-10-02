@@ -770,6 +770,8 @@ export const ommittedColumnsForInsertSchema = {
 
 export const hiddenColumnsForClientSchema = {
   position: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 export const createPaginatedSelectSchema = <T extends {}>(
@@ -1672,4 +1674,15 @@ export function buildSchemas<T extends PgTableWithId>(
       >
     ),
   }
+}
+
+export const clientWriteOmitsConstructor = <
+  T extends Record<string, true>,
+>(
+  params: T
+) => {
+  return R.omit(
+    ['position', 'createdByCommit', 'updatedByCommit'],
+    params
+  )
 }

@@ -26,6 +26,7 @@ import {
   parentForeignKeyIntegrityCheckPolicy,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import {
   products,
@@ -60,7 +61,7 @@ const hiddenColumns = {
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,
-  ...R.omit(['position'], hiddenColumns),
+  ...clientWriteOmitsConstructor(hiddenColumns),
 } as const
 
 const TABLE_NAME = 'prices'
@@ -391,21 +392,9 @@ export const subscriptionPriceClientSelectSchema =
     id: 'SubscriptionPriceRecord',
   })
 
-export const subscribablePriceSelectSchema = z.discriminatedUnion(
-  'type',
-  [subscriptionPriceSelectSchema, usagePriceSelectSchema]
-)
-
-export const subscribablePriceClientSelectSchema = z
-  .discriminatedUnion('type', [
-    subscriptionPriceClientSelectSchema,
-    usagePriceClientSelectSchema,
-  ])
-  .describe(
-    'A subscribable price, which can be used to create a subscription based on standard recurring subscription prices or usage-based subscriptions.'
-  )
-  .meta({
-    id: 'SubscribablePriceRecord',
+export const singlePaymentPriceClientSelectSchema =
+  singlePaymentPriceSelectSchema.omit(hiddenColumns).meta({
+    id: 'SinglePaymentPriceRecord',
   })
 
 export const singlePaymentPriceClientInsertSchema =
@@ -416,11 +405,6 @@ export const singlePaymentPriceClientInsertSchema =
 export const singlePaymentPriceClientUpdateSchema =
   singlePaymentPriceUpdateSchema.omit(nonClientEditableColumns).meta({
     id: 'SinglePaymentPriceUpdate',
-  })
-
-export const singlePaymentPriceClientSelectSchema =
-  singlePaymentPriceSelectSchema.omit(hiddenColumns).meta({
-    id: 'SinglePaymentPriceRecord',
   })
 
 export const pricesClientInsertSchema = z
@@ -536,13 +520,6 @@ export namespace Price {
   >
 
   export type Where = SelectConditions<typeof prices>
-
-  export type SubscribablePriceRecord = z.infer<
-    typeof subscribablePriceSelectSchema
-  >
-  export type ClientSubscribablePriceRecord = z.infer<
-    typeof subscribablePriceClientSelectSchema
-  >
 }
 
 export const editPriceSchema = z.object({

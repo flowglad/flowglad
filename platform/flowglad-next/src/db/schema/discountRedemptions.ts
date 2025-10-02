@@ -21,6 +21,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { discounts } from '@/db/schema/discounts'
 import { purchases } from '@/db/schema/purchases'
@@ -244,7 +245,7 @@ export const discountRedemptionsClientSelectSchema = z
   .meta({ id: 'DiscountRedemptionsClientSelectSchema' })
 
 // Client insert schemas for each duration type
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
 })

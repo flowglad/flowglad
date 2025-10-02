@@ -23,6 +23,7 @@ import {
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
   zodEpochMs,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -211,7 +212,7 @@ const createOnlyColumns = {
   transactionId: true,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
 })
@@ -229,7 +230,7 @@ export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
         'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
       ),
   })
-  .omit(R.omit(['position'], hiddenColumns))
+  .omit(clientWriteOmitsConstructor(hiddenColumns))
   .omit(createOnlyColumns)
   .meta({ id: 'UsageEventsClientUpdateSchema' })
 

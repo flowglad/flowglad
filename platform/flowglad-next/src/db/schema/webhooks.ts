@@ -8,6 +8,7 @@ import {
   livemodePolicy,
   ommittedColumnsForInsertSchema,
   merchantPolicy,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
@@ -95,9 +96,7 @@ export const webhookClientUpdateSchema = webhooksUpdateSchema
   .meta({ id: 'WebhookClientUpdateSchema' })
 
 export const webhookClientSelectSchema = webhooksSelectSchema
-  .omit({
-    position: true,
-  })
+  .omit(hiddenColumnsForClientSchema)
   .meta({ id: 'WebhookClientSelectSchema' })
 
 export namespace Webhook {

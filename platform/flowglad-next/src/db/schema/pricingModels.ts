@@ -14,12 +14,13 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { pgPolicy } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import core from '@/utils/core'
 import { DestinationEnvironment, IntervalUnit } from '@/types'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'pricing_models'
 
@@ -58,22 +59,13 @@ export const pricingModels = pgTable(
   }
 ).enableRLS()
 
-export const pricingModelsSelectSchema = createSelectSchema(
-  pricingModels,
-  {
-    ...newBaseZodSelectSchemaColumns,
-  }
-)
+const { select, insert, update } = buildSchemas(pricingModels)
 
-export const pricingModelsInsertSchema = createInsertSchema(
-  pricingModels
-).omit(ommittedColumnsForInsertSchema)
+export const pricingModelsSelectSchema = select
 
-export const pricingModelsUpdateSchema = pricingModelsInsertSchema
-  .partial()
-  .extend({
-    id: z.string(),
-  })
+export const pricingModelsInsertSchema = insert
+
+export const pricingModelsUpdateSchema = update
 
 const readOnlyColumns = {
   organizationId: true,
@@ -82,7 +74,7 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
-} as const
+}
 
 export const pricingModelsClientSelectSchema =
   pricingModelsSelectSchema

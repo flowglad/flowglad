@@ -12,6 +12,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   timestampWithTimezoneColumn,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
@@ -91,7 +92,7 @@ const nonClientEditableColumns = {
   ...readOnlyColumns,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
 })

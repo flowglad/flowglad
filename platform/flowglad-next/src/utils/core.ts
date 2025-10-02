@@ -357,14 +357,13 @@ export const nanoid = customAlphabet(
 
 type EnumValues<T> = T extends Record<string, infer U> ? U : never
 
-export const createSafeZodEnum = <T extends Record<string, string>>(
+export const createSafeZodEnum = <
+  T extends Record<string, string | number>,
+>(
   enumType: T
 ) => {
-  const values = Object.values(enumType) as [
-    EnumValues<T>,
-    ...EnumValues<T>[],
-  ]
-  return z.enum(values as [EnumValues<T>, ...EnumValues<T>[]])
+  // Use nativeEnum so the inferred type is the TS enum type
+  return z.nativeEnum(enumType)
 }
 
 /**
