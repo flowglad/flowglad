@@ -26,6 +26,7 @@ import {
   parentForeignKeyIntegrityCheckPolicy,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import {
   products,
@@ -60,7 +61,7 @@ const hiddenColumns = {
 
 const nonClientEditableColumns = {
   ...readOnlyColumns,
-  ...R.omit(['position'], hiddenColumns),
+  ...clientWriteOmitsConstructor(hiddenColumns),
 } as const
 
 const TABLE_NAME = 'prices'

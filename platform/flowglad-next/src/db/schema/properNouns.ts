@@ -11,6 +11,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   ommittedColumnsForInsertSchema,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
@@ -91,7 +92,7 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
   ...createOnlyColumns,

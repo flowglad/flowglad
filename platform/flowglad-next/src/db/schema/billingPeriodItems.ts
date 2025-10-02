@@ -12,6 +12,7 @@ import {
   hiddenColumnsForClientSchema,
   pgEnumColumn,
   merchantPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
@@ -193,7 +194,7 @@ const nonClientEditableColumns = {
   ...createOnlyColumns,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
 })

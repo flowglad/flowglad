@@ -14,9 +14,9 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { pgPolicy } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import core from '@/utils/core'
 import { DestinationEnvironment, IntervalUnit } from '@/types'
@@ -82,7 +82,7 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
-} as const
+}
 
 export const pricingModelsClientSelectSchema =
   pricingModelsSelectSchema
