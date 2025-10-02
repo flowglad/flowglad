@@ -9,6 +9,7 @@ import {
   setupSubscription,
   setupInvoice,
   setupPayment,
+  setupPrice,
 } from '@/../seedDatabase'
 import { insertPricingModel } from './tableMethods/pricingModelMethods'
 import { insertProduct } from './tableMethods/productMethods'
@@ -66,6 +67,7 @@ import { DbTransaction } from './types'
 import { afterEach } from 'vitest'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { setupProduct, setupPricingModel } from '@/../seedDatabase'
+import { ApiKey } from './schema/apiKeys'
 
 /**
  * Helper function to create an authenticated transaction with customer role.
@@ -2090,6 +2092,80 @@ describe('Customer Role RLS Policies', () => {
       expect(newCustomerError).toMatch(
         /Failed to insert|row-level security|violates/
       )
+    })
+  })
+
+  describe('Customer with null pricingModelId should access default pricing model', () => {
+    let organization: Organization.Record
+    let defaultPricingModel: PricingModel.Record
+    let customerWithNullPricingModel: Customer.Record
+    let user: User.Record
+    let apiKey: ApiKey.Record
+
+    beforeEach(async () => {
+      // Set up organization with default pricing model
+      const orgData = await setupOrg()
+      organization = orgData.organization
+      defaultPricingModel = orgData.pricingModel
+      
+      // Create a product for the default pricing model
+      const defaultProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: defaultPricingModel.id,
+        name: 'Default Product',
+        active: true,
+      })
+
+      // Create a price for the product
+      await setupPrice({
+        productId: defaultProduct.id,
+        name: 'Default Product Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 1000,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: true,
+        setupFeeAmount: 0,
+        trialPeriodDays: 0,
+      })
+
+      // Create user and API key for authentication first
+      const userApiKey = await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+      user = userApiKey.user
+      apiKey = userApiKey.apiKey
+
+      // Create customer without pricing model, using the same user as the API key
+      customerWithNullPricingModel = await setupCustomer({
+        organizationId: organization.id,
+        email: 'null-pricing-model@example.com',
+        userId: user.id,
+      })
+    })
+
+    it('should allow customer with null pricingModelId to access billing portal and get default pricing model', async () => {
+      expect(customerWithNullPricingModel.pricingModelId).toBeNull()
+
+      // Test as a customer (not merchant) to reproduce the RLS issue
+      const { selectPricingModelForCustomer } = await import('./tableMethods/pricingModelMethods')
+      
+      // Use the helper function to simulate customer accessing billing portal with proper RLS context
+      const result = await authenticatedCustomerTransaction(
+        customerWithNullPricingModel,
+        user,
+        organization,
+        async ({ transaction }) => {
+          return selectPricingModelForCustomer(customerWithNullPricingModel, transaction)
+        }
+      )
+
+      expect(result).toBeDefined()
+      expect(result.id).toBe(defaultPricingModel.id)
+      expect(result.isDefault).toBe(true)
     })
   })
 })
