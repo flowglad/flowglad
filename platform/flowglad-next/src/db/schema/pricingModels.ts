@@ -41,7 +41,7 @@ export const pricingModels = pgTable(
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
-          using: sql`"id" in (select "pricing_model_id" from "customers")`,
+          using: sql`"id" in (select "pricing_model_id" from "customers") OR ("is_default" = true AND "organization_id" = current_organization_id())`,
         }
       ),
       merchantPolicy(
