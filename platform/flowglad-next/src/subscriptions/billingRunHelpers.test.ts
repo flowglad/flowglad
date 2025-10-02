@@ -670,8 +670,12 @@ describe('billingRunHelpers', async () => {
           )
       )
 
-      expect(invoiceInsert.billingPeriodStartDate).toEqual(startDate)
-      expect(invoiceInsert.billingPeriodEndDate).toEqual(endDate)
+      expect(invoiceInsert.billingPeriodStartDate).toEqual(
+        startDate.getTime()
+      )
+      expect(invoiceInsert.billingPeriodEndDate).toEqual(
+        endDate.getTime()
+      )
     })
   })
 

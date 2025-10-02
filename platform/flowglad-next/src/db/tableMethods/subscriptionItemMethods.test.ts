@@ -455,13 +455,15 @@ describe('subscriptionItemMethods', async () => {
           subscriptionItem.id,
           transaction
         )
-        expect(updatedItem?.expiredAt).toEqual(expiryDate)
+        expect(updatedItem?.expiredAt).toEqual(expiryDate.getTime())
 
         const [updatedFeature] = await transaction
           .select()
           .from(subscriptionItemFeatures)
           .where(eq(subscriptionItemFeatures.id, feature!.id))
-        expect(updatedFeature?.expiredAt).toEqual(expiryDate)
+        expect(updatedFeature?.expiredAt).toEqual(
+          expiryDate.getTime()
+        )
       })
     })
   })

@@ -3006,7 +3006,9 @@ describe('ledgerEntryMethods', () => {
         )
         expect(balanceInfo.balance).toBe(creditBalance)
         expect(balanceInfo.ledgerAccountId).toBe(ledgerAccount.id)
-        expect(balanceInfo.expiresAt).toEqual(specificExpiryDate) // Critical check
+        expect(balanceInfo.expiresAt).toEqual(
+          specificExpiryDate.getTime()
+        ) // Critical check
       })
 
       it('should correctly populate expiresAt as null when a UsageCredit has a null expiresAt date', async () => {
@@ -3165,7 +3167,7 @@ describe('ledgerEntryMethods', () => {
 
         expect(itemA).toBeDefined()
         expect(itemA?.balance).toBe(balanceA)
-        expect(itemA?.expiresAt).toEqual(dateA)
+        expect(itemA?.expiresAt).toEqual(dateA.getTime())
         expect(itemA?.ledgerAccountId).toBe(ledgerAccount.id)
 
         expect(itemB).toBeDefined()
@@ -3175,7 +3177,7 @@ describe('ledgerEntryMethods', () => {
 
         expect(itemC).toBeDefined()
         expect(itemC?.balance).toBe(balanceC)
-        expect(itemC?.expiresAt).toEqual(dateC)
+        expect(itemC?.expiresAt).toEqual(dateC.getTime())
         expect(itemC?.ledgerAccountId).toBe(ledgerAccount.id)
       })
 
@@ -3227,7 +3229,9 @@ describe('ledgerEntryMethods', () => {
         )
         expect(balanceInfo.balance).toBe(creditBalance)
         expect(balanceInfo.ledgerAccountId).toBe(ledgerAccount.id)
-        expect(balanceInfo.expiresAt).toEqual(pastExpiryDate) // Critical check
+        expect(balanceInfo.expiresAt).toEqual(
+          pastExpiryDate.getTime()
+        ) // Critical check
       })
     })
   })
