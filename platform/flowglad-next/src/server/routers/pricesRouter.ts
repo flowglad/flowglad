@@ -73,8 +73,11 @@ export const createPrice = protectedProcedure
         const { price } = input
 
         // Get product to check if it's a default product
-        const product = await selectProductById(price.productId, transaction)
-        
+        const product = await selectProductById(
+          price.productId,
+          transaction
+        )
+
         // Get all prices for this product to validate constraints
         const existingPrices = await selectPrices(
           { productId: price.productId },
@@ -85,7 +88,8 @@ export const createPrice = protectedProcedure
         if (product.default && existingPrices.length > 0) {
           throw new TRPCError({
             code: 'FORBIDDEN',
-            message: 'Cannot create additional prices for the default plan',
+            message:
+              'Cannot create additional prices for the default plan',
           })
         }
 
@@ -102,10 +106,15 @@ export const createPrice = protectedProcedure
         }
 
         // Validate that default prices on default products must have unitPrice = 0
-        if (price.isDefault && product.default && price.unitPrice !== 0) {
+        if (
+          price.isDefault &&
+          product.default &&
+          price.unitPrice !== 0
+        ) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message: 'Default prices on default products must have unitPrice = 0',
+            message:
+              'Default prices on default products must have unitPrice = 0',
           })
         }
         const organization = await selectOrganizationById(

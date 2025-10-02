@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
-import { CurrencyCode, DiscountAmountType, DiscountDuration } from '@/types'
+import {
+  CurrencyCode,
+  DiscountAmountType,
+  DiscountDuration,
+} from '@/types'
 import {
   createDiscountInputSchema,
   editDiscountInputSchema,
@@ -13,8 +17,9 @@ import {
 } from './discountFormHelpers'
 
 vi.mock('@/utils/stripe', () => ({
-  rawStringAmountToCountableCurrencyAmount: vi.fn((currency: string, amt: string) =>
-    Math.round(parseFloat(amt) * 100)
+  rawStringAmountToCountableCurrencyAmount: vi.fn(
+    (currency: string, amt: string) =>
+      Math.round(parseFloat(amt) * 100)
   ),
 }))
 
@@ -75,7 +80,9 @@ describe('discountFormHelpers', () => {
       }
 
       const input = toCreateDiscountInput(form, currency)
-      expect(createDiscountInputSchema.safeParse(input).success).toBe(true)
+      expect(createDiscountInputSchema.safeParse(input).success).toBe(
+        true
+      )
       expect(input.discount.amount).toBe(99)
     })
 
@@ -94,7 +101,9 @@ describe('discountFormHelpers', () => {
       }
 
       const input = toCreateDiscountInput(form, currency)
-      expect(createDiscountInputSchema.safeParse(input).success).toBe(true)
+      expect(createDiscountInputSchema.safeParse(input).success).toBe(
+        true
+      )
       expect(input.discount.amount).toBe(25)
     })
   })
@@ -117,11 +126,11 @@ describe('discountFormHelpers', () => {
       }
 
       const input = toEditDiscountInput(form, currency)
-      expect(editDiscountInputSchema.safeParse(input).success).toBe(true)
+      expect(editDiscountInputSchema.safeParse(input).success).toBe(
+        true
+      )
       expect(input.discount.amount).toBe(500)
       expect(input.id).toBe('disc_1')
     })
   })
 })
-
-

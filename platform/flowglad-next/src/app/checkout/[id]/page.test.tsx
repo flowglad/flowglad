@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import Page from './page'
-import { PriceType, CheckoutSessionStatus, SubscriptionStatus } from '@/types'
+import {
+  PriceType,
+  CheckoutSessionStatus,
+  SubscriptionStatus,
+} from '@/types'
 import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 
 // Mock next/navigation redirect
@@ -23,8 +27,12 @@ vi.mock('@/db/adminTransaction', () => ({
 }))
 
 vi.mock('@/utils/stripe', () => ({
-  getPaymentIntent: vi.fn(async (id: string) => ({ client_secret: `pi_secret_${id}` })),
-  getSetupIntent: vi.fn(async (id: string) => ({ client_secret: `si_secret_${id}` })),
+  getPaymentIntent: vi.fn(async (id: string) => ({
+    client_secret: `pi_secret_${id}`,
+  })),
+  getSetupIntent: vi.fn(async (id: string) => ({
+    client_secret: `si_secret_${id}`,
+  })),
 }))
 
 vi.mock('@/utils/checkoutHelpers', () => ({
@@ -38,7 +46,10 @@ vi.mock('@/utils/checkoutHelpers', () => ({
     },
     product: { id: 'prod_1' },
     price: { id: 'price_1', type: 'subscription' },
-    sellerOrganization: { id: 'org_1', allowMultipleSubscriptionsPerCustomer: false },
+    sellerOrganization: {
+      id: 'org_1',
+      allowMultipleSubscriptionsPerCustomer: false,
+    },
     feeCalculation: null,
     maybeCustomer: { id: 'cust_1', email: 'a@b.com' },
     maybeCurrentSubscriptions: [
@@ -54,7 +65,9 @@ describe('CheckoutSessionPage', () => {
   })
 
   it('renders when only free subscription exists (no block)', async () => {
-    const ui = await Page({ params: Promise.resolve({ id: 'cs_123' }) } as any)
+    const ui = await Page({
+      params: Promise.resolve({ id: 'cs_123' }),
+    } as any)
     expect(ui).toBeTruthy()
     expect(redirect).not.toHaveBeenCalled()
   })
@@ -71,7 +84,10 @@ describe('CheckoutSessionPage', () => {
       },
       product: { id: 'prod_1' },
       price: { id: 'price_1', type: PriceType.Subscription },
-      sellerOrganization: { id: 'org_1', allowMultipleSubscriptionsPerCustomer: false },
+      sellerOrganization: {
+        id: 'org_1',
+        allowMultipleSubscriptionsPerCustomer: false,
+      },
       feeCalculation: null,
       maybeCustomer: { id: 'cust_1', email: 'a@b.com' },
       maybeCurrentSubscriptions: [],
@@ -79,7 +95,9 @@ describe('CheckoutSessionPage', () => {
     } as any)
 
     await Page({ params: Promise.resolve({ id: 'cs_456' }) } as any)
-    expect(redirect).toHaveBeenCalledWith('/purchase/post-payment?setup_intent=seti_999')
+    expect(redirect).toHaveBeenCalledWith(
+      '/purchase/post-payment?setup_intent=seti_999'
+    )
   })
 
   it('blocks when active paid exists and multiples disallowed, redirect to successUrl if defined', async () => {
@@ -93,7 +111,10 @@ describe('CheckoutSessionPage', () => {
       },
       product: { id: 'prod_1' },
       price: { id: 'price_1', type: PriceType.Subscription },
-      sellerOrganization: { id: 'org_1', allowMultipleSubscriptionsPerCustomer: false },
+      sellerOrganization: {
+        id: 'org_1',
+        allowMultipleSubscriptionsPerCustomer: false,
+      },
       feeCalculation: null,
       maybeCustomer: { id: 'cust_1', email: 'a@b.com' },
       maybeCurrentSubscriptions: [
@@ -103,8 +124,8 @@ describe('CheckoutSessionPage', () => {
     } as any)
 
     await Page({ params: Promise.resolve({ id: 'cs_789' }) } as any)
-    expect(redirect).toHaveBeenCalledWith('https://example.com/success')
+    expect(redirect).toHaveBeenCalledWith(
+      'https://example.com/success'
+    )
   })
 })
-
-

@@ -22,6 +22,7 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { paymentMethodSummaryLabel } from '@/utils/paymentMethodHelpers'
 import { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { calculateInvoiceTotalsRaw, calculateDiscountAmountSafe } from '@/utils/discountHelpers'
 import { CurrencyCode } from '@/types'
 
 /**
@@ -437,6 +438,14 @@ interface InvoiceTotalsProps {
   currency?: CurrencyCode
   mode: 'receipt' | 'invoice'
   payment?: Payment.Record
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+    currency: CurrencyCode
+  } | null
+  originalAmount?: number
 }
 
 export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
@@ -446,13 +455,66 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
   currency = 'USD',
   mode,
   payment,
+  discountInfo,
+  originalAmount,
 }) => {
+  // Calculate discount amount using shared logic
+  const calculatedDiscountAmount = calculateDiscountAmountSafe(originalAmount || subtotal, discountInfo)
   return (
     <Row data-testid="invoice-totals">
       <Column style={{ width: '60%' }}></Column>
       <Column style={{ width: '40%' }}>
         <table style={{ width: '100%' }}>
           <tbody>
+            {/* Show original amount if there's a discount */}
+            {originalAmount && (
+              <tr
+                style={{
+                  fontWeight: 'normal',
+                  borderTop: '1px solid #eee',
+                }}
+              >
+                <td style={{ padding: '5px 0', textAlign: 'left' }}>
+                  Amount
+                </td>
+                <td
+                  data-testid="original-amount"
+                  style={{ padding: '5px 0', textAlign: 'right' }}
+                >
+                  {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                    currency as CurrencyCode,
+                    originalAmount
+                  )}
+                </td>
+              </tr>
+            )}
+            {/* Show discount above subtotal */}
+            {discountInfo && (
+              <tr
+                style={{
+                  fontWeight: 'normal',
+                  borderTop: '1px solid #eee',
+                }}
+              >
+                <td style={{ padding: '5px 0', textAlign: 'left' }}>
+                  Discount ({discountInfo.discountCode})
+                </td>
+                <td
+                  data-testid="discount-amount"
+                  style={{
+                    padding: '5px 0',
+                    textAlign: 'right',
+                    color: '#22c55e',
+                  }}
+                >
+                  -
+                  {stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                    currency as CurrencyCode,
+                    calculatedDiscountAmount
+                  )}
+                </td>
+              </tr>
+            )}
             <tr
               style={{
                 fontWeight: 'normal',
@@ -639,6 +701,12 @@ export interface InvoiceTemplateProps {
   organization: Organization.Record
   paymentLink?: string
   paymentDataItems?: PaymentAndPaymentMethod[]
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+  } | null
 }
 
 export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
@@ -647,13 +715,9 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   customer,
   organization,
   paymentLink,
+  discountInfo,
 }) => {
-  const subtotal = invoiceLineItems.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0
-  )
-  const taxAmount = invoice.taxAmount ?? 0
-  const total = subtotal + taxAmount
+  const totals = calculateInvoiceTotalsRaw(invoiceLineItems, invoice, discountInfo)
   const billingAddress = customer.billingAddress
 
   return (
@@ -726,7 +790,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           )}
           <PaymentInfo
             invoice={invoice}
-            total={total}
+            total={totals.total}
             paymentLink={paymentLink}
             mode="invoice"
           />
@@ -735,11 +799,20 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
             currency={invoice.currency}
           />
           <InvoiceTotals
-            subtotal={subtotal}
-            taxAmount={taxAmount}
-            total={total}
+            subtotal={totals.subtotal}
+            taxAmount={totals.taxAmount}
+            total={totals.total}
             currency={invoice.currency}
             mode="invoice"
+            originalAmount={totals.baseAmount}
+            discountInfo={
+              discountInfo
+                ? {
+                    ...discountInfo,
+                    currency: invoice.currency,
+                  }
+                : null
+            }
           />
           <InvoiceFooter organization={organization} />
         </Container>

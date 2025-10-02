@@ -21,6 +21,7 @@ import {
   ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -28,7 +29,7 @@ import { billingPeriods } from '@/db/schema/billingPeriods'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { subscriptions } from './subscriptions'
 import { prices } from './prices'
-import { 
+import {
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
   createPaginatedTableRowInputSchema,
@@ -64,7 +65,9 @@ export const usageEvents = pgTable(
       billingPeriods
     ),
     amount: integer('amount').notNull(),
-    usageDate: timestamp('usage_date').notNull().defaultNow(),
+    usageDate: timestampWithTimezoneColumn('usage_date')
+      .notNull()
+      .defaultNow(),
     transactionId: text('transaction_id').notNull(),
     priceId: notNullStringForeignKey('price_id', prices),
     properties: jsonb('properties'),
@@ -257,7 +260,9 @@ export namespace UsageEvent {
     typeof usageEventsClientSelectSchema
   >
   export type Where = SelectConditions<typeof usageEvents>
-  export type UsageEventTableRowData = z.infer<typeof usageEventsTableRowDataSchema>
+  export type UsageEventTableRowData = z.infer<
+    typeof usageEventsTableRowDataSchema
+  >
 }
 
 export const createUsageEventSchema = z.object({

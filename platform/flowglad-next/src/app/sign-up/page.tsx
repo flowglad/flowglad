@@ -210,8 +210,8 @@ export default function SignUp() {
       <CardFooter className="flex flex-col gap-2">
         <div className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link 
-            href="/sign-in" 
+          <Link
+            href="/sign-in"
             className="text-primary hover:underline"
           >
             Sign in

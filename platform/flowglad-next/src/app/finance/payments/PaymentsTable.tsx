@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DisplayColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/data-table'
-import { TableCell } from '@/components/ui/table'
 import { Payment } from '@/db/schema/payments'
 import TableRowPopoverMenu from '@/components/TableRowPopoverMenu'
 import { PopoverMenuItem } from '@/components/PopoverMenu'
@@ -109,7 +108,7 @@ const PaymentsTable = ({
           header: 'Amount',
           accessorKey: 'payment.amount',
           cell: ({ row: { original: cellData } }) => (
-            <TableCell
+            <div
               className="relative max-w-[160px] truncate text-sm"
               title={stripeCurrencyAmountToHumanReadableCurrencyAmount(
                 cellData.payment.currency,
@@ -122,7 +121,7 @@ const PaymentsTable = ({
                   cellData.payment.amount
                 )}
               </span>
-            </TableCell>
+            </div>
           ),
         },
         {
@@ -189,7 +188,6 @@ const PaymentsTable = ({
       columns={columns}
       data={tableData}
       className="bg-background"
-      bordered
       pagination={{
         pageIndex,
         pageSize,

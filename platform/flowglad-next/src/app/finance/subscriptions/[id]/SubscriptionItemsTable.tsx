@@ -76,7 +76,6 @@ const SubscriptionItemsTable = ({
       columns={columns}
       data={tableData}
       className="bg-background"
-      bordered
     />
   )
 }

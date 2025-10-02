@@ -165,7 +165,6 @@ export const validateProductCreation = (
         'Default products cannot be created manually. They are automatically created when pricing models are created.',
     })
   }
-
 }
 /**
  * Checks if a field update on a default product is allowed
@@ -193,27 +192,29 @@ export const validateDefaultProductSchema = (product: {
 }) => {
   // Exactly one price and it must be the default price
   if (!product.prices || product.prices.length !== 1) {
-    throw new Error("Default products must have exactly one price")
+    throw new Error('Default products must have exactly one price')
   }
   const price = product.prices[0]
 
   // Check price is zero
   if (price.amount !== 0) {
-    throw new Error("Default products must have zero price")
+    throw new Error('Default products must have zero price')
   }
-  
+
   // Check no trials
   if (price.trialDays && price.trialDays > 0) {
-    throw new Error("Default products cannot have trials")
+    throw new Error('Default products cannot have trials')
   }
-  
+
   // Check no setup fees
   if (price.setupFee && price.setupFee > 0) {
-    throw new Error("Default products cannot have setup fees")
+    throw new Error('Default products cannot have setup fees')
   }
-  
+
   // Check reserved slug usage
   if (product.slug === 'free') {
-    throw new Error("Slug 'free' is reserved for auto-generated default plans")
+    throw new Error(
+      "Slug 'free' is reserved for auto-generated default plans"
+    )
   }
 }

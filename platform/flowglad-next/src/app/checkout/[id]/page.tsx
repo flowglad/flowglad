@@ -4,7 +4,11 @@ import {
   CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { PriceType, CheckoutSessionStatus, SubscriptionStatus } from '@/types'
+import {
+  PriceType,
+  CheckoutSessionStatus,
+  SubscriptionStatus,
+} from '@/types'
 import { shouldBlockCheckout } from '@/app/checkout/guard'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
@@ -43,10 +47,12 @@ const CheckoutSessionPage = async ({
    */
   if (
     shouldBlockCheckout({
-      currentSubscriptions: (maybeCurrentSubscriptions ?? []).map((s) => ({
-        status: s.status,
-        isFreePlan: s.isFreePlan,
-      })),
+      currentSubscriptions: (maybeCurrentSubscriptions ?? []).map(
+        (s) => ({
+          status: s.status,
+          isFreePlan: s.isFreePlan,
+        })
+      ),
       priceType: price.type,
       allowMultipleSubscriptionsPerCustomer:
         sellerOrganization.allowMultipleSubscriptionsPerCustomer,

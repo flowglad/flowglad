@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { TablePagination } from '@/components/ui/table-pagination'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { cn } from '@/lib/utils'
 
 interface DataTableProps<TData, TValue> {
@@ -31,7 +31,6 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   onClickRow?: (row: TData) => void
   className?: string
-  bordered?: boolean
   pagination?: {
     pageIndex: number
     pageSize: number
@@ -47,7 +46,6 @@ export function DataTable<TData, TValue>({
   data,
   onClickRow,
   className,
-  bordered = true,
   pagination,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -77,6 +75,22 @@ export function DataTable<TData, TValue>({
     pageCount: pagination
       ? Math.ceil(pagination.total / pagination.pageSize)
       : -1,
+    onPaginationChange: pagination
+      ? (updater) => {
+          const newPagination =
+            typeof updater === 'function'
+              ? updater({
+                  pageIndex: pagination.pageIndex,
+                  pageSize: pagination.pageSize,
+                })
+              : updater
+
+          // Handle page navigation
+          if (newPagination.pageIndex !== pagination.pageIndex) {
+            pagination.onPageChange(newPagination.pageIndex)
+          }
+        }
+      : undefined,
     state: {
       sorting,
       columnFilters,
@@ -93,241 +107,79 @@ export function DataTable<TData, TValue>({
   })
 
   return (
-    <div className={cn('flex flex-col', className)}>
-      <div
-        className={cn(
-          'rounded-xl overflow-hidden',
-          'w-full',
-          // Responsive horizontal scroll with proper shadows
-          'overflow-x-auto scrollbar-hidden',
-          // Minimum width to prevent cramping
-          'min-w-0',
-          bordered && 'border'
-        )}
-      >
-        <div className="w-full">
-          <Table
-            className="table-fixed w-full"
-            style={{
-              tableLayout: 'fixed',
-              width: '100%',
-            }}
-          >
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead
-                        key={header.id}
-                        style={{
-                          width:
-                            header.column.columnDef.header ===
-                              'Date' ||
-                            header.column.columnDef.header ===
-                              'Purchase Date'
-                              ? '125px'
-                              : header.column.columnDef.header ===
-                                  'ID'
-                                ? '125px'
-                                : header.column.columnDef.header ===
-                                    'Revenue'
-                                  ? '100px'
-                                  : header.getSize(),
-                          maxWidth:
-                            header.column.columnDef.header ===
-                              'Date' ||
-                            header.column.columnDef.header ===
-                              'Purchase Date'
-                              ? '125px'
-                              : header.column.columnDef.header ===
-                                  'ID'
-                                ? '250px'
-                                : header.column.columnDef.header ===
-                                    'Revenue'
-                                  ? '100px'
-                                  : header.getSize(),
-                          minWidth:
-                            header.column.columnDef.header ===
-                              'Date' ||
-                            header.column.columnDef.header ===
-                              'Purchase Date'
-                              ? '125px'
-                              : header.column.columnDef.header ===
-                                  'ID'
-                                ? '125px'
-                                : header.column.columnDef.header ===
-                                    'Revenue'
-                                  ? '80px'
-                                  : header.getSize(),
-                          boxSizing:
-                            header.column.columnDef.header ===
-                              'Date' ||
-                            header.column.columnDef.header ===
-                              'Purchase Date' ||
-                            header.column.columnDef.header === 'ID' ||
-                            header.column.columnDef.header ===
-                              'Revenue'
-                              ? 'border-box'
-                              : undefined,
-                          flex:
-                            header.column.columnDef.header ===
-                              'Date' ||
-                            header.column.columnDef.header ===
-                              'Purchase Date' ||
-                            header.column.columnDef.header === 'ID' ||
-                            header.column.columnDef.header ===
-                              'Revenue'
-                              ? 'none'
-                              : undefined,
-                        }}
-                        className={
-                          header.column.columnDef.header === 'Date' ||
-                          header.column.columnDef.header ===
-                            'Purchase Date'
-                            ? 'overflow-hidden !w-[125px] !max-w-[125px] !min-w-[125px]'
-                            : header.column.columnDef.header === 'ID'
-                              ? 'overflow-hidden !w-[125px] !max-w-[250px] !min-w-[125px]'
-                              : header.column.columnDef.header ===
-                                  'Revenue'
-                                ? 'overflow-hidden !w-[100px] !max-w-[100px] !min-w-[80px]'
-                                : undefined
-                        }
-                        {...((header.column.columnDef.header ===
-                          'Date' ||
-                          header.column.columnDef.header ===
-                            'Purchase Date' ||
-                          header.column.columnDef.header === 'ID' ||
-                          header.column.columnDef.header ===
-                            'Revenue') && {
-                          'data-debug': `id:${header.id}, size:${header.getSize()}`,
-                        })}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    )
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && 'selected'}
-                    className={
-                      onClickRow ? 'cursor-pointer' : undefined
-                    }
-                    onClick={() =>
-                      onClickRow && onClickRow(row.original)
-                    }
+    <div className={cn('w-full', className)}>
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                return (
+                  <TableHead
+                    key={header.id}
+                    style={{ width: header.getSize() }}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        style={{
-                          width:
-                            cell.column.columnDef.header === 'Date' ||
-                            cell.column.columnDef.header ===
-                              'Purchase Date'
-                              ? '125px'
-                              : cell.column.columnDef.header === 'ID'
-                                ? '125px'
-                                : cell.column.columnDef.header ===
-                                    'Revenue'
-                                  ? '100px'
-                                  : cell.column.getSize(),
-                          maxWidth:
-                            cell.column.columnDef.header === 'Date' ||
-                            cell.column.columnDef.header ===
-                              'Purchase Date'
-                              ? '125px'
-                              : cell.column.columnDef.header === 'ID'
-                                ? '250px'
-                                : cell.column.columnDef.header ===
-                                    'Revenue'
-                                  ? '100px'
-                                  : cell.column.getSize(),
-                          minWidth:
-                            cell.column.columnDef.header === 'Date' ||
-                            cell.column.columnDef.header ===
-                              'Purchase Date'
-                              ? '125px'
-                              : cell.column.columnDef.header === 'ID'
-                                ? '125px'
-                                : cell.column.columnDef.header ===
-                                    'Revenue'
-                                  ? '80px'
-                                  : cell.column.getSize(),
-                          boxSizing:
-                            cell.column.columnDef.header === 'Date' ||
-                            cell.column.columnDef.header ===
-                              'Purchase Date' ||
-                            cell.column.columnDef.header === 'ID' ||
-                            cell.column.columnDef.header === 'Revenue'
-                              ? 'border-box'
-                              : undefined,
-                          flex:
-                            cell.column.columnDef.header === 'Date' ||
-                            cell.column.columnDef.header ===
-                              'Purchase Date' ||
-                            cell.column.columnDef.header === 'ID' ||
-                            cell.column.columnDef.header === 'Revenue'
-                              ? 'none'
-                              : undefined,
-                        }}
-                        className={
-                          cell.column.columnDef.header === 'Date' ||
-                          cell.column.columnDef.header ===
-                            'Purchase Date'
-                            ? 'overflow-hidden whitespace-nowrap text-ellipsis !w-[125px] !max-w-[125px] !min-w-[125px]'
-                            : cell.column.columnDef.header === 'ID'
-                              ? 'overflow-hidden whitespace-nowrap text-ellipsis !w-[125px] !max-w-[250px] !min-w-[125px]'
-                              : cell.column.columnDef.header ===
-                                  'Revenue'
-                                ? 'overflow-hidden whitespace-nowrap text-ellipsis !w-[100px] !max-w-[100px] !min-w-[80px]'
-                                : undefined
-                        }
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
                         )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    {pagination?.isLoading || pagination?.isFetching
-                      ? 'Loading...'
-                      : 'No results.'}
+                  </TableHead>
+                )
+              })}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {pagination?.isLoading ? (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="h-24 text-center text-muted-foreground"
+              >
+                Loading...
+              </TableCell>
+            </TableRow>
+          ) : table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                data-state={row.getIsSelected() && 'selected'}
+                className={cn(
+                  onClickRow && 'cursor-pointer',
+                  pagination?.isFetching && 'opacity-50'
+                )}
+                onClick={() => onClickRow && onClickRow(row.original)}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(
+                      cell.column.columnDef.cell,
+                      cell.getContext()
+                    )}
                   </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="h-24 text-center text-muted-foreground"
+              >
+                No results.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
       {pagination && (
-        <TablePagination
-          pageIndex={pagination.pageIndex}
-          pageSize={pagination.pageSize}
-          total={pagination.total}
-          onPageChange={pagination.onPageChange}
-          isLoading={pagination.isLoading}
-          isFetching={pagination.isFetching}
-        />
+        <div className="py-2">
+          <DataTablePagination
+            table={table}
+            totalCount={pagination.total}
+          />
+        </div>
       )}
     </div>
   )

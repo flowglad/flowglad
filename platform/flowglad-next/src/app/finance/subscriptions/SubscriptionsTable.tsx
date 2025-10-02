@@ -175,7 +175,6 @@ const SubscriptionsTable = ({
       columns={columns}
       data={tableData}
       className="bg-background"
-      bordered
       onClickRow={(row) => {
         router.push(`/finance/subscriptions/${row.subscription.id}`)
       }}

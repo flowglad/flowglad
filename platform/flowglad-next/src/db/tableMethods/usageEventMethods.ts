@@ -16,22 +16,19 @@ import {
   usageEventsUpdateSchema,
   usageEventsTableRowDataSchema,
 } from '@/db/schema/usageEvents'
-import { 
-  customers, 
-  customerClientSelectSchema 
+import {
+  customers,
+  customerClientSelectSchema,
 } from '@/db/schema/customers'
-import { 
-  subscriptions, 
-  subscriptionClientSelectSchema 
+import {
+  subscriptions,
+  subscriptionClientSelectSchema,
 } from '@/db/schema/subscriptions'
-import { 
-  usageMeters, 
-  usageMetersClientSelectSchema 
+import {
+  usageMeters,
+  usageMetersClientSelectSchema,
 } from '@/db/schema/usageMeters'
-import { 
-  prices, 
-  pricesClientSelectSchema 
-} from '@/db/schema/prices'
+import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
 import { products } from '@/db/schema/products'
 import { eq, inArray } from 'drizzle-orm'
 import { DbTransaction } from '../types'
@@ -85,10 +82,8 @@ export const bulkInsertOrDoNothingUsageEventsByTransactionId = (
 }
 
 // Paginated select function for basic usage events
-export const selectUsageEventsPaginated = createPaginatedSelectFunction(
-  usageEvents,
-  config
-)
+export const selectUsageEventsPaginated =
+  createPaginatedSelectFunction(usageEvents, config)
 
 // Cursor paginated select function for table rows with joins
 export const selectUsageEventsTableRowData =
@@ -103,15 +98,15 @@ export const selectUsageEventsTableRowData =
       const customerIds = usageEventsData
         .map((usageEvent) => usageEvent.customerId)
         .filter((id): id is string => id !== null)
-      
+
       const subscriptionIds = usageEventsData
         .map((usageEvent) => usageEvent.subscriptionId)
         .filter((id): id is string => id !== null)
-      
+
       const usageMeterIds = usageEventsData
         .map((usageEvent) => usageEvent.usageMeterId)
         .filter((id): id is string => id !== null)
-      
+
       const priceIds = usageEventsData
         .map((usageEvent) => usageEvent.priceId)
         .filter((id): id is string => id !== null)
@@ -149,22 +144,35 @@ export const selectUsageEventsTableRowData =
         customerResults.map((customer) => [customer.id, customer])
       )
       const subscriptionsById = new Map(
-        subscriptionResults.map((subscription) => [subscription.id, subscription])
+        subscriptionResults.map((subscription) => [
+          subscription.id,
+          subscription,
+        ])
       )
       const usageMetersById = new Map(
-        usageMeterResults.map((usageMeter) => [usageMeter.id, usageMeter])
+        usageMeterResults.map((usageMeter) => [
+          usageMeter.id,
+          usageMeter,
+        ])
       )
       const pricesById = new Map(
         priceResults.map((result) => [result.price.id, result.price])
       )
       const productsById = new Map(
-        priceResults.map((result) => [result.product.id, result.product])
+        priceResults.map((result) => [
+          result.product.id,
+          result.product,
+        ])
       )
 
       return usageEventsData.map((usageEvent) => {
         const customer = customersById.get(usageEvent.customerId)
-        const subscription = subscriptionsById.get(usageEvent.subscriptionId)
-        const usageMeter = usageMetersById.get(usageEvent.usageMeterId)
+        const subscription = subscriptionsById.get(
+          usageEvent.subscriptionId
+        )
+        const usageMeter = usageMetersById.get(
+          usageEvent.usageMeterId
+        )
         const price = pricesById.get(usageEvent.priceId)
 
         if (!customer || !subscription || !usageMeter || !price) {
@@ -174,7 +182,8 @@ export const selectUsageEventsTableRowData =
         }
 
         // Transform database records to client records
-        const customerClient = customerClientSelectSchema.parse(customer)
+        const customerClient =
+          customerClientSelectSchema.parse(customer)
         const subscriptionWithCurrent = {
           ...subscription,
           current: isSubscriptionCurrent(
@@ -182,8 +191,12 @@ export const selectUsageEventsTableRowData =
             subscription.cancellationReason
           ),
         }
-        const subscriptionClient = subscriptionClientSelectSchema.parse(subscriptionWithCurrent)
-        const usageMeterClient = usageMetersClientSelectSchema.parse(usageMeter)
+        const subscriptionClient =
+          subscriptionClientSelectSchema.parse(
+            subscriptionWithCurrent
+          )
+        const usageMeterClient =
+          usageMetersClientSelectSchema.parse(usageMeter)
         const priceClient = pricesClientSelectSchema.parse(price)
 
         return {

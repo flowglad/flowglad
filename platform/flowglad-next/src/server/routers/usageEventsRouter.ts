@@ -33,7 +33,7 @@ import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageEvent',
-  tags: ['UsageEvents'],
+  tags: ['Usage Events'],
 })
 
 export const usageEventsRouteConfigs = routeConfigs
@@ -197,7 +197,9 @@ const listUsageEventsProcedure = protectedProcedure
 const getTableRowsProcedure = protectedProcedure
   .input(usageEventsPaginatedTableRowInputSchema)
   .output(usageEventsPaginatedTableRowOutputSchema)
-  .query(authenticatedProcedureTransaction(selectUsageEventsTableRowData))
+  .query(
+    authenticatedProcedureTransaction(selectUsageEventsTableRowData)
+  )
 
 export const usageEventsRouter = router({
   get: getUsageEvent,

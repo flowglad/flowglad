@@ -174,7 +174,7 @@ export const productsClientInsertSchema = productsInsertSchema
     },
     {
       message: "Slug 'free' is reserved for default products only",
-      path: ['slug']
+      path: ['slug'],
     }
   )
   .meta({

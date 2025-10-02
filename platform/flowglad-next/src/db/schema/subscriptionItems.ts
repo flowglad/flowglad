@@ -1,12 +1,5 @@
 import * as R from 'ramda'
-import {
-  pgTable,
-  jsonb,
-  integer,
-  pgPolicy,
-  timestamp,
-  text,
-} from 'drizzle-orm/pg-core'
+import { pgTable, jsonb, integer, text } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import {
   tableBase,
@@ -22,6 +15,7 @@ import {
   pgEnumColumn,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -51,7 +45,7 @@ const columns = {
     subscriptions
   ),
   name: text('name'),
-  addedDate: timestamp('added_date').notNull(),
+  addedDate: timestampWithTimezoneColumn('added_date').notNull(),
   priceId: notNullStringForeignKey('price_id', prices),
   unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
@@ -71,7 +65,7 @@ const columns = {
    * from external processors onto Flowglad
    */
   externalId: text('external_id'),
-  expiredAt: timestamp('expired_at'),
+  expiredAt: timestampWithTimezoneColumn('expired_at'),
 }
 
 export const subscriptionItems = pgTable(

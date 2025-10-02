@@ -216,7 +216,7 @@ export const SideNavigation = () => {
     <>
       <SidebarHeader
         className={cn(
-          'w-full flex flex-row items-center border-b border-muted py-3',
+          'w-full flex flex-row items-center py-3 bg-sidebar',
           isCollapsed
             ? 'justify-center px-1 gap-0 p-2'
             : 'justify-between px-1 gap-2.5 p-2'
@@ -246,8 +246,8 @@ export const SideNavigation = () => {
         <SidebarTrigger className="flex-shrink-0 text-muted-foreground" />
       </SidebarHeader>
 
-      <SidebarContent className="pt-3">
-        <div className="px-0">
+      <SidebarContent className="pt-3 bg-sidebar">
+        <div className="px-0 bg-sidebar">
           {/* 1. Set up - Only shows when onboarding not complete */}
           {setupItem.length > 0 && (
             <NavStandalone items={setupItem} />
@@ -273,7 +273,7 @@ export const SideNavigation = () => {
 
       <SidebarFooter
         className={cn(
-          'flex flex-col gap-0 px-0 overflow-hidden transition-all duration-300 ease-in-out',
+          'flex flex-col gap-0 px-0 overflow-hidden transition-all duration-300 ease-in-out bg-sidebar',
           isCollapsed
             ? 'opacity-0 max-h-0 pointer-events-none'
             : 'opacity-100'

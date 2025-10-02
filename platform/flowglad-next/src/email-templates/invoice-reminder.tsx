@@ -1,4 +1,4 @@
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
 import * as React from 'react'
 import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
@@ -23,20 +23,33 @@ export const InvoiceReminderEmail = ({
   invoiceLineItems,
   organizationLogoUrl,
   organizationName,
+  discountInfo,
 }: {
   invoice: Invoice.Record
   invoiceLineItems: InvoiceLineItem.Record[]
   organizationLogoUrl?: string
   organizationName: string
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+  } | null
 }) => {
-  const totalAmount =
-    stripeCurrencyAmountToHumanReadableCurrencyAmount(
-      invoice.currency,
-      invoiceLineItems.reduce(
-        (acc, item) => acc + item.price * item.quantity,
-        0
-      )
+  const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
+    calculateInvoiceTotalsFromLineItems(
+      invoice,
+      invoiceLineItems,
+      discountInfo
     )
+
+  // Prepare discount info with currency for TotalSection
+  const discountInfoWithCurrency = discountInfo
+    ? {
+        ...discountInfo,
+        currency: invoice.currency,
+      }
+    : null
 
   return (
     <EmailLayout previewText="Invoice Reminder">
@@ -60,10 +73,12 @@ export const InvoiceReminderEmail = ({
       </DetailSection>
 
       <TotalSection
-        subtotal={totalAmount}
+        originalAmount={originalAmount}
+        subtotal={subtotalAmount}
+        tax={taxAmount}
         total={totalAmount}
-        showSubtotal={false}
         totalLabelText="Total Amount Due"
+        discountInfo={discountInfoWithCurrency}
       />
 
       <Paragraph style={{ margin: '30px 0 10px' }}>

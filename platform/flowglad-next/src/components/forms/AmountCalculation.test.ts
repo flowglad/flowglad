@@ -4,10 +4,12 @@ import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 
 // Mock the stripe utils
 vi.mock('@/utils/stripe', () => ({
-  rawStringAmountToCountableCurrencyAmount: vi.fn((currency, amount) => {
-    // Mock conversion: "10.50" -> 1050 (cents)
-    return Math.round(parseFloat(amount) * 100)
-  }),
+  rawStringAmountToCountableCurrencyAmount: vi.fn(
+    (currency, amount) => {
+      // Mock conversion: "10.50" -> 1050 (cents)
+      return Math.round(parseFloat(amount) * 100)
+    }
+  ),
 }))
 
 describe('Amount Calculation Logic', () => {
@@ -21,12 +23,18 @@ describe('Amount Calculation Logic', () => {
         __rawAmountString: '10.50',
       }
 
-      const amount = mockInput.discount.amountType === DiscountAmountType.Fixed
-        ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, mockInput.__rawAmountString!)
-        : Math.round(mockInput.discount.amount ?? 0)
+      const amount =
+        mockInput.discount.amountType === DiscountAmountType.Fixed
+          ? rawStringAmountToCountableCurrencyAmount(
+              CurrencyCode.USD,
+              mockInput.__rawAmountString!
+            )
+          : Math.round(mockInput.discount.amount ?? 0)
 
       expect(amount).toBe(1050) // $10.50 * 100
-      expect(rawStringAmountToCountableCurrencyAmount).toHaveBeenCalledWith(CurrencyCode.USD, '10.50')
+      expect(
+        rawStringAmountToCountableCurrencyAmount
+      ).toHaveBeenCalledWith(CurrencyCode.USD, '10.50')
     })
 
     it('should handle different currency amounts correctly', () => {
@@ -47,9 +55,13 @@ describe('Amount Calculation Logic', () => {
           __rawAmountString: input,
         }
 
-        const amount = mockInput.discount.amountType === DiscountAmountType.Fixed
-          ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, mockInput.__rawAmountString!)
-          : Math.round(mockInput.discount.amount ?? 0)
+        const amount =
+          mockInput.discount.amountType === DiscountAmountType.Fixed
+            ? rawStringAmountToCountableCurrencyAmount(
+                CurrencyCode.USD,
+                mockInput.__rawAmountString!
+              )
+            : Math.round(mockInput.discount.amount ?? 0)
 
         expect(amount).toBe(expected)
       })
@@ -64,9 +76,13 @@ describe('Amount Calculation Logic', () => {
         __rawAmountString: '0',
       }
 
-      const amount = mockInput.discount.amountType === DiscountAmountType.Fixed
-        ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, mockInput.__rawAmountString!)
-        : Math.round(mockInput.discount.amount ?? 0)
+      const amount =
+        mockInput.discount.amountType === DiscountAmountType.Fixed
+          ? rawStringAmountToCountableCurrencyAmount(
+              CurrencyCode.USD,
+              mockInput.__rawAmountString!
+            )
+          : Math.round(mockInput.discount.amount ?? 0)
 
       expect(amount).toBe(0)
     })
@@ -80,9 +96,13 @@ describe('Amount Calculation Logic', () => {
         __rawAmountString: '12.345',
       }
 
-      const amount = mockInput.discount.amountType === DiscountAmountType.Fixed
-        ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, mockInput.__rawAmountString!)
-        : Math.round(mockInput.discount.amount ?? 0)
+      const amount =
+        mockInput.discount.amountType === DiscountAmountType.Fixed
+          ? rawStringAmountToCountableCurrencyAmount(
+              CurrencyCode.USD,
+              mockInput.__rawAmountString!
+            )
+          : Math.round(mockInput.discount.amount ?? 0)
 
       expect(amount).toBe(1235) // Rounded to nearest cent
     })
@@ -109,9 +129,13 @@ describe('Amount Calculation Logic', () => {
           __rawAmountString: '0',
         }
 
-        const amount = mockInput.discount.amountType === DiscountAmountType.Fixed
-          ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, mockInput.__rawAmountString!)
-          : Math.round(mockInput.discount.amount ?? 0)
+        const amount =
+          mockInput.discount.amountType === DiscountAmountType.Fixed
+            ? rawStringAmountToCountableCurrencyAmount(
+                CurrencyCode.USD,
+                mockInput.__rawAmountString!
+              )
+            : Math.round(mockInput.discount.amount ?? 0)
 
         expect(amount).toBe(expected)
       })
@@ -132,9 +156,13 @@ describe('Amount Calculation Logic', () => {
           __rawAmountString: '0',
         }
 
-        const calculatedAmount = mockInput.discount.amountType === DiscountAmountType.Fixed
-          ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, mockInput.__rawAmountString!)
-          : Math.round(mockInput.discount.amount ?? 0)
+        const calculatedAmount =
+          mockInput.discount.amountType === DiscountAmountType.Fixed
+            ? rawStringAmountToCountableCurrencyAmount(
+                CurrencyCode.USD,
+                mockInput.__rawAmountString!
+              )
+            : Math.round(mockInput.discount.amount ?? 0)
 
         expect(calculatedAmount).toBe(expected)
       })
@@ -158,9 +186,13 @@ describe('Amount Calculation Logic', () => {
           __rawAmountString: '0',
         }
 
-        const amount = mockInput.discount.amountType === DiscountAmountType.Fixed
-          ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, mockInput.__rawAmountString!)
-          : Math.round(mockInput.discount.amount ?? 0)
+        const amount =
+          mockInput.discount.amountType === DiscountAmountType.Fixed
+            ? rawStringAmountToCountableCurrencyAmount(
+                CurrencyCode.USD,
+                mockInput.__rawAmountString!
+              )
+            : Math.round(mockInput.discount.amount ?? 0)
 
         expect(amount).toBe(expected)
       })
@@ -186,25 +218,39 @@ describe('Amount Calculation Logic', () => {
         },
       ]
 
-      testCases.forEach(({ amountType, rawAmountString, discountAmount, expected, shouldCallCurrencyConversion }) => {
-        const mockInput = {
-          discount: {
-            amountType,
-            amount: discountAmount,
-          },
-          __rawAmountString: rawAmountString,
-        }
+      testCases.forEach(
+        ({
+          amountType,
+          rawAmountString,
+          discountAmount,
+          expected,
+          shouldCallCurrencyConversion,
+        }) => {
+          const mockInput = {
+            discount: {
+              amountType,
+              amount: discountAmount,
+            },
+            __rawAmountString: rawAmountString,
+          }
 
-        const amount = mockInput.discount.amountType === DiscountAmountType.Fixed
-          ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, mockInput.__rawAmountString!)
-          : Math.round(mockInput.discount.amount ?? 0)
+          const amount =
+            mockInput.discount.amountType === DiscountAmountType.Fixed
+              ? rawStringAmountToCountableCurrencyAmount(
+                  CurrencyCode.USD,
+                  mockInput.__rawAmountString!
+                )
+              : Math.round(mockInput.discount.amount ?? 0)
 
-        expect(amount).toBe(expected)
-        
-        if (shouldCallCurrencyConversion) {
-        expect(rawStringAmountToCountableCurrencyAmount).toHaveBeenCalledWith(CurrencyCode.USD, rawAmountString)
+          expect(amount).toBe(expected)
+
+          if (shouldCallCurrencyConversion) {
+            expect(
+              rawStringAmountToCountableCurrencyAmount
+            ).toHaveBeenCalledWith(CurrencyCode.USD, rawAmountString)
+          }
         }
-      })
+      )
     })
   })
 
@@ -223,9 +269,13 @@ describe('Amount Calculation Logic', () => {
         __rawAmountString: '10.50',
       }
 
-      const amount = formInput.discount.amountType === DiscountAmountType.Fixed
-        ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, formInput.__rawAmountString!)
-        : Math.round(formInput.discount.amount ?? 0)
+      const amount =
+        formInput.discount.amountType === DiscountAmountType.Fixed
+          ? rawStringAmountToCountableCurrencyAmount(
+              CurrencyCode.USD,
+              formInput.__rawAmountString!
+            )
+          : Math.round(formInput.discount.amount ?? 0)
 
       const submissionData = {
         ...formInput,
@@ -236,7 +286,9 @@ describe('Amount Calculation Logic', () => {
       }
 
       expect(submissionData.discount.amount).toBe(1050)
-      expect(submissionData.discount.amountType).toBe(DiscountAmountType.Fixed)
+      expect(submissionData.discount.amountType).toBe(
+        DiscountAmountType.Fixed
+      )
     })
 
     it('should handle complete form submission for percent discount', () => {
@@ -253,9 +305,13 @@ describe('Amount Calculation Logic', () => {
         __rawAmountString: '0',
       }
 
-      const amount = formInput.discount.amountType === DiscountAmountType.Fixed
-        ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, formInput.__rawAmountString!)
-        : Math.round(formInput.discount.amount ?? 0)
+      const amount =
+        formInput.discount.amountType === DiscountAmountType.Fixed
+          ? rawStringAmountToCountableCurrencyAmount(
+              CurrencyCode.USD,
+              formInput.__rawAmountString!
+            )
+          : Math.round(formInput.discount.amount ?? 0)
 
       const submissionData = {
         ...formInput,
@@ -266,7 +322,9 @@ describe('Amount Calculation Logic', () => {
       }
 
       expect(submissionData.discount.amount).toBe(26)
-      expect(submissionData.discount.amountType).toBe(DiscountAmountType.Percent)
+      expect(submissionData.discount.amountType).toBe(
+        DiscountAmountType.Percent
+      )
     })
   })
 
@@ -281,14 +339,20 @@ describe('Amount Calculation Logic', () => {
       }
 
       // Mock the function to throw an error for invalid input
-      vi.mocked(rawStringAmountToCountableCurrencyAmount).mockImplementationOnce(() => {
+      vi.mocked(
+        rawStringAmountToCountableCurrencyAmount
+      ).mockImplementationOnce(() => {
         throw new Error('Invalid currency amount')
       })
 
       expect(() => {
-        const amount = mockInput.discount.amountType === DiscountAmountType.Fixed
-          ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, mockInput.__rawAmountString!)
-          : Math.round(mockInput.discount.amount ?? 0)
+        const amount =
+          mockInput.discount.amountType === DiscountAmountType.Fixed
+            ? rawStringAmountToCountableCurrencyAmount(
+                CurrencyCode.USD,
+                mockInput.__rawAmountString!
+              )
+            : Math.round(mockInput.discount.amount ?? 0)
       }).toThrow('Invalid currency amount')
     })
 
@@ -301,9 +365,13 @@ describe('Amount Calculation Logic', () => {
         __rawAmountString: '-10.50',
       }
 
-      const amount = mockInput.discount.amountType === DiscountAmountType.Fixed
-        ? rawStringAmountToCountableCurrencyAmount(CurrencyCode.USD, mockInput.__rawAmountString!)
-        : Math.round(mockInput.discount.amount ?? 0)
+      const amount =
+        mockInput.discount.amountType === DiscountAmountType.Fixed
+          ? rawStringAmountToCountableCurrencyAmount(
+              CurrencyCode.USD,
+              mockInput.__rawAmountString!
+            )
+          : Math.round(mockInput.discount.amount ?? 0)
 
       expect(amount).toBe(-1050) // Negative amount in cents
     })

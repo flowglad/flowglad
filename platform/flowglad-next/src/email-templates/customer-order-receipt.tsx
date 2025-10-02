@@ -1,4 +1,5 @@
-import { CurrencyCode } from '@/types'
+import { CurrencyCode, DiscountAmountType } from '@/types'
+import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
@@ -17,15 +18,21 @@ import {
 export const OrderReceiptEmail = ({
   invoiceNumber,
   orderDate,
+  invoice,
   lineItems,
   organizationLogoUrl,
   organizationName,
-  currency,
   organizationId,
   customerId,
+  discountInfo,
 }: {
   invoiceNumber: string
   orderDate: string
+  invoice: {
+    subtotal: number | null
+    taxAmount: number | null
+    currency: CurrencyCode
+  }
   organizationLogoUrl?: string
   organizationId: string
   customerId: string
@@ -34,17 +41,15 @@ export const OrderReceiptEmail = ({
     price: number
     quantity: number
   }[]
-  currency: CurrencyCode
   organizationName: string
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+  } | null
 }) => {
-  const totalAmount =
-    stripeCurrencyAmountToHumanReadableCurrencyAmount(
-      currency,
-      lineItems.reduce(
-        (acc, item) => acc + item.price * item.quantity,
-        0
-      )
-    )
+  const totals = calculateInvoiceTotalsWithDiscounts(lineItems, invoice, discountInfo)
 
   return (
     <EmailLayout previewText="Thanks for your order!">
@@ -61,7 +66,7 @@ export const OrderReceiptEmail = ({
           Date: {orderDate}
         </DetailItem>
         <DetailItem dataTestId="payment-amount">
-          Payment: {totalAmount}
+          Payment: {totals.totalAmount}
         </DetailItem>
       </DetailSection>
 
@@ -72,11 +77,17 @@ export const OrderReceiptEmail = ({
           name={item.name}
           price={item.price}
           quantity={item.quantity}
-          currency={currency}
+          currency={invoice.currency}
         />
       ))}
 
-      <TotalSection subtotal={totalAmount} total={totalAmount} />
+      <TotalSection
+        originalAmount={totals.originalAmount}
+        subtotal={totals.subtotalAmount}
+        tax={totals.taxAmount}
+        total={totals.totalAmount}
+        discountInfo={totals.discountInfoWithCurrency}
+      />
 
       <Paragraph
         style={{ margin: '30px 0 10px' }}
@@ -90,7 +101,6 @@ export const OrderReceiptEmail = ({
           organizationId,
           customerId,
         })}
-        testId="view-order-button"
       >
         View Order →
       </EmailButton>

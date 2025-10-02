@@ -21,6 +21,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import {
   Customer,
@@ -69,7 +70,9 @@ const columns = {
     'organization_id',
     organizations
   ),
-  billingCycleAnchor: timestamp('billing_cycle_anchor'),
+  billingCycleAnchor: timestampWithTimezoneColumn(
+    'billing_cycle_anchor'
+  ),
   /**
    * Billing fields
    */
@@ -93,8 +96,8 @@ const columns = {
   firstInvoiceValue: integer('first_invoice_value'),
   totalPurchaseValue: integer('total_purchase_value'),
   bankPaymentOnly: boolean('bank_payment_only').default(false),
-  purchaseDate: timestamp('purchase_date'),
-  endDate: timestamp('end_date'),
+  purchaseDate: timestampWithTimezoneColumn('purchase_date'),
+  endDate: timestampWithTimezoneColumn('end_date'),
   proposal: text('proposal'),
   archived: boolean('archived').default(false),
   billingAddress: jsonb('billing_address'),

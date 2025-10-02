@@ -16,7 +16,9 @@ import {
   or,
   SQLWrapper,
   isNull,
+  Table,
 } from 'drizzle-orm'
+import { timestamptzMs } from './timestampMs'
 import core, { gitCommitId } from '@/utils/core'
 import {
   boolean,
@@ -33,6 +35,7 @@ import {
   pgPolicy,
   bigserial,
   pgRole,
+  customType,
 } from 'drizzle-orm/pg-core'
 import {
   type DbTransaction,
@@ -43,8 +46,15 @@ import {
 } from '@/db/types'
 import { CountryCode, TaxType, SupabasePayloadType } from '@/types'
 import { z } from 'zod'
-import { createSelectSchema } from 'drizzle-zod'
-import { noCase, sentenceCase, snakeCase } from 'change-case'
+import {
+  BuildRefine,
+  BuildSchema,
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+  NoUnknownKeys,
+} from 'drizzle-zod'
+import { noCase, snakeCase } from 'change-case'
 
 export const merchantRole = pgRole('merchant', {
   createRole: false,
@@ -328,15 +338,25 @@ export const whereClauseFromObject = <T extends PgTableWithId>(
   table: T,
   selectConditions: SelectConditions<T>
 ) => {
-  const keys = Object.keys(selectConditions)
+  const keys = Object.keys(selectConditions).filter((key) => {
+    const value = selectConditions[key]
+    // Filter out undefined and empty strings to prevent invalid SQL parameters
+    // null values are kept and handled separately by isNull() condition
+    // Arrays (including empty arrays) are kept for inArray() processing
+    return value !== undefined && value !== ''
+  })
   if (keys.length === 0) {
     return undefined
   }
   const conditions = keys.map((key) => {
     if (Array.isArray(selectConditions[key])) {
+      // Filter out undefined and empty strings from arrays to prevent SQL parameter issues
+      const cleanArray = selectConditions[key].filter(
+        (item: any) => item !== undefined && item !== ''
+      )
       return inArray(
         table[key as keyof typeof table] as PgColumn,
-        selectConditions[key]
+        cleanArray
       )
     }
     if (selectConditions[key] === null) {
@@ -468,9 +488,7 @@ export const tableBase = (idPrefix?: string) => ({
     )
     .notNull(),
   createdAt: createdAtColumn(),
-  updatedAt: timestamp('updated_at', {
-    withTimezone: true,
-  })
+  updatedAt: timestampWithTimezoneColumn('updated_at')
     .defaultNow()
     .$onUpdate(() => new Date()),
   createdByCommit: text('created_by_commit').$defaultFn(gitCommitId),
@@ -670,8 +688,6 @@ export const constructIndex = (
 }
 
 export const newBaseZodSelectSchemaColumns = {
-  createdAt: core.safeZodDate,
-  updatedAt: core.safeZodDate,
   position: z.number(),
 } as const
 
@@ -1520,7 +1536,7 @@ export const createCursorPaginatedSelectFunction = <
         .select({ count: count() })
         .from(table as SelectTable)
         .$dynamic()
-        .where(filterClause)
+        .where(and(filterClause, searchQueryClause))
 
       const data: z.infer<S>[] = queryResult
         .map((item) => selectSchema.parse(item))
@@ -1564,5 +1580,99 @@ export const createCursorPaginatedSelectFunction = <
         { cause: error }
       )
     }
+  }
+}
+
+export interface CreateSelectSchema<
+  TCoerce extends
+    | Partial<
+        Record<
+          'bigint' | 'boolean' | 'date' | 'number' | 'string',
+          true
+        >
+      >
+    | true
+    | undefined,
+> {
+  <
+    TTable extends Table,
+    TRefine extends BuildRefine<TTable['_']['columns'], TCoerce>,
+  >(
+    table: TTable,
+    refine?: NoUnknownKeys<TRefine, TTable['$inferSelect']>
+  ): BuildSchema<'select', TTable['_']['columns'], TRefine, TCoerce>
+}
+
+export const TIMESTAMPTZ_MS = Symbol('timestamptzMs')
+
+export const zEpochMs = z
+  .union([z.number(), z.string(), z.date()])
+  .transform((v) =>
+    v instanceof Date
+      ? v.getTime()
+      : typeof v === 'string'
+        ? Date.parse(v)
+        : v < 1e12
+          ? v * 1000
+          : v
+  )
+  .pipe(z.number().int())
+
+function epochOverridesFromTable(table: any) {
+  const overrides: Record<string, z.ZodTypeAny> = {}
+  const cols = table._.columns as Record<string, any>
+  for (const [key, col] of Object.entries(cols)) {
+    if ((col as any).__brand === TIMESTAMPTZ_MS) {
+      overrides[key] = zEpochMs // parse → number for inputs/unknowns
+    }
+  }
+  return overrides
+}
+
+export function buildSchemas<T extends PgTableWithId>(
+  table: T,
+  refine: BuildRefine<
+    Pick<T['_']['columns'], keyof T['$inferInsert']>,
+    undefined
+  >
+) {
+  const ov = epochOverridesFromTable(table)
+  const fullRefine = {
+    ...refine,
+    ...ov,
+  }
+  return {
+    // If your customType.fromDriver() already yields numbers, this is enough:
+    select: createSelectSchema(
+      table,
+      Object.fromEntries(
+        Object.keys(ov).map((k) => [k, z.number().int()])
+      ) as NoUnknownKeys<
+        BuildRefine<
+          Pick<T['_']['columns'], keyof T['$inferSelect']>,
+          undefined
+        >,
+        T['$inferSelect']
+      >
+    ),
+    insert: createInsertSchema(
+      table,
+      ov as NoUnknownKeys<
+        BuildRefine<
+          Pick<T['_']['columns'], keyof T['$inferSelect']>,
+          undefined
+        >,
+        T['$inferSelect']
+      >
+    ),
+    update: createUpdateSchema(
+      table,
+      Object.fromEntries(
+        Object.keys(ov).map((k) => [k, ov[k].optional()])
+      ) as BuildRefine<
+        Pick<T['_']['columns'], keyof T['$inferInsert']>,
+        undefined
+      >
+    ),
   }
 }
