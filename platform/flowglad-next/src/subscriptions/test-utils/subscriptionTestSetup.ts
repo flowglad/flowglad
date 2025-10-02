@@ -81,8 +81,12 @@ export const setupSubscriptionTestData = async (
 
   // Setup subscription with billing period
   const now = new Date()
-  const billingPeriodStart = subDays(now, billingPeriodDays / 2)
-  const billingPeriodEnd = addDays(now, billingPeriodDays / 2)
+  // Calculate proper billing period: half before now, half after now
+  // For odd periods, give the extra day to the future period
+  const daysBefore = Math.floor(billingPeriodDays / 2)
+  const daysAfter = Math.ceil(billingPeriodDays / 2)
+  const billingPeriodStart = subDays(now, daysBefore)
+  const billingPeriodEnd = addDays(now, daysAfter)
 
   const subscription = await setupSubscription({
     organizationId: organization.id,
