@@ -33,6 +33,28 @@ function InnerPricingModelDetailsPage({
     isCreateUsageMeterModalOpen,
     setIsCreateUsageMeterModalOpen,
   ] = useState(false)
+  const [activeProductFilter, setActiveProductFilter] =
+    useState<string>('all')
+
+  // Filter options for the button group
+  const productFilterOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+  ]
+
+  const getProductFilterForTab = (tab: string) => {
+    const baseFilter = { pricingModelId: pricingModel.id }
+
+    if (tab === 'all') {
+      return baseFilter
+    }
+
+    return {
+      ...baseFilter,
+      active: tab === 'active',
+    }
+  }
 
   return (
     <InternalPageContainer>
@@ -57,16 +79,12 @@ function InnerPricingModelDetailsPage({
         </div>
 
         <div className="flex flex-col gap-5">
-          <TableHeader
-            title="Products"
-            buttonLabel="Create Product"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
-              setIsCreateProductModalOpen(true)
-            }}
-          />
           <ProductsDataTable
-            filters={{ pricingModelId: pricingModel.id }}
+            filters={getProductFilterForTab(activeProductFilter)}
+            filterOptions={productFilterOptions}
+            activeFilter={activeProductFilter}
+            onFilterChange={setActiveProductFilter}
+            onCreateProduct={() => setIsCreateProductModalOpen(true)}
           />
         </div>
         <div className="flex flex-col gap-5">

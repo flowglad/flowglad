@@ -141,11 +141,27 @@ git show origin/data-table-refactor:platform/flowglad-next/src/app/[your-path]/I
 
 Before starting, document your current table:
 
+```bash
+# First, find ALL usages of your table component
+grep -r "YourTableName" src/app/
+
+# Common patterns:
+# - import statements
+# - component usage in JSX
+# - type imports
+```
+
 ```markdown
 ## Current Implementation Analysis
 
 **Table Location**: `src/app/[path]/[TableName]Table.tsx`
-**Page Component**: `src/app/[path]/Internal.tsx` or `page.tsx`
+
+**All Usage Locations**:
+1. Main listing page: `src/app/[path]/Internal.tsx` or `page.tsx`
+2. Detail page 1: `src/app/[other-path]/[id]/page.tsx` (if applicable)
+3. Detail page 2: `src/app/[another-path]/[id]/page.tsx` (if applicable)
+4. [Add more as needed]
+
 **Search**: ⚠️ [Yes ONLY if this is the CUSTOMERS table / No for all other tables]
 **Filters**: [List filter fields]
 **Action Menu Items**: [List actions]
@@ -157,6 +173,13 @@ Before starting, document your current table:
 | `customer.name` | nested | Use accessorFn |
 | `email` | flat + copyable | Use DataTableCopyableCell |
 | ... | ... | ... |
+
+**Usage Patterns to Update**:
+| Location | Current Pattern | Needs Update |
+|----------|----------------|--------------|
+| Main listing | Uses `<TableHeader>` above table | ✅ Remove, use `onCreateEntity` |
+| Detail page 1 | Uses `<TableHeader>` above table | ✅ Remove, add filters |
+| Detail page 2 | Direct table usage | ✅ Add `onCreateEntity` prop |
 ```
 
 ### Step 3: Create `columns.tsx`
@@ -681,9 +704,148 @@ function Internal() {
 export default Internal
 ```
 
-### Step 6: Delete Old Table Component
+### Step 6: Find and Update All Table Usages (Including Detail Pages)
 
-Once the new implementation is tested:
+**IMPORTANT**: Your table component may be used in multiple places, not just the main listing page. You must update ALL usages to ensure consistency.
+
+#### Find All Usages
+
+```bash
+# Search for all imports and usages of your table component
+grep -r "YourDataTable" src/app/
+
+# Common places to check:
+# - Main listing page (e.g., /app/store/products/page.tsx)
+# - Detail pages (e.g., /app/store/pricing-models/[id]/page.tsx)
+# - Dashboard pages
+# - Related entity pages
+```
+
+#### Pattern 1: Main Listing Page (With Filters)
+
+```typescript
+// Example: /app/store/products/Internal.tsx
+const [activeFilter, setActiveFilter] = useState<string>('all')
+
+const filterOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+]
+
+const getFilterForTab = (tab: string): YourTableFilters => {
+  if (tab === 'all') {
+    return {}
+  }
+  return {
+    active: tab === 'active',
+  }
+}
+
+<YourDataTable
+  filters={getFilterForTab(activeFilter)}
+  filterOptions={filterOptions}
+  activeFilter={activeFilter}
+  onFilterChange={setActiveFilter}
+  onCreateEntity={() => setIsCreateEntityOpen(true)}
+/>
+```
+
+#### Pattern 2: Detail Pages (With Base Filter + Optional Status Filters)
+
+**Before (Old Pattern with TableHeader):**
+```typescript
+// ❌ OLD PATTERN - Don't use
+<div className="flex flex-col gap-5">
+  <TableHeader
+    title="Products"
+    buttonLabel="Create Product"
+    buttonIcon={<Plus size={16} />}
+    buttonOnClick={() => setIsCreateProductModalOpen(true)}
+  />
+  <ProductsDataTable
+    filters={{ pricingModelId: pricingModel.id }}
+  />
+</div>
+```
+
+**After (New Pattern with Filters in Table):**
+```typescript
+// ✅ NEW PATTERN - Use this
+const [activeProductFilter, setActiveProductFilter] = useState<string>('all')
+
+const productFilterOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+]
+
+const getProductFilterForTab = (tab: string) => {
+  const baseFilter = { pricingModelId: pricingModel.id }
+  
+  if (tab === 'all') {
+    return baseFilter
+  }
+
+  return {
+    ...baseFilter,
+    active: tab === 'active',
+  }
+}
+
+// In JSX:
+<div className="flex flex-col gap-5">
+  <ProductsDataTable
+    filters={getProductFilterForTab(activeProductFilter)}
+    filterOptions={productFilterOptions}
+    activeFilter={activeProductFilter}
+    onFilterChange={setActiveProductFilter}
+    onCreateProduct={() => setIsCreateProductModalOpen(true)}
+  />
+</div>
+```
+
+#### Pattern 3: Detail Pages (Without Filters or Create Button)
+
+```typescript
+// Example: Read-only table on a detail page
+<div className="flex flex-col gap-5">
+  <YourDataTable
+    filters={{ parentEntityId: parentEntity.id }}
+    // No onCreateEntity, filterOptions, etc. - just the filters
+  />
+</div>
+```
+
+#### Checklist for Each Usage
+
+For **every place** the table is used:
+
+- [ ] **Remove separate `TableHeader` component** (if present)
+- [ ] **Pass `onCreateEntity` callback** to move create button into table toolbar
+- [ ] **Add filter options** (All/Active/Inactive) if appropriate
+- [ ] **Combine base filters with status filters** using a helper function
+- [ ] **Test all functionality** (filtering, creating, navigation)
+
+#### Example: Products Table Migration
+
+The Products table is used in at least 2 places:
+
+1. **Main products page**: `/app/store/products/Internal.tsx`
+   - ✅ Has filter options (All/Active/Inactive)
+   - ✅ Has create button
+   - ✅ No base filter (shows all products for org)
+
+2. **Pricing model detail page**: `/app/store/pricing-models/[id]/InnerPricingModelDetailsPage.tsx`
+   - ✅ Has filter options (All/Active/Inactive)
+   - ✅ Has create button
+   - ✅ Has base filter (pricingModelId)
+
+Both usages should follow the same pattern with the table toolbar containing filters and create button.
+
+### Step 7: Delete Old Table Component
+
+Once the new implementation is tested **in all locations**:
 
 ```bash
 # Delete the old table component
@@ -1192,20 +1354,47 @@ if (newPagination.pageSize !== currentPageSize) {
 
 ## Testing Checklist
 
-After migration, test these scenarios:
+After migration, test these scenarios **on all pages where the table is used** (main listing page AND detail pages):
 
-- [ ] **Search** - ⚠️ ONLY FOR CUSTOMERS TABLE - Type in search, verify 1s debounce delay
+### Core Functionality (Test on Each Page)
+- [ ] **Table renders** - Table displays correctly with data
 - [ ] **Column visibility** - Toggle columns via settings icon
 - [ ] **Pagination** - Navigate pages, change page size
 - [ ] **Row navigation** - Click rows (if applicable)
 - [ ] **Action menu** - Click three dots, verify all actions work
 - [ ] **Copyable cells** - Hover, click copy button
-- [ ] **Create button** - Click create button in toolbar
+- [ ] **Create button** - Click create button in toolbar (if applicable)
 - [ ] **Loading states** - Verify loading/fetching opacity
-- [ ] **Empty state** - Clear search, verify "No results"
+- [ ] **Empty state** - Verify "No results" when appropriate
 - [ ] **Column resizing** - Drag column borders (if enabled)
 - [ ] **Sorting** - Click headers (client-side sorting)
-- [ ] **Filters** - Test all filter combinations
+
+### Filters (Test on Each Page Where Filters Apply)
+- [ ] **Filter buttons render** - All/Active/Inactive buttons appear
+- [ ] **All filter** - Shows all entities
+- [ ] **Active filter** - Shows only active entities
+- [ ] **Inactive filter** - Shows only inactive entities
+- [ ] **Filter persistence** - Selected filter stays active during pagination
+- [ ] **Base filters work** - Detail page filters (e.g., pricingModelId) apply correctly
+
+### Search (⚠️ ONLY FOR CUSTOMERS TABLE)
+- [ ] **Search input** - Type in search, verify 1s debounce delay
+- [ ] **Search results** - Verify correct results
+- [ ] **Search loading** - Loading spinner appears during search
+- [ ] **Clear search** - Clearing search restores all results
+
+### Page-Specific Tests
+
+#### Main Listing Pages
+- [ ] **No base filter** - Table shows all entities for organization
+- [ ] **Breadcrumb** - Navigation breadcrumb works
+- [ ] **Page header** - Header displays without action button
+
+#### Detail Pages
+- [ ] **Base filter applied** - Only shows entities for parent (e.g., products for specific pricing model)
+- [ ] **Create modal context** - Created entity associates with parent correctly
+- [ ] **Multiple tables** - If page has multiple tables, all work correctly
+- [ ] **Page layout** - Tables don't break responsive layout
 
 ---
 
@@ -1217,22 +1406,35 @@ After migration, test these scenarios:
 2. **All existing functionality works** (search, filters, actions, modals)
 3. **Create button moved** from page header to table toolbar
 4. **Old table component deleted**
-5. **Follows Shadcn patterns**:
+5. **All table usages updated**:
+   - Main listing page updated
+   - All detail pages updated (if applicable)
+   - `TableHeader` components removed from all usages
+   - Filter options added consistently across all pages
+   - Create buttons integrated into table toolbar on all pages
+6. **Follows Shadcn patterns**:
    - Uses `accessorFn` for nested data
    - Uses `row.getValue()` pattern
    - Uses `EnhancedDataTableActionsMenu`
    - Uses `DataTableCopyableCell`
    - Uses `CollapsibleSearch` (if search enabled)
    - Proper `stopPropagation()` on interactive elements
-6. **User experience improved**:
+7. **User experience improved**:
    - Loading states show correctly
-   - Search has loading spinner
+   - Search has loading spinner (customers only)
+   - Filter buttons work consistently on all pages
    - Pagination auto-hides when ≤10 rows
    - Column visibility toggle works
-7. **Code quality improved**:
+8. **Code quality improved**:
    - Separation of concerns (columns, table, page)
    - Reusable hooks and components
    - Consistent patterns across tables
+   - DRY filter logic using helper functions
+9. **Consistency across pages**:
+   - Same table component used everywhere
+   - Same filter UI on main page and detail pages
+   - Same create button pattern on all pages
+   - Base filters properly combined with status filters
 
 ---
 
@@ -1410,6 +1612,7 @@ Before copying patterns from the reference branch, verify they're frontend-only:
 
 ## Revision History
 
+- **v1.3** (Oct 2025) - Added Step 6 for finding and updating all table usages including detail pages, expanded testing checklist and success criteria to include detail page testing, added usage pattern analysis to Step 2
 - **v1.2** (Oct 2025) - Updated pagination pattern to use `goToFirstPage()` instead of `handlePaginationChange(0)` when page size changes to prevent stale cursor bugs
 - **v1.1** (Oct 2025) - Added emphasis on `data-table-refactor` branch as reference, git commands for accessing files
 - **v1.0** (Oct 2025) - Initial version based on customers table migration
