@@ -1298,7 +1298,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // Test: Sync should use current item (future item not active yet)
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
-          transaction
+          transaction,
+          new Date()
         )
         expect(synced.name).toBe('Current Plan')
         expect(synced.priceId).toBe(currentItem.priceId)
@@ -1344,7 +1345,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // All items are active now - should choose the most expensive (Premium Feature)
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
-          transaction
+          transaction,
+          new Date()
         )
         
         expect(synced.name).toBe('Premium Feature')
@@ -1382,7 +1384,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // Both are active now - should still use Enterprise Plan as primary
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
-          transaction
+          transaction,
+          new Date()
         )
         
         expect(synced.name).toBe('Enterprise Plan')
@@ -1428,7 +1431,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // Initial sync - should use Premium Plan
         const syncedBefore = await syncSubscriptionWithActiveItems(
           subscription.id,
-          transaction
+          transaction,
+          new Date()
         )
         expect(syncedBefore.name).toBe('Premium Plan')
         
@@ -1442,7 +1446,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // Sync after cancellation - should switch to Standard Plan
         const syncedAfter = await syncSubscriptionWithActiveItems(
           subscription.id,
-          transaction
+          transaction,
+          new Date()
         )
         expect(syncedAfter.name).toBe('Standard Plan')
         expect(syncedAfter.priceId).toBe(secondaryItem.priceId)
@@ -1508,7 +1513,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // With all items active - should use New Premium (most expensive)
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
-          transaction
+          transaction,
+          new Date()
         )
         expect(synced.name).toBe('New Premium')
         expect(synced.priceId).toBe(newPremiumItem.priceId)
@@ -1533,7 +1539,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // First, sync while the item is active to set the subscription name
         const syncedActive = await syncSubscriptionWithActiveItems(
           subscription.id,
-          transaction
+          transaction,
+          new Date()
         )
         expect(syncedActive.name).toBe('Active Plan')
         
@@ -1547,7 +1554,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // Sync after expiration with no active items
         const syncedAfterExpiry = await syncSubscriptionWithActiveItems(
           subscription.id,
-          transaction
+          transaction,
+          new Date()
         )
         
         // Should maintain the last known state (Active Plan)
@@ -1586,7 +1594,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // Sync - should choose high quantity item (higher total)
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
-          transaction
+          transaction,
+          new Date()
         )
         
         expect(synced.name).toBe('High Quantity')
@@ -1622,7 +1631,8 @@ describe('adjustSubscription Integration Tests', async () => {
         // Sync - should choose newer item as tiebreaker
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
-          transaction
+          transaction,
+          new Date()
         )
         
         expect(synced.name).toBe('Newer Item')

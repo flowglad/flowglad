@@ -373,7 +373,8 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
   // Sync subscription header with newly active items after billing period rollover
   subscription = await syncSubscriptionWithActiveItems(
     subscription.id,
-    transaction
+    transaction,
+    new Date()
   )
   
   const activeSubscriptionFeatureItems =

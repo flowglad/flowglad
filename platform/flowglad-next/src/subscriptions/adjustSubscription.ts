@@ -123,16 +123,17 @@ const calculateCorrectProrationAmount = async (
 /**
  * Synchronizes the subscription record with the currently active and most expensive subscription item.
  * This ensures the subscription header reflects what the customer is actually being charged for.
- * Always uses the current time to determine what's active NOW.
+ * Uses the provided time to determine what's active at that specific moment.
  */
 export const syncSubscriptionWithActiveItems = async (
   subscriptionId: string,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  currentTime: Date
 ): Promise<Subscription.StandardRecord> => {
-  // Get all currently active subscription items at the current time
+  // Get all currently active subscription items at the specified time
   const activeItems = await selectCurrentlyActiveSubscriptionItems(
     { subscriptionId },
-    new Date(), // Always use current time - what's active NOW
+    currentTime,
     transaction
   )
   
@@ -265,7 +266,8 @@ export const adjustSubscription = async (
   if (timing === SubscriptionAdjustmentTiming.Immediately && !adjustment.prorateCurrentBillingPeriod) {
     const updatedSubscription = await syncSubscriptionWithActiveItems(
       subscription.id,
-      transaction
+      transaction,
+      adjustmentDate
     )
     return { subscription: updatedSubscription, subscriptionItems }
   }
@@ -391,7 +393,8 @@ export const adjustSubscription = async (
   // For immediate adjustments with proration
   const updatedSubscription = await syncSubscriptionWithActiveItems(
     subscription.id,
-    transaction
+    transaction,
+    adjustmentDate
   )
   return { subscription: updatedSubscription, subscriptionItems }
 }
