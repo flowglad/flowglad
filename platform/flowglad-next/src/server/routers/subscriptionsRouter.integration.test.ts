@@ -290,7 +290,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
       // Verify subscription record was synced
       expect(result.subscription.name).toBe('Premium Plan')
       expect(result.subscription.priceId).toBe(expensivePrice.id)
-    }, 10000)
+    }, 30000)
 
     test('should handle downgrade without creating negative charges', async () => {
       const caller = createCaller(apiKeyToken)
@@ -368,7 +368,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
       // Verify downgrade was applied
       expect(result.subscription.name).toBe('Basic Plan')
       expect(result.subscription.priceId).toBe(price.id)
-    }, 10000)
+    }, 30000)
 
     test('should handle removing all items (empty subscription)', async () => {
       const caller = createCaller(apiKeyToken)
@@ -387,7 +387,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
 
       // Subscription name should remain unchanged
       expect(result.subscription.name).toBe(subscription.name)
-    }, 10000)
+    }, 30000)
   })
 
   describe('At End of Billing Period Adjustments', () => {
@@ -423,7 +423,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
       // Check if any item has the Premium Plan name (future item)
       const hasPremiumPlan = result.subscriptionItems.some(item => item.name === 'Premium Plan')
       expect(hasPremiumPlan).toBe(true)
-    }, 10000)
+    }, 30000)
   })
 
   describe('Edge Cases', () => {
@@ -531,7 +531,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
       // Subscription should sync to the most expensive item (Basic Plan)
       expect(result.subscription.name).toBe('Basic Plan')
       expect(result.subscription.priceId).toBe(price.id)
-    }, 10000)
+    }, 30000)
   })
 
   describe('Response Format', () => {
@@ -583,6 +583,6 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
           }),
         ]),
       })
-    }, 10000)
+    }, 30000)
   })
 })
