@@ -28,11 +28,7 @@ export function useSearchDebounce(delay: number = 1000) {
   const [searchQuery, setSearchQuery] = useState('')
 
   // Create a stable debounced function that won't recreate on every render
-  const debouncedSetSearchQuery = useDebounce(
-    setSearchQuery,
-    delay,
-    []
-  )
+  const debouncedSetSearchQuery = useDebounce(setSearchQuery, delay)
 
   // Update search query when input value changes
   useEffect(() => {

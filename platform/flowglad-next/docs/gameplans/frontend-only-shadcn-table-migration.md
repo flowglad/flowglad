@@ -434,6 +434,7 @@ export function YourDataTable({
     pageIndex,
     pageSize,
     handlePaginationChange,
+    goToFirstPage,
     data,
     isLoading,
     isFetching,
@@ -484,7 +485,7 @@ export function YourDataTable({
       // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        handlePaginationChange(0)
+        goToFirstPage() // Properly clears both cursors to avoid stale pagination state
       }
       // Handle page index changes (page navigation)
       else if (newPagination.pageIndex !== pageIndex) {
@@ -803,6 +804,7 @@ export function YourDataTable({
     pageIndex,
     pageSize,
     handlePaginationChange,
+    goToFirstPage,
     data,
     isLoading,
     isFetching,
@@ -846,7 +848,7 @@ export function YourDataTable({
 
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        handlePaginationChange(0)
+        goToFirstPage() // Properly clears both cursors to avoid stale pagination state
       } else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
@@ -1099,6 +1101,35 @@ cell: ({ row }) => (
   <TableCell className="font-medium">{row.getValue('name')}</TableCell>
 )
 ```
+
+### ✅ DO: Use `goToFirstPage()` for Reset Operations
+
+```typescript
+// Extract goToFirstPage from the hook
+const {
+  pageIndex,
+  pageSize,
+  handlePaginationChange,
+  goToFirstPage,  // ← Include this
+  data,
+  isLoading,
+  isFetching,
+} = usePaginatedTableState({...})
+
+// ✅ CORRECT - Use goToFirstPage() when page size changes
+if (newPagination.pageSize !== currentPageSize) {
+  setCurrentPageSize(newPagination.pageSize)
+  goToFirstPage() // Clears both pageAfter and pageBefore cursors
+}
+
+// ❌ WRONG - handlePaginationChange(0) keeps cursor state
+if (newPagination.pageSize !== currentPageSize) {
+  setCurrentPageSize(newPagination.pageSize)
+  handlePaginationChange(0) // Bug: Can fetch wrong data with stale cursors
+}
+```
+
+**Why this matters**: When on a later page (e.g., page 3), calling `handlePaginationChange(0)` treats it as backward navigation and keeps the `pageBefore` cursor from page 3. This causes the query to fetch incorrect data. Using `goToFirstPage()` properly clears all cursor state and resets navigation flags.
 
 ---
 
@@ -1379,6 +1410,7 @@ Before copying patterns from the reference branch, verify they're frontend-only:
 
 ## Revision History
 
+- **v1.2** (Oct 2025) - Updated pagination pattern to use `goToFirstPage()` instead of `handlePaginationChange(0)` when page size changes to prevent stale cursor bugs
 - **v1.1** (Oct 2025) - Added emphasis on `data-table-refactor` branch as reference, git commands for accessing files
 - **v1.0** (Oct 2025) - Initial version based on customers table migration
 

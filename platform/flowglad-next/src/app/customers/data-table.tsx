@@ -61,6 +61,7 @@ export function CustomersDataTable({
     pageIndex,
     pageSize,
     handlePaginationChange,
+    goToFirstPage,
     data,
     isLoading,
     isFetching,
@@ -111,8 +112,7 @@ export function CustomersDataTable({
       // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        // Reset to first page when page size changes (standard UX pattern)
-        handlePaginationChange(0)
+        goToFirstPage()
       }
       // Handle page index changes (page navigation)
       else if (newPagination.pageIndex !== pageIndex) {
