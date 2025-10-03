@@ -30,6 +30,7 @@ import { integer } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { organizations } from './organizations'
 import { zodEpochMs } from '@/db/timestampMs'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'events'
 
@@ -133,16 +134,13 @@ const columnRefinements = {
   // objectId: core.safeZodPositiveInteger.nullable(),
 }
 
-export const eventsInsertSchema = createInsertSchema(events)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const eventsSelectSchema =
-  createSelectSchema(events).extend(columnRefinements)
-
-export const eventsUpdateSchema = eventsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
+export const {
+  insert: eventsInsertSchema,
+  select: eventsSelectSchema,
+  update: eventsUpdateSchema,
+} = buildSchemas(events, {
+  refine: columnRefinements,
+})
 
 export namespace Event {
   export type Insert = z.infer<typeof eventsInsertSchema>

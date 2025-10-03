@@ -917,18 +917,20 @@ export const createBulkInsertOrDoNothingFunction = <
         .returning()
       return result.map((data) => config.selectSchema.parse(data))
     } catch (error) {
-      console.error(
-        `[createBulkInsertOrDoNothingFunction] Error bulk inserting with conflict handling into ${config.tableName}:`,
-        error
-      )
-      console.error(
-        '[createBulkInsertOrDoNothingFunction] Data count:',
-        data.length
-      )
-      console.error(
-        '[createBulkInsertOrDoNothingFunction] Target:',
-        target
-      )
+      if (!IS_TEST) {
+        console.error(
+          `[createBulkInsertOrDoNothingFunction] Error bulk inserting with conflict handling into ${config.tableName}:`,
+          error
+        )
+        console.error(
+          '[createBulkInsertOrDoNothingFunction] Data count:',
+          data.length
+        )
+        console.error(
+          '[createBulkInsertOrDoNothingFunction] Target:',
+          target
+        )
+      }
       throw new Error(
         `Failed to bulk insert with conflict handling into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
