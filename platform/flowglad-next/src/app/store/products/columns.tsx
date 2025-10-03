@@ -221,5 +221,7 @@ export const columns: ColumnDef<ProductRow>[] = [
       )
     },
     size: 1,
+    minSize: 1,
+    maxSize: 56,
   },
 ]

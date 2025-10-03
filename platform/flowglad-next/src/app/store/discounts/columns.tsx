@@ -172,10 +172,7 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
     cell: ({ row }) => {
       const discount = row.original.discount
       return (
-        <div
-          className="w-8 flex justify-center"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div onClick={(e) => e.stopPropagation()}>
           <DiscountActionsMenu discount={discount} />
         </div>
       )

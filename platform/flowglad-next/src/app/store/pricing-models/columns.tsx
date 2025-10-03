@@ -107,9 +107,9 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
         {row.getValue('productsCount')}
       </div>
     ),
-    size: 100,
-    minSize: 80,
-    maxSize: 120,
+    size: 80,
+    minSize: 70,
+    maxSize: 90,
   },
   {
     id: 'id',
@@ -144,5 +144,7 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
       )
     },
     size: 1,
+    minSize: 1,
+    maxSize: 56,
   },
 ]

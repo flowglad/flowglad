@@ -173,5 +173,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
       )
     },
     size: 1,
+    minSize: 1,
+    maxSize: 56,
   },
 ]
