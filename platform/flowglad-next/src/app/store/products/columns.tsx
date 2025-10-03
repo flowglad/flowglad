@@ -211,6 +211,7 @@ export const columns: ColumnDef<ProductRow>[] = [
   {
     id: 'actions',
     enableHiding: false,
+    enableResizing: false,
     cell: ({ row }) => {
       const product = row.original.product
       return (
@@ -219,7 +220,6 @@ export const columns: ColumnDef<ProductRow>[] = [
         </div>
       )
     },
-    size: 40,
-    maxSize: 40,
+    size: 1,
   },
 ]

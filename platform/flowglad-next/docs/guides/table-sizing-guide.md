@@ -114,38 +114,35 @@ const columns = [
 
 ### Solutions to Control Distribution
 
-#### Solution 1: Use Exact Sizing (width: 'auto')
+#### Option 1: Fill Container (Recommended) ⭐
 ```tsx
-// Table sizes to exact column sum
+// Table fills container, columns expand proportionally
 <table 
+  className="w-full"
   style={{ 
-    tableLayout: 'fixed',
-    width: 'auto',  // ← KEY: No extra space to distribute
+    tableLayout: 'fixed',  // ← CRITICAL: Respects explicit widths
   }}
 >
 ```
 
-#### Solution 2: Accept Distribution & Add maxSize Constraints
+**When to use:** Most data tables where you want columns to expand and fill available space. This is the standard approach for our application.
+
+**Trade-off:** Extra space is distributed proportionally based on column `size` values. Columns without `maxSize` will absorb more extra space.
+
+#### Option 2: Exact Sizing (Special Cases)
 ```tsx
-// Let table fill container but control which columns grow
-<table style={{ tableLayout: 'fixed' }}>  // Default behavior
-
-// Add maxSize to constrain columns that shouldn't expand much
-{
-  id: 'email',
-  size: 220,
-  maxSize: 280,     // ← Limits growth (though may still be exceeded)
-}
-
-// Let primary content columns absorb extra space
-{
-  id: 'name',
-  size: 300,        // Higher base = gets more extra space
-  // No maxSize = can grow freely
-}
+// Table sizes to exact column widths, no expansion
+<table 
+  style={{ 
+    tableLayout: 'fixed',
+    width: 'auto',  // ← Prevents extra space distribution
+  }}
+>
 ```
 
-**Note:** Even with `maxSize`, TanStack's algorithm may still exceed it when distributing extra space. Use `width: 'auto'` if you need strict enforcement.
+**When to use:** Dashboard widgets, embedded tables, or when you need precise control over column widths and don't want any expansion.
+
+**Trade-off:** Table may not fill container, leaving whitespace on the right.
 
 ## Essential Configuration
 
@@ -190,25 +187,30 @@ const table = useReactTable({
 **🎯 The Ultimate Control Mechanism:**
 
 ```tsx
-// OPTION 1: Full width (most common for application tables)
-<table style={{ tableLayout: 'fixed' }}>
-// ✅ Table fills container (professional appearance)
-// ✅ Columns expand proportionally to their size values
-// ⚠️  Extra space distributed to all columns (can exceed maxSize)
-// 💡 Use when: You want tables to fill their container naturally
+// ⭐ RECOMMENDED: Standard approach for data tables
+<table
+  className="w-full"        // ← Table fills container
+  style={{ tableLayout: 'fixed' }}  // ← Forces explicit width respect
+>
+// Columns expand proportionally based on their size values
+// Columns without maxSize absorb more extra space
 
-// OPTION 2: Exact sizing (for precise control)
-<table style={{ tableLayout: 'fixed', width: 'auto' }}>
-// ✅ Columns get exact defined sizes (respects maxSize perfectly)
-// ❌ Table doesn't fill container (may look narrow)
-// 💡 Use when: You need exact column widths, don't want distribution
+// ALTERNATIVE: For dashboard widgets or precise sizing needs
+<table
+  style={{ 
+    tableLayout: 'fixed',    // ← Forces explicit width respect
+    width: 'auto',          // ← No extra space distribution
+  }}
+>
+// Table sizes to exact column widths
+// Use when you don't want columns to expand
 ```
 
 **Critical Understanding:**
-- `table-layout: auto` (default) = Browser ignores explicit widths, sizes by content
-- `table-layout: fixed` = Browser respects TanStack width calculations
-- `width: 'auto'` = Table sizes to content sum, no extra space to distribute
-- `className="w-full"` = Table fills container, creates extra space for distribution
+- `table-layout: auto` (default) = Browser ignores explicit widths, sizes by content ❌
+- `table-layout: fixed` = Browser respects TanStack width calculations ✅
+- `className="w-full"` = Table fills container, columns expand proportionally (standard approach) ⭐
+- `width: 'auto'` = Table sizes to exact column widths, no expansion (special cases)
 
 ### 3. Column Width Application
 
@@ -378,23 +380,27 @@ const columns = [
 ]
 ```
 
-### Strategy 3: No Extra Space Distribution
+### Strategy 3: Fill Container (Standard Approach) ⭐
 
-**Principle:** Prevent extra space from existing by using `width: 'auto'`.
+**Principle:** Let table fill container width, columns expand proportionally.
 
 ```tsx
-// Table CSS prevents extra space
-<table style={{ 
-  tableLayout: 'fixed',
-  width: 'auto',      // ← Table sizes exactly to column sum
-}}>
+// Table fills container
+<table 
+  className="w-full"
+  style={{ tableLayout: 'fixed' }}
+>
 
-// Columns get exactly their defined sizes
+// Columns expand based on their size proportions
 const columns = [
-  { id: 'name', size: 200 },     // Gets exactly 200px
-  { id: 'email', size: 220 },    // Gets exactly 220px
+  { id: 'name', size: 300, maxSize: 500 },     // Gets more extra space (larger base)
+  { id: 'email', size: 220, maxSize: 250 },    // Gets less extra space (smaller base)
+  { id: 'amount', size: 100, maxSize: 120 },   // Gets minimal extra space
+  { id: 'actions', size: 50, maxSize: 50 },    // No expansion (maxSize = size)
 ]
 ```
+
+**Best for:** Most data tables where columns should use available space.
 
 ### Strategy 4: Controlled Container Width
 
@@ -496,23 +502,30 @@ const table = useReactTable({
 
 **Solutions:**
 
-#### Option A: Prevent Extra Space (Recommended)
+#### Option A: Control Distribution with Size Values (Recommended)
 ```tsx
-// No extra space = no unwanted distribution
-<table style={{ 
-  tableLayout: 'fixed',
-  width: 'auto',    // ← KEY: Table sizes to content sum
-}}>
-```
-
-#### Option B: Redirect Extra Space
-```tsx
-// Give priority column higher size to absorb extra space
+// Use strategic size values to control which columns grow
 {
   id: 'name',
-  size: 400,        // Much higher base
-  maxSize: 600,     // Can absorb extra space safely
+  size: 300,        // Higher base = gets proportionally more extra space
+  maxSize: 500,     // Can safely absorb expansion
+  // This column will grow to fill available space
 }
+{
+  id: 'email',
+  size: 220,        // Lower base = gets proportionally less extra space
+  maxSize: 250,     // Limited expansion (only 30px growth allowed)
+  // This column stays relatively constrained
+}
+```
+
+#### Option B: Prevent Extra Space (Special Cases)
+```tsx
+// No extra space = no distribution (for widgets/dashboards)
+<table style={{ 
+  tableLayout: 'fixed',
+  width: 'auto',    // ← Table sizes to exact column sum
+}}>
 ```
 
 ### Issue 3: Explicit Widths Ignored by Browser
@@ -528,7 +541,7 @@ CSS `table-layout: auto` (browser default) ignores explicit widths
 **Solution:**
 ```tsx
 // ✅ CRITICAL: Force browser to respect explicit widths
-<table style={{ tableLayout: 'fixed' }}>
+<table className="w-full" style={{ tableLayout: 'fixed' }}>
 ```
 
 **Understanding:**
@@ -890,9 +903,9 @@ const debugColumnSizes = (table) => {
 - [ ] `ColumnSizingState` imported and state created
 
 **CSS & DOM:**
-- [ ] `style={{ tableLayout: 'fixed' }}` on table element (REQUIRED)
+- [ ] `className="w-full"` and `style={{ tableLayout: 'fixed' }}` on table element (standard)
 - [ ] `style={{ width: header.getSize() }}` on all TableHead elements
-- [ ] Space distribution strategy chosen (add `width: 'auto'` for exact sizing, or omit for full-width)
+- [ ] Column `size` values strategically set to control space distribution
 
 **Column Definitions:**
 - [ ] All columns have appropriate `size` values
@@ -912,13 +925,13 @@ const debugColumnSizes = (table) => {
 ```tsx
 // ✅ Proven patterns for different use cases
 
-// DASHBOARD TABLES: Fixed, predictable layouts
+// DATA TABLES: Standard approach (most common)
+<table className="w-full" style={{ tableLayout: 'fixed' }}>
+// Table fills container, columns expand proportionally
+
+// DASHBOARD WIDGETS: Fixed, compact layouts
 <table style={{ tableLayout: 'fixed', width: 'auto' }}>
 // Use exact column sizes, no extra space distribution
-
-// DATA EXPLORATION: Flexible, user-driven
-<table className="w-full" style={{ tableLayout: 'fixed' }}>
-// Allow column expansion, provide resize handles
 
 // MOBILE-FIRST: Minimal columns, horizontal scroll
 const mobileColumns = columns.filter(col => col.priority === 'high')
@@ -958,7 +971,7 @@ export function CustomersDataTable() {
   return (
     <div className="w-full">
       <div className="border-t border-b">
-        <Table style={{ tableLayout: 'fixed' }}>
+        <Table className="w-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -1053,10 +1066,9 @@ When column sizing isn't working, verify:
 
 2. **✅ CSS Table Layout**
    ```tsx
-   // REQUIRED: Must have tableLayout: 'fixed'
-   style={{ tableLayout: 'fixed' }}
-   
-   // OPTIONAL: Add width: 'auto' for exact sizing
+   // Verify table has (standard approach):
+   className="w-full" style={{ tableLayout: 'fixed' }}
+   // Or for dashboard widgets:
    style={{ tableLayout: 'fixed', width: 'auto' }}
    ```
 

@@ -163,18 +163,15 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'actions',
     enableHiding: false,
+    enableResizing: false,
     cell: ({ row }) => {
       const customer = row.original.customer
       return (
-        <div
-          className="w-8 flex justify-center"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div onClick={(e) => e.stopPropagation()}>
           <CustomerActionsMenu customer={customer} />
         </div>
       )
     },
-    size: 50,
-    maxSize: 50,
+    size: 1,
   },
 ]

@@ -131,6 +131,7 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
   {
     id: 'actions',
     enableHiding: false,
+    enableResizing: false,
     cell: ({ row }) => {
       const pricingModel = row.original.pricingModel
       return (
@@ -142,7 +143,6 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
         </div>
       )
     },
-    size: 50,
-    maxSize: 50,
+    size: 1,
   },
 ]
