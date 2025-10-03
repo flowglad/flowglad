@@ -98,12 +98,15 @@ const createOnlyColumns = {
   pricingModelId: true,
 } as const
 
-console.log('====calling buildSchemas for usageMeters')
 export const {
   select: usageMetersSelectSchema,
   insert: usageMetersInsertSchema,
   update: usageMetersUpdateSchema,
-  client,
+  client: {
+    select: usageMetersClientSelectSchema,
+    insert: usageMetersClientInsertSchema,
+    update: usageMetersClientUpdateSchema,
+  },
 } = buildSchemas(usageMeters, {
   selectRefine: {
     ...columnRefinements,
@@ -118,17 +121,6 @@ export const {
   },
   entityName: 'UsageMeter',
 })
-console.log('====called buildSchemas for usageMeters')
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
-})
-
-export const usageMetersClientSelectSchema = client.select
-
-export const usageMetersClientUpdateSchema = client.update
-
-export const usageMetersClientInsertSchema = client.insert
 
 export const usageMeterPaginatedSelectSchema =
   createPaginatedSelectSchema(usageMetersClientSelectSchema)
@@ -146,17 +138,17 @@ export const usageMetersTableRowDataSchema = z.object({
 
 export namespace UsageMeter {
   export type Insert = z.infer<typeof usageMetersInsertSchema>
-  type FOO1 = Insert['aggregationType']
   export type Update = z.infer<typeof usageMetersUpdateSchema>
-  type FOO2 = Update['aggregationType']
   export type Record = z.infer<typeof usageMetersSelectSchema>
-  type FOO3 = Record['aggregationType']
-  export type ClientInsert = z.infer<typeof client.insert>
-  type FOO4 = ClientInsert['aggregationType']
-  export type ClientUpdate = z.infer<typeof client.update>
-  type FOO5 = ClientUpdate['aggregationType']
-  export type ClientRecord = z.infer<typeof client.select>
-  type FOO6 = ClientRecord['aggregationType']
+  export type ClientInsert = z.infer<
+    typeof usageMetersClientInsertSchema
+  >
+  export type ClientUpdate = z.infer<
+    typeof usageMetersClientUpdateSchema
+  >
+  export type ClientRecord = z.infer<
+    typeof usageMetersClientSelectSchema
+  >
   export type PaginatedList = z.infer<
     typeof usageMeterPaginatedListSchema
   >

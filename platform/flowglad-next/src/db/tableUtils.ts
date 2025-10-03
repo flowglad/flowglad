@@ -19,7 +19,7 @@ import {
   Table,
 } from 'drizzle-orm'
 import { timestamptzMs } from './timestampMs'
-import core, { gitCommitId } from '@/utils/core'
+import core, { gitCommitId, IS_TEST } from '@/utils/core'
 import {
   boolean,
   integer,
@@ -153,10 +153,12 @@ export const createSelectById = <
       const result = results[0]
       return selectSchema.parse(result)
     } catch (error) {
-      console.error(
-        `[selectById] Error selecting ${config.tableName} with id ${id}:`,
-        error
-      )
+      if (!IS_TEST) {
+        console.error(
+          `[selectById] Error selecting ${config.tableName} with id ${id}:`,
+          error
+        )
+      }
       throw new Error(
         `Failed to select ${config.tableName} by id ${id}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -192,14 +194,16 @@ export const createInsertManyFunction = <
       return result.map((item) => {
         const parsed = selectSchema.safeParse(item)
         if (!parsed.success) {
-          console.error(
-            '[createInsertManyFunction] Zod parsing error:',
-            parsed.error.issues
-          )
-          console.error(
-            '[createInsertManyFunction] Failed item:',
-            item
-          )
+          if (!IS_TEST) {
+            console.error(
+              '[createInsertManyFunction] Zod parsing error:',
+              parsed.error.issues
+            )
+            console.error(
+              '[createInsertManyFunction] Failed item:',
+              item
+            )
+          }
           throw Error(
             `createInsertManyFunction: Error parsing result: ${JSON.stringify(
               item
@@ -248,10 +252,12 @@ export const createInsertFunction = <
       const [result] = await insertMany([insert], transaction)
       return result
     } catch (error) {
-      console.error(
-        `[createInsertFunction] Error inserting single item into ${config.tableName}:`,
-        error
-      )
+      if (!IS_TEST) {
+        console.error(
+          `[createInsertFunction] Error inserting single item into ${config.tableName}:`,
+          error
+        )
+      }
       throw new Error(
         `Failed to insert item into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -308,21 +314,28 @@ export const createUpdateFunction = <
 
       const parsed = selectSchema.safeParse(result)
       if (!parsed.success) {
-        console.error(
-          '[createUpdateFunction] Zod parsing error:',
-          parsed.error.issues
-        )
-        console.error('[createUpdateFunction] Failed result:', result)
+        if (!IS_TEST) {
+          console.error(
+            '[createUpdateFunction] Zod parsing error:',
+            parsed.error.issues
+          )
+          console.error(
+            '[createUpdateFunction] Failed result:',
+            result
+          )
+        }
         throw Error(
           `createUpdateFunction: Error parsing result: ${JSON.stringify(result)}. Issues: ${JSON.stringify(parsed.error.issues)}`
         )
       }
       return parsed.data
     } catch (error) {
-      console.error(
-        `[createUpdateFunction] Error updating ${config.tableName} with id ${update.id}:`,
-        error
-      )
+      if (!IS_TEST) {
+        console.error(
+          `[createUpdateFunction] Error updating ${config.tableName} with id ${update.id}:`,
+          error
+        )
+      }
       if (error instanceof Error && error.message.includes('No ')) {
         throw error
       }
@@ -954,15 +967,17 @@ export const createBulkUpsertFunction = <
         .returning()
       return result.map((data) => config.selectSchema.parse(data))
     } catch (error) {
-      console.error(
-        `[createBulkUpsertFunction] Error bulk upserting into ${config.tableName}:`,
-        error
-      )
-      console.error(
-        '[createBulkUpsertFunction] Data count:',
-        data.length
-      )
-      console.error('[createBulkUpsertFunction] Target:', target)
+      if (!IS_TEST) {
+        console.error(
+          `[createBulkUpsertFunction] Error bulk upserting into ${config.tableName}:`,
+          error
+        )
+        console.error(
+          '[createBulkUpsertFunction] Data count:',
+          data.length
+        )
+        console.error('[createBulkUpsertFunction] Target:', target)
+      }
       throw new Error(
         `Failed to bulk upsert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }

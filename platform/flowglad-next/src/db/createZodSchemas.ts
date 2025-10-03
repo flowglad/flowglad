@@ -12,6 +12,7 @@ import type { PgTable } from 'drizzle-orm/pg-core'
 import type { PgTableWithId } from './types'
 import {
   clientWriteOmitsConstructor,
+  hiddenColumnsForClientSchema,
   ommittedColumnsForInsertSchema,
 } from './tableUtils'
 
@@ -278,12 +279,12 @@ export function buildSchemas<
     Object.keys(hiddenColumns).length
       ? (selectSchemaRaw as unknown as z.ZodObject<any>).omit({
           ...hiddenColumns,
-          ...ommittedColumnsForInsertSchema,
+          ...hiddenColumnsForClientSchema,
         } as unknown as Partial<
           Record<keyof ObjShape<typeof selectSchemaRaw>, true>
         >)
       : (selectSchemaRaw as unknown as z.ZodObject<any>).omit(
-          ommittedColumnsForInsertSchema as unknown as Partial<
+          hiddenColumnsForClientSchema as unknown as Partial<
             Record<keyof ObjShape<typeof selectSchemaRaw>, true>
           >
         )

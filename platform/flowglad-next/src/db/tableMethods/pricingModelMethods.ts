@@ -373,6 +373,7 @@ export const selectPricingModelForCustomer = async (
         { id: customer.pricingModelId },
         transaction
       )
+    console.log('====pricingModel', pricingModel)
     if (pricingModel) {
       return {
         ...pricingModel,
