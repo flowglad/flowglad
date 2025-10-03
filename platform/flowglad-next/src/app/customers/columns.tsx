@@ -167,7 +167,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
       const customer = row.original.customer
       return (
         <div
-          className="w-8 flex justify-center"
+          className="w-8 max-w-[56px] flex justify-center"
           onClick={(e) => e.stopPropagation()}
         >
           <CustomerActionsMenu customer={customer} />

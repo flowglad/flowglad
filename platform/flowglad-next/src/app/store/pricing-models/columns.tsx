@@ -135,7 +135,7 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
       const pricingModel = row.original.pricingModel
       return (
         <div
-          className="w-8 flex justify-center"
+          className="w-8 max-w-[56px] flex justify-center"
           onClick={(e) => e.stopPropagation()}
         >
           <PricingModelActionsMenu pricingModel={pricingModel} />
