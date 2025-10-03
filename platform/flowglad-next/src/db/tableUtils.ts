@@ -1643,54 +1643,6 @@ function epochOverridesFromTable(table: any) {
   return overrides
 }
 
-export function buildSchemas<T extends PgTableWithId>(
-  table: T,
-  refine: BuildRefine<
-    Pick<T['_']['columns'], keyof T['$inferInsert']>,
-    undefined
-  >
-) {
-  const ov = epochOverridesFromTable(table)
-  const fullRefine = {
-    ...refine,
-    ...ov,
-  }
-  return {
-    // If your customType.fromDriver() already yields numbers, this is enough:
-    select: createSelectSchema(
-      table,
-      Object.fromEntries(
-        Object.keys(ov).map((k) => [k, z.number().int()])
-      ) as NoUnknownKeys<
-        BuildRefine<
-          Pick<T['_']['columns'], keyof T['$inferSelect']>,
-          undefined
-        >,
-        T['$inferSelect']
-      >
-    ),
-    insert: createInsertSchema(
-      table,
-      ov as NoUnknownKeys<
-        BuildRefine<
-          Pick<T['_']['columns'], keyof T['$inferSelect']>,
-          undefined
-        >,
-        T['$inferSelect']
-      >
-    ),
-    update: createUpdateSchema(
-      table,
-      Object.fromEntries(
-        Object.keys(ov).map((k) => [k, ov[k].optional()])
-      ) as BuildRefine<
-        Pick<T['_']['columns'], keyof T['$inferInsert']>,
-        undefined
-      >
-    ),
-  }
-}
-
 export const clientWriteOmitsConstructor = <
   T extends Record<string, true>,
 >(
