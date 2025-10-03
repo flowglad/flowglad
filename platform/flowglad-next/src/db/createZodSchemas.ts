@@ -101,6 +101,9 @@ function toZodShape<S extends Record<string, z.ZodTypeAny>>(
 // ---------- public factory ----------
 export function buildSchemas<
   T extends PgTableWithId,
+  D extends
+    | Extract<keyof T['$inferSelect'], string>
+    | undefined = undefined,
   IR extends BuildRefine<
     Pick<TableColumns<T>, InsertKeys<T>>,
     undefined
@@ -120,6 +123,7 @@ export function buildSchemas<
 >(
   table: T,
   params?: {
+    discriminator?: D
     insertRefine?: IR
     updateRefine?: UR
     selectRefine?: SR
@@ -242,9 +246,8 @@ export function buildSchemas<
       T['$inferInsert'],
       typeof updateRefine
     >
-  > & {
-    id: string
-  }
+  > &
+    ({ id: string } & (D extends string ? { [K in D]: string } : {}))
 
   // ---------- Build schemas (preserve object methods; refine output via intersection) ----------
   const selectSchemaRaw = createSelectSchema(
@@ -267,18 +270,41 @@ export function buildSchemas<
   const insertSchema = insertSchemaRaw as typeof insertSchemaRaw &
     z.ZodType<InsertOut>
 
-  // Use native update schema (already optional-by-default), plus any extra you want (e.g., require id)
-  const updateSchemaRaw = createUpdateSchema(
+  // Use native update schema (already optional-by-default), then require id
+  // and if a discriminator is provided, re-apply the literal discriminator from updateRefine as required
+  const baseUpdate = createUpdateSchema(
     table,
     updateRefine as unknown as BuildRefine<
       Pick<TableColumns<T>, InsertKeys<T>>,
       undefined
     >
-  )
-    .partial()
-    .extend({
-      id: z.string(),
-    })
+  ).partial()
+
+  if (
+    params?.discriminator &&
+    !(params.discriminator in updateRefine)
+  ) {
+    throw new Error(
+      `Discriminator ${String(params.discriminator)} not found in updateRefine or base refine. If you specify a discriminator, you must provide an enum value for it in your update or base refine parameters.`
+    )
+  }
+
+  /**
+   * If a discriminator is provided, extend the update schema to have the discriminator value
+   * as required
+   */
+  const updateSchemaRaw = params?.discriminator
+    ? baseUpdate.extend({
+        id: z.string(),
+        [params.discriminator as Extract<
+          keyof T['$inferSelect'],
+          string
+        >]: (updateRefine as Record<string, z.ZodTypeAny>)[
+          params.discriminator as string
+        ],
+      })
+    : baseUpdate.extend({ id: z.string() })
+
   const updateSchema = updateSchemaRaw as typeof updateSchemaRaw &
     z.ZodType<UpdateOut>
 
@@ -350,7 +376,8 @@ export function buildSchemas<
     >,
     HiddenKeysOnInsert | ReadOnlyKeysOnInsert
   >
-  // @ts-expect-error - type instantiation excessively deep / infinite
+  // ignoring typescript here which claims this is a possibly infinitely deep type.
+  // @ts-ignore - this should be a a ts-expect-error but tsc and ts server treat it differently
   let clientInsert = clientInsertBuilt as unknown as WithShape<
     typeof insertSchemaRaw,
     ClientInsertShape
@@ -399,7 +426,8 @@ export function buildSchemas<
       typeof updateRefine
     >,
     HiddenKeysOnUpdate | ReadOnlyKeysOnUpdate | CreateOnlyKeysOnUpdate
-  >
+  > &
+    z.ZodRawShape
   let clientUpdate = clientUpdateBuilt as unknown as WithShape<
     typeof updateSchemaRaw,
     ClientUpdateShape

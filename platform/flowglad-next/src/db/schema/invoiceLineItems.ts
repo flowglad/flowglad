@@ -147,6 +147,7 @@ export const {
     update: staticInvoiceLineItemClientUpdateSchema,
   },
 } = buildSchemas(invoiceLineItems, {
+  discriminator: 'type',
   refine: staticInvoiceLineItemColumnRefinements,
   client: {
     hiddenColumns,
