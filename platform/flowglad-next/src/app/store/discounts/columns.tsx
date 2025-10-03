@@ -177,7 +177,8 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
         </div>
       )
     },
-    size: 50,
-    maxSize: 50,
+    size: 1,
+    minSize: 56,
+    maxSize: 56,
   },
 ]
