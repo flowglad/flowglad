@@ -114,7 +114,7 @@ const columns = [
 
 ### Solutions to Control Distribution
 
-#### Option 1: Prevent Extra Space (Recommended)
+#### Option 1: Prevent Extra Space (Recommended) ⭐
 ```tsx
 // CSS prevents extra space from existing
 <table 
@@ -178,7 +178,7 @@ const table = useReactTable({
 **🎯 The Ultimate Control Mechanism:**
 
 ```tsx
-// RECOMMENDED: Prevent unwanted space distribution
+// ⭐ RECOMMENDED: Prevent unwanted space distribution
 <table
   style={{ 
     tableLayout: 'fixed',    // ← Forces explicit width respect
@@ -192,6 +192,8 @@ const table = useReactTable({
   style={{ tableLayout: 'fixed' }}
 >
 // Use this when you want columns to expand to fill container
+// ⚠️ WARNING: This creates extra space that TanStack will distribute,
+// potentially causing columns to exceed their maxSize constraints
 ```
 
 **Critical Understanding:**
@@ -518,7 +520,7 @@ CSS `table-layout: auto` (browser default) ignores explicit widths
 **Solution:**
 ```tsx
 // ✅ CRITICAL: Force browser to respect explicit widths
-<table style={{ tableLayout: 'fixed' }}>
+<table style={{ tableLayout: 'fixed', width: 'auto' }}>
 ```
 
 **Understanding:**
@@ -880,7 +882,7 @@ const debugColumnSizes = (table) => {
 - [ ] `ColumnSizingState` imported and state created
 
 **CSS & DOM:**
-- [ ] `style={{ tableLayout: 'fixed' }}` on table element
+- [ ] `style={{ tableLayout: 'fixed', width: 'auto' }}` on table element (recommended)
 - [ ] `style={{ width: header.getSize() }}` on all TableHead elements
 - [ ] Proper space distribution strategy chosen (auto vs full width)
 
@@ -948,7 +950,7 @@ export function CustomersDataTable() {
   return (
     <div className="w-full">
       <div className="border-t border-b">
-        <Table>
+        <Table style={{ tableLayout: 'fixed', width: 'auto' }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -1043,7 +1045,9 @@ When column sizing isn't working, verify:
 
 2. **✅ CSS Table Layout**
    ```tsx
-   // Verify table has:
+   // Verify table has (recommended):
+   style={{ tableLayout: 'fixed', width: 'auto' }}
+   // Or at minimum:
    style={{ tableLayout: 'fixed' }}
    ```
 

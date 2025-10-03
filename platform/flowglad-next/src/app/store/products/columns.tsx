@@ -148,12 +148,12 @@ export const columns: ColumnDef<ProductRow>[] = [
               />
             )}
           </div>
-          <span
+          <div
             className="font-normal text-sm truncate"
             title={productName}
           >
             {productName}
-          </span>
+          </div>
         </div>
       )
     },

@@ -146,7 +146,7 @@ export function PricingModelsDataTable({
       </div>
 
       {/* Table */}
-      <Table style={{ tableLayout: 'fixed' }}>
+      <Table style={{ tableLayout: 'fixed', width: 'auto' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
