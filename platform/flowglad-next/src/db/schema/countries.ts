@@ -15,6 +15,7 @@ import { z } from 'zod'
 import { CountryCode } from '@/types'
 import core from '@/utils/core'
 import { sql } from 'drizzle-orm'
+import { countryCodeSchema } from '../commonZodSchema'
 
 const TABLE_NAME = 'countries'
 
@@ -49,7 +50,7 @@ export const countries = pgTable(
 
 // Common refinements for both SELECT and INSERT schemas
 const commonColumnRefinements = {
-  code: core.createSafeZodEnum(CountryCode),
+  code: countryCodeSchema,
 }
 
 // Column refinements for SELECT schemas only

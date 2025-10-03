@@ -55,6 +55,7 @@ import {
   NoUnknownKeys,
 } from 'drizzle-zod'
 import { noCase, snakeCase } from 'change-case'
+import { countryCodeSchema } from './commonZodSchema'
 
 export const merchantRole = pgRole('merchant', {
   createRole: false,
@@ -539,7 +540,7 @@ export const taxColumns = () => ({
 })
 
 export const taxSchemaColumns = {
-  taxCountry: core.createSafeZodEnum(CountryCode),
+  taxCountry: countryCodeSchema,
   taxType: core.createSafeZodEnum(TaxType).nullable(),
 }
 

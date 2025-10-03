@@ -177,6 +177,7 @@ export const {
     hiddenColumns,
     readOnlyColumns,
   },
+  entityName: 'Payment',
 })
 
 export const paymentsTableRowDataSchema = z.object({
