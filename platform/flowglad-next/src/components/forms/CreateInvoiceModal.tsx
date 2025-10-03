@@ -29,6 +29,7 @@ export const constructInvoiceDefaultValues = (
         customer?.invoiceNumberBase ?? '',
         1
       ),
+      dueDate: Date.now(),
       status: InvoiceStatus.Open,
       type: InvoiceType.Standalone,
       purchaseId: null,

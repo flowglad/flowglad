@@ -223,12 +223,6 @@ export const discountRedemptionsClientSelectSchema = z
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
   .meta({ id: 'DiscountRedemptionsClientSelectSchema' })
 
-// Client insert schemas for each duration type
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
-})
-
 // Combined client insert schema
 export const discountRedemptionsClientInsertSchema = z
   .discriminatedUnion('duration', [
