@@ -67,6 +67,14 @@ export function PricingModelsDataTable({
     useQuery: trpc.pricingModels.getTableRows.useQuery,
   })
 
+  // Reset to first page when filters change
+  // Use JSON.stringify to get stable comparison of filter object
+  const filtersKey = JSON.stringify(filters)
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
+
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] =

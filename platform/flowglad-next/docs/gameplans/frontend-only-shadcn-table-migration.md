@@ -554,6 +554,14 @@ export function YourDataTable({
     useQuery: trpc.yourEntity.getTableRows.useQuery,
   })
 
+  // Reset to first page when filters change
+  // Use JSON.stringify to get stable comparison of filter object
+  const filtersKey = JSON.stringify(filters)
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
+
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] =
@@ -1060,6 +1068,14 @@ export function YourDataTable({
     useQuery: trpc.yourEntity.getTableRows.useQuery,
   })
 
+  // Reset to first page when filters change
+  // Use JSON.stringify to get stable comparison of filter object
+  const filtersKey = JSON.stringify(filters)
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
+
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -1409,6 +1425,37 @@ if (newPagination.pageSize !== currentPageSize) {
 
 **Why this matters**: When on a later page (e.g., page 3), calling `handlePaginationChange(0)` treats it as backward navigation and keeps the `pageBefore` cursor from page 3. This causes the query to fetch incorrect data. Using `goToFirstPage()` properly clears all cursor state and resets navigation flags.
 
+### ✅ DO: Reset Pagination When Filters Change
+
+**CRITICAL**: When the `filters` prop changes, the table must reset to the first page. Otherwise, it will try to use pagination cursors from the old filter set, which returns the wrong data slice.
+
+```typescript
+// ✅ CORRECT - Reset pagination when filters change
+const filtersKey = JSON.stringify(filters)
+React.useEffect(() => {
+  goToFirstPage()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [filtersKey])
+
+// ❌ WRONG - Missing filter reset effect
+// When filters change, table keeps old cursors and fetches wrong data
+```
+
+**Why this matters**: 
+- When filters change (e.g., switching from "All" to "Active"), the result set changes completely
+- Old pagination cursors (`pageAfter`, `pageBefore`) are meaningless in the new filter context
+- Without resetting, the query sends `{ filters: NEW, pageAfter: OLD_CURSOR }` which returns incorrect data
+- This bug is especially insidious when changing filters while on page 2+ of results
+
+**Where to add this**: Immediately after the `usePaginatedTableState` hook call, before the client-side feature state.
+
+**Example of the bug**:
+1. User is on page 3 of "All Products" (showing items 21-30)
+2. User clicks "Active" filter
+3. Without reset: Table tries to show page 3 of active products using cursor from "All Products" page 3
+4. Result: Wrong items displayed, pagination broken
+5. With reset: Table correctly shows page 1 of active products
+
 ---
 
 ## Common Issues and Solutions
@@ -1454,6 +1501,22 @@ if (newPagination.pageSize !== currentPageSize) {
 )}
 ```
 
+### Issue: Wrong Data After Filter Change
+
+**Cause**: Missing filter reset effect - table keeps old pagination cursors when filters change
+
+**Solution**:
+```typescript
+// Add this immediately after usePaginatedTableState hook
+const filtersKey = JSON.stringify(filters)
+React.useEffect(() => {
+  goToFirstPage()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [filtersKey])
+```
+
+**How to test**: Navigate to page 2+, then change a filter. Without the fix, you'll see wrong data. With the fix, table resets to page 1 correctly.
+
 ### Issue: Search Not Working
 
 **⚠️ IMPORTANT**: Only the CUSTOMERS table has backend search support!
@@ -1494,6 +1557,7 @@ After migration, test these scenarios **on all pages where the table is used** (
 - [ ] **Inactive filter** - Shows only inactive entities
 - [ ] **Filter persistence** - Selected filter stays active during pagination
 - [ ] **Base filters work** - Detail page filters (e.g., pricingModelId) apply correctly
+- [ ] **🚨 CRITICAL: Filter reset** - Changing filters while on page 2+ resets to page 1 (no stale cursor bug)
 
 ### Search (⚠️ ONLY FOR CUSTOMERS TABLE)
 - [ ] **Search input** - Type in search, verify 1s debounce delay
@@ -1732,6 +1796,7 @@ Before copying patterns from the reference branch, verify they're frontend-only:
 
 ## Revision History
 
+- **v1.5** (Oct 2025) - **CRITICAL UPDATE**: Added mandatory filter reset pattern using `useEffect` with `goToFirstPage()` when filters change. This prevents cursor reuse bug where changing filters while on later pages fetches wrong data. Updated all code templates, added to critical patterns, testing checklist, and common issues. Fixed in pricing-models and products tables.
 - **v1.4** (Oct 2025) - **CRITICAL UPDATE**: Added prominent section on `tableLayout: 'fixed'` requirement after discovering all 4 tables were missing this critical CSS property. Updated all code templates, testing checklist, and success criteria to emphasize this requirement. This prevents silent sizing failures where tables appear to work but column sizing is completely broken.
 - **v1.3** (Oct 2025) - Added Step 6 for finding and updating all table usages including detail pages, expanded testing checklist and success criteria to include detail page testing, added usage pattern analysis to Step 2
 - **v1.2** (Oct 2025) - Updated pagination pattern to use `goToFirstPage()` instead of `handlePaginationChange(0)` when page size changes to prevent stale cursor bugs
