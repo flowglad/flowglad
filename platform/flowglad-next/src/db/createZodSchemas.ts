@@ -346,6 +346,23 @@ export function buildSchemas<
     typeof selectSchemaRaw,
     ClientSelectShape
   >
+  type ExtendedReadOnlyColumns<TExtend extends string> = Partial<
+    Record<keyof T['$inferSelect'] | TExtend, true>
+  >
+  /**
+   * Automatically enforce that livemode and organization values cannot be updated or inserted
+   * from client schemas
+   */
+  if ('livemode' in selectSchemaRaw.shape) {
+    ;(
+      readOnlyColumns as ExtendedReadOnlyColumns<'livemode'>
+    ).livemode = true
+  }
+  if ('organizationId' in selectSchemaRaw.shape) {
+    ;(
+      readOnlyColumns as ExtendedReadOnlyColumns<'organizationId'>
+    ).organizationId = true
+  }
 
   let clientInsertBase: z.ZodObject<any>
   const insertOmitMask = clientWriteOmitsConstructor({

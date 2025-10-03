@@ -44,6 +44,7 @@ import { paymentMethods } from './paymentMethods'
 import { billingPeriods } from './billingPeriods'
 import { subscriptions } from './subscriptions'
 import { currencyCodeSchema } from '@/db/commonZodSchema'
+import { buildSchemas } from '../createZodSchemas'
 
 export const TABLE_NAME = 'payments'
 
@@ -152,19 +153,7 @@ const columnEnhancements = {
   taxCountry: taxSchemaColumns.taxCountry.nullable().optional(),
 }
 
-export const paymentsSelectSchema = createSelectSchema(
-  payments
-).extend(columnEnhancements)
-
-export const paymentsInsertSchema = createInsertSchema(payments)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnEnhancements)
-
-export const paymentsUpdateSchema = paymentsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-const readonlyColumns = {
+const readOnlyColumns = {
   organizationId: true,
   livemode: true,
 } as const
@@ -177,12 +166,18 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-export const paymentsClientSelectSchema = paymentsSelectSchema
-  .omit(hiddenColumns)
-  .omit(readonlyColumns)
-  .meta({
-    id: 'PaymentRecord',
-  })
+export const {
+  select: paymentsSelectSchema,
+  insert: paymentsInsertSchema,
+  update: paymentsUpdateSchema,
+  client: { select: paymentsClientSelectSchema },
+} = buildSchemas(payments, {
+  refine: columnEnhancements,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+})
 
 export const paymentsTableRowDataSchema = z.object({
   payment: paymentsClientSelectSchema,
