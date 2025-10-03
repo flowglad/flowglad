@@ -144,7 +144,7 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
       )
     },
     size: 1,
-    minSize: 1,
+    minSize: 56,
     maxSize: 56,
   },
 ]
