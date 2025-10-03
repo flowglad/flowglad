@@ -144,18 +144,32 @@ export function buildSchemas<
   const updateEpoch = epochRefineForUpdate<T>(table)
   const selectEpoch = epochRefineForSelect<T>(table)
   // Merge caller refine with epoch overrides (insert/update)
+
+  /**
+   * Prioritize the provided insert refine over base refine
+   */
+  type InsertRefineMerged = Omit<CR, keyof IR> &
+    IR &
+    typeof insertEpoch
   const insertRefine = {
     ...(providedRefine ?? ({} as CR)),
     ...(providedInsertRefine ?? ({} as IR)),
     ...insertEpoch,
-  } as const as IR & CR & typeof insertEpoch
+  } as const as InsertRefineMerged
 
+  /**
+   * Prioritize the provided update refine over base refine
+   */
+  type UpdateRefineMerged = Omit<CR, keyof IR | keyof UR> &
+    Omit<IR, keyof UR> &
+    UR &
+    typeof updateEpoch
   const updateRefine = {
     ...(providedRefine ?? ({} as CR)),
     ...(providedInsertRefine ?? ({} as IR)),
     ...(providedUpdateRefine ?? ({} as UR)),
     ...updateEpoch,
-  } as const as UR & IR & CR & typeof updateEpoch
+  } as const as UpdateRefineMerged
 
   const selectRefine = {
     ...(providedRefine ?? ({} as CR)),
@@ -302,7 +316,7 @@ export function buildSchemas<
     HiddenKeysOnSelect
   >
 
-  const clientSelect = clientSelectBuilt as unknown as WithShape<
+  let clientSelect = clientSelectBuilt as unknown as WithShape<
     typeof selectSchemaRaw,
     ClientSelectShape
   >
@@ -337,7 +351,7 @@ export function buildSchemas<
     HiddenKeysOnInsert | ReadOnlyKeysOnInsert
   >
   // @ts-expect-error - type instantiation excessively deep / infinite
-  const clientInsert = clientInsertBuilt as unknown as WithShape<
+  let clientInsert = clientInsertBuilt as unknown as WithShape<
     typeof insertSchemaRaw,
     ClientInsertShape
   >
@@ -386,19 +400,19 @@ export function buildSchemas<
     >,
     HiddenKeysOnUpdate | ReadOnlyKeysOnUpdate | CreateOnlyKeysOnUpdate
   >
-  const clientUpdate = clientUpdateBuilt as unknown as WithShape<
+  let clientUpdate = clientUpdateBuilt as unknown as WithShape<
     typeof updateSchemaRaw,
     ClientUpdateShape
   >
 
   if (params?.entityName) {
-    clientSelect.meta({
+    clientSelect = clientSelect.meta({
       id: `${pascalCase(params.entityName)}ClientSelectSchema`,
     })
-    clientInsert.meta({
+    clientInsert = clientInsert.meta({
       id: `${pascalCase(params.entityName)}ClientInsertSchema`,
     })
-    clientUpdate.meta({
+    clientUpdate = clientUpdate.meta({
       id: `${pascalCase(params.entityName)}ClientUpdateSchema`,
     })
   }

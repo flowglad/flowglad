@@ -627,15 +627,19 @@ export type ProductWithPrices = z.infer<
 >
 
 export const pricingModelWithProductsAndUsageMetersSchema =
-  pricingModelsClientSelectSchema.extend({
-    products: z.array(productWithPricesSchema),
-    usageMeters: z.array(usageMetersClientSelectSchema),
-    defaultProduct: productWithPricesSchema
-      .optional()
-      .describe(
-        'The default product for the pricing model. If no product is explicitly set as default, will return undefined.'
-      ),
-  })
+  pricingModelsClientSelectSchema
+    .extend({
+      products: z.array(productWithPricesSchema),
+      usageMeters: z.array(usageMetersClientSelectSchema),
+      defaultProduct: productWithPricesSchema
+        .optional()
+        .describe(
+          'The default product for the pricing model. If no product is explicitly set as default, will return undefined.'
+        ),
+    })
+    .meta({
+      id: 'PricingModelDetailsRecord',
+    })
 
 export type PricingModelWithProductsAndUsageMeters = z.infer<
   typeof pricingModelWithProductsAndUsageMetersSchema
