@@ -107,7 +107,7 @@ These components should already exist in your project:
 
 ---
 
-## 🚨 CRITICAL: Table Layout Fixed Property
+## 🚨 CRITICAL: Table Layout Fixed Property & Column Sizing
 
 **⚠️ EVERY table MUST include `style={{ tableLayout: 'fixed' }}` on the `<Table>` element.**
 
@@ -121,7 +121,7 @@ Without `tableLayout: 'fixed'`, all your column sizing will be **silently broken
   <TableHead style={{ width: header.getSize() }}>
 
 // ✅ CORRECT - Browser respects your width settings  
-<Table style={{ tableLayout: 'fixed' }}>
+<Table className="w-full" style={{ tableLayout: 'fixed' }}>
   <TableHead style={{ width: header.getSize() }}>
 ```
 
@@ -140,6 +140,15 @@ HTML tables have two layout algorithms:
 - Uses header row widths for ALL rows
 - Your TanStack sizing properties **work correctly**
 - Consistent column widths across all data
+
+### Understanding TanStack Table Sizing Features
+
+TanStack Table provides **two complementary sizing features**:
+
+1. **Responsive Sizing (Always Active)**: Columns automatically adapt to container width based on your `size`/`minSize`/`maxSize` definitions
+2. **Interactive Resizing (Optional)**: Users can manually drag column headers to adjust widths
+
+Both features are enabled by the same configuration (`enableColumnResizing: true`), but interactive resizing requires additional UI implementation (resize handles).
 
 ### Real Example
 
@@ -186,6 +195,106 @@ You won't notice until:
 ```
 
 This is the **bridge** between TanStack Table's sizing calculations and the browser's rendering engine. Without it, they don't communicate! 🌉
+
+### Column Sizing Properties Deep Dive
+
+**Understanding Column Sizing:**
+
+```typescript
+{
+  id: 'email',
+  size: 220,      // Base width - used for space distribution calculations
+  minSize: 120,   // Enforced minimum (responsive shrinking stops here)
+  maxSize: 250,   // CAVEAT: Ignored during automatic space distribution!
+  enableResizing: false,  // Optional: Prevents user drag-to-resize (valid property!)
+}
+```
+
+**Critical Insight: How Extra Space is Distributed**
+
+TanStack Table's space distribution algorithm has an important quirk:
+
+1. Calculates total needed space: `sum of all column.size values`
+2. If `container width > total needed space` → extra space exists
+3. Distributes extra space **proportionally** based on `size` ratios
+4. **`maxSize` constraints are IGNORED during this distribution** ⚠️
+
+**Example:**
+```typescript
+// Container: 1200px
+// Column A: size: 300 (gets 300/600 = 50% of extra space)
+// Column B: size: 300 (gets 300/600 = 50% of extra space)
+// Total needed: 600px
+// Extra space: 600px
+// Result: Both columns become 600px (even if maxSize: 400!)
+```
+
+**How to Control Space Distribution:**
+
+Use strategic `size` values to prioritize which columns should grow:
+
+```typescript
+// High priority column (gets more extra space)
+{
+  id: 'name',
+  size: 300,        // Higher base = more proportional growth
+  minSize: 120,
+  maxSize: 500,
+}
+
+// Constrained column (gets less extra space)
+{
+  id: 'email',
+  size: 200,        // Lower base = less proportional growth
+  minSize: 180,
+  maxSize: 250,
+}
+
+// Fixed width column (no growth)
+{
+  id: 'actions',
+  size: 1,          // Minimal base
+  minSize: 56,
+  maxSize: 56,
+  enableResizing: false,  // Prevent user resizing too
+}
+```
+
+**Column Sizing by Content Type:**
+
+| Content Type | Recommended Base Size | Strategy |
+|--------------|----------------------|----------|
+| Names/Titles | 200-300px | Allow expansion for readability |
+| Email Addresses | 220px | Moderate constraint |
+| IDs/Keys | 120-180px | Can truncate heavily |
+| Currency/Numbers | 100px | Fixed, no expansion needed |
+| Dates | 100px | Consistent format, minimal expansion |
+| Status Badges | 100-110px | Fixed width |
+| Actions | 1-50px | Fixed at minSize, no expansion |
+
+**Interactive Resizing (Optional Feature):**
+
+The `enableResizing` property controls whether users can manually drag column borders:
+
+```typescript
+{
+  id: 'actions',
+  enableResizing: false,  // ✅ VALID property - prevents manual resizing
+  // Note: This is separate from responsive sizing
+}
+```
+
+- Set `enableResizing: false` on fixed-width columns (actions, icons)
+- Default is `true` (columns are resizable if you implement resize handles)
+- This only affects **user drag-to-resize**, not automatic responsive sizing
+
+**For Complete Column Sizing Documentation:**
+
+See `docs/guides/table-sizing-guide.md` for:
+- Detailed space distribution algorithm explanation
+- Interactive resizing implementation guide
+- Performance optimization strategies
+- Advanced techniques and troubleshooting
 
 ---
 
@@ -354,8 +463,12 @@ export const columns: ColumnDef<YourTableRowDataType>[] = [
         {row.getValue('name')}
       </div>
     ),
-    minSize: 140,
+    size: 200,     // Base width - affects space distribution
+    minSize: 140,  // Minimum when container shrinks
+    maxSize: 400,  // Maximum when container expands (see note below*)
   },
+  // *Note: maxSize is ignored during automatic space distribution
+  // Use size ratios to control which columns grow more
   
   // PATTERN 2: Nested property + copyable
   {
@@ -439,6 +552,7 @@ export const columns: ColumnDef<YourTableRowDataType>[] = [
   {
     id: 'actions',
     enableHiding: false,
+    enableResizing: false,  // ✅ Prevents user drag-to-resize for this column
     cell: ({ row }) => {
       const entity = row.original.entity
       return (
@@ -450,8 +564,9 @@ export const columns: ColumnDef<YourTableRowDataType>[] = [
         </div>
       )
     },
-    size: 50,
-    maxSize: 50,
+    size: 1,       // Minimal base size
+    minSize: 56,   // Actual minimum width
+    maxSize: 56,   // Fixed width (no expansion)
   },
 ]
 ```
@@ -574,12 +689,12 @@ export function YourDataTable({
   const table = useReactTable({
     data: data?.items || [],
     columns,
-    enableColumnResizing: true,
-    columnResizeMode: 'onEnd',
+    enableColumnResizing: true,  // ✅ Enables responsive sizing (+ interactive if you add resize handles)
+    columnResizeMode: 'onEnd',   // ✅ Better performance for manual resizing
     defaultColumn: {
-      size: 150,
-      minSize: 50,
-      maxSize: 500,
+      size: 150,      // Default width (TanStack default: 150)
+      minSize: 20,    // Minimum width (TanStack default: 20)
+      maxSize: 500,   // Maximum width (TanStack default: Number.MAX_SAFE_INTEGER - we override for sanity)
     },
     manualPagination: true, // Server-side pagination
     manualSorting: false, // Client-side sorting on current page
@@ -641,7 +756,7 @@ export function YourDataTable({
       </div>
 
       {/* Table */}
-      <Table style={{ tableLayout: 'fixed' }}>
+      <Table className="w-full" style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
@@ -1085,12 +1200,12 @@ export function YourDataTable({
   const table = useReactTable({
     data: data?.items || [],
     columns,
-    enableColumnResizing: true,
-    columnResizeMode: 'onEnd',
+    enableColumnResizing: true,  // ✅ Enables responsive sizing (+ interactive if you add resize handles)
+    columnResizeMode: 'onEnd',   // ✅ Better performance for manual resizing
     defaultColumn: {
-      size: 150,
-      minSize: 50,
-      maxSize: 500,
+      size: 150,      // Default width (TanStack default: 150)
+      minSize: 20,    // Minimum width (TanStack default: 20)
+      maxSize: 500,   // Maximum width (TanStack default: Number.MAX_SAFE_INTEGER - we override for sanity)
     },
     manualPagination: true,
     manualSorting: false,
@@ -1142,7 +1257,7 @@ export function YourDataTable({
       </div>
 
       {/* Table - same as before */}
-      <Table style={{ tableLayout: 'fixed' }}>
+      <Table className="w-full" style={{ tableLayout: 'fixed' }}>
         {/* ... table implementation ... */}
       </Table>
 
@@ -1425,6 +1540,53 @@ if (newPagination.pageSize !== currentPageSize) {
 
 **Why this matters**: When on a later page (e.g., page 3), calling `handlePaginationChange(0)` treats it as backward navigation and keeps the `pageBefore` cursor from page 3. This causes the query to fetch incorrect data. Using `goToFirstPage()` properly clears all cursor state and resets navigation flags.
 
+### ✅ DO: Avoid Fixed CSS Widths in Cell Content
+
+```typescript
+// ❌ WRONG - Fixed CSS widths conflict with TanStack sizing
+cell: ({ row }) => (
+  <div className="min-w-[105px] max-w-[120px]">
+    <PricingCellView prices={row.getValue('prices')} />
+  </div>
+)
+
+// ✅ CORRECT - Let column width control size
+cell: ({ row }) => (
+  <div className="truncate">
+    <PricingCellView prices={row.getValue('prices')} />
+  </div>
+)
+```
+
+**Why this matters**: Fixed `min-w-*` and `max-w-*` classes on cell content override TanStack's dynamic column sizing. The column may size correctly, but content inside will have its own fixed constraints, causing premature truncation or layout issues.
+
+### ✅ DO: Use Block Elements for Truncation
+
+```typescript
+// ❌ WRONG - Truncation won't work on inline elements
+cell: ({ row }) => (
+  <span className="truncate" title={content}>
+    {content}
+  </span>
+)
+
+// ✅ CORRECT - Use div (block element)
+cell: ({ row }) => (
+  <div className="truncate" title={content}>
+    {content}
+  </div>
+)
+
+// ✅ ALSO CORRECT - Make span block-level
+cell: ({ row }) => (
+  <span className="block truncate" title={content}>
+    {content}
+  </span>
+)
+```
+
+**Why this matters**: The `truncate` class (`text-overflow: ellipsis`, `overflow: hidden`, `white-space: nowrap`) only works on block-level or inline-block elements, not inline elements.
+
 ### ✅ DO: Reset Pagination When Filters Change
 
 **CRITICAL**: When the `filters` prop changes, the table must reset to the first page. Otherwise, it will try to use pagination cursors from the old filter set, which returns the wrong data slice.
@@ -1537,7 +1699,13 @@ After migration, test these scenarios **on all pages where the table is used** (
 
 ### Core Functionality (Test on Each Page)
 - [ ] **🚨 CRITICAL: tableLayout: 'fixed'** - Inspect Table element in browser DevTools, verify it has `style="table-layout: fixed;"`
+- [ ] **🚨 CRITICAL: className="w-full"** - Verify Table element has `className="w-full"` for proper fill behavior
 - [ ] **Column widths respected** - Verify columns match their defined `size` values (not content-based)
+- [ ] **Column sizing configuration** - Verify `enableColumnResizing: true`, `columnSizing` state, `onColumnSizingChange` handler
+- [ ] **Header widths applied** - Verify each `<TableHead>` has `style={{ width: header.getSize() }}`
+- [ ] **Column size definitions** - Verify all columns have appropriate `size`, `minSize`, `maxSize` values
+- [ ] **Actions column fixed** - Verify actions column has `enableResizing: false` and doesn't grow
+- [ ] **Space distribution** - Verify high-priority columns (names) get more space than constrained columns (IDs)
 - [ ] **Table renders** - Table displays correctly with data
 - [ ] **Column visibility** - Toggle columns via settings icon
 - [ ] **Pagination** - Navigate pages, change page size
@@ -1547,7 +1715,6 @@ After migration, test these scenarios **on all pages where the table is used** (
 - [ ] **Create button** - Click create button in toolbar (if applicable)
 - [ ] **Loading states** - Verify loading/fetching opacity
 - [ ] **Empty state** - Verify "No results" when appropriate
-- [ ] **Column resizing** - Drag column borders (if enabled)
 - [ ] **Sorting** - Click headers (client-side sorting)
 
 ### Filters (Test on Each Page Where Filters Apply)
@@ -1585,8 +1752,19 @@ After migration, test these scenarios **on all pages where the table is used** (
 ✅ **Migration is successful when:**
 
 1. **🚨 CRITICAL: tableLayout: 'fixed' applied** - Table element has `style={{ tableLayout: 'fixed' }}`
-2. **Column widths work correctly** - Columns respect their `size` values (not content-based)
-3. **No linter errors** in new files
+2. **🚨 CRITICAL: className="w-full" applied** - Table element has `className="w-full"`
+3. **Column widths work correctly** - Columns respect their `size` values (not content-based)
+4. **Complete column sizing setup:**
+   - `enableColumnResizing: true` in useReactTable config
+   - `columnResizeMode: 'onEnd'` for performance
+   - `onColumnSizingChange: setColumnSizing` handler present
+   - `columnSizing` included in table state
+   - `ColumnSizingState` imported and state created
+   - All columns have appropriate `size` values
+   - Critical columns have `minSize` and `maxSize` defined
+   - Actions column has `enableResizing: false`
+   - `style={{ width: header.getSize() }}` applied to all TableHead elements
+5. **No linter errors** in new files
 4. **All existing functionality works** (search, filters, actions, modals)
 5. **Create button moved** from page header to table toolbar
 6. **Old table component deleted**
@@ -1796,6 +1974,19 @@ Before copying patterns from the reference branch, verify they're frontend-only:
 
 ## Revision History
 
+- **v1.6** (Oct 2025) - **COMPREHENSIVE COLUMN SIZING UPDATE**: Major update incorporating complete TanStack Table column sizing documentation. Changes:
+  - Added "Column Sizing Properties Deep Dive" section explaining space distribution algorithm
+  - Corrected `minSize` default from 50 to 20 (TanStack default)
+  - Clarified `enableResizing` as VALID property (prevents user drag-to-resize)
+  - Distinguished between responsive sizing (automatic) and interactive resizing (user drag)
+  - Added strategic sizing recommendations by content type
+  - Updated all code templates with accurate `size`/`minSize`/`maxSize` values and comments
+  - Added `className="w-full"` to all Table elements for proper fill behavior
+  - Added critical pattern: "Avoid Fixed CSS Widths in Cell Content"
+  - Added critical pattern: "Use Block Elements for Truncation"
+  - Enhanced testing checklist with column sizing verification steps
+  - Enhanced success criteria with complete column sizing setup requirements
+  - Added reference to comprehensive `docs/guides/table-sizing-guide.md`
 - **v1.5** (Oct 2025) - **CRITICAL UPDATE**: Added mandatory filter reset pattern using `useEffect` with `goToFirstPage()` when filters change. This prevents cursor reuse bug where changing filters while on later pages fetches wrong data. Updated all code templates, added to critical patterns, testing checklist, and common issues. Fixed in pricing-models and products tables.
 - **v1.4** (Oct 2025) - **CRITICAL UPDATE**: Added prominent section on `tableLayout: 'fixed'` requirement after discovering all 4 tables were missing this critical CSS property. Updated all code templates, testing checklist, and success criteria to emphasize this requirement. This prevents silent sizing failures where tables appear to work but column sizing is completely broken.
 - **v1.3** (Oct 2025) - Added Step 6 for finding and updating all table usages including detail pages, expanded testing checklist and success criteria to include detail page testing, added usage pattern analysis to Step 2
