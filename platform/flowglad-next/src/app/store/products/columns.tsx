@@ -148,12 +148,12 @@ export const columns: ColumnDef<ProductRow>[] = [
               />
             )}
           </div>
-          <span
+          <div
             className="font-normal text-sm truncate"
             title={productName}
           >
             {productName}
-          </span>
+          </div>
         </div>
       )
     },
@@ -219,7 +219,8 @@ export const columns: ColumnDef<ProductRow>[] = [
         </div>
       )
     },
-    size: 40,
-    maxSize: 40,
+    size: 1,
+    minSize: 56,
+    maxSize: 56,
   },
 ]

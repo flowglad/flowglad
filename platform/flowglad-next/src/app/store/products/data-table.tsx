@@ -83,6 +83,14 @@ export function ProductsDataTable({
     useQuery: trpc.products.getTableRows.useQuery,
   })
 
+  // Reset to first page when filters change
+  // Use JSON.stringify to get stable comparison of filter object
+  const filtersKey = JSON.stringify(filters)
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
+
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] =
@@ -172,7 +180,7 @@ export function ProductsDataTable({
       </div>
 
       {/* Table */}
-      <Table>
+      <Table className="w-full" style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow

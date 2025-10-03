@@ -9,12 +9,10 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import {
   Table,
   TableBody,
@@ -25,34 +23,34 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns } from './columns'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import { columns, DiscountTableRowData } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { trpc } from '@/app/_trpc/client'
-import { CustomerTableRowData } from '@/db/schema/customers'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 
-export interface CustomersTableFilters {
-  archived?: boolean
+export interface DiscountsTableFilters {
+  active?: boolean
   organizationId?: string
-  pricingModelId?: string
 }
 
-interface CustomersDataTableProps {
-  filters?: CustomersTableFilters
-  onCreateCustomer?: () => void
+interface DiscountsDataTableProps {
+  filters?: DiscountsTableFilters
+  onCreateDiscount?: () => void
+  filterOptions?: { value: string; label: string }[]
+  activeFilter?: string
+  onFilterChange?: (value: string) => void
 }
 
-export function CustomersDataTable({
+export function DiscountsDataTable({
   filters = {},
-  onCreateCustomer,
-}: CustomersDataTableProps) {
+  onCreateDiscount,
+  filterOptions,
+  activeFilter,
+  onFilterChange,
+}: DiscountsDataTableProps) {
   const router = useRouter()
-
-  // Server-side filtering (preserve enterprise architecture) - FIXED: Using stable debounced hook
-  const { inputValue, setInputValue, searchQuery } =
-    useSearchDebounce(1000)
 
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -66,15 +64,22 @@ export function CustomersDataTable({
     isLoading,
     isFetching,
   } = usePaginatedTableState<
-    CustomerTableRowData,
-    CustomersTableFilters
+    DiscountTableRowData,
+    DiscountsTableFilters
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
-    searchQuery: searchQuery,
-    useQuery: trpc.customers.getTableRows.useQuery,
+    useQuery: trpc.discounts.getTableRows.useQuery,
   })
+
+  // Reset to first page when filters change
+  // Use JSON.stringify to get stable comparison of filter object
+  const filtersKey = JSON.stringify(filters)
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
 
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -112,7 +117,7 @@ export function CustomersDataTable({
       // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        goToFirstPage()
+        goToFirstPage() // Properly clears both cursors to avoid stale pagination state
       }
       // Handle page index changes (page navigation)
       else if (newPagination.pageIndex !== pageIndex) {
@@ -133,28 +138,33 @@ export function CustomersDataTable({
 
   return (
     <div className="w-full">
-      {/* Enhanced toolbar with all improvements */}
-      <div className="flex items-center py-4">
-        <div className="flex items-center gap-2 ml-auto">
-          <CollapsibleSearch
-            value={inputValue}
-            onChange={setInputValue}
-            placeholder="Search customers..."
-            disabled={isLoading}
-            isLoading={isFetching}
-          />
+      {/* Enhanced toolbar */}
+      <div className="flex items-center justify-between py-4 gap-4 min-w-0">
+        {/* Filter buttons on the left */}
+        <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
+          {filterOptions && activeFilter && onFilterChange && (
+            <FilterButtonGroup
+              options={filterOptions}
+              value={activeFilter}
+              onValueChange={onFilterChange}
+            />
+          )}
+        </div>
+
+        {/* View options and create button on the right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <DataTableViewOptions table={table} />
-          {onCreateCustomer && (
-            <Button onClick={onCreateCustomer}>
+          {onCreateDiscount && (
+            <Button onClick={onCreateDiscount}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Customer
+              Create Discount
             </Button>
           )}
         </div>
       </div>
 
       {/* Table */}
-      <Table className="w-full" style={{ tableLayout: 'fixed' }}>
+      <Table style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
@@ -193,22 +203,7 @@ export function CustomersDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
-                onClick={(e) => {
-                  // Only navigate if not clicking on interactive elements
-                  const target = e.target as HTMLElement
-                  if (
-                    target.closest('button') ||
-                    target.closest('[role="checkbox"]') ||
-                    target.closest('input[type="checkbox"]') ||
-                    target.closest('[data-radix-collection-item]')
-                  ) {
-                    return // Don't navigate when clicking interactive elements
-                  }
-                  router.push(
-                    `/customers/${row.original.customer.id}`
-                  )
-                }}
+                className={isFetching ? 'opacity-50' : ''}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
@@ -233,14 +228,12 @@ export function CustomersDataTable({
         </TableBody>
       </Table>
 
-      {/* Enterprise pagination with built-in selection count */}
+      {/* Pagination */}
       <div className="py-2">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={
-            !!searchQuery || Object.keys(filters).length > 0
-          }
+          isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
         />
       </div>

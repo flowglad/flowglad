@@ -42,7 +42,7 @@ const PopoverMenuItem = ({
     <div
       className={cn(
         'relative flex cursor-default select-none items-start rounded-lg px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
-        helperText ? 'flex-col gap-1' : 'items-center gap-2',
+        helperText ? 'flex-col gap-1' : 'items-center gap-1.5',
         className,
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
       )}
