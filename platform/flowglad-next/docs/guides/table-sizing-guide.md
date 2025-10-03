@@ -12,11 +12,12 @@ This guide provides **definitive knowledge** for implementing responsive, proper
 4. [Essential Configuration](#essential-configuration)
 5. [Column Sizing Properties](#column-sizing-properties)
 6. [Priority Growth Strategies](#priority-growth-strategies)
-7. [Common Issues & Solutions](#common-issues--solutions)
-8. [Best Practices](#best-practices)
-9. [Implementation Examples](#implementation-examples)
-10. [Troubleshooting](#troubleshooting)
-11. [Advanced Techniques](#advanced-techniques)
+7. [Interactive Column Resizing](#interactive-column-resizing)
+8. [Common Issues & Solutions](#common-issues--solutions)
+9. [Best Practices](#best-practices)
+10. [Implementation Examples](#implementation-examples)
+11. [Troubleshooting](#troubleshooting)
+12. [Advanced Techniques](#advanced-techniques)
 
 ## Critical Understanding
 
@@ -31,8 +32,11 @@ This guide provides **definitive knowledge** for implementing responsive, proper
 4. **`maxSize` constraints are IGNORED** during this distribution
 5. Result: Columns exceed their intended maximum widths
 
-### 🎯 Key Principle
-**Control space distribution through CSS, not just TanStack properties**
+### 🎯 Key Principles
+1. **Control space distribution through CSS, not just TanStack properties**
+2. **TanStack Table supports TWO sizing features:**
+   - **Responsive Sizing:** Columns adapt to container width (covered extensively in this guide)
+   - **Interactive Resizing:** Users can drag column headers to manually resize (see [Interactive Column Resizing](#interactive-column-resizing) section)
 
 ## Architecture Deep Dive
 
@@ -151,11 +155,15 @@ const columns = [
 **🚨 CRITICAL: All four parts must be present for sizing to work:**
 
 ```tsx
-// Import ColumnSizingState
+// Import column sizing types
 import { ColumnSizingState } from '@tanstack/react-table'
 
 // 1. Add column sizing state
 const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
+
+// Note: columnSizingInfo state is managed automatically by TanStack
+// It contains: { startOffset, startSize, deltaOffset, deltaPercentage, isResizingColumn, columnSizingStart }
+// Access via: table.getState().columnSizingInfo
 
 // 2. Configure table with sizing enabled
 const table = useReactTable({
@@ -167,9 +175,9 @@ const table = useReactTable({
   
   // 3. Optional but recommended: Default column behavior
   defaultColumn: {
-    size: 150,      // Default width for columns without explicit size
-    minSize: 50,    // Global minimum (can be overridden per column)
-    maxSize: 500,   // Global maximum (can be overridden per column)
+    size: 150,      // Default width for columns without explicit size (TanStack default)
+    minSize: 20,    // Global minimum (TanStack default: 20, can be overridden per column)
+    maxSize: 500,   // Global maximum (TanStack default: Number.MAX_SAFE_INTEGER, override for sanity)
   },
   
   // ... other configuration
@@ -228,25 +236,28 @@ const table = useReactTable({
 
 **🚨 Critical:** This MUST be applied to headers for `table-layout: fixed` to work.
 
-### 4. Invalid Properties to Avoid
+### 4. Valid TanStack Column Properties
 
 ```tsx
-// ❌ INVALID: These properties don't exist in TanStack Table
+// ✅ VALID: TanStack Table column sizing properties
 {
-  enableResizing: false,  // ← NOT a valid ColumnDef property
-  grow: true,            // ← This is Material React Table, not TanStack
-  layoutMode: 'grid',    // ← This is Material React Table, not TanStack
+  size: 200,              // Default width
+  minSize: 100,           // Minimum width
+  maxSize: 300,           // Maximum width (see space distribution caveats)
+  enableResizing: false,  // ✅ VALID: Disables user drag-to-resize for this column
+  enableSorting: false,   // Sorting control
+  enableHiding: false,    // Visibility control
 }
 
-// ✅ VALID: These are the actual TanStack Table properties
+// ❌ INVALID: These are from Material React Table, NOT TanStack
 {
-  size: 200,       // Default width
-  minSize: 100,    // Minimum width
-  maxSize: 300,    // Maximum width
-  enableSorting: false,    // Sorting control
-  enableHiding: false,     // Visibility control
+  grow: true,            // ← Material React Table only
+  layoutMode: 'grid',    // ← Material React Table only
+  muiTableHeadCellProps: {}, // ← Material React Table only
 }
 ```
+
+**Important:** `enableResizing` controls whether users can manually drag column headers to resize. This is separate from responsive sizing behavior (which is always active when `enableColumnResizing: true` is set at the table level).
 
 ## Column Sizing Properties
 
@@ -452,6 +463,209 @@ const columns = [
 // actions: 50px → 50px (no growth)
 ```
 
+## Interactive Column Resizing
+
+TanStack Table supports **user-initiated column resizing** where users can drag column headers to manually adjust widths. This is separate from responsive sizing.
+
+### Enabling Interactive Resizing
+
+Interactive resizing is enabled when you set `enableColumnResizing: true` at the table level:
+
+```tsx
+const table = useReactTable({
+  enableColumnResizing: true,     // ✅ Enables both responsive + interactive resizing
+  columnResizeMode: 'onEnd',      // Controls when state updates
+  columnResizeDirection: 'ltr',   // Direction: 'ltr' or 'rtl'
+  // ... other config
+})
+```
+
+### Disable Resizing for Specific Columns
+
+Use the `enableResizing` column property to prevent users from resizing specific columns:
+
+```tsx
+const columns: ColumnDef<Data>[] = [
+  {
+    id: 'actions',
+    size: 50,
+    enableResizing: false,  // ✅ Users cannot drag to resize this column
+  },
+  {
+    id: 'name',
+    size: 200,
+    // enableResizing not specified → defaults to true (resizable)
+  }
+]
+```
+
+### Implementing Resize Handles
+
+TanStack provides `header.getResizeHandler()` to connect drag interactions:
+
+```tsx
+{headerGroup.headers.map((header) => (
+  <TableHead
+    key={header.id}
+    style={{ width: header.getSize() }}
+  >
+    {/* Header content */}
+    {flexRender(header.column.columnDef.header, header.getContext())}
+    
+    {/* Resize handle - appears on hover */}
+    {header.column.getCanResize() && (
+      <div
+        onMouseDown={header.getResizeHandler()}  // Desktop
+        onTouchStart={header.getResizeHandler()} // Mobile
+        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-blue-500"
+      />
+    )}
+  </TableHead>
+))}
+```
+
+### Column Resize Modes
+
+#### Mode: `onEnd` (Recommended)
+```tsx
+columnResizeMode: 'onEnd'
+```
+- Column size updates **after** user releases the drag handle
+- Better performance for complex tables
+- Smooth user experience without render lag
+- **Recommended for most use cases**
+
+#### Mode: `onChange`
+```tsx
+columnResizeMode: 'onChange'
+```
+- Column size updates **during** dragging (real-time)
+- Can cause performance issues with complex tables
+- Requires careful memoization (see [Performance Optimization](#performance-optimization-for-onchange-mode))
+- Only use if real-time feedback is critical
+
+### Resize Indicator UI
+
+Show visual feedback during resizing using `columnSizingInfo` state:
+
+```tsx
+// Access resize state
+const { isResizingColumn, deltaOffset } = table.getState().columnSizingInfo
+
+// Render resize indicator
+{headerGroup.headers.map((header) => (
+  <TableHead key={header.id} className="relative">
+    {/* Header content */}
+    
+    {/* Visual indicator while resizing */}
+    {header.column.getIsResizing() && (
+      <div
+        className="absolute top-0 right-0 w-0.5 h-full bg-blue-500"
+        style={{
+          transform: `translateX(${deltaOffset ?? 0}px)`,
+        }}
+      />
+    )}
+  </TableHead>
+))}
+```
+
+### Performance Optimization for onChange Mode
+
+If using `columnResizeMode: 'onChange'`, follow these optimization strategies from TanStack docs:
+
+```tsx
+// 1. Calculate column widths ONCE upfront (memoized)
+const columnSizeVars = useMemo(() => {
+  const headers = table.getFlatHeaders()
+  const colSizes: { [key: string]: number } = {}
+  for (let i = 0; i < headers.length; i++) {
+    const header = headers[i]!
+    colSizes[`--header-${header.id}-size`] = header.getSize()
+    colSizes[`--col-${header.column.id}-size`] = header.column.getSize()
+  }
+  return colSizes
+}, [table.getState().columnSizing]) // Only recalculate when sizing changes
+
+// 2. Apply via CSS variables
+<table style={columnSizeVars}>
+  <thead>
+    {headerGroup.headers.map(header => (
+      <th style={{ width: `calc(var(--header-${header.id}-size) * 1px)` }}>
+        {/* header content */}
+      </th>
+    ))}
+  </thead>
+</table>
+
+// 3. Memoize table body during resize
+const tableBody = useMemo(() => (
+  <TableBody>
+    {/* rows */}
+  </TableBody>
+), [data, table.getState().columnSizingInfo.isResizingColumn === false])
+```
+
+### Checking Resize State
+
+Use these APIs to check column resize status:
+
+```tsx
+// Check if a specific column is being resized
+header.column.getIsResizing() // boolean
+
+// Check if ANY column is being resized
+table.getState().columnSizingInfo.isResizingColumn // false | string (column id)
+
+// Check if a column CAN be resized
+column.getCanResize() // boolean (checks enableResizing property)
+```
+
+### RTL Support
+
+For right-to-left layouts, set the direction:
+
+```tsx
+const table = useReactTable({
+  columnResizeDirection: 'rtl',  // For RTL languages
+  // ... other config
+})
+```
+
+### Resetting Column Sizes
+
+```tsx
+// Reset a specific column
+column.resetSize()
+
+// Reset all columns to initial sizes
+table.resetColumnSizing()
+
+// Reset to default sizes (ignoring initialState)
+table.resetColumnSizing(true)
+```
+
+### When to Use Interactive Resizing
+
+**✅ Good Use Cases:**
+- Data-heavy tables where users need control over column widths
+- Tables with highly variable content lengths
+- Power user interfaces (dashboards, admin panels)
+- Tables exported to different formats (print, CSV) where custom widths matter
+
+**❌ Avoid When:**
+- Simple display tables with consistent content
+- Mobile-first interfaces (drag interactions are difficult on touch)
+- Tables with frequent data updates (can interfere with resizing)
+- Columns already properly sized for their content
+
+### Important Notes
+
+1. **Interactive resizing does NOT bypass `minSize`/`maxSize` constraints** - users cannot drag columns smaller than `minSize` or larger than `maxSize`
+2. **Resized widths are stored in `columnSizing` state** - persist this state to localStorage to remember user preferences
+3. **Resize handles need careful styling** - ensure they're visible but not intrusive
+4. **Performance matters** - `onEnd` mode is recommended unless you have specific requirements for real-time feedback
+
 ## Common Issues & Solutions
 
 ### Issue 1: Column Sizing Not Working At All
@@ -634,7 +848,7 @@ The `truncate` class only works on **block-level elements**, not inline elements
 
 **Symptoms:**
 - TypeScript errors about unknown properties
-- Properties like `enableResizing`, `grow`, `layoutMode` don't work
+- Properties like `grow`, `layoutMode` don't work
 - Confusion from Material React Table documentation
 
 **Root Cause:**
@@ -642,18 +856,19 @@ Mixing up Material React Table properties with TanStack Table
 
 **Solution:**
 ```tsx
-// ❌ INVALID: These don't exist in TanStack Table
+// ❌ INVALID: These are Material React Table only, NOT TanStack
 {
-  enableResizing: false,    // Material React Table only
   grow: true,              // Material React Table only
   layoutMode: 'grid',      // Material React Table only
+  muiTableHeadCellProps: {}, // Material React Table only
 }
 
 // ✅ VALID: Actual TanStack Table properties
 {
   size: 200,              // Column width
   minSize: 100,           // Minimum width
-  maxSize: 300,           // Maximum width (with caveats)
+  maxSize: 300,           // Maximum width (with space distribution caveats)
+  enableResizing: false,  // ✅ VALID: Disables user drag-to-resize
   enableSorting: false,   // Disable sorting
   enableHiding: false,    // Always show column
 }
@@ -863,6 +1078,11 @@ const handleResize = useMemo(
 )
 ```
 
+**For Interactive Resizing Performance:**
+- Use `columnResizeMode: 'onEnd'` (default) for best performance
+- If you need real-time resizing (`'onChange'` mode), see [Performance Optimization for onChange Mode](#performance-optimization-for-onchange-mode) in the Interactive Column Resizing section
+- Key strategies: CSS variables, memoized column widths, memoized table body during resize
+
 ### 7. Development & Debugging
 
 ```tsx
@@ -895,7 +1115,7 @@ const debugColumnSizes = (table) => {
 
 **✅ Use this checklist to verify every table has proper sizing configuration:**
 
-**TanStack Configuration:**
+**TanStack Configuration (Required for Responsive Sizing):**
 - [ ] `enableColumnResizing: true` in useReactTable config
 - [ ] `columnResizeMode: 'onEnd'` for performance
 - [ ] `onColumnSizingChange: setColumnSizing` handler
@@ -914,11 +1134,20 @@ const debugColumnSizes = (table) => {
 - [ ] Cell components use `truncate` class on **block elements** (div, not span)
 - [ ] Truncated content has `title` attributes for accessibility
 
+**Interactive Resizing (Optional - only if implementing user drag-to-resize):**
+- [ ] Resize handles implemented with `header.getResizeHandler()`
+- [ ] Fixed-width columns have `enableResizing: false` where appropriate
+- [ ] Resize indicators provide visual feedback during dragging
+- [ ] Consider persisting `columnSizing` state to localStorage
+- [ ] Performance optimizations in place if using `columnResizeMode: 'onChange'`
+
 **Testing:**
 - [ ] Resize window - columns should respond appropriately
 - [ ] Inspect HTML - `<th>` elements should have explicit `width` styles
 - [ ] Check React DevTools - `columnSizing` state should exist
 - [ ] Modify `size` in column definitions - should see visual changes
+- [ ] (If interactive resizing) Test drag-to-resize functionality
+- [ ] (If interactive resizing) Verify `minSize`/`maxSize` constraints are respected
 
 ### 8. Common Patterns for Different Table Types
 
@@ -1159,6 +1388,199 @@ When a table looks normal but sizing doesn't work:
 | **Truncation not working** | **Visual issue** | **Using inline elements** | **Use `<div>` instead of `<span>`** |
 | Poor performance | Slow rendering | Missing memoization | Add `useMemo` for columns |
 
+## Advanced Techniques
+
+### Table-Level Size APIs
+
+TanStack Table provides several APIs for getting total table dimensions:
+
+```tsx
+// Get total width of all columns
+const totalWidth = table.getTotalSize() // Sum of all leaf column sizes
+
+// For tables with column pinning:
+const leftWidth = table.getLeftTotalSize()    // Sum of pinned left columns
+const centerWidth = table.getCenterTotalSize() // Sum of unpinned columns
+const rightWidth = table.getRightTotalSize()   // Sum of pinned right columns
+```
+
+**Use cases:**
+- Setting minimum table width: `<table style={{ minWidth: table.getTotalSize() }}>`
+- Calculating scroll container dimensions
+- Positioning sticky/pinned columns
+
+### Column Position APIs
+
+Get column position offsets for absolute/sticky positioning:
+
+```tsx
+// Get offset from the left edge
+const leftOffset = column.getStart() // Sum of all preceding column widths
+
+// Get offset from the right edge
+const rightOffset = column.getAfter() // Sum of all succeeding column widths
+
+// With pinning:
+const leftPinnedOffset = column.getStart('left')
+const centerOffset = column.getStart('center')
+const rightPinnedOffset = column.getStart('right')
+```
+
+**Use cases:**
+- Absolute positioning for sticky columns
+- Implementing custom scroll behaviors
+- Creating column overlays or indicators
+
+### Persisting User Resize Preferences
+
+Save and restore user-customized column widths:
+
+```tsx
+// On component mount, restore saved sizes
+const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => {
+  const saved = localStorage.getItem('tableColumnSizing')
+  return saved ? JSON.parse(saved) : {}
+})
+
+// Save to localStorage when sizes change
+useEffect(() => {
+  if (Object.keys(columnSizing).length > 0) {
+    localStorage.setItem('tableColumnSizing', JSON.stringify(columnSizing))
+  }
+}, [columnSizing])
+
+// Provide reset functionality
+const handleResetSizes = () => {
+  table.resetColumnSizing()
+  localStorage.removeItem('tableColumnSizing')
+}
+```
+
+### Programmatic Column Sizing
+
+Dynamically adjust column sizes based on conditions:
+
+```tsx
+// Set column sizes programmatically
+table.setColumnSizing({
+  name: 300,
+  email: 250,
+  amount: 120,
+})
+
+// Or use updater function
+table.setColumnSizing(prev => ({
+  ...prev,
+  name: prev.name ? prev.name + 50 : 300, // Increase name column by 50px
+}))
+
+// Reset specific column
+table.getAllColumns().find(col => col.id === 'name')?.resetSize()
+```
+
+### CSS Variables for Dynamic Sizing
+
+For advanced styling and performance optimization:
+
+```tsx
+// Calculate CSS variables for all columns
+const columnSizeVars = useMemo(() => {
+  const vars: Record<string, string> = {}
+  table.getAllLeafColumns().forEach(column => {
+    vars[`--col-${column.id}-size`] = `${column.getSize()}px`
+  })
+  return vars
+}, [table.getState().columnSizing])
+
+// Apply to table
+<table style={columnSizeVars as React.CSSProperties}>
+  <thead>
+    <tr>
+      {table.getHeaderGroups().map(headerGroup =>
+        headerGroup.headers.map(header => (
+          <th 
+            key={header.id}
+            style={{ 
+              width: `var(--col-${header.column.id}-size)` 
+            }}
+          >
+            {/* header content */}
+          </th>
+        ))
+      )}
+    </tr>
+  </thead>
+</table>
+```
+
+**Benefits:**
+- Single source of truth for column widths
+- Better performance (one style update vs. many inline style updates)
+- Easier to animate column resizing with CSS transitions
+
+### Responsive Column Visibility + Sizing
+
+Combine column visibility with sizing for mobile-responsive tables:
+
+```tsx
+// Hide less important columns on small screens
+const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+  email: window.innerWidth > 768,
+  phone: window.innerWidth > 1024,
+})
+
+// Adjust remaining column sizes when hiding columns
+useEffect(() => {
+  const visibleColumns = table.getVisibleLeafColumns()
+  const totalSize = visibleColumns.reduce((sum, col) => sum + col.getSize(), 0)
+  
+  // If total is less than container, columns will expand proportionally
+  console.log('Visible columns total width:', totalSize)
+}, [columnVisibility])
+
+const table = useReactTable({
+  // ... other config
+  state: {
+    columnSizing,
+    columnVisibility, // Combine with sizing
+  },
+  onColumnVisibilityChange: setColumnVisibility,
+})
+```
+
+### Header-Specific Sizing
+
+For grouped headers, sizing is calculated automatically:
+
+```tsx
+// Header size is sum of all leaf columns beneath it
+header.getSize() // For grouped header, returns sum of child column sizes
+
+// Header position offsets work the same way
+header.getStart() // Offset from left for grouped header
+```
+
+### Conditional Size Constraints
+
+Adjust sizing based on data or user preferences:
+
+```tsx
+const columns: ColumnDef<Data>[] = [
+  {
+    id: 'description',
+    header: 'Description',
+    size: userPreferences.compactMode ? 150 : 300,
+    minSize: 100,
+    maxSize: userPreferences.compactMode ? 200 : 600,
+    cell: ({ row }) => (
+      <div className="truncate">
+        {row.getValue('description')}
+      </div>
+    ),
+  }
+]
+```
+
 ## Migration Guide
 
 ### From Basic Table to Responsive Sizing
@@ -1198,11 +1620,25 @@ const table = useReactTable({
 
 ## Conclusion
 
-Proper table sizing requires coordination between TanStack React Table's sizing system, CSS table layout properties, and responsive design principles. The key requirements are:
+Proper table sizing requires coordination between TanStack React Table's sizing system, CSS table layout properties, and responsive design principles. TanStack Table provides two complementary sizing features:
 
-1. **Enable TanStack column sizing** with proper state management
-2. **Use `table-layout: fixed`** to respect column widths
-3. **Define appropriate size constraints** for each column type
-4. **Implement proper truncation** with accessibility considerations
+1. **Responsive Sizing:** Columns automatically adapt to container width (always active when `enableColumnResizing: true`)
+2. **Interactive Resizing:** Users can manually drag column headers to adjust widths (requires resize handle implementation)
 
-Following this guide ensures tables that are both responsive and maintainable, providing excellent user experience across all device sizes.
+### Key Requirements for Responsive Sizing
+
+1. **Enable TanStack column sizing** with proper state management (`enableColumnResizing: true`, `columnSizing` state)
+2. **Use `table-layout: fixed`** to respect explicit column widths
+3. **Apply `header.getSize()` widths** to all table headers
+4. **Define appropriate size constraints** for each column type (`size`, `minSize`, `maxSize`)
+5. **Implement proper truncation** with accessibility considerations (use block elements, add titles)
+
+### Additional Considerations for Interactive Resizing
+
+- Implement resize handles with `header.getResizeHandler()`
+- Choose appropriate resize mode (`onEnd` vs `onChange`)
+- Disable resizing for fixed-width columns (`enableResizing: false`)
+- Consider persisting user preferences to localStorage
+- Optimize performance with memoization for `onChange` mode
+
+Following this guide ensures tables that are both responsive and maintainable, providing excellent user experience across all device sizes, with optional user customization capabilities.
