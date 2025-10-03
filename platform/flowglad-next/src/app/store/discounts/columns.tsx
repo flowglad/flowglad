@@ -76,7 +76,6 @@ function DiscountActionsMenu({
       label: 'Delete Discount',
       icon: <Trash2 className="h-4 w-4" />,
       handler: () => setIsDeleteOpen(true),
-      destructive: true,
     },
   ]
 
