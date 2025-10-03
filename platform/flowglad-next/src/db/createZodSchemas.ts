@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import { z } from 'zod'
 import type { BuildRefine, NoUnknownKeys } from 'drizzle-zod'
 import {
@@ -347,7 +348,7 @@ export function buildSchemas<
       ...hiddenColumns,
       ...readOnlyColumns,
     } as Record<string, true>),
-    ...ommittedColumnsForInsertSchema,
+    ...R.omit(['id'], ommittedColumnsForInsertSchema),
   }
   if (Object.keys(updateOmitMask).length) {
     clientUpdateBase = (

@@ -213,10 +213,12 @@ export const createInsertManyFunction = <
         return parsed.data
       })
     } catch (error) {
-      console.error(
-        `[createInsertManyFunction] Error inserting into ${config.tableName}:`,
-        error
-      )
+      if (!IS_TEST) {
+        console.error(
+          `[createInsertManyFunction] Error inserting into ${config.tableName}:`,
+          error
+        )
+      }
       if (
         error instanceof Error &&
         error.message.includes('duplicate key')
