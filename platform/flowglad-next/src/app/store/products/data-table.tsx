@@ -180,7 +180,7 @@ export function ProductsDataTable({
       </div>
 
       {/* Table */}
-      <Table style={{ tableLayout: 'fixed', width: 'auto' }}>
+      <Table style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow

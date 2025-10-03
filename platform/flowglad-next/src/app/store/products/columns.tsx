@@ -214,10 +214,7 @@ export const columns: ColumnDef<ProductRow>[] = [
     cell: ({ row }) => {
       const product = row.original.product
       return (
-        <div
-          className="max-w-[56px] flex justify-center"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div onClick={(e) => e.stopPropagation()}>
           <ProductActionsMenu product={product} />
         </div>
       )

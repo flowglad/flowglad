@@ -114,26 +114,38 @@ const columns = [
 
 ### Solutions to Control Distribution
 
-#### Option 1: Prevent Extra Space (Recommended) ⭐
+#### Solution 1: Use Exact Sizing (width: 'auto')
 ```tsx
-// CSS prevents extra space from existing
+// Table sizes to exact column sum
 <table 
   style={{ 
     tableLayout: 'fixed',
-    width: 'auto',  // ← KEY: Sizes to content, no extra space
+    width: 'auto',  // ← KEY: No extra space to distribute
   }}
 >
 ```
 
-#### Option 2: Redirect Extra Space
+#### Solution 2: Accept Distribution & Add maxSize Constraints
 ```tsx
-// Give one column higher size + maxSize to absorb extra space
+// Let table fill container but control which columns grow
+<table style={{ tableLayout: 'fixed' }}>  // Default behavior
+
+// Add maxSize to constrain columns that shouldn't expand much
+{
+  id: 'email',
+  size: 220,
+  maxSize: 280,     // ← Limits growth (though may still be exceeded)
+}
+
+// Let primary content columns absorb extra space
 {
   id: 'name',
-  size: 300,      // Higher baseline = gets more extra space
-  maxSize: 500,   // Can absorb more without breaking
+  size: 300,        // Higher base = gets more extra space
+  // No maxSize = can grow freely
 }
 ```
+
+**Note:** Even with `maxSize`, TanStack's algorithm may still exceed it when distributing extra space. Use `width: 'auto'` if you need strict enforcement.
 
 ## Essential Configuration
 
@@ -178,22 +190,18 @@ const table = useReactTable({
 **🎯 The Ultimate Control Mechanism:**
 
 ```tsx
-// ⭐ RECOMMENDED: Prevent unwanted space distribution
-<table
-  style={{ 
-    tableLayout: 'fixed',    // ← Forces explicit width respect
-    width: 'auto',          // ← KEY: No extra space = no unwanted distribution
-  }}
->
+// OPTION 1: Full width (most common for application tables)
+<table style={{ tableLayout: 'fixed' }}>
+// ✅ Table fills container (professional appearance)
+// ✅ Columns expand proportionally to their size values
+// ⚠️  Extra space distributed to all columns (can exceed maxSize)
+// 💡 Use when: You want tables to fill their container naturally
 
-// ALTERNATIVE: Allow space distribution but control it
-<table
-  className="w-full"        // ← Creates extra space
-  style={{ tableLayout: 'fixed' }}
->
-// Use this when you want columns to expand to fill container
-// ⚠️ WARNING: This creates extra space that TanStack will distribute,
-// potentially causing columns to exceed their maxSize constraints
+// OPTION 2: Exact sizing (for precise control)
+<table style={{ tableLayout: 'fixed', width: 'auto' }}>
+// ✅ Columns get exact defined sizes (respects maxSize perfectly)
+// ❌ Table doesn't fill container (may look narrow)
+// 💡 Use when: You need exact column widths, don't want distribution
 ```
 
 **Critical Understanding:**
@@ -520,7 +528,7 @@ CSS `table-layout: auto` (browser default) ignores explicit widths
 **Solution:**
 ```tsx
 // ✅ CRITICAL: Force browser to respect explicit widths
-<table style={{ tableLayout: 'fixed', width: 'auto' }}>
+<table style={{ tableLayout: 'fixed' }}>
 ```
 
 **Understanding:**
@@ -882,9 +890,9 @@ const debugColumnSizes = (table) => {
 - [ ] `ColumnSizingState` imported and state created
 
 **CSS & DOM:**
-- [ ] `style={{ tableLayout: 'fixed', width: 'auto' }}` on table element (recommended)
+- [ ] `style={{ tableLayout: 'fixed' }}` on table element (REQUIRED)
 - [ ] `style={{ width: header.getSize() }}` on all TableHead elements
-- [ ] Proper space distribution strategy chosen (auto vs full width)
+- [ ] Space distribution strategy chosen (add `width: 'auto'` for exact sizing, or omit for full-width)
 
 **Column Definitions:**
 - [ ] All columns have appropriate `size` values
@@ -950,7 +958,7 @@ export function CustomersDataTable() {
   return (
     <div className="w-full">
       <div className="border-t border-b">
-        <Table style={{ tableLayout: 'fixed', width: 'auto' }}>
+        <Table style={{ tableLayout: 'fixed' }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -1045,10 +1053,11 @@ When column sizing isn't working, verify:
 
 2. **✅ CSS Table Layout**
    ```tsx
-   // Verify table has (recommended):
-   style={{ tableLayout: 'fixed', width: 'auto' }}
-   // Or at minimum:
+   // REQUIRED: Must have tableLayout: 'fixed'
    style={{ tableLayout: 'fixed' }}
+   
+   // OPTIONAL: Add width: 'auto' for exact sizing
+   style={{ tableLayout: 'fixed', width: 'auto' }}
    ```
 
 3. **✅ Column Width Application**
