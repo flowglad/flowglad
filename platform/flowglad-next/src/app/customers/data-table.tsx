@@ -154,7 +154,7 @@ export function CustomersDataTable({
       </div>
 
       {/* Table */}
-      <Table>
+      <Table style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow

@@ -172,7 +172,7 @@ export function ProductsDataTable({
       </div>
 
       {/* Table */}
-      <Table>
+      <Table style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow

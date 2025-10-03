@@ -107,6 +107,88 @@ These components should already exist in your project:
 
 ---
 
+## 🚨 CRITICAL: Table Layout Fixed Property
+
+**⚠️ EVERY table MUST include `style={{ tableLayout: 'fixed' }}` on the `<Table>` element.**
+
+### Why This Is Critical
+
+Without `tableLayout: 'fixed'`, all your column sizing will be **silently broken**:
+
+```tsx
+// ❌ BROKEN - Browser ignores all your width settings
+<Table>
+  <TableHead style={{ width: header.getSize() }}>
+
+// ✅ CORRECT - Browser respects your width settings  
+<Table style={{ tableLayout: 'fixed' }}>
+  <TableHead style={{ width: header.getSize() }}>
+```
+
+### The Problem Explained
+
+HTML tables have two layout algorithms:
+
+**1. `table-layout: auto` (browser default)** ❌
+- Browser **ignores** explicit width values
+- Calculates widths based on **content**
+- All your `size`/`minSize`/`maxSize` properties are **useless**
+- Columns jump around as data changes
+
+**2. `table-layout: fixed` (what we need)** ✅
+- Browser **respects** explicit width values
+- Uses header row widths for ALL rows
+- Your TanStack sizing properties **work correctly**
+- Consistent column widths across all data
+
+### Real Example
+
+```typescript
+// Your column definition
+{
+  id: 'email',
+  size: 220,
+  minSize: 180,
+  maxSize: 250,
+  cell: ({ row }) => (
+    <div className="truncate">{row.getValue('email')}</div>
+  )
+}
+
+// WITHOUT tableLayout: 'fixed'
+// Result: Column becomes 352px (browser decides based on content)
+// Your maxSize: 250 is COMPLETELY IGNORED ❌
+
+// WITH tableLayout: 'fixed'
+// Result: Column is exactly 220px
+// Content truncates with ellipsis if too long ✅
+```
+
+### The "Silent Failure" Trap
+
+This is especially dangerous because **tables look fine without it**:
+- ✅ Table renders
+- ✅ Data displays
+- ✅ No console errors
+- ❌ But all sizing is broken
+
+You won't notice until:
+- Content changes and columns jump sizes
+- You set a maxSize and it's ignored
+- Layout is inconsistent across pages
+
+### Remember
+
+**ALWAYS include in every data-table.tsx:**
+
+```tsx
+<Table style={{ tableLayout: 'fixed' }}>
+```
+
+This is the **bridge** between TanStack Table's sizing calculations and the browser's rendering engine. Without it, they don't communicate! 🌉
+
+---
+
 ## Migration Steps
 
 ### Step 1: Review Reference Implementation (If Available)
@@ -551,7 +633,7 @@ export function YourDataTable({
       </div>
 
       {/* Table */}
-      <Table>
+      <Table style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
@@ -1044,7 +1126,7 @@ export function YourDataTable({
       </div>
 
       {/* Table - same as before */}
-      <Table>
+      <Table style={{ tableLayout: 'fixed' }}>
         {/* ... table implementation ... */}
       </Table>
 
@@ -1199,6 +1281,40 @@ If clicking rows shouldn't navigate anywhere, remove the onClick handler:
 ---
 
 ## Critical Patterns to Follow
+
+### ✅ DO: Always Use `tableLayout: 'fixed'`
+
+```tsx
+// ✅ CORRECT - REQUIRED for column sizing to work
+<Table style={{ tableLayout: 'fixed' }}>
+  <TableHeader>
+    {table.getHeaderGroups().map((headerGroup) => (
+      <TableRow key={headerGroup.id}>
+        {headerGroup.headers.map((header) => (
+          <TableHead
+            key={header.id}
+            style={{ width: header.getSize() }} // Only works with tableLayout: fixed
+          >
+            {/* header content */}
+          </TableHead>
+        ))}
+      </TableRow>
+    ))}
+  </TableHeader>
+</Table>
+
+// ❌ WRONG - Will cause silent sizing failures
+<Table>  // Missing tableLayout: 'fixed'
+  <TableHeader>...</TableHeader>
+</Table>
+```
+
+**Why this matters:**
+- Without it, browsers ignore your explicit width values
+- All `size`/`minSize`/`maxSize` properties become useless
+- Columns size based on content, not your definitions
+- Creates inconsistent layouts across different data sets
+- **Silent failure**: Table looks fine but sizing is broken
 
 ### ✅ DO: Use `accessorFn` for Nested Data
 
@@ -1357,6 +1473,8 @@ if (newPagination.pageSize !== currentPageSize) {
 After migration, test these scenarios **on all pages where the table is used** (main listing page AND detail pages):
 
 ### Core Functionality (Test on Each Page)
+- [ ] **🚨 CRITICAL: tableLayout: 'fixed'** - Inspect Table element in browser DevTools, verify it has `style="table-layout: fixed;"`
+- [ ] **Column widths respected** - Verify columns match their defined `size` values (not content-based)
 - [ ] **Table renders** - Table displays correctly with data
 - [ ] **Column visibility** - Toggle columns via settings icon
 - [ ] **Pagination** - Navigate pages, change page size
@@ -1402,11 +1520,13 @@ After migration, test these scenarios **on all pages where the table is used** (
 
 ✅ **Migration is successful when:**
 
-1. **No linter errors** in new files
-2. **All existing functionality works** (search, filters, actions, modals)
-3. **Create button moved** from page header to table toolbar
-4. **Old table component deleted**
-5. **All table usages updated**:
+1. **🚨 CRITICAL: tableLayout: 'fixed' applied** - Table element has `style={{ tableLayout: 'fixed' }}`
+2. **Column widths work correctly** - Columns respect their `size` values (not content-based)
+3. **No linter errors** in new files
+4. **All existing functionality works** (search, filters, actions, modals)
+5. **Create button moved** from page header to table toolbar
+6. **Old table component deleted**
+7. **All table usages updated**:
    - Main listing page updated
    - All detail pages updated (if applicable)
    - `TableHeader` components removed from all usages
@@ -1612,6 +1732,7 @@ Before copying patterns from the reference branch, verify they're frontend-only:
 
 ## Revision History
 
+- **v1.4** (Oct 2025) - **CRITICAL UPDATE**: Added prominent section on `tableLayout: 'fixed'` requirement after discovering all 4 tables were missing this critical CSS property. Updated all code templates, testing checklist, and success criteria to emphasize this requirement. This prevents silent sizing failures where tables appear to work but column sizing is completely broken.
 - **v1.3** (Oct 2025) - Added Step 6 for finding and updating all table usages including detail pages, expanded testing checklist and success criteria to include detail page testing, added usage pattern analysis to Step 2
 - **v1.2** (Oct 2025) - Updated pagination pattern to use `goToFirstPage()` instead of `handlePaginationChange(0)` when page size changes to prevent stale cursor bugs
 - **v1.1** (Oct 2025) - Added emphasis on `data-table-refactor` branch as reference, git commands for accessing files

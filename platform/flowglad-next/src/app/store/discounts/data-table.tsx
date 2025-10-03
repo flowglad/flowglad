@@ -23,27 +23,33 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns } from './columns'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import { columns, DiscountTableRowData } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
-import { PricingModel } from '@/db/schema/pricingModels'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 
-export interface PricingModelsTableFilters {
+export interface DiscountsTableFilters {
+  active?: boolean
   organizationId?: string
-  isDefault?: boolean
 }
 
-interface PricingModelsDataTableProps {
-  filters?: PricingModelsTableFilters
-  onCreatePricingModel?: () => void
+interface DiscountsDataTableProps {
+  filters?: DiscountsTableFilters
+  onCreateDiscount?: () => void
+  filterOptions?: { value: string; label: string }[]
+  activeFilter?: string
+  onFilterChange?: (value: string) => void
 }
 
-export function PricingModelsDataTable({
+export function DiscountsDataTable({
   filters = {},
-  onCreatePricingModel,
-}: PricingModelsDataTableProps) {
+  onCreateDiscount,
+  filterOptions,
+  activeFilter,
+  onFilterChange,
+}: DiscountsDataTableProps) {
   const router = useRouter()
 
   // Page size state for server-side pagination
@@ -58,14 +64,22 @@ export function PricingModelsDataTable({
     isLoading,
     isFetching,
   } = usePaginatedTableState<
-    PricingModel.TableRow,
-    PricingModelsTableFilters
+    DiscountTableRowData,
+    DiscountsTableFilters
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
-    useQuery: trpc.pricingModels.getTableRows.useQuery,
+    useQuery: trpc.discounts.getTableRows.useQuery,
   })
+
+  // Reset to first page when filters change
+  // Use JSON.stringify to get stable comparison of filter object
+  const filtersKey = JSON.stringify(filters)
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
 
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -124,14 +138,26 @@ export function PricingModelsDataTable({
 
   return (
     <div className="w-full">
-      {/* Toolbar without search */}
-      <div className="flex items-center py-4">
-        <div className="flex items-center gap-2 ml-auto">
+      {/* Enhanced toolbar */}
+      <div className="flex items-center justify-between py-4 gap-4 min-w-0">
+        {/* Filter buttons on the left */}
+        <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
+          {filterOptions && activeFilter && onFilterChange && (
+            <FilterButtonGroup
+              options={filterOptions}
+              value={activeFilter}
+              onValueChange={onFilterChange}
+            />
+          )}
+        </div>
+
+        {/* View options and create button on the right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <DataTableViewOptions table={table} />
-          {onCreatePricingModel && (
-            <Button onClick={onCreatePricingModel}>
+          {onCreateDiscount && (
+            <Button onClick={onCreateDiscount}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Pricing Model
+              Create Discount
             </Button>
           )}
         </div>
@@ -177,22 +203,7 @@ export function PricingModelsDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
-                onClick={(e) => {
-                  // Only navigate if not clicking on interactive elements
-                  const target = e.target as HTMLElement
-                  if (
-                    target.closest('button') ||
-                    target.closest('[role="checkbox"]') ||
-                    target.closest('input[type="checkbox"]') ||
-                    target.closest('[data-radix-collection-item]')
-                  ) {
-                    return
-                  }
-                  router.push(
-                    `/store/pricing-models/${row.original.pricingModel.id}`
-                  )
-                }}
+                className={isFetching ? 'opacity-50' : ''}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
