@@ -50,7 +50,9 @@ function epochRefineForInsert<TTable extends PgTable>(
   Pick<TableColumns<TTable>, EpochInsertKeys<TTable>>,
   undefined
 > {
-  const cols = getTableColumns(table as any) as Record<string, any>
+  const cols = getTableColumns(table)
+  const item = Object.values(cols)[0]
+
   const out: Record<string, z.ZodTypeAny> = {}
   for (const [k, col] of Object.entries(cols)) {
     if ((col as any).__brand === TIMESTAMPTZ_MS) out[k] = zodEpochMs
@@ -309,12 +311,11 @@ export function buildSchemas<
     z.ZodType<UpdateOut>
 
   // ---------- Optional client schemas (preserve enums via re-apply after omits) ----------
-  const hiddenColumns = (params?.client?.hiddenColumns ??
-    ({} as {})) as HC
+  const hiddenColumns = (params?.client?.hiddenColumns ?? {}) as HC
   const readOnlyColumns = (params?.client?.readOnlyColumns ??
-    ({} as {})) as ROC
+    {}) as ROC
   const createOnlyColumns = (params?.client?.createOnlyColumns ??
-    ({} as {})) as COC
+    {}) as COC
 
   const clientSelectBuilt = (
     Object.keys(hiddenColumns).length
@@ -391,7 +392,10 @@ export function buildSchemas<
       ObjShape<typeof insertSchemaRaw>,
       typeof insertRefine
     >,
-    HiddenKeysOnInsert | ReadOnlyKeysOnInsert
+    | HiddenKeysOnInsert
+    | ReadOnlyKeysOnInsert
+    | 'livemode'
+    | 'organizationId'
   >
   // ignoring typescript here which claims this is a possibly infinitely deep type.
   // @ts-ignore - this should be a a ts-expect-error but tsc and ts server treat it differently
@@ -442,9 +446,14 @@ export function buildSchemas<
       ObjShape<typeof updateSchemaRaw>,
       typeof updateRefine
     >,
-    HiddenKeysOnUpdate | ReadOnlyKeysOnUpdate | CreateOnlyKeysOnUpdate
-  > &
-    z.ZodRawShape
+    | HiddenKeysOnUpdate
+    | ReadOnlyKeysOnUpdate
+    | CreateOnlyKeysOnUpdate
+    | 'livemode'
+    | 'organizationId'
+  >
+  // ignoring typescript here which claims this is a possibly infinitely deep type.
+  // @ts-ignore - this should be a a ts-expect-error but tsc and ts server treat it differently
   let clientUpdate = clientUpdateBuilt as unknown as WithShape<
     typeof updateSchemaRaw,
     ClientUpdateShape

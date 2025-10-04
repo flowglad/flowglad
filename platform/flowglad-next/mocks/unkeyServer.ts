@@ -22,6 +22,25 @@ export const unkeyHandlers = [
     })
   }),
 
+  // Regional/catch-all variants for createKey
+  http.post('https://api.us.unkey.dev/v1/keys.createKey', () => {
+    return HttpResponse.json({
+      key: `unkey_mock_key_${core.nanoid()}`,
+      keyId: `key_mock123_${core.nanoid()}`,
+      start: new Date().toISOString(),
+    })
+  }),
+  http.post(
+    /https:\/\/api(\.\w+)?\.unkey\.dev\/v1\/keys\.createKey$/,
+    () => {
+      return HttpResponse.json({
+        key: `unkey_mock_key_${core.nanoid()}`,
+        keyId: `key_mock123_${core.nanoid()}`,
+        start: new Date().toISOString(),
+      })
+    }
+  ),
+
   http.post('https://api.unkey.dev/v1/keys.deleteKey', () => {
     return HttpResponse.json({
       success: true,

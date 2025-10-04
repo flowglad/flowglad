@@ -378,9 +378,10 @@ export const ledgerCommandForPaymentSucceeded = async (
     price.productId,
     transaction
   )
-  const usageCreditFeature = features.find(
-    (feature) => feature.type === FeatureType.UsageCreditGrant
-  )
+
+  const usageCreditFeature = features
+    .sort((a, b) => a.position - b.position)
+    .find((feature) => feature.type === FeatureType.UsageCreditGrant)
 
   if (!usageCreditFeature) {
     return undefined

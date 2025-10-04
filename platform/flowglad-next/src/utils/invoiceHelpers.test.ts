@@ -308,7 +308,10 @@ describe('updateInvoiceTransaction', () => {
               invoice: {
                 id: invoice.id,
                 type: InvoiceType.Purchase,
-                purchaseId: invoice.purchaseId!,
+                status: invoice.status,
+                currency: invoice.currency,
+                dueDate: invoice.dueDate,
+                invoiceDate: invoice.invoiceDate,
               },
               invoiceLineItems: [
                 {
@@ -339,9 +342,10 @@ describe('updateInvoiceTransaction', () => {
             invoice: {
               id: invoice.id,
               type: InvoiceType.Purchase,
-              billingPeriodId: null,
-              purchaseId: invoice.purchaseId!,
-              subscriptionId: null,
+              status: invoice.status,
+              currency: invoice.currency,
+              invoiceDate: invoice.invoiceDate,
+              dueDate: invoice.dueDate,
             },
             invoiceLineItems: [
               {

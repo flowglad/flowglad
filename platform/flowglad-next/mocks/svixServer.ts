@@ -11,7 +11,24 @@ export const svixHandlers = [
       createdAt: new Date().toISOString(),
     })
   }),
+  // US region endpoints
+  http.post('https://api.us.svix.com/api/v1/app', () => {
+    return HttpResponse.json({
+      id: `app_mock_${core.nanoid()}`,
+      name: 'Mock Application',
+      uid: core.nanoid(),
+      createdAt: new Date().toISOString(),
+    })
+  }),
   http.get('https://api.svix.com/api/v1/app/:appId', () => {
+    return HttpResponse.json({
+      id: `app_mock_${core.nanoid()}`,
+      name: 'Mock Application',
+      uid: core.nanoid(),
+      createdAt: new Date().toISOString(),
+    })
+  }),
+  http.get('https://api.us.svix.com/api/v1/app/:appId', () => {
     return HttpResponse.json({
       id: `app_mock_${core.nanoid()}`,
       name: 'Mock Application',
