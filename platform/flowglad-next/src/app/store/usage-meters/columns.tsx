@@ -4,6 +4,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { formatDate } from '@/utils/core'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 
 type UsageMeterTableRowData = {
   usageMeter: UsageMeter.ClientRecord
@@ -39,9 +40,14 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
     maxSize: 300,
     cell: ({ row }) => {
       const name = row.getValue('pricingModel') as string
+      const pricingModelId = row.original.pricingModel.id
       return (
-        <div className="truncate" title={name}>
-          {name}
+        <div onClick={(e) => e.stopPropagation()}>
+          <DataTableLinkableCell
+            href={`/store/pricing-models/${pricingModelId}`}
+          >
+            {name}
+          </DataTableLinkableCell>
         </div>
       )
     },
