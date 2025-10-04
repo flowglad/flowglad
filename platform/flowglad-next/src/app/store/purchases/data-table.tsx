@@ -118,7 +118,7 @@ export function PurchasesDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar with view options */}
-      <div className="flex items-center py-4">
+      <div className="flex items-center pt-4 pb-2">
         <div className="flex items-center gap-2 ml-auto">
           <DataTableViewOptions table={table} />
         </div>
