@@ -283,15 +283,15 @@ export type BulkInsertUsageEventsInput = z.infer<
 >
 
 // Pagination schemas
-export const usageEventPaginatedSelectSchema = z.object({
-  cursor: z.string().optional(),
-  limit: z.number().min(1).max(100).default(10),
-  customerId: z.string().optional(),
-  usageMeterId: z.string().optional(),
-  subscriptionId: z.string().optional(),
-  dateFrom: z.string().optional(),
-  dateTo: z.string().optional(),
-})
+export const usageEventPaginatedSelectSchema = createPaginatedSelectSchema(
+  z.object({
+    customerId: z.string().optional(),
+    usageMeterId: z.string().optional(),
+    subscriptionId: z.string().optional(),
+    dateFrom: z.string().optional(),
+    dateTo: z.string().optional(),
+  })
+)
 
 export const usageEventPaginatedListSchema = z.object({
   items: z.array(usageEventsClientSelectSchema),
