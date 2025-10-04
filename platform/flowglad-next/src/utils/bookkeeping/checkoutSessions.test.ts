@@ -511,9 +511,10 @@ describe('Checkout Sessions', async () => {
       await adminTransaction(async ({ transaction }) => {
         await updatePurchase(
           {
-            ...purchase,
+            id: purchase.id,
+            priceType: purchase.priceType,
             status: PurchaseStatus.Paid,
-          } as Purchase.Update,
+          },
           transaction
         )
       })
