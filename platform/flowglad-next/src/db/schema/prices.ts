@@ -44,10 +44,7 @@ import {
   usageMetersClientSelectSchema,
 } from './usageMeters'
 import { currencyCodeSchema } from '../commonZodSchema'
-import {
-  featuresClientSelectSchema,
-  featuresSelectSchema,
-} from './features'
+import { featuresClientSelectSchema } from './features'
 
 const readOnlyColumns = {
   livemode: true,

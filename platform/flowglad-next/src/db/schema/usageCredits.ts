@@ -2,10 +2,7 @@ import {
   boolean,
   text,
   pgTable,
-  pgPolicy,
   integer,
-  char,
-  timestamp,
   jsonb,
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
@@ -17,25 +14,25 @@ import {
   constructIndex,
   livemodePolicy,
   pgEnumColumn,
-  ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
   constructUniqueIndex,
   timestampWithTimezoneColumn,
   zodEpochMs,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { payments } from '@/db/schema/payments'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import {
   UsageCreditType,
   UsageCreditStatus,
   UsageCreditSourceReferenceType,
 } from '@/types'
 import core from '@/utils/core'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'usage_credits'
 
@@ -133,68 +130,37 @@ const columnRefinements = {
   paymentId: z.string().nullable(),
 }
 
-/*
- * database schema
- */
-export const usageCreditsInsertSchema = createInsertSchema(
-  usageCredits
-)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const usageCreditsSelectSchema = createSelectSchema(
-  usageCredits,
-  columnRefinements
-).extend(columnRefinements)
-
-export const usageCreditsUpdateSchema = usageCreditsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-const createOnlyColumns = {
-  issuedAmount: true,
-  creditType: true,
-  status: true,
-  subscriptionId: true,
-} as const
-
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
-
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
-
-const clientWriteOmits = {
-  organizationId: true,
-  livemode: true,
-} as const
-
-/*
- * client schemas
- */
-export const usageCreditClientInsertSchema = usageCreditsInsertSchema
-  .omit({
-    organizationId: true,
-    livemode: true,
-  })
-  .meta({ id: 'UsageCreditClientInsertSchema' })
-
-export const usageCreditClientUpdateSchema = usageCreditsUpdateSchema
-  .omit({
-    ...clientWriteOmits,
-    ...createOnlyColumns,
-    sourceReferenceId: true,
-    subscriptionId: true,
-  })
-  .meta({ id: 'UsageCreditClientUpdateSchema' })
-
-export const usageCreditClientSelectSchema = usageCreditsSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'UsageCreditClientSelectSchema' })
+export const {
+  select: usageCreditsSelectSchema,
+  insert: usageCreditsInsertSchema,
+  update: usageCreditsUpdateSchema,
+  client: {
+    insert: usageCreditClientInsertSchema,
+    select: usageCreditClientSelectSchema,
+    update: usageCreditClientUpdateSchema,
+  },
+} = buildSchemas(usageCredits, {
+  refine: {
+    ...columnRefinements,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      organizationId: true,
+      livemode: true,
+    },
+    createOnlyColumns: {
+      issuedAmount: true,
+      creditType: true,
+      status: true,
+      subscriptionId: true,
+      sourceReferenceId: true,
+    },
+  },
+  entityName: 'UsageCredit',
+})
 
 export namespace UsageCredit {
   export type Insert = z.infer<typeof usageCreditsInsertSchema>
