@@ -128,7 +128,7 @@ export function UsageMetersDataTable({
   return (
     <div className="w-full">
       {/* Toolbar */}
-      <div className="flex items-center pt-4 pb-2">
+      <div className="flex items-center pt-4 pb-3">
         <div className="flex items-center gap-2 ml-auto">
           <DataTableViewOptions table={table} />
           {onCreateUsageMeter && (

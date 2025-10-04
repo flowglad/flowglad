@@ -134,7 +134,7 @@ export function CustomersDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar with all improvements */}
-      <div className="flex items-center pt-4 pb-2">
+      <div className="flex items-center pt-4 pb-3">
         <div className="flex items-center gap-2 ml-auto">
           <CollapsibleSearch
             value={inputValue}

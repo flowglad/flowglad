@@ -735,7 +735,7 @@ export function YourDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex items-center pt-4 pb-2">
+      <div className="flex items-center pt-4 pb-3">
         <div className="flex items-center gap-2 ml-auto">
           {/* ⚠️ ONLY for customers table - remove for other tables */}
           <CollapsibleSearch
@@ -1087,7 +1087,7 @@ const { ... } = usePaginatedTableState({
 })
 
 // 3. In toolbar - DON'T include CollapsibleSearch:
-<div className="flex items-center pt-4 pb-2">
+<div className="flex items-center pt-4 pb-3">
   <div className="flex items-center gap-2 ml-auto">
     {/* ❌ Remove CollapsibleSearch component */}
     <DataTableViewOptions table={table} />
@@ -1243,7 +1243,7 @@ export function YourDataTable({
   return (
     <div className="w-full">
       {/* Toolbar WITHOUT search */}
-      <div className="flex items-center pt-4 pb-2">
+      <div className="flex items-center pt-4 pb-3">
         <div className="flex items-center gap-2 ml-auto">
           {/* ✅ NO CollapsibleSearch - goes straight to controls */}
           <DataTableViewOptions table={table} />
