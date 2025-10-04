@@ -26,6 +26,7 @@ import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core, { zodOptionalNullableString } from '@/utils/core'
 import { FeatureUsageGrantFrequency, FeatureType } from '@/types'
 import { sql } from 'drizzle-orm'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'subscription_item_features'
 
@@ -121,15 +122,15 @@ const columnRefinements = {
 /*
  * Core database schemas
  */
-export const coreSubscriptionItemFeaturesInsertSchema =
-  createInsertSchema(subscriptionItemFeatures)
-    .omit(baseOmittedColumnsForInsertSchema)
-    .extend(columnRefinements)
-
 export const coreSubscriptionItemFeaturesSelectSchema =
   createSelectSchema(subscriptionItemFeatures).extend(
     columnRefinements
   )
+
+export const coreSubscriptionItemFeaturesInsertSchema =
+  createInsertSchema(subscriptionItemFeatures)
+    .omit(baseOmittedColumnsForInsertSchema)
+    .extend(columnRefinements)
 
 export const coreSubscriptionItemFeaturesUpdateSchema =
   coreSubscriptionItemFeaturesInsertSchema
@@ -146,18 +147,30 @@ const toggleSubscriptionItemFeatureSharedColumns = {
   renewalFrequency: z.literal(null).optional(),
 }
 
-export const toggleSubscriptionItemFeatureInsertSchema =
-  coreSubscriptionItemFeaturesInsertSchema.extend(
-    toggleSubscriptionItemFeatureSharedColumns
-  )
-export const toggleSubscriptionItemFeatureSelectSchema =
-  coreSubscriptionItemFeaturesSelectSchema.extend(
-    toggleSubscriptionItemFeatureSharedColumns
-  )
-export const toggleSubscriptionItemFeatureUpdateSchema =
-  coreSubscriptionItemFeaturesUpdateSchema.extend(
-    toggleSubscriptionItemFeatureSharedColumns
-  )
+export const {
+  insert: toggleSubscriptionItemFeatureInsertSchema,
+  select: toggleSubscriptionItemFeatureSelectSchema,
+  update: toggleSubscriptionItemFeatureUpdateSchema,
+  client: {
+    insert: baseToggleSubscriptionItemFeatureClientInsertSchema,
+    select: baseToggleSubscriptionItemFeatureClientSelectSchema,
+    update: toggleSubscriptionItemFeatureClientUpdateSchema,
+  },
+} = buildSchemas(subscriptionItemFeatures, {
+  discriminator: 'type',
+  refine: {
+    ...columnRefinements,
+    ...toggleSubscriptionItemFeatureSharedColumns,
+  },
+  client: {
+    hiddenColumns: {
+      ...baseHiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {},
+    createOnlyColumns: {},
+  },
+  entityName: 'ToggleSubscriptionItemFeature',
+})
 
 /*
  * Usage Credit Grant SubscriptionItemFeature schemas
@@ -170,18 +183,30 @@ const usageCreditGrantSubscriptionItemFeatureSharedColumns = {
     FeatureUsageGrantFrequency
   ),
 }
-export const usageCreditGrantSubscriptionItemFeatureInsertSchema =
-  coreSubscriptionItemFeaturesInsertSchema.extend(
-    usageCreditGrantSubscriptionItemFeatureSharedColumns
-  )
-export const usageCreditGrantSubscriptionItemFeatureSelectSchema =
-  coreSubscriptionItemFeaturesSelectSchema.extend(
-    usageCreditGrantSubscriptionItemFeatureSharedColumns
-  )
-export const usageCreditGrantSubscriptionItemFeatureUpdateSchema =
-  coreSubscriptionItemFeaturesUpdateSchema.extend(
-    usageCreditGrantSubscriptionItemFeatureSharedColumns
-  )
+export const {
+  insert: usageCreditGrantSubscriptionItemFeatureInsertSchema,
+  select: usageCreditGrantSubscriptionItemFeatureSelectSchema,
+  update: usageCreditGrantSubscriptionItemFeatureUpdateSchema,
+  client: {
+    insert: usageCreditGrantSubscriptionItemFeatureClientInsertSchema,
+    select: usageCreditGrantSubscriptionItemFeatureClientSelectSchema,
+    update: usageCreditGrantSubscriptionItemFeatureClientUpdateSchema,
+  },
+} = buildSchemas(subscriptionItemFeatures, {
+  discriminator: 'type',
+  refine: {
+    ...columnRefinements,
+    ...usageCreditGrantSubscriptionItemFeatureSharedColumns,
+  },
+  client: {
+    hiddenColumns: {
+      ...baseHiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {},
+    createOnlyColumns: {},
+  },
+  entityName: 'UsageCreditGrantSubscriptionItemFeature',
+})
 
 /*
  * Combined discriminated union schemas (internal)
@@ -204,71 +229,21 @@ export const subscriptionItemFeaturesUpdateSchema =
     usageCreditGrantSubscriptionItemFeatureUpdateSchema,
   ])
 
-const clientWriteOmitSpec = R.omit(
-  [
-    'id',
-    'createdAt',
-    'updatedAt',
-    'createdByCommit',
-    'updatedByCommit',
-    'position',
-  ],
-  baseOmittedColumnsForInsertSchema
-)
-
-const clientSelectOmitSpec = {
-  ...baseHiddenColumnsForClientSchema,
-} as const
-
+// augment generated client schemas with additional display fields
 const clientSelectWithFeatureFieldRefinements = {
   name: z.string(),
   slug: z.string(),
 }
-/*
- * Client-facing Toggle SubscriptionItemFeature schemas
- */
-export const toggleSubscriptionItemFeatureClientInsertSchema =
-  toggleSubscriptionItemFeatureInsertSchema
-    .omit(clientWriteOmitSpec)
-    .extend(clientSelectWithFeatureFieldRefinements)
-    .meta({ id: 'ToggleSubscriptionItemFeatureInsert' })
 
 export const toggleSubscriptionItemFeatureClientSelectSchema =
-  toggleSubscriptionItemFeatureSelectSchema
-    .omit(clientSelectOmitSpec)
-    .extend(clientSelectWithFeatureFieldRefinements)
-    .meta({ id: 'ToggleSubscriptionItemFeatureRecord' })
+  baseToggleSubscriptionItemFeatureClientSelectSchema.extend(
+    clientSelectWithFeatureFieldRefinements
+  )
 
-export const toggleSubscriptionItemFeatureClientUpdateSchema =
-  toggleSubscriptionItemFeatureUpdateSchema
-    .partial()
-    .extend({
-      type: z.literal(FeatureType.Toggle),
-    })
-    .omit(clientWriteOmitSpec)
-    .meta({ id: 'ToggleSubscriptionItemFeatureUpdate' })
-
-/*
- * Client-facing Usage Credit Grant SubscriptionItemFeature schemas
- */
-export const usageCreditGrantSubscriptionItemFeatureClientInsertSchema =
-  usageCreditGrantSubscriptionItemFeatureInsertSchema
-    .omit(clientWriteOmitSpec)
-    .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureInsert' })
-
-export const usageCreditGrantSubscriptionItemFeatureClientSelectSchema =
-  usageCreditGrantSubscriptionItemFeatureSelectSchema
-    .omit(clientSelectOmitSpec)
-    .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureRecord' })
-
-export const usageCreditGrantSubscriptionItemFeatureClientUpdateSchema =
-  usageCreditGrantSubscriptionItemFeatureUpdateSchema
-    .partial()
-    .extend({
-      type: z.literal(FeatureType.UsageCreditGrant),
-    })
-    .omit(clientWriteOmitSpec)
-    .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureUpdate' })
+export const toggleSubscriptionItemFeatureClientInsertSchema =
+  baseToggleSubscriptionItemFeatureClientInsertSchema.extend(
+    clientSelectWithFeatureFieldRefinements
+  )
 
 /*
  * Combined client-facing discriminated union schemas

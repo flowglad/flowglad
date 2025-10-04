@@ -17,29 +17,13 @@ import {
   Price,
 } from '@/db/schema/prices'
 import { PriceType } from '@/types'
+import { idInputSchema } from '@/db/tableUtils'
 
 interface SetPriceAsDefaultProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
   price: Price.ClientRecord
-}
-
-export const priceToSetPriceAsDefaultInput = (
-  price: Pick<
-    Price.ClientRecord,
-    'id' | 'productId' | 'active' | 'type'
-  >
-): EditPriceInput => {
-  return {
-    id: price.id,
-    price: {
-      id: price.id,
-      productId: price.productId,
-      isDefault: true,
-      type: price.type,
-    },
-  }
 }
 
 const SetPriceAsDefault: React.FC<SetPriceAsDefaultProps> = ({
@@ -49,18 +33,20 @@ const SetPriceAsDefault: React.FC<SetPriceAsDefaultProps> = ({
   price,
 }) => {
   const router = useRouter()
-  const editPrice = trpc.prices.update.useMutation()
+  const setPriceAsDefault = trpc.prices.setAsDefault.useMutation()
 
   const handleMakeDefault = async () => {
-    const data = priceToSetPriceAsDefaultInput(price)
+    const data = {
+      id: price.id,
+    }
 
-    const parsed = editPriceSchema.safeParse(data)
+    const parsed = idInputSchema.safeParse(data)
     if (!parsed.success) {
       console.error('Invalid data:', parsed.error)
       return
     }
 
-    await editPrice.mutateAsync(parsed.data)
+    await setPriceAsDefault.mutateAsync(parsed.data)
     router.refresh()
     setIsOpen(false)
   }
@@ -88,7 +74,7 @@ const SetPriceAsDefault: React.FC<SetPriceAsDefaultProps> = ({
             </Button>
             <Button
               onClick={handleMakeDefault}
-              disabled={editPrice.isPending}
+              disabled={setPriceAsDefault.isPending}
             >
               Set as Default
             </Button>

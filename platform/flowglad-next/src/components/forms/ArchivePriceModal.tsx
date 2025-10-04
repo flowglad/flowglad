@@ -16,29 +16,13 @@ import {
   editPriceSchema,
   Price,
 } from '@/db/schema/prices'
+import { idInputSchema } from '@/db/tableUtils'
 
 interface ArchivePriceModalProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
   price: Price.ClientRecord
-}
-
-export const priceToArchivePriceInput = (
-  price: Pick<
-    Price.ClientRecord,
-    'id' | 'productId' | 'active' | 'type'
-  >
-): EditPriceInput => {
-  return {
-    id: price.id,
-    price: {
-      id: price.id,
-      productId: price.productId,
-      active: !price.active,
-      type: price.type,
-    },
-  }
 }
 
 const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
@@ -48,17 +32,19 @@ const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
   price,
 }) => {
   const router = useRouter()
-  const editPrice = trpc.prices.update.useMutation()
+  const archivePrice = trpc.prices.archive.useMutation()
 
   const handleArchive = async () => {
-    const data = priceToArchivePriceInput(price)
-    const parsed = editPriceSchema.safeParse(data)
+    const data = {
+      id: price.id,
+    }
+    const parsed = idInputSchema.safeParse(data)
     if (!parsed.success) {
       console.error('Invalid data:', parsed.error)
       return
     }
 
-    await editPrice.mutateAsync(parsed.data)
+    await archivePrice.mutateAsync(parsed.data)
     router.refresh()
     setIsOpen(false)
   }
@@ -99,7 +85,7 @@ const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
             </Button>
             <Button
               onClick={handleArchive}
-              disabled={editPrice.isPending}
+              disabled={archivePrice.isPending}
             >
               {price.active ? 'Archive price' : 'Unarchive price'}
             </Button>

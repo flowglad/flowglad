@@ -1281,13 +1281,15 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should handle nested billing details address for tax country', async () => {
+      const billingAddress: PaymentMethod.BillingDetails =
+        paymentMethod.billingDetails
       // Update payment method with nested address
       await adminTransaction(async ({ transaction }) => {
         await updatePaymentMethod(
           {
             id: paymentMethod.id,
             billingDetails: {
-              ...paymentMethod.billingDetails,
+              ...billingAddress,
               address: {
                 country: 'US',
                 line1: null,
