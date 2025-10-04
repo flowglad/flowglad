@@ -214,6 +214,50 @@ export const createInsertManyFunction = <
         return parsed.data
       })
     } catch (error) {
+      if (IS_TEST) {
+        // Log info to help debug Zod errors in test mode
+        if (error instanceof z.ZodError) {
+          for (const issue of error.issues) {
+            const { path, message } = issue
+            // Try to extract the problematic value and its type from the input
+            let value: unknown = undefined
+            let valueType: string = 'unknown'
+            if (Array.isArray(insert)) {
+              for (const item of insert) {
+                let current: any = item
+                for (const key of path) {
+                  if (
+                    current &&
+                    typeof current === 'object' &&
+                    key in current
+                  ) {
+                    current = current[key]
+                  } else {
+                    current = undefined
+                    break
+                  }
+                }
+                if (current !== undefined) {
+                  value = current
+                  valueType = Object.prototype.toString.call(current)
+                  break
+                }
+              }
+            }
+            // Print debug info
+            console.info(
+              '[createInsertManyFunction][TEST] ZodError at path:',
+              path.join('.'),
+              '| value:',
+              value,
+              '| type:',
+              valueType,
+              '| message:',
+              message
+            )
+          }
+        }
+      }
       if (!IS_TEST) {
         console.error(
           `[createInsertManyFunction] Error inserting into ${config.tableName}:`,
@@ -229,6 +273,7 @@ export const createInsertManyFunction = <
           { cause: error }
         )
       }
+
       throw new Error(
         `Failed to insert items into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
