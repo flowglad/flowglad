@@ -532,6 +532,10 @@ export const processPaymentIntentStatusUpdated = async (
       payload: {
         id: payment.id,
         object: EventNoun.Payment,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       submittedAt: timestamp,
       hash: constructPaymentFailedEventHash(payment),
@@ -540,6 +544,10 @@ export const processPaymentIntentStatusUpdated = async (
     })
   }
   if (purchase && purchase.status === PurchaseStatus.Paid) {
+    const customer = await selectCustomerById(
+      purchase.customerId,
+      transaction
+    )
     eventInserts.push({
       type: FlowgladEventType.PurchaseCompleted,
       occurredAt: timestamp,
@@ -548,6 +556,12 @@ export const processPaymentIntentStatusUpdated = async (
       payload: {
         id: purchase.id,
         object: EventNoun.Purchase,
+        customer: customer
+          ? {
+              id: customer.id,
+              externalId: customer.externalId,
+            }
+          : undefined,
       },
       submittedAt: timestamp,
       hash: constructPurchaseCompletedEventHash(purchase),

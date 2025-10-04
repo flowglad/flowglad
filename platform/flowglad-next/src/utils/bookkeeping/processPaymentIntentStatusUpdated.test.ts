@@ -1763,6 +1763,10 @@ describe('Process payment intent status updated', async () => {
       expect(purchaseCompletedEvent!.payload).toEqual({
         id: purchase.id,
         object: EventNoun.Purchase,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       })
       expect(purchaseCompletedEvent!.processedAt).toBeNull()
     })
@@ -2068,6 +2072,10 @@ describe('Process payment intent status updated', async () => {
       expect(purchaseCompletedEvent!.payload).toEqual({
         id: purchase.id,
         object: EventNoun.Purchase,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       })
     })
 
