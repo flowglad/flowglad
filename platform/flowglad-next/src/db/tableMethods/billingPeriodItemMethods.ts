@@ -24,6 +24,7 @@ import {
   between,
   SQL,
   desc,
+  asc,
 } from 'drizzle-orm'
 import { DbTransaction } from '@/db/types'
 import {
@@ -254,7 +255,10 @@ export const selectBillingPeriodsWithItemsAndSubscriptionForDateRange =
           dateRangeCondition
         )
       )
-      .orderBy(desc(billingPeriods.startDate))
+      .orderBy(
+        desc(billingPeriods.startDate),
+        asc(billingPeriods.position)
+      )
 
     if (!result.length) {
       return []

@@ -58,6 +58,7 @@ import {
   SubscriptionItemType,
   StripeConnectContractType,
   BusinessOnboardingStatus,
+  NormalBalanceType,
 } from '@/types'
 import { core, isNil } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -1551,7 +1552,14 @@ export const setupLedgerAccount = async ({
 }) => {
   return adminTransaction(async ({ transaction }) => {
     return insertLedgerAccount(
-      { subscriptionId, usageMeterId, livemode, organizationId },
+      {
+        subscriptionId,
+        usageMeterId,
+        livemode,
+        organizationId,
+        normalBalance: NormalBalanceType.CREDIT,
+        version: 0,
+      },
       transaction
     )
   })

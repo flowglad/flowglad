@@ -3,6 +3,7 @@ import {
   PriceType,
   IntervalUnit,
   SubscriptionItemType,
+  NormalBalanceType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -312,6 +313,8 @@ export const setupLedgerAccounts = async (
         usageMeterId: price.usageMeterId,
         livemode: subscription.livemode,
         organizationId: subscription.organizationId,
+        normalBalance: NormalBalanceType.CREDIT,
+        version: 0,
       },
     ],
     transaction
