@@ -22,6 +22,7 @@ import {
 import { PurchaseAccessSessionSource } from '@/types'
 import core from '@/utils/core'
 import { purchases } from './purchases'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'purchase_access_sessions'
 
@@ -55,47 +56,34 @@ const columnEnhancers = {
   source: core.createSafeZodEnum(PurchaseAccessSessionSource),
 }
 
-export const purchaseAccessSessionsInsertSchema = createInsertSchema(
-  purchaseAccessSessions
-)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnEnhancers)
-
-export const purchaseAccessSessionsSelectSchema = createSelectSchema(
-  purchaseAccessSessions
-).extend(columnEnhancers)
-
-export const purchaseAccessSessionsUpdateSchema =
-  purchaseAccessSessionsInsertSchema
-    .partial()
-    .extend({ id: z.string() })
-
-const readonlyColumns = {
-  purchaseId: true,
-  granted: true,
-  expires: true,
-  metadata: true,
-  source: true,
-  livemode: true,
-  token: true,
-} as const
-
-const hiddenColumns = {} as const
-
-const purchaseAccessSessionsClientSelectSchema =
-  purchaseAccessSessionsSelectSchema.omit(hiddenColumns)
-
-const purchaseAccessSessionsClientInsertSchema =
-  purchaseAccessSessionsInsertSchema.omit({
-    ...readonlyColumns,
-    ...hiddenColumns,
-  })
-
-const purchaseAccessSessionsClientUpdateSchema =
-  purchaseAccessSessionsUpdateSchema.omit({
-    ...readonlyColumns,
-    ...hiddenColumns,
-  })
+export const {
+  select: purchaseAccessSessionsSelectSchema,
+  insert: purchaseAccessSessionsInsertSchema,
+  update: purchaseAccessSessionsUpdateSchema,
+  client: {
+    select: purchaseAccessSessionsClientSelectSchema,
+    insert: purchaseAccessSessionsClientInsertSchema,
+    update: purchaseAccessSessionsClientUpdateSchema,
+  },
+} = buildSchemas(purchaseAccessSessions, {
+  refine: {
+    ...columnEnhancers,
+  },
+  client: {
+    hiddenColumns: {},
+    readOnlyColumns: {
+      purchaseId: true,
+      granted: true,
+      expires: true,
+      metadata: true,
+      source: true,
+      livemode: true,
+      token: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'PurchaseAccessSession',
+})
 
 export namespace PurchaseAccessSession {
   export type Insert = z.infer<

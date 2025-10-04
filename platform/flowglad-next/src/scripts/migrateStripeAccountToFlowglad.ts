@@ -307,7 +307,7 @@ const migrateStripeSubscriptionDataToFlowglad = async (
     const subscriptionRecords = await selectSubscriptions(
       {
         externalId: subscriptionInserts.map(
-          (subscription) => subscription.externalId
+          (subscription) => subscription.externalId!
         ),
       },
       transaction

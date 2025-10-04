@@ -24,6 +24,7 @@ interface ArchiveProductModalProps {
   product: {
     id: string
     active: boolean
+    name: string
   }
 }
 
@@ -41,6 +42,8 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
       product: {
         id: product.id,
         active: !product.active,
+        displayFeatures: [],
+        name: product.name,
       },
       id: product.id,
     }

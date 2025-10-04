@@ -117,6 +117,7 @@ const MoreMenuCell = ({
         product={{
           id: product.id,
           active: product.active,
+          name: product.name,
         }}
       />
     </MoreMenuTableCell>
