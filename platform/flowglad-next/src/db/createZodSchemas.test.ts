@@ -223,6 +223,9 @@ describe('buildClientSchemas via buildSchemas(...).client - client schemas', () 
   })
 
   it('read-only columns appear only in client select', () => {
+    /**
+     * Test plain case
+     */
     const { client } = buildSchemas(testTable, {
       client: { readOnlyColumns: { status: true } as any },
     })
@@ -238,6 +241,25 @@ describe('buildClientSchemas via buildSchemas(...).client - client schemas', () 
     expect('status' in s).toBe(true)
     expect('status' in i).toBe(false)
     expect('status' in u).toBe(false)
+    /**
+     * Test read-only columns override refine priority
+     */
+    const { client: client2 } = buildSchemas(testTable, {
+      refine: { status: z.enum(['base']) },
+      client: { readOnlyColumns: { status: true } as any },
+    })
+    const s2 =
+      (client2.select as any).shape ??
+      (client2.select as any)._def.shape()
+    const i2 =
+      (client2.insert as any).shape ??
+      (client2.insert as any)._def.shape()
+    const u2 =
+      (client2.update as any).shape ??
+      (client2.update as any)._def.shape()
+    expect('status' in s2).toBe(true)
+    expect('status' in i2).toBe(false)
+    expect('status' in u2).toBe(false)
   })
 
   it('livemode and organizationId are auto read-only (present in select, omitted in insert/update)', () => {

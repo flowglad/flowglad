@@ -274,21 +274,21 @@ export const buildClientSchemas = <
     ...hiddenColumns,
     ...readOnlyColumns,
   } as Record<string, true>)
+  clientInsertBase = (
+    insertSchemaRaw as unknown as z.ZodObject<any>
+  ).extend(insertRefine as unknown as Partial<ObjShape<TInsertRaw>>)
   if (Object.keys(insertOmitMask).length) {
-    clientInsertBase = (
-      insertSchemaRaw as unknown as z.ZodObject<any>
-    ).omit(
+    clientInsertBase = clientInsertBase.omit(
       insertOmitMask as unknown as Partial<
         Record<keyof ObjShape<TInsertRaw>, true>
       >
     )
   } else {
-    clientInsertBase = insertSchemaRaw as unknown as z.ZodObject<any>
+    clientInsertBase = clientInsertBase as unknown as z.ZodObject<any>
   }
 
-  const clientInsertBuilt = clientInsertBase.extend(
-    insertRefine as unknown as Partial<ObjShape<TInsertRaw>>
-  )
+  const clientInsertBuilt = clientInsertBase
+
   type ClientInsertShape = Omit<
     OverrideShapeWithRefine<
       ObjShape<TInsertRaw>,
@@ -305,7 +305,6 @@ export const buildClientSchemas = <
     ClientInsertShape
   >
 
-  let clientUpdateBase: z.ZodObject<any>
   const updateOmitMask = {
     ...clientWriteOmitsConstructor({
       ...hiddenColumns,
@@ -313,6 +312,14 @@ export const buildClientSchemas = <
     } as Record<string, true>),
     ...R.omit(['id'], ommittedColumnsForInsertSchema),
   }
+  let clientUpdateBase: z.ZodObject<any> = (
+    updateSchemaRaw as unknown as z.ZodObject<any>
+  )
+    .extend(updateRefine as unknown as Partial<ObjShape<TUpdateRaw>>)
+    .extend({
+      id: z.string(),
+    })
+
   // Avoid double-omitting keys that are already omitted from the server update schema
   const rawUpdateShape: Record<string, unknown> =
     ((updateSchemaRaw as any).shape ??
@@ -329,9 +336,7 @@ export const buildClientSchemas = <
     updateOmitMask as Record<string, true>
   )
   if (Object.keys(filteredUpdateOmitMask).length) {
-    clientUpdateBase = (
-      updateSchemaRaw as unknown as z.ZodObject<any>
-    ).omit(
+    clientUpdateBase = clientUpdateBase.omit(
       filteredUpdateOmitMask as unknown as Partial<
         Record<keyof ObjShape<TUpdateRaw>, true>
       >
@@ -344,12 +349,12 @@ export const buildClientSchemas = <
       >
     )
     clientUpdateBase = Object.keys(defaultMask).length
-      ? (updateSchemaRaw as unknown as z.ZodObject<any>).omit(
+      ? clientUpdateBase.omit(
           defaultMask as unknown as Partial<
             Record<keyof ObjShape<TUpdateRaw>, true>
           >
         )
-      : (updateSchemaRaw as unknown as z.ZodObject<any>)
+      : (clientUpdateBase as unknown as z.ZodObject<any>)
   }
   if (Object.keys(createOnlyColumns).length) {
     clientUpdateBase = clientUpdateBase.omit(
@@ -358,9 +363,7 @@ export const buildClientSchemas = <
       >
     )
   }
-  const clientUpdateBuilt = clientUpdateBase.extend(
-    updateRefine as unknown as Partial<ObjShape<TUpdateRaw>>
-  )
+  const clientUpdateBuilt = clientUpdateBase
   type ClientUpdateShape = Omit<
     OverrideShapeWithRefine<
       ObjShape<TUpdateRaw>,
@@ -539,7 +542,6 @@ export const createServerSchemas = <
       })
     : baseUpdate.extend({ id: z.string() })
 
-  const update = updateSchemaRaw
   type ServerUpdateShape = OverrideShapeWithRefineKeepOptional<
     ObjShape<typeof updateSchemaRaw>,
     typeof updateRefine

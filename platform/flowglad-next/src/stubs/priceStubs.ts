@@ -31,6 +31,14 @@ export const subscriptionDummyPrice: Price.SubscriptionRecord = {
 export const singlePaymentDummyPrice: Price.SinglePaymentRecord = {
   ...subscriptionDummyPrice,
   ...singlePaymentPriceDefaultColumns,
+  intervalCount: null,
+  intervalUnit: null,
+  trialPeriodDays: null,
+  setupFeeAmount: null,
+  overagePriceId: null,
+  usageEventsPerUnit: null,
+  startsWithCreditTrial: null,
+  usageMeterId: null,
 }
 
 export const usageDummyPrice: Price.UsageRecord = {
