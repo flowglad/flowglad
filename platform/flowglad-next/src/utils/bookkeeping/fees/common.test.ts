@@ -71,7 +71,6 @@ describe('calculatePriceBaseAmount', () => {
     expect(
       calculatePriceBaseAmount({
         price,
-        // @ts-expect-error - we are testing the fallback behavior
         purchase: {
           ...subscriptionWithoutTrialDummyPurchase,
           firstInvoiceValue: null,
