@@ -575,6 +575,10 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         transaction
       )
       // Add upgrade event to the events to log
+      const customer = await selectCustomerById(
+        output.result.subscription.customerId,
+        transaction
+      )
       eventInserts.push({
         type: FlowgladEventType.SubscriptionCreated,
         occurredAt: new Date(),
@@ -589,6 +593,12 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         payload: {
           object: EventNoun.Subscription,
           id: output.result.subscription.id,
+          customer: customer
+            ? {
+                id: customer.id,
+                externalId: customer.externalId,
+              }
+            : undefined,
         },
       })
     }
@@ -602,6 +612,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+    
     eventInserts.push({
       type: FlowgladEventType.PurchaseCompleted,
       occurredAt: new Date(),
@@ -614,6 +625,12 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       payload: {
         id: updatedPurchase.id,
         object: EventNoun.Purchase,
+        customer: customer
+          ? {
+              id: customer.id,
+              externalId: customer.externalId,
+            }
+          : undefined,
       },
     })
 

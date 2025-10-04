@@ -396,6 +396,10 @@ export const createCustomerBookkeeping = async (
     payload: {
       object: EventNoun.Customer,
       id: customer.id,
+      customer:{
+        id: customer.id,
+        externalId: customer.externalId,
+      }
     },
     submittedAt: timestamp,
     hash: constructCustomerCreatedEventHash(customer),
