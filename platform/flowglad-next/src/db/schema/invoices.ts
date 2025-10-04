@@ -283,11 +283,6 @@ export const {
     ...refineColumns,
     ...standaloneInvoiceColumnExtensions,
   },
-  client: {
-    // hiddenColumns,
-    // readOnlyColumns,
-    // createOnlyColumns,
-  },
   entityName: 'StandaloneInvoice',
 })
 

@@ -153,13 +153,10 @@ export const {
     update: organizationsClientUpdateSchema,
   },
 } = buildSchemas(organizations, {
-  refine: {
-    ...commonColumnRefinements,
+  refine: commonColumnRefinements,
+  insertRefine: {
     monthlyBillingVolumeFreeTier:
       core.safeZodNonNegativeInteger.optional(),
-  },
-  selectRefine: {
-    ...newBaseZodSelectSchemaColumns,
   },
   client: {
     hiddenColumns: {

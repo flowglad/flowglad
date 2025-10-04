@@ -75,7 +75,8 @@ describe('calculatePriceBaseAmount', () => {
           ...subscriptionWithoutTrialDummyPurchase,
           firstInvoiceValue: null,
           pricePerBillingCycle: null,
-        } as Purchase.Record,
+          // note - testing fallback behavior
+        } as unknown as Purchase.SubscriptionPurchaseClientRecord,
       })
     ).toBe(1000)
   })

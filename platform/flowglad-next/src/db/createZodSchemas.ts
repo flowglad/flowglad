@@ -173,6 +173,20 @@ type OverrideShapeWithRefine<Base, BR> = BR extends RefineRecord
     }
   : Base
 
+// Preserve optional keys from the Base shape when overriding with refine types.
+// If the original shape had a key wrapped in ZodOptional, keep it optional in the
+// resulting shape even if the refine type is non-optional.
+type OverrideShapeWithRefineKeepOptional<Base, BR> =
+  BR extends RefineRecord
+    ? Omit<Base, KeysToOverride<Base, BR>> & {
+        [K in KeysToOverride<Base, BR>]: BR[K] extends z.ZodTypeAny
+          ? Base[K] extends z.ZodOptional<any>
+            ? z.ZodOptional<BR[K]>
+            : BR[K]
+          : Base[K]
+      }
+    : Base
+
 // ---------- client schema builder ----------
 export const buildClientSchemas = <
   TSelectRaw extends z.ZodObject<any>,
@@ -466,7 +480,14 @@ export const createServerSchemas = <
       T['$inferSelect']
     >
   )
-  const select = selectSchemaRaw
+  type ServerSelectShape = OverrideShapeWithRefine<
+    ObjShape<typeof selectSchemaRaw>,
+    typeof selectRefine
+  >
+  const select = selectSchemaRaw as unknown as WithShape<
+    typeof selectSchemaRaw,
+    ServerSelectShape
+  >
 
   const insertSchemaRaw = createInsertSchema(
     table,
@@ -475,7 +496,14 @@ export const createServerSchemas = <
       T['$inferInsert']
     >
   ).omit(ommittedColumnsForInsertSchema)
-  const insert = insertSchemaRaw
+  type ServerInsertShape = OverrideShapeWithRefine<
+    ObjShape<typeof insertSchemaRaw>,
+    typeof insertRefine
+  >
+  const insert = insertSchemaRaw as unknown as WithShape<
+    typeof insertSchemaRaw,
+    ServerInsertShape
+  >
 
   const baseUpdate = createUpdateSchema(
     table,
@@ -512,11 +540,19 @@ export const createServerSchemas = <
     : baseUpdate.extend({ id: z.string() })
 
   const update = updateSchemaRaw
+  type ServerUpdateShape = OverrideShapeWithRefineKeepOptional<
+    ObjShape<typeof updateSchemaRaw>,
+    typeof updateRefine
+  >
+  const updateTyped = updateSchemaRaw as unknown as WithShape<
+    typeof updateSchemaRaw,
+    ServerUpdateShape
+  >
 
   return {
     select,
     insert,
-    update,
+    update: updateTyped,
     raws: {
       select: selectSchemaRaw,
       insert: insertSchemaRaw,

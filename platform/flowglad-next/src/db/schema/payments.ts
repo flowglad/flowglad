@@ -142,7 +142,6 @@ const columnEnhancements = {
   amount: core.safeZodPositiveIntegerOrZero,
   status: core.createSafeZodEnum(PaymentStatus),
   currency: currencyCodeSchema,
-  chargeDate: zodEpochMs,
   settlementDate: zodEpochMs.nullable().optional(),
   refundedAt: zodEpochMs.nullable().optional(),
   paymentMethod: core.createSafeZodEnum(PaymentMethodType),

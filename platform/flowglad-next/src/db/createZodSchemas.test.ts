@@ -185,6 +185,7 @@ describe('createZodSchemas/buildSchemas - server schemas', () => {
 
   it('throws when discriminator is specified but missing from update/base refine', () => {
     expect(() =>
+      // @ts-ignore  - test
       buildSchemas(testTable, { discriminator: 'status' as any })
     ).toThrow(/Discriminator .* not found/i)
   })
