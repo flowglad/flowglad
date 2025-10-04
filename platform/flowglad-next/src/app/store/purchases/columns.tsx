@@ -87,7 +87,11 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
   {
     id: 'status',
     accessorFn: (row) =>
-      row.purchase.purchaseDate ? 'Paid' : 'Pending',
+      row.purchase.endDate
+        ? 'Concluded'
+        : row.purchase.purchaseDate
+          ? 'Paid'
+          : 'Pending',
     header: 'Status',
     size: 100,
     minSize: 80,
