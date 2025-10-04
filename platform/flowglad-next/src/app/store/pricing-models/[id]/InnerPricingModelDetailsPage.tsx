@@ -14,7 +14,7 @@ import FeaturesTable from '@/app/features/FeaturesTable'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
 import DefaultBadge from '@/components/DefaultBadge'
-import UsageMetersTable from '@/app/store/usage-meters/UsageMetersTable'
+import { UsageMetersDataTable } from '@/app/store/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 
 export type InnerPricingModelDetailsPageProps = {
@@ -107,16 +107,11 @@ function InnerPricingModelDetailsPage({
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableHeader
-            title="Usage Meters"
-            buttonLabel="Create Usage Meter"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
-              setIsCreateUsageMeterModalOpen(true)
-            }}
-          />
-          <UsageMetersTable
+          <UsageMetersDataTable
             filters={{ pricingModelId: pricingModel.id }}
+            onCreateUsageMeter={() =>
+              setIsCreateUsageMeterModalOpen(true)
+            }
           />
         </div>
       </div>

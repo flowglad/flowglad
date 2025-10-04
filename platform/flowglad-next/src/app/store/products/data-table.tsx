@@ -146,7 +146,7 @@ export function ProductsDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar with all improvements */}
-      <div className="flex items-center justify-between py-4 gap-4 min-w-0">
+      <div className="flex items-center justify-between pt-4 pb-2 gap-4 min-w-0">
         {/* Filter buttons on the left */}
         <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
           {filterOptions && activeFilter && onFilterChange && (

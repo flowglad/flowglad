@@ -26,27 +26,23 @@ import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { columns } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { useRouter } from 'next/navigation'
+import { UsageMeter } from '@/db/schema/usageMeters'
 import { Plus } from 'lucide-react'
 
-export interface PricingModelsTableFilters {
-  organizationId?: string
-  isDefault?: boolean
+export interface UsageMetersTableFilters {
+  pricingModelId?: string
 }
 
-interface PricingModelsDataTableProps {
-  filters?: PricingModelsTableFilters
-  onCreatePricingModel?: () => void
+interface UsageMetersDataTableProps {
+  filters?: UsageMetersTableFilters
+  onCreateUsageMeter?: () => void
 }
 
-export function PricingModelsDataTable({
+export function UsageMetersDataTable({
   filters = {},
-  onCreatePricingModel,
-}: PricingModelsDataTableProps) {
-  const router = useRouter()
-
-  // Page size state for server-side pagination
+  onCreateUsageMeter,
+}: UsageMetersDataTableProps) {
+  // Dynamic page size state (REQUIRED for server-side pagination)
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
   const {
@@ -58,17 +54,16 @@ export function PricingModelsDataTable({
     isLoading,
     isFetching,
   } = usePaginatedTableState<
-    PricingModel.TableRow,
-    PricingModelsTableFilters
+    UsageMeter.TableRow,
+    UsageMetersTableFilters
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
-    filters: filters,
-    useQuery: trpc.pricingModels.getTableRows.useQuery,
+    filters,
+    useQuery: trpc.usageMeters.getTableRows.useQuery,
   })
 
   // Reset to first page when filters change
-  // Use JSON.stringify to get stable comparison of filter object
   const filtersKey = JSON.stringify(filters)
   React.useEffect(() => {
     goToFirstPage()
@@ -91,12 +86,12 @@ export function PricingModelsDataTable({
     columnResizeMode: 'onEnd',
     defaultColumn: {
       size: 150,
-      minSize: 50,
+      minSize: 20,
       maxSize: 500,
     },
-    manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
+    manualPagination: true,
+    manualSorting: false,
+    manualFiltering: false,
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -111,9 +106,9 @@ export function PricingModelsDataTable({
       // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        goToFirstPage() // Properly clears both cursors to avoid stale pagination state
+        goToFirstPage()
       }
-      // Handle page index changes (page navigation)
+      // Handle page index changes
       else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
@@ -132,20 +127,20 @@ export function PricingModelsDataTable({
 
   return (
     <div className="w-full">
-      {/* Toolbar without search */}
+      {/* Toolbar */}
       <div className="flex items-center pt-4 pb-3">
         <div className="flex items-center gap-2 ml-auto">
           <DataTableViewOptions table={table} />
-          {onCreatePricingModel && (
-            <Button onClick={onCreatePricingModel}>
+          {onCreateUsageMeter && (
+            <Button onClick={onCreateUsageMeter}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Pricing Model
+              Create Usage Meter
             </Button>
           )}
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table - NO extra wrapper div */}
       <Table className="w-full" style={{ tableLayout: 'fixed' }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -153,21 +148,19 @@ export function PricingModelsDataTable({
               key={headerGroup.id}
               className="hover:bg-transparent"
             >
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead
-                    key={header.id}
-                    style={{ width: header.getSize() }}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                )
-              })}
+              {headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
+                  style={{ width: header.getSize() }}
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                </TableHead>
+              ))}
             </TableRow>
           ))}
         </TableHeader>
@@ -185,22 +178,7 @@ export function PricingModelsDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
-                onClick={(e) => {
-                  // Only navigate if not clicking on interactive elements
-                  const target = e.target as HTMLElement
-                  if (
-                    target.closest('button') ||
-                    target.closest('[role="checkbox"]') ||
-                    target.closest('input[type="checkbox"]') ||
-                    target.closest('[data-radix-collection-item]')
-                  ) {
-                    return
-                  }
-                  router.push(
-                    `/store/pricing-models/${row.original.pricingModel.id}`
-                  )
-                }}
+                className={isFetching ? 'opacity-50' : ''}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
