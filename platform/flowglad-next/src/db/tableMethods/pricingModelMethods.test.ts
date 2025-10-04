@@ -16,6 +16,7 @@ import {
   safelyInsertPricingModel,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
   selectPricingModelForCustomer,
+  selectPricingModels,
 } from './pricingModelMethods'
 import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
 import { setupCustomer } from '@/../seedDatabase'
@@ -141,12 +142,13 @@ describe('safelyUpdatePricingModel', () => {
   })
 
   it('should not affect default pricingModels across livemode boundaries when updating', async () => {
-    // Create a test mode (livemode: false) default pricing model for the same organization
-    const testModePricingModel = await setupPricingModel({
-      organizationId: organization.id,
-      name: 'Test Mode Default PricingModel',
-      isDefault: true,
-      livemode: false,
+    // Get the testmode pricing model that setupOrg already created
+    const testModePricingModel = await adminTransaction(async ({ transaction }) => {
+      const [pricingModel] = await selectPricingModels(
+        { organizationId: organization.id, livemode: false, isDefault: true },
+        transaction
+      )
+      return pricingModel!
     })
 
     // Verify we have two default pricing models - one for each livemode
