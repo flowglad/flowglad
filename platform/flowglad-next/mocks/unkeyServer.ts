@@ -52,6 +52,27 @@ export const unkeyHandlers = [
       success: true,
     })
   }),
+  // Add regional variants for verify, delete, and update
+  http.post('https://api.us.unkey.dev/v1/keys.verifyKey', () => {
+    return HttpResponse.json({
+      valid: true,
+      ownerId: `owner_mock_id_${core.nanoid()}`,
+      meta: {},
+      expires: null,
+      remaining: null,
+      ratelimit: null,
+    })
+  }),
+  http.post('https://api.us.unkey.dev/v1/keys.deleteKey', () => {
+    return HttpResponse.json({
+      success: true,
+    })
+  }),
+  http.post('https://api.us.unkey.dev/v1/keys.updateKey', () => {
+    return HttpResponse.json({
+      success: true,
+    })
+  }),
 ]
 
 export const unkeyServer = setupServer(...unkeyHandlers)

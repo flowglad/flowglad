@@ -299,22 +299,43 @@ export const buildClientSchemas = <
     } as Record<string, true>),
     ...R.omit(['id'], ommittedColumnsForInsertSchema),
   }
-  if (Object.keys(updateOmitMask).length) {
+  // Avoid double-omitting keys that are already omitted from the server update schema
+  const rawUpdateShape: Record<string, unknown> =
+    ((updateSchemaRaw as any).shape ??
+      (updateSchemaRaw as any)._def?.shape?.()) ||
+    {}
+  const filterMaskToExistingKeys = (mask: Record<string, true>) => {
+    const filtered: Record<string, true> = {}
+    for (const key of Object.keys(mask)) {
+      if (key in rawUpdateShape) filtered[key] = true
+    }
+    return filtered
+  }
+  const filteredUpdateOmitMask = filterMaskToExistingKeys(
+    updateOmitMask as Record<string, true>
+  )
+  if (Object.keys(filteredUpdateOmitMask).length) {
     clientUpdateBase = (
       updateSchemaRaw as unknown as z.ZodObject<any>
     ).omit(
-      updateOmitMask as unknown as Partial<
+      filteredUpdateOmitMask as unknown as Partial<
         Record<keyof ObjShape<TUpdateRaw>, true>
       >
     )
   } else {
-    clientUpdateBase = (
-      updateSchemaRaw as unknown as z.ZodObject<any>
-    ).omit(
-      ommittedColumnsForInsertSchema as unknown as Partial<
-        Record<keyof ObjShape<TUpdateRaw>, true>
+    const defaultMask = filterMaskToExistingKeys(
+      ommittedColumnsForInsertSchema as unknown as Record<
+        string,
+        true
       >
     )
+    clientUpdateBase = Object.keys(defaultMask).length
+      ? (updateSchemaRaw as unknown as z.ZodObject<any>).omit(
+          defaultMask as unknown as Partial<
+            Record<keyof ObjShape<TUpdateRaw>, true>
+          >
+        )
+      : (updateSchemaRaw as unknown as z.ZodObject<any>)
   }
   if (Object.keys(createOnlyColumns).length) {
     clientUpdateBase = clientUpdateBase.omit(
@@ -462,7 +483,10 @@ export const createServerSchemas = <
       Pick<TableColumns<T>, InsertKeys<T>>,
       undefined
     >
-  ).partial()
+  )
+    .partial()
+    // Remove non-updatable timestamp columns from server update schema
+    .omit({ createdAt: true, updatedAt: true })
 
   if (
     params?.discriminator &&
