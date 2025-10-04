@@ -337,17 +337,13 @@ export const adjustSubscription = async (
       }))
 
   prorationAdjustments.push(...removedAdjustments, ...addedAdjustments)
-  
-  // The new logic using calculateCorrectProrationAmount handles all correction scenarios
-  
+    
   // Add a correction adjustment to reach the correct net charge
   // The netChargeAmount is the total amount that should be charged to the customer
   // The proration adjustments may not add up to this amount, so we need a correction
   const currentTotal = prorationAdjustments.reduce((sum, adj) => sum + (adj.unitPrice * adj.quantity), 0)
   const adjustmentNeeded = netChargeAmount - currentTotal
-  
-  console.log(`DEBUG: currentTotal=${currentTotal}, netChargeAmount=${netChargeAmount}, adjustmentNeeded=${adjustmentNeeded}`)
-  
+    
   if (Math.abs(adjustmentNeeded) > 0) {
     prorationAdjustments.push({
       billingPeriodId: currentBillingPeriodForSubscription.id,

@@ -956,7 +956,7 @@ describe('adjustSubscription Integration Tests', async () => {
   })
 
   /* ==========================================================================
-     Subscription Record Update (Data Consistency Fix)
+     Subscription Record Update
   ========================================================================== */
   describe('Subscription Record Update', () => {
     it('should update subscription record when subscription items change to maintain data consistency', async () => {
