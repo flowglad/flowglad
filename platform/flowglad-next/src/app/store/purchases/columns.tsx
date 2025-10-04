@@ -8,6 +8,7 @@ import { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode } from '@/types'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 
 type PurchaseTableRowData = {
   purchase: Purchase.ClientRecord
@@ -73,8 +74,12 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
           ? original.customer.email
           : original.customer.name
       return (
-        <div className="truncate" title={displayName}>
-          {displayName}
+        <div onClick={(e) => e.stopPropagation()}>
+          <DataTableLinkableCell
+            href={`/customers/${original.customer.id}`}
+          >
+            {displayName}
+          </DataTableLinkableCell>
         </div>
       )
     },
