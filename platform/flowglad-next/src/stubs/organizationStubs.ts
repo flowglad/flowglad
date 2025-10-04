@@ -7,8 +7,8 @@ import {
 
 export const dummyOrganization: Organization.Record = {
   id: '1',
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
   name: 'Test Organization',
   stripeAccountId: 'acct_123456',
   subdomainSlug: 'test-org',

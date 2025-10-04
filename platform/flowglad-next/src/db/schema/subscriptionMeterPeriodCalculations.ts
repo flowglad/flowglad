@@ -16,15 +16,16 @@ import {
   pgEnumColumn,
   nullableStringForeignKey,
   timestampWithTimezoneColumn,
-  ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { billingPeriods } from '@/db/schema/billingPeriods'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { createSelectSchema } from 'drizzle-zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import { SubscriptionMeterPeriodCalculationStatus } from '@/types'
 import core from '@/utils/core'
 import { invoices } from './invoices'
@@ -133,43 +134,24 @@ const columnRefinements = {
 /*
  * Database Schemas
  */
-export const subscriptionMeterPeriodCalculationInsertSchema =
-  createInsertSchema(subscriptionMeterPeriodCalculations)
-    .omit(ommittedColumnsForInsertSchema)
-    .extend(columnRefinements)
-
-export const subscriptionMeterPeriodCalculationSelectSchema =
-  createSelectSchema(subscriptionMeterPeriodCalculations).extend(
-    columnRefinements
-  )
-
-export const subscriptionMeterPeriodCalculationUpdateSchema =
-  subscriptionMeterPeriodCalculationInsertSchema
-    .partial()
-    .extend({ id: z.string() })
-
-// Simplified omit logic for client schemas
-const baseHiddenClientKeys = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
-
-const serverGeneratedKeys = {
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  calculatedAt: true, // Defaulted by DB
-} as const
-
-/*
- * Client Schemas
- */
-export const subscriptionMeterPeriodCalculationClientSelectSchema =
-  subscriptionMeterPeriodCalculationSelectSchema
-    .omit(baseHiddenClientKeys)
-    .meta({
-      id: 'SubscriptionMeterPeriodCalculationClientSelectSchema',
-    })
+export const {
+  select: subscriptionMeterPeriodCalculationSelectSchema,
+  insert: subscriptionMeterPeriodCalculationInsertSchema,
+  update: subscriptionMeterPeriodCalculationUpdateSchema,
+  client: {
+    select: subscriptionMeterPeriodCalculationClientSelectSchema,
+  },
+} = buildSchemas(subscriptionMeterPeriodCalculations, {
+  refine: {
+    ...columnRefinements,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+  },
+  entityName: 'SubscriptionMeterPeriodCalculation',
+})
 
 export namespace SubscriptionMeterPeriodCalculation {
   export type Insert = z.infer<

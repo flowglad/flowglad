@@ -21,10 +21,10 @@ export interface CreateSubscriptionParams {
   price: Price.ClientRecord
   quantity: number
   livemode: boolean
-  startDate: Date
+  startDate: Date | number
   interval?: IntervalUnit | null
   intervalCount?: number | null
-  trialEnd?: Date
+  trialEnd?: Date | number
   stripeSetupIntentId?: string
   metadata?: Subscription.ClientRecord['metadata']
   name?: string
@@ -32,9 +32,9 @@ export interface CreateSubscriptionParams {
   backupPaymentMethod?: PaymentMethod.Record
   autoStart?: boolean
   discountRedemption?: DiscountRedemption.Record | null
-  billingCycleAnchorDate?: Date
-  preservedBillingPeriodEnd?: Date
-  preservedBillingPeriodStart?: Date
+  billingCycleAnchorDate?: Date | number
+  preservedBillingPeriodEnd?: Date | number
+  preservedBillingPeriodStart?: Date | number
   prorateFirstPeriod?: boolean
 }
 

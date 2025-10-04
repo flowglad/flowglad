@@ -48,7 +48,7 @@ export const findPurchaseAccessSession = async (
     return null
   }
   const session = sessions[0]
-  if (session.expires && session.expires < new Date()) {
+  if (session.expires && session.expires < Date.now()) {
     return null
   }
 
@@ -70,7 +70,7 @@ export const createPurchaseAccessSession = async (
       purchaseId: params.purchaseId,
       token: core.nanoid(),
       source: params.source,
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
       granted: params.autoGrant,
       livemode: params.livemode,
       metadata: params.metadata,

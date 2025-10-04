@@ -82,6 +82,7 @@ describe('usageMeterMethods', () => {
         name: 'Old Name',
         pricingModelId,
       })
+
       await adminTransaction(async ({ transaction }) => {
         const updated = await updateUsageMeter(
           { id: meter.id, name: 'New Name' },

@@ -32,7 +32,7 @@ export const cancelSubscriptionImmediately = async (
   if (isSubscriptionInTerminalState(subscription.status)) {
     return subscription
   }
-  const endDate = new Date()
+  const endDate = Date.now()
   const status = SubscriptionStatus.Canceled
 
   const billingPeriodsForSubscription = await selectBillingPeriods(
@@ -40,14 +40,14 @@ export const cancelSubscriptionImmediately = async (
     transaction
   )
   const earliestBillingPeriod = billingPeriodsForSubscription.sort(
-    (a, b) => a.startDate.getTime() - b.startDate.getTime()
+    (a, b) => a.startDate - b.startDate
   )[0]
   if (
     earliestBillingPeriod &&
     endDate < earliestBillingPeriod.startDate
   ) {
     throw new Error(
-      `Cannot end a subscription before its start date. Subscription start date: ${earliestBillingPeriod.startDate.toISOString()}, received end date: ${endDate.toISOString()}`
+      `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
     )
   }
   const canceledAt = endDate
@@ -118,7 +118,7 @@ export const scheduleSubscriptionCancellation = async (
     return subscription
   }
 
-  let endDate: Date
+  let endDate: number
 
   if (
     timing ===
@@ -145,7 +145,7 @@ export const scheduleSubscriptionCancellation = async (
   } else if (
     timing === SubscriptionCancellationArrangement.Immediately
   ) {
-    endDate = new Date()
+    endDate = Date.now()
   } else {
     throw new Error('Invalid cancellation arrangement')
   }
@@ -157,14 +157,14 @@ export const scheduleSubscriptionCancellation = async (
     transaction
   )
   const earliestBillingPeriod = billingPeriodsForSubscription.sort(
-    (a, b) => a.startDate.getTime() - b.startDate.getTime()
+    (a, b) => a.startDate - b.startDate
   )[0]
   if (
     earliestBillingPeriod &&
     endDate < earliestBillingPeriod.startDate
   ) {
     throw new Error(
-      `Cannot end a subscription before its start date. Subscription start date: ${earliestBillingPeriod.startDate.toISOString()}, received end date: ${endDate.toISOString()}`
+      `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
     )
   }
   const canceledAt = null

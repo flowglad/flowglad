@@ -18,7 +18,7 @@ export default function Home() {
     >
       {organization && (
         <InternalDashboard
-          organizationCreatedAt={organization.createdAt}
+          organizationCreatedAt={new Date(organization.createdAt)}
         />
       )}
     </ClientAuthGuard>

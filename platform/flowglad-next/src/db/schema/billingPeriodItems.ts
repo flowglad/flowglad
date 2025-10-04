@@ -15,13 +15,13 @@ import {
   clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { billingPeriods } from '@/db/schema/billingPeriods'
-import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { discountRedemptions } from '@/db/schema/discountRedemptions'
 import core from '@/utils/core'
 import { createSelectSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 import { usageMeters } from './usageMeters'
 import { SubscriptionItemType } from '@/types'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'billing_period_items'
 
@@ -91,67 +91,75 @@ const baseBillingPeriodItemSelectSchema = createSelectSchema(
   baseColumnRefinements
 )
 
-// Static Billing Period Item Schemas
-export const staticBillingPeriodItemSelectSchema =
-  baseBillingPeriodItemSelectSchema
-    .extend({
-      type: z.literal(SubscriptionItemType.Static),
-      usageMeterId: z
-        .null()
-        .describe(
-          'Usage meter ID must be null for static billing period items.'
-        ),
-      usageEventsPerUnit: z
-        .null()
-        .describe(
-          'Usage events per unit must be null for static billing period items.'
-        ),
-    })
-    .describe(STATIC_BILLING_PERIOD_ITEM_DESCRIPTION)
+const createOnlyColumns = {
+  billingPeriodId: true,
+  discountRedemptionId: true,
+} as const
 
-export const staticBillingPeriodItemInsertSchema =
-  staticBillingPeriodItemSelectSchema
-    .omit(ommittedColumnsForInsertSchema)
-    .describe(STATIC_BILLING_PERIOD_ITEM_DESCRIPTION)
+const readOnlyColumns = {} as const
 
-export const staticBillingPeriodItemUpdateSchema =
-  staticBillingPeriodItemInsertSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      type: z.literal(SubscriptionItemType.Static), // Type cannot be changed
-    })
-    .describe(STATIC_BILLING_PERIOD_ITEM_DESCRIPTION)
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
-// Usage Billing Period Item Schemas
-export const usageBillingPeriodItemSelectSchema =
-  baseBillingPeriodItemSelectSchema
-    .extend({
-      type: z.literal(SubscriptionItemType.Usage),
-      usageMeterId: z
-        .string()
-        .describe(
-          'The usage meter associated with this usage-based billing period item.'
-        ), // Overrides base nullable
-      usageEventsPerUnit: core.safeZodPositiveInteger.describe(
-        'The number of usage events that constitute one unit for billing.'
+export const {
+  select: staticBillingPeriodItemSelectSchema,
+  insert: staticBillingPeriodItemInsertSchema,
+  update: staticBillingPeriodItemUpdateSchema,
+  client: {
+    select: staticBillingPeriodItemClientSelectSchema,
+    insert: staticBillingPeriodItemClientInsertSchema,
+    update: staticBillingPeriodItemClientUpdateSchema,
+  },
+} = buildSchemas(billingPeriodItems, {
+  discriminator: 'type',
+  refine: {
+    type: z.literal(SubscriptionItemType.Static),
+    usageMeterId: z
+      .null()
+      .optional()
+      .describe(
+        'Usage meter ID must be null for static billing period items.'
+      ),
+    usageEventsPerUnit: z
+      .null()
+      .optional()
+      .describe(
+        'Usage events per unit must be null for static billing period items.'
+      ),
+  },
+  client: {
+    hiddenColumns,
+    createOnlyColumns,
+    readOnlyColumns,
+  },
+  entityName: 'StaticBillingPeriodItem',
+})
+
+export const {
+  select: usageBillingPeriodItemSelectSchema,
+  insert: usageBillingPeriodItemInsertSchema,
+  update: usageBillingPeriodItemUpdateSchema,
+  client: {
+    select: usageBillingPeriodItemClientSelectSchema,
+    insert: usageBillingPeriodItemClientInsertSchema,
+    update: usageBillingPeriodItemClientUpdateSchema,
+  },
+} = buildSchemas(billingPeriodItems, {
+  discriminator: 'type',
+  refine: {
+    type: z.literal(SubscriptionItemType.Usage),
+    usageMeterId: z
+      .string()
+      .describe(
+        'The usage meter associated with this usage-based billing period item.'
       ), // Overrides base nullable
-    })
-    .describe(USAGE_BILLING_PERIOD_ITEM_DESCRIPTION)
-
-export const usageBillingPeriodItemInsertSchema =
-  usageBillingPeriodItemSelectSchema
-    .omit(ommittedColumnsForInsertSchema)
-    .describe(USAGE_BILLING_PERIOD_ITEM_DESCRIPTION)
-
-export const usageBillingPeriodItemUpdateSchema =
-  usageBillingPeriodItemInsertSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      type: z.literal(SubscriptionItemType.Usage), // Type cannot be changed
-    })
-    .describe(USAGE_BILLING_PERIOD_ITEM_DESCRIPTION)
+    usageEventsPerUnit: core.safeZodPositiveInteger.describe(
+      'The number of usage events that constitute one unit for billing.'
+    ), // Overrides base nullable
+  },
+  entityName: 'UsageBillingPeriodItem',
+})
 
 /*
  * database schemas
@@ -177,61 +185,9 @@ export const billingPeriodItemsUpdateSchema = z
   ])
   .describe(BILLING_PERIOD_ITEM_UPDATE_SCHEMA_DESCRIPTION)
 
-const createOnlyColumns = {
-  billingPeriodId: true,
-  discountRedemptionId: true,
-} as const
-
-const readOnlyColumns = {} as const
-
-const hiddenColumns = {
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-  ...createOnlyColumns,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
-})
-
 /*
  * client schemas
  */
-
-// Static Billing Period Item Client Schemas
-export const staticBillingPeriodItemClientInsertSchema =
-  staticBillingPeriodItemInsertSchema.omit(clientWriteOmits).meta({
-    id: 'StaticBillingPeriodItemInsert',
-  })
-export const staticBillingPeriodItemClientUpdateSchema =
-  staticBillingPeriodItemUpdateSchema.omit(clientWriteOmits).meta({
-    id: 'StaticBillingPeriodItemUpdate',
-  })
-
-export const staticBillingPeriodItemClientSelectSchema =
-  staticBillingPeriodItemSelectSchema.omit(hiddenColumns).meta({
-    id: 'StaticBillingPeriodItemRecord',
-  })
-
-// Usage Billing Period Item Client Schemas
-export const usageBillingPeriodItemClientInsertSchema =
-  usageBillingPeriodItemInsertSchema.omit(clientWriteOmits).meta({
-    id: 'UsageBillingPeriodItemInsert',
-  })
-export const usageBillingPeriodItemClientUpdateSchema =
-  usageBillingPeriodItemUpdateSchema.omit(clientWriteOmits).meta({
-    id: 'UsageBillingPeriodItemUpdate',
-  })
-
-export const usageBillingPeriodItemClientSelectSchema =
-  usageBillingPeriodItemSelectSchema.omit(hiddenColumns).meta({
-    id: 'UsageBillingPeriodItemRecord',
-  })
 
 // Client Discriminated Union Schemas
 export const billingPeriodItemClientInsertSchema = z

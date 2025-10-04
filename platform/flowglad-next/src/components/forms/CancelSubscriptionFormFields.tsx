@@ -111,8 +111,10 @@ const CancelSubscriptionFormFields: React.FC = () => {
                   >
                     <Calendar
                       mode="single"
-                      selected={field.value || undefined}
-                      onSelect={(date) => field.onChange(date)}
+                      selected={new Date(field.value) || undefined}
+                      onSelect={(date) =>
+                        field.onChange(date?.getTime())
+                      }
                       disabled={(date) => date < new Date()}
                       initialFocus
                     />

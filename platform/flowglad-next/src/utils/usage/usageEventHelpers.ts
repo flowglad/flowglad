@@ -65,8 +65,8 @@ export const ingestAndProcessUsageEvent = async (
       livemode,
       properties: usageEventInput.properties ?? {},
       usageDate: usageEventInput.usageDate
-        ? new Date(usageEventInput.usageDate)
-        : new Date(),
+        ? new Date(usageEventInput.usageDate).getTime()
+        : Date.now(),
     },
     transaction
   )

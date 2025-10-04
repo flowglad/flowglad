@@ -7,11 +7,12 @@ import { newInvoiceLineItem } from './InvoiceFormLineItemsField'
 
 describe('constructInvoiceDefaultValues', () => {
   it('should construct default values for an invoice that parses with the createInvoiceSchema', () => {
+    const now = Date.now()
     const defaultValues = constructInvoiceDefaultValues({
       id: '1',
       name: 'Test Organization',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
       domain: 'test.com',
       countryId: '1',
       logoURL: 'https://test.com/logo.png',

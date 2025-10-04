@@ -84,7 +84,7 @@ const createSubscriptionItemFeature = protectedProcedure
           await insertSubscriptionItemFeature(
             {
               ...input.subscriptionItemFeature,
-              // livemode is part of tableBase, so it's handled by enhancedCreateInsertSchema
+              livemode: ctx.livemode,
             },
             transaction
           )

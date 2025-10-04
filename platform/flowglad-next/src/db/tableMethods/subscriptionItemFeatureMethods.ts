@@ -150,13 +150,13 @@ export const bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscription
 
 export const expireSubscriptionItemFeature = async (
   subscriptionItemFeature: SubscriptionItemFeature.Record,
-  expiredAt: Date,
+  expiredAt: Date | number,
   transaction: DbTransaction
 ) => {
   return updateSubscriptionItemFeature(
     {
       ...subscriptionItemFeature,
-      expiredAt,
+      expiredAt: new Date(expiredAt).getTime(),
     },
     transaction
   )
@@ -165,13 +165,13 @@ export const expireSubscriptionItemFeature = async (
 export const expireSubscriptionItemFeaturesForSubscriptionItem =
   async (
     subscriptionItemId: string,
-    expiredAt: Date,
+    expiredAt: Date | number,
     transaction: DbTransaction
   ) => {
     const result = await transaction
       .update(subscriptionItemFeatures)
       .set({
-        expiredAt,
+        expiredAt: new Date(expiredAt).getTime(),
       })
       .where(
         eq(
@@ -204,7 +204,7 @@ export const detachSubscriptionItemFeaturesFromProductFeature =
       .update(subscriptionItemFeatures)
       .set({
         productFeatureId: null,
-        detachedAt,
+        detachedAt: new Date(detachedAt).getTime(),
         detachedReason,
       })
       .where(

@@ -24,22 +24,23 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 
 export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
-  adjustmentDate: Date,
+  adjustmentDate: Date | number,
   billingPeriod: BillingPeriod.Record
 ) => {
-  if (adjustmentDate < billingPeriod.startDate) {
+  const adjustmentTimestamp = new Date(adjustmentDate).getTime()
+  if (adjustmentTimestamp < billingPeriod.startDate) {
     throw new Error(
       'Adjustment date is before billing period start date'
     )
   }
-  if (adjustmentDate > billingPeriod.endDate) {
+  if (adjustmentTimestamp > billingPeriod.endDate) {
     throw new Error(
       'Adjustment date is after billing period end date'
     )
   }
-  const billingPeriodStartMs = billingPeriod.startDate.getTime()
-  const billingPeriodEndMs = billingPeriod.endDate.getTime()
-  const adjustmentDateMs = adjustmentDate.getTime()
+  const billingPeriodStartMs = billingPeriod.startDate
+  const billingPeriodEndMs = billingPeriod.endDate
+  const adjustmentDateMs = adjustmentTimestamp
 
   const totalBillingPeriodMs =
     billingPeriodEndMs - billingPeriodStartMs
@@ -91,9 +92,9 @@ export const adjustSubscription = async (
       `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`
     )
   }
-  let adjustmentDate: Date
+  let adjustmentDate: number
   if (timing === SubscriptionAdjustmentTiming.Immediately) {
-    adjustmentDate = new Date()
+    adjustmentDate = Date.now()
   } else if (
     timing ===
     SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod

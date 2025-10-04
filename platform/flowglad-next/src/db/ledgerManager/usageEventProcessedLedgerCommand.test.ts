@@ -110,7 +110,7 @@ beforeEach(async () => {
     transactionId: core.nanoid(),
     customerId: customer.id,
     livemode: TEST_LIVEMODE,
-    usageDate: new Date(),
+    usageDate: Date.now(),
   })
 })
 
@@ -1068,7 +1068,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         transactionId: core.nanoid(), // Re-use existing or create new
         customerId: customer.id,
         livemode: TEST_LIVEMODE,
-        usageDate: new Date(),
+        usageDate: Date.now(),
       })
 
       // 3. VERIFY: No LedgerAccount exists yet for this specific subscription and new usage meter

@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { text, pgTable, integer, boolean } from 'drizzle-orm/pg-core'
@@ -8,7 +7,6 @@ import {
   nullableStringForeignKey,
   constructIndex,
   constructUniqueIndex,
-  ommittedColumnsForInsertSchema,
   livemodePolicy,
   pgEnumColumn,
   SelectConditions,
@@ -18,10 +16,10 @@ import {
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageMeters } from '@/db/schema/usageMeters'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import { pricingModels } from './pricingModels'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'features'
 
@@ -94,21 +92,7 @@ const columnRefinements = {
 }
 
 /*
- * Core database schemas
- */
-export const coreFeaturesInsertSchema = createInsertSchema(features)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const coreFeaturesSelectSchema =
-  createSelectSchema(features).extend(columnRefinements)
-
-export const coreFeaturesUpdateSchema = coreFeaturesInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-/*
- * Toggle Feature schemas
+ * Toggle Feature schemas via buildSchemas
  */
 const toggleFeatureSharedColumns = {
   type: z.literal(FeatureType.Toggle),
@@ -117,15 +101,27 @@ const toggleFeatureSharedColumns = {
   renewalFrequency: z.literal(null).nullable(),
 }
 
-export const toggleFeatureInsertSchema =
-  coreFeaturesInsertSchema.extend(toggleFeatureSharedColumns)
-export const toggleFeatureSelectSchema =
-  coreFeaturesSelectSchema.extend(toggleFeatureSharedColumns)
-export const toggleFeatureUpdateSchema =
-  coreFeaturesUpdateSchema.extend(toggleFeatureSharedColumns)
+export const {
+  insert: toggleFeatureInsertSchema,
+  select: toggleFeatureSelectSchema,
+  update: toggleFeatureUpdateSchema,
+  client: {
+    insert: toggleFeatureClientInsertSchema,
+    select: toggleFeatureClientSelectSchema,
+    update: toggleFeatureClientUpdateSchema,
+  },
+} = buildSchemas(features, {
+  discriminator: 'type',
+  refine: toggleFeatureSharedColumns,
+  client: {
+    hiddenColumns: hiddenColumnsForClientSchema,
+    readOnlyColumns: { organizationId: true },
+  },
+  entityName: 'ToggleFeature',
+})
 
 /*
- * Usage Credit Grant Feature schemas
+ * Usage Credit Grant Feature schemas via buildSchemas
  */
 const usageCreditGrantFeatureSharedColumns = {
   type: z.literal(FeatureType.UsageCreditGrant),
@@ -135,18 +131,25 @@ const usageCreditGrantFeatureSharedColumns = {
     FeatureUsageGrantFrequency
   ),
 }
-export const usageCreditGrantFeatureInsertSchema =
-  coreFeaturesInsertSchema.extend(
-    usageCreditGrantFeatureSharedColumns
-  )
-export const usageCreditGrantFeatureSelectSchema =
-  coreFeaturesSelectSchema.extend(
-    usageCreditGrantFeatureSharedColumns
-  )
-export const usageCreditGrantFeatureUpdateSchema =
-  coreFeaturesUpdateSchema.extend(
-    usageCreditGrantFeatureSharedColumns
-  )
+
+export const {
+  insert: usageCreditGrantFeatureInsertSchema,
+  select: usageCreditGrantFeatureSelectSchema,
+  update: usageCreditGrantFeatureUpdateSchema,
+  client: {
+    insert: usageCreditGrantFeatureClientInsertSchema,
+    select: usageCreditGrantFeatureClientSelectSchema,
+    update: usageCreditGrantFeatureClientUpdateSchema,
+  },
+} = buildSchemas(features, {
+  discriminator: 'type',
+  refine: usageCreditGrantFeatureSharedColumns,
+  client: {
+    hiddenColumns: hiddenColumnsForClientSchema,
+    readOnlyColumns: { organizationId: true, livemode: true },
+  },
+  entityName: 'UsageCreditGrantFeature',
+})
 
 /*
  * Combined discriminated union schemas (internal)
@@ -169,60 +172,6 @@ export const featuresUpdateSchema = z.discriminatedUnion('type', [
 const sharedHiddenClientColumns = {
   ...hiddenColumnsForClientSchema, // id, createdAt, updatedAt, createdByCommit, updatedByCommit, position
 } as const
-
-// Columns to omit for client create/update operations THAT ARE PART OF THE CORE ZOD SCHEMA
-const clientWriteOmitColumns = {
-  organizationId: true,
-} as const
-
-/*
- * Client-facing Toggle Feature schemas
- */
-// For insert, omit fields set by the backend. Retain 'type' for discriminated union.
-export const toggleFeatureClientInsertSchema =
-  toggleFeatureInsertSchema
-    .omit({
-      ...clientWriteOmitColumns,
-    })
-    .meta({ id: 'ToggleFeatureInsert' })
-export const toggleFeatureClientSelectSchema =
-  toggleFeatureSelectSchema
-    .omit(
-      sharedHiddenClientColumns // Only hide truly internal fields for select
-    )
-    .meta({ id: 'ToggleFeatureRecord' })
-// For update, omit fields set by the backend. Retain 'type' and 'id' (id is in input schema).
-export const toggleFeatureClientUpdateSchema =
-  toggleFeatureUpdateSchema.omit(clientWriteOmitColumns).meta({
-    id: 'ToggleFeatureUpdate',
-  })
-
-/*
- * Client-facing Usage Credit Grant Feature schemas
- */
-export const usageCreditGrantFeatureClientInsertSchema =
-  usageCreditGrantFeatureInsertSchema
-    .omit(clientWriteOmitColumns)
-    .meta({
-      id: 'UsageCreditGrantFeatureInsert',
-    })
-
-export const usageCreditGrantFeatureClientSelectSchema =
-  usageCreditGrantFeatureSelectSchema
-    .omit(
-      sharedHiddenClientColumns // Only hide truly internal fields for select
-    )
-    .meta({ id: 'UsageCreditGrantFeatureRecord' })
-
-export const usageCreditGrantFeatureClientUpdateSchema =
-  usageCreditGrantFeatureUpdateSchema
-    .omit({
-      organizationId: true,
-      livemode: true,
-    })
-    .meta({
-      id: 'UsageCreditGrantFeatureUpdate',
-    })
 
 /*
  * Combined client-facing discriminated union schemas

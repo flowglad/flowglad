@@ -120,7 +120,7 @@ describe('usageEventHelpers', () => {
         subscriptionId: mainSubscription.id,
         transactionId: `txn_${core.nanoid()}`,
         amount: 10,
-        usageDate: new Date().getTime(),
+        usageDate: Date.now(),
         properties: { custom_field: 'happy_path_value' },
       }
       const input: CreateUsageEventInput = {
@@ -387,7 +387,7 @@ describe('usageEventHelpers', () => {
     })
 
     it('should handle usageEvent.usageDate (timestamp and undefined)', async () => {
-      const timestamp = new Date().getTime()
+      const timestamp = Date.now()
       const datePresentDetails: CreateUsageEventInput['usageEvent'] =
         {
           priceId: usagePrice.id,
@@ -408,7 +408,7 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      expect(resultWithDate.usageDate!.getTime()).toBe(timestamp)
+      expect(resultWithDate.usageDate!).toBe(timestamp)
 
       const dateAbsentDetails: CreateUsageEventInput['usageEvent'] = {
         priceId: usagePrice.id,
@@ -486,10 +486,8 @@ describe('usageEventHelpers', () => {
       })
       await setupBillingPeriod({
         subscriptionId: testmodeSubscription.id,
-        startDate: new Date(),
-        endDate: new Date(
-          new Date().getTime() + 30 * 24 * 60 * 60 * 1000
-        ),
+        startDate: Date.now(),
+        endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
         livemode: false,
       })
       const liveFalseDetails: CreateUsageEventInput['usageEvent'] = {

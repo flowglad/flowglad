@@ -37,7 +37,7 @@ describe('apiKeyMethods.ts', () => {
         await insertApiKey(
           {
             ...coreBillingPortalTokenApiKeyInput,
-            expiresAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000), // 8 days ago
+            expiresAt: Date.now() - 9 * 24 * 60 * 60 * 1000, // 8 days ago
             token: expiredToken1,
             unkeyId: `expired-8-days-ago-${nanoid()}`,
             name: 'expired-8-days-ago',
@@ -48,7 +48,7 @@ describe('apiKeyMethods.ts', () => {
         await insertApiKey(
           {
             ...coreBillingPortalTokenApiKeyInput,
-            expiresAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+            expiresAt: Date.now() - 3 * 24 * 60 * 60 * 1000, // 3 days ago
             token: `expired-3-days-ago-${nanoid()}`,
             unkeyId: `expired-3-days-ago-${nanoid()}`,
             name: 'expired-3-days-ago',
@@ -59,7 +59,7 @@ describe('apiKeyMethods.ts', () => {
         await insertApiKey(
           {
             ...coreBillingPortalTokenApiKeyInput,
-            expiresAt: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day in future
+            expiresAt: Date.now() + 1 * 24 * 60 * 60 * 1000, // 1 day in future
             token: `expires-in-future-${nanoid()}`,
             unkeyId: `expires-in-future-${nanoid()}`,
             name: 'expires-in-future',
@@ -80,7 +80,7 @@ describe('apiKeyMethods.ts', () => {
         await insertApiKey(
           {
             ...coreSecretApikeyInput,
-            expiresAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), // 8 days ago
+            expiresAt: Date.now() - 8 * 24 * 60 * 60 * 1000, // 8 days ago
             token: `wrong-type-${nanoid()}`,
             unkeyId: `wrong-type-${nanoid()}`,
             name: 'wrong-type',
@@ -110,15 +110,9 @@ describe('apiKeyMethods.ts', () => {
 
   describe('safelyFilterExpiredBillingPortalApiKeys', () => {
     it('only returns billing portal tokens expired > 7 days ago', () => {
-      const eightDaysAgo = new Date(
-        Date.now() - 8 * 24 * 60 * 60 * 1000
-      )
-      const threeDaysAgo = new Date(
-        Date.now() - 3 * 24 * 60 * 60 * 1000
-      )
-      const oneDayInFuture = new Date(
-        Date.now() + 1 * 24 * 60 * 60 * 1000
-      )
+      const eightDaysAgo = Date.now() - 8 * 24 * 60 * 60 * 1000
+      const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000
+      const oneDayInFuture = Date.now() + 1 * 24 * 60 * 60 * 1000
 
       const allKeys = [
         {

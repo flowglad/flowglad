@@ -247,7 +247,7 @@ describe('Subscription Cancellation Test Suite', async () => {
   describe('scheduleSubscriptionCancellation', () => {
     it('should schedule cancellation at the end of the current billing period', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
+        const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -257,14 +257,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         // Create a current billing period.
         const currentBP = await setupBillingPeriod({
           subscriptionId: subscription.id,
-          startDate: new Date(now.getTime() - 60 * 60 * 1000),
-          endDate: new Date(now.getTime() + 60 * 60 * 1000),
+          startDate: now - 60 * 60 * 1000,
+          endDate: now + 60 * 60 * 1000,
         })
         // Create a future billing period.
         const futureBP = await setupBillingPeriod({
           subscriptionId: subscription.id,
-          startDate: new Date(now.getTime() + 2 * 60 * 60 * 1000),
-          endDate: new Date(now.getTime() + 3 * 60 * 60 * 1000),
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
         })
 
         const params: ScheduleSubscriptionCancellationParams = {
@@ -279,8 +279,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
-        expect(updatedSubscription.cancelScheduledAt?.getTime()).toBe(
-          currentBP.endDate.getTime()
+        expect(updatedSubscription.cancelScheduledAt).toBe(
+          currentBP.endDate
         )
         // Verify that any billing period starting after the cancellation date is updated.
         const updatedFutureBP = await selectBillingPeriodById(
@@ -308,21 +308,21 @@ describe('Subscription Cancellation Test Suite', async () => {
         // Create a billing period that is active now.
         await setupBillingPeriod({
           subscriptionId: subscription.id,
-          startDate: new Date(now.getTime() - 60 * 60 * 1000),
-          endDate: new Date(now.getTime() + 3 * 60 * 60 * 1000),
+          startDate: now.getTime() - 60 * 60 * 1000,
+          endDate: now.getTime() + 3 * 60 * 60 * 1000,
         })
         // Create a future billing period.
         const futureBP = await setupBillingPeriod({
           subscriptionId: subscription.id,
-          startDate: new Date(now.getTime() + 4 * 60 * 60 * 1000),
-          endDate: new Date(now.getTime() + 5 * 60 * 60 * 1000),
+          startDate: now.getTime() + 4 * 60 * 60 * 1000,
+          endDate: now.getTime() + 5 * 60 * 60 * 1000,
         })
 
         const params: ScheduleSubscriptionCancellationParams = {
           id: subscription.id,
           cancellation: {
             timing: SubscriptionCancellationArrangement.AtFutureDate,
-            endDate: futureCancellationDate,
+            endDate: futureCancellationDate.getTime(),
           },
         }
         const updatedSubscription =
@@ -361,7 +361,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           id: subscription.id,
           cancellation: {
             timing: SubscriptionCancellationArrangement.AtFutureDate,
-            endDate: new Date(Date.now() + 60 * 60 * 1000),
+            endDate: Date.now() + 60 * 60 * 1000,
           },
         }
         const result = await scheduleSubscriptionCancellation(
@@ -414,7 +414,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           id: subscription.id,
           cancellation: {
             timing: SubscriptionCancellationArrangement.AtFutureDate,
-            endDate: new Date(), // current time is before the billing period start
+            endDate: Date.now(), // current time is before the billing period start
           },
         }
         await expect(

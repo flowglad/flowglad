@@ -19,6 +19,7 @@ import {
 import { z } from 'zod'
 import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
 import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
+import { zodEpochMs } from '@/db/timestampMs'
 
 export const adjustSubscriptionImmediatelySchema = z.object({
   timing: z.literal(SubscriptionAdjustmentTiming.Immediately),
@@ -113,7 +114,7 @@ export const subscriptionCancellationParametersSchema =
       timing: z.literal(
         SubscriptionCancellationArrangement.AtFutureDate
       ),
-      endDate: z.date(),
+      endDate: zodEpochMs,
     }),
     z.object({
       timing: z.literal(

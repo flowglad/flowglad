@@ -302,7 +302,7 @@ describe('selectUsageEventsPaginated', () => {
         billingPeriodId: billingPeriod1.id,
         amount: 100 + i,
         transactionId: `txn_cursor_${i}`,
-        usageDate: new Date(Date.now() + i * 1000), // Stagger timestamps
+        usageDate: Date.now() + i * 1000, // Stagger timestamps
       })
       createdEvents.push(event)
     }
@@ -628,7 +628,7 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
         billingPeriodId: billingPeriod1.id,
         amount: 100,
         transactionId,
-        usageDate: new Date(),
+        usageDate: Date.now(),
         livemode: true,
         properties: {},
       },
@@ -640,7 +640,7 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
         billingPeriodId: billingPeriod1.id,
         amount: 200,
         transactionId,
-        usageDate: new Date(),
+        usageDate: Date.now(),
         livemode: true,
         properties: {},
       },
@@ -674,7 +674,7 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
         billingPeriodId: billingPeriod1.id,
         amount: 100,
         transactionId,
-        usageDate: new Date(),
+        usageDate: Date.now(),
         livemode: true,
         properties: {},
       },

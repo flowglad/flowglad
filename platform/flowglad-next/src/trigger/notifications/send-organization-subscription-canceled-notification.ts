@@ -70,10 +70,11 @@ export const sendOrganizationSubscriptionCanceledNotificationTask =
           customerId: customer.id,
           customerName: customer.name,
           customerEmail: customer.email,
-          cancellationDate:
+          cancellationDate: new Date(
             subscription.cancelScheduledAt ||
-            subscription.canceledAt ||
-            new Date(),
+              subscription.canceledAt ||
+              Date.now()
+          ),
         }),
       })
 

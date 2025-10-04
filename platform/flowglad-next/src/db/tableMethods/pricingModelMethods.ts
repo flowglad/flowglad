@@ -373,6 +373,7 @@ export const selectPricingModelForCustomer = async (
         { id: customer.pricingModelId },
         transaction
       )
+
     if (pricingModel) {
       return {
         ...pricingModel,

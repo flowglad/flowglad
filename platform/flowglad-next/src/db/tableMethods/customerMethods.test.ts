@@ -811,7 +811,7 @@ describe('Customer uniqueness constraints', () => {
             email: `customer2_${core.nanoid()}@test.com`,
             name: 'Customer 2',
             livemode: true,
-            createdAt: new Date().getTime(),
+            createdAt: Date.now(),
             updatedAt: new Date(),
           })
         })
@@ -848,8 +848,8 @@ describe('Customer uniqueness constraints', () => {
             email: `customer_${core.nanoid()}@test.com`,
             name: 'Customer with null externalId',
             livemode: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
           })
         })
       ).rejects.toThrow()

@@ -53,7 +53,7 @@ export const cancelFreeSubscriptionForUpgrade = async (
       id: subscriptionToCancel.id,
       renews: subscriptionToCancel.renews,
       status: SubscriptionStatus.Canceled,
-      canceledAt: new Date(),
+      canceledAt: Date.now(),
       cancellationReason: CancellationReason.UpgradedToPaid,
     },
     transaction

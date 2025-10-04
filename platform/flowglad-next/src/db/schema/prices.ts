@@ -44,10 +44,7 @@ import {
   usageMetersClientSelectSchema,
 } from './usageMeters'
 import { currencyCodeSchema } from '../commonZodSchema'
-import {
-  featuresClientSelectSchema,
-  featuresSelectSchema,
-} from './features'
+import { featuresClientSelectSchema } from './features'
 
 const readOnlyColumns = {
   livemode: true,
@@ -392,7 +389,7 @@ export const subscriptionPriceClientSelectSchema =
     id: 'SubscriptionPriceRecord',
   })
 
-  export const singlePaymentPriceClientSelectSchema =
+export const singlePaymentPriceClientSelectSchema =
   singlePaymentPriceSelectSchema.omit(hiddenColumns).meta({
     id: 'SinglePaymentPriceRecord',
   })
@@ -406,8 +403,6 @@ export const singlePaymentPriceClientUpdateSchema =
   singlePaymentPriceUpdateSchema.omit(nonClientEditableColumns).meta({
     id: 'SinglePaymentPriceUpdate',
   })
-
-
 
 export const pricesClientInsertSchema = z
   .discriminatedUnion('type', [
@@ -629,15 +624,19 @@ export type ProductWithPrices = z.infer<
 >
 
 export const pricingModelWithProductsAndUsageMetersSchema =
-  pricingModelsClientSelectSchema.extend({
-    products: z.array(productWithPricesSchema),
-    usageMeters: z.array(usageMetersClientSelectSchema),
-    defaultProduct: productWithPricesSchema
-      .optional()
-      .describe(
-        'The default product for the pricing model. If no product is explicitly set as default, will return undefined.'
-      ),
-  })
+  pricingModelsClientSelectSchema
+    .extend({
+      products: z.array(productWithPricesSchema),
+      usageMeters: z.array(usageMetersClientSelectSchema),
+      defaultProduct: productWithPricesSchema
+        .optional()
+        .describe(
+          'The default product for the pricing model. If no product is explicitly set as default, will return undefined.'
+        ),
+    })
+    .meta({
+      id: 'PricingModelDetailsRecord',
+    })
 
 export type PricingModelWithProductsAndUsageMeters = z.infer<
   typeof pricingModelWithProductsAndUsageMetersSchema

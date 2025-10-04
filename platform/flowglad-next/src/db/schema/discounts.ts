@@ -1,8 +1,8 @@
 import * as R from 'ramda'
 import { pgTable, text, boolean, integer } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import {
-  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   constructIndex,
   constructUniqueIndex,
@@ -16,11 +16,10 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
-  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import core from '@/utils/core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { createSelectSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 
@@ -106,21 +105,7 @@ const columnRefinements = {
     }),
 }
 
-const baseDiscountSchema = createInsertSchema(discounts)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-const supabaseSchemas = createSupabaseWebhookSchema({
-  table: discounts,
-  tableName: TABLE_NAME,
-  refine: columnRefinements,
-})
-
-export const discountsSupabaseInsertPayloadSchema =
-  supabaseSchemas.supabaseInsertPayloadSchema
-export const discountsSupabaseUpdatePayloadSchema =
-  supabaseSchemas.supabaseUpdatePayloadSchema
-
+// Per-variant refinements for discriminator 'duration'
 const defaultDiscountsRefinements = {
   duration: z.literal(DiscountDuration.Once),
   numberOfPayments: z.null(),
@@ -136,20 +121,68 @@ const numberOfPaymentsDiscountsRefinements = {
   numberOfPayments: core.safeZodPositiveInteger,
 }
 
-// Default discounts schema (once or forever duration)
-export const defaultDiscountsInsertSchema = baseDiscountSchema
-  .extend(defaultDiscountsRefinements)
-  .describe(DEFAULT_DISCOUNT_DESCRIPTION)
+// Build per-variant schemas using shared builder
 
-// Number of payments discounts schema
-export const numberOfPaymentsDiscountsInsertSchema =
-  baseDiscountSchema
-    .extend(numberOfPaymentsDiscountsRefinements)
-    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
+export const {
+  insert: defaultDiscountsInsertSchema,
+  select: defaultDiscountsSelectSchema,
+  update: defaultDiscountsUpdateSchema,
+  client: {
+    insert: defaultDiscountClientInsertSchema,
+    select: defaultDiscountClientSelectSchema,
+    update: defaultDiscountClientUpdateSchema,
+  },
+} = buildSchemas(discounts, {
+  discriminator: 'duration',
+  refine: { ...columnRefinements, ...defaultDiscountsRefinements },
+  entityName: 'DefaultDiscount',
+})
 
-export const foreverDiscountsInsertSchema = baseDiscountSchema
-  .extend(foreverDiscountsRefinements)
-  .describe(FOREVER_DISCOUNT_DESCRIPTION)
+export const {
+  insert: numberOfPaymentsDiscountsInsertSchema,
+  select: numberOfPaymentsDiscountsSelectSchema,
+  update: numberOfPaymentsDiscountsUpdateSchema,
+  client: {
+    insert: numberOfPaymentsDiscountClientInsertSchema,
+    select: numberOfPaymentsDiscountClientSelectSchema,
+    update: numberOfPaymentsDiscountClientUpdateSchema,
+  },
+} = buildSchemas(discounts, {
+  discriminator: 'duration',
+  refine: {
+    ...columnRefinements,
+    ...numberOfPaymentsDiscountsRefinements,
+  },
+  entityName: 'NumberOfPaymentsDiscount',
+})
+
+export const {
+  insert: foreverDiscountsInsertSchema,
+  select: foreverDiscountsSelectSchema,
+  update: foreverDiscountsUpdateSchema,
+  client: {
+    insert: foreverDiscountClientInsertSchema,
+    select: foreverDiscountClientSelectSchema,
+    update: foreverDiscountClientUpdateSchema,
+  },
+} = buildSchemas(discounts, {
+  discriminator: 'duration',
+  refine: { ...columnRefinements, ...foreverDiscountsRefinements },
+  entityName: 'ForeverDiscount',
+})
+
+const supabaseSchemas = createSupabaseWebhookSchema({
+  table: discounts,
+  tableName: TABLE_NAME,
+  refine: columnRefinements,
+})
+
+export const discountsSupabaseInsertPayloadSchema =
+  supabaseSchemas.supabaseInsertPayloadSchema
+export const discountsSupabaseUpdatePayloadSchema =
+  supabaseSchemas.supabaseUpdatePayloadSchema
+
+// Variant insert schemas created by builder above
 
 // Combined insert schema
 export const discountsInsertSchema = z
@@ -160,23 +193,7 @@ export const discountsInsertSchema = z
   ])
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 
-// Select schemas
-const baseSelectSchema = createSelectSchema(
-  discounts,
-  columnRefinements
-)
-
-export const defaultDiscountsSelectSchema = baseSelectSchema
-  .extend(defaultDiscountsRefinements)
-  .describe(DEFAULT_DISCOUNT_DESCRIPTION)
-
-export const numberOfPaymentsDiscountsSelectSchema = baseSelectSchema
-  .extend(numberOfPaymentsDiscountsRefinements)
-  .describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
-
-export const foreverDiscountsSelectSchema = baseSelectSchema
-  .extend(foreverDiscountsRefinements)
-  .describe(FOREVER_DISCOUNT_DESCRIPTION)
+// Variant select schemas created by builder above
 
 export const discountsSelectSchema = z
   .discriminatedUnion('duration', [
@@ -186,36 +203,7 @@ export const discountsSelectSchema = z
   ])
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 
-// Update schemas
-export const defaultDiscountsUpdateSchema =
-  defaultDiscountsSelectSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      duration: z.literal(DiscountDuration.Once),
-      numberOfPayments: z.null(),
-    })
-    .describe(DEFAULT_DISCOUNT_DESCRIPTION)
-
-export const numberOfPaymentsDiscountsUpdateSchema =
-  numberOfPaymentsDiscountsSelectSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      duration: z.literal(DiscountDuration.NumberOfPayments),
-      numberOfPayments: core.safeZodPositiveInteger,
-    })
-    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
-
-export const foreverDiscountsUpdateSchema =
-  foreverDiscountsSelectSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      duration: z.literal(DiscountDuration.Forever),
-      numberOfPayments: z.null(),
-    })
-    .describe(FOREVER_DISCOUNT_DESCRIPTION)
+// Variant update schemas created by builder above
 
 export const discountsUpdateSchema = z
   .discriminatedUnion('duration', [
@@ -224,49 +212,6 @@ export const discountsUpdateSchema = z
     foreverDiscountsUpdateSchema,
   ])
   .describe(DISCOUNTS_BASE_DESCRIPTION)
-
-const hiddenColumns = {
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
-
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
-})
-
-export const defaultDiscountClientInsertSchema =
-  defaultDiscountsInsertSchema
-    .omit(clientWriteOmits)
-    .meta({
-      id: 'DefaultDiscountInsert',
-    })
-    .describe(DEFAULT_DISCOUNT_DESCRIPTION)
-
-export const numberOfPaymentsDiscountClientInsertSchema =
-  numberOfPaymentsDiscountsInsertSchema
-    .omit(clientWriteOmits)
-    .meta({
-      id: 'NumberOfPaymentsDiscountInsert',
-    })
-    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
-
-export const foreverDiscountClientInsertSchema =
-  foreverDiscountsInsertSchema
-    .omit(clientWriteOmits)
-    .meta({
-      id: 'ForeverDiscountInsert',
-    })
-    .describe(FOREVER_DISCOUNT_DESCRIPTION)
 
 export const discountClientInsertSchema = z
   .discriminatedUnion('duration', [
@@ -279,30 +224,6 @@ export const discountClientInsertSchema = z
   })
   .describe(DISCOUNTS_BASE_DESCRIPTION)
 
-export const defaultDiscountClientUpdateSchema =
-  defaultDiscountsUpdateSchema
-    .omit(nonClientEditableColumns)
-    .meta({
-      id: 'DefaultDiscountUpdate',
-    })
-    .describe(DEFAULT_DISCOUNT_DESCRIPTION)
-
-export const numberOfPaymentsDiscountClientUpdateSchema =
-  numberOfPaymentsDiscountsUpdateSchema
-    .omit(nonClientEditableColumns)
-    .meta({
-      id: 'NumberOfPaymentsDiscountUpdate',
-    })
-    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
-
-export const foreverDiscountClientUpdateSchema =
-  foreverDiscountsUpdateSchema
-    .omit(nonClientEditableColumns)
-    .meta({
-      id: 'ForeverDiscountUpdate',
-    })
-    .describe(FOREVER_DISCOUNT_DESCRIPTION)
-
 export const discountClientUpdateSchema = z
   .discriminatedUnion('duration', [
     defaultDiscountClientUpdateSchema,
@@ -313,30 +234,6 @@ export const discountClientUpdateSchema = z
     id: 'DiscountUpdate',
   })
   .describe(DISCOUNTS_BASE_DESCRIPTION)
-
-export const defaultDiscountClientSelectSchema =
-  defaultDiscountsSelectSchema
-    .omit(hiddenColumns)
-    .meta({
-      id: 'DefaultDiscountRecord',
-    })
-    .describe(DEFAULT_DISCOUNT_DESCRIPTION)
-
-export const numberOfPaymentsDiscountClientSelectSchema =
-  numberOfPaymentsDiscountsSelectSchema
-    .omit(hiddenColumns)
-    .meta({
-      id: 'NumberOfPaymentsDiscountRecord',
-    })
-    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_DESCRIPTION)
-
-export const foreverDiscountClientSelectSchema =
-  foreverDiscountsSelectSchema
-    .omit(hiddenColumns)
-    .meta({
-      id: 'ForeverDiscountRecord',
-    })
-    .describe(FOREVER_DISCOUNT_DESCRIPTION)
 
 export const discountClientSelectSchema = z
   .discriminatedUnion('duration', [

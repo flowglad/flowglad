@@ -297,7 +297,7 @@ describe('Subscription Upgrade Selection Logic', () => {
             id: freeSubscription.id,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             replacedBySubscriptionId: paidSubscription.id,
             renews: freeSubscription.renews,
           },
@@ -512,7 +512,7 @@ describe('Subscription Upgrade Selection Logic', () => {
             id: freeSubscription.id,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             replacedBySubscriptionId: paidSubscription.id,
             renews: freeSubscription.renews,
           },
@@ -552,7 +552,7 @@ describe('Subscription Upgrade Selection Logic', () => {
             id: subscription.id,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.CustomerRequest,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             renews: subscription.renews,
           },
           transaction
@@ -677,7 +677,7 @@ describe('Subscription Upgrade Selection Logic', () => {
         priceId: freePrice.id,
         status: SubscriptionStatus.Canceled,
         cancellationReason: CancellationReason.CustomerRequest,
-        canceledAt: new Date(),
+        canceledAt: Date.now(),
         livemode: false,
       })
 
@@ -735,8 +735,8 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: freePrice.id,
         status: SubscriptionStatus.Active,
-        currentBillingPeriodStart: new Date('2024-01-01'),
-        currentBillingPeriodEnd: new Date('2024-02-01'),
+        currentBillingPeriodStart: new Date('2024-01-01').getTime(),
+        currentBillingPeriodEnd: new Date('2024-02-01').getTime(),
         livemode: false,
       })
 
@@ -754,8 +754,8 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
-        currentBillingPeriodStart: new Date('2024-01-15'),
-        currentBillingPeriodEnd: new Date('2024-02-15'),
+        currentBillingPeriodStart: new Date('2024-01-15').getTime(),
+        currentBillingPeriodEnd: new Date('2024-02-15').getTime(),
         livemode: false,
       })
 
@@ -773,7 +773,7 @@ describe('Subscription Upgrade Selection Logic', () => {
             id: freeSubscription.id,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date('2024-01-15'),
+            canceledAt: new Date('2024-01-15').getTime(),
             replacedBySubscriptionId: paidSubscription.id,
             renews: freeSubscription.renews,
           },
@@ -814,8 +814,8 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
-        currentBillingPeriodStart: new Date('2024-03-01'),
-        currentBillingPeriodEnd: new Date('2024-04-01'),
+        currentBillingPeriodStart: new Date('2024-03-01').getTime(),
+        currentBillingPeriodEnd: new Date('2024-04-01').getTime(),
         livemode: false,
       })
 
@@ -944,8 +944,8 @@ describe('Subscription Upgrade Selection Logic', () => {
         const activePeriods =
           await selectActiveBillingPeriodsForDateRange(
             {
-              startDate: new Date('2024-01-01'),
-              endDate: new Date('2024-02-01'), // Exactly at period start
+              startDate: new Date('2024-01-01').getTime(),
+              endDate: new Date('2024-02-01').getTime(), // Exactly at period start
               organizationId: organization.id,
               livemode: false,
             },
@@ -969,7 +969,7 @@ describe('Subscription Upgrade Selection Logic', () => {
         priceId: freePrice.id,
         status: SubscriptionStatus.Canceled,
         cancellationReason: CancellationReason.UpgradedToPaid,
-        canceledAt: new Date('2024-01-15'),
+        canceledAt: new Date('2024-01-15').getTime(),
         livemode: false,
       })
 
@@ -1099,7 +1099,7 @@ describe('Subscription Upgrade Selection Logic', () => {
             id: subscription.id,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.CustomerRequest,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             renews: subscription.renews,
           },
           transaction
@@ -1237,9 +1237,9 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: freePrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2023-12-01'),
-        currentBillingPeriodStart: periodStart,
-        currentBillingPeriodEnd: periodEnd,
+        startDate: new Date('2023-12-01').getTime(),
+        currentBillingPeriodStart: periodStart.getTime(),
+        currentBillingPeriodEnd: periodEnd.getTime(),
         livemode: false,
       })
 
@@ -1250,9 +1250,9 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2024-01-15'),
-        currentBillingPeriodStart: new Date('2024-01-15'),
-        currentBillingPeriodEnd: new Date('2024-02-15'),
+        startDate: new Date('2024-01-15').getTime(),
+        currentBillingPeriodStart: new Date('2024-01-15').getTime(),
+        currentBillingPeriodEnd: new Date('2024-02-15').getTime(),
         livemode: false,
       })
 
@@ -1263,7 +1263,7 @@ describe('Subscription Upgrade Selection Logic', () => {
             id: freeSubscription.id,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date('2024-01-15'),
+            canceledAt: new Date('2024-01-15').getTime(),
             replacedBySubscriptionId: paidSubscription.id,
             renews: freeSubscription.renews,
           },
@@ -1299,9 +1299,9 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2024-01-01'),
-        currentBillingPeriodStart: new Date('2024-01-01'),
-        currentBillingPeriodEnd: new Date('2024-04-01'),
+        startDate: new Date('2024-01-01').getTime(),
+        currentBillingPeriodStart: new Date('2024-01-01').getTime(),
+        currentBillingPeriodEnd: new Date('2024-04-01').getTime(),
         livemode: false,
       })
 
@@ -1312,9 +1312,9 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod2.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2024-02-15'),
-        currentBillingPeriodStart: new Date('2024-02-15'),
-        currentBillingPeriodEnd: new Date('2024-03-15'),
+        startDate: new Date('2024-02-15').getTime(),
+        currentBillingPeriodStart: new Date('2024-02-15').getTime(),
+        currentBillingPeriodEnd: new Date('2024-03-15').getTime(),
         livemode: false,
       })
 
@@ -1325,10 +1325,10 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: freePrice.id,
         status: SubscriptionStatus.Canceled,
-        startDate: new Date('2023-12-01'),
-        canceledAt: new Date('2024-01-15'),
-        currentBillingPeriodStart: new Date('2024-01-01'),
-        currentBillingPeriodEnd: new Date('2024-01-15'),
+        startDate: new Date('2023-12-01').getTime(),
+        canceledAt: new Date('2024-01-15').getTime(),
+        currentBillingPeriodStart: new Date('2024-01-01').getTime(),
+        currentBillingPeriodEnd: new Date('2024-01-15').getTime(),
         livemode: false,
       })
 
@@ -1361,7 +1361,7 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
-        startDate: periodStart,
+        startDate: periodStart.getTime(),
         livemode: false,
       })
 
@@ -1395,7 +1395,7 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: org2PaymentMethod.id,
         priceId: org2Price.id,
         status: SubscriptionStatus.Active,
-        startDate: periodStart,
+        startDate: periodStart.getTime(),
         livemode: false,
       })
 
@@ -1439,7 +1439,7 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: freePrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2023-12-01'),
+        startDate: new Date('2023-12-01').getTime(),
         livemode: false,
       })
 
@@ -1450,7 +1450,7 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod2.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2023-12-01'),
+        startDate: new Date('2023-12-01').getTime(),
         livemode: false,
       })
 
@@ -1491,8 +1491,8 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
-        startDate: new Date('2023-12-01'),
-        canceledAt: new Date('2024-01-15'), // After period start
+        startDate: new Date('2023-12-01').getTime(),
+        canceledAt: new Date('2024-01-15').getTime(), // After period start
         cancellationReason: CancellationReason.CustomerRequest,
         livemode: false,
       })
@@ -1504,8 +1504,8 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod2.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
-        startDate: new Date('2023-11-01'),
-        canceledAt: new Date('2023-12-15'), // Before period start
+        startDate: new Date('2023-11-01').getTime(),
+        canceledAt: new Date('2023-12-15').getTime(), // Before period start
         cancellationReason: CancellationReason.CustomerRequest,
         livemode: false,
       })
@@ -1536,8 +1536,8 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
-        startDate: new Date('2023-12-01'),
-        canceledAt: periodStart, // Exactly at period start
+        startDate: new Date('2023-12-01').getTime(),
+        canceledAt: periodStart.getTime(), // Exactly at period start
         cancellationReason: CancellationReason.CustomerRequest,
         livemode: false,
       })
@@ -1549,8 +1549,8 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod2.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
-        startDate: new Date('2023-12-01'),
-        canceledAt: new Date('2024-01-01T00:00:01.000Z'), // One second after
+        startDate: new Date('2023-12-01').getTime(),
+        canceledAt: new Date('2024-01-01T00:00:01.000Z').getTime(), // One second after
         cancellationReason: CancellationReason.CustomerRequest,
         livemode: false,
       })
@@ -1583,9 +1583,9 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: freePrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2024-01-01'),
-        currentBillingPeriodStart: period1Start,
-        currentBillingPeriodEnd: period1End,
+        startDate: new Date('2024-01-01').getTime(),
+        currentBillingPeriodStart: period1Start.getTime(),
+        currentBillingPeriodEnd: period1End.getTime(),
         livemode: false,
       })
 
@@ -1596,9 +1596,9 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2024-02-01'),
-        currentBillingPeriodStart: period2Start,
-        currentBillingPeriodEnd: period2End,
+        startDate: new Date('2024-02-01').getTime(),
+        currentBillingPeriodStart: period2Start.getTime(),
+        currentBillingPeriodEnd: period2End.getTime(),
         livemode: false,
       })
 
@@ -1609,7 +1609,7 @@ describe('Subscription Upgrade Selection Logic', () => {
             id: freeSubscription.id,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date('2024-02-01'),
+            canceledAt: new Date('2024-02-01').getTime(),
             replacedBySubscriptionId: paidSubscription.id,
             renews: freeSubscription.renews,
           },
@@ -1673,7 +1673,7 @@ describe('Subscription Upgrade Selection Logic', () => {
             id: freeSubscription.id,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             replacedBySubscriptionId: paidSubscription.id,
             renews: freeSubscription.renews,
           },
@@ -1742,7 +1742,7 @@ describe('Subscription Upgrade Selection Logic', () => {
             id: freeSubscription.id,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             replacedBySubscriptionId: basicSubscription.id,
             renews: freeSubscription.renews,
           },
@@ -1754,7 +1754,7 @@ describe('Subscription Upgrade Selection Logic', () => {
             id: basicSubscription.id,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             replacedBySubscriptionId: premiumSubscription.id,
             renews: basicSubscription.renews,
           },
@@ -1792,7 +1792,7 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: freePrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2024-01-01'),
+        startDate: new Date('2024-01-01').getTime(),
         livemode: false,
       })
 
@@ -1802,7 +1802,7 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2024-01-15'),
+        startDate: new Date('2024-01-15').getTime(),
         livemode: false,
       })
 
@@ -1812,7 +1812,7 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: premiumPrice.id,
         status: SubscriptionStatus.Active,
-        startDate: new Date('2024-02-01'),
+        startDate: new Date('2024-02-01').getTime(),
         livemode: false,
       })
 
@@ -1866,8 +1866,8 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod.id,
         priceId: freePrice.id,
         status: SubscriptionStatus.Canceled,
-        startDate: new Date('2023-12-15'), // Started in December
-        canceledAt: new Date('2024-02-15'), // Canceled in February
+        startDate: new Date('2023-12-15').getTime(), // Started in December
+        canceledAt: new Date('2024-02-15').getTime(), // Canceled in February
         cancellationReason: CancellationReason.UpgradedToPaid,
         livemode: false,
       })
@@ -1880,8 +1880,8 @@ describe('Subscription Upgrade Selection Logic', () => {
         paymentMethodId: paymentMethod2.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
-        startDate: new Date('2023-12-10'), // Started in December
-        canceledAt: new Date('2024-02-10'), // Canceled in February
+        startDate: new Date('2023-12-10').getTime(), // Started in December
+        canceledAt: new Date('2024-02-10').getTime(), // Canceled in February
         cancellationReason: CancellationReason.CustomerRequest,
         livemode: false,
       })
@@ -1936,8 +1936,8 @@ describe('Subscription Upgrade Selection Logic', () => {
           paymentMethodId: paymentMethod.id,
           priceId: freePrice.id,
           status: SubscriptionStatus.Canceled,
-          startDate: new Date('2023-12-05'), // Started in December
-          canceledAt: new Date('2024-02-05'), // Canceled in February
+          startDate: new Date('2023-12-05').getTime(), // Started in December
+          canceledAt: new Date('2024-02-05').getTime(), // Canceled in February
           cancellationReason: CancellationReason.UpgradedToPaid,
           livemode: false,
         }),
@@ -1948,8 +1948,8 @@ describe('Subscription Upgrade Selection Logic', () => {
           paymentMethodId: paymentMethod2.id,
           priceId: paidPrice.id,
           status: SubscriptionStatus.Canceled,
-          startDate: new Date('2023-12-06'), // Started in December
-          canceledAt: new Date('2024-02-06'), // Canceled in February
+          startDate: new Date('2023-12-06').getTime(), // Started in December
+          canceledAt: new Date('2024-02-06').getTime(), // Canceled in February
           cancellationReason: CancellationReason.CustomerRequest,
           livemode: false,
         }),
@@ -1960,8 +1960,8 @@ describe('Subscription Upgrade Selection Logic', () => {
           paymentMethodId: paymentMethod.id,
           priceId: paidPrice.id,
           status: SubscriptionStatus.Canceled,
-          startDate: new Date('2023-12-07'), // Started in December
-          canceledAt: new Date('2024-02-07'), // Canceled in February
+          startDate: new Date('2023-12-07').getTime(), // Started in December
+          canceledAt: new Date('2024-02-07').getTime(), // Canceled in February
           cancellationReason: CancellationReason.UpgradedToPaid,
           livemode: false,
         }),
@@ -2033,8 +2033,8 @@ describe('Subscription Upgrade Selection Logic', () => {
           paymentMethodId: nonPaymentPM.id,
           priceId: paidPrice.id,
           status: SubscriptionStatus.Canceled,
-          startDate: new Date('2023-12-01'),
-          canceledAt: new Date('2024-02-10'),
+          startDate: new Date('2023-12-01').getTime(),
+          canceledAt: new Date('2024-02-10').getTime(),
           cancellationReason: CancellationReason.NonPayment,
           livemode: false,
         }),
@@ -2045,8 +2045,8 @@ describe('Subscription Upgrade Selection Logic', () => {
           paymentMethodId: otherPM.id,
           priceId: premiumPrice.id,
           status: SubscriptionStatus.Canceled,
-          startDate: new Date('2023-12-01'),
-          canceledAt: new Date('2024-02-15'),
+          startDate: new Date('2023-12-01').getTime(),
+          canceledAt: new Date('2024-02-15').getTime(),
           cancellationReason: CancellationReason.Other,
           livemode: false,
         }),
@@ -2057,8 +2057,8 @@ describe('Subscription Upgrade Selection Logic', () => {
           paymentMethodId: paymentMethod.id,
           priceId: freePrice.id,
           status: SubscriptionStatus.Canceled,
-          startDate: new Date('2023-12-01'),
-          canceledAt: new Date('2024-02-05'),
+          startDate: new Date('2023-12-01').getTime(),
+          canceledAt: new Date('2024-02-05').getTime(),
           cancellationReason: CancellationReason.CustomerRequest,
           livemode: false,
         }),
@@ -2069,8 +2069,8 @@ describe('Subscription Upgrade Selection Logic', () => {
           paymentMethodId: paymentMethod2.id,
           priceId: freePrice.id,
           status: SubscriptionStatus.Canceled,
-          startDate: new Date('2023-12-01'),
-          canceledAt: new Date('2024-02-20'),
+          startDate: new Date('2023-12-01').getTime(),
+          canceledAt: new Date('2024-02-20').getTime(),
           cancellationReason: CancellationReason.UpgradedToPaid,
           livemode: false,
         }),
@@ -2126,8 +2126,8 @@ describe('Subscription Upgrade Selection Logic', () => {
           paymentMethodId: lastDayPM.id,
           priceId: paidPrice.id,
           status: SubscriptionStatus.Canceled,
-          startDate: new Date('2023-12-01'),
-          canceledAt: new Date('2024-01-31T23:59:59.999Z'),
+          startDate: new Date('2023-12-01').getTime(),
+          canceledAt: new Date('2024-01-31T23:59:59.999Z').getTime(),
           cancellationReason: CancellationReason.CustomerRequest,
           livemode: false,
         }),
@@ -2138,8 +2138,8 @@ describe('Subscription Upgrade Selection Logic', () => {
           paymentMethodId: firstDayPM.id,
           priceId: premiumPrice.id,
           status: SubscriptionStatus.Canceled,
-          startDate: new Date('2023-12-01'),
-          canceledAt: new Date('2024-02-01T00:00:00.000Z'),
+          startDate: new Date('2023-12-01').getTime(),
+          canceledAt: new Date('2024-02-01T00:00:00.000Z').getTime(),
           cancellationReason: CancellationReason.CustomerRequest,
           livemode: false,
         }),
@@ -2150,8 +2150,8 @@ describe('Subscription Upgrade Selection Logic', () => {
           paymentMethodId: paymentMethod.id,
           priceId: freePrice.id,
           status: SubscriptionStatus.Canceled,
-          startDate: new Date('2023-12-01'),
-          canceledAt: new Date('2024-02-29T23:59:59.999Z'),
+          startDate: new Date('2023-12-01').getTime(),
+          canceledAt: new Date('2024-02-29T23:59:59.999Z').getTime(),
           cancellationReason: CancellationReason.CustomerRequest,
           livemode: false,
         }),
@@ -2359,7 +2359,7 @@ describe('Subscription Upgrade Selection Logic', () => {
         priceId: freePrice.id,
         status: SubscriptionStatus.Canceled,
         cancellationReason: CancellationReason.UpgradedToPaid,
-        canceledAt: new Date(),
+        canceledAt: Date.now(),
         livemode: false,
       })
 

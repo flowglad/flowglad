@@ -251,8 +251,8 @@ export const migrateSingleSubscriptionBillingPeriod = async (
   }, 0)
 
   console.log(`Billing period details:
-    Start date: ${billingPeriod.startDate.toISOString()}
-    End date: ${billingPeriod.endDate.toISOString()}
+    Start date: ${new Date(billingPeriod.startDate).toISOString()}
+    End date: ${new Date(billingPeriod.endDate).toISOString()}
     Total charge: ${totalCharge / 100} (in cents: ${totalCharge})
     Items: ${billingPeriodItems
       .map(

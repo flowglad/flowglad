@@ -50,7 +50,11 @@ export async function getUpgradeMetrics(
           CancellationReason.UpgradedToPaid
         ),
         isNotNull(subscriptions.canceledAt),
-        between(subscriptions.canceledAt, startDate, endDate)
+        between(
+          subscriptions.canceledAt,
+          startDate.getTime(),
+          endDate.getTime()
+        )
       )
     )
 
@@ -148,8 +152,8 @@ export async function getUpgradeConversionRate(
       and(
         eq(subscriptions.organizationId, organizationId),
         eq(subscriptions.isFreePlan, true),
-        gte(subscriptions.startDate, startDate),
-        lte(subscriptions.startDate, endDate)
+        gte(subscriptions.startDate, startDate.getTime()),
+        lte(subscriptions.startDate, endDate.getTime())
       )
     )
 
@@ -257,7 +261,11 @@ export async function getUpgradedSubscriptions(
           CancellationReason.UpgradedToPaid
         ),
         isNotNull(subscriptions.canceledAt),
-        between(subscriptions.canceledAt, startDate, endDate)
+        between(
+          subscriptions.canceledAt,
+          startDate.getTime(),
+          endDate.getTime()
+        )
       )
     )
 
@@ -275,8 +283,8 @@ export async function getUpgradedSubscriptions(
  */
 export async function getUpgradePaths(
   organizationId: string,
-  startDate: Date,
-  endDate: Date,
+  startDate: Date | number,
+  endDate: Date | number,
   transaction: DbTransaction
 ): Promise<
   Array<{
@@ -286,8 +294,8 @@ export async function getUpgradePaths(
 > {
   const upgradedSubscriptions = await getUpgradedSubscriptions(
     organizationId,
-    startDate,
-    endDate,
+    new Date(startDate),
+    new Date(endDate),
     transaction
   )
 

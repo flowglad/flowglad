@@ -158,7 +158,53 @@ export type SetupPricingModelInput = z.infer<
 export const validateSetupPricingModelInput = (
   input: SetupPricingModelInput
 ) => {
-  const parsed = setupPricingModelSchema.parse(input)
+  const result = setupPricingModelSchema.safeParse(input)
+  if (!result.success) {
+    if (
+      process.env.NODE_ENV === 'test' &&
+      result.error instanceof z.ZodError
+    ) {
+      for (const issue of result.error.issues) {
+        const { path, message } = issue
+        // Try to extract the problematic value and its type from the input
+        let value: unknown = undefined
+        let valueType: string = 'unknown'
+        // The input to safeParse is `input`
+        let current: any = input
+        for (const key of path) {
+          if (
+            current &&
+            typeof current === 'object' &&
+            key in current
+          ) {
+            current = current[key]
+          } else {
+            current = undefined
+            break
+          }
+        }
+        if (current !== undefined) {
+          value = current
+          valueType = Object.prototype.toString.call(current)
+        }
+        // Print debug info
+        // eslint-disable-next-line no-console
+        console.info(
+          '[validateSetupPricingModelInput][TEST] ZodError at path:',
+          path.join('.'),
+          '| value:',
+          value,
+          '| type:',
+          valueType,
+          '| message:',
+          message
+        )
+      }
+    }
+    throw result.error
+  }
+
+  const parsed = result.data
 
   const featuresBySlug = core.groupBy(R.prop('slug'), parsed.features)
   const usageMetersBySlug = core.groupBy(

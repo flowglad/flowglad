@@ -5,19 +5,17 @@ import { z } from 'zod'
 import {
   tableBase,
   constructIndex,
-  ommittedColumnsForInsertSchema,
   nullableStringForeignKey,
   notNullStringForeignKey,
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
-  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { products } from '@/db/schema/products'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
-import { fileClientInsertSchema } from './files'
+import { buildSchemas } from '@/db/createZodSchemas'
+import { fileClientInsertSchema } from '@/db/schema/files'
 
 const TABLE_NAME = 'links'
 
@@ -56,48 +54,31 @@ const columnRefinements = {
   url: z.string().url(),
 }
 
-/*
- * database schemas
- */
-export const linksInsertSchema = createInsertSchema(links)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const linksSelectSchema =
-  createSelectSchema(links).extend(columnRefinements)
-
-export const linksUpdateSchema = linksInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
-
-const hiddenColumns = {
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
+export const {
+  select: linksSelectSchema,
+  insert: linksInsertSchema,
+  update: linksUpdateSchema,
+  client: {
+    select: linkClientSelectSchema,
+    insert: linkClientInsertSchema,
+    update: linkClientUpdateSchema,
+  },
+} = buildSchemas(links, {
+  refine: {
+    ...columnRefinements,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      organizationId: true,
+      livemode: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'Link',
 })
-
-/*
- * client schemas
- */
-export const linkClientInsertSchema = linksInsertSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'LinkClientInsertSchema' })
-
-export const linkClientUpdateSchema = linksUpdateSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'LinkClientUpdateSchema' })
-
-export const linkClientSelectSchema = linksSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'LinkRecord' })
 
 export namespace Link {
   export type Insert = z.infer<typeof linksInsertSchema>

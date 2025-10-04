@@ -78,7 +78,7 @@ describe('calculateActiveSubscribersByMonth', () => {
       customerId: customer.id,
       defaultPaymentMethodId: paymentMethod.id,
       priceId: price.id,
-      startDate: new Date('2022-12-01T05:00:00.000Z'),
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
       canceledAt: null,
       status: SubscriptionStatus.Active,
     })
@@ -129,7 +129,7 @@ describe('calculateActiveSubscribersByMonth', () => {
       customerId: customer1.id,
       defaultPaymentMethodId: pm1.id,
       priceId: price.id,
-      startDate: new Date('2022-12-01T05:00:00.000Z'),
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
       canceledAt: null,
     })
 
@@ -146,7 +146,7 @@ describe('calculateActiveSubscribersByMonth', () => {
       customerId: customer2.id,
       defaultPaymentMethodId: pm2.id,
       priceId: price.id,
-      startDate: new Date('2023-02-15T05:00:00.000Z'),
+      startDate: new Date('2023-02-15T05:00:00.000Z').getTime(),
       canceledAt: null,
     })
 
@@ -163,8 +163,8 @@ describe('calculateActiveSubscribersByMonth', () => {
       customerId: customer3.id,
       defaultPaymentMethodId: pm3.id,
       priceId: price.id,
-      startDate: new Date('2022-12-01T05:00:00.000Z'),
-      canceledAt: new Date('2023-02-10T05:00:00.000Z'),
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: new Date('2023-02-10T05:00:00.000Z').getTime(),
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -236,7 +236,7 @@ describe('calculateActiveSubscribersByMonth', () => {
       customerId: customer.id,
       defaultPaymentMethodId: paymentMethod.id,
       priceId: price.id,
-      startDate: new Date('2023-01-15T05:00:00.000Z'),
+      startDate: new Date('2023-01-15T05:00:00.000Z').getTime(),
       canceledAt: null,
     })
 
@@ -278,7 +278,7 @@ describe('calculateActiveSubscribersByMonth', () => {
       customerId: customer.id,
       defaultPaymentMethodId: paymentMethod.id,
       priceId: price.id,
-      startDate: new Date('2023-02-15T05:00:00.000Z'),
+      startDate: new Date('2023-02-15T05:00:00.000Z').getTime(),
       canceledAt: null,
     })
 
@@ -328,8 +328,8 @@ describe('calculateActiveSubscribersByMonth', () => {
       customerId: customer.id,
       defaultPaymentMethodId: paymentMethod.id,
       priceId: price.id,
-      startDate: new Date('2022-12-01T05:00:00.000Z'),
-      canceledAt: new Date('2023-02-15T05:00:00.000Z'),
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: new Date('2023-02-15T05:00:00.000Z').getTime(),
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -377,7 +377,7 @@ describe('calculateActiveSubscribersByMonth', () => {
       customerId: customer1.id,
       defaultPaymentMethodId: pm1.id,
       priceId: price.id,
-      startDate: new Date('2023-02-01T05:00:00.000Z'),
+      startDate: new Date('2023-02-01T05:00:00.000Z').getTime(),
       canceledAt: null,
     })
 
@@ -394,8 +394,8 @@ describe('calculateActiveSubscribersByMonth', () => {
       customerId: customer2.id,
       defaultPaymentMethodId: pm2.id,
       priceId: price.id,
-      startDate: new Date('2023-01-01T05:00:00.000Z'),
-      canceledAt: new Date('2023-02-28T23:59:59.999Z'),
+      startDate: new Date('2023-01-01T05:00:00.000Z').getTime(),
+      canceledAt: new Date('2023-02-28T23:59:59.999Z').getTime(),
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -446,7 +446,7 @@ describe('calculateSubscriberBreakdown', () => {
       customerId: customer.id,
       defaultPaymentMethodId: paymentMethod.id,
       priceId: price.id,
-      startDate: new Date('2022-12-01T05:00:00.000Z'),
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
       canceledAt: null,
     })
 
@@ -483,7 +483,7 @@ describe('calculateSubscriberBreakdown', () => {
       customerId: customer.id,
       defaultPaymentMethodId: paymentMethod.id,
       priceId: price.id,
-      startDate: new Date('2023-02-15T05:00:00.000Z'),
+      startDate: new Date('2023-02-15T05:00:00.000Z').getTime(),
       canceledAt: null,
     })
 
@@ -520,8 +520,8 @@ describe('calculateSubscriberBreakdown', () => {
       customerId: customer.id,
       defaultPaymentMethodId: paymentMethod.id,
       priceId: price.id,
-      startDate: new Date('2022-12-01T05:00:00.000Z'),
-      canceledAt: new Date('2023-02-15T05:00:00.000Z'),
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: new Date('2023-02-15T05:00:00.000Z').getTime(),
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -564,7 +564,7 @@ describe('calculateSubscriberBreakdown', () => {
       customerId: customer1.id,
       defaultPaymentMethodId: pm1.id,
       priceId: price.id,
-      startDate: new Date('2023-02-15T05:00:00.000Z'),
+      startDate: new Date('2023-02-15T05:00:00.000Z').getTime(),
       canceledAt: null,
     })
 
@@ -574,8 +574,8 @@ describe('calculateSubscriberBreakdown', () => {
       customerId: customer2.id,
       defaultPaymentMethodId: pm2.id,
       priceId: price.id,
-      startDate: new Date('2022-12-01T05:00:00.000Z'),
-      canceledAt: new Date('2023-02-15T05:00:00.000Z'),
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: new Date('2023-02-15T05:00:00.000Z').getTime(),
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -611,7 +611,9 @@ describe('calculateSubscriberBreakdown', () => {
         customerId: customer.id,
         defaultPaymentMethodId: paymentMethod.id,
         priceId: price.id,
-        startDate: new Date(`2023-02-${10 + i * 5}T05:00:00.000Z`),
+        startDate: new Date(
+          `2023-02-${10 + i * 5}T05:00:00.000Z`
+        ).getTime(),
         canceledAt: null,
       })
     }
@@ -630,8 +632,10 @@ describe('calculateSubscriberBreakdown', () => {
         customerId: customer.id,
         defaultPaymentMethodId: paymentMethod.id,
         priceId: price.id,
-        startDate: new Date('2022-12-01T05:00:00.000Z'),
-        canceledAt: new Date(`2023-02-${10 + i * 5}T05:00:00.000Z`),
+        startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+        canceledAt: new Date(
+          `2023-02-${10 + i * 5}T05:00:00.000Z`
+        ).getTime(),
       })
     }
 
@@ -669,7 +673,7 @@ describe('calculateSubscriberBreakdown', () => {
         customerId: customer.id,
         defaultPaymentMethodId: paymentMethod.id,
         priceId: price.id,
-        startDate: new Date(`${startDate}T05:00:00.000Z`),
+        startDate: new Date(`${startDate}T05:00:00.000Z`).getTime(),
         canceledAt: null,
       })
     }
@@ -687,8 +691,8 @@ describe('calculateSubscriberBreakdown', () => {
       customerId: customer.id,
       defaultPaymentMethodId: paymentMethod.id,
       priceId: price.id,
-      startDate: new Date('2022-12-01T05:00:00.000Z'),
-      canceledAt: new Date('2023-02-15T05:00:00.000Z'),
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: new Date('2023-02-15T05:00:00.000Z').getTime(),
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -724,7 +728,7 @@ describe('calculateSubscriberBreakdown', () => {
       customerId: newCustomer.id,
       defaultPaymentMethodId: newPm.id,
       priceId: price.id,
-      startDate: new Date('2023-02-15T05:00:00.000Z'),
+      startDate: new Date('2023-02-15T05:00:00.000Z').getTime(),
       canceledAt: null,
     })
 
@@ -743,8 +747,8 @@ describe('calculateSubscriberBreakdown', () => {
         customerId: customer.id,
         defaultPaymentMethodId: paymentMethod.id,
         priceId: price.id,
-        startDate: new Date('2022-12-01T05:00:00.000Z'),
-        canceledAt: new Date(`${cancelDate}T05:00:00.000Z`),
+        startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+        canceledAt: new Date(`${cancelDate}T05:00:00.000Z`).getTime(),
       })
     }
 
@@ -800,8 +804,8 @@ describe('calculateSubscriberBreakdown', () => {
       customerId: customer1.id,
       defaultPaymentMethodId: pm1.id,
       priceId: price.id,
-      startDate: new Date('2022-12-01T05:00:00.000Z'),
-      canceledAt: new Date('2023-02-01T05:00:00.000Z'),
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: new Date('2023-02-01T05:00:00.000Z').getTime(),
     })
 
     // Create a subscription that churned on the last day of February
@@ -817,8 +821,8 @@ describe('calculateSubscriberBreakdown', () => {
       customerId: customer2.id,
       defaultPaymentMethodId: pm2.id,
       priceId: price.id,
-      startDate: new Date('2022-12-15T05:00:00.000Z'),
-      canceledAt: new Date('2023-02-28T05:00:00.000Z'),
+      startDate: new Date('2022-12-15T05:00:00.000Z').getTime(),
+      canceledAt: new Date('2023-02-28T05:00:00.000Z').getTime(),
     })
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -853,7 +857,7 @@ describe('getCurrentActiveSubscribers', () => {
       customerId: customer.id,
       defaultPaymentMethodId: paymentMethod.id,
       priceId: price.id,
-      startDate: new Date('2023-01-01T05:00:00.000Z'),
+      startDate: new Date('2023-01-01T05:00:00.000Z').getTime(),
       canceledAt: null,
     })
 
@@ -902,8 +906,8 @@ describe('getCurrentActiveSubscribers', () => {
       customerId: customer.id,
       defaultPaymentMethodId: paymentMethod.id,
       priceId: price.id,
-      startDate: new Date('2023-01-01T05:00:00.000Z'),
-      canceledAt: new Date('2023-02-10T05:00:00.000Z'),
+      startDate: new Date('2023-01-01T05:00:00.000Z').getTime(),
+      canceledAt: new Date('2023-02-10T05:00:00.000Z').getTime(),
     })
 
     const result = await adminTransaction(async ({ transaction }) => {

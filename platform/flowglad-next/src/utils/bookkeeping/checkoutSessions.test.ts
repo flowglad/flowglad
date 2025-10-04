@@ -236,7 +236,7 @@ describe('Checkout Sessions', async () => {
     discount = await setupDiscount({
       organizationId: organization.id,
       name: 'TEST10',
-      code: `${new Date().getTime()}`,
+      code: `${Date.now()}`,
       amount: 10,
       amountType: DiscountAmountType.Fixed,
       livemode: true,
@@ -511,9 +511,10 @@ describe('Checkout Sessions', async () => {
       await adminTransaction(async ({ transaction }) => {
         await updatePurchase(
           {
-            ...purchase,
+            id: purchase.id,
+            priceType: purchase.priceType,
             status: PurchaseStatus.Paid,
-          } as Purchase.Update,
+          },
           transaction
         )
       })

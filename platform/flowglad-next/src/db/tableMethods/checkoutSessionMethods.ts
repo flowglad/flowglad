@@ -68,7 +68,10 @@ export const deleteExpiredCheckoutSessionsAndFeeCalculations = async (
     .from(checkoutSessions)
     .where(
       and(
-        lt(checkoutSessions.createdAt, retentionCutoff),
+        lt(
+          checkoutSessions.createdAt,
+          new Date(retentionCutoff).getTime()
+        ),
         not(
           inArray(checkoutSessions.status, [
             CheckoutSessionStatus.Succeeded,
@@ -113,8 +116,8 @@ export const selectOpenNonExpiredCheckoutSessions = async (
     transaction
   )
   return sessions
-    .filter((session) => session.expires > new Date())
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .filter((session) => session.expires > Date.now())
+    .sort((a, b) => b.createdAt - a.createdAt)
 }
 
 export const bulkUpdateCheckoutSessions = async (

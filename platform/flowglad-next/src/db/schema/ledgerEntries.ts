@@ -42,6 +42,7 @@ import { ledgerAccounts } from './ledgerAccounts'
 import { EqualApproximately } from 'lucide-react'
 import { refunds } from './refunds'
 import { billingRuns } from './billingRuns'
+import { zodEpochMs } from '../timestampMs'
 
 const TABLE_NAME = 'ledger_entries'
 
@@ -178,8 +179,8 @@ const columnRefinements = {
   status: core.createSafeZodEnum(LedgerEntryStatus),
   direction: core.createSafeZodEnum(LedgerEntryDirection),
   amount: core.safeZodPositiveIntegerOrZero,
-  entryTimestamp: core.safeZodDate,
-  discardedAt: core.safeZodDate.nullable(),
+  entryTimestamp: zodEpochMs,
+  discardedAt: zodEpochMs.nullable(),
   metadata: z.record(z.string(), z.any()).nullable().optional(),
 }
 

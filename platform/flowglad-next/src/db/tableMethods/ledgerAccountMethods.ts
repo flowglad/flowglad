@@ -16,6 +16,7 @@ import {
 } from '@/db/schema/ledgerAccounts'
 import { DbTransaction } from '../types'
 import { selectSubscriptionById } from './subscriptionMethods'
+import { NormalBalanceType } from '@/types'
 
 const TABLE_NAME = 'ledger_accounts'
 
@@ -115,6 +116,8 @@ export const findOrCreateLedgerAccountsForSubscriptionAndUsageMeters =
         usageMeterId,
         organizationId: subscription.organizationId,
         livemode: subscription.livemode,
+        normalBalance: NormalBalanceType.CREDIT,
+        version: 0,
       }))
     const createdLedgerAccounts =
       await bulkInsertLedgerAccountsBySubscriptionIdAndUsageMeterId(

@@ -81,12 +81,9 @@ describe('Ledger Management System', async () => {
       paymentMethodId: paymentMethod.id,
       priceId: price.id,
       status: SubscriptionStatus.Active,
-      currentBillingPeriodStart: new Date(
-        Date.now() - 30 * 24 * 60 * 60 * 1000
-      ),
-      currentBillingPeriodEnd: new Date(
-        Date.now() + 1 * 24 * 60 * 60 * 1000
-      ),
+      currentBillingPeriodStart:
+        Date.now() - 30 * 24 * 60 * 60 * 1000,
+      currentBillingPeriodEnd: Date.now() + 1 * 24 * 60 * 60 * 1000,
       livemode: true,
     })
 
@@ -296,7 +293,7 @@ describe('Ledger Management System', async () => {
               entryType: LedgerEntryType.UsageCost,
               amount: thirdUsageEvent.amount,
               status: LedgerEntryStatus.Pending,
-              discardedAt: new Date(),
+              discardedAt: Date.now(),
               sourceUsageEventId: thirdUsageEvent.id,
             },
           ],

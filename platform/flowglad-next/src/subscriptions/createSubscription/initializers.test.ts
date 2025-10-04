@@ -248,7 +248,7 @@ describe('insertSubscriptionAndItems', () => {
       // - The created subscription should have status 'trialing'.
       expect(subscription.status).toBe(SubscriptionStatus.Trialing)
       // - The subscription's currentBillingPeriodEnd should be equal to the trialEnd date.
-      expect(subscription.currentBillingPeriodEnd?.getTime()).toBe(
+      expect(subscription.currentBillingPeriodEnd).toBe(
         trialEnd.getTime()
       )
     })
@@ -316,9 +316,7 @@ describe('insertSubscriptionAndItems', () => {
       // - The resulting subscription should have status 'trialing'.
       expect(subscription.status).toBe(SubscriptionStatus.Trialing)
       // - The subscription's trialEnd field should match the provided date.
-      expect(subscription.trialEnd?.getTime()).toBe(
-        trialEnd.getTime()
-      )
+      expect(subscription.trialEnd).toBe(trialEnd.getTime())
     })
 
     it('should create an "incomplete" subscription if autoStart is false and there is no trial', async () => {

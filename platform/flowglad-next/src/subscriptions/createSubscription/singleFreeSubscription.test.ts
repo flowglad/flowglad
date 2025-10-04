@@ -181,7 +181,7 @@ describe('Single Free Subscription Constraint', () => {
         status: SubscriptionStatus.Canceled,
         livemode: true,
         isFreePlan: true,
-        canceledAt: new Date(),
+        canceledAt: Date.now(),
         cancellationReason: CancellationReason.CustomerRequest,
       })
 

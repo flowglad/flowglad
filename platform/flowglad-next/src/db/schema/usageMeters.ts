@@ -19,7 +19,7 @@ import {
   clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import { UsageMeterAggregationType } from '@/types'
 import { pricingModels } from '@/db/schema/pricingModels'
 import core from '@/utils/core'
@@ -85,22 +85,6 @@ const columnRefinements = {
     ),
 }
 
-export const usageMetersInsertSchema = createInsertSchema(usageMeters)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-  .extend({
-    aggregationType: columnRefinements.aggregationType.optional(),
-  })
-
-export const usageMetersSelectSchema =
-  createSelectSchema(usageMeters).extend(columnRefinements)
-
-export const usageMetersUpdateSchema = usageMetersSelectSchema
-  .partial()
-  .extend({
-    id: z.string(),
-  })
-
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
@@ -114,26 +98,29 @@ const createOnlyColumns = {
   pricingModelId: true,
 } as const
 
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
+export const {
+  select: usageMetersSelectSchema,
+  insert: usageMetersInsertSchema,
+  update: usageMetersUpdateSchema,
+  client: {
+    select: usageMetersClientSelectSchema,
+    insert: usageMetersClientInsertSchema,
+    update: usageMetersClientUpdateSchema,
+  },
+} = buildSchemas(usageMeters, {
+  selectRefine: {
+    ...columnRefinements,
+  },
+  insertRefine: {
+    aggregationType: columnRefinements.aggregationType.optional(),
+  },
+  client: {
+    hiddenColumns,
+    createOnlyColumns,
+    readOnlyColumns,
+  },
+  entityName: 'UsageMeter',
 })
-
-export const usageMetersClientSelectSchema = usageMetersSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'UsageMetersClientSelectSchema' })
-
-export const usageMetersClientUpdateSchema = usageMetersUpdateSchema
-  .omit({
-    ...hiddenColumns,
-    ...readOnlyColumns,
-  })
-  .omit(createOnlyColumns)
-  .meta({ id: 'UsageMetersClientUpdateSchema' })
-
-export const usageMetersClientInsertSchema = usageMetersInsertSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'UsageMetersClientInsertSchema' })
 
 export const usageMeterPaginatedSelectSchema =
   createPaginatedSelectSchema(usageMetersClientSelectSchema)

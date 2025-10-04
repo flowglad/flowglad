@@ -57,8 +57,8 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
   params: CreateBillingPeriodParams
 ): BillingPeriodAndItemsInserts => {
   const { isInitialBillingPeriod, trialPeriod, subscription } = params
-  let startDate: Date
-  let endDate: Date
+  let startDate: number
+  let endDate: number
   if (trialPeriod && subscription.trialEnd) {
     startDate = subscription.currentBillingPeriodStart
     endDate = subscription.trialEnd
@@ -77,9 +77,9 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
   }
 
   let status = BillingPeriodStatus.Upcoming
-  if (startDate <= new Date()) {
+  if (startDate <= Date.now()) {
     status = BillingPeriodStatus.Active
-  } else if (endDate < new Date()) {
+  } else if (endDate < Date.now()) {
     status = BillingPeriodStatus.Completed
   }
   const billingPeriodInsert: BillingPeriod.Insert = {
@@ -97,7 +97,7 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
   if (!params.trialPeriod) {
     const subscriptionItemsToPutTowardsBillingItems =
       params.subscriptionItems.filter(
-        (item) => !item.expiredAt || item.expiredAt > new Date()
+        (item) => !item.expiredAt || item.expiredAt > Date.now()
       )
 
     billingPeriodItemInserts =
@@ -159,11 +159,11 @@ export const attemptBillingPeriodClose = async (
     return billingPeriod
   }
   let updatedBillingPeriod = billingPeriod
-  if (billingPeriod.endDate > new Date()) {
+  if (billingPeriod.endDate > Date.now()) {
     throw Error(
       `Cannot close billing period ${
         billingPeriod.id
-      }, at time ${new Date().toISOString()}, when its endDate is ${billingPeriod.endDate.toISOString()}`
+      }, at time ${new Date().toISOString()}, when its endDate is ${new Date(billingPeriod.endDate).toISOString()}`
     )
   }
   const { billingPeriodItems } =
@@ -209,7 +209,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
 > => {
   if (
     !currentBillingPeriod.endDate ||
-    isNaN(currentBillingPeriod.endDate.getTime())
+    isNaN(currentBillingPeriod.endDate)
   ) {
     throw new Error(
       `Invalid endDate for billing period ${currentBillingPeriod.id}`
@@ -243,12 +243,12 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
   }
   if (
     subscription.cancelScheduledAt &&
-    subscription.cancelScheduledAt < new Date()
+    subscription.cancelScheduledAt < Date.now()
   ) {
     subscription = await updateSubscription(
       {
         id: subscription.id,
-        canceledAt: new Date(),
+        canceledAt: Date.now(),
         status: SubscriptionStatus.Canceled,
         renews: subscription.renews,
       },
@@ -473,13 +473,13 @@ export const attemptToCreateFutureBillingPeriodForSubscription =
   ) => {
     if (
       subscription.canceledAt &&
-      subscription.canceledAt < new Date()
+      subscription.canceledAt < Date.now()
     ) {
       return null
     }
     if (
       subscription.cancelScheduledAt &&
-      subscription.cancelScheduledAt < new Date()
+      subscription.cancelScheduledAt < Date.now()
     ) {
       return null
     }
@@ -492,7 +492,7 @@ export const attemptToCreateFutureBillingPeriodForSubscription =
     )
     const mostRecentBillingPeriod =
       billingPeriodsForSubscription.sort(
-        (a, b) => b.startDate.getTime() - a.startDate.getTime()
+        (a, b) => b.startDate - a.startDate
       )[0]
     if (
       subscription.cancelScheduledAt &&

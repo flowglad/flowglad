@@ -2,17 +2,17 @@ import { IntervalUnit } from '@/types'
 import { isLeapYear } from 'date-fns'
 
 interface GenerateNextBillingPeriodParams {
-  billingCycleAnchorDate: Date
+  billingCycleAnchorDate: Date | number
   interval: IntervalUnit
   intervalCount: number
-  lastBillingPeriodEndDate?: Date | null
-  trialEnd?: Date | null
-  subscriptionStartDate?: Date
+  lastBillingPeriodEndDate?: Date | number | null
+  trialEnd?: Date | number | null
+  subscriptionStartDate?: Date | number
 }
 
 interface BillingPeriodRange {
-  startDate: Date
-  endDate: Date
+  startDate: number
+  endDate: number
 }
 
 function getDaysInMonth(year: number, month: number): number {
@@ -37,19 +37,22 @@ export function generateNextBillingPeriod({
   trialEnd,
   subscriptionStartDate,
 }: GenerateNextBillingPeriodParams): BillingPeriodRange {
-  const effectiveStartDate =
+  const effectiveStartDate = new Date(
     subscriptionStartDate || billingCycleAnchorDate
+  ).getTime()
+
   if (trialEnd) {
-    if (trialEnd.getTime() <= effectiveStartDate.getTime()) {
+    if (new Date(trialEnd).getTime() <= effectiveStartDate) {
       throw new Error(
         'Trial end date must be after the billing cycle anchor date.'
       )
     }
     return {
       startDate: effectiveStartDate,
-      endDate: trialEnd,
+      endDate: new Date(trialEnd).getTime(),
     }
   }
+
   // 1) Disallow zero or negative intervals
   if (intervalCount <= 0) {
     throw new Error(
@@ -61,15 +64,16 @@ export function generateNextBillingPeriod({
   //    - If lastBillingPeriodEndDate is provided, use it exactly (to allow contiguous)
   //    - Else use the anchor date
   const startDate = lastBillingPeriodEndDate
-    ? new Date(lastBillingPeriodEndDate.getTime())
+    ? new Date(lastBillingPeriodEndDate).getTime()
     : effectiveStartDate
+  const startDateObj = new Date(startDate)
 
   let endDate: Date
   if (interval === IntervalUnit.Month) {
     // For monthly intervals, we need to handle month-end edge cases properly
-    const startDay = startDate.getUTCDate()
-    const startMonth = startDate.getUTCMonth()
-    const startYear = startDate.getUTCFullYear()
+    const startDay = startDateObj.getUTCDate()
+    const startMonth = startDateObj.getUTCMonth()
+    const startYear = new Date(startDate).getUTCFullYear()
 
     // Calculate the target month and year
     const totalMonths = startMonth + intervalCount
@@ -89,17 +93,17 @@ export function generateNextBillingPeriod({
         targetYear,
         targetMonth,
         targetDay,
-        startDate.getUTCHours(),
-        startDate.getUTCMinutes(),
-        startDate.getUTCSeconds(),
-        startDate.getUTCMilliseconds()
+        startDateObj.getUTCHours(),
+        startDateObj.getUTCMinutes(),
+        startDateObj.getUTCSeconds(),
+        startDateObj.getUTCMilliseconds()
       )
     )
   } else if (interval === IntervalUnit.Year) {
     // For yearly intervals, we need to handle leap year edge cases
-    const startDay = startDate.getUTCDate()
-    const startMonth = startDate.getUTCMonth()
-    const startYear = startDate.getUTCFullYear()
+    const startDay = startDateObj.getUTCDate()
+    const startMonth = startDateObj.getUTCMonth()
+    const startYear = startDateObj.getUTCFullYear()
 
     const targetYear = startYear + intervalCount
 
@@ -112,17 +116,16 @@ export function generateNextBillingPeriod({
     ) {
       targetDay = 28
     }
-
     // Create the new endDate, preserving the time of day from the startDate
     endDate = new Date(
       Date.UTC(
         targetYear,
         startMonth,
         targetDay,
-        startDate.getUTCHours(),
-        startDate.getUTCMinutes(),
-        startDate.getUTCSeconds(),
-        startDate.getUTCMilliseconds()
+        startDateObj.getUTCHours(),
+        startDateObj.getUTCMinutes(),
+        startDateObj.getUTCSeconds(),
+        startDateObj.getUTCMilliseconds()
       )
     )
   } else {
@@ -133,15 +136,15 @@ export function generateNextBillingPeriod({
   // 3) Validate that new start isn't before lastEnd,
   //    and that end is after start
   if (lastBillingPeriodEndDate) {
-    const startTime = startDate.getTime()
+    const startTime = startDateObj.getTime()
     const endTime = endDate.getTime()
-    const lastEndTime = lastBillingPeriodEndDate.getTime()
+    const lastEndTime = new Date(lastBillingPeriodEndDate).getTime()
 
     if (startTime < lastEndTime) {
       throw new Error(
         'Next period start date must be after last period end date. ' +
-          `Received start date: ${startDate.toISOString()} and ` +
-          `last period end date: ${lastBillingPeriodEndDate.toISOString()}`
+          `Received start date: ${startDateObj.toISOString()} and ` +
+          `last period end date: ${new Date(lastBillingPeriodEndDate).toISOString()}`
       )
     }
 
@@ -151,7 +154,7 @@ export function generateNextBillingPeriod({
   }
 
   return {
-    startDate,
-    endDate,
+    startDate: startDateObj.getTime(),
+    endDate: endDate.getTime(),
   }
 }

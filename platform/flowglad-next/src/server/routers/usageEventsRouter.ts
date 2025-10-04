@@ -150,8 +150,8 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
             usageMeterId: pricesMap.get(usageEvent.priceId)
               ?.usageMeterId!,
             usageDate: usageEvent.usageDate
-              ? new Date(usageEvent.usageDate)
-              : new Date(),
+              ? usageEvent.usageDate
+              : Date.now(),
           }))
         return await bulkInsertOrDoNothingUsageEventsByTransactionId(
           usageInsertsWithBillingPeriodId,

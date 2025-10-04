@@ -190,10 +190,7 @@ export const getProductTableRows = async (
   }))
 
   // Sort products by creation date
-  products.sort(
-    (a, b) =>
-      b.product.createdAt.getTime() - a.product.createdAt.getTime()
-  )
+  products.sort((a, b) => b.product.createdAt - a.product.createdAt)
 
   // Apply pagination
   const pageIndex = parseInt(cursor) || 0

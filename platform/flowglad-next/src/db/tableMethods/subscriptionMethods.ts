@@ -153,8 +153,14 @@ export const selectSubscriptionsToBeCancelled = async (
     .from(subscriptions)
     .where(
       and(
-        gte(subscriptions.cancelScheduledAt, rangeStart),
-        lte(subscriptions.cancelScheduledAt, rangeEnd),
+        gte(
+          subscriptions.cancelScheduledAt,
+          new Date(rangeStart).getTime()
+        ),
+        lte(
+          subscriptions.cancelScheduledAt,
+          new Date(rangeEnd).getTime()
+        ),
         eq(subscriptions.livemode, livemode)
       )
     )
@@ -321,11 +327,11 @@ export const getActiveSubscriptionsForPeriod = async (
       and(
         eq(subscriptions.organizationId, organizationId),
         // Subscription started before the period ended
-        lte(subscriptions.startDate, endDate),
+        lte(subscriptions.startDate, new Date(endDate).getTime()),
         // Subscription was not canceled before the period started
         or(
           isNull(subscriptions.canceledAt),
-          gt(subscriptions.canceledAt, startDate)
+          gt(subscriptions.canceledAt, new Date(startDate).getTime())
         ),
         // Exclude subscriptions that were upgraded away
         or(

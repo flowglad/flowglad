@@ -221,8 +221,12 @@ function BillingPortalPage() {
                     name: currentSubscription.name || 'Subscription',
                     status:
                       currentSubscription.status as SubscriptionStatus,
-                    currentPeriodEnd,
-                    currentPeriodStart,
+                    currentPeriodEnd: currentPeriodEnd
+                      ? new Date(currentPeriodEnd)
+                      : undefined,
+                    currentPeriodStart: currentPeriodStart
+                      ? new Date(currentPeriodStart)
+                      : undefined,
                     cancelAtPeriodEnd,
                     canceledAt: canceledAt
                       ? new Date(canceledAt)
@@ -298,7 +302,7 @@ function BillingPortalPage() {
                     id: invoice.id,
                     number: invoice.invoiceNumber,
                     status: invoice.status,
-                    created: invoice.createdAt,
+                    created: new Date(invoice.createdAt),
                     dueDate: new Date(invoice.dueDate),
                     amountDue: 0,
                     currency: invoice.currency,

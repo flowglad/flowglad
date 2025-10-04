@@ -27,6 +27,7 @@ import { BillingRunStatus } from '@/types'
 import { sql } from 'drizzle-orm'
 import { subscriptions } from './subscriptions'
 import { paymentMethods } from './paymentMethods'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'billing_runs'
 
@@ -90,21 +91,6 @@ const columnRefinements = {
     .nullable()
     .optional(),
 }
-
-/*
- * database schemas
- */
-export const billingRunsInsertSchema = createInsertSchema(billingRuns)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const billingRunsSelectSchema =
-  createSelectSchema(billingRuns).extend(columnRefinements)
-
-export const billingRunsUpdateSchema = billingRunsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
 const readOnlyColumns = {
   billingPeriodId: true,
 } as const
@@ -114,51 +100,42 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const createOnlyColumns = {} as const
-
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
+export const {
+  select: billingRunsSelectSchema,
+  insert: billingRunsInsertSchema,
+  update: billingRunsUpdateSchema,
+  client: {
+    select: billingRunsClientSelectSchema,
+    insert: billingRunsClientInsertSchema,
+    update: billingRunsClientUpdateSchema,
+  },
+} = buildSchemas(billingRuns, {
+  refine: columnRefinements,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'BillingRun',
 })
-
-/*
- * client schemas
- */
-export const billingRunClientInsertSchema = billingRunsInsertSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'BillingRunClientInsertSchema' })
-
-export const billingRunClientUpdateSchema = billingRunsUpdateSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'BillingRunClientUpdateSchema' })
-
-export const billingRunClientSelectSchema = billingRunsSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'BillingRunClientSelectSchema' })
 
 export namespace BillingRun {
   export type Insert = z.infer<typeof billingRunsInsertSchema>
   export type Update = z.infer<typeof billingRunsUpdateSchema>
   export type Record = z.infer<typeof billingRunsSelectSchema>
   export type ClientInsert = z.infer<
-    typeof billingRunClientInsertSchema
+    typeof billingRunsClientInsertSchema
   >
   export type ClientUpdate = z.infer<
-    typeof billingRunClientUpdateSchema
+    typeof billingRunsClientUpdateSchema
   >
   export type ClientRecord = z.infer<
-    typeof billingRunClientSelectSchema
+    typeof billingRunsClientSelectSchema
   >
   export type Where = SelectConditions<typeof billingRuns>
 }
 
 export const createBillingRunInputSchema = z.object({
-  billingRun: billingRunClientInsertSchema,
+  billingRun: billingRunsClientInsertSchema,
 })
 
 export type CreateBillingRunInput = z.infer<
@@ -166,7 +143,7 @@ export type CreateBillingRunInput = z.infer<
 >
 
 export const editBillingRunInputSchema = z.object({
-  billingRun: billingRunClientUpdateSchema,
+  billingRun: billingRunsClientUpdateSchema,
 })
 
 export type EditBillingRunInput = z.infer<

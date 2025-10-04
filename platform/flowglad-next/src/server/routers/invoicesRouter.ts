@@ -122,7 +122,7 @@ const createInvoiceProcedure = protectedProcedure
           {
             ...invoiceInsert,
             livemode: ctx.livemode,
-            dueDate: invoiceInsert.dueDate ?? new Date(),
+            dueDate: invoiceInsert.dueDate ?? Date.now(),
             organizationId: ctx.organizationId!,
           },
           transaction

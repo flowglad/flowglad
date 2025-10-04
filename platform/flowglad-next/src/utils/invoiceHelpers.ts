@@ -2,6 +2,7 @@ import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   EditInvoiceInput,
   InvoiceLineItem,
+  invoiceLineItemsUpdateSchema,
 } from '@/db/schema/invoiceLineItems'
 import {
   deleteInvoiceLineItems,
@@ -83,15 +84,9 @@ export const updateInvoiceTransaction = async (
             'Usage invoice line items are not supported'
           )
         }
-        return updateInvoiceLineItem(
-          {
-            ...invoiceLineItem,
-            ledgerAccountCredit: null,
-            ledgerAccountId: null,
-            billingRunId: null,
-          },
-          transaction
-        )
+        const update =
+          invoiceLineItemsUpdateSchema.parse(invoiceLineItem)
+        return updateInvoiceLineItem(update, transaction)
       } else {
         if (invoiceLineItem.type === SubscriptionItemType.Usage) {
           throw new Error(

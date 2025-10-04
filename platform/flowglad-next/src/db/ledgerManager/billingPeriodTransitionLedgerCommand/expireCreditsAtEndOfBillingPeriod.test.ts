@@ -90,8 +90,8 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       paymentMethodId: paymentMethod.id,
       priceId: price.id,
       status: SubscriptionStatus.Active,
-      currentBillingPeriodStart: currentPeriodStartDate,
-      currentBillingPeriodEnd: currentPeriodEndDate,
+      currentBillingPeriodStart: currentPeriodStartDate.getTime(),
+      currentBillingPeriodEnd: currentPeriodEndDate.getTime(),
       interval: IntervalUnit.Month,
       intervalCount: 1,
     })
@@ -232,7 +232,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       creditType: UsageCreditType.Grant,
       issuedAmount: 50,
       usageMeterId: usageMeter1.id,
-      expiresAt: futureExpiryDate,
+      expiresAt: futureExpiryDate.getTime(),
       livemode: subscription.livemode,
     })
     await setupCreditLedgerEntry({
@@ -277,7 +277,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       creditType: UsageCreditType.Grant,
       issuedAmount: expiringCreditAmount,
       usageMeterId: usageMeter1.id,
-      expiresAt: exactExpiryDate,
+      expiresAt: exactExpiryDate.getTime(),
       livemode: subscription.livemode,
     })
     await setupCreditLedgerEntry({
@@ -316,7 +316,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     expect(expiredEntry.organizationId).toBe(organization.id)
     expect(expiredEntry.status).toBe(LedgerEntryStatus.Posted)
     expect(expiredEntry.livemode).toBe(testCommand.livemode)
-    expect(expiredEntry.entryTimestamp).toBeInstanceOf(Date)
+    expect(expiredEntry.entryTimestamp).toBeDefined()
     expect(expiredEntry.direction).toBe(LedgerEntryDirection.Debit)
     expect(expiredEntry.entryType).toBe(
       LedgerEntryType.CreditGrantExpired
@@ -348,7 +348,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       usageMeterId: usageMeter1.id,
       creditType: UsageCreditType.Grant,
       issuedAmount,
-      expiresAt: expiryDate,
+      expiresAt: expiryDate.getTime(),
       livemode: subscription.livemode,
     })
 
@@ -442,7 +442,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       creditType: UsageCreditType.Grant,
       issuedAmount: earlyExpiryAmount,
       usageMeterId: usageMeter1.id,
-      expiresAt: earlyExpiryDate,
+      expiresAt: earlyExpiryDate.getTime(),
       livemode: subscription.livemode,
     })
     await setupCreditLedgerEntry({
@@ -501,7 +501,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       creditType: UsageCreditType.Grant,
       issuedAmount: expiringBeforeAmount,
       usageMeterId: usageMeter1.id,
-      expiresAt: expiringBeforeDate,
+      expiresAt: expiringBeforeDate.getTime(),
       livemode: subscription.livemode,
     })
     await setupCreditLedgerEntry({
@@ -525,7 +525,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       creditType: UsageCreditType.Grant,
       issuedAmount: nonExpiringAfterAmount,
       usageMeterId: usageMeter1.id,
-      expiresAt: nonExpiringAfterDate,
+      expiresAt: nonExpiringAfterDate.getTime(),
       livemode: subscription.livemode,
     })
     await setupCreditLedgerEntry({
@@ -548,7 +548,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       creditType: UsageCreditType.Grant,
       issuedAmount: expiringAtAmount,
       usageMeterId: usageMeter1.id,
-      expiresAt: expiringAtDate,
+      expiresAt: expiringAtDate.getTime(),
       livemode: subscription.livemode,
     })
     await setupCreditLedgerEntry({
@@ -639,7 +639,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       creditType: UsageCreditType.Grant,
       issuedAmount: detailCheckAmount,
       usageMeterId: usageMeter1.id,
-      expiresAt: detailCheckExpiryDate,
+      expiresAt: detailCheckExpiryDate.getTime(),
       livemode: true,
     })
     await setupCreditLedgerEntry({
@@ -681,7 +681,7 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       livemodeFalseCommand.organizationId
     )
     expect(expiredEntry.status).toBe(LedgerEntryStatus.Posted)
-    expect(expiredEntry.entryTimestamp).toBeInstanceOf(Date)
+    expect(expiredEntry.entryTimestamp).toBeDefined()
     expect(expiredEntry.direction).toBe(LedgerEntryDirection.Debit)
     expect(expiredEntry.entryType).toBe(
       LedgerEntryType.CreditGrantExpired

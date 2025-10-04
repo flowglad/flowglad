@@ -62,7 +62,7 @@ export const processCreditGrantRecognizedLedgerCommand = async (
     subscriptionId: command.subscriptionId!,
     organizationId: command.organizationId,
     livemode: command.livemode,
-    entryTimestamp: new Date(),
+    entryTimestamp: Date.now(),
     status: LedgerEntryStatus.Posted,
     discardedAt: null,
     direction: LedgerEntryDirection.Credit,

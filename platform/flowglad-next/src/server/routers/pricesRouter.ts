@@ -30,6 +30,7 @@ import { z } from 'zod'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
+  idInputSchema,
 } from '@/db/tableUtils'
 import { PriceType } from '@/types'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -244,10 +245,44 @@ export const listUsagePricesForProduct = protectedProcedure
     )
   )
 
+export const setPriceAsDefault = protectedProcedure
+  .input(idInputSchema)
+  .output(z.object({ price: pricesClientSelectSchema }))
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const oldPrice = await selectPriceById(input.id, transaction)
+        const price = await safelyUpdatePrice(
+          { id: input.id, isDefault: true, type: oldPrice.type },
+          transaction
+        )
+        return { price }
+      }
+    )
+  )
+
+export const archivePrice = protectedProcedure
+  .input(idInputSchema)
+  .output(z.object({ price: pricesClientSelectSchema }))
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const oldPrice = await selectPriceById(input.id, transaction)
+        const price = await safelyUpdatePrice(
+          { id: input.id, active: false, type: oldPrice.type },
+          transaction
+        )
+        return { price }
+      }
+    )
+  )
+
 export const pricesRouter = router({
   list: listPrices,
   create: createPrice,
   update: updatePrice,
   getTableRows,
   listUsagePricesForProduct,
+  setAsDefault: setPriceAsDefault,
+  archive: archivePrice,
 })
