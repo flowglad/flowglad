@@ -8,9 +8,8 @@ import {
   integer,
   pgPolicy,
 } from 'drizzle-orm/pg-core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import {
-  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   constructIndex,
   constructUniqueIndex,
@@ -144,75 +143,48 @@ const commonColumnRefinements = {
   monthlyBillingVolumeFreeTier: core.safeZodNonNegativeInteger,
 }
 
-// Column refinements for SELECT schemas only
-const selectColumnRefinements = {
-  ...newBaseZodSelectSchemaColumns,
-  ...commonColumnRefinements,
-}
-
-// Column refinements for INSERT schemas (without auto-generated columns)
-const insertColumnRefinements = {
-  ...commonColumnRefinements,
-  monthlyBillingVolumeFreeTier:
-    core.safeZodNonNegativeInteger.optional(),
-}
-
-export const organizationsSelectSchema = createSelectSchema(
-  organizations,
-  selectColumnRefinements
-)
-
-export const organizationsInsertSchema = createInsertSchema(
-  organizations
-)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(insertColumnRefinements)
-
-export const organizationsUpdateSchema = organizationsInsertSchema
-  .partial()
-  .extend({
-    id: z.string(),
-  })
-
-const hiddenColumns = {
-  feePercentage: true,
-  stripeAccountId: true,
-  stripeConnectContractType: true,
-  externalId: true,
-  ...hiddenColumnsForClientSchema,
-  securitySalt: true,
-  upfrontProcessingCredits: true,
-} as const
-
-const readOnlyColumns = {
-  stripeAccountId: true,
-  payoutsEnabled: true,
-  onboardingStatus: true,
-  subdomainSlug: true,
-  domain: true,
-  tagline: true,
-  defaultCurrency: true,
-  featureFlags: true,
-} as const
-
-export const organizationsClientSelectSchema =
-  organizationsSelectSchema.omit(hiddenColumns).meta({
-    id: 'OrganizationRecord',
-  })
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
+export const {
+  select: organizationsSelectSchema,
+  insert: organizationsInsertSchema,
+  update: organizationsUpdateSchema,
+  client: {
+    select: organizationsClientSelectSchema,
+    insert: organizationsClientInsertSchema,
+    update: organizationsClientUpdateSchema,
+  },
+} = buildSchemas(organizations, {
+  refine: {
+    ...commonColumnRefinements,
+    monthlyBillingVolumeFreeTier:
+      core.safeZodNonNegativeInteger.optional(),
+  },
+  selectRefine: {
+    ...newBaseZodSelectSchemaColumns,
+  },
+  client: {
+    hiddenColumns: {
+      feePercentage: true,
+      stripeAccountId: true,
+      stripeConnectContractType: true,
+      externalId: true,
+      ...hiddenColumnsForClientSchema,
+      securitySalt: true,
+      upfrontProcessingCredits: true,
+    },
+    readOnlyColumns: {
+      stripeAccountId: true,
+      payoutsEnabled: true,
+      onboardingStatus: true,
+      subdomainSlug: true,
+      domain: true,
+      tagline: true,
+      defaultCurrency: true,
+      featureFlags: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'Organization',
 })
-export const organizationsClientUpdateSchema =
-  organizationsUpdateSchema.omit(clientWriteOmits).meta({
-    id: 'OrganizationUpdate',
-  })
-
-export const organizationsClientInsertSchema =
-  organizationsInsertSchema.omit(clientWriteOmits).meta({
-    id: 'OrganizationInsert',
-  })
 
 export namespace Organization {
   export type Insert = z.infer<typeof organizationsInsertSchema>
