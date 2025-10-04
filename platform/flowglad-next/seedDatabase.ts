@@ -190,11 +190,22 @@ export const setupOrg = async (params?: {
       },
       transaction
     )
-    const pricingModel = await insertPricingModel(
+    // Create both live and testmode default pricing models
+    const livePricingModel = await insertPricingModel(
       {
         name: 'Flowglad Test Pricing Model',
         organizationId: organization.id,
         livemode: true,
+        isDefault: true,
+      },
+      transaction
+    )
+
+    const testmodePricingModel = await insertPricingModel(
+      {
+        name: 'Flowglad Test Pricing Model (testmode)',
+        organizationId: organization.id,
+        livemode: false,
         isDefault: true,
       },
       transaction
@@ -211,7 +222,7 @@ export const setupOrg = async (params?: {
         displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
-        pricingModelId: pricingModel.id,
+        pricingModelId: livePricingModel.id,
         externalId: null,
         default: true,
         slug: `default-product-${core.nanoid()}`,
@@ -239,7 +250,7 @@ export const setupOrg = async (params?: {
       },
       transaction
     )) as Price.SubscriptionRecord
-    return { organization, product, price, pricingModel }
+    return { organization, product, price, pricingModel: livePricingModel, testmodePricingModel }
   })
 }
 
@@ -333,25 +344,6 @@ interface SetupCustomerParams {
 export const setupCustomer = async (params: SetupCustomerParams) => {
   return adminTransaction(async ({ transaction }) => {
     const email = params.email ?? `test+${core.nanoid()}@test.com`
-    // Ensure a default pricing model exists for the customer's livemode (especially testmode)
-    const desiredLivemode = params.livemode ?? true
-    if (desiredLivemode === false) {
-      const existingDefault = await selectDefaultPricingModel(
-        { organizationId: params.organizationId, livemode: false },
-        transaction
-      )
-      if (!existingDefault) {
-        await insertPricingModel(
-          {
-            name: 'Default (testmode)',
-            organizationId: params.organizationId,
-            livemode: false,
-            isDefault: true,
-          },
-          transaction
-        )
-      }
-    }
     return insertCustomer(
       {
         organizationId: params.organizationId,

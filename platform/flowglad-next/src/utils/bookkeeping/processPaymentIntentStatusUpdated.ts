@@ -28,7 +28,6 @@ import {
   safelyUpdatePaymentStatus,
   updatePayment,
   upsertPaymentByStripeChargeId,
-  isPaymentInTerminalState,
 } from '@/db/tableMethods/paymentMethods'
 import Stripe from 'stripe'
 import { Purchase } from '@/db/schema/purchases'
@@ -293,9 +292,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
 ) => {
   const newPaymentStatus = chargeStatusToPaymentStatus(charge.status)
   let updatedPayment: Payment.Record = payment
-  // If payment is terminal and new status differs (e.g., attempting to downgrade),
-  // skip status mutation but continue with side-effects (invoice/purchase sync).
-  if (!isPaymentInTerminalState(payment) && payment.status !== newPaymentStatus) {
+  if (payment.status !== newPaymentStatus) {
     updatedPayment = await safelyUpdatePaymentStatus(
       payment,
       newPaymentStatus,
