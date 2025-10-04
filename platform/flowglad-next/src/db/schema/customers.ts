@@ -156,6 +156,7 @@ export const {
     hiddenColumns,
     readOnlyColumns,
   },
+  entityName: 'Customer',
 })
 
 const supabaseSchemas = createSupabaseWebhookSchema({
