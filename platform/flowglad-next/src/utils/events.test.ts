@@ -13,10 +13,11 @@ import { FlowgladEventType, EventNoun, PaymentStatus, PriceType, CurrencyCode, I
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
 import { setupOrg, setupCustomer, setupPaymentMethod, setupInvoice, setupPrice, setupProduct, setupPurchase, setupSubscription, setupPricingModel } from '@/../seedDatabase'
+import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import core from './core'
 
 describe('Webhook Event Payloads - Simple Real Tests', () => {
-  it('should include externalId in CustomerCreated event payload', async () => {
+  it('should include customer.externalId in CustomerCreated event payload', async () => {
     // Set up minimal database state
     const orgData = await setupOrg()
     const customer = await setupCustomer({
@@ -51,7 +52,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
   })
 
-  it('should include externalId in CustomerUpdated event payload', async () => {
+  it('should include customer.externalId in CustomerUpdated event payload', async () => {
     const orgData = await setupOrg()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
@@ -82,7 +83,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
   })
 
-  it('should include externalId in PaymentSucceeded event payload', async () => {
+  it('should include customer.externalId in PaymentSucceeded event payload', async () => {
     const orgData = await setupOrg()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
@@ -126,7 +127,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
     
     const payment = await adminTransaction(async ({ transaction }) => {
-      const { insertPayment } = await import('@/db/tableMethods/paymentMethods')
       return await insertPayment({
         stripeChargeId: `ch_${core.nanoid()}`,
         status: PaymentStatus.Succeeded,
@@ -165,7 +165,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
   })
 
-  it('should include externalId in PaymentFailed event payload', async () => {
+  it('should include customer.externalId in PaymentFailed event payload', async () => {
     const orgData = await setupOrg()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
@@ -209,7 +209,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
     
     const payment = await adminTransaction(async ({ transaction }) => {
-      const { insertPayment } = await import('@/db/tableMethods/paymentMethods')
       return await insertPayment({
         stripeChargeId: `ch_${core.nanoid()}`,
         status: PaymentStatus.Failed,
@@ -248,7 +247,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
   })
 
-  it('should include externalId in PurchaseCompleted event payload', async () => {
+  it('should include customer.externalId in PurchaseCompleted event payload', async () => {
     const orgData = await setupOrg()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
@@ -308,7 +307,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
   })
 
-  it('should include externalId in SubscriptionCreated event payload', async () => {
+  it('should include customer.externalId in SubscriptionCreated event payload', async () => {
     const orgData = await setupOrg()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
@@ -374,7 +373,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
   })
 
-  it('should include externalId in SubscriptionUpdated event payload', async () => {
+  it('should include customer.externalId in SubscriptionUpdated event payload', async () => {
     const orgData = await setupOrg()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
@@ -440,7 +439,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
   })
 
-  it('should include externalId in SubscriptionCancelled event payload', async () => {
+  it('should include customer.externalId in SubscriptionCancelled event payload', async () => {
     const orgData = await setupOrg()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
