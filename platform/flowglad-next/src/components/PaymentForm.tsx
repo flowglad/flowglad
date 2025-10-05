@@ -611,14 +611,14 @@ const PaymentForm = () => {
             <PoweredByFlowglad />
             <div className="flex items-center gap-2.5 text-[13px] text-gray-600">
               <a
-                href="/terms"
+                href="https://www.flowglad.com/terms-of-service"
                 className="hover:text-gray-800 transition-colors"
               >
                 Terms
               </a>
               <span>·</span>
               <a
-                href="/privacy"
+                href="https://www.flowglad.com/privacy-policy"
                 className="hover:text-gray-800 transition-colors"
               >
                 Privacy
