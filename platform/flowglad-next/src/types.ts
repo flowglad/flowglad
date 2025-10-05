@@ -710,6 +710,7 @@ export enum BillingPeriodStatus {
   Canceled = 'canceled',
   PastDue = 'past_due',
   ScheduledToCancel = 'scheduled_to_cancel',
+  // TODO: Add a status for "CollectionAbandoned" - when a billing period's payment collection has been abandoned
 }
 
 export enum BillingRunStatus {
