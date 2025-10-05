@@ -319,14 +319,6 @@ describe('createCursorPaginatedSelectFunction', () => {
     const intersection = new Set(
       [...firstPageIds].filter((id) => secondPageIds.has(id))
     )
-    
-    // Debug: Log the duplicate IDs if any
-    if (intersection.size > 0) {
-      console.log('Duplicate IDs found:', Array.from(intersection))
-      console.log('First page IDs:', Array.from(firstPageIds))
-      console.log('Second page IDs:', Array.from(secondPageIds))
-    }
-    
     expect(intersection.size).toBe(0)
   })
 
