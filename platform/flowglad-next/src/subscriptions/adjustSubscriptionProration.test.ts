@@ -113,7 +113,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle processing payment + upgrade mid-cycle correctly", async () => {
+  it("should handle processing payment + upgrade mid-cycle with proper proration adjustments", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment with Processing status for $9.99
       await setupPayment({
@@ -202,7 +202,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle succeeded payment + upgrade mid-cycle identically to processing", async () => {
+  it("should treat succeeded payment + upgrade mid-cycle the same as processing payment", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment with Succeeded status (instead of Processing)
       await setupPayment({
@@ -282,7 +282,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle failed payment + upgrade by ignoring failed payment amount", async () => {
+  it("should ignore failed payment amount when calculating proration for upgrade", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment with Failed status
       await setupPayment({
@@ -362,7 +362,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle add-only scenario without removing existing items", async () => {
+  it("should add new subscription items without removing existing items", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment for existing plan
       await setupPayment({
@@ -451,7 +451,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle remove-only scenario without adding new items", async () => {
+  it("should remove existing subscription items without adding new items", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment for existing plan
       await setupPayment({
@@ -519,7 +519,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
   })
 
 
-  it("should apply downgrade protection to prevent negative charges", async () => {
+  it("should apply downgrade protection to zero out negative charges and prevent credits", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Update the existing subscription item to $49.99 plan first
       // First expire the original Base Plan item
@@ -624,7 +624,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle replace scenario (remove some, add others)", async () => {
+  it("should replace existing subscription items with new ones and create proper proration adjustments", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment for existing plan
       await setupPayment({
@@ -710,7 +710,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle downgrade to free plan correctly", async () => {
+  it("should apply downgrade protection when downgrading to free plan with zero additional charges", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment for $19.99 plan
       await setupPayment({
@@ -799,7 +799,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle multiple subscription items with complex pricing", async () => {
+  it("should process multiple subscription items with complex pricing and create appropriate proration adjustments", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create second subscription item
       const secondItem = await setupSubscriptionItem({
@@ -910,7 +910,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle billing period with no existing payments", async () => {
+  it("should calculate full fair value proration when no existing payments exist", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Update subscription item to $15.00 plan
       await updateSubscriptionItem({
@@ -992,7 +992,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle zero unit price items without errors", async () => {
+  it("should process zero unit price items without arithmetic errors and apply downgrade protection", async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Update subscription item to $19.99 plan
       await updateSubscriptionItem({
