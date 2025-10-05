@@ -112,10 +112,14 @@ export const events = pgTable(
 export const eventPayloadSchema = z.object({
   id: z.string(),
   object: core.createSafeZodEnum(EventNoun),
-  customer: z.object({
-    id: z.string(),
-    externalId: z.string(),
-  }),
+  // TODO: Make customer required after running DB migration to update existing events
+  // with customer payloads. Currently optional to avoid breaking existing events.
+  customer: z
+    .object({
+      id: z.string(),
+      externalId: z.string(),
+    })
+    .optional(),
 })
 
 const columnRefinements = {
