@@ -115,17 +115,11 @@ const usageInvoiceLineItemColumnRefinements = {
   ledgerAccountCredit: z.number(),
 }
 
-const baseInvoiceLineItemSelectSchema = createSelectSchema(
-  invoiceLineItems,
-  baseColumnRefinements
-)
-
 const createOnlyColumns = {
   invoiceId: true,
 } as const
 
 const readOnlyColumns = {
-  livemode: true,
   ledgerAccountId: true,
   billingRunId: true,
 } as const

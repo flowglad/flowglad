@@ -99,7 +99,7 @@ export const adjustSubscription = async (
     timing ===
     SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
   ) {
-    adjustmentDate = subscription.currentBillingPeriodEnd
+    adjustmentDate = subscription.currentBillingPeriodEnd!
   } else {
     throw new Error('Invalid timing')
   }

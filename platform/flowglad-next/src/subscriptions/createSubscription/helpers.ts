@@ -160,8 +160,8 @@ export const safelyProcessCreationForExistingSubscription = async (
    * Otherwise, we schedule the billing run for the end of the billing period.
    */
   const scheduledFor = subscription.runBillingAtPeriodStart
-    ? subscription.currentBillingPeriodStart
-    : subscription.currentBillingPeriodEnd
+    ? subscription.currentBillingPeriodStart!
+    : subscription.currentBillingPeriodEnd!
 
   const billingRun: BillingRun.Record | undefined =
     existingBillingRun ??
@@ -609,8 +609,8 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     }
 
     const scheduledFor = subscription.runBillingAtPeriodStart
-      ? subscription.currentBillingPeriodStart
-      : subscription.currentBillingPeriodEnd
+      ? subscription.currentBillingPeriodStart!
+      : subscription.currentBillingPeriodEnd!
     const billingRun = await createBillingRun(
       {
         billingPeriod,

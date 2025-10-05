@@ -5,7 +5,6 @@ import {
   createSelectFunction,
   createCursorPaginatedSelectFunction,
   ORMMethodCreatorConfig,
-  zodEpochMs,
 } from '@/db/tableUtils'
 import {
   ApiKey,
@@ -22,6 +21,7 @@ import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
 import { z } from 'zod'
 import { selectOrganizations } from './organizationMethods'
+import { zodEpochMs } from '../timestampMs'
 
 const config: ORMMethodCreatorConfig<
   typeof apiKeys,
@@ -49,7 +49,7 @@ const apiKeyWithOrganizationSchema = z.object({
     id: z.string(),
     name: z.string(),
     createdAt: zodEpochMs,
-    updatedAt: zodEpochMs.nullable(),
+    updatedAt: zodEpochMs.nullable().optional(),
   }),
 })
 

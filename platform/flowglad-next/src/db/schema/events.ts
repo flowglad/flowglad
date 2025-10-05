@@ -29,7 +29,6 @@ import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { integer } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { organizations } from './organizations'
-import { zodEpochMs } from '@/db/timestampMs'
 import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'events'
@@ -126,7 +125,6 @@ const columnRefinements = {
   type: core.createSafeZodEnum(FlowgladEventType),
   // eventCategory: core.createSafeZodEnum(EventCategory),
   // eventRetentionPolicy: core.createSafeZodEnum(EventRetentionPolicy),
-  processedAt: zodEpochMs.nullable(),
   payload: eventPayloadSchema,
   // subjectEntity: core.createSafeZodEnum(EventNoun).nullable(),
   // objectEntity: core.createSafeZodEnum(EventNoun).nullable(),

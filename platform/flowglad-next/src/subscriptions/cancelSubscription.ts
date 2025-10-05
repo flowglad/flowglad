@@ -50,14 +50,12 @@ export const cancelSubscriptionImmediately = async (
       `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
     )
   }
-  const canceledAt = endDate
-  const cancelScheduledAt = null
 
   let updatedSubscription = await updateSubscription(
     {
       id: subscription.id,
-      canceledAt,
-      cancelScheduledAt,
+      canceledAt: endDate,
+      cancelScheduledAt: endDate,
       status,
       renews: subscription.renews,
     },
@@ -167,13 +165,12 @@ export const scheduleSubscriptionCancellation = async (
       `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
     )
   }
-  const canceledAt = null
   // For AtEndOfCurrentBillingPeriod we set the scheduled end date; for AtFutureDate we keep it null per original logic.
   const cancelScheduledAt =
     timing ===
     SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod
       ? endDate
-      : null
+      : undefined
   if (!subscription.renews) {
     throw new Error(
       `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be cancelled (Should never hit this)`
@@ -182,7 +179,6 @@ export const scheduleSubscriptionCancellation = async (
   let updatedSubscription = await updateSubscription(
     {
       id: subscription.id,
-      canceledAt,
       cancelScheduledAt,
       status,
       renews: subscription.renews,

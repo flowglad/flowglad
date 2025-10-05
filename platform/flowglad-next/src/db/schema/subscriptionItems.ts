@@ -15,8 +15,6 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
-  zodEpochMs,
-  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -26,6 +24,7 @@ import core from '@/utils/core'
 import { usageMeters } from './usageMeters'
 import { SubscriptionItemType } from '@/types'
 import { buildSchemas } from '@/db/createZodSchemas'
+import { zodEpochMs } from '@/db/timestampMs'
 
 const TABLE_NAME = 'subscription_items'
 
@@ -100,12 +99,11 @@ const baseColumnRefinements = {
   quantity: core.safeZodPositiveInteger,
   metadata: metadataSchema.nullable().optional(),
   // Accept ISO datetime strings or Date objects
-  addedDate: zodEpochMs,
   expiredAt: zodEpochMs
     .nullable()
     .optional()
     .describe(
-      'Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list.'
+      'Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list. Epoch milliseconds.'
     ),
   // type refinement is handled by discriminated union literals
 }

@@ -20,7 +20,6 @@ import {
   merchantPolicy,
   customerPolicy,
   timestampWithTimezoneColumn,
-  zodEpochMs,
 } from '@/db/tableUtils'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { billingAddressSchema } from '@/db/schema/organizations'
@@ -37,6 +36,7 @@ import { discounts } from './discounts'
 import { customers } from './customers'
 import { sql } from 'drizzle-orm'
 import { invoices } from './invoices'
+import { zodEpochMs } from '../timestampMs'
 
 const TABLE_NAME = 'checkout_sessions'
 

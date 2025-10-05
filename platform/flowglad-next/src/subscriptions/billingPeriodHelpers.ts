@@ -60,7 +60,7 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
   let startDate: number
   let endDate: number
   if (trialPeriod && subscription.trialEnd) {
-    startDate = subscription.currentBillingPeriodStart
+    startDate = subscription.currentBillingPeriodStart!
     endDate = subscription.trialEnd
   } else {
     const lastBillingPeriodEndDate = isInitialBillingPeriod
@@ -69,7 +69,7 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
     const nextBillingPeriodRange = generateNextBillingPeriod({
       interval: subscription.interval,
       intervalCount: subscription.intervalCount,
-      billingCycleAnchorDate: subscription.billingCycleAnchorDate,
+      billingCycleAnchorDate: subscription.billingCycleAnchorDate!,
       lastBillingPeriodEndDate,
     })
     startDate = nextBillingPeriodRange.startDate
@@ -419,7 +419,7 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
     const { startDate, endDate } = generateNextBillingPeriod({
       interval: subscription.interval,
       intervalCount: subscription.intervalCount,
-      billingCycleAnchorDate: subscription.billingCycleAnchorDate,
+      billingCycleAnchorDate: subscription.billingCycleAnchorDate!,
       lastBillingPeriodEndDate: billingPeriod.endDate,
     })
     const billingPeriodsForSubscription = await selectBillingPeriods(

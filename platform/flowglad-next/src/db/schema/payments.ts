@@ -26,7 +26,6 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
-  zodEpochMs,
 } from '@/db/tableUtils'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
@@ -45,6 +44,7 @@ import { billingPeriods } from './billingPeriods'
 import { subscriptions } from './subscriptions'
 import { currencyCodeSchema } from '@/db/commonZodSchema'
 import { buildSchemas } from '../createZodSchemas'
+import { zodEpochMs } from '../timestampMs'
 
 export const TABLE_NAME = 'payments'
 
@@ -142,8 +142,6 @@ const columnEnhancements = {
   amount: core.safeZodPositiveIntegerOrZero,
   status: core.createSafeZodEnum(PaymentStatus),
   currency: currencyCodeSchema,
-  settlementDate: zodEpochMs.nullable().optional(),
-  refundedAt: zodEpochMs.nullable().optional(),
   paymentMethod: core.createSafeZodEnum(PaymentMethodType),
   receiptNumber: zodOptionalNullableString,
   receiptURL: z.url().nullable().optional(),

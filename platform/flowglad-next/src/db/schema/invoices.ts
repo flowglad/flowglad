@@ -26,8 +26,6 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
-  zodEpochMs,
-  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { purchases } from './purchases'
 import {
@@ -168,10 +166,6 @@ const refineColumns = {
   currency: currencyCodeSchema,
   receiptPdfURL: z.url().nullable().optional(),
   pdfURL: z.url().nullable().optional(),
-  invoiceDate: zodEpochMs,
-  dueDate: zodEpochMs,
-  billingPeriodStartDate: zodEpochMs,
-  billingPeriodEndDate: zodEpochMs,
   ...taxSchemaColumns,
   taxType: taxSchemaColumns.taxType.nullable().optional(),
   taxCountry: taxSchemaColumns.taxCountry.nullable().optional(),

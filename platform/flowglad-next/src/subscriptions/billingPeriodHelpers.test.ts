@@ -128,8 +128,8 @@ describe('Subscription Billing Period Transition', async () => {
     })) as Subscription.StandardRecord
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
-      startDate: subscription.currentBillingPeriodStart,
-      endDate: subscription.currentBillingPeriodEnd,
+      startDate: subscription.currentBillingPeriodStart!,
+      endDate: subscription.currentBillingPeriodEnd!,
       status: BillingPeriodStatus.Active,
     })
     billingRun = await setupBillingRun({

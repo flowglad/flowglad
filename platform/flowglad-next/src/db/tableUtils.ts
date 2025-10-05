@@ -1669,30 +1669,6 @@ export interface CreateSelectSchema<
 
 export const TIMESTAMPTZ_MS = Symbol('timestamptzMs')
 
-export const zodEpochMs = z
-  .union([z.number(), z.string(), z.date()])
-  .transform((v) =>
-    v instanceof Date
-      ? v.getTime()
-      : typeof v === 'string'
-        ? Date.parse(v)
-        : v < 1e12
-          ? v * 1000
-          : v
-  )
-  .pipe(z.number().int())
-
-function epochOverridesFromTable(table: any) {
-  const overrides: Record<string, z.ZodTypeAny> = {}
-  const cols = table._.columns as Record<string, any>
-  for (const [key, col] of Object.entries(cols)) {
-    if ((col as any).__brand === TIMESTAMPTZ_MS) {
-      overrides[key] = zodEpochMs // parse → number for inputs/unknowns
-    }
-  }
-  return overrides
-}
-
 export const clientWriteOmitsConstructor = <
   T extends Record<string, true>,
 >(

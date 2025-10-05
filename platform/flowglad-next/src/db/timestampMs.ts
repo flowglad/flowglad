@@ -28,13 +28,16 @@ export function timestamptzMs(name: string) {
   return withDefaultNow as typeof withDefaultNow & EpochBrand
 }
 
-export const zodEpochMs = z
-  .union([z.number(), z.string(), z.date()])
-  .transform((v) =>
-    v instanceof Date
+export const zodEpochMs = z.coerce
+  .date()
+  .transform((v) => {
+    return v instanceof Date
       ? v.getTime()
       : typeof v === 'string'
         ? Date.parse(v)
         : v
-  )
-  .pipe(z.number().int())
+  })
+  .pipe(z.int())
+  .meta({
+    description: 'Epoch milliseconds.',
+  })

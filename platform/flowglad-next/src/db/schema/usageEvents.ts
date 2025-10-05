@@ -20,7 +20,6 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
-  zodEpochMs,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -37,6 +36,7 @@ import { subscriptionClientSelectSchema } from './subscriptions'
 import { usageMetersClientSelectSchema } from './usageMeters'
 import { pricesClientSelectSchema } from './prices'
 import { buildSchemas } from '../createZodSchemas'
+import { zodEpochMs } from '../timestampMs'
 
 const TABLE_NAME = 'usage_events'
 
@@ -158,7 +158,7 @@ export const usageEvents = pgTable(
 const columnRefinements = {
   amount: z.number().int().positive(),
   usageDate: zodEpochMs.describe(
-    'The date the usage occurred in unix epoch milliseconds. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing peirod.'
+    'The date the usage occurred. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing period. Epoch milliseconds.'
   ),
   billingPeriodId: z
     .string()

@@ -82,6 +82,7 @@ export const {
     hiddenColumns,
     readOnlyColumns,
   },
+  entityName: 'PricingModel',
 })
 
 export const pricingModelsPaginatedSelectSchema =

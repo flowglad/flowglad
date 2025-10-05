@@ -303,7 +303,9 @@ function BillingPortalPage() {
                     number: invoice.invoiceNumber,
                     status: invoice.status,
                     created: new Date(invoice.createdAt),
-                    dueDate: new Date(invoice.dueDate),
+                    dueDate: invoice.dueDate
+                      ? new Date(invoice.dueDate)
+                      : undefined,
                     amountDue: 0,
                     currency: invoice.currency,
                     hostedInvoiceUrl: invoice.pdfURL || undefined,

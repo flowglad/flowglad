@@ -14,7 +14,6 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   timestampWithTimezoneColumn,
-  zodEpochMs,
   clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
@@ -23,6 +22,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
+import { zodEpochMs } from '../timestampMs'
 
 const TABLE_NAME = 'api_keys'
 

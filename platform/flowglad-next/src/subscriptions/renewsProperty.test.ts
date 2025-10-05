@@ -605,7 +605,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         expect(
           result.subscription.currentBillingPeriodEnd
         ).toBeGreaterThan(
-          result.subscription.currentBillingPeriodStart
+          result.subscription.currentBillingPeriodStart!
         )
 
         // Check that old billing period status was updated

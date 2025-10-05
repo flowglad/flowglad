@@ -16,7 +16,6 @@ import {
   parentForeignKeyIntegrityCheckPolicy,
   merchantPolicy,
   enableCustomerReadPolicy,
-  zodEpochMs,
 } from '@/db/tableUtils'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { features } from '@/db/schema/features'
@@ -26,6 +25,7 @@ import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core, { zodOptionalNullableString } from '@/utils/core'
 import { FeatureUsageGrantFrequency, FeatureType } from '@/types'
 import { sql } from 'drizzle-orm'
+import { zodEpochMs } from '@/db/timestampMs'
 import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'subscription_item_features'
@@ -115,7 +115,6 @@ const columnRefinements = {
   amount: z.number().int().nullable().optional(),
   usageMeterId: zodOptionalNullableString,
   productFeatureId: zodOptionalNullableString,
-  detachedAt: zodEpochMs.nullable().optional(),
   detachedReason: zodOptionalNullableString,
 }
 

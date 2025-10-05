@@ -108,7 +108,9 @@ describe('Subscription Cancellation Test Suite', async () => {
           SubscriptionStatus.Canceled
         )
         expect(updatedSubscription.canceledAt).toBeDefined()
-        expect(updatedSubscription.cancelScheduledAt).toBeNull()
+        expect(updatedSubscription.cancelScheduledAt).toEqual(
+          updatedSubscription.canceledAt
+        )
 
         // Verify billing period updates.
         const updatedActiveBP = await selectBillingPeriodById(

@@ -21,12 +21,10 @@ import {
   constructUniqueIndex,
   metadataSchema,
   SelectConditions,
-  ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
-  zodEpochMs,
   clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import {
@@ -42,6 +40,7 @@ import core from '@/utils/core'
 import { paymentMethods } from './paymentMethods'
 import { productsClientSelectSchema } from './products'
 import { buildSchemas } from '@/db/createZodSchemas'
+import { zodEpochMs } from '@/db/timestampMs'
 
 const TABLE_NAME = 'subscriptions'
 
@@ -152,15 +151,8 @@ const standardSubscriptionStatuses = Object.values(
 
 const standardColumnRefinements = {
   status: z.enum(standardSubscriptionStatuses),
-  currentBillingPeriodStart: zodEpochMs,
-  currentBillingPeriodEnd: zodEpochMs,
-  trialEnd: zodEpochMs.nullable().optional(),
-  canceledAt: zodEpochMs.nullable().optional(),
-  cancelScheduledAt: zodEpochMs.nullable().optional(),
-  metadata: metadataSchema.nullable().optional(),
   interval: core.createSafeZodEnum(IntervalUnit),
   intervalCount: core.safeZodPositiveInteger,
-  billingCycleAnchorDate: zodEpochMs,
   renews: z.literal(true),
 }
 

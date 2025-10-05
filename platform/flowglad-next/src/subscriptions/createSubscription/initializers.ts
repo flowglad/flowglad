@@ -162,7 +162,7 @@ export const createNonRenewingSubscriptionAndItems = async (
     backupPaymentMethodId: null,
     cancelScheduledAt: null,
     canceledAt: null,
-    metadata: metadata ?? null,
+    metadata: metadata as Record<string, any> | null,
     trialEnd: null,
     /**
      * Credit trial subscriptions do not "run billing"

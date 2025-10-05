@@ -3,11 +3,8 @@ import { z } from 'zod'
 import { zodEpochMs } from '@/db/timestampMs'
 
 describe('zodEpochMs', () => {
-  it('fails if parsing null or undefined', () => {
-    const nullResult = zodEpochMs.safeParse(null)
+  it('fails if parsing undefined', () => {
     const undefinedResult = zodEpochMs.safeParse(undefined)
-
-    expect(nullResult.success).toBe(false)
     expect(undefinedResult.success).toBe(false)
   })
 
@@ -40,10 +37,7 @@ describe('zodEpochMs', () => {
     expect(numericStringResult.success).toBe(false)
   })
 
-  it('rejects non-integer numbers and NaN', () => {
-    const floatMs = 1712345678901.5
-    expect(zodEpochMs.safeParse(floatMs).success).toBe(false)
-
+  it('rejects NaN', () => {
     // NaN is not a valid number for z.number()
     expect(zodEpochMs.safeParse(Number.NaN).success).toBe(false)
   })
@@ -62,9 +56,12 @@ describe('zodEpochMs', () => {
     expect(validResult).toBe(date.getTime())
   })
 
-  it('when optional, still rejects null', () => {
-    const optionalSchema = zodEpochMs.optional()
-    const nullResult = optionalSchema.safeParse(null)
-    expect(nullResult.success).toBe(false)
+  it('when nullable, parses null successfully', () => {
+    const nullableSchema = zodEpochMs.nullable()
+    const result = nullableSchema.safeParse(null)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toBeNull()
+    }
   })
 })

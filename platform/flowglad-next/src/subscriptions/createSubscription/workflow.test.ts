@@ -120,6 +120,8 @@ describe('createSubscriptionWorkflow', async () => {
 
   it('creates a subscription with correct priced items, and billing run', async () => {
     expect(subscription).toBeDefined()
+    expect(subscription.cancelScheduledAt).toBeNull()
+    expect(subscription.canceledAt).toBeNull()
     expect(subscriptionItems.length).toBeGreaterThan(0)
     // Assuming the first item corresponds to the defaultPrice and quantity 1
     expect(
