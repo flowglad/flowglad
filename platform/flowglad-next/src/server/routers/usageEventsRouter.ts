@@ -173,13 +173,7 @@ const listUsageEventsProcedure = protectedProcedure
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        const result = await selectUsageEventsPaginated(
-          {
-            cursor: input.cursor,
-            limit: input.limit,
-          },
-          transaction
-        )
+        const result = await selectUsageEventsPaginated( input, transaction )
         return {
           items: result.data,
           total: result.total,
