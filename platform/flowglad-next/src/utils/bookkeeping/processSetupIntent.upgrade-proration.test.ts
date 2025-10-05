@@ -88,7 +88,6 @@ describe('Subscription Upgrade with Proration', () => {
   let freeSubscription: Subscription.Record
   let checkoutSession: CheckoutSession.Record
   let purchase: Purchase.Record
-
   // Note: Do not mock timers here; real timers are required for DB/async operations.
 
   beforeEach(async () => {

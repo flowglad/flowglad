@@ -36,7 +36,17 @@ const checkoutSessionInsertFromInput = ({
   organizationId: string
   livemode: boolean
 }): CheckoutSession.Insert => {
-  const coreFields = {
+  const coreFields: Pick<
+    CheckoutSession.Insert,
+    | 'organizationId'
+    | 'status'
+    | 'livemode'
+    | 'successUrl'
+    | 'cancelUrl'
+    | 'outputMetadata'
+    | 'outputName'
+    | 'automaticallyUpdateSubscriptions'
+  > = {
     organizationId,
     status: CheckoutSessionStatus.Open,
     livemode,
@@ -59,6 +69,7 @@ const checkoutSessionInsertFromInput = ({
     }
     return {
       ...coreFields,
+      automaticallyUpdateSubscriptions: null,
       type: CheckoutSessionType.Product,
       invoiceId: null,
       priceId: checkoutSessionInput.priceId,

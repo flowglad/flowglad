@@ -353,7 +353,11 @@ describe('Checkout Sessions', async () => {
             {
               checkoutSession: {
                 id: checkoutSession.id,
-              } as CheckoutSession.Update,
+                type: CheckoutSessionType.Purchase,
+                priceId: price.id,
+                targetSubscriptionId: null,
+                automaticallyUpdateSubscriptions: null,
+              },
             },
             transaction
           )
@@ -380,7 +384,14 @@ describe('Checkout Sessions', async () => {
                 billingAddress: {
                   address: newBillingAddress,
                 },
-              } as CheckoutSession.Update,
+                invoiceId: null,
+                priceId: price.id,
+                targetSubscriptionId: null,
+                automaticallyUpdateSubscriptions: null,
+                outputMetadata: null,
+                preserveBillingCycleAnchor: false,
+                type: CheckoutSessionType.Product,
+              },
             },
             transaction
           )
@@ -451,10 +462,19 @@ describe('Checkout Sessions', async () => {
             {
               checkoutSession: {
                 ...checkoutSession,
+                invoiceId: null,
+                targetSubscriptionId: null,
+                automaticallyUpdateSubscriptions: null,
                 billingAddress: {
                   address: newBillingAddress,
                 },
-              } as CheckoutSession.Update,
+                /**
+                 * TODO: review why we have preserveBillingCycleAnchor required
+                 */
+                preserveBillingCycleAnchor: false,
+                type: CheckoutSessionType.Product,
+                priceId: price.id,
+              },
             },
             transaction
           )
@@ -487,7 +507,9 @@ describe('Checkout Sessions', async () => {
             {
               checkoutSession: {
                 id: checkoutSession.id,
-              } as CheckoutSession.Update,
+                priceId: price.id,
+                type: CheckoutSessionType.Product,
+              },
             },
             transaction
           )
@@ -525,7 +547,11 @@ describe('Checkout Sessions', async () => {
             {
               checkoutSession: {
                 id: checkoutSession.id,
-              } as CheckoutSession.Update,
+                type: CheckoutSessionType.Product,
+                priceId: price.id,
+                targetSubscriptionId: null,
+                automaticallyUpdateSubscriptions: null,
+              },
               purchaseId: purchase.id,
             },
             transaction
@@ -549,10 +575,16 @@ describe('Checkout Sessions', async () => {
           {
             checkoutSession: {
               ...checkoutSession,
+              priceId: price.id,
               billingAddress: {
                 address: newBillingAddress,
               },
-            } as CheckoutSession.Update,
+              type: CheckoutSessionType.Product,
+              invoiceId: null,
+              targetSubscriptionId: null,
+              automaticallyUpdateSubscriptions: null,
+              preserveBillingCycleAnchor: false,
+            },
             purchaseId: purchase.id,
           },
           transaction
@@ -593,7 +625,12 @@ describe('Checkout Sessions', async () => {
             {
               checkoutSession: {
                 id: checkoutSession.id,
-              } as CheckoutSession.Update,
+                type: CheckoutSessionType.Product,
+                invoiceId: null,
+                priceId: price.id,
+                targetSubscriptionId: null,
+                automaticallyUpdateSubscriptions: null,
+              },
             },
             transaction
           )
