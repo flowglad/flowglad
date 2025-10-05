@@ -486,6 +486,11 @@ export const processPaymentIntentStatusUpdated = async (
     payment.customerId,
     transaction
   )
+  
+  if (!customer) {
+    throw new Error(`Customer not found for payment ${payment.id}`)
+  }
+  
   const timestamp = new Date()
   const eventInserts: Event.Insert[] = []
   let ledgerCommand: LedgerCommand | undefined
@@ -544,10 +549,15 @@ export const processPaymentIntentStatusUpdated = async (
     })
   }
   if (purchase && purchase.status === PurchaseStatus.Paid) {
-    const customer = await selectCustomerById(
+    const purchaseCustomer = await selectCustomerById(
       purchase.customerId,
       transaction
     )
+    
+    if (!purchaseCustomer) {
+      throw new Error(`Customer not found for purchase ${purchase.id}`)
+    }
+    
     eventInserts.push({
       type: FlowgladEventType.PurchaseCompleted,
       occurredAt: timestamp,
@@ -556,12 +566,10 @@ export const processPaymentIntentStatusUpdated = async (
       payload: {
         id: purchase.id,
         object: EventNoun.Purchase,
-        customer: customer
-          ? {
-              id: customer.id,
-              externalId: customer.externalId,
-            }
-          : undefined,
+        customer: {
+          id: purchaseCustomer.id,
+          externalId: purchaseCustomer.externalId,
+        },
       },
       submittedAt: timestamp,
       hash: constructPurchaseCompletedEventHash(purchase),

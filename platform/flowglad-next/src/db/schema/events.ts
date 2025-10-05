@@ -112,12 +112,10 @@ export const events = pgTable(
 export const eventPayloadSchema = z.object({
   id: z.string(),
   object: core.createSafeZodEnum(EventNoun),
-  customer: z
-    .object({
-      id: z.string(),
-      externalId: z.string(),
-    })
-    .optional(),
+  customer: z.object({
+    id: z.string(),
+    externalId: z.string(),
+  }),
 })
 
 const columnRefinements = {

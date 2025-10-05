@@ -140,6 +140,11 @@ export const createSubscriptionWorkflow = async (
     updatedSubscription.customerId,
     transaction
   )
+  
+  if (!customer) {
+    throw new Error(`Customer not found for subscription ${updatedSubscription.id}`)
+  }
+  
   const eventInserts: Event.Insert[] = [
     {
       type: FlowgladEventType.SubscriptionCreated,
@@ -149,12 +154,10 @@ export const createSubscriptionWorkflow = async (
       payload: {
         object: EventNoun.Subscription,
         id: updatedSubscription.id,
-        customer: customer
-          ? {
-              id: customer.id,
-              externalId: customer.externalId,
-            }
-          : undefined,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       submittedAt: timestamp,
       hash: constructSubscriptionCreatedEventHash(
