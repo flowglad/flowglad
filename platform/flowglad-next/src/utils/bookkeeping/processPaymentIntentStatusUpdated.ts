@@ -378,9 +378,14 @@ export const ledgerCommandForPaymentSucceeded = async (
     price.productId,
     transaction
   )
-  const usageCreditFeature = features.find(
-    (feature) => feature.type === FeatureType.UsageCreditGrant
-  )
+  // Choose the first UsageCreditGrant feature deterministically by createdAt ascending
+  const usageCreditFeature = features
+    .filter((feature) => feature.type === FeatureType.UsageCreditGrant)
+    .sort((a: any, b: any) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return aTime - bTime
+    })[0]
 
   if (!usageCreditFeature) {
     return undefined
