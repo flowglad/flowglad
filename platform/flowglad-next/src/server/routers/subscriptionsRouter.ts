@@ -440,9 +440,9 @@ const updatePaymentMethodProcedure = protectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
         const subscription = await selectSubscriptionById(
           input.id,
           transaction
@@ -481,12 +481,9 @@ const updatePaymentMethodProcedure = protectedProcedure
             ),
           },
         }
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
