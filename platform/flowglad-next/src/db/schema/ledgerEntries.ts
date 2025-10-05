@@ -2,8 +2,6 @@ import {
   boolean,
   text,
   pgTable,
-  pgPolicy,
-  timestamp,
   integer,
   jsonb,
 } from 'drizzle-orm/pg-core'
@@ -14,7 +12,6 @@ import {
   notNullStringForeignKey,
   nullableStringForeignKey,
   constructIndex,
-  ommittedColumnsForInsertSchema,
   livemodePolicy,
   pgEnumColumn,
   timestampWithTimezoneColumn,
@@ -31,7 +28,7 @@ import { usageCreditApplications } from '@/db/schema/usageCreditApplications'
 import { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
 import { billingPeriods } from '@/db/schema/billingPeriods'
 import { usageMeters } from '@/db/schema/usageMeters'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import core from '@/utils/core'
 import {
   LedgerEntryStatus,
@@ -271,40 +268,122 @@ export const usageCreditApplicationCreditTowardsUsageCostEntryRefinements =
     sourceUsageEventId: z.string(),
   }
 
-const coreLedgerEntryInsertSchema = createInsertSchema(ledgerEntries)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
+// Build per-subtype schemas using builder
 
-export const usageCostInsertSchema =
-  coreLedgerEntryInsertSchema.extend(usageCostEntryRefinements)
-export const creditGrantRecognizedInsertSchema =
-  coreLedgerEntryInsertSchema.extend(
-    creditGrantRecognizedEntryRefinements
-  )
-export const creditBalanceAdjustedInsertSchema =
-  coreLedgerEntryInsertSchema.extend(
-    creditBalanceAdjustedEntryRefinements
-  )
-export const creditGrantExpiredInsertSchema =
-  coreLedgerEntryInsertSchema.extend(
-    creditGrantExpiredEntryRefinements
-  )
-export const paymentRefundedInsertSchema =
-  coreLedgerEntryInsertSchema.extend(paymentRefundedEntryRefinements)
-export const billingAdjustmentInsertSchema =
-  coreLedgerEntryInsertSchema.extend(
-    billingAdjustmentEntryRefinements
-  )
+export const {
+  insert: usageCostInsertSchema,
+  select: usageCostSelectSchema,
+  update: usageCostUpdateSchema,
+  client: { select: usageCostClientSelectSchemaBase },
+} = buildSchemas(ledgerEntries, {
+  discriminator: 'entryType',
+  refine: { ...columnRefinements, ...usageCostEntryRefinements },
+  entityName: 'UsageCostLedgerEntry',
+})
 
-export const usageCreditApplicationDebitFromCreditBalanceInsertSchema =
-  coreLedgerEntryInsertSchema.extend(
-    usageCreditApplicationDebitFromCreditBalanceEntryRefinements
-  )
+export const {
+  insert: creditGrantRecognizedInsertSchema,
+  select: creditGrantRecognizedSelectSchema,
+  update: creditGrantRecognizedUpdateSchema,
+  client: { select: creditGrantRecognizedClientSelectSchemaBase },
+} = buildSchemas(ledgerEntries, {
+  discriminator: 'entryType',
+  refine: {
+    ...columnRefinements,
+    ...creditGrantRecognizedEntryRefinements,
+  },
+  entityName: 'CreditGrantRecognizedLedgerEntry',
+})
 
-export const usageCreditApplicationCreditTowardsUsageCostInsertSchema =
-  coreLedgerEntryInsertSchema.extend(
-    usageCreditApplicationCreditTowardsUsageCostEntryRefinements
-  )
+export const {
+  insert: creditBalanceAdjustedInsertSchema,
+  select: creditBalanceAdjustedSelectSchema,
+  update: creditBalanceAdjustedUpdateSchema,
+  client: { select: creditBalanceAdjustedClientSelectSchemaBase },
+} = buildSchemas(ledgerEntries, {
+  discriminator: 'entryType',
+  refine: {
+    ...columnRefinements,
+    ...creditBalanceAdjustedEntryRefinements,
+  },
+  entityName: 'CreditBalanceAdjustedLedgerEntry',
+})
+
+export const {
+  insert: creditGrantExpiredInsertSchema,
+  select: creditGrantExpiredSelectSchema,
+  update: creditGrantExpiredUpdateSchema,
+  client: { select: creditGrantExpiredClientSelectSchemaBase },
+} = buildSchemas(ledgerEntries, {
+  discriminator: 'entryType',
+  refine: {
+    ...columnRefinements,
+    ...creditGrantExpiredEntryRefinements,
+  },
+  entityName: 'CreditGrantExpiredLedgerEntry',
+})
+
+export const {
+  insert: paymentRefundedInsertSchema,
+  select: paymentRefundedSelectSchema,
+  update: paymentRefundedUpdateSchema,
+  client: { select: paymentRefundedClientSelectSchemaBase },
+} = buildSchemas(ledgerEntries, {
+  discriminator: 'entryType',
+  refine: {
+    ...columnRefinements,
+    ...paymentRefundedEntryRefinements,
+  },
+  entityName: 'PaymentRefundedLedgerEntry',
+})
+
+export const {
+  insert: billingAdjustmentInsertSchema,
+  select: billingAdjustmentSelectSchema,
+  update: billingAdjustmentUpdateSchema,
+  client: { select: billingAdjustmentClientSelectSchemaBase },
+} = buildSchemas(ledgerEntries, {
+  discriminator: 'entryType',
+  refine: {
+    ...columnRefinements,
+    ...billingAdjustmentEntryRefinements,
+  },
+  entityName: 'BillingAdjustmentLedgerEntry',
+})
+
+export const {
+  insert: usageCreditApplicationDebitFromCreditBalanceInsertSchema,
+  select: usageCreditApplicationDebitFromCreditBalanceSelectSchema,
+  update: usageCreditApplicationDebitFromCreditBalanceUpdateSchema,
+  client: {
+    select:
+      usageCreditApplicationDebitFromCreditBalanceClientSelectSchemaBase,
+  },
+} = buildSchemas(ledgerEntries, {
+  discriminator: 'entryType',
+  refine: {
+    ...columnRefinements,
+    ...usageCreditApplicationDebitFromCreditBalanceEntryRefinements,
+  },
+  entityName: 'UsageCreditApplicationDebitLedgerEntry',
+})
+
+export const {
+  insert: usageCreditApplicationCreditTowardsUsageCostInsertSchema,
+  select: usageCreditApplicationCreditTowardsUsageCostSelectSchema,
+  update: usageCreditApplicationCreditTowardsUsageCostUpdateSchema,
+  client: {
+    select:
+      usageCreditApplicationCreditTowardsUsageCostClientSelectSchemaBase,
+  },
+} = buildSchemas(ledgerEntries, {
+  discriminator: 'entryType',
+  refine: {
+    ...columnRefinements,
+    ...usageCreditApplicationCreditTowardsUsageCostEntryRefinements,
+  },
+  entityName: 'UsageCreditApplicationCreditLedgerEntry',
+})
 
 export const ledgerEntriesInsertSchema = z.discriminatedUnion(
   'entryType',
@@ -320,43 +399,6 @@ export const ledgerEntriesInsertSchema = z.discriminatedUnion(
   ]
 )
 
-export const coreLedgerEntriesSelectSchema =
-  createSelectSchema(ledgerEntries).extend(columnRefinements)
-
-export const usageCostSelectSchema =
-  coreLedgerEntriesSelectSchema.extend(usageCostEntryRefinements)
-export const creditGrantRecognizedSelectSchema =
-  coreLedgerEntriesSelectSchema.extend(
-    creditGrantRecognizedEntryRefinements
-  )
-
-export const creditBalanceAdjustedSelectSchema =
-  coreLedgerEntriesSelectSchema.extend(
-    creditBalanceAdjustedEntryRefinements
-  )
-export const creditGrantExpiredSelectSchema =
-  coreLedgerEntriesSelectSchema.extend(
-    creditGrantExpiredEntryRefinements
-  )
-export const paymentRefundedSelectSchema =
-  coreLedgerEntriesSelectSchema.extend(
-    paymentRefundedEntryRefinements
-  )
-export const billingAdjustmentSelectSchema =
-  coreLedgerEntriesSelectSchema.extend(
-    billingAdjustmentEntryRefinements
-  )
-
-export const usageCreditApplicationDebitFromCreditBalanceSelectSchema =
-  coreLedgerEntriesSelectSchema.extend(
-    usageCreditApplicationDebitFromCreditBalanceEntryRefinements
-  )
-
-export const usageCreditApplicationCreditTowardsUsageCostSelectSchema =
-  coreLedgerEntriesSelectSchema.extend(
-    usageCreditApplicationCreditTowardsUsageCostEntryRefinements
-  )
-
 export const ledgerEntriesSelectSchema = z.discriminatedUnion(
   'entryType',
   [
@@ -370,42 +412,6 @@ export const ledgerEntriesSelectSchema = z.discriminatedUnion(
     usageCreditApplicationCreditTowardsUsageCostSelectSchema,
   ]
 )
-
-export const coreLedgerEntriesUpdateSchema =
-  coreLedgerEntryInsertSchema.partial().extend({ id: z.string() })
-
-export const usageCostUpdateSchema =
-  coreLedgerEntriesUpdateSchema.extend(usageCostEntryRefinements)
-export const creditGrantRecognizedUpdateSchema =
-  coreLedgerEntriesUpdateSchema.extend(
-    creditGrantRecognizedEntryRefinements
-  )
-export const creditBalanceAdjustedUpdateSchema =
-  coreLedgerEntriesUpdateSchema.extend(
-    creditBalanceAdjustedEntryRefinements
-  )
-export const creditGrantExpiredUpdateSchema =
-  coreLedgerEntriesUpdateSchema.extend(
-    creditGrantExpiredEntryRefinements
-  )
-export const paymentRefundedUpdateSchema =
-  coreLedgerEntriesUpdateSchema.extend(
-    paymentRefundedEntryRefinements
-  )
-export const billingAdjustmentUpdateSchema =
-  coreLedgerEntriesUpdateSchema.extend(
-    billingAdjustmentEntryRefinements
-  )
-
-export const usageCreditApplicationDebitFromCreditBalanceUpdateSchema =
-  coreLedgerEntriesUpdateSchema.extend(
-    usageCreditApplicationDebitFromCreditBalanceEntryRefinements
-  )
-
-export const usageCreditApplicationCreditTowardsUsageCostUpdateSchema =
-  coreLedgerEntriesUpdateSchema.extend(
-    usageCreditApplicationCreditTowardsUsageCostEntryRefinements
-  )
 
 export const ledgerEntriesUpdateSchema = z.discriminatedUnion(
   'entryType',
@@ -421,45 +427,42 @@ export const ledgerEntriesUpdateSchema = z.discriminatedUnion(
   ]
 )
 
-const hiddenColumns = {} as const
-
-// Client-specific individual select schemas
-export const usageCostClientSelectSchema = usageCostSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'UsageCostRecord' })
+// Client-specific individual select schemas (meta applied)
+export const usageCostClientSelectSchema =
+  usageCostClientSelectSchemaBase.meta({ id: 'UsageCostRecord' })
 export const creditGrantRecognizedClientSelectSchema =
-  creditGrantRecognizedSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'CreditGrantRecognizedRecord' })
+  creditGrantRecognizedClientSelectSchemaBase.meta({
+    id: 'CreditGrantRecognizedRecord',
+  })
 export const creditBalanceAdjustedClientSelectSchema =
-  creditBalanceAdjustedSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'CreditBalanceAdjustedRecord' })
+  creditBalanceAdjustedClientSelectSchemaBase.meta({
+    id: 'CreditBalanceAdjustedRecord',
+  })
 export const creditGrantExpiredClientSelectSchema =
-  creditGrantExpiredSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'CreditGrantExpiredRecord' })
+  creditGrantExpiredClientSelectSchemaBase.meta({
+    id: 'CreditGrantExpiredRecord',
+  })
 export const paymentRefundedClientSelectSchema =
-  paymentRefundedSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'PaymentRefundedRecord' })
+  paymentRefundedClientSelectSchemaBase.meta({
+    id: 'PaymentRefundedRecord',
+  })
 export const billingAdjustmentClientSelectSchema =
-  billingAdjustmentSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'BillingAdjustmentRecord' })
+  billingAdjustmentClientSelectSchemaBase.meta({
+    id: 'BillingAdjustmentRecord',
+  })
 
 export const usageCreditApplicationDebitFromCreditBalanceClientSelectSchema =
-  usageCreditApplicationDebitFromCreditBalanceSelectSchema
-    .omit(hiddenColumns)
-    .meta({
+  usageCreditApplicationDebitFromCreditBalanceClientSelectSchemaBase.meta(
+    {
       id: 'UsageCreditApplicationDebitFromCreditBalanceRecord',
-    })
+    }
+  )
 export const usageCreditApplicationCreditTowardsUsageCostClientSelectSchema =
-  usageCreditApplicationCreditTowardsUsageCostSelectSchema
-    .omit(hiddenColumns)
-    .meta({
+  usageCreditApplicationCreditTowardsUsageCostClientSelectSchemaBase.meta(
+    {
       id: 'UsageCreditApplicationCreditTowardsUsageCostRecord',
-    })
+    }
+  )
 
 export const ledgerEntriesClientSelectSchema = z
   .discriminatedUnion('entryType', [
