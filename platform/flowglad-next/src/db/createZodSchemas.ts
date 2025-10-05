@@ -631,7 +631,17 @@ export function buildSchemas<
       typeof server.refines.updateRefine
     >
   > &
-    ({ id: string } & (D extends string ? { [K in D]: string } : {}))
+    ({
+      id: string
+    } & (D extends string
+      ? {
+          [K in D]: K extends keyof typeof server.refines.updateRefine
+            ? (typeof server.refines.updateRefine)[K] extends z.ZodTypeAny
+              ? z.infer<(typeof server.refines.updateRefine)[K]>
+              : never
+            : never
+        }
+      : {}))
 
   const selectSchema = server.select as typeof server.select &
     z.ZodType<SelectOut>
