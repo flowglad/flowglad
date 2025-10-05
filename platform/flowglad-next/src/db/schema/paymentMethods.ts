@@ -22,6 +22,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { PaymentMethodType } from '@/types'
@@ -133,7 +134,7 @@ const nonClientEditableColumns = {
   ...createOnlyColumns,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
 })

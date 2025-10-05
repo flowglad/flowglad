@@ -22,6 +22,7 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -212,7 +213,7 @@ const createOnlyColumns = {
   transactionId: true,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
 })
@@ -230,7 +231,7 @@ export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
         'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
       ),
   })
-  .omit(R.omit(['position'], hiddenColumns))
+  .omit(clientWriteOmitsConstructor(hiddenColumns))
   .omit(createOnlyColumns)
   .meta({ id: 'UsageEventsClientUpdateSchema' })
 
@@ -282,15 +283,15 @@ export type BulkInsertUsageEventsInput = z.infer<
 >
 
 // Pagination schemas
-export const usageEventPaginatedSelectSchema = z.object({
-  cursor: z.string().optional(),
-  limit: z.number().min(1).max(100).default(10),
-  customerId: z.string().optional(),
-  usageMeterId: z.string().optional(),
-  subscriptionId: z.string().optional(),
-  dateFrom: z.string().optional(),
-  dateTo: z.string().optional(),
-})
+export const usageEventPaginatedSelectSchema = createPaginatedSelectSchema(
+  z.object({
+    customerId: z.string().optional(),
+    usageMeterId: z.string().optional(),
+    subscriptionId: z.string().optional(),
+    dateFrom: z.string().optional(),
+    dateTo: z.string().optional(),
+  })
+)
 
 export const usageEventPaginatedListSchema = z.object({
   items: z.array(usageEventsClientSelectSchema),

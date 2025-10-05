@@ -12,6 +12,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { products } from '@/db/schema/products'
@@ -78,7 +79,7 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const clientWriteOmits = R.omit(['position'], {
+const clientWriteOmits = clientWriteOmitsConstructor({
   ...hiddenColumns,
   ...readOnlyColumns,
 })
