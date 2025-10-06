@@ -954,3 +954,19 @@ export type StandardLogger = {
   warn: (message: string) => void
   error: (message: string) => void
 }
+
+// Telemetry types for trigger.dev debugging
+export interface TelemetryRecord {
+  runId: string
+}
+
+// Non-exhaustive list of entities created/modified by trigger.dev tasks for debugging
+export type TelemetryEntityType =
+  | 'payment'        
+  | 'billing_run'   
+  | 'invoice'       
+  | 'billing_period' 
+  | 'subscription'   
+  | 'organization'   
+  | 'webhook'        
+  | 'notification' 

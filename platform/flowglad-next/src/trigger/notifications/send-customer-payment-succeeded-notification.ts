@@ -13,6 +13,7 @@ import { generateInvoicePdfTask } from '../generate-invoice-pdf'
 import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import core from '@/utils/core'
+import { storeTelemetry } from '@/utils/redis'
 
 export const sendCustomerPaymentSucceededNotificationTask = task({
   id: 'send-customer-payment-succeeded-notification',
@@ -96,6 +97,13 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
         error: result.error,
       })
     }
+
+
+    await storeTelemetry(
+      'notification',
+      `payment-succeeded-${payment.id}`,
+      ctx.run.id
+    )
 
     return {
       message: 'Email sent successfully',

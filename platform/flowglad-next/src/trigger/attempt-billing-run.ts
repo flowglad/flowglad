@@ -4,6 +4,7 @@ import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 import { BillingRunStatus } from '@/types'
 import { logger, task } from '@trigger.dev/sdk'
+import { storeTelemetry } from '@/utils/redis'
 
 export const attemptBillingRunTask = task({
   id: 'attempt-billing-run',
@@ -29,6 +30,14 @@ export const attemptBillingRunTask = task({
         )
       }
     )
+
+
+    await storeTelemetry(
+      'billing_run',
+      payload.billingRun.id,
+      ctx.run.id
+    )
+
     return {
       message: 'Billing run executed',
       updatedBillingRun,
