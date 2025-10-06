@@ -14,7 +14,6 @@ import { useRouter } from 'next/navigation'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { CardPaymentMethodLabel } from '@/components/PaymentMethodLabel'
 import { PaymentMethodType } from '@/types'
-import { Label } from '@/components/ui/label'
 import {
   RadioGroup,
   RadioGroupItem,
@@ -52,19 +51,17 @@ const PaymentMethodSelector = ({
           <FormControl>
             <RadioGroup
               onValueChange={field.onChange}
-              defaultValue={field.value}
+              value={field.value}
               className="space-y-2"
             >
               {paymentMethods.map((pm) => (
-                <div
+                <label
                   key={pm.id}
-                  className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent transition-colors cursor-pointer"
+                  htmlFor={pm.id}
+                  className="flex items-center space-x-3 border rounded-lg p-3 hover:bg-accent transition-colors cursor-pointer"
                 >
                   <RadioGroupItem value={pm.id} id={pm.id} />
-                  <Label
-                    htmlFor={pm.id}
-                    className="flex-1 cursor-pointer"
-                  >
+                  <div className="flex-1">
                     {pm.type === PaymentMethodType.Card && (
                       <CardPaymentMethodLabel
                         brand={pm.paymentMethodData.brand as string}
@@ -82,8 +79,8 @@ const PaymentMethodSelector = ({
                         </span>
                       </div>
                     )}
-                  </Label>
-                </div>
+                  </div>
+                </label>
               ))}
             </RadioGroup>
           </FormControl>
