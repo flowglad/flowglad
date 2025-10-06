@@ -5,7 +5,7 @@ import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import { UsageEvent } from '@/db/schema/usageEvents'
 import PurchasesTable from './PurchasesTable'
 import UsageEventsTable from './UsageEventsTable'
-import InvoicesTable from '@/components/InvoicesTable'
+import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
@@ -162,14 +162,12 @@ export const CustomerBillingSubPage = ({
                 customerId: customer.id,
               }}
             />
-            <TableHeader
+            <InvoicesDataTable
               title="Invoices"
-              noButtons
-              // buttonLabel="Create Invoice"
-              // buttonIcon={<Plus size={16} />}
-              // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
+              filters={{
+                customerId: customer.id,
+              }}
             />
-            <InvoicesTable customer={customer} />
             <PaymentsDataTable
               title="Payments"
               filters={{
