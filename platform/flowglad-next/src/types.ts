@@ -968,5 +968,4 @@ export type TelemetryEntityType =
   | 'billing_period' 
   | 'subscription'   
   | 'organization'   
-  | 'webhook'        
-  | 'notification' 
+  | 'webhook' 

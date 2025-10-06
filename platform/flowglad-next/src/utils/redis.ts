@@ -222,13 +222,6 @@ export const storeTelemetry = async (
       ex: evictionPolicy[RedisKeyNamespace.Telemetry].ttl 
     })
     
-    // Also log to BetterStack for observability
-    logger.info('Telemetry stored', {
-      entityType,
-      entityId,
-      runId
-    })
-    
   } catch (error) {
     // Log but don't throw - telemetry is a side effect
     logger.warn('Telemetry storage failed', { 
