@@ -960,7 +960,7 @@ export interface TelemetryRecord {
   runId: string
 }
 
-// Non-exhaustive list of entities created/modified by trigger.dev tasks for debugging
+// Entities created/modified by trigger.dev tasks for debugging
 export type TelemetryEntityType =
   | 'payment'        
   | 'billing_run'   
