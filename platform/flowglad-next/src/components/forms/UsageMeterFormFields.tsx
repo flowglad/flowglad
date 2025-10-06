@@ -48,12 +48,14 @@ export default function UsageMeterFormFields({
           </FormItem>
         )}
       />
-      <div className="w-full relative flex flex-col gap-3">
-        <PricingModelSelect
-          name="usageMeter.pricingModelId"
-          control={form.control}
-        />
-      </div>
+      {!edit && (
+        <div className="w-full relative flex flex-col gap-3">
+          <PricingModelSelect
+            name="usageMeter.pricingModelId"
+            control={form.control}
+          />
+        </div>
+      )}
       <div className="w-full relative flex flex-col gap-3">
         <FormField
           control={form.control}
