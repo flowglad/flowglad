@@ -8,6 +8,7 @@ import { NextRequestWithUnkeyContext } from '@unkey/nextjs'
 import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
 import { NextResponse } from 'next/server'
 import { trpcToRest, RouteConfig } from '@/utils/openapi'
+import * as Sentry from '@sentry/nextjs'
 import {
   customerBillingRouteConfig,
   customersRouteConfigs,
@@ -772,6 +773,15 @@ const withVerification = (
             'security.auth_attempts': 1,
             'security.failed_auth_count': 0,
           })
+
+          // Set user context in Sentry for API key requests
+          if (result.ownerId) {
+            Sentry.setUser({
+              id: result.ownerId,
+            })
+          } else {
+            Sentry.setUser(null)
+          }
 
           logger.info('REST API Auth Success', {
             method: req.method,
