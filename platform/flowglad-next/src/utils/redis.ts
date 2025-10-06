@@ -4,6 +4,8 @@ import { verifyKey } from '@unkey/api'
 import { hashData } from './backendCore'
 import { z } from 'zod'
 import { referralOptionEnum } from '@/utils/referrals'
+import { logger } from './logger'
+import { TelemetryRecord, TelemetryEntityType } from '@/types'
 
 export const referralSelectionSchema = z.object({
   // The organization/user selecting the referral option; can be used to partition keys
@@ -95,6 +97,7 @@ const redis = () => {
 enum RedisKeyNamespace {
   ApiKeyVerificationResult = 'apiKeyVerificationResult',
   ReferralSelection = 'referralSelection',
+  Telemetry = 'telemetry',
 }
 
 const evictionPolicy: Record<
@@ -108,6 +111,10 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.ReferralSelection]: {
     max: 200000, // up to 200k selections across tenants
     ttl: 60 * 60 * 24 * 90, // retain for ~90 days
+  },
+  [RedisKeyNamespace.Telemetry]: {
+    max: 500000, // up to 500k telemetry records
+    ttl: 60 * 60 * 24 * 14, // 14 days (matches trigger.dev TTL)
   },
 }
 
@@ -194,3 +201,35 @@ export const getApiKeyVerificationResult = async (
     return null
   }
 }
+
+// Telemetry functions for trigger.dev debugging
+/**
+ * Store telemetry data when a trigger.dev task processes a business entity
+ */
+export const storeTelemetry = async (
+  entityType: TelemetryEntityType,
+  entityId: string,
+  runId: string
+): Promise<void> => {
+  try {
+    const key = `${RedisKeyNamespace.Telemetry}:${entityType}:${entityId}`
+    
+    const record: TelemetryRecord = {
+      runId
+    }
+    
+    await redis().set(key, JSON.stringify(record), { 
+      ex: evictionPolicy[RedisKeyNamespace.Telemetry].ttl 
+    })
+    
+  } catch (error) {
+    // Log but don't throw - telemetry is a side effect
+    logger.warn('Telemetry storage failed', { 
+      error: error instanceof Error ? error.message : String(error), 
+      entityType, 
+      entityId, 
+      runId 
+    })
+  }
+}
+
