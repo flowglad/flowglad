@@ -14,7 +14,7 @@ import { TableHeader } from '@/components/ui/table-header'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 // import { useState } from 'react'
-import PaymentsTable from '@/app/finance/payments/PaymentsTable'
+import { PaymentsDataTable } from '@/app/finance/payments/data-table'
 import { DetailLabel } from '@/components/DetailLabel'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
@@ -170,12 +170,14 @@ export const CustomerBillingSubPage = ({
               // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
             />
             <InvoicesTable customer={customer} />
-            <TableHeader title="Payments" noButtons />
-            <PaymentsTable
-              filters={{
-                customerId: customer.id,
-              }}
-            />
+            <div className="flex flex-col gap-5">
+              <h3 className="text-lg font-semibold">Payments</h3>
+              <PaymentsDataTable
+                filters={{
+                  customerId: customer.id,
+                }}
+              />
+            </div>
             <TableHeader title="Purchases" noButtons />
             <PurchasesTable
               filters={{
