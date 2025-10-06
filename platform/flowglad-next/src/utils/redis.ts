@@ -226,8 +226,7 @@ export const storeTelemetry = async (
     logger.info('Telemetry stored', {
       entityType,
       entityId,
-      runId,
-      triggerUrl: `https://cloud.trigger.dev/orgs/flowglad-b012/projects/flowglad-ByMZ/env/prod/runs?runId=${runId}`
+      runId
     })
     
   } catch (error) {
