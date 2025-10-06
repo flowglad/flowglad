@@ -19,6 +19,7 @@ import {
   subscriptionsPaginatedListSchema,
   subscriptionsPaginatedSelectSchema,
   subscriptionsTableRowDataSchema,
+  updateSubscriptionPaymentMethodSchema,
 } from '@/db/schema/subscriptions'
 import {
   isSubscriptionCurrent,
@@ -425,16 +426,7 @@ const getTableRows = protectedProcedure
 
 // TRPC-only procedure, not exposed as REST API
 const updatePaymentMethodProcedure = protectedProcedure
-  .input(
-    z.object({
-      id: z.string().describe('The subscription ID'),
-      paymentMethodId: z
-        .string()
-        .describe(
-          'The payment method ID to set for this subscription'
-        ),
-    })
-  )
+  .input(updateSubscriptionPaymentMethodSchema)
   .output(
     z.object({
       subscription: subscriptionClientSelectSchema,

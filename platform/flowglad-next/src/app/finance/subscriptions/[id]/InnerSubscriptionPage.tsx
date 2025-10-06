@@ -16,16 +16,7 @@ import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { trpc } from '@/app/_trpc/client'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
+import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
 import InvoicesTable from '@/components/InvoicesTable'
 
@@ -37,42 +28,7 @@ const InnerSubscriptionPage = ({
   defaultPaymentMethod: PaymentMethod.ClientRecord | null
 }) => {
   const { organization } = useAuthContext()
-  const router = useRouter()
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [selectedPaymentMethodId, setSelectedPaymentMethodId] =
-    useState<string | null>(null)
-
-  // Fetch payment methods for the customer
-  const {
-    data: paymentMethodsData,
-    isLoading: isLoadingPaymentMethods,
-  } = trpc.paymentMethods.list.useQuery({
-    where: { customerId: subscription.customerId },
-  })
-
-  // Mutation to update subscription payment method
-  const updatePaymentMethod =
-    trpc.subscriptions.updatePaymentMethod.useMutation({
-      onSuccess: () => {
-        toast.success('Payment method updated successfully')
-        setIsEditDialogOpen(false)
-        router.refresh()
-      },
-      onError: (error) => {
-        toast.error(
-          error.message || 'Failed to update payment method'
-        )
-      },
-    })
-
-  const handleUpdatePaymentMethod = () => {
-    if (!selectedPaymentMethodId) return
-
-    updatePaymentMethod.mutate({
-      id: subscription.id,
-      paymentMethodId: selectedPaymentMethodId,
-    })
-  }
 
   if (!organization) {
     return <div>Loading...</div>
@@ -110,12 +66,7 @@ const InnerSubscriptionPage = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setSelectedPaymentMethodId(
-                      defaultPaymentMethod?.id || null
-                    )
-                    setIsEditDialogOpen(true)
-                  }}
+                  onClick={() => setIsEditDialogOpen(true)}
                 >
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
@@ -157,90 +108,13 @@ const InnerSubscriptionPage = ({
         />
       </div>
 
-      {/* Edit Payment Method Dialog */}
-      <Dialog
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Payment Method</DialogTitle>
-            <DialogDescription>
-              Select a payment method for this subscription.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {isLoadingPaymentMethods && (
-              <p className="text-sm text-muted-foreground">
-                Loading payment methods...
-              </p>
-            )}
-
-            {!isLoadingPaymentMethods &&
-              paymentMethodsData?.data &&
-              paymentMethodsData.data.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No payment methods available for this customer.
-                </p>
-              )}
-
-            {!isLoadingPaymentMethods &&
-              paymentMethodsData?.data &&
-              paymentMethodsData.data.length > 0 && (
-                <div className="space-y-2">
-                  {paymentMethodsData.data.map(
-                    (pm: PaymentMethod.ClientRecord) => (
-                      <button
-                        key={pm.id}
-                        onClick={() =>
-                          setSelectedPaymentMethodId(pm.id)
-                        }
-                        className={`w-full p-3 border rounded-lg text-left transition-colors hover:bg-accent ${
-                          selectedPaymentMethodId === pm.id
-                            ? 'border-primary bg-accent'
-                            : 'border-border'
-                        }`}
-                      >
-                        {pm.type === PaymentMethodType.Card && (
-                          <CardPaymentMethodLabel
-                            brand={
-                              pm.paymentMethodData.brand as string
-                            }
-                            last4={
-                              pm.paymentMethodData.last4 as string
-                            }
-                          />
-                        )}
-                      </button>
-                    )
-                  )}
-                </div>
-              )}
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-              disabled={updatePaymentMethod.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUpdatePaymentMethod}
-              disabled={
-                !selectedPaymentMethodId ||
-                updatePaymentMethod.isPending
-              }
-            >
-              {updatePaymentMethod.isPending
-                ? 'Updating...'
-                : 'Update'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <EditSubscriptionPaymentMethodModal
+        isOpen={isEditDialogOpen}
+        setIsOpen={setIsEditDialogOpen}
+        subscriptionId={subscription.id}
+        customerId={subscription.customerId}
+        currentPaymentMethodId={defaultPaymentMethod?.id}
+      />
     </InternalPageContainer>
   )
 }
