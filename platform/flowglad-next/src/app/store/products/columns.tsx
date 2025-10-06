@@ -72,7 +72,7 @@ function ProductActionsMenu({
         : undefined,
     },
     {
-      label: product.active ? 'Deactivate' : 'Activate product',
+      label: product.active ? 'Deactivate' : 'Activate',
       icon: product.active ? (
         <Archive className="h-4 w-4" />
       ) : (
