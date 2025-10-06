@@ -105,6 +105,7 @@ export function EditSubscriptionPaymentMethodModal({
   const { data: paymentMethodsData, isLoading } =
     trpc.paymentMethods.list.useQuery({
       where: { customerId },
+      limit: 100,
     })
 
   // Mutation to update subscription payment method
