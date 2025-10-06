@@ -156,8 +156,8 @@ export const CustomerBillingSubPage = ({
             usageEvents={usageEvents}
           />
           <div className="w-full flex flex-col gap-5 pb-20">
-            <h3 className="text-lg font-semibold">Subscriptions</h3>
             <SubscriptionsDataTable
+              title="Subscriptions"
               filters={{
                 customerId: customer.id,
               }}
@@ -170,14 +170,12 @@ export const CustomerBillingSubPage = ({
               // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
             />
             <InvoicesTable customer={customer} />
-            <div className="flex flex-col gap-5">
-              <h3 className="text-lg font-semibold">Payments</h3>
-              <PaymentsDataTable
-                filters={{
-                  customerId: customer.id,
-                }}
-              />
-            </div>
+            <PaymentsDataTable
+              title="Payments"
+              filters={{
+                customerId: customer.id,
+              }}
+            />
             <TableHeader title="Purchases" noButtons />
             <PurchasesTable
               filters={{

@@ -81,12 +81,10 @@ const InnerSubscriptionPage = ({
         <InvoicesTable
           filters={{ subscriptionId: subscription.id }}
         />
-        <div className="flex flex-col gap-5">
-          <h3 className="text-lg font-semibold">Payments</h3>
-          <PaymentsDataTable
-            filters={{ subscriptionId: subscription.id }}
-          />
-        </div>
+        <PaymentsDataTable
+          title="Payments"
+          filters={{ subscriptionId: subscription.id }}
+        />
       </div>
     </InternalPageContainer>
   )

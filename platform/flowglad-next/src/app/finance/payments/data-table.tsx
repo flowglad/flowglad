@@ -39,6 +39,7 @@ export interface PaymentsTableFilters {
 
 interface PaymentsDataTableProps {
   filters?: PaymentsTableFilters
+  title?: string
   filterOptions?: { value: string; label: string }[]
   activeFilter?: string
   onFilterChange?: (value: string) => void
@@ -46,6 +47,7 @@ interface PaymentsDataTableProps {
 
 export function PaymentsDataTable({
   filters = {},
+  title,
   filterOptions,
   activeFilter,
   onFilterChange,
@@ -138,8 +140,13 @@ export function PaymentsDataTable({
     <div className="w-full">
       {/* Toolbar WITHOUT search */}
       <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Filter buttons on the left */}
-        <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
+        {/* Title and/or Filter buttons on the left */}
+        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
+          {title && (
+            <h3 className="text-lg font-semibold whitespace-nowrap">
+              {title}
+            </h3>
+          )}
           {filterOptions && activeFilter && onFilterChange && (
             <FilterButtonGroup
               options={filterOptions}
