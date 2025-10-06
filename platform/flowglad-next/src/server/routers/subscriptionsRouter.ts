@@ -1,5 +1,6 @@
 import { protectedProcedure, router } from '../trpc'
 import {
+  BillingPeriodStatus,
   EventNoun,
   FlowgladEventType,
   IntervalUnit,
@@ -47,9 +48,19 @@ import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/w
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import {
+  selectPaymentMethodById,
+  selectPaymentMethods,
+} from '@/db/tableMethods/paymentMethodMethods'
 import { selectSubscriptionCountsByStatus } from '@/db/tableMethods/subscriptionMethods'
 import { Event } from '@/db/schema/events'
+import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
+import {
+  createBillingRunInsert,
+  executeBillingRun,
+} from '@/subscriptions/billingRunHelpers'
+import { insertBillingRun } from '@/db/tableMethods/billingRunMethods'
+import { billingRunClientSelectSchema } from '@/db/schema/billingRuns'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',
@@ -422,6 +433,81 @@ const getTableRows = protectedProcedure
     authenticatedProcedureTransaction(selectSubscriptionsTableRowData)
   )
 
+const retryBillingRunProcedure = protectedProcedure
+  .input(z.object({ billingPeriodId: z.string() }))
+  .output(z.object({ message: z.string() }))
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const billingPeriod = await selectBillingPeriodById(
+          input.billingPeriodId,
+          transaction
+        )
+        if (billingPeriod.status === BillingPeriodStatus.Completed) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Billing period is already completed',
+          })
+        }
+        if (billingPeriod.status === BillingPeriodStatus.Canceled) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Billing period is already canceled',
+          })
+        }
+        if (billingPeriod.status === BillingPeriodStatus.Upcoming) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Billing period is already upcoming',
+          })
+        }
+        const subscription = await selectSubscriptionById(
+          billingPeriod.subscriptionId,
+          transaction
+        )
+        const paymentMethod = subscription.defaultPaymentMethodId
+          ? await selectPaymentMethodById(
+              subscription.defaultPaymentMethodId,
+              transaction
+            )
+          : (
+              await selectPaymentMethods(
+                {
+                  customerId: subscription.customerId,
+                  default: true,
+                },
+                transaction
+              )
+            )[0]
+
+        if (!paymentMethod) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'No payment method found for subscription',
+          })
+        }
+
+        const billingRunInsert = createBillingRunInsert({
+          billingPeriod,
+          scheduledFor: new Date(),
+          paymentMethod,
+        })
+        return insertBillingRun(billingRunInsert, transaction)
+      },
+      { apiKey: ctx.apiKey }
+    )
+    const billingRun = await executeBillingRun(result.id)
+    if (!billingRun) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Failed to execute billing run',
+      })
+    }
+    return {
+      message: 'Billing run executed',
+    }
+  })
+
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
   cancel: cancelSubscriptionProcedure,
@@ -429,5 +515,6 @@ export const subscriptionsRouter = router({
   get: getSubscriptionProcedure,
   create: createSubscriptionProcedure,
   getCountsByStatus: getCountsByStatusProcedure,
+  retryBillingRunProcedure,
   getTableRows,
 })
