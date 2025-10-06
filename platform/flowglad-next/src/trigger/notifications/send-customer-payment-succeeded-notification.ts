@@ -97,8 +97,6 @@ export const sendCustomerPaymentSucceededNotificationTask = task({
       })
     }
 
-
-
     return {
       message: 'Email sent successfully',
     }
