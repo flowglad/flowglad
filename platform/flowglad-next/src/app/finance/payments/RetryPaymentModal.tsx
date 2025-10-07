@@ -2,7 +2,7 @@
 
 import FormModal from '@/components/forms/FormModal'
 import { trpc } from '@/app/_trpc/client'
-import { z } from 'zod'
+import { retryBillingRunInputSchema } from '@/db/schema/subscriptions'
 import { Payment } from '@/db/schema/payments'
 
 interface RetryPaymentModalProps {
@@ -10,10 +10,6 @@ interface RetryPaymentModalProps {
   setIsOpen: (isOpen: boolean) => void
   payment: Payment.ClientRecord
 }
-
-const retryBillingRunInputSchema = z.object({
-  billingPeriodId: z.string(),
-})
 
 const RetryPaymentModal = ({
   isOpen,

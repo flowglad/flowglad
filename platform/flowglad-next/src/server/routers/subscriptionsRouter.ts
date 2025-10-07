@@ -16,6 +16,7 @@ import {
 } from '@/db/authenticatedTransaction'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
+  retryBillingRunInputSchema,
   subscriptionClientSelectSchema,
   subscriptionsPaginatedListSchema,
   subscriptionsPaginatedSelectSchema,
@@ -434,7 +435,7 @@ const getTableRows = protectedProcedure
   )
 
 const retryBillingRunProcedure = protectedProcedure
-  .input(z.object({ billingPeriodId: z.string() }))
+  .input(retryBillingRunInputSchema)
   .output(z.object({ message: z.string() }))
   .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
