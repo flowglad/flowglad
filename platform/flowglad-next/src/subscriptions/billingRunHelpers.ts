@@ -15,7 +15,7 @@ import { Payment } from '@/db/schema/payments'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import {
-  insertBillingRun,
+  safelyInsertBillingRun,
   selectBillingRunById,
   selectBillingRuns,
   updateBillingRun,
@@ -49,6 +49,7 @@ import {
   PaymentStatus,
   FeatureType,
   SubscriptionItemType,
+  SubscriptionStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
@@ -94,7 +95,7 @@ export const createBillingRun = async (
   transaction: DbTransaction
 ) => {
   const insert = createBillingRunInsert(params)
-  return insertBillingRun(insert, transaction)
+  return safelyInsertBillingRun(insert, transaction)
 }
 
 export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
@@ -968,5 +969,5 @@ export const scheduleBillingRunRetry = async (
   if (!retryBillingRun) {
     return
   }
-  return insertBillingRun(retryBillingRun, transaction)
+  return safelyInsertBillingRun(retryBillingRun, transaction)
 }
