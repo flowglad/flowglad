@@ -25,6 +25,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { useFormContext } from 'react-hook-form'
+import { encodeCursor } from '@/db/tableUtils'
 
 interface EditSubscriptionPaymentMethodModalProps
   extends ModalInterfaceProps {
@@ -104,7 +105,7 @@ export function EditSubscriptionPaymentMethodModal({
   // Fetch payment methods for the customer
   const { data: paymentMethodsData, isLoading } =
     trpc.paymentMethods.list.useQuery({
-      where: { customerId },
+      cursor: encodeCursor({ parameters: { customerId } }),
       limit: 100,
     })
 
