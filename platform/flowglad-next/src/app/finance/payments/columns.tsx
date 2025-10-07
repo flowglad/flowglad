@@ -4,7 +4,7 @@ import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { sentenceCase } from 'change-case'
-import { Check, Hourglass, X, RotateCcw } from 'lucide-react'
+import { Check, Hourglass, X, RotateCcw, Rewind } from 'lucide-react'
 import { formatDate } from '@/utils/core'
 import {
   EnhancedDataTableActionsMenu,
@@ -16,6 +16,7 @@ import { Payment } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import RefundPaymentModal from './RefundPaymentModal'
+import RetryPaymentModal from './RetryPaymentModal'
 
 const PaymentStatusBadge = ({
   status,
@@ -51,25 +52,38 @@ function PaymentActionsMenu({
   payment: Payment.ClientRecord
 }) {
   const [isRefundOpen, setIsRefundOpen] = React.useState(false)
-
-  const actionItems: ActionMenuItem[] = [
-    {
-      label: 'Refund Payment',
+  const [isRetryOpen, setIsRetryOpen] = React.useState(false)
+  const actionItems: ActionMenuItem[] = []
+  actionItems.push({
+    label: 'Refund Payment',
+    icon: <Rewind className="h-4 w-4" />,
+    disabled: payment.status !== PaymentStatus.Succeeded,
+    helperText:
+      payment.status !== PaymentStatus.Succeeded
+        ? 'Only succeeded payments can be refunded'
+        : undefined,
+    handler: () => setIsRefundOpen(true),
+  })
+  if (
+    payment.status === PaymentStatus.Failed &&
+    !!payment.billingPeriodId
+  ) {
+    actionItems.push({
+      label: 'Retry Payment',
       icon: <RotateCcw className="h-4 w-4" />,
-      handler: () => setIsRefundOpen(true),
-      disabled: payment.status !== PaymentStatus.Succeeded,
-      helperText:
-        payment.status !== PaymentStatus.Succeeded
-          ? 'Only succeeded payments can be refunded'
-          : undefined,
-    },
-  ]
-
+      handler: () => setIsRetryOpen(true),
+    })
+  }
   return (
     <EnhancedDataTableActionsMenu items={actionItems}>
       <RefundPaymentModal
         isOpen={isRefundOpen}
         setIsOpen={setIsRefundOpen}
+        payment={payment}
+      />
+      <RetryPaymentModal
+        isOpen={isRetryOpen}
+        setIsOpen={setIsRetryOpen}
         payment={payment}
       />
     </EnhancedDataTableActionsMenu>

@@ -485,3 +485,11 @@ export const createSubscriptionInputSchema = z.object({
 export type CreateSubscriptionInputSchema = z.infer<
   typeof createSubscriptionInputSchema
 >
+
+export const retryBillingRunInputSchema = z.object({
+  billingPeriodId: z.string(),
+})
+
+export type RetryBillingRunInputSchema = z.infer<
+  typeof retryBillingRunInputSchema
+>

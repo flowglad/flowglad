@@ -57,7 +57,6 @@ export function PaymentsDataTable({
 
   const {
     pageIndex,
-    pageSize,
     handlePaginationChange,
     goToFirstPage,
     data,
