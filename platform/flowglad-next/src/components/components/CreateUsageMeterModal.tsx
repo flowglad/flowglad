@@ -9,11 +9,13 @@ import { UsageMeterAggregationType } from '@/types'
 interface CreateUsageMeterModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
+  defaultPricingModelId?: string
 }
 
 const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
   isOpen,
   setIsOpen,
+  defaultPricingModelId,
 }) => {
   const createUsageMeter = trpc.usageMeters.create.useMutation()
   return (
@@ -26,7 +28,7 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
         usageMeter: {
           name: '',
           slug: '',
-          pricingModelId: '',
+          pricingModelId: defaultPricingModelId || '',
           aggregationType: UsageMeterAggregationType.Sum,
         },
       }}
