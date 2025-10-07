@@ -2,10 +2,9 @@
 
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { PageHeader } from '@/components/ui/page-header'
-import OrganizationMembersTable from './OrganizationMembersTable'
+import { OrganizationMembersDataTable } from './data-table'
 import { useState } from 'react'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
-import { Button } from '@/components/ui/button'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 function TeammatesPage() {
@@ -15,17 +14,11 @@ function TeammatesPage() {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <PageHeader
-          title="Team"
-          className="mb-6"
-          action={
-            <Button onClick={() => setIsInviteModalOpen(true)}>
-              Invite Member
-            </Button>
-          }
-        />
+        <PageHeader title="Team" className="mb-6" />
 
-        <OrganizationMembersTable />
+        <OrganizationMembersDataTable
+          onInviteMember={() => setIsInviteModalOpen(true)}
+        />
         <InviteUserToOrganizationModal
           isOpen={isInviteModalOpen}
           setIsOpen={setIsInviteModalOpen}
