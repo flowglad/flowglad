@@ -35,11 +35,13 @@ export interface UsageMetersTableFilters {
 
 interface UsageMetersDataTableProps {
   filters?: UsageMetersTableFilters
+  title?: string
   onCreateUsageMeter?: () => void
 }
 
 export function UsageMetersDataTable({
   filters = {},
+  title,
   onCreateUsageMeter,
 }: UsageMetersDataTableProps) {
   // Dynamic page size state (REQUIRED for server-side pagination)
@@ -128,8 +130,18 @@ export function UsageMetersDataTable({
   return (
     <div className="w-full">
       {/* Toolbar */}
-      <div className="flex items-center pt-4 pb-3">
-        <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+        {/* Title on the left (for detail pages) */}
+        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
+          {title && (
+            <h3 className="text-lg font-semibold whitespace-nowrap">
+              {title}
+            </h3>
+          )}
+        </div>
+
+        {/* Controls on the right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <DataTableViewOptions table={table} />
           {onCreateUsageMeter && (
             <Button onClick={onCreateUsageMeter}>
