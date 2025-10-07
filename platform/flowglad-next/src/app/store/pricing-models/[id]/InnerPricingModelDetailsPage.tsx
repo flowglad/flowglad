@@ -10,9 +10,10 @@ import { Pencil, Plus } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { CustomersDataTable } from '@/app/customers/data-table'
 import { TableHeader } from '@/components/ui/table-header'
-import FeaturesTable from '@/app/features/FeaturesTable'
+import { FeaturesDataTable } from '@/app/features/data-table'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
+import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import DefaultBadge from '@/components/DefaultBadge'
 import { UsageMetersDataTable } from '@/app/store/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
@@ -26,6 +27,8 @@ function InnerPricingModelDetailsPage({
 }: InnerPricingModelDetailsPageProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
+    useState(false)
+  const [isCreateCustomerModalOpen, setIsCreateCustomerModalOpen] =
     useState(false)
   const [isCreateFeatureModalOpen, setIsCreateFeatureModalOpen] =
     useState(false)
@@ -85,33 +88,35 @@ function InnerPricingModelDetailsPage({
             activeFilter={activeProductFilter}
             onFilterChange={setActiveProductFilter}
             onCreateProduct={() => setIsCreateProductModalOpen(true)}
+            buttonVariant="outline"
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableHeader title="Customers" noButtons />
           <CustomersDataTable
+            title="Customers"
             filters={{ pricingModelId: pricingModel.id }}
+            onCreateCustomer={() =>
+              setIsCreateCustomerModalOpen(true)
+            }
+            buttonVariant="outline"
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableHeader
+          <FeaturesDataTable
             title="Features"
-            buttonLabel="Create Feature"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
-              setIsCreateFeatureModalOpen(true)
-            }}
-          />
-          <FeaturesTable
             filters={{ pricingModelId: pricingModel.id }}
+            onCreateFeature={() => setIsCreateFeatureModalOpen(true)}
+            buttonVariant="outline"
           />
         </div>
         <div className="flex flex-col gap-5">
           <UsageMetersDataTable
+            title="Usage Meters"
             filters={{ pricingModelId: pricingModel.id }}
             onCreateUsageMeter={() =>
               setIsCreateUsageMeterModalOpen(true)
             }
+            buttonVariant="outline"
           />
         </div>
       </div>
@@ -124,6 +129,10 @@ function InnerPricingModelDetailsPage({
         isOpen={isCreateProductModalOpen}
         setIsOpen={setIsCreateProductModalOpen}
         defaultPricingModelId={pricingModel.id}
+      />
+      <CreateCustomerFormModal
+        isOpen={isCreateCustomerModalOpen}
+        setIsOpen={setIsCreateCustomerModalOpen}
       />
       <CreateFeatureModal
         isOpen={isCreateFeatureModalOpen}

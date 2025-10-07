@@ -51,6 +51,11 @@ git show origin/data-table-refactor:platform/flowglad-next/src/app/finance/payme
 - ✅ Pricing Models
 - ✅ Organization Members
 
+**Additional tables found (not in reference branch - need manual migration)**:
+- ⚠️ Subscription Items (detail page table)
+- ⚠️ Usage Events (detail page table)
+- ⚠️ Purchases (customer detail page - different from main Purchases table)
+
 **Why use git commands instead of GitHub UI?**  
 The GitHub web interface had issues displaying these files, but git commands work reliably to access the reference implementations.
 
@@ -395,6 +400,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Pencil, Copy, Trash } from 'lucide-react'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
@@ -548,7 +554,27 @@ export const columns: ColumnDef<YourTableRowDataType>[] = [
     maxSize: 180,
   },
   
-  // PATTERN 7: Actions column (always last)
+  // PATTERN 7: Customer name with link (for tables with customer data)
+  {
+    id: 'customerName',
+    accessorFn: (row) => row.customer.name,
+    header: 'Customer',
+    cell: ({ row }) => {
+      const customer = row.original.customer
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          <DataTableLinkableCell href={`/customers/${customer.id}`}>
+            {customer.name}
+          </DataTableLinkableCell>
+        </div>
+      )
+    },
+    size: 150,
+    minSize: 120,
+    maxSize: 200,
+  },
+  
+  // PATTERN 8: Actions column (always last)
   {
     id: 'actions',
     enableHiding: false,
@@ -633,11 +659,13 @@ export interface YourTableFilters {
 
 interface YourDataTableProps {
   filters?: YourTableFilters
+  title?: string  // For displaying section title on detail pages
   onCreateEntity?: () => void
 }
 
 export function YourDataTable({
   filters = {},
+  title,
   onCreateEntity,
 }: YourDataTableProps) {
   const router = useRouter()
@@ -735,8 +763,18 @@ export function YourDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex items-center pt-4 pb-3">
-        <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+        {/* Title on the left (for detail pages) */}
+        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
+          {title && (
+            <h3 className="text-lg font-semibold whitespace-nowrap">
+              {title}
+            </h3>
+          )}
+        </div>
+        
+        {/* Controls on the right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* ⚠️ ONLY for customers table - remove for other tables */}
           <CollapsibleSearch
             value={inputValue}
@@ -1016,11 +1054,14 @@ const getProductFilterForTab = (tab: string) => {
 // Example: Read-only table on a detail page
 <div className="flex flex-col gap-5">
   <YourDataTable
+    title="[Entities]"  // ✅ Add title for section heading
     filters={{ parentEntityId: parentEntity.id }}
     // No onCreateEntity, filterOptions, etc. - just the filters
   />
 </div>
 ```
+
+**⚠️ IMPORTANT**: Always include the `title` prop when using tables on detail pages. This provides a consistent section heading and matches the pattern used by all migrated tables (Payments, Subscriptions, Invoices).
 
 #### Checklist for Each Usage
 
@@ -1068,6 +1109,8 @@ rm src/app/[path]/[TableName]Table.tsx
 **All other tables (Products, Subscriptions, Payments, Invoices, Features, Prices, Discounts, Webhooks, API Keys, Usage Meters, Pricing Models, Organization Members) should use this pattern.**
 
 Simply omit the search-related code when migrating these tables:
+
+**Note**: The toolbar structure below still includes the title display for detail pages. Keep this pattern even without search.
 
 ```typescript
 // 1. In data-table.tsx - DON'T import or use search hook:
@@ -1243,8 +1286,18 @@ export function YourDataTable({
   return (
     <div className="w-full">
       {/* Toolbar WITHOUT search */}
-      <div className="flex items-center pt-4 pb-3">
-        <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+        {/* Title on the left (for detail pages) */}
+        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
+          {title && (
+            <h3 className="text-lg font-semibold whitespace-nowrap">
+              {title}
+            </h3>
+          )}
+        </div>
+        
+        {/* Controls on the right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* ✅ NO CollapsibleSearch - goes straight to controls */}
           <DataTableViewOptions table={table} />
           {onCreateEntity && (
@@ -1274,6 +1327,42 @@ export function YourDataTable({
   )
 }
 ```
+
+### Tables With Customer Links
+
+**⚠️ CRITICAL**: If your table displays customer data (Invoices, Payments, Subscriptions, etc.), the customer name column MUST be linkable.
+
+```typescript
+// In columns.tsx - Import DataTableLinkableCell
+import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
+
+// Customer column pattern
+{
+  id: 'customerName',
+  accessorFn: (row) => row.customer.name,
+  header: 'Customer',
+  cell: ({ row }) => {
+    const customer = row.original.customer
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <DataTableLinkableCell href={`/customers/${customer.id}`}>
+          {customer.name}
+        </DataTableLinkableCell>
+      </div>
+    )
+  },
+  size: 150,
+  minSize: 120,
+  maxSize: 200,
+},
+```
+
+**Why this matters:**
+- Provides consistent navigation UX across all tables
+- Matches pattern used in Payments, Subscriptions, and Invoices tables
+- `stopPropagation` prevents row click from interfering with link click
+
+---
 
 ### Tables With Filter Tabs (Active/Archived)
 
@@ -1974,6 +2063,16 @@ Before copying patterns from the reference branch, verify they're frontend-only:
 
 ## Revision History
 
+- **v1.8** (Oct 2025) - **CRITICAL PATTERNS UPDATE**: Added mandatory patterns for customer links and detail page titles:
+  - Added `DataTableLinkableCell` import requirement for customer columns
+  - Added PATTERN 7: Customer name with link to customer detail page
+  - Added `title` prop to data-table interface and all code templates
+  - Updated toolbar structure to display title on detail pages
+  - Added dedicated section "Tables With Customer Links" explaining the pattern
+  - Updated "Pattern 3: Detail Pages" to always include title prop
+  - Applied to all code examples (with search and without search)
+  - These patterns are now used in Invoices, Payments, and Subscriptions tables
+- **v1.7** (Oct 2025) - Added documentation for 3 additional tables found in codebase that weren't mentioned in original list: Subscription Items, Usage Events, and Purchases (customer detail page variant). These tables need manual migration as they don't have reference implementations in the `data-table-refactor` branch.
 - **v1.6** (Oct 2025) - **COMPREHENSIVE COLUMN SIZING UPDATE**: Major update incorporating complete TanStack Table column sizing documentation. Changes:
   - Added "Column Sizing Properties Deep Dive" section explaining space distribution algorithm
   - Corrected `minSize` default from 50 to 20 (TanStack default)

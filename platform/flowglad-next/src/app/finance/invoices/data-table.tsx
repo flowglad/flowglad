@@ -9,12 +9,10 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import {
   Table,
   TableBody,
@@ -25,45 +23,36 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns } from './columns'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import { columns, InvoiceTableRowData } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { trpc } from '@/app/_trpc/client'
-import { CustomerTableRowData } from '@/db/schema/customers'
-import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
+import { InvoiceStatus } from '@/types'
 
-export interface CustomersTableFilters {
-  archived?: boolean
-  organizationId?: string
-  pricingModelId?: string
+export interface InvoicesTableFilters {
+  status?: InvoiceStatus
+  customerId?: string
+  subscriptionId?: string
 }
 
-interface CustomersDataTableProps {
-  filters?: CustomersTableFilters
+interface InvoicesDataTableProps {
+  filters?: InvoicesTableFilters
   title?: string
-  onCreateCustomer?: () => void
-  buttonVariant?:
-    | 'default'
-    | 'outline'
-    | 'ghost'
-    | 'link'
-    | 'secondary'
-    | 'destructive'
+  onCreateInvoice?: () => void
+  filterOptions?: { value: string; label: string }[]
+  activeFilter?: string
+  onFilterChange?: (value: string) => void
 }
 
-export function CustomersDataTable({
+export function InvoicesDataTable({
   filters = {},
   title,
-  onCreateCustomer,
-  buttonVariant = 'default',
-}: CustomersDataTableProps) {
-  const router = useRouter()
-
-  // Server-side filtering (preserve enterprise architecture) - FIXED: Using stable debounced hook
-  const { inputValue, setInputValue, searchQuery } =
-    useSearchDebounce(1000)
-
+  onCreateInvoice,
+  filterOptions,
+  activeFilter,
+  onFilterChange,
+}: InvoicesDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
@@ -76,15 +65,21 @@ export function CustomersDataTable({
     isLoading,
     isFetching,
   } = usePaginatedTableState<
-    CustomerTableRowData,
-    CustomersTableFilters
+    InvoiceTableRowData,
+    InvoicesTableFilters
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
-    searchQuery: searchQuery,
-    useQuery: trpc.customers.getTableRows.useQuery,
+    useQuery: trpc.invoices.getTableRows.useQuery,
   })
+
+  // Reset to first page when filters change
+  const filtersKey = JSON.stringify(filters)
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
 
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -102,7 +97,7 @@ export function CustomersDataTable({
     columnResizeMode: 'onEnd',
     defaultColumn: {
       size: 150,
-      minSize: 50,
+      minSize: 20,
       maxSize: 500,
     },
     manualPagination: true, // Server-side pagination
@@ -111,8 +106,8 @@ export function CustomersDataTable({
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === 'function'
@@ -122,7 +117,7 @@ export function CustomersDataTable({
       // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        goToFirstPage()
+        goToFirstPage() // Properly clears both cursors to avoid stale pagination state
       }
       // Handle page index changes (page navigation)
       else if (newPagination.pageIndex !== pageIndex) {
@@ -143,34 +138,31 @@ export function CustomersDataTable({
 
   return (
     <div className="w-full">
-      {/* Enhanced toolbar with all improvements */}
+      {/* Enhanced toolbar */}
       <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title on the left (for detail pages) */}
+        {/* Title and/or Filter buttons on the left */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && (
             <h3 className="text-lg font-semibold whitespace-nowrap">
               {title}
             </h3>
           )}
+          {filterOptions && activeFilter && onFilterChange && (
+            <FilterButtonGroup
+              options={filterOptions}
+              value={activeFilter}
+              onValueChange={onFilterChange}
+            />
+          )}
         </div>
 
         {/* Controls on the right */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <CollapsibleSearch
-            value={inputValue}
-            onChange={setInputValue}
-            placeholder="Search customers..."
-            disabled={isLoading}
-            isLoading={isFetching}
-          />
           <DataTableViewOptions table={table} />
-          {onCreateCustomer && (
-            <Button
-              onClick={onCreateCustomer}
-              variant={buttonVariant}
-            >
+          {onCreateInvoice && (
+            <Button onClick={onCreateInvoice}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Customer
+              Create Invoice
             </Button>
           )}
         </div>
@@ -226,10 +218,15 @@ export function CustomersDataTable({
                     target.closest('input[type="checkbox"]') ||
                     target.closest('[data-radix-collection-item]')
                   ) {
-                    return // Don't navigate when clicking interactive elements
+                    return
                   }
-                  router.push(
-                    `/customers/${row.original.customer.id}`
+                  // Navigate to invoice details (opens in new tab)
+                  const invoice = row.original.invoice
+                  const invoiceUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invoice/view/${invoice.organizationId}/${invoice.id}`
+                  window.open(
+                    invoiceUrl,
+                    '_blank',
+                    'noopener,noreferrer'
                   )
                 }}
               >
@@ -256,14 +253,12 @@ export function CustomersDataTable({
         </TableBody>
       </Table>
 
-      {/* Enterprise pagination with built-in selection count */}
+      {/* Pagination */}
       <div className="py-2">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={
-            !!searchQuery || Object.keys(filters).length > 0
-          }
+          isFiltered={Object.keys(filters).length > 0}
           filteredCount={data?.total}
         />
       </div>

@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
-import InvoicesTable from '@/components/InvoicesTable'
+import { InvoicesDataTable } from '../../invoices/data-table'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -98,8 +98,8 @@ const InnerSubscriptionPage = ({
         <SubscriptionItemsTable
           subscriptionItems={subscription.subscriptionItems}
         />
-        <TableHeader title="Invoices" noButtons />
-        <InvoicesTable
+        <InvoicesDataTable
+          title="Invoices"
           filters={{ subscriptionId: subscription.id }}
         />
         <PaymentsDataTable
