@@ -51,7 +51,7 @@ export function DataTableCopyableCell({
   return (
     <div
       className={cn(
-        'flex items-center gap-0.5 group cursor-pointer transition-colors select-none',
+        'inline-flex max-w-full items-center gap-0.5 group cursor-pointer transition-colors select-none',
         className
       )}
       onClick={handleCopy}

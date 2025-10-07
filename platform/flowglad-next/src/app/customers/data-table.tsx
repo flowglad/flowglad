@@ -86,6 +86,13 @@ export function CustomersDataTable({
     useQuery: trpc.customers.getTableRows.useQuery,
   })
 
+  // Reset to first page when filters change
+  const filtersKey = JSON.stringify(filters)
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
+
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] =
@@ -148,7 +155,7 @@ export function CustomersDataTable({
         {/* Title on the left (for detail pages) */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && (
-            <h3 className="text-lg font-semibold whitespace-nowrap">
+            <h3 className="text-lg font-semibold truncate">
               {title}
             </h3>
           )}

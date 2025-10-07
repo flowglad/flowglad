@@ -144,8 +144,8 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
         </div>
       )
     },
-    size: 150,
-    minSize: 120,
+    size: 175,
+    minSize: 170,
     maxSize: 200,
   },
   {
@@ -163,9 +163,9 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
         </DataTableCopyableCell>
       </div>
     ),
-    size: 150,
-    minSize: 140,
-    maxSize: 150,
+    size: 175,
+    minSize: 170,
+    maxSize: 200,
   },
   {
     id: 'status',

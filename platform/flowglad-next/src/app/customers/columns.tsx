@@ -84,7 +84,9 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
         {row.getValue('name')}
       </div>
     ),
-    minSize: 140,
+    size: 200,
+    minSize: 200,
+    maxSize: 275,
   },
   {
     id: 'email',

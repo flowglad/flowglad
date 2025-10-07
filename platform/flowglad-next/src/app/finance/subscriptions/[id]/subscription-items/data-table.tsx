@@ -9,10 +9,10 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -22,63 +22,21 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns, OrganizationMemberTableRowData } from './columns'
-import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { trpc } from '@/app/_trpc/client'
-import { UserPlus } from 'lucide-react'
+import { columns } from './columns'
+import { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import { CurrencyCode } from '@/types'
 
-export interface OrganizationMembersTableFilters {
-  // No filters needed for this simple table
-}
-
-interface OrganizationMembersDataTableProps {
-  filters?: OrganizationMembersTableFilters
+interface SubscriptionItemsDataTableProps {
+  subscriptionItems: SubscriptionItem.ClientRecord[]
+  currencyCode: CurrencyCode
   title?: string
-  onInviteMember?: () => void
-  buttonVariant?:
-    | 'default'
-    | 'outline'
-    | 'ghost'
-    | 'link'
-    | 'secondary'
-    | 'destructive'
 }
 
-export function OrganizationMembersDataTable({
-  filters = {},
+export function SubscriptionItemsDataTable({
+  subscriptionItems,
+  currencyCode,
   title,
-  onInviteMember,
-  buttonVariant = 'default',
-}: OrganizationMembersDataTableProps) {
-  // Page size state for server-side pagination
-  const [currentPageSize, setCurrentPageSize] = React.useState(10)
-
-  const {
-    pageIndex,
-    pageSize,
-    handlePaginationChange,
-    goToFirstPage,
-    data,
-    isLoading,
-    isFetching,
-  } = usePaginatedTableState<
-    OrganizationMemberTableRowData,
-    Record<string, never>
-  >({
-    initialCurrentCursor: undefined,
-    pageSize: currentPageSize,
-    filters: {},
-    useQuery: trpc.organizations.getMembersTableRowData.useQuery,
-  })
-
-  // Reset to first page when filters change
-  const filtersKey = JSON.stringify(filters)
-  React.useEffect(() => {
-    goToFirstPage()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtersKey])
-
+}: SubscriptionItemsDataTableProps) {
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] =
@@ -89,8 +47,8 @@ export function OrganizationMembersDataTable({
     React.useState<ColumnSizingState>({})
 
   const table = useReactTable({
-    data: data?.items || [],
-    columns,
+    data: subscriptionItems,
+    columns: columns(currencyCode),
     enableColumnResizing: true,
     columnResizeMode: 'onEnd',
     defaultColumn: {
@@ -98,39 +56,19 @@ export function OrganizationMembersDataTable({
       minSize: 20,
       maxSize: 500,
     },
-    manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
-    pageCount: Math.ceil((data?.total || 0) / currentPageSize),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
-    onPaginationChange: (updater) => {
-      const newPagination =
-        typeof updater === 'function'
-          ? updater({ pageIndex, pageSize: currentPageSize })
-          : updater
-
-      // Handle page size changes
-      if (newPagination.pageSize !== currentPageSize) {
-        setCurrentPageSize(newPagination.pageSize)
-        goToFirstPage() // Properly clears both cursors to avoid stale pagination state
-      }
-      // Handle page index changes (page navigation)
-      else if (newPagination.pageIndex !== pageIndex) {
-        handlePaginationChange(newPagination.pageIndex)
-      }
-    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       columnSizing,
-      pagination: { pageIndex, pageSize: currentPageSize },
     },
   })
 
@@ -150,12 +88,6 @@ export function OrganizationMembersDataTable({
         {/* Controls on the right */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <DataTableViewOptions table={table} />
-          {onInviteMember && (
-            <Button onClick={onInviteMember} variant={buttonVariant}>
-              <UserPlus className="w-4 h-4 mr-2" />
-              Invite Member
-            </Button>
-          )}
         </div>
       </div>
 
@@ -186,21 +118,9 @@ export function OrganizationMembersDataTable({
           ))}
         </TableHeader>
         <TableBody>
-          {isLoading ? (
-            <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-24 text-center text-muted-foreground"
-              >
-                Loading...
-              </TableCell>
-            </TableRow>
-          ) : table.getRowModel().rows?.length ? (
+          {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={isFetching ? 'opacity-50' : ''}
-              >
+              <TableRow key={row.id}>
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(
@@ -214,25 +134,15 @@ export function OrganizationMembersDataTable({
           ) : (
             <TableRow>
               <TableCell
-                colSpan={columns.length}
+                colSpan={columns(currencyCode).length}
                 className="h-24 text-center text-muted-foreground"
               >
-                No team members found.
+                No subscription items.
               </TableCell>
             </TableRow>
           )}
         </TableBody>
       </Table>
-
-      {/* Pagination */}
-      <div className="py-2">
-        <DataTablePagination
-          table={table}
-          totalCount={data?.total}
-          isFiltered={Object.keys(filters).length > 0}
-          filteredCount={data?.total}
-        />
-      </div>
     </div>
   )
 }

@@ -3,14 +3,13 @@ import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import { UsageEvent } from '@/db/schema/usageEvents'
-import PurchasesTable from './PurchasesTable'
-import UsageEventsTable from './UsageEventsTable'
+import { PurchasesDataTable } from './purchases/data-table'
+import { UsageEventsDataTable } from './usage-events/data-table'
 import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
-import { TableHeader } from '@/components/ui/table-header'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 // import { useState } from 'react'
@@ -174,14 +173,14 @@ export const CustomerBillingSubPage = ({
                 customerId: customer.id,
               }}
             />
-            <TableHeader title="Purchases" noButtons />
-            <PurchasesTable
+            <PurchasesDataTable
+              title="Purchases"
               filters={{
                 customerId: customer.id,
               }}
             />
-            <TableHeader title="Usage Events" noButtons />
-            <UsageEventsTable
+            <UsageEventsDataTable
+              title="Usage Events"
               filters={{
                 customerId: customer.id,
               }}

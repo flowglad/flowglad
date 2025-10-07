@@ -6,7 +6,7 @@ import { RichSubscription } from '@/subscriptions/schemas'
 import { TableHeader } from '@/components/ui/table-header'
 import { PaymentsDataTable } from '../../payments/data-table'
 import { useAuthContext } from '@/contexts/authContext'
-import SubscriptionItemsTable from './SubscriptionItemsTable'
+import { SubscriptionItemsDataTable } from './subscription-items/data-table'
 import SubscriptionStatusBadge from '../SubscriptionStatusBadge'
 import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -94,9 +94,10 @@ const InnerSubscriptionPage = ({
             </div>
           </div>
         </div>
-        <TableHeader title="Items" noButtons />
-        <SubscriptionItemsTable
+        <SubscriptionItemsDataTable
+          title="Items"
           subscriptionItems={subscription.subscriptionItems}
+          currencyCode={organization.defaultCurrency}
         />
         <InvoicesDataTable
           title="Invoices"

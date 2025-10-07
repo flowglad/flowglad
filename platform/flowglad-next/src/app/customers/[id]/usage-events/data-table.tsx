@@ -22,39 +22,27 @@ import {
 } from '@/components/ui/table'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
-import { columns } from './columns'
+import { columns, UsageEventTableRowData } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
-import { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionStatus } from '@/types'
-import { useRouter } from 'next/navigation'
 
-export interface SubscriptionsTableFilters {
-  status?: SubscriptionStatus
+export interface UsageEventsTableFilters {
   customerId?: string
-  organizationId?: string
+  usageMeterId?: string
+  subscriptionId?: string
+  dateFrom?: string
+  dateTo?: string
 }
 
-interface SubscriptionsDataTableProps {
-  filters?: SubscriptionsTableFilters
+interface UsageEventsDataTableProps {
+  filters?: UsageEventsTableFilters
   title?: string
-  filterOptions?: { value: string; label: string }[]
-  activeFilter?: string
-  onFilterChange?: (value: string) => void
 }
 
-export function SubscriptionsDataTable({
+export function UsageEventsDataTable({
   filters = {},
   title,
-  filterOptions,
-  activeFilter,
-  onFilterChange,
-}: SubscriptionsDataTableProps) {
-  const router = useRouter()
-
-  // ⚠️ NO search - backend doesn't support it for subscriptions
-
+}: UsageEventsDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
@@ -67,18 +55,16 @@ export function SubscriptionsDataTable({
     isLoading,
     isFetching,
   } = usePaginatedTableState<
-    Subscription.TableRowData,
-    SubscriptionsTableFilters
+    UsageEventTableRowData,
+    UsageEventsTableFilters
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
-    // ⚠️ NO searchQuery - backend doesn't support it
-    useQuery: trpc.subscriptions.getTableRows.useQuery,
+    useQuery: trpc.usageEvents.getTableRows.useQuery,
   })
 
   // Reset to first page when filters change
-  // Use JSON.stringify to get stable comparison of filter object
   const filtersKey = JSON.stringify(filters)
   React.useEffect(() => {
     goToFirstPage()
@@ -97,34 +83,31 @@ export function SubscriptionsDataTable({
   const table = useReactTable({
     data: data?.items || [],
     columns,
-    enableColumnResizing: true, // ✅ Enables responsive sizing
-    columnResizeMode: 'onEnd', // ✅ Better performance
+    enableColumnResizing: true,
+    columnResizeMode: 'onEnd',
     defaultColumn: {
-      size: 150, // Default width
-      minSize: 20, // Minimum width
-      maxSize: 500, // Maximum width
+      size: 150,
+      minSize: 20,
+      maxSize: 500,
     },
-    manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
+    manualPagination: true,
+    manualSorting: false,
+    manualFiltering: false,
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === 'function'
           ? updater({ pageIndex, pageSize: currentPageSize })
           : updater
 
-      // Handle page size changes
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        goToFirstPage() // Properly clears both cursors to avoid stale pagination state
-      }
-      // Handle page index changes (page navigation)
-      else if (newPagination.pageIndex !== pageIndex) {
+        goToFirstPage()
+      } else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
     },
@@ -144,23 +127,16 @@ export function SubscriptionsDataTable({
     <div className="w-full">
       {/* Enhanced toolbar */}
       <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title and/or Filter buttons on the left */}
+        {/* Title on the left (for detail pages) */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && (
             <h3 className="text-lg font-semibold truncate">
               {title}
             </h3>
           )}
-          {filterOptions && activeFilter && onFilterChange && (
-            <FilterButtonGroup
-              options={filterOptions}
-              value={activeFilter}
-              onValueChange={onFilterChange}
-            />
-          )}
         </div>
 
-        {/* View options on the right (NO search for subscriptions) */}
+        {/* Controls on the right */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <DataTableViewOptions table={table} />
         </div>
@@ -206,22 +182,7 @@ export function SubscriptionsDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
-                onClick={(e) => {
-                  // Only navigate if not clicking on interactive elements
-                  const target = e.target as HTMLElement
-                  if (
-                    target.closest('button') ||
-                    target.closest('[role="checkbox"]') ||
-                    target.closest('input[type="checkbox"]') ||
-                    target.closest('[data-radix-collection-item]')
-                  ) {
-                    return
-                  }
-                  router.push(
-                    `/finance/subscriptions/${row.original.subscription.id}`
-                  )
-                }}
+                className={isFetching ? 'opacity-50' : ''}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
