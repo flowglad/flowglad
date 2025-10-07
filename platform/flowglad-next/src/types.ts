@@ -962,10 +962,10 @@ export interface TelemetryRecord {
 
 // Entities created/modified by trigger.dev tasks for debugging
 export type TelemetryEntityType =
-  | 'payment'        
-  | 'billing_run'   
-  | 'invoice'       
-  | 'billing_period' 
-  | 'subscription'   
-  | 'organization'   
-  | 'webhook' 
+  | 'payment'
+  | 'billing_run'
+  | 'invoice'
+  | 'billing_period'
+  | 'subscription'
+  | 'organization'
+  | 'webhook'

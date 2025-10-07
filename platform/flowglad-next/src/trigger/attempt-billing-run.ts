@@ -31,7 +31,6 @@ export const attemptBillingRunTask = task({
       }
     )
 
-
     await storeTelemetry(
       'billing_run',
       payload.billingRun.id,

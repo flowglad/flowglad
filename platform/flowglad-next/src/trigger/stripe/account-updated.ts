@@ -10,7 +10,6 @@ export const stripeAccountUpdatedTask = task({
       payload.data.object.id,
       true
     )
-    
 
     if (result?.organization) {
       await storeTelemetry(
@@ -19,7 +18,7 @@ export const stripeAccountUpdatedTask = task({
         ctx.run.id
       )
     }
-    
+
     return {
       message: 'Success',
     }

@@ -140,11 +140,13 @@ export const createSubscriptionWorkflow = async (
     updatedSubscription.customerId,
     transaction
   )
-  
+
   if (!customer) {
-    throw new Error(`Customer not found for subscription ${updatedSubscription.id}`)
+    throw new Error(
+      `Customer not found for subscription ${updatedSubscription.id}`
+    )
   }
-  
+
   const eventInserts: Event.Insert[] = [
     {
       type: FlowgladEventType.SubscriptionCreated,

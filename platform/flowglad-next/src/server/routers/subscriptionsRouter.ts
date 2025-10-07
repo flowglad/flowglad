@@ -21,12 +21,14 @@ import {
   subscriptionsPaginatedListSchema,
   subscriptionsPaginatedSelectSchema,
   subscriptionsTableRowDataSchema,
+  updateSubscriptionPaymentMethodSchema,
 } from '@/db/schema/subscriptions'
 import {
   isSubscriptionCurrent,
   selectSubscriptionById,
   selectSubscriptionsPaginated,
   selectSubscriptionsTableRowData,
+  updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
   createPaginatedTableRowInputSchema,
@@ -434,6 +436,58 @@ const getTableRows = protectedProcedure
     authenticatedProcedureTransaction(selectSubscriptionsTableRowData)
   )
 
+// TRPC-only procedure, not exposed as REST API
+const updatePaymentMethodProcedure = protectedProcedure
+  .input(updateSubscriptionPaymentMethodSchema)
+  .output(
+    z.object({
+      subscription: subscriptionClientSelectSchema,
+    })
+  )
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const subscription = await selectSubscriptionById(
+          input.id,
+          transaction
+        )
+
+        // Verify the payment method exists and belongs to the same customer
+        const paymentMethod = await selectPaymentMethodById(
+          input.paymentMethodId,
+          transaction
+        )
+
+        if (paymentMethod.customerId !== subscription.customerId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Payment method does not belong to the subscription customer',
+          })
+        }
+
+        // Update the subscription with the new payment method
+        const updatedSubscription = await updateSubscription(
+          {
+            id: subscription.id,
+            defaultPaymentMethodId: input.paymentMethodId,
+            renews: subscription.renews,
+          },
+          transaction
+        )
+
+        return {
+          subscription: {
+            ...updatedSubscription,
+            current: isSubscriptionCurrent(
+              updatedSubscription.status,
+              updatedSubscription.cancellationReason
+            ),
+          },
+        }
+      }
+    )
+  )
 const retryBillingRunProcedure = protectedProcedure
   .input(retryBillingRunInputSchema)
   .output(z.object({ message: z.string() }))
@@ -518,4 +572,5 @@ export const subscriptionsRouter = router({
   getCountsByStatus: getCountsByStatusProcedure,
   retryBillingRunProcedure,
   getTableRows,
+  updatePaymentMethod: updatePaymentMethodProcedure,
 })

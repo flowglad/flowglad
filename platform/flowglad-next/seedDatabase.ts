@@ -250,7 +250,13 @@ export const setupOrg = async (params?: {
       },
       transaction
     )) as Price.SubscriptionRecord
-    return { organization, product, price, pricingModel: livePricingModel, testmodePricingModel }
+    return {
+      organization,
+      product,
+      price,
+      pricingModel: livePricingModel,
+      testmodePricingModel,
+    }
   })
 }
 

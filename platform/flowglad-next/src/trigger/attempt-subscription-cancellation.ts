@@ -47,11 +47,7 @@ export const attemptSubscriptionCancellationTask = task({
       }
     )
 
-    await storeTelemetry(
-      'subscription',
-      subscription.id,
-      ctx.run.id
-    )
+    await storeTelemetry('subscription', subscription.id, ctx.run.id)
 
     return {
       message: 'Subscription cancellation successful',

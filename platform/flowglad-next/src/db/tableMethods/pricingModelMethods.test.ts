@@ -143,13 +143,19 @@ describe('safelyUpdatePricingModel', () => {
 
   it('should not affect default pricingModels across livemode boundaries when updating', async () => {
     // Get the testmode pricing model that setupOrg already created
-    const testModePricingModel = await adminTransaction(async ({ transaction }) => {
-      const [pricingModel] = await selectPricingModels(
-        { organizationId: organization.id, livemode: false, isDefault: true },
-        transaction
-      )
-      return pricingModel!
-    })
+    const testModePricingModel = await adminTransaction(
+      async ({ transaction }) => {
+        const [pricingModel] = await selectPricingModels(
+          {
+            organizationId: organization.id,
+            livemode: false,
+            isDefault: true,
+          },
+          transaction
+        )
+        return pricingModel!
+      }
+    )
 
     // Verify we have two default pricing models - one for each livemode
     expect(pricingModelA.isDefault).toBe(true)

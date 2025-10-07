@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import { BillingPeriodStatus, PaymentStatus, SubscriptionAdjustmentTiming, SubscriptionItemType, SubscriptionStatus } from '@/types'
+import {
+  BillingPeriodStatus,
+  PaymentStatus,
+  SubscriptionAdjustmentTiming,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@/types'
 import { adjustSubscription } from './adjustSubscription'
 
 // Test database setup functions
@@ -33,8 +39,7 @@ import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/bil
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import core from '@/utils/core'
 
-describe("Proration Logic - Payment Status Scenarios", () => {
-  
+describe('Proration Logic - Payment Status Scenarios', () => {
   // Global test state - will be reset before each test
   let organization: Organization.Record
   let price: Price.Record
@@ -67,8 +72,12 @@ describe("Proration Logic - Payment Status Scenarios", () => {
 
     // Set up subscription with billing period centered around current date for 50% split
     const now = new Date() // TODO: Refactor to use static date instead of new Date()
-    const billingPeriodStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
-    const billingPeriodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+    const billingPeriodStart = new Date(
+      now.getTime() - 30 * 24 * 60 * 60 * 1000
+    ) // 30 days ago
+    const billingPeriodEnd = new Date(
+      now.getTime() + 30 * 24 * 60 * 60 * 1000
+    ) // 30 days from now
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -113,7 +122,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should handle processing payment + upgrade mid-cycle with proper proration adjustments", async () => {
+  it('should handle processing payment + upgrade mid-cycle with proper proration adjustments', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment with Processing status for $9.99
       await setupPayment({
@@ -144,7 +153,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           externalId: null,
           usageMeterId: null,
           usageEventsPerUnit: null,
-        }
+        },
       ]
 
       // Execute: Perform subscription adjustment with proration
@@ -170,9 +179,15 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       const percentRemaining = 0.5
 
       // Verify proration items are created
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('correction')
+      )
 
       expect(removalItems).toHaveLength(1)
       expect(additionItems).toHaveLength(1)
@@ -184,7 +199,9 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       // Verify correction adjustment exists if needed (current logic includes correction to reach net charge)
       // Correction adjustments are only created when proration adjustments don't equal the net charge
       if (correctionItems.length > 0) {
-        expect(correctionItems[0].name).toContain('Net charge adjustment')
+        expect(correctionItems[0].name).toContain(
+          'Net charge adjustment'
+        )
       }
 
       // The current logic focuses on the total net charge, not individual proration amounts
@@ -195,14 +212,17 @@ describe("Proration Logic - Payment Status Scenarios", () => {
 
       // Verify proration logic is working (removal credit + addition charge)
       // The exact amounts depend on current date, but we verify the pattern is correct
-      const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
-      
+      const totalProrationAmount = bpItems.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+      )
+
       // Should have net positive charge since upgrading from $9.99 to $49.99
       expect(totalProrationAmount).toBeGreaterThan(0)
     })
   })
 
-  it("should treat succeeded payment + upgrade mid-cycle the same as processing payment", async () => {
+  it('should treat succeeded payment + upgrade mid-cycle the same as processing payment', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment with Succeeded status (instead of Processing)
       await setupPayment({
@@ -218,7 +238,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         livemode: true,
       })
 
-      // Setup: Prepare upgrade to $49.99 plan  
+      // Setup: Prepare upgrade to $49.99 plan
       const upgradeItems: SubscriptionItem.Upsert[] = [
         {
           subscriptionId: subscription.id,
@@ -233,7 +253,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           externalId: null,
           usageMeterId: null,
           usageEventsPerUnit: null,
-        }
+        },
       ]
 
       // Execute: Perform subscription adjustment with proration
@@ -256,9 +276,17 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       )
 
       // Verify: Behavior should be identical to Processing payment test
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction') || item.name?.includes('adjustment'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
+      const correctionItems = bpItems.filter(
+        (item) =>
+          item.name?.includes('correction') ||
+          item.name?.includes('adjustment')
+      )
 
       expect(removalItems).toHaveLength(1)
       expect(additionItems).toHaveLength(1)
@@ -270,19 +298,24 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       // Verify correction adjustment exists if needed (current logic includes correction to reach net charge)
       // Correction adjustments are only created when proration adjustments don't equal the net charge
       if (correctionItems.length > 0) {
-        expect(correctionItems[0].name).toContain('Net charge adjustment')
+        expect(correctionItems[0].name).toContain(
+          'Net charge adjustment'
+        )
       }
 
       // The current logic focuses on the total net charge, not individual proration amounts
       // The correction adjustment ensures the total equals the calculated net charge
 
       // Verify final charge calculation
-      const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
+      const totalProrationAmount = bpItems.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+      )
       expect(999 + totalProrationAmount).toBeCloseTo(2999, 2) // Total ~$29.99, allow 2 cent tolerance
     })
   })
 
-  it("should ignore failed payment amount when calculating proration for upgrade", async () => {
+  it('should ignore failed payment amount when calculating proration for upgrade', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment with Failed status
       await setupPayment({
@@ -313,7 +346,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           externalId: null,
           usageMeterId: null,
           usageEventsPerUnit: null,
-        }
+        },
       ]
 
       // Execute: Perform subscription adjustment with proration
@@ -335,9 +368,17 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction') || item.name?.includes('adjustment'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
+      const correctionItems = bpItems.filter(
+        (item) =>
+          item.name?.includes('correction') ||
+          item.name?.includes('adjustment')
+      )
 
       expect(removalItems).toHaveLength(1)
       expect(additionItems).toHaveLength(1)
@@ -348,21 +389,26 @@ describe("Proration Logic - Payment Status Scenarios", () => {
 
       // Verify correction adjustment exists (current logic includes correction to reach net charge)
       expect(correctionItems).toHaveLength(1)
-      expect(correctionItems[0].name).toContain('Net charge adjustment')
+      expect(correctionItems[0].name).toContain(
+        'Net charge adjustment'
+      )
 
       // The current logic focuses on the total net charge, not individual proration amounts
       // The correction adjustment ensures the total equals the calculated net charge
 
       // Critical difference: Since failed payment is ignored, customer pays FULL fair value
-      const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
-      
+      const totalProrationAmount = bpItems.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+      )
+
       // Customer should pay full $29.99 since no successful payment exists
       // This means proration adjustments alone should equal ~$29.99
       expect(totalProrationAmount).toBeCloseTo(2999, 2) // ~$29.99 from proration alone, allow 2 cent tolerance
     })
   })
 
-  it("should add new subscription items without removing existing items", async () => {
+  it('should add new subscription items without removing existing items', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment for existing plan
       await setupPayment({
@@ -388,7 +434,8 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           name: 'Base Plan',
           quantity: 1,
           unitPrice: 999, // Keep existing plan
-          addedDate: subscription.currentBillingPeriodStart || new Date(), // TODO: Refactor to use static date instead of new Date() - Start of billing period
+          addedDate:
+            subscription.currentBillingPeriodStart || new Date(), // TODO: Refactor to use static date instead of new Date() - Start of billing period
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -410,7 +457,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           externalId: null,
           usageMeterId: null,
           usageEventsPerUnit: null,
-        }
+        },
       ]
 
       // Execute: Perform subscription adjustment
@@ -428,7 +475,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
 
       // Verify: Should have 2 active subscription items
       expect(result.subscriptionItems).toHaveLength(2)
-      
+
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
         { billingPeriodId: billingPeriod.id },
@@ -436,8 +483,12 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       )
 
       // Should have addition adjustment for new item only (no removal)
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
 
       expect(removalItems).toHaveLength(0) // No items removed
       expect(additionItems).toHaveLength(1) // Only new add-on item
@@ -451,7 +502,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should remove existing subscription items without adding new items", async () => {
+  it('should remove existing subscription items without adding new items', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment for existing plan
       await setupPayment({
@@ -462,10 +513,10 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         organizationId: organization.id,
         invoiceId: invoice.id,
         billingPeriodId: billingPeriod.id,
-      subscriptionId: subscription.id,
+        subscriptionId: subscription.id,
         paymentMethodId: paymentMethod.id,
-      livemode: true,
-    })
+        livemode: true,
+      })
 
       // Setup: Remove existing subscription item by not including it in new items array
       const removeOnlyItems: SubscriptionItem.Upsert[] = [
@@ -487,7 +538,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
 
       // Verify: Should have 0 subscription items (all removed)
       expect(result.subscriptionItems).toHaveLength(0)
-      
+
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
         { billingPeriodId: billingPeriod.id },
@@ -495,9 +546,17 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       )
 
       // Should have removal adjustment for expired item only (no addition)
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction') || item.name?.includes('adjustment'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
+      const correctionItems = bpItems.filter(
+        (item) =>
+          item.name?.includes('correction') ||
+          item.name?.includes('adjustment')
+      )
 
       expect(removalItems).toHaveLength(1) // Only expired item
       expect(additionItems).toHaveLength(0) // No new items added
@@ -507,7 +566,9 @@ describe("Proration Logic - Payment Status Scenarios", () => {
 
       // Verify correction adjustment exists (current logic includes correction to reach net charge)
       expect(correctionItems).toHaveLength(1)
-      expect(correctionItems[0].name).toContain('Net charge adjustment')
+      expect(correctionItems[0].name).toContain(
+        'Net charge adjustment'
+      )
 
       // The current logic focuses on the total net charge, not individual proration amounts
       // The correction adjustment ensures the total equals the calculated net charge
@@ -518,17 +579,19 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-
-  it("should apply downgrade protection to zero out negative charges and prevent credits", async () => {
+  it('should apply downgrade protection to zero out negative charges and prevent credits', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Update the existing subscription item to $49.99 plan first
       // First expire the original Base Plan item
-      await updateSubscriptionItem({
-        id: subscriptionItem.id,
-        expiredAt: new Date(), // TODO: Refactor to use static date instead of new Date()
-        type: SubscriptionItemType.Static,
-      }, transaction)
-      
+      await updateSubscriptionItem(
+        {
+          id: subscriptionItem.id,
+          expiredAt: new Date(), // TODO: Refactor to use static date instead of new Date()
+          type: SubscriptionItemType.Static,
+        },
+        transaction
+      )
+
       const expensiveItem = await setupSubscriptionItem({
         subscriptionId: subscription.id,
         name: 'Expensive Plan',
@@ -567,7 +630,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           externalId: null,
           usageMeterId: null,
           usageEventsPerUnit: null,
-        }
+        },
       ]
 
       // Execute: Perform subscription adjustment with proration
@@ -589,13 +652,20 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction') || item.name?.includes('adjustment'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
+      const correctionItems = bpItems.filter(
+        (item) =>
+          item.name?.includes('correction') ||
+          item.name?.includes('adjustment')
+      )
 
       // Debug: Print all billing period items
-      bpItems.forEach(item => {
-      })
+      bpItems.forEach((item) => {})
 
       expect(removalItems).toHaveLength(1) // Only expensive item (original was expired)
       expect(additionItems).toHaveLength(1)
@@ -613,18 +683,21 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       expect(correctionItems).toHaveLength(1)
 
       // Verify total billing adjustments result in $0 additional charge (no credits)
-      const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
-      
+      const totalProrationAmount = bpItems.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+      )
+
       // Customer already paid $49.99, fair value is ~$29.99 (would be ~$20 credit)
       // But we don't issue credits, so total proration should be $0
       expect(totalProrationAmount).toBe(0) // No additional charge, no credit
-      
+
       // Verify subscription record reflects new (cheaper) plan
       expect(result.subscription.name).toBe('Basic Plan')
     })
   })
 
-  it("should replace existing subscription items with new ones and create proper proration adjustments", async () => {
+  it('should replace existing subscription items with new ones and create proper proration adjustments', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment for existing plan
       await setupPayment({
@@ -656,7 +729,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           externalId: null,
           usageMeterId: null,
           usageEventsPerUnit: null,
-        }
+        },
       ]
 
       // Execute: Perform subscription adjustment
@@ -674,8 +747,10 @@ describe("Proration Logic - Payment Status Scenarios", () => {
 
       // Verify: Should have 1 subscription item (the replacement)
       expect(result.subscriptionItems).toHaveLength(1)
-      expect(result.subscriptionItems[0].name).toBe('Replacement Plan')
-      
+      expect(result.subscriptionItems[0].name).toBe(
+        'Replacement Plan'
+      )
+
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
         { billingPeriodId: billingPeriod.id },
@@ -683,9 +758,17 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       )
 
       // Should have both removal and addition adjustments
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction') || item.name?.includes('adjustment'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
+      const correctionItems = bpItems.filter(
+        (item) =>
+          item.name?.includes('correction') ||
+          item.name?.includes('adjustment')
+      )
 
       expect(removalItems).toHaveLength(1) // Removed old item
       expect(additionItems).toHaveLength(1) // Added new item
@@ -699,7 +782,9 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       // Verify correction adjustment exists if needed (current logic includes correction to reach net charge)
       // Correction adjustments are only created when proration adjustments don't equal the net charge
       if (correctionItems.length > 0) {
-        expect(correctionItems[0].name).toContain('Net charge adjustment')
+        expect(correctionItems[0].name).toContain(
+          'Net charge adjustment'
+        )
       }
 
       // The current logic focuses on the total net charge, not individual proration amounts
@@ -710,7 +795,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should apply downgrade protection when downgrading to free plan with zero additional charges", async () => {
+  it('should apply downgrade protection when downgrading to free plan with zero additional charges', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create payment for $19.99 plan
       await setupPayment({
@@ -727,12 +812,15 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       })
 
       // Setup: Update subscription item to $19.99 plan
-      await updateSubscriptionItem({
-        id: subscriptionItem.id,
-        unitPrice: 1999, // $19.99
-        name: 'Premium Plan',
-        type: SubscriptionItemType.Static,
-      }, transaction)
+      await updateSubscriptionItem(
+        {
+          id: subscriptionItem.id,
+          unitPrice: 1999, // $19.99
+          name: 'Premium Plan',
+          type: SubscriptionItemType.Static,
+        },
+        transaction
+      )
 
       // Setup: Prepare downgrade to free plan
       const freePlanItems: SubscriptionItem.Upsert[] = [
@@ -749,7 +837,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           externalId: null,
           usageMeterId: null,
           usageEventsPerUnit: null,
-        }
+        },
       ]
 
       // Execute: Perform subscription adjustment with proration
@@ -771,9 +859,17 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction') || item.name?.includes('adjustment'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
+      const correctionItems = bpItems.filter(
+        (item) =>
+          item.name?.includes('correction') ||
+          item.name?.includes('adjustment')
+      )
 
       expect(removalItems).toHaveLength(1)
       expect(additionItems).toHaveLength(1)
@@ -791,7 +887,10 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       expect(correctionItems).toHaveLength(1)
 
       // Verify total billing adjustments result in $0 additional charge (downgrade protection)
-      const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
+      const totalProrationAmount = bpItems.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+      )
       expect(totalProrationAmount).toBe(0) // No additional charge due to downgrade protection
 
       // Verify subscription record reflects new plan
@@ -799,7 +898,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should process multiple subscription items with complex pricing and create appropriate proration adjustments", async () => {
+  it('should process multiple subscription items with complex pricing and create appropriate proration adjustments', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Create second subscription item
       const secondItem = await setupSubscriptionItem({
@@ -813,12 +912,15 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       })
 
       // Setup: Update first item to $19.99
-      await updateSubscriptionItem({
-        id: subscriptionItem.id,
-        unitPrice: 1999, // $19.99
-        name: 'Base Plan',
-        type: SubscriptionItemType.Static,
-      }, transaction)
+      await updateSubscriptionItem(
+        {
+          id: subscriptionItem.id,
+          unitPrice: 1999, // $19.99
+          name: 'Base Plan',
+          type: SubscriptionItemType.Static,
+        },
+        transaction
+      )
 
       // Setup: Create payment for total of both items ($29.98)
       await setupPayment({
@@ -849,7 +951,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           externalId: null,
           usageMeterId: null,
           usageEventsPerUnit: null,
-        }
+        },
       ]
 
       // Execute: Perform subscription adjustment with proration
@@ -875,16 +977,24 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction') || item.name?.includes('adjustment'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
+      const correctionItems = bpItems.filter(
+        (item) =>
+          item.name?.includes('correction') ||
+          item.name?.includes('adjustment')
+      )
 
       // Should have removal adjustments for both old items
       expect(removalItems).toHaveLength(2) // Both old items removed
       expect(additionItems).toHaveLength(1) // One new item added
 
       // Verify removal adjustments (should be negative, ~50% of each old item)
-      removalItems.forEach(item => {
+      removalItems.forEach((item) => {
         expect(item.unitPrice).toBeLessThan(0)
       })
 
@@ -893,14 +1003,19 @@ describe("Proration Logic - Payment Status Scenarios", () => {
 
       // Verify correction adjustment exists (current logic includes correction to reach net charge)
       expect(correctionItems).toHaveLength(1)
-      expect(correctionItems[0].name).toContain('Net charge adjustment')
+      expect(correctionItems[0].name).toContain(
+        'Net charge adjustment'
+      )
 
       // The current logic focuses on the total net charge, not individual proration amounts
       // The correction adjustment ensures the total equals the calculated net charge
 
       // Verify total proration amount
-      const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
-      
+      const totalProrationAmount = bpItems.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+      )
+
       // Should have net positive charge since upgrading from $29.98 to $49.99
       expect(totalProrationAmount).toBeGreaterThan(0)
       expect(totalProrationAmount).toBeCloseTo(1000, 2) // ~$10.00 additional, allow 2 cent tolerance
@@ -910,15 +1025,18 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should calculate full fair value proration when no existing payments exist", async () => {
+  it('should calculate full fair value proration when no existing payments exist', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Update subscription item to $15.00 plan
-      await updateSubscriptionItem({
-        id: subscriptionItem.id,
-        unitPrice: 1500, // $15.00
-        name: 'Basic Plan',
-        type: SubscriptionItemType.Static,
-      }, transaction)
+      await updateSubscriptionItem(
+        {
+          id: subscriptionItem.id,
+          unitPrice: 1500, // $15.00
+          name: 'Basic Plan',
+          type: SubscriptionItemType.Static,
+        },
+        transaction
+      )
 
       // Setup: NO payment created (simulating new subscription without payment yet)
 
@@ -937,7 +1055,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           externalId: null,
           usageMeterId: null,
           usageEventsPerUnit: null,
-        }
+        },
       ]
 
       // Execute: Perform subscription adjustment with proration
@@ -959,9 +1077,17 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction') || item.name?.includes('adjustment'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
+      const correctionItems = bpItems.filter(
+        (item) =>
+          item.name?.includes('correction') ||
+          item.name?.includes('adjustment')
+      )
 
       expect(removalItems).toHaveLength(1)
       expect(additionItems).toHaveLength(1)
@@ -979,8 +1105,11 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       // The current logic creates correction adjustments when needed to reach the correct net charge
 
       // Verify total proration amount (should be full fair value since no existing payments)
-      const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
-      
+      const totalProrationAmount = bpItems.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+      )
+
       // Should be positive since no existing payments to offset
       expect(totalProrationAmount).toBeGreaterThan(0)
       // The current logic calculates the net charge based on existing payments
@@ -992,15 +1121,18 @@ describe("Proration Logic - Payment Status Scenarios", () => {
     })
   })
 
-  it("should process zero unit price items without arithmetic errors and apply downgrade protection", async () => {
+  it('should process zero unit price items without arithmetic errors and apply downgrade protection', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Setup: Update subscription item to $19.99 plan
-      await updateSubscriptionItem({
-        id: subscriptionItem.id,
-        unitPrice: 1999, // $19.99
-        name: 'Premium Plan',
-        type: SubscriptionItemType.Static,
-      }, transaction)
+      await updateSubscriptionItem(
+        {
+          id: subscriptionItem.id,
+          unitPrice: 1999, // $19.99
+          name: 'Premium Plan',
+          type: SubscriptionItemType.Static,
+        },
+        transaction
+      )
 
       // Setup: Create payment for $19.99
       await setupPayment({
@@ -1031,7 +1163,7 @@ describe("Proration Logic - Payment Status Scenarios", () => {
           externalId: null,
           usageMeterId: null,
           usageEventsPerUnit: null,
-        }
+        },
       ]
 
       // Execute: Perform subscription adjustment with proration
@@ -1053,9 +1185,17 @@ describe("Proration Logic - Payment Status Scenarios", () => {
         transaction
       )
 
-      const removalItems = bpItems.filter(item => item.name?.includes('Removal'))
-      const additionItems = bpItems.filter(item => item.name?.includes('Addition'))
-      const correctionItems = bpItems.filter(item => item.name?.includes('correction') || item.name?.includes('adjustment'))
+      const removalItems = bpItems.filter((item) =>
+        item.name?.includes('Removal')
+      )
+      const additionItems = bpItems.filter((item) =>
+        item.name?.includes('Addition')
+      )
+      const correctionItems = bpItems.filter(
+        (item) =>
+          item.name?.includes('correction') ||
+          item.name?.includes('adjustment')
+      )
 
       expect(removalItems).toHaveLength(1)
       expect(additionItems).toHaveLength(1)
@@ -1073,7 +1213,10 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       expect(correctionItems).toHaveLength(1)
 
       // Verify total billing adjustments result in $0 additional charge (downgrade protection)
-      const totalProrationAmount = bpItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
+      const totalProrationAmount = bpItems.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+      )
       expect(totalProrationAmount).toBe(0) // No additional charge due to downgrade protection
 
       // Verify subscription record reflects new plan
@@ -1083,8 +1226,4 @@ describe("Proration Logic - Payment Status Scenarios", () => {
       expect(bpItems.length).toBeGreaterThan(0)
     })
   })
-
 })
-
-
-

@@ -35,7 +35,10 @@ import {
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
-import { updateSubscriptionItem, expireSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  updateSubscriptionItem,
+  expireSubscriptionItem,
+} from '@/db/tableMethods/subscriptionItemMethods'
 import { addDays, subDays } from 'date-fns'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { Customer } from '@/db/schema/customers'
@@ -1007,34 +1010,43 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Verify that the returned subscription has updated information
-        expect(result.subscription.name).toBe('Expensive Plan - Monthly')
+        expect(result.subscription.name).toBe(
+          'Expensive Plan - Monthly'
+        )
         expect(result.subscription.priceId).toBe(price.id)
 
         // Verify that the subscription record in the database was actually updated
-        const dbResult = await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
-          subscription.id,
-          transaction
-        )
+        const dbResult =
+          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+            subscription.id,
+            transaction
+          )
         expect(dbResult).not.toBeNull()
         if (!dbResult) {
           throw new Error('Result is null')
         }
 
         // The subscription record should have been updated to match the primary subscription item
-        expect(dbResult.subscription.name).toBe('Expensive Plan - Monthly')
+        expect(dbResult.subscription.name).toBe(
+          'Expensive Plan - Monthly'
+        )
         expect(dbResult.subscription.priceId).toBe(price.id)
-        
+
         // With the new sync logic, we expect both items (expired old item + new active item)
         expect(dbResult.subscriptionItems.length).toBe(2)
-        
+
         // Find the active item (should have no expiredAt)
-        const activeItem = dbResult.subscriptionItems.find(item => !item.expiredAt)
+        const activeItem = dbResult.subscriptionItems.find(
+          (item) => !item.expiredAt
+        )
         expect(activeItem).toBeDefined()
         expect(activeItem?.name).toBe('Expensive Plan - Monthly')
         expect(activeItem?.unitPrice).toBe(9999)
-        
+
         // Find the expired item (should have expiredAt set)
-        const expiredItem = dbResult.subscriptionItems.find(item => item.expiredAt)
+        const expiredItem = dbResult.subscriptionItems.find(
+          (item) => item.expiredAt
+        )
         expect(expiredItem).toBeDefined()
         expect(expiredItem?.name).toBe('Cheap Plan - Monthly')
         expect(expiredItem?.unitPrice).toBe(999)
@@ -1092,20 +1104,25 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Verify that the subscription record uses the most expensive item's information
         // Primary Plan (5000) is more expensive than Add-on Feature (1000)
-        expect(result.subscription.name).toBe('Primary Plan - Monthly')
+        expect(result.subscription.name).toBe(
+          'Primary Plan - Monthly'
+        )
         expect(result.subscription.priceId).toBe(price.id)
 
         // Verify in database as well
-        const dbResult = await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
-          subscription.id,
-          transaction
-        )
+        const dbResult =
+          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+            subscription.id,
+            transaction
+          )
         expect(dbResult).not.toBeNull()
         if (!dbResult) {
           throw new Error('Result is null')
         }
 
-        expect(dbResult.subscription.name).toBe('Primary Plan - Monthly')
+        expect(dbResult.subscription.name).toBe(
+          'Primary Plan - Monthly'
+        )
         expect(dbResult.subscriptionItems.length).toBe(2) // Both new items should be present
       })
     })
@@ -1121,7 +1138,9 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Create active billing period (current period)
-        const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+        const futureDate = new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000
+        ) // 7 days from now
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
@@ -1131,17 +1150,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
           transaction
         )
-        
+
         // Also update the subscription's currentBillingPeriodEnd to match
         // And sync the name/priceId with the current active item
-        await updateSubscription({
-          id: subscription.id,
-          currentBillingPeriodEnd: futureDate,
-          name: 'Current Plan', // Set the subscription name to match the initial item
-          priceId: price.id, // Set the priceId
-          renews: true, // Required field
-        }, transaction)
-        
+        await updateSubscription(
+          {
+            id: subscription.id,
+            currentBillingPeriodEnd: futureDate,
+            name: 'Current Plan', // Set the subscription name to match the initial item
+            priceId: price.id, // Set the priceId
+            renews: true, // Required field
+          },
+          transaction
+        )
+
         // Update local reference too
         subscription.currentBillingPeriodEnd = futureDate
         subscription.name = 'Current Plan' // Update local reference
@@ -1166,7 +1188,8 @@ describe('adjustSubscription Integration Tests', async () => {
             id: subscription.id,
             adjustment: {
               newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              timing:
+                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
             },
           },
           transaction
@@ -1178,10 +1201,11 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(result.subscription.priceId).toBe(price.id) // Should match current plan's priceId
 
         // Verify in database as well
-        const dbResult = await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
-          subscription.id,
-          transaction
-        )
+        const dbResult =
+          await selectSubscriptionItemsAndSubscriptionBySubscriptionId(
+            subscription.id,
+            transaction
+          )
         expect(dbResult).not.toBeNull()
         if (!dbResult) {
           throw new Error('Result is null')
@@ -1189,22 +1213,24 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Subscription record should reflect CURRENT active plan, not future plan
         expect(dbResult.subscription.name).toBe('Current Plan')
-        
+
         // Should have both items: current (active) and future (not yet active)
         expect(dbResult.subscriptionItems.length).toBe(2)
-        
+
         // Verify we have one expired current item and one future item
-        const expiredCurrentItem = dbResult.subscriptionItems.find(item => 
-          item.name === 'Current Plan' && item.expiredAt
+        const expiredCurrentItem = dbResult.subscriptionItems.find(
+          (item) => item.name === 'Current Plan' && item.expiredAt
         )
-        const futureItem = dbResult.subscriptionItems.find(item => 
-          item.name === 'Future Plan' && !item.expiredAt
+        const futureItem = dbResult.subscriptionItems.find(
+          (item) => item.name === 'Future Plan' && !item.expiredAt
         )
-        
+
         expect(expiredCurrentItem).toBeDefined()
         expect(expiredCurrentItem?.expiredAt).toBeDefined() // Should be expired at billing period end
         expect(futureItem).toBeDefined()
-        expect(futureItem?.addedDate.getTime()).toBe(futureDate.getTime())
+        expect(futureItem?.addedDate.getTime()).toBe(
+          futureDate.getTime()
+        )
       })
     })
 
@@ -1269,7 +1295,7 @@ describe('adjustSubscription Integration Tests', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
         const futureDate = addDays(now, 1) // Tomorrow
-        
+
         // Setup: Create current active item
         const currentItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1280,10 +1306,14 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 10), // Started 10 days ago
           type: SubscriptionItemType.Static,
         })
-        
+
         // Expire the current item in the future
-        await expireSubscriptionItem(currentItem.id, futureDate, transaction)
-        
+        await expireSubscriptionItem(
+          currentItem.id,
+          futureDate,
+          transaction
+        )
+
         // Setup: Create future item that will become active tomorrow
         const futureItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1294,7 +1324,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: futureDate, // Starts tomorrow
           type: SubscriptionItemType.Static,
         })
-        
+
         // Test: Sync should use current item (future item not active yet)
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
@@ -1310,7 +1340,7 @@ describe('adjustSubscription Integration Tests', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
         const pastDate = subDays(now, 1) // Yesterday
-        
+
         // Setup: Create multiple items that are all currently active
         await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1321,7 +1351,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: pastDate,
           type: SubscriptionItemType.Static,
         })
-        
+
         const premiumItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
           priceId: price.id,
@@ -1331,7 +1361,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: pastDate,
           type: SubscriptionItemType.Static,
         })
-        
+
         await setupSubscriptionItem({
           subscriptionId: subscription.id,
           priceId: price.id,
@@ -1341,14 +1371,14 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: pastDate,
           type: SubscriptionItemType.Static,
         })
-        
+
         // All items are active now - should choose the most expensive (Premium Feature)
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
           transaction,
           new Date()
         )
-        
+
         expect(synced.name).toBe('Premium Feature')
         expect(synced.priceId).toBe(premiumItem.priceId)
       })
@@ -1358,7 +1388,7 @@ describe('adjustSubscription Integration Tests', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
         const futureDate = addDays(now, 1)
-        
+
         // Setup: Create expensive current item
         const expensiveItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1369,7 +1399,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 10),
           type: SubscriptionItemType.Static,
         })
-        
+
         // Setup: Create cheaper item that is also active
         await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1380,14 +1410,14 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 1), // Already active since yesterday
           type: SubscriptionItemType.Static,
         })
-        
+
         // Both are active now - should still use Enterprise Plan as primary
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
           transaction,
           new Date()
         )
-        
+
         expect(synced.name).toBe('Enterprise Plan')
         expect(synced.priceId).toBe(expensiveItem.priceId)
       })
@@ -1396,7 +1426,7 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should update primary when current primary item gets cancelled', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
-        
+
         // Setup: Create multiple active items
         const primaryItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1407,7 +1437,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 10),
           type: SubscriptionItemType.Static,
         })
-        
+
         const secondaryItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
           priceId: price.id,
@@ -1417,7 +1447,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 5),
           type: SubscriptionItemType.Static,
         })
-        
+
         await setupSubscriptionItem({
           subscriptionId: subscription.id,
           priceId: price.id,
@@ -1427,7 +1457,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 3),
           type: SubscriptionItemType.Static,
         })
-        
+
         // Initial sync - should use Premium Plan
         const syncedBefore = await syncSubscriptionWithActiveItems(
           subscription.id,
@@ -1435,14 +1465,17 @@ describe('adjustSubscription Integration Tests', async () => {
           new Date()
         )
         expect(syncedBefore.name).toBe('Premium Plan')
-        
+
         // Cancel the primary item - set as already expired
-        await updateSubscriptionItem({
-          id: primaryItem.id,
-          expiredAt: subDays(now, 1), // Already expired yesterday
-          type: SubscriptionItemType.Static,
-        }, transaction)
-        
+        await updateSubscriptionItem(
+          {
+            id: primaryItem.id,
+            expiredAt: subDays(now, 1), // Already expired yesterday
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+
         // Sync after cancellation - should switch to Standard Plan
         const syncedAfter = await syncSubscriptionWithActiveItems(
           subscription.id,
@@ -1457,7 +1490,7 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should handle multiple items becoming active and inactive simultaneously', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
-        
+
         // Setup: Currently active items (old items)
         await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1468,7 +1501,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 10),
           type: SubscriptionItemType.Static,
         })
-        
+
         const oldPremiumItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
           priceId: price.id,
@@ -1478,7 +1511,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 10),
           type: SubscriptionItemType.Static,
         })
-        
+
         // Setup: New items that are also active now (simulating post-rollover state)
         await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1489,7 +1522,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 1), // Started yesterday
           type: SubscriptionItemType.Static,
         })
-        
+
         const newPremiumItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
           priceId: price.id,
@@ -1499,7 +1532,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 1), // Started yesterday
           type: SubscriptionItemType.Static,
         })
-        
+
         await setupSubscriptionItem({
           subscriptionId: subscription.id,
           priceId: price.id,
@@ -1509,7 +1542,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 1), // Started yesterday
           type: SubscriptionItemType.Static,
         })
-        
+
         // With all items active - should use New Premium (most expensive)
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
@@ -1524,7 +1557,7 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should maintain subscription state when all items expire with no replacements', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
-        
+
         // Setup: Create an active item first
         const activeItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1535,7 +1568,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 10),
           type: SubscriptionItemType.Static,
         })
-        
+
         // First, sync while the item is active to set the subscription name
         const syncedActive = await syncSubscriptionWithActiveItems(
           subscription.id,
@@ -1543,21 +1576,25 @@ describe('adjustSubscription Integration Tests', async () => {
           new Date()
         )
         expect(syncedActive.name).toBe('Active Plan')
-        
+
         // Now expire the item
-        await updateSubscriptionItem({
-          id: activeItem.id,
-          expiredAt: subDays(now, 1), // Already expired
-          type: SubscriptionItemType.Static,
-        }, transaction)
-        
-        // Sync after expiration with no active items
-        const syncedAfterExpiry = await syncSubscriptionWithActiveItems(
-          subscription.id,
-          transaction,
-          new Date()
+        await updateSubscriptionItem(
+          {
+            id: activeItem.id,
+            expiredAt: subDays(now, 1), // Already expired
+            type: SubscriptionItemType.Static,
+          },
+          transaction
         )
-        
+
+        // Sync after expiration with no active items
+        const syncedAfterExpiry =
+          await syncSubscriptionWithActiveItems(
+            subscription.id,
+            transaction,
+            new Date()
+          )
+
         // Should maintain the last known state (Active Plan)
         expect(syncedAfterExpiry.name).toBe('Active Plan')
         expect(syncedAfterExpiry.priceId).toBe(price.id)
@@ -1568,7 +1605,7 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should handle quantity changes affecting total price calculations', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
-        
+
         // Setup: Item with high unit price but low quantity
         const highUnitPriceItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1579,7 +1616,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 5),
           type: SubscriptionItemType.Static,
         })
-        
+
         // Setup: Item with low unit price but high quantity
         const highQuantityItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1590,14 +1627,14 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 5),
           type: SubscriptionItemType.Static,
         })
-        
+
         // Sync - should choose high quantity item (higher total)
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
           transaction,
           new Date()
         )
-        
+
         expect(synced.name).toBe('High Quantity')
         expect(synced.priceId).toBe(highQuantityItem.priceId)
       })
@@ -1606,7 +1643,7 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should use addedDate as tiebreaker when items have same total price', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
-        
+
         // Setup: Two items with same total price
         await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1617,7 +1654,7 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 10), // Older
           type: SubscriptionItemType.Static,
         })
-        
+
         const newerItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
           priceId: price.id,
@@ -1627,14 +1664,14 @@ describe('adjustSubscription Integration Tests', async () => {
           addedDate: subDays(now, 5), // Newer - should win
           type: SubscriptionItemType.Static,
         })
-        
+
         // Sync - should choose newer item as tiebreaker
         const synced = await syncSubscriptionWithActiveItems(
           subscription.id,
           transaction,
           new Date()
         )
-        
+
         expect(synced.name).toBe('Newer Item')
         expect(synced.priceId).toBe(newerItem.priceId)
       })

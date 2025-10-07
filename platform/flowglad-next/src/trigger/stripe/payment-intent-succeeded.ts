@@ -130,12 +130,7 @@ export const stripePaymentIntentSucceededTask = task({
       customerEmail: customer.email,
     })
 
-
-    await storeTelemetry(
-      'payment',
-      payment.id,
-      ctx.run.id
-    )
+    await storeTelemetry('payment', payment.id, ctx.run.id)
 
     return {
       message: 'Ok',

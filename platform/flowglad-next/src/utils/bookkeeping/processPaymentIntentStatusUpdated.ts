@@ -380,7 +380,9 @@ export const ledgerCommandForPaymentSucceeded = async (
   )
   // Choose the first UsageCreditGrant feature deterministically by createdAt ascending
   const usageCreditFeature = features
-    .filter((feature) => feature.type === FeatureType.UsageCreditGrant)
+    .filter(
+      (feature) => feature.type === FeatureType.UsageCreditGrant
+    )
     .sort((a: any, b: any) => {
       const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
@@ -491,11 +493,11 @@ export const processPaymentIntentStatusUpdated = async (
     payment.customerId,
     transaction
   )
-  
+
   if (!customer) {
     throw new Error(`Customer not found for payment ${payment.id}`)
   }
-  
+
   const timestamp = new Date()
   const eventInserts: Event.Insert[] = []
   let ledgerCommand: LedgerCommand | undefined
@@ -558,11 +560,13 @@ export const processPaymentIntentStatusUpdated = async (
       purchase.customerId,
       transaction
     )
-    
+
     if (!purchaseCustomer) {
-      throw new Error(`Customer not found for purchase ${purchase.id}`)
+      throw new Error(
+        `Customer not found for purchase ${purchase.id}`
+      )
     }
-    
+
     eventInserts.push({
       type: FlowgladEventType.PurchaseCompleted,
       occurredAt: timestamp,

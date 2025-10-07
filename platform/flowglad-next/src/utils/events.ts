@@ -79,11 +79,11 @@ export const commitPaymentSucceededEvent = async (
     payment.customerId,
     transaction
   )
-  
+
   if (!customer) {
     throw new Error(`Customer not found for payment ${payment.id}`)
   }
-  
+
   return commitEvent(
     {
       type: FlowgladEventType.PaymentSucceeded,
@@ -112,11 +112,11 @@ export const commitPaymentCanceledEvent = async (
     payment.customerId,
     transaction
   )
-  
+
   if (!customer) {
     throw new Error(`Customer not found for payment ${payment.id}`)
   }
-  
+
   return commitEvent(
     {
       type: FlowgladEventType.PaymentFailed,
@@ -193,11 +193,11 @@ export const commitPurchaseCompletedEvent = async (
     purchase.customerId,
     transaction
   )
-  
+
   if (!customer) {
     throw new Error(`Customer not found for purchase ${purchase.id}`)
   }
-  
+
   return commitEvent(
     {
       type: FlowgladEventType.PurchaseCompleted,
@@ -226,11 +226,13 @@ export const commitSubscriptionCreatedEvent = async (
     subscription.customerId,
     transaction
   )
-  
+
   if (!customer) {
-    throw new Error(`Customer not found for subscription ${subscription.id}`)
+    throw new Error(
+      `Customer not found for subscription ${subscription.id}`
+    )
   }
-  
+
   return commitEvent(
     {
       type: FlowgladEventType.SubscriptionCreated,
@@ -259,11 +261,13 @@ export const commitSubscriptionUpdatedEvent = async (
     subscription.customerId,
     transaction
   )
-  
+
   if (!customer) {
-    throw new Error(`Customer not found for subscription ${subscription.id}`)
+    throw new Error(
+      `Customer not found for subscription ${subscription.id}`
+    )
   }
-  
+
   return commitEvent(
     {
       type: FlowgladEventType.SubscriptionUpdated,
@@ -292,11 +296,13 @@ export const commitSubscriptionCancelledEvent = async (
     subscription.customerId,
     transaction
   )
-  
+
   if (!customer) {
-    throw new Error(`Customer not found for subscription ${subscription.id}`)
+    throw new Error(
+      `Customer not found for subscription ${subscription.id}`
+    )
   }
-  
+
   return commitEvent(
     {
       type: FlowgladEventType.SubscriptionCancelled,

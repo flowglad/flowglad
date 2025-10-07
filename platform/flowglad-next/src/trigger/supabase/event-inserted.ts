@@ -107,7 +107,6 @@ export const eventInsertedTask = task({
         organization,
       })
 
-  
       await storeTelemetry(
         'webhook',
         mostUpToDateEvent.id,

@@ -213,23 +213,21 @@ export const storeTelemetry = async (
 ): Promise<void> => {
   try {
     const key = `${RedisKeyNamespace.Telemetry}:${entityType}:${entityId}`
-    
+
     const record: TelemetryRecord = {
-      runId
+      runId,
     }
-    
-    await redis().set(key, JSON.stringify(record), { 
-      ex: evictionPolicy[RedisKeyNamespace.Telemetry].ttl 
+
+    await redis().set(key, JSON.stringify(record), {
+      ex: evictionPolicy[RedisKeyNamespace.Telemetry].ttl,
     })
-    
   } catch (error) {
     // Log but don't throw - telemetry is a side effect
-    logger.warn('Telemetry storage failed', { 
-      error: error instanceof Error ? error.message : String(error), 
-      entityType, 
-      entityId, 
-      runId 
+    logger.warn('Telemetry storage failed', {
+      error: error instanceof Error ? error.message : String(error),
+      entityType,
+      entityId,
+      runId,
     })
   }
 }
-
