@@ -36,12 +36,20 @@ interface FeaturesDataTableProps {
   filters?: FeaturesTableFilters
   title?: string
   onCreateFeature?: () => void
+  buttonVariant?:
+    | 'default'
+    | 'outline'
+    | 'ghost'
+    | 'link'
+    | 'secondary'
+    | 'destructive'
 }
 
 export function FeaturesDataTable({
   filters = {},
   title,
   onCreateFeature,
+  buttonVariant = 'default',
 }: FeaturesDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -140,7 +148,7 @@ export function FeaturesDataTable({
         <div className="flex items-center gap-2 flex-shrink-0">
           <DataTableViewOptions table={table} />
           {onCreateFeature && (
-            <Button onClick={onCreateFeature}>
+            <Button onClick={onCreateFeature} variant={buttonVariant}>
               <Plus className="w-4 h-4 mr-2" />
               Create Feature
             </Button>

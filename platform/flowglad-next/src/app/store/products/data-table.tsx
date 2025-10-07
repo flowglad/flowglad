@@ -50,6 +50,13 @@ interface ProductsDataTableProps {
   filterOptions?: { value: string; label: string }[]
   activeFilter?: string
   onFilterChange?: (value: string) => void
+  buttonVariant?:
+    | 'default'
+    | 'outline'
+    | 'ghost'
+    | 'link'
+    | 'secondary'
+    | 'destructive'
 }
 
 export function ProductsDataTable({
@@ -58,6 +65,7 @@ export function ProductsDataTable({
   filterOptions,
   activeFilter,
   onFilterChange,
+  buttonVariant = 'default',
 }: ProductsDataTableProps) {
   const router = useRouter()
 
@@ -171,7 +179,7 @@ export function ProductsDataTable({
            */}
           <DataTableViewOptions table={table} />
           {onCreateProduct && (
-            <Button onClick={onCreateProduct}>
+            <Button onClick={onCreateProduct} variant={buttonVariant}>
               <Plus className="w-4 h-4 mr-2" />
               Create Product
             </Button>

@@ -22,6 +22,7 @@ const ApiSettingsTab = () => {
             type: FlowgladApiKeyType.Secret,
           }}
           onCreateApiKey={() => setIsCreateApiKeyModalOpen(true)}
+          buttonVariant="outline"
         />
         <CreateApiKeyModal
           isOpen={isCreateApiKeyModalOpen}
@@ -32,6 +33,7 @@ const ApiSettingsTab = () => {
         <WebhooksDataTable
           title="Webhooks"
           onCreateWebhook={() => setIsCreateWebhookModalOpen(true)}
+          buttonVariant="outline"
         />
         <CreateWebhookModal
           isOpen={isCreateWebhookModalOpen}

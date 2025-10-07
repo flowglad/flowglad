@@ -37,12 +37,20 @@ interface WebhooksDataTableProps {
   filters?: WebhooksTableFilters
   title?: string
   onCreateWebhook?: () => void
+  buttonVariant?:
+    | 'default'
+    | 'outline'
+    | 'ghost'
+    | 'link'
+    | 'secondary'
+    | 'destructive'
 }
 
 export function WebhooksDataTable({
   filters = {},
   title,
   onCreateWebhook,
+  buttonVariant = 'default',
 }: WebhooksDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -144,7 +152,7 @@ export function WebhooksDataTable({
         <div className="flex items-center gap-2 flex-shrink-0">
           <DataTableViewOptions table={table} />
           {onCreateWebhook && (
-            <Button onClick={onCreateWebhook}>
+            <Button onClick={onCreateWebhook} variant={buttonVariant}>
               <Plus className="w-4 h-4 mr-2" />
               Create Webhook
             </Button>

@@ -38,12 +38,20 @@ interface ApiKeysDataTableProps {
   filters?: ApiKeysTableFilters
   title?: string
   onCreateApiKey?: () => void
+  buttonVariant?:
+    | 'default'
+    | 'outline'
+    | 'ghost'
+    | 'link'
+    | 'secondary'
+    | 'destructive'
 }
 
 export function ApiKeysDataTable({
   filters = {},
   title,
   onCreateApiKey,
+  buttonVariant = 'default',
 }: ApiKeysDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -144,7 +152,7 @@ export function ApiKeysDataTable({
         <div className="flex items-center gap-2 flex-shrink-0">
           <DataTableViewOptions table={table} />
           {onCreateApiKey && (
-            <Button onClick={onCreateApiKey}>
+            <Button onClick={onCreateApiKey} variant={buttonVariant}>
               <Plus className="w-4 h-4 mr-2" />
               Create API Key
             </Button>

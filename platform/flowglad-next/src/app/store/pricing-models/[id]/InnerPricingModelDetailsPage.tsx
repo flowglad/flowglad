@@ -88,6 +88,7 @@ function InnerPricingModelDetailsPage({
             activeFilter={activeProductFilter}
             onFilterChange={setActiveProductFilter}
             onCreateProduct={() => setIsCreateProductModalOpen(true)}
+            buttonVariant="outline"
           />
         </div>
         <div className="flex flex-col gap-5">
@@ -97,6 +98,7 @@ function InnerPricingModelDetailsPage({
             onCreateCustomer={() =>
               setIsCreateCustomerModalOpen(true)
             }
+            buttonVariant="outline"
           />
         </div>
         <div className="flex flex-col gap-5">
@@ -104,6 +106,7 @@ function InnerPricingModelDetailsPage({
             title="Features"
             filters={{ pricingModelId: pricingModel.id }}
             onCreateFeature={() => setIsCreateFeatureModalOpen(true)}
+            buttonVariant="outline"
           />
         </div>
         <div className="flex flex-col gap-5">
@@ -113,6 +116,7 @@ function InnerPricingModelDetailsPage({
             onCreateUsageMeter={() =>
               setIsCreateUsageMeterModalOpen(true)
             }
+            buttonVariant="outline"
           />
         </div>
       </div>

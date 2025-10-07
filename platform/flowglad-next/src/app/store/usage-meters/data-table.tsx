@@ -37,12 +37,20 @@ interface UsageMetersDataTableProps {
   filters?: UsageMetersTableFilters
   title?: string
   onCreateUsageMeter?: () => void
+  buttonVariant?:
+    | 'default'
+    | 'outline'
+    | 'ghost'
+    | 'link'
+    | 'secondary'
+    | 'destructive'
 }
 
 export function UsageMetersDataTable({
   filters = {},
   title,
   onCreateUsageMeter,
+  buttonVariant = 'default',
 }: UsageMetersDataTableProps) {
   // Dynamic page size state (REQUIRED for server-side pagination)
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -144,7 +152,10 @@ export function UsageMetersDataTable({
         <div className="flex items-center gap-2 flex-shrink-0">
           <DataTableViewOptions table={table} />
           {onCreateUsageMeter && (
-            <Button onClick={onCreateUsageMeter}>
+            <Button
+              onClick={onCreateUsageMeter}
+              variant={buttonVariant}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Usage Meter
             </Button>

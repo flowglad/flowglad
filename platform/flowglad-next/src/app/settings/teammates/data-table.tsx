@@ -36,12 +36,20 @@ interface OrganizationMembersDataTableProps {
   filters?: OrganizationMembersTableFilters
   title?: string
   onInviteMember?: () => void
+  buttonVariant?:
+    | 'default'
+    | 'outline'
+    | 'ghost'
+    | 'link'
+    | 'secondary'
+    | 'destructive'
 }
 
 export function OrganizationMembersDataTable({
   filters = {},
   title,
   onInviteMember,
+  buttonVariant = 'default',
 }: OrganizationMembersDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -143,7 +151,7 @@ export function OrganizationMembersDataTable({
         <div className="flex items-center gap-2 flex-shrink-0">
           <DataTableViewOptions table={table} />
           {onInviteMember && (
-            <Button onClick={onInviteMember}>
+            <Button onClick={onInviteMember} variant={buttonVariant}>
               <UserPlus className="w-4 h-4 mr-2" />
               Invite Member
             </Button>

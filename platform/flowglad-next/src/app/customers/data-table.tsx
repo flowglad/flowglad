@@ -43,12 +43,20 @@ interface CustomersDataTableProps {
   filters?: CustomersTableFilters
   title?: string
   onCreateCustomer?: () => void
+  buttonVariant?:
+    | 'default'
+    | 'outline'
+    | 'ghost'
+    | 'link'
+    | 'secondary'
+    | 'destructive'
 }
 
 export function CustomersDataTable({
   filters = {},
   title,
   onCreateCustomer,
+  buttonVariant = 'default',
 }: CustomersDataTableProps) {
   const router = useRouter()
 
@@ -157,7 +165,10 @@ export function CustomersDataTable({
           />
           <DataTableViewOptions table={table} />
           {onCreateCustomer && (
-            <Button onClick={onCreateCustomer}>
+            <Button
+              onClick={onCreateCustomer}
+              variant={buttonVariant}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Customer
             </Button>
