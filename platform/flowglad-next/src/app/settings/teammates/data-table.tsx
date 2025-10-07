@@ -153,7 +153,7 @@ export function OrganizationMembersDataTable({
           {onInviteMember && (
             <Button onClick={onInviteMember} variant={buttonVariant}>
               <UserPlus className="w-4 h-4 mr-2" />
-              Invite Member
+              Invite Teammate
             </Button>
           )}
         </div>

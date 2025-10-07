@@ -142,6 +142,7 @@ function InnerPricingModelDetailsPage({
       <CreateUsageMeterModal
         isOpen={isCreateUsageMeterModalOpen}
         setIsOpen={setIsCreateUsageMeterModalOpen}
+        defaultPricingModelId={pricingModel.id}
       />
     </InternalPageContainer>
   )
