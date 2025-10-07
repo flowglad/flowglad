@@ -346,6 +346,18 @@ export const subscriptionsPaginatedSelectSchema =
 export const subscriptionsPaginatedListSchema =
   createPaginatedListQuerySchema(subscriptionClientSelectSchema)
 
+// Schema for updating subscription payment method
+export const updateSubscriptionPaymentMethodSchema = z.object({
+  id: z.string().describe('The subscription ID'),
+  paymentMethodId: z
+    .string()
+    .describe('The payment method ID to set for this subscription'),
+})
+
+export type UpdateSubscriptionPaymentMethod = z.infer<
+  typeof updateSubscriptionPaymentMethodSchema
+>
+
 export namespace Subscription {
   export type Insert = z.infer<typeof subscriptionsInsertSchema>
   export type Update = z.infer<typeof subscriptionsUpdateSchema>
@@ -484,4 +496,12 @@ export const createSubscriptionInputSchema = z.object({
 
 export type CreateSubscriptionInputSchema = z.infer<
   typeof createSubscriptionInputSchema
+>
+
+export const retryBillingRunInputSchema = z.object({
+  billingPeriodId: z.string(),
+})
+
+export type RetryBillingRunInputSchema = z.infer<
+  typeof retryBillingRunInputSchema
 >

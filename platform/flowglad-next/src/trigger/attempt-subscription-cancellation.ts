@@ -4,6 +4,7 @@ import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMe
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { SubscriptionStatus } from '@/types'
 import { logger, task } from '@trigger.dev/sdk'
+import { storeTelemetry } from '@/utils/redis'
 
 export const attemptSubscriptionCancellationTask = task({
   id: 'attempt-subscription-cancellation',
@@ -45,6 +46,9 @@ export const attemptSubscriptionCancellationTask = task({
         )
       }
     )
+
+    await storeTelemetry('subscription', subscription.id, ctx.run.id)
+
     return {
       message: 'Subscription cancellation successful',
       canceledSubscription,

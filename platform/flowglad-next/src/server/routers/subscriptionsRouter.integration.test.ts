@@ -41,8 +41,14 @@ import {
   PriceType,
 } from '@/types'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectSubscriptionById, updateSubscription } from '@/db/tableMethods/subscriptionMethods'
-import { selectSubscriptionItems, updateSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  selectSubscriptionById,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
+import {
+  selectSubscriptionItems,
+  updateSubscriptionItem,
+} from '@/db/tableMethods/subscriptionItemMethods'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import core from '@/utils/core'
 import { subDays } from 'date-fns'
@@ -111,8 +117,12 @@ beforeEach(async () => {
   })
 
   const now = new Date()
-  const billingPeriodStart = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000) // 15 days ago
-  const billingPeriodEnd = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000) // 15 days from now
+  const billingPeriodStart = new Date(
+    now.getTime() - 15 * 24 * 60 * 60 * 1000
+  ) // 15 days ago
+  const billingPeriodEnd = new Date(
+    now.getTime() + 15 * 24 * 60 * 60 * 1000
+  ) // 15 days from now
 
   subscription = await setupSubscription({
     organizationId: organization.id,
@@ -294,10 +304,10 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
 
     test('should handle downgrade without creating negative charges', async () => {
       const caller = createCaller(apiKeyToken)
-      
+
       // For downgrade test, we'll upgrade first then downgrade
       // This avoids nested transaction issues in setup
-      
+
       // First upgrade to expensive plan
       const upgradeResult = await caller.adjust({
         id: subscription.id,
@@ -322,7 +332,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
           prorateCurrentBillingPeriod: false, // No proration for setup
         },
       })
-      
+
       // Verify upgrade worked
       expect(upgradeResult.subscription.name).toBe('Premium Plan')
 
@@ -413,15 +423,20 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
               usageEventsPerUnit: null,
             },
           ],
-          timing: SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+          timing:
+            SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
         },
       })
 
       // Should have both current and future items
-      expect(result.subscriptionItems.length).toBeGreaterThanOrEqual(1)
-      
+      expect(result.subscriptionItems.length).toBeGreaterThanOrEqual(
+        1
+      )
+
       // Check if any item has the Premium Plan name (future item)
-      const hasPremiumPlan = result.subscriptionItems.some(item => item.name === 'Premium Plan')
+      const hasPremiumPlan = result.subscriptionItems.some(
+        (item) => item.name === 'Premium Plan'
+      )
       expect(hasPremiumPlan).toBe(true)
     }, 30000)
   })

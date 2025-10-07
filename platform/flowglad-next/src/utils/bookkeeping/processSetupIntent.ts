@@ -426,9 +426,11 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
   > => {
     if (!customer) {
-      throw new Error(`Customer is required for setup intent ${setupIntent.id}`)
+      throw new Error(
+        `Customer is required for setup intent ${setupIntent.id}`
+      )
     }
-    
+
     if (!isCheckoutSessionSubscriptionCreating(checkoutSession)) {
       throw new Error(
         `createSubscriptionFromSetupIntentableCheckoutSession: checkout session ${checkoutSession.id} is not supported because it is of type ${checkoutSession.type}.`
@@ -583,11 +585,13 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         output.result.subscription.customerId,
         transaction
       )
-      
+
       if (!customer) {
-        throw new Error(`Customer not found for subscription ${output.result.subscription.id}`)
+        throw new Error(
+          `Customer not found for subscription ${output.result.subscription.id}`
+        )
       }
-      
+
       eventInserts.push({
         type: FlowgladEventType.SubscriptionCreated,
         occurredAt: new Date(),

@@ -26,7 +26,10 @@ import {
   DestinationEnvironment,
 } from '@/types'
 import { core } from '@/utils/core'
-import { selectPricingModelById, selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
+import {
+  selectPricingModelById,
+  selectPricingModels,
+} from '@/db/tableMethods/pricingModelMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
@@ -1517,13 +1520,19 @@ describe('clonePricingModelTransaction', () => {
       const livemodeDefaultPricingModel = sourcePricingModel
 
       // Get the testmode pricing model that setupOrg already created
-      const testmodeDefaultPricingModel = await adminTransaction(async ({ transaction }) => {
-        const [pricingModel] = await selectPricingModels(
-          { organizationId: organization.id, livemode: false, isDefault: true },
-          transaction
-        )
-        return pricingModel!
-      })
+      const testmodeDefaultPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const [pricingModel] = await selectPricingModels(
+            {
+              organizationId: organization.id,
+              livemode: false,
+              isDefault: true,
+            },
+            transaction
+          )
+          return pricingModel!
+        }
+      )
 
       // Verify both are default for their respective livemodes
       expect(livemodeDefaultPricingModel.isDefault).toBe(true)

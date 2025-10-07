@@ -369,14 +369,14 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods.`
     )
   }
-  
+
   // Sync subscription header with newly active items after billing period rollover
   subscription = await syncSubscriptionWithActiveItems(
     subscription.id,
     transaction,
     new Date()
   )
-  
+
   const activeSubscriptionFeatureItems =
     await selectCurrentlyActiveSubscriptionItems(
       { subscriptionId: subscription.id },

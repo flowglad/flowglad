@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { 
+import {
   commitCustomerCreatedEvent,
   commitCustomerUpdatedEvent,
   commitPaymentSucceededEvent,
@@ -7,12 +7,30 @@ import {
   commitPurchaseCompletedEvent,
   commitSubscriptionCreatedEvent,
   commitSubscriptionUpdatedEvent,
-  commitSubscriptionCancelledEvent
+  commitSubscriptionCancelledEvent,
 } from './events'
-import { FlowgladEventType, EventNoun, PaymentStatus, PriceType, CurrencyCode, IntervalUnit, PaymentMethodType } from '@/types'
+import {
+  FlowgladEventType,
+  EventNoun,
+  PaymentStatus,
+  PriceType,
+  CurrencyCode,
+  IntervalUnit,
+  PaymentMethodType,
+} from '@/types'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
-import { setupOrg, setupCustomer, setupPaymentMethod, setupInvoice, setupPrice, setupProduct, setupPurchase, setupSubscription, setupPricingModel } from '@/../seedDatabase'
+import {
+  setupOrg,
+  setupCustomer,
+  setupPaymentMethod,
+  setupInvoice,
+  setupPrice,
+  setupProduct,
+  setupPurchase,
+  setupSubscription,
+  setupPricingModel,
+} from '@/../seedDatabase'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import core from './core'
 
@@ -33,11 +51,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
 
     // Query the database to get the actual event that was created
     const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents({ organizationId: orgData.organization.id }, transaction)
+      return await selectEvents(
+        { organizationId: orgData.organization.id },
+        transaction
+      )
     })
 
     const customerCreatedEvent = events.find(
-      e => e.type === FlowgladEventType.CustomerCreated
+      (e) => e.type === FlowgladEventType.CustomerCreated
     )
 
     // Verify the real payload includes externalId
@@ -65,11 +86,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents({ organizationId: orgData.organization.id }, transaction)
+      return await selectEvents(
+        { organizationId: orgData.organization.id },
+        transaction
+      )
     })
 
     const customerUpdatedEvent = events.find(
-      e => e.type === FlowgladEventType.CustomerUpdated
+      (e) => e.type === FlowgladEventType.CustomerUpdated
     )
 
     expect(customerUpdatedEvent).toBeDefined()
@@ -90,7 +114,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       externalId: `ext_cust_${core.nanoid()}`,
       livemode: true,
     })
-    
+
     // Set up required dependencies for payment
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
@@ -118,40 +142,48 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       priceId: price.id,
       livemode: true,
     })
-    
+
     const paymentMethod = await setupPaymentMethod({
       customerId: customer.id,
       organizationId: orgData.organization.id,
       type: PaymentMethodType.Card,
       livemode: true,
     })
-    
-    const payment = await adminTransaction(async ({ transaction }) => {
-      return await insertPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Succeeded,
-        amount: 5000,
-        currency: CurrencyCode.USD,
-        chargeDate: new Date(),
-        paymentMethod: PaymentMethodType.Card,
-        livemode: true,
-        customerId: customer.id,
-        organizationId: orgData.organization.id,
-        stripePaymentIntentId: `pi_${core.nanoid()}`,
-        invoiceId: invoice.id,
-      }, transaction)
-    })
+
+    const payment = await adminTransaction(
+      async ({ transaction }) => {
+        return await insertPayment(
+          {
+            stripeChargeId: `ch_${core.nanoid()}`,
+            status: PaymentStatus.Succeeded,
+            amount: 5000,
+            currency: CurrencyCode.USD,
+            chargeDate: new Date(),
+            paymentMethod: PaymentMethodType.Card,
+            livemode: true,
+            customerId: customer.id,
+            organizationId: orgData.organization.id,
+            stripePaymentIntentId: `pi_${core.nanoid()}`,
+            invoiceId: invoice.id,
+          },
+          transaction
+        )
+      }
+    )
 
     await adminTransaction(async ({ transaction }) => {
       await commitPaymentSucceededEvent(payment, transaction)
     })
 
     const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents({ organizationId: orgData.organization.id }, transaction)
+      return await selectEvents(
+        { organizationId: orgData.organization.id },
+        transaction
+      )
     })
 
     const paymentSucceededEvent = events.find(
-      e => e.type === FlowgladEventType.PaymentSucceeded
+      (e) => e.type === FlowgladEventType.PaymentSucceeded
     )
 
     expect(paymentSucceededEvent).toBeDefined()
@@ -172,7 +204,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       externalId: `ext_cust_${core.nanoid()}`,
       livemode: true,
     })
-    
+
     // Set up required dependencies for payment
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
@@ -200,40 +232,48 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       priceId: price.id,
       livemode: true,
     })
-    
+
     const paymentMethod = await setupPaymentMethod({
       customerId: customer.id,
       organizationId: orgData.organization.id,
       type: PaymentMethodType.Card,
       livemode: true,
     })
-    
-    const payment = await adminTransaction(async ({ transaction }) => {
-      return await insertPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Failed,
-        amount: 5000,
-        currency: CurrencyCode.USD,
-        chargeDate: new Date(),
-        paymentMethod: PaymentMethodType.Card,
-        livemode: true,
-        customerId: customer.id,
-        organizationId: orgData.organization.id,
-        stripePaymentIntentId: `pi_${core.nanoid()}`,
-        invoiceId: invoice.id,
-      }, transaction)
-    })
+
+    const payment = await adminTransaction(
+      async ({ transaction }) => {
+        return await insertPayment(
+          {
+            stripeChargeId: `ch_${core.nanoid()}`,
+            status: PaymentStatus.Failed,
+            amount: 5000,
+            currency: CurrencyCode.USD,
+            chargeDate: new Date(),
+            paymentMethod: PaymentMethodType.Card,
+            livemode: true,
+            customerId: customer.id,
+            organizationId: orgData.organization.id,
+            stripePaymentIntentId: `pi_${core.nanoid()}`,
+            invoiceId: invoice.id,
+          },
+          transaction
+        )
+      }
+    )
 
     await adminTransaction(async ({ transaction }) => {
       await commitPaymentCanceledEvent(payment, transaction)
     })
 
     const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents({ organizationId: orgData.organization.id }, transaction)
+      return await selectEvents(
+        { organizationId: orgData.organization.id },
+        transaction
+      )
     })
 
     const paymentFailedEvent = events.find(
-      e => e.type === FlowgladEventType.PaymentFailed
+      (e) => e.type === FlowgladEventType.PaymentFailed
     )
 
     expect(paymentFailedEvent).toBeDefined()
@@ -254,7 +294,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       externalId: `ext_cust_${core.nanoid()}`,
       livemode: true,
     })
-    
+
     // Set up required dependencies for purchase
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
@@ -276,7 +316,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       isDefault: false,
       livemode: true,
     })
-    
+
     const purchase = await setupPurchase({
       organizationId: orgData.organization.id,
       customerId: customer.id,
@@ -289,11 +329,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents({ organizationId: orgData.organization.id }, transaction)
+      return await selectEvents(
+        { organizationId: orgData.organization.id },
+        transaction
+      )
     })
 
     const purchaseCompletedEvent = events.find(
-      e => e.type === FlowgladEventType.PurchaseCompleted
+      (e) => e.type === FlowgladEventType.PurchaseCompleted
     )
 
     expect(purchaseCompletedEvent).toBeDefined()
@@ -314,7 +357,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       externalId: `ext_cust_${core.nanoid()}`,
       livemode: true,
     })
-    
+
     // Set up required dependencies for subscription
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
@@ -341,7 +384,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       customerId: customer.id,
       livemode: true,
     })
-    
+
     const subscription = await setupSubscription({
       organizationId: orgData.organization.id,
       customerId: customer.id,
@@ -355,11 +398,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents({ organizationId: orgData.organization.id }, transaction)
+      return await selectEvents(
+        { organizationId: orgData.organization.id },
+        transaction
+      )
     })
 
     const subscriptionCreatedEvent = events.find(
-      e => e.type === FlowgladEventType.SubscriptionCreated
+      (e) => e.type === FlowgladEventType.SubscriptionCreated
     )
 
     expect(subscriptionCreatedEvent).toBeDefined()
@@ -380,7 +426,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       externalId: `ext_cust_${core.nanoid()}`,
       livemode: true,
     })
-    
+
     // Set up required dependencies for subscription
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
@@ -407,7 +453,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       customerId: customer.id,
       livemode: true,
     })
-    
+
     const subscription = await setupSubscription({
       organizationId: orgData.organization.id,
       customerId: customer.id,
@@ -421,11 +467,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents({ organizationId: orgData.organization.id }, transaction)
+      return await selectEvents(
+        { organizationId: orgData.organization.id },
+        transaction
+      )
     })
 
     const subscriptionUpdatedEvent = events.find(
-      e => e.type === FlowgladEventType.SubscriptionUpdated
+      (e) => e.type === FlowgladEventType.SubscriptionUpdated
     )
 
     expect(subscriptionUpdatedEvent).toBeDefined()
@@ -446,7 +495,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       externalId: `ext_cust_${core.nanoid()}`,
       livemode: true,
     })
-    
+
     // Set up required dependencies for subscription
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
@@ -473,7 +522,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       customerId: customer.id,
       livemode: true,
     })
-    
+
     const subscription = await setupSubscription({
       organizationId: orgData.organization.id,
       customerId: customer.id,
@@ -483,15 +532,21 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     await adminTransaction(async ({ transaction }) => {
-      await commitSubscriptionCancelledEvent(subscription, transaction)
+      await commitSubscriptionCancelledEvent(
+        subscription,
+        transaction
+      )
     })
 
     const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents({ organizationId: orgData.organization.id }, transaction)
+      return await selectEvents(
+        { organizationId: orgData.organization.id },
+        transaction
+      )
     })
 
     const subscriptionCancelledEvent = events.find(
-      e => e.type === FlowgladEventType.SubscriptionCancelled
+      (e) => e.type === FlowgladEventType.SubscriptionCancelled
     )
 
     expect(subscriptionCancelledEvent).toBeDefined()

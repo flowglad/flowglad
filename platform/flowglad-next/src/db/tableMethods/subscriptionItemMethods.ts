@@ -28,9 +28,7 @@ import {
   richSubscriptionClientSelectSchema,
   RichSubscriptionItem,
 } from '@/subscriptions/schemas'
-import {
-  pricesClientSelectSchema,
-} from '../schema/prices'
+import { pricesClientSelectSchema } from '../schema/prices'
 import { prices } from '../schema/prices'
 import { isSubscriptionCurrent } from './subscriptionMethods'
 import { SubscriptionItemType, SubscriptionStatus } from '@/types'
