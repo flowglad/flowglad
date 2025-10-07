@@ -2205,7 +2205,7 @@ Before copying patterns from the reference branch, verify they're frontend-only:
 
 ## Revision History
 
-- **v1.9** (Oct 2025) - **MIGRATION PROGRESS UPDATE & NEW PATTERNS**: Updated migration status to reflect 13 of 16 tables completed (81%). Completed migrations: Invoices, Features, Webhooks, API Keys, and Organization Members. Added new patterns discovered during migrations:
+- **v1.9** (Oct 2025) - **MIGRATION PROGRESS UPDATE & NEW PATTERNS**: Updated migration status to reflect 16 of 16 tables completed (100%). Completed migrations: Invoices, Features, Webhooks, API Keys, Organization Members, Usage Events, Subscription Items, and Purchases. Added new patterns discovered during migrations:
   - Added `buttonVariant` prop for customizing create button style on detail pages
   - Added "Tables Without Filters" pattern using `Record<string, never>`
   - Added "Hiding Redundant Columns Based on Context" pattern (e.g., removing Catalog from Features when shown on pricing model page)

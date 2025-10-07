@@ -142,7 +142,7 @@ export function UsageMetersDataTable({
         {/* Title on the left (for detail pages) */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && (
-            <h3 className="text-lg font-semibold whitespace-nowrap">
+            <h3 className="text-lg font-semibold truncate">
               {title}
             </h3>
           )}
