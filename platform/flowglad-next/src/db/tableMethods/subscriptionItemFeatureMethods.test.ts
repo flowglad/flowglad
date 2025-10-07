@@ -257,11 +257,11 @@ describe('subscriptionItemFeatureMethods', () => {
         )
         const now = new Date()
         const updated = await updateSubscriptionItemFeature(
-          { ...inserted, expiredAt: now },
+          { ...inserted, expiredAt: now.getTime() },
           transaction
         )
         expect(updated.expiredAt).not.toBeNull()
-        expect(updated.expiredAt!.getTime()).toBe(now.getTime())
+        expect(updated.expiredAt).toBe(now.getTime())
       })
     })
 
@@ -304,7 +304,7 @@ describe('subscriptionItemFeatureMethods', () => {
         expect(updated.length).toBe(2)
         updated.forEach((u) => {
           expect(u.expiredAt).not.toBeNull()
-          expect(u.expiredAt!.getTime()).toBe(date.getTime())
+          expect(u.expiredAt).toBe(date.getTime())
         })
       })
     })
@@ -465,7 +465,7 @@ describe('subscriptionItemFeatureMethods', () => {
           transaction
         )
         expect(updated.expiredAt).not.toBeNull()
-        expect(updated.expiredAt!.getTime()).toBe(now.getTime())
+        expect(updated.expiredAt).toBe(now.getTime())
       })
     })
 

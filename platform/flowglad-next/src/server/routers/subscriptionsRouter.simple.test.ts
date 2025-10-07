@@ -42,12 +42,9 @@ describe('Simple Subscriptions Router Test', () => {
       priceId: orgData.price.id,
       paymentMethodId: paymentMethod.id,
       status: SubscriptionStatus.Active,
-      currentBillingPeriodStart: new Date(
-        Date.now() - 15 * 24 * 60 * 60 * 1000
-      ),
-      currentBillingPeriodEnd: new Date(
-        Date.now() + 15 * 24 * 60 * 60 * 1000
-      ),
+      currentBillingPeriodStart:
+        Date.now() - 15 * 24 * 60 * 60 * 1000,
+      currentBillingPeriodEnd: Date.now() + 15 * 24 * 60 * 60 * 1000,
       renews: true,
       livemode: true,
     })
@@ -68,7 +65,7 @@ describe('Simple Subscriptions Router Test', () => {
       name: 'Basic Plan',
       quantity: 1,
       unitPrice: 999,
-      addedDate: subscription.currentBillingPeriodStart || new Date(),
+      addedDate: subscription.currentBillingPeriodStart || Date.now(),
       type: SubscriptionItemType.Static,
     })
 
@@ -85,7 +82,6 @@ describe('Simple Subscriptions Router Test', () => {
     const caller = subscriptionsRouter.createCaller(ctx)
 
     // Make the API call with minimal adjustment
-    console.log('Starting adjust call...')
     const result = await caller.adjust({
       id: subscription.id,
       adjustment: {
@@ -94,7 +90,6 @@ describe('Simple Subscriptions Router Test', () => {
         prorateCurrentBillingPeriod: false,
       },
     })
-    console.log('Adjust call completed')
 
     // Basic verification
     expect(result).toHaveProperty('subscription')

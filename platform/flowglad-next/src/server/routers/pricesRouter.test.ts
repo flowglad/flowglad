@@ -391,8 +391,10 @@ describe('pricesRouter - Default Price Constraints', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             name: 'Duplicate Default',
-          } as any,
-        } as any)
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+          },
+        })
       ).rejects.toThrow(TRPCError)
     })
   })
@@ -527,8 +529,8 @@ describe('pricesRouter - Default Price Constraints', () => {
             trialPeriodDays: 0,
             slug: 'premium-plan',
             active: true,
-          } as any,
-        } as any)
+          },
+        })
       ).rejects.toThrow(
         'Cannot create additional prices for the default plan'
       )
@@ -635,7 +637,10 @@ describe('pricesRouter - Default Price Constraints', () => {
             type: PriceType.Subscription,
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
-          } as any,
+            trialPeriodDays: 0,
+            setupFeeAmount: 0,
+            isDefault: true,
+          },
         } as any)
       ).rejects.toThrow(
         'Default prices for default products must have a unitPrice of 0'

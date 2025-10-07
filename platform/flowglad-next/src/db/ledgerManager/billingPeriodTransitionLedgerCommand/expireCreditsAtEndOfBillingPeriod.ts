@@ -17,6 +17,7 @@ import {
   aggregateAvailableBalanceForUsageCredit,
   bulkInsertLedgerEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
+import { nowTime } from '@/utils/core'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 
 export const expireCreditsAtEndOfBillingPeriod = async (
@@ -56,6 +57,8 @@ export const expireCreditsAtEndOfBillingPeriod = async (
       },
       transaction,
       standardPayload.previousBillingPeriod?.endDate
+        ? new Date(standardPayload.previousBillingPeriod.endDate)
+        : undefined
     )
   const expiringCreditBalances =
     availableCreditBalancesForLedgerAccounts.filter(
@@ -77,7 +80,7 @@ export const expireCreditsAtEndOfBillingPeriod = async (
           organizationId: command.organizationId,
           status: LedgerEntryStatus.Posted,
           livemode: command.livemode,
-          entryTimestamp: new Date(),
+          entryTimestamp: Date.now(),
           direction: LedgerEntryDirection.Debit,
           entryType: LedgerEntryType.CreditGrantExpired,
           amount: balance.balance,

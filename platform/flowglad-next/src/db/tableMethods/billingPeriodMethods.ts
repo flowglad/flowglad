@@ -124,8 +124,8 @@ export const selectBillingPeriodsForSubscriptions = async (
     .where(
       and(
         inArray(billingPeriods.subscriptionId, subscriptionIds),
-        lt(billingPeriods.startDate, new Date()),
-        gte(billingPeriods.endDate, new Date())
+        lt(billingPeriods.startDate, new Date().getTime()),
+        gte(billingPeriods.endDate, new Date().getTime())
       )
     )
   return billingPeriodsForSubscriptions.map((billingPeriod) =>
@@ -168,7 +168,7 @@ export const safelyUpdateBillingPeriodStatus = async (
   }
   if (
     status === BillingPeriodStatus.Upcoming &&
-    billingPeriod.startDate < new Date()
+    billingPeriod.startDate < Date.now()
   ) {
     throw new Error(
       `Cannot set billing period ${billingPeriod.id} to ${status} if it has already started (startDate: ${billingPeriod.startDate})`
@@ -177,7 +177,7 @@ export const safelyUpdateBillingPeriodStatus = async (
 
   if (
     status === BillingPeriodStatus.ScheduledToCancel &&
-    billingPeriod.startDate < new Date()
+    billingPeriod.startDate < Date.now()
   ) {
     throw new Error(
       `Cannot set billing period ${billingPeriod.id} to ${status} if it has already started. Instead, this billing period will be marked as completed. (startDate: ${billingPeriod.startDate})`
@@ -186,7 +186,7 @@ export const safelyUpdateBillingPeriodStatus = async (
 
   if (
     status === BillingPeriodStatus.Active &&
-    billingPeriod.startDate > new Date()
+    billingPeriod.startDate > Date.now()
   ) {
     throw new Error(
       `Cannot set billing period ${billingPeriod.id} to ${status} if it has not started yet (startDate: ${billingPeriod.startDate})`
@@ -208,8 +208,8 @@ export const selectBillingPeriodsDueForTransition = async (
     .from(billingPeriods)
     .where(
       and(
-        lte(billingPeriods.endDate, rangeEnd),
-        gte(billingPeriods.endDate, rangeStart)
+        lte(billingPeriods.endDate, new Date(rangeEnd).getTime()),
+        gte(billingPeriods.endDate, new Date(rangeStart).getTime())
       )
     )
 
@@ -240,8 +240,8 @@ export const selectSubscriptionsAndBillingPeriodsDueForNextBillingPeriodCreation
       )
       .where(
         and(
-          gte(billingPeriods.endDate, rangeStart),
-          lte(billingPeriods.endDate, rangeEnd)
+          gte(billingPeriods.endDate, new Date(rangeStart).getTime()),
+          lte(billingPeriods.endDate, new Date(rangeEnd).getTime())
         )
       )
 
@@ -264,8 +264,8 @@ export const selectActiveBillingPeriodsForDateRange = async (
     organizationId,
     livemode,
   }: {
-    startDate: Date
-    endDate: Date
+    startDate: Date | number
+    endDate: Date | number
     organizationId: string
     livemode: boolean
   },
@@ -294,8 +294,8 @@ export const selectActiveBillingPeriodsForDateRange = async (
           )
         ),
         // Date range conditions
-        lte(billingPeriods.startDate, endDate),
-        gte(billingPeriods.endDate, startDate)
+        lte(billingPeriods.startDate, new Date(endDate).getTime()),
+        gte(billingPeriods.endDate, new Date(startDate).getTime())
       )
     )
 

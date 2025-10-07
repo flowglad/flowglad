@@ -85,8 +85,8 @@ export const setupSubscriptionTestData = async (
   // For odd periods, give the extra day to the future period
   const daysBefore = Math.floor(billingPeriodDays / 2)
   const daysAfter = Math.ceil(billingPeriodDays / 2)
-  const billingPeriodStart = subDays(now, daysBefore)
-  const billingPeriodEnd = addDays(now, daysAfter)
+  const billingPeriodStart = subDays(now, daysBefore).getTime()
+  const billingPeriodEnd = addDays(now, daysAfter).getTime()
 
   const subscription = await setupSubscription({
     organizationId: organization.id,

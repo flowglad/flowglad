@@ -135,7 +135,7 @@ const createCreditApplicationsForOutstandingUsageCosts = async (
   }
   const ledgerAccountIds = invoiceLineItems
     .map((lineItem) => lineItem.ledgerAccountId)
-    .filter((id) => id !== null)
+    .filter((id) => !core.isNil(id))
   const rawUsageCostsInNeedOfCreditApplication =
     await selectLedgerEntries(
       {
@@ -409,7 +409,7 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
     {
       id: command.payload.invoiceLineItems
         .map((lineItem) => lineItem.ledgerAccountId)
-        .filter((id) => id !== null),
+        .filter((id) => !core.isNil(id)),
       organizationId: command.organizationId,
       subscriptionId: command.subscriptionId,
       livemode: command.livemode,

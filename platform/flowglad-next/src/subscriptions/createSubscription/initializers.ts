@@ -20,8 +20,8 @@ import { Subscription } from '@/db/schema/subscriptions'
 export const createStandardSubscriptionAndItems = async (
   params: CreateSubscriptionParams,
   currentBillingPeriod: {
-    startDate: Date
-    endDate: Date
+    startDate: number | Date
+    endDate: number | Date
   },
   transaction: DbTransaction
 ) => {
@@ -73,7 +73,7 @@ export const createStandardSubscriptionAndItems = async (
     cancelScheduledAt: null,
     canceledAt: null,
     metadata: metadata ?? null,
-    trialEnd: trialEnd ?? null,
+    trialEnd: trialEnd ? new Date(trialEnd).getTime() : null,
     /**
      * For subscription prices, billing runs at the start of each period
      * For usage-based prices, billing runs at the end of each period after usage is collected
@@ -83,14 +83,20 @@ export const createStandardSubscriptionAndItems = async (
     name:
       subscriptionName ??
       `${product.name}${price.name ? ` - ${price.name}` : ''}`,
-    currentBillingPeriodStart: currentBillingPeriod.startDate,
-    currentBillingPeriodEnd: currentBillingPeriod.endDate,
-    billingCycleAnchorDate: billingCycleAnchorDate || startDate,
+    currentBillingPeriodStart: new Date(
+      currentBillingPeriod.startDate
+    ).getTime(),
+    currentBillingPeriodEnd: new Date(
+      currentBillingPeriod.endDate
+    ).getTime(),
+    billingCycleAnchorDate: new Date(
+      billingCycleAnchorDate || startDate
+    ).getTime(),
     interval: derivedInterval,
     intervalCount: derivedIntervalCount,
     stripeSetupIntentId: stripeSetupIntentId ?? null,
     externalId: null,
-    startDate,
+    startDate: new Date(startDate).getTime(),
     renews: true,
   }
 
@@ -102,7 +108,7 @@ export const createStandardSubscriptionAndItems = async (
     name: `${price.name}${quantity > 1 ? ` x ${quantity}` : ''}`,
     subscriptionId: subscription.id,
     priceId: price.id,
-    addedDate: startDate,
+    addedDate: new Date(startDate).getTime(),
     quantity,
     livemode,
     unitPrice: price.unitPrice,
@@ -156,7 +162,7 @@ export const createNonRenewingSubscriptionAndItems = async (
     backupPaymentMethodId: null,
     cancelScheduledAt: null,
     canceledAt: null,
-    metadata: metadata ?? null,
+    metadata: metadata as Record<string, any> | null,
     trialEnd: null,
     /**
      * Credit trial subscriptions do not "run billing"
@@ -172,7 +178,7 @@ export const createNonRenewingSubscriptionAndItems = async (
     intervalCount: null,
     stripeSetupIntentId: stripeSetupIntentId ?? null,
     externalId: null,
-    startDate,
+    startDate: new Date(startDate).getTime(),
     renews: false,
   }
 
@@ -185,7 +191,7 @@ export const createNonRenewingSubscriptionAndItems = async (
     name: `${price.name}${quantity > 1 ? ` x ${quantity}` : ''}`,
     subscriptionId: subscription.id,
     priceId: price.id,
-    addedDate: startDate,
+    addedDate: new Date(startDate).getTime(),
     quantity,
     livemode,
     unitPrice: price.unitPrice,
@@ -267,10 +273,12 @@ export const insertSubscriptionAndItems = async (
   // Override the dates if preserving billing cycle
   if (preservedBillingPeriodEnd || preservedBillingPeriodStart) {
     currentBillingPeriod = {
-      startDate:
-        preservedBillingPeriodStart || currentBillingPeriod.startDate,
-      endDate:
-        preservedBillingPeriodEnd || currentBillingPeriod.endDate,
+      startDate: new Date(
+        preservedBillingPeriodStart || currentBillingPeriod.startDate
+      ).getTime(),
+      endDate: new Date(
+        preservedBillingPeriodEnd || currentBillingPeriod.endDate
+      ).getTime(),
     }
   }
   return await createStandardSubscriptionAndItems(

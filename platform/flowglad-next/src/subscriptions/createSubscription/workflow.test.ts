@@ -120,6 +120,8 @@ describe('createSubscriptionWorkflow', async () => {
 
   it('creates a subscription with correct priced items, and billing run', async () => {
     expect(subscription).toBeDefined()
+    expect(subscription.cancelScheduledAt).toBeNull()
+    expect(subscription.canceledAt).toBeNull()
     expect(subscriptionItems.length).toBeGreaterThan(0)
     // Assuming the first item corresponds to the defaultPrice and quantity 1
     expect(
@@ -208,7 +210,7 @@ describe('createSubscriptionWorkflow', async () => {
         {
           id: subPast.id,
           status: SubscriptionStatus.Canceled,
-          canceledAt: new Date('2023-02-01'),
+          canceledAt: new Date('2023-02-01').getTime(),
           renews: subPast.renews,
         },
         transaction
@@ -251,8 +253,8 @@ describe('createSubscriptionWorkflow', async () => {
       customerId: trialCustomer.id,
     })
 
-    const startDate = new Date()
-    const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    const startDate = Date.now()
+    const trialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000
     const stripeSetupIntentIdTrial = `setupintent_trial_${core.nanoid()}`
 
     const {
@@ -281,16 +283,10 @@ describe('createSubscriptionWorkflow', async () => {
       )
     })
 
-    expect(trialSubscription.trialEnd?.getTime()).toBe(
-      trialEnd.getTime()
-    )
+    expect(trialSubscription.trialEnd).toBe(trialEnd)
     expect(trialBillingPeriod).toBeDefined()
-    expect(trialBillingPeriod!.startDate.getTime()).toBe(
-      startDate.getTime()
-    )
-    expect(trialBillingPeriod!.endDate.getTime()).toBe(
-      trialEnd.getTime()
-    )
+    expect(trialBillingPeriod!.startDate).toBe(startDate)
+    expect(trialBillingPeriod!.endDate).toBe(trialEnd)
 
     await adminTransaction(async ({ transaction }) => {
       const billingPeriodItems = await selectBillingPeriodItems(
@@ -519,7 +515,7 @@ describe('createSubscriptionWorkflow', async () => {
 
   it("doesn't recreate subscriptions, billing periods, or billing period items for the same setup intent", async () => {
     // This test has specific setup requirements for an INCOMPLETE subscription first.
-    const startDate = new Date()
+    const startDate = Date.now()
     const intentCustomer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -536,7 +532,7 @@ describe('createSubscriptionWorkflow', async () => {
       priceId: defaultPrice.id, // Use defaultPrice from outer beforeEach
       interval: IntervalUnit.Month,
       intervalCount: 1,
-      trialEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      trialEnd: Date.now() + 7 * 24 * 60 * 60 * 1000,
       status: SubscriptionStatus.Incomplete, // Critical for this test
       startDate: startDate,
     })
@@ -2060,10 +2056,10 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
     expect(subscription).toBeDefined()
-    expect(subscription.trialEnd?.getTime()).toBe(trialEnd.getTime())
+    expect(subscription.trialEnd).toBe(trialEnd.getTime())
     expect(subscriptionItems.length).toBeGreaterThan(0)
     expect(billingPeriod).toBeDefined()
-    expect(billingPeriod!.endDate.getTime()).toBe(trialEnd.getTime())
+    expect(billingPeriod!.endDate).toBe(trialEnd.getTime())
   })
 
   it('should handle credit trial with discount redemptions', async () => {

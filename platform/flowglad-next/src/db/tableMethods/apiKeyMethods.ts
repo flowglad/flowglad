@@ -21,6 +21,7 @@ import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
 import { z } from 'zod'
 import { selectOrganizations } from './organizationMethods'
+import { zodEpochMs } from '../timestampMs'
 
 const config: ORMMethodCreatorConfig<
   typeof apiKeys,
@@ -47,8 +48,8 @@ const apiKeyWithOrganizationSchema = z.object({
   organization: z.object({
     id: z.string(),
     name: z.string(),
-    createdAt: z.date(),
-    updatedAt: z.date().nullable(),
+    createdAt: zodEpochMs,
+    updatedAt: zodEpochMs.nullable().optional(),
   }),
 })
 
@@ -100,7 +101,7 @@ export const safelyFilterExpiredBillingPortalApiKeys = (
     .filter(
       (key) =>
         key.expiresAt &&
-        key.expiresAt < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        key.expiresAt < Date.now() - 7 * 24 * 60 * 60 * 1000
     )
   return extraSafeExpiredOnlyBillingPortalKeys
 }
@@ -114,10 +115,7 @@ export const select7DaysExpiredBillingPortalApiKeys = async (
     .where(
       and(
         eq(apiKeys.type, FlowgladApiKeyType.BillingPortalToken),
-        lt(
-          apiKeys.expiresAt,
-          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        )
+        lt(apiKeys.expiresAt, Date.now() - 7 * 24 * 60 * 60 * 1000)
       )
     )
 

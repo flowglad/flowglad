@@ -84,10 +84,9 @@ describe('adjustSubscription Integration Tests', async () => {
       customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
-      currentBillingPeriodEnd: new Date(Date.now() - 3000),
-      currentBillingPeriodStart: new Date(
-        Date.now() - 30 * 24 * 60 * 60 * 1000
-      ),
+      currentBillingPeriodEnd: Date.now() - 3000,
+      currentBillingPeriodStart:
+        Date.now() - 30 * 24 * 60 * 60 * 1000,
     })
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
@@ -106,6 +105,7 @@ describe('adjustSubscription Integration Tests', async () => {
       quantity: 1,
       unitPrice: 100,
     })
+    const now = Date.now()
     subscriptionItemCore = {
       subscriptionId: subscription.id,
       priceId: price.id,
@@ -113,10 +113,10 @@ describe('adjustSubscription Integration Tests', async () => {
       quantity: 1,
       unitPrice: 100,
       livemode: subscription.livemode,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
       metadata: null,
-      addedDate: new Date(),
+      addedDate: now,
       externalId: null,
       type: SubscriptionItemType.Static,
       usageMeterId: null,
@@ -142,8 +142,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 10 * 60 * 1000),
-            endDate: new Date(Date.now() + 10 * 60 * 1000),
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -176,8 +176,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 10 * 60 * 1000),
-            endDate: new Date(Date.now() + 10 * 60 * 1000),
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -221,8 +221,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
         await setupBillingPeriod({
           subscriptionId: subscription.id,
-          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          startDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+          endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
           status: BillingPeriodStatus.Active,
         })
         await adminTransaction(async ({ transaction }) => {
@@ -274,7 +274,7 @@ describe('adjustSubscription Integration Tests', async () => {
           // Expect that the item not present in newItems (item2) was “removed” and new items were added.
           expect(result?.subscriptionItems.length).toBe(3)
           result?.subscriptionItems.forEach((item) => {
-            expect(item.addedDate).toBeInstanceOf(Date)
+            expect(item.addedDate).toBeDefined()
           })
 
           // Verify proration adjustments were inserted.
@@ -295,11 +295,7 @@ describe('adjustSubscription Integration Tests', async () => {
           )
           const approximatelyImmediateBillingRuns =
             billingRuns.filter((run) => {
-              return (
-                Math.abs(
-                  run.scheduledFor.getTime() - new Date().getTime()
-                ) < 10000
-              )
+              return Math.abs(run.scheduledFor - Date.now()) < 10000
             })
           expect(approximatelyImmediateBillingRuns.length).toBe(1)
         })
@@ -318,8 +314,8 @@ describe('adjustSubscription Integration Tests', async () => {
           await updateBillingPeriod(
             {
               id: billingPeriod.id,
-              startDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
-              endDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              startDate: Date.now() - 24 * 60 * 60 * 1000,
+              endDate: Date.now() + 24 * 60 * 60 * 1000,
               status: BillingPeriodStatus.Active,
             },
             transaction
@@ -436,10 +432,11 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 2,
         unitPrice: 200,
       })
+      const now = Date.now()
       billingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
-        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        startDate: now - 30 * 24 * 60 * 60 * 1000,
+        endDate: now + 30 * 24 * 60 * 60 * 1000,
         status: BillingPeriodStatus.Active,
       })
       await adminTransaction(async ({ transaction }) => {
@@ -461,7 +458,9 @@ describe('adjustSubscription Integration Tests', async () => {
             unitPrice: 300,
             livemode: subscription.livemode,
             metadata: null,
-            addedDate: new Date(),
+            addedDate: now,
+            createdAt: now,
+            updatedAt: now,
             priceId: price.id,
             externalId: null,
             expiredAt: null,
@@ -506,7 +505,7 @@ describe('adjustSubscription Integration Tests', async () => {
   ========================================================================== */
   describe('calculateSplitInBillingPeriodBasedOnAdjustmentDate', () => {
     it('should return correct percentages when adjustment date is at start, middle, and end', () => {
-      let adjustmentDate = new Date(billingPeriod.startDate)
+      let adjustmentDate = billingPeriod.startDate
       let split = calculateSplitInBillingPeriodBasedOnAdjustmentDate(
         adjustmentDate,
         billingPeriod
@@ -514,7 +513,7 @@ describe('adjustSubscription Integration Tests', async () => {
       expect(split.beforePercentage).toBe(0)
       expect(split.afterPercentage).toBe(1)
 
-      adjustmentDate = new Date(billingPeriod.endDate)
+      adjustmentDate = billingPeriod.endDate
       split = calculateSplitInBillingPeriodBasedOnAdjustmentDate(
         adjustmentDate,
         billingPeriod
@@ -522,12 +521,9 @@ describe('adjustSubscription Integration Tests', async () => {
       expect(split.beforePercentage).toBe(1)
       expect(split.afterPercentage).toBe(0)
 
-      adjustmentDate = new Date(
-        billingPeriod.startDate.getTime() +
-          (billingPeriod.endDate.getTime() -
-            billingPeriod.startDate.getTime()) /
-            2
-      )
+      adjustmentDate =
+        billingPeriod.startDate +
+        (billingPeriod.endDate - billingPeriod.startDate) / 2
       split = calculateSplitInBillingPeriodBasedOnAdjustmentDate(
         adjustmentDate,
         billingPeriod
@@ -537,18 +533,14 @@ describe('adjustSubscription Integration Tests', async () => {
     })
 
     it('should throw an error if the adjustment date is outside the billing period', () => {
-      const tooEarlyAdjustmentDate = new Date(
-        billingPeriod.startDate.getTime() - 1000
-      )
+      const tooEarlyAdjustmentDate = billingPeriod.startDate - 1000
       expect(() => {
         calculateSplitInBillingPeriodBasedOnAdjustmentDate(
           tooEarlyAdjustmentDate,
           billingPeriod
         )
       }).toThrow()
-      const tooLateAdjustmentDate = new Date(
-        billingPeriod.endDate.getTime() + 1000
-      )
+      const tooLateAdjustmentDate = billingPeriod.endDate + 1000
       expect(() => {
         calculateSplitInBillingPeriodBasedOnAdjustmentDate(
           tooLateAdjustmentDate,
@@ -565,8 +557,8 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should handle a zero-duration billing period', async () => {
       const zeroDurationBillingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
-        startDate: new Date('2025-01-01T00:00:00Z'),
-        endDate: new Date('2025-01-01T00:00:00Z'),
+        startDate: new Date('2025-01-01T00:00:00Z').getTime(),
+        endDate: new Date('2025-01-01T00:00:00Z').getTime(),
         status: BillingPeriodStatus.Active,
       })
       const item = await setupSubscriptionItem({
@@ -575,6 +567,7 @@ describe('adjustSubscription Integration Tests', async () => {
         quantity: 1,
         unitPrice: 100,
       })
+      const now = Date.now()
       await adminTransaction(async ({ transaction }) => {
         const newItems: SubscriptionItem.Upsert[] = [
           {
@@ -583,10 +576,10 @@ describe('adjustSubscription Integration Tests', async () => {
             quantity: 1,
             unitPrice: 100,
             livemode: subscription.livemode,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: now,
+            updatedAt: now,
             metadata: null,
-            addedDate: new Date(),
+            addedDate: now,
             subscriptionId: subscription.id,
             priceId: price.id,
             externalId: null,
@@ -618,8 +611,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 3600000),
-            endDate: new Date(Date.now() + 3600000),
+            startDate: Date.now() - 3600000,
+            endDate: Date.now() + 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -667,8 +660,8 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should throw an error when subscription items have zero quantity', async () => {
       await setupBillingPeriod({
         subscriptionId: subscription.id,
-        startDate: new Date(Date.now() - 3600000),
-        endDate: new Date(Date.now() + 3600000),
+        startDate: Date.now() - 3600000,
+        endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
       })
 
@@ -706,8 +699,8 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should handle subscription items with zero unit price', async () => {
       await setupBillingPeriod({
         subscriptionId: subscription.id,
-        startDate: new Date(Date.now() - 3600000),
-        endDate: new Date(Date.now() + 3600000),
+        startDate: Date.now() - 3600000,
+        endDate: Date.now() + 3600000,
         status: BillingPeriodStatus.Active,
       })
       await adminTransaction(async ({ transaction }) => {
@@ -764,8 +757,8 @@ describe('adjustSubscription Integration Tests', async () => {
           await updateBillingPeriod(
             {
               id: billingPeriod.id,
-              startDate: new Date(Date.now() - 3600000),
-              endDate: new Date(Date.now() + 3600000),
+              startDate: Date.now() - 3600000,
+              endDate: Date.now() + 3600000,
             },
             transaction
           )
@@ -801,8 +794,8 @@ describe('adjustSubscription Integration Tests', async () => {
           {
             id: billingPeriod.id,
             subscriptionId: subscription.id,
-            startDate: new Date(Date.now() - 7200000),
-            endDate: new Date(Date.now() - 3600000),
+            startDate: Date.now() - 7200000,
+            endDate: Date.now() - 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -854,8 +847,8 @@ describe('adjustSubscription Integration Tests', async () => {
         billingPeriod = await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 3600000),
-            endDate: new Date(Date.now() + 3600000),
+            startDate: Date.now() - 3600000,
+            endDate: Date.now() + 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -918,8 +911,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 3600000),
-            endDate: new Date(Date.now() + 3600000),
+            startDate: Date.now() - 3600000,
+            endDate: Date.now() + 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -976,8 +969,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 3600000),
-            endDate: new Date(Date.now() + 3600000),
+            startDate: Date.now() - 3600000,
+            endDate: Date.now() + 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -1059,8 +1052,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 3600000),
-            endDate: new Date(Date.now() + 3600000),
+            startDate: Date.now() - 3600000,
+            endDate: Date.now() + 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -1138,13 +1131,11 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Create active billing period (current period)
-        const futureDate = new Date(
-          Date.now() + 7 * 24 * 60 * 60 * 1000
-        ) // 7 days from now
+        const futureDate = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days from now
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 3600000), // 1 hour ago
+            startDate: Date.now() - 3600000, // 1 hour ago
             endDate: futureDate, // 7 days from now
             status: BillingPeriodStatus.Active,
           },
@@ -1228,9 +1219,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(expiredCurrentItem).toBeDefined()
         expect(expiredCurrentItem?.expiredAt).toBeDefined() // Should be expired at billing period end
         expect(futureItem).toBeDefined()
-        expect(futureItem?.addedDate.getTime()).toBe(
-          futureDate.getTime()
-        )
+        expect(futureItem?.addedDate).toBe(futureDate)
       })
     })
 
@@ -1248,8 +1237,8 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateBillingPeriod(
           {
             id: billingPeriod.id,
-            startDate: new Date(Date.now() - 3600000),
-            endDate: new Date(Date.now() + 3600000),
+            startDate: Date.now() - 3600000,
+            endDate: Date.now() + 3600000,
             status: BillingPeriodStatus.Active,
           },
           transaction
@@ -1294,16 +1283,14 @@ describe('adjustSubscription Integration Tests', async () => {
     it('should sync subscription with currently active items', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = new Date()
-        const futureDate = addDays(now, 1) // Tomorrow
-
-        // Setup: Create current active item
+        const futureDate = addDays(now, 1).getTime() // Tomorrow
         const currentItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
           priceId: price.id,
           name: 'Current Plan',
           quantity: 1,
           unitPrice: 999, // $9.99
-          addedDate: subDays(now, 10), // Started 10 days ago
+          addedDate: subDays(new Date(now), 10).getTime(), // Started 10 days ago
           type: SubscriptionItemType.Static,
         })
 
@@ -1327,9 +1314,11 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Test: Sync should use current item (future item not active yet)
         const synced = await syncSubscriptionWithActiveItems(
-          subscription.id,
-          transaction,
-          new Date()
+          {
+            subscriptionId: subscription.id,
+            currentTime: new Date(),
+          },
+          transaction
         )
         expect(synced.name).toBe('Current Plan')
         expect(synced.priceId).toBe(currentItem.priceId)
@@ -1338,8 +1327,8 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should handle multiple items becoming active and choose the most expensive as primary', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
-        const pastDate = subDays(now, 1) // Yesterday
+        const now = Date.now()
+        const pastDate = subDays(new Date(now), 1).getTime() // Yesterday
 
         // Setup: Create multiple items that are all currently active
         await setupSubscriptionItem({
@@ -1374,9 +1363,11 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // All items are active now - should choose the most expensive (Premium Feature)
         const synced = await syncSubscriptionWithActiveItems(
-          subscription.id,
-          transaction,
-          new Date()
+          {
+            subscriptionId: subscription.id,
+            currentTime: new Date(),
+          },
+          transaction
         )
 
         expect(synced.name).toBe('Premium Feature')
@@ -1386,8 +1377,8 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should handle subscription becoming active but not primary (lower price than existing)', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
-        const futureDate = addDays(now, 1)
+        const now = Date.now()
+        const futureDate = addDays(new Date(now), 1).getTime()
 
         // Setup: Create expensive current item
         const expensiveItem = await setupSubscriptionItem({
@@ -1396,7 +1387,7 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'Enterprise Plan',
           quantity: 1,
           unitPrice: 9999, // $99.99 - Most expensive
-          addedDate: subDays(now, 10),
+          addedDate: subDays(new Date(now), 10).getTime(),
           type: SubscriptionItemType.Static,
         })
 
@@ -1407,15 +1398,17 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'Add-on Feature',
           quantity: 1,
           unitPrice: 999, // $9.99 - Cheaper
-          addedDate: subDays(now, 1), // Already active since yesterday
+          addedDate: subDays(new Date(now), 1).getTime(), // Already active since yesterday
           type: SubscriptionItemType.Static,
         })
 
         // Both are active now - should still use Enterprise Plan as primary
         const synced = await syncSubscriptionWithActiveItems(
-          subscription.id,
-          transaction,
-          new Date()
+          {
+            subscriptionId: subscription.id,
+            currentTime: new Date(),
+          },
+          transaction
         )
 
         expect(synced.name).toBe('Enterprise Plan')
@@ -1425,7 +1418,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should update primary when current primary item gets cancelled', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
+        const now = Date.now()
 
         // Setup: Create multiple active items
         const primaryItem = await setupSubscriptionItem({
@@ -1434,7 +1427,7 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'Premium Plan',
           quantity: 1,
           unitPrice: 4999, // $49.99 - Initially most expensive
-          addedDate: subDays(now, 10),
+          addedDate: subDays(new Date(now), 10).getTime(),
           type: SubscriptionItemType.Static,
         })
 
@@ -1444,7 +1437,7 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'Standard Plan',
           quantity: 1,
           unitPrice: 2999, // $29.99 - Second most expensive
-          addedDate: subDays(now, 5),
+          addedDate: subDays(new Date(now), 5).getTime(),
           type: SubscriptionItemType.Static,
         })
 
@@ -1454,15 +1447,17 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'Basic Plan',
           quantity: 1,
           unitPrice: 999, // $9.99 - Cheapest
-          addedDate: subDays(now, 3),
+          addedDate: subDays(new Date(now), 3).getTime(),
           type: SubscriptionItemType.Static,
         })
 
         // Initial sync - should use Premium Plan
         const syncedBefore = await syncSubscriptionWithActiveItems(
-          subscription.id,
-          transaction,
-          new Date()
+          {
+            subscriptionId: subscription.id,
+            currentTime: new Date(),
+          },
+          transaction
         )
         expect(syncedBefore.name).toBe('Premium Plan')
 
@@ -1470,7 +1465,7 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateSubscriptionItem(
           {
             id: primaryItem.id,
-            expiredAt: subDays(now, 1), // Already expired yesterday
+            expiredAt: subDays(new Date(now), 1).getTime(), // Already expired yesterday
             type: SubscriptionItemType.Static,
           },
           transaction
@@ -1478,9 +1473,11 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Sync after cancellation - should switch to Standard Plan
         const syncedAfter = await syncSubscriptionWithActiveItems(
-          subscription.id,
-          transaction,
-          new Date()
+          {
+            subscriptionId: subscription.id,
+            currentTime: new Date(),
+          },
+          transaction
         )
         expect(syncedAfter.name).toBe('Standard Plan')
         expect(syncedAfter.priceId).toBe(secondaryItem.priceId)
@@ -1489,7 +1486,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should handle multiple items becoming active and inactive simultaneously', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
+        const now = Date.now()
 
         // Setup: Currently active items (old items)
         await setupSubscriptionItem({
@@ -1498,7 +1495,7 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'Old Basic',
           quantity: 1,
           unitPrice: 999,
-          addedDate: subDays(now, 10),
+          addedDate: subDays(new Date(now), 10).getTime(),
           type: SubscriptionItemType.Static,
         })
 
@@ -1508,7 +1505,7 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'Old Premium',
           quantity: 1,
           unitPrice: 4999,
-          addedDate: subDays(now, 10),
+          addedDate: subDays(new Date(now), 10).getTime(),
           type: SubscriptionItemType.Static,
         })
 
@@ -1519,7 +1516,7 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'New Basic',
           quantity: 1,
           unitPrice: 1999, // $19.99
-          addedDate: subDays(now, 1), // Started yesterday
+          addedDate: subDays(new Date(now), 1).getTime(), // Started yesterday
           type: SubscriptionItemType.Static,
         })
 
@@ -1529,7 +1526,7 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'New Premium',
           quantity: 1,
           unitPrice: 6999, // $69.99 - Most expensive overall
-          addedDate: subDays(now, 1), // Started yesterday
+          addedDate: subDays(new Date(now), 1).getTime(), // Started yesterday
           type: SubscriptionItemType.Static,
         })
 
@@ -1539,15 +1536,17 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'New Add-on',
           quantity: 1,
           unitPrice: 500, // $5.00
-          addedDate: subDays(now, 1), // Started yesterday
+          addedDate: subDays(new Date(now), 1).getTime(), // Started yesterday
           type: SubscriptionItemType.Static,
         })
 
         // With all items active - should use New Premium (most expensive)
         const synced = await syncSubscriptionWithActiveItems(
-          subscription.id,
-          transaction,
-          new Date()
+          {
+            subscriptionId: subscription.id,
+            currentTime: new Date(),
+          },
+          transaction
         )
         expect(synced.name).toBe('New Premium')
         expect(synced.priceId).toBe(newPremiumItem.priceId)
@@ -1556,7 +1555,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should maintain subscription state when all items expire with no replacements', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
+        const now = Date.now()
 
         // Setup: Create an active item first
         const activeItem = await setupSubscriptionItem({
@@ -1565,15 +1564,17 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'Active Plan',
           quantity: 1,
           unitPrice: 2999,
-          addedDate: subDays(now, 10),
+          addedDate: subDays(new Date(now), 10).getTime(),
           type: SubscriptionItemType.Static,
         })
 
         // First, sync while the item is active to set the subscription name
         const syncedActive = await syncSubscriptionWithActiveItems(
-          subscription.id,
-          transaction,
-          new Date()
+          {
+            subscriptionId: subscription.id,
+            currentTime: new Date(),
+          },
+          transaction
         )
         expect(syncedActive.name).toBe('Active Plan')
 
@@ -1581,7 +1582,7 @@ describe('adjustSubscription Integration Tests', async () => {
         await updateSubscriptionItem(
           {
             id: activeItem.id,
-            expiredAt: subDays(now, 1), // Already expired
+            expiredAt: subDays(new Date(now), 1).getTime(), // Already expired
             type: SubscriptionItemType.Static,
           },
           transaction
@@ -1590,9 +1591,11 @@ describe('adjustSubscription Integration Tests', async () => {
         // Sync after expiration with no active items
         const syncedAfterExpiry =
           await syncSubscriptionWithActiveItems(
-            subscription.id,
-            transaction,
-            new Date()
+            {
+              subscriptionId: subscription.id,
+              currentTime: new Date(),
+            },
+            transaction
           )
 
         // Should maintain the last known state (Active Plan)
@@ -1604,7 +1607,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should handle quantity changes affecting total price calculations', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
+        const now = Date.now()
 
         // Setup: Item with high unit price but low quantity
         const highUnitPriceItem = await setupSubscriptionItem({
@@ -1613,7 +1616,7 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'High Unit Price',
           quantity: 1,
           unitPrice: 5000, // $50 per unit, total = $50
-          addedDate: subDays(now, 5),
+          addedDate: subDays(new Date(now), 5).getTime(),
           type: SubscriptionItemType.Static,
         })
 
@@ -1624,15 +1627,17 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'High Quantity',
           quantity: 10,
           unitPrice: 1000, // $10 per unit, total = $100 (MORE expensive)
-          addedDate: subDays(now, 5),
+          addedDate: subDays(new Date(now), 5).getTime(),
           type: SubscriptionItemType.Static,
         })
 
         // Sync - should choose high quantity item (higher total)
         const synced = await syncSubscriptionWithActiveItems(
-          subscription.id,
-          transaction,
-          new Date()
+          {
+            subscriptionId: subscription.id,
+            currentTime: new Date(),
+          },
+          transaction
         )
 
         expect(synced.name).toBe('High Quantity')
@@ -1642,7 +1647,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
     it('should use addedDate as tiebreaker when items have same total price', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
+        const now = Date.now()
 
         // Setup: Two items with same total price
         await setupSubscriptionItem({
@@ -1651,7 +1656,7 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'Older Item',
           quantity: 1,
           unitPrice: 3000, // $30.00
-          addedDate: subDays(now, 10), // Older
+          addedDate: subDays(new Date(now), 10).getTime(), // Older
           type: SubscriptionItemType.Static,
         })
 
@@ -1661,15 +1666,17 @@ describe('adjustSubscription Integration Tests', async () => {
           name: 'Newer Item',
           quantity: 1,
           unitPrice: 3000, // Same price: $30.00
-          addedDate: subDays(now, 5), // Newer - should win
+          addedDate: subDays(new Date(now), 5).getTime(), // Newer - should win
           type: SubscriptionItemType.Static,
         })
 
         // Sync - should choose newer item as tiebreaker
         const synced = await syncSubscriptionWithActiveItems(
-          subscription.id,
-          transaction,
-          new Date()
+          {
+            subscriptionId: subscription.id,
+            currentTime: new Date(),
+          },
+          transaction
         )
 
         expect(synced.name).toBe('Newer Item')

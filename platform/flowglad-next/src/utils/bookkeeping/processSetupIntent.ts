@@ -206,7 +206,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
 export const calculateTrialEnd = (params: {
   hasHadTrial: boolean
   trialPeriodDays: number | null
-}): Date | undefined => {
+}): number | undefined => {
   const { hasHadTrial, trialPeriodDays } = params
   if (
     trialPeriodDays === null ||
@@ -217,9 +217,7 @@ export const calculateTrialEnd = (params: {
   }
   return hasHadTrial
     ? undefined
-    : new Date(
-        new Date().getTime() + trialPeriodDays * 24 * 60 * 60 * 1000
-      )
+    : Date.now() + trialPeriodDays * 24 * 60 * 60 * 1000
 }
 
 export const pullStripeSetupIntentDataToDatabase = async (
@@ -505,12 +503,12 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     const preserveBillingCycle =
       checkoutSession.preserveBillingCycleAnchor &&
       !!canceledFreeSubscription
-    const startDate = new Date()
+    const startDate = Date.now()
 
     // Prepare billing cycle preservation parameters
-    let billingCycleAnchorDate: Date | undefined
-    let preservedBillingPeriodEnd: Date | undefined
-    let preservedBillingPeriodStart: Date | undefined
+    let billingCycleAnchorDate: number | undefined
+    let preservedBillingPeriodEnd: number | undefined
+    let preservedBillingPeriodStart: number | undefined
     let prorateFirstPeriod = false
 
     if (preserveBillingCycle) {
@@ -535,6 +533,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         prorateFirstPeriod = false
       }
     }
+    const now = Date.now()
 
     const output = await createSubscriptionWorkflow(
       {
@@ -594,11 +593,11 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
 
       eventInserts.push({
         type: FlowgladEventType.SubscriptionCreated,
-        occurredAt: new Date(),
+        occurredAt: now,
         organizationId: organization.id,
         livemode: output.result.subscription.livemode,
         metadata: {},
-        submittedAt: new Date(),
+        submittedAt: now,
         processedAt: null,
         hash: constructSubscriptionCreatedEventHash(
           output.result.subscription
@@ -613,24 +612,23 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         },
       })
     }
-
     const updatedPurchase = await updatePurchase(
       {
         id: purchase.id,
         status: PurchaseStatus.Paid,
         priceType: price.type,
-        purchaseDate: new Date(),
+        purchaseDate: now,
       },
       transaction
     )
 
     eventInserts.push({
       type: FlowgladEventType.PurchaseCompleted,
-      occurredAt: new Date(),
+      occurredAt: now,
       organizationId: organization.id,
       livemode: updatedPurchase.livemode,
       metadata: {},
-      submittedAt: new Date(),
+      submittedAt: now,
       processedAt: null,
       hash: constructPurchaseCompletedEventHash(updatedPurchase),
       payload: {

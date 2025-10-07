@@ -10,12 +10,10 @@ import {
   merchantPolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
-  ommittedColumnsForInsertSchema,
-  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { sql } from 'drizzle-orm'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'proper_nouns'
 
@@ -63,55 +61,36 @@ export const properNouns = pgTable(
   }
 ).enableRLS()
 
-// No column refinements needed since we only have string columns
+// No special column refinements: all strings
 const columnRefinements = {}
 
-/*
- * database schemas
- */
-export const properNounsInsertSchema = createInsertSchema(properNouns)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const properNounsSelectSchema = createSelectSchema(properNouns)
-
-export const properNounsUpdateSchema = properNounsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-const createOnlyColumns = {} as const
-
-const readOnlyColumns = {
-  organizationId: true,
-  entityId: true,
-  entityType: true,
-  livemode: true,
-} as const
-
-const hiddenColumns = {
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
-  ...createOnlyColumns,
+export const {
+  select: properNounsSelectSchema,
+  insert: properNounsInsertSchema,
+  update: properNounsUpdateSchema,
+  client: {
+    select: properNounClientSelectSchema,
+    insert: properNounClientInsertSchema,
+    update: properNounClientUpdateSchema,
+  },
+} = buildSchemas(properNouns, {
+  refine: {
+    ...columnRefinements,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      organizationId: true,
+      entityId: true,
+      entityType: true,
+      livemode: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'ProperNoun',
 })
-
-/*
- * client schemas
- */
-export const properNounClientInsertSchema = properNounsInsertSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'ProperNounClientInsertSchema' })
-
-export const properNounClientUpdateSchema = properNounsUpdateSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'ProperNounClientUpdateSchema' })
-
-export const properNounClientSelectSchema = properNounsSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'ProperNounClientSelectSchema' })
 
 export namespace ProperNoun {
   export type Insert = z.infer<typeof properNounsInsertSchema>

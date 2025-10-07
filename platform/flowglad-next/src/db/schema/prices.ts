@@ -44,24 +44,20 @@ import {
   usageMetersClientSelectSchema,
 } from './usageMeters'
 import { currencyCodeSchema } from '../commonZodSchema'
-import {
-  featuresClientSelectSchema,
-  featuresSelectSchema,
-} from './features'
+import { featuresClientSelectSchema } from './features'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const readOnlyColumns = {
-  livemode: true,
   currency: true,
+} as const
+
+const createOnlyColumns = {
+  productId: true,
 } as const
 
 const hiddenColumns = {
   externalId: true,
   ...hiddenColumnsForClientSchema,
-} as const
-
-const nonClientEditableColumns = {
-  ...readOnlyColumns,
-  ...clientWriteOmitsConstructor(hiddenColumns),
 } as const
 
 const TABLE_NAME = 'prices'
@@ -193,11 +189,6 @@ const basePriceColumns = {
   startsWithCreditTrial: core.safeZodNullOrUndefined,
 }
 
-export const basePriceSelectSchema = createSelectSchema(
-  prices,
-  basePriceColumns
-)
-
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
   createSupabaseWebhookSchema({
     table: prices,
@@ -256,56 +247,24 @@ const USAGE_PRICE_DESCRIPTION =
 const SUBSCRIPTION_PRICE_DESCRIPTION =
   'A subscription price, which will have details on the interval, default trial period, and setup fee (if any).'
 
-export const subscriptionPriceSelectSchema = basePriceSelectSchema
-  .extend(subscriptionPriceColumns)
-  .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
-
-export const subscriptionPriceInsertSchema =
-  subscriptionPriceSelectSchema
-    .omit(ommittedColumnsForInsertSchema)
-    .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
-
-export const subscriptionPriceUpdateSchema =
-  subscriptionPriceInsertSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      type: z.literal(PriceType.Subscription),
-    })
-    .describe(SUBSCRIPTION_PRICE_DESCRIPTION)
+// subtype schemas are built via buildSchemas below
 
 const singlePaymentPriceColumns = {
   type: z.literal(PriceType.SinglePayment),
-  intervalCount: core.safeZodNullOrUndefined,
-  intervalUnit: core.safeZodNullOrUndefined,
-  setupFeeAmount: core.safeZodNullOrUndefined,
-  trialPeriodDays: core.safeZodNullOrUndefined,
-  usageMeterId: core.safeZodNullOrUndefined,
-  usageEventsPerUnit: core.safeZodNullOrUndefined,
-  overagePriceId: core.safeZodNullOrUndefined,
-  startsWithCreditTrial: core.safeZodNullOrUndefined,
+  intervalCount: core.safeZodNullOrUndefined.optional(),
+  intervalUnit: core.safeZodNullOrUndefined.optional(),
+  setupFeeAmount: core.safeZodNullOrUndefined.optional(),
+  trialPeriodDays: core.safeZodNullOrUndefined.optional(),
+  usageMeterId: core.safeZodNullOrUndefined.optional(),
+  usageEventsPerUnit: core.safeZodNullOrUndefined.optional(),
+  overagePriceId: core.safeZodNullOrUndefined.optional(),
+  startsWithCreditTrial: core.safeZodNullOrUndefined.optional(),
 }
 
 const SINGLE_PAYMENT_PRICE_DESCRIPTION =
   'A single payment price, which only gets paid once. Subscriptions cannot be made from single payment prices. Purchases, though, can.'
 
-export const singlePaymentPriceSelectSchema = basePriceSelectSchema
-  .extend(singlePaymentPriceColumns)
-  .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
-
-export const singlePaymentPriceInsertSchema =
-  singlePaymentPriceSelectSchema
-    .omit(ommittedColumnsForInsertSchema)
-    .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
-
-export const singlePaymentPriceUpdateSchema =
-  singlePaymentPriceInsertSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      type: z.literal(PriceType.SinglePayment),
-    })
-    .describe(SINGLE_PAYMENT_PRICE_DESCRIPTION)
+// subtype schemas are built via buildSchemas below
 
 const PRICES_SELECT_SCHEMA_DESCRIPTION =
   'A price record, which describes a price for a product. Products can have multiple prices.'
@@ -316,36 +275,82 @@ const PRICES_INSERT_SCHEMA_DESCRIPTION =
 const PRICES_UPDATE_SCHEMA_DESCRIPTION =
   'A price record, which describes a price for a product. Products can have multiple prices.'
 
-export const usagePriceSelectSchema = basePriceSelectSchema
-  .extend(usagePriceColumns)
-  .describe(USAGE_PRICE_DESCRIPTION)
+// subtype schemas are built via buildSchemas below
 
-export const usagePriceInsertSchema = usagePriceSelectSchema
-  .omit(ommittedColumnsForInsertSchema)
-  .describe(USAGE_PRICE_DESCRIPTION)
+// ---------- buildSchemas subtypes (Subscription / SinglePayment / Usage) ----------
+const subscriptionRefine = {
+  ...basePriceColumns,
+  ...subscriptionPriceColumns,
+} as const
 
-export const usagePriceUpdateSchema = usagePriceInsertSchema
-  .partial()
-  .extend({
-    id: z.string(),
-    type: z.literal(PriceType.Usage),
-  })
-  .describe(USAGE_PRICE_DESCRIPTION)
+const singlePaymentRefine = {
+  ...basePriceColumns,
+  ...singlePaymentPriceColumns,
+} as const
 
-export const usagePriceClientInsertSchema = usagePriceInsertSchema
-  .omit(nonClientEditableColumns)
-  .describe(USAGE_PRICE_DESCRIPTION)
-  .meta({ id: 'UsagePriceInsert' })
+const usageRefine = {
+  ...basePriceColumns,
+  ...usagePriceColumns,
+} as const
 
-export const usagePriceClientUpdateSchema = usagePriceUpdateSchema
-  .omit(nonClientEditableColumns)
-  .describe(USAGE_PRICE_DESCRIPTION)
-  .meta({ id: 'UsagePriceUpdate' })
+export const {
+  insert: subscriptionPriceInsertSchema,
+  select: subscriptionPriceSelectSchema,
+  update: subscriptionPriceUpdateSchema,
+  client: {
+    insert: subscriptionPriceClientInsertSchema,
+    select: subscriptionPriceClientSelectSchema,
+    update: subscriptionPriceClientUpdateSchema,
+  },
+} = buildSchemas(prices, {
+  discriminator: 'type',
+  refine: subscriptionRefine,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+    createOnlyColumns,
+  },
+  entityName: 'SubscriptionPrice',
+})
 
-export const usagePriceClientSelectSchema = usagePriceSelectSchema
-  .omit(hiddenColumns)
-  .describe(USAGE_PRICE_DESCRIPTION)
-  .meta({ id: 'UsagePriceRecord' })
+export const {
+  insert: singlePaymentPriceInsertSchema,
+  select: singlePaymentPriceSelectSchema,
+  update: singlePaymentPriceUpdateSchema,
+  client: {
+    insert: singlePaymentPriceClientInsertSchema,
+    select: singlePaymentPriceClientSelectSchema,
+    update: singlePaymentPriceClientUpdateSchema,
+  },
+} = buildSchemas(prices, {
+  discriminator: 'type',
+  refine: singlePaymentRefine,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+    createOnlyColumns,
+  },
+  entityName: 'SinglePaymentPrice',
+})
+
+export const {
+  insert: usagePriceInsertSchema,
+  select: usagePriceSelectSchema,
+  update: usagePriceUpdateSchema,
+  client: {
+    insert: usagePriceClientInsertSchema,
+    select: usagePriceClientSelectSchema,
+    update: usagePriceClientUpdateSchema,
+  },
+} = buildSchemas(prices, {
+  discriminator: 'type',
+  refine: usageRefine,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'UsagePrice',
+})
 
 export const pricesSelectSchema = z
   .discriminatedUnion('type', [
@@ -371,43 +376,16 @@ export const pricesUpdateSchema = z
   ])
   .describe(PRICES_UPDATE_SCHEMA_DESCRIPTION)
 
-export const pricesSelectClauseSchema = basePriceSelectSchema
+export const pricesSelectClauseSchema = createSelectSchema(
+  prices,
+  basePriceColumns
+)
   .omit({
     id: true,
   })
   .partial()
 
-export const subscriptionPriceClientInsertSchema =
-  subscriptionPriceInsertSchema.omit(nonClientEditableColumns).meta({
-    id: 'SubscriptionPriceInsert',
-  })
-
-export const subscriptionPriceClientUpdateSchema =
-  subscriptionPriceUpdateSchema.omit(nonClientEditableColumns).meta({
-    id: 'SubscriptionPriceUpdate',
-  })
-
-export const subscriptionPriceClientSelectSchema =
-  subscriptionPriceSelectSchema.omit(hiddenColumns).meta({
-    id: 'SubscriptionPriceRecord',
-  })
-
-  export const singlePaymentPriceClientSelectSchema =
-  singlePaymentPriceSelectSchema.omit(hiddenColumns).meta({
-    id: 'SinglePaymentPriceRecord',
-  })
-
-export const singlePaymentPriceClientInsertSchema =
-  singlePaymentPriceInsertSchema.omit(nonClientEditableColumns).meta({
-    id: 'SinglePaymentPriceInsert',
-  })
-
-export const singlePaymentPriceClientUpdateSchema =
-  singlePaymentPriceUpdateSchema.omit(nonClientEditableColumns).meta({
-    id: 'SinglePaymentPriceUpdate',
-  })
-
-
+// client subtype schemas are provided by buildSchemas above
 
 export const pricesClientInsertSchema = z
   .discriminatedUnion('type', [
@@ -629,15 +607,19 @@ export type ProductWithPrices = z.infer<
 >
 
 export const pricingModelWithProductsAndUsageMetersSchema =
-  pricingModelsClientSelectSchema.extend({
-    products: z.array(productWithPricesSchema),
-    usageMeters: z.array(usageMetersClientSelectSchema),
-    defaultProduct: productWithPricesSchema
-      .optional()
-      .describe(
-        'The default product for the pricing model. If no product is explicitly set as default, will return undefined.'
-      ),
-  })
+  pricingModelsClientSelectSchema
+    .extend({
+      products: z.array(productWithPricesSchema),
+      usageMeters: z.array(usageMetersClientSelectSchema),
+      defaultProduct: productWithPricesSchema
+        .optional()
+        .describe(
+          'The default product for the pricing model. If no product is explicitly set as default, will return undefined.'
+        ),
+    })
+    .meta({
+      id: 'PricingModelDetailsRecord',
+    })
 
 export type PricingModelWithProductsAndUsageMeters = z.infer<
   typeof pricingModelWithProductsAndUsageMetersSchema

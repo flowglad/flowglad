@@ -108,7 +108,9 @@ function InternalProductDetailsPage(
           <div className="min-w-40 flex flex-col gap-5 pb-5">
             <DateRangeRevenueChart
               organizationCreatedAt={
-                organization?.createdAt ?? new Date()
+                organization?.createdAt
+                  ? new Date(organization.createdAt)
+                  : new Date()
               }
               alignDatePicker="right"
               productId={product.id}

@@ -63,7 +63,6 @@ import {
   executeBillingRun,
 } from '@/subscriptions/billingRunHelpers'
 import { insertBillingRun } from '@/db/tableMethods/billingRunMethods'
-import { billingRunClientSelectSchema } from '@/db/schema/billingRuns'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',

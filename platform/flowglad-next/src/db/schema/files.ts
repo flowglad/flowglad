@@ -3,7 +3,6 @@ import { integer, text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   constructIndex,
-  ommittedColumnsForInsertSchema,
   constructUniqueIndex,
   nullableStringForeignKey,
   tableBase,
@@ -12,12 +11,11 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
-  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { products } from './products'
 import { sql } from 'drizzle-orm'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'files'
 
@@ -62,58 +60,36 @@ const columnRefinements = {
   sizeKb: z.number().transform((val) => Math.round(val)),
 }
 
-/*
- * database schema
- */
-export const filesInsertSchema = createInsertSchema(files)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const filesSelectSchema =
-  createSelectSchema(files).extend(columnRefinements)
-
-export const filesUpdateSchema = filesInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-  sizeKb: true,
-  contentType: true,
-  cdnUrl: true,
-  contentHash: true,
-} as const
-
-const hiddenColumns = {
-  etag: true,
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
+export const {
+  select: filesSelectSchema,
+  insert: filesInsertSchema,
+  update: filesUpdateSchema,
+  client: {
+    select: fileClientSelectSchema,
+    insert: fileClientInsertSchema,
+    update: fileClientUpdateSchema,
+  },
+} = buildSchemas(files, {
+  refine: {
+    ...columnRefinements,
+  },
+  client: {
+    hiddenColumns: {
+      etag: true,
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      organizationId: true,
+      livemode: true,
+      sizeKb: true,
+      contentType: true,
+      cdnUrl: true,
+      contentHash: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'File',
 })
-
-/*
- * client schemas
- */
-export const fileClientInsertSchema = filesInsertSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'FileClientInsertSchema' })
-
-export const fileClientUpdateSchema = filesUpdateSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'FileClientUpdateSchema' })
-
-export const fileClientSelectSchema = filesSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'FileClientSelectSchema' })
 
 export namespace File {
   export type Insert = z.infer<typeof filesInsertSchema>

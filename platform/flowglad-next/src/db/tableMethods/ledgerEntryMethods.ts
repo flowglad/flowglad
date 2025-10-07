@@ -113,7 +113,7 @@ const discardedAtFilterOutStatement = (
 ) => {
   return or(
     isNull(ledgerEntries.discardedAt),
-    gt(ledgerEntries.discardedAt, calculationDate)
+    gt(ledgerEntries.discardedAt, new Date(calculationDate).getTime())
   )
 }
 
@@ -244,7 +244,7 @@ export const aggregateAvailableBalanceForUsageCredit = async (
     usageCreditId: string
     ledgerAccountId: string
     balance: number
-    expiresAt: Date | null
+    expiresAt: number | null
   }[]
 > => {
   // First, fetch all ledger entries that match the scopedWhere criteria (e.g., ledgerAccountId)
@@ -310,7 +310,7 @@ export const aggregateAvailableBalanceForUsageCredit = async (
 
   // Create a map from usageCreditId to its expiresAt date (which can be null).
   // This allows efficient lookup of expiry dates when calculating the final balances.
-  const expiresAtByUsageCreditId = new Map<string, Date | null>()
+  const expiresAtByUsageCreditId = new Map<string, number | null>()
   relevantUsageCredits.forEach((usageCredit) => {
     expiresAtByUsageCreditId.set(
       usageCredit.id,
@@ -340,7 +340,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     LedgerEntry.Where,
     'ledgerAccountId' | 'sourceUsageEventId' | 'claimedByBillingRunId'
   >,
-  anchorDate: Date,
+  anchorDate: Date | number,
   transaction: DbTransaction
 ): Promise<
   {
@@ -365,10 +365,13 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
         balanceTypeWhereStatement('posted'),
         discardedAtFilterOutStatement(),
         or(
-          gt(ledgerEntries.expiredAt, anchorDate),
+          gt(ledgerEntries.expiredAt, new Date(anchorDate).getTime()),
           isNull(ledgerEntries.expiredAt)
         ),
-        lt(ledgerEntries.entryTimestamp, anchorDate)
+        lt(
+          ledgerEntries.entryTimestamp,
+          new Date(anchorDate).getTime()
+        )
       )
     )
     .orderBy(asc(ledgerEntries.position))

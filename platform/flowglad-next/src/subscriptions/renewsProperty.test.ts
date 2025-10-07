@@ -342,11 +342,11 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Verify billing period was created
         expect(result.billingPeriod).toBeDefined()
-        expect(result.billingPeriod!.startDate.getTime()).toBe(
-          result.subscription.currentBillingPeriodStart!.getTime()
+        expect(result.billingPeriod!.startDate).toBe(
+          result.subscription.currentBillingPeriodStart!
         )
-        expect(result.billingPeriod!.endDate.getTime()).toBe(
-          result.subscription.currentBillingPeriodEnd!.getTime()
+        expect(result.billingPeriod!.endDate).toBe(
+          result.subscription.currentBillingPeriodEnd!
         )
         expect(result.billingPeriod!.status).toBe(
           BillingPeriodStatus.Active
@@ -419,9 +419,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         expect(result.subscription.status).toBe(
           SubscriptionStatus.Trialing
         )
-        expect(result.subscription.trialEnd?.getTime()).toBe(
-          trialEnd.getTime()
-        )
+        expect(result.subscription.trialEnd).toBe(trialEnd.getTime())
         expect(result.billingPeriod).toBeDefined()
         expect(result.billingPeriod!.trialPeriod).toBe(true)
       })
@@ -573,8 +571,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           priceId: price.id,
           status: SubscriptionStatus.Active,
           renews: true, // Key difference
-          currentBillingPeriodStart: startDate,
-          currentBillingPeriodEnd: endDate,
+          currentBillingPeriodStart: startDate.getTime(),
+          currentBillingPeriodEnd: endDate.getTime(),
           interval: IntervalUnit.Month,
           intervalCount: 1,
         })
@@ -602,12 +600,12 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           result.subscription.currentBillingPeriodStart
         ).not.toEqual(startDate)
         expect(
-          result.subscription.currentBillingPeriodStart.getTime()
+          result.subscription.currentBillingPeriodStart
         ).toBeGreaterThanOrEqual(endDate.getTime())
         expect(
-          result.subscription.currentBillingPeriodEnd.getTime()
+          result.subscription.currentBillingPeriodEnd
         ).toBeGreaterThan(
-          result.subscription.currentBillingPeriodStart.getTime()
+          result.subscription.currentBillingPeriodStart!
         )
 
         // Check that old billing period status was updated
@@ -635,10 +633,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should schedule billing run for next period when payment method exists', async () => {
-        const startDate = new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
-        )
-        const endDate = new Date(Date.now() - 1000)
+        const startDate = Date.now() - 30 * 24 * 60 * 60 * 1000
+        const endDate = Date.now() - 1000
 
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -684,10 +680,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should transition to PastDue when no payment method exists', async () => {
-        const startDate = new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
-        )
-        const endDate = new Date(Date.now() - 1000)
+        const startDate = Date.now() - 30 * 24 * 60 * 60 * 1000
+        const endDate = Date.now() - 1000
 
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -741,13 +735,10 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should respect cancelScheduledAt and stop renewal', async () => {
-        const startDate = new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
-        )
-        const endDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) // 2 days ago
-        const cancelScheduledAt = new Date(
-          Date.now() - 1 * 24 * 60 * 60 * 1000
-        ) // 1 day ago
+        const startDate = Date.now() - 30 * 24 * 60 * 60 * 1000
+        const endDate = Date.now() - 2 * 24 * 60 * 60 * 1000 // 2 days ago
+        const cancelScheduledAt = Date.now() - 1 * 24 * 60 * 60 * 1000
+        // 1 day ago
 
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -815,8 +806,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           priceId: price.id,
           status: SubscriptionStatus.Active,
           renews: true, // Initially renewing
-          currentBillingPeriodStart: startDate,
-          currentBillingPeriodEnd: endDate,
+          currentBillingPeriodStart: startDate.getTime(),
+          currentBillingPeriodEnd: endDate.getTime(),
           interval: IntervalUnit.Month,
           intervalCount: 1,
         })
@@ -929,11 +920,11 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               id: result.subscription.id,
               renews: true,
               status: SubscriptionStatus.Active,
-              currentBillingPeriodStart: startDate,
-              currentBillingPeriodEnd: endDate,
+              currentBillingPeriodStart: startDate.getTime(),
+              currentBillingPeriodEnd: endDate.getTime(),
               interval: IntervalUnit.Month,
               intervalCount: 1,
-              billingCycleAnchorDate: startDate,
+              billingCycleAnchorDate: startDate.getTime(),
             },
             transaction
           )
@@ -998,7 +989,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               price: creditTrialPrice,
               quantity: 1,
               livemode: true,
-              startDate: new Date(),
+              startDate: Date.now(),
               interval: IntervalUnit.Month,
               intervalCount: 1,
               customer,
@@ -1010,8 +1001,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       )
 
       // Convert to paid subscription
-      const startDate = new Date()
-      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      const startDate = Date.now()
+      const endDate = Date.now() + 30 * 24 * 60 * 60 * 1000
 
       const converted = await adminTransaction(
         async ({ transaction }) => {
@@ -1024,7 +1015,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               currentBillingPeriodEnd: endDate,
               interval: IntervalUnit.Month,
               intervalCount: 1,
-              billingCycleAnchorDate: new Date(),
+              billingCycleAnchorDate: Date.now(),
             },
             transaction
           )
@@ -1057,12 +1048,10 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       // Verify billing period was created correctly
       expect(converted.billingPeriod).toBeDefined()
       // Since this is the initial billing period after conversion, it starts from currentBillingPeriodStart
-      expect(converted.billingPeriod!.startDate.getTime()).toBe(
-        startDate.getTime()
-      )
+      expect(converted.billingPeriod!.startDate).toBe(startDate)
       // The end date should be approximately 1 month later (allowing for month length variations)
-      const actualEndTime = converted.billingPeriod!.endDate.getTime()
-      const expectedEndTime = endDate.getTime()
+      const actualEndTime = converted.billingPeriod!.endDate
+      const expectedEndTime = endDate
       const dayInMs = 24 * 60 * 60 * 1000
       expect(
         Math.abs(actualEndTime - expectedEndTime)
@@ -1073,12 +1062,12 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       )
 
       // Verify subscription dates were updated
-      expect(
-        converted.subscription.currentBillingPeriodStart?.getTime()
-      ).toBe(startDate.getTime())
-      expect(
-        converted.subscription.currentBillingPeriodEnd?.getTime()
-      ).toBe(endDate.getTime())
+      expect(converted.subscription.currentBillingPeriodStart).toBe(
+        startDate
+      )
+      expect(converted.subscription.currentBillingPeriodEnd).toBe(
+        endDate
+      )
     })
 
     it('should maintain renews: false when credits are exhausted without payment', async () => {
@@ -1130,7 +1119,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               id: result.subscription.id,
               renews: false,
               status: SubscriptionStatus.Canceled,
-              canceledAt: new Date(),
+              canceledAt: Date.now(),
               currentBillingPeriodStart: null,
               currentBillingPeriodEnd: null,
               interval: null,

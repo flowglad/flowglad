@@ -27,11 +27,12 @@ export const commitEvent = async (
   payload: CreateEventPayload,
   transaction: DbTransaction
 ) => {
+  const now = Date.now()
   return upsertEventByHash(
     {
       type: payload.type,
-      submittedAt: new Date(),
-      occurredAt: new Date(),
+      submittedAt: now,
+      occurredAt: now,
       payload: payload.payload,
       hash: hashData(JSON.stringify(payload.payload)),
       metadata: {},
