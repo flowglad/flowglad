@@ -118,8 +118,10 @@ const CustomerDetailsSection = ({
           <DetailLabel
             label="Latest Usage"
             value={
-              latestUsageEvent
-                ? core.formatDate(latestUsageEvent.usageDate)
+              latestUsageEvent?.usageDate
+                ? core.formatDate(
+                    new Date(latestUsageEvent.usageDate)
+                  )
                 : 'None'
             }
           />

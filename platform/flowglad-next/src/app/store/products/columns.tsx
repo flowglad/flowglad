@@ -113,6 +113,7 @@ function ProductActionsMenu({
         setIsOpen={setIsArchiveOpen}
         product={{
           id: product.id,
+          name: product.name,
           active: product.active,
         }}
       />

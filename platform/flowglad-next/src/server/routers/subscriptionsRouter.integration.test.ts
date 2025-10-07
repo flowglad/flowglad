@@ -51,7 +51,6 @@ import {
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import core from '@/utils/core'
-import { subDays } from 'date-fns'
 
 vi.mock('next/headers', () => ({
   headers: vi.fn(() => new Headers()),
@@ -116,13 +115,9 @@ beforeEach(async () => {
     livemode: true,
   })
 
-  const now = new Date()
-  const billingPeriodStart = new Date(
-    now.getTime() - 15 * 24 * 60 * 60 * 1000
-  ) // 15 days ago
-  const billingPeriodEnd = new Date(
-    now.getTime() + 15 * 24 * 60 * 60 * 1000
-  ) // 15 days from now
+  const nowMs = Date.now()
+  const billingPeriodStart = nowMs - 15 * 24 * 60 * 60 * 1000 // 15 days ago
+  const billingPeriodEnd = nowMs + 15 * 24 * 60 * 60 * 1000 // 15 days from now
 
   subscription = await setupSubscription({
     organizationId: organization.id,
@@ -277,7 +272,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
               quantity: 1,
               unitPrice: 4999, // $49.99
               type: SubscriptionItemType.Static,
-              addedDate: new Date(),
+              addedDate: Date.now(),
               expiredAt: null,
               livemode: true,
               externalId: null,
@@ -320,7 +315,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
               quantity: 1,
               unitPrice: 4999,
               type: SubscriptionItemType.Static,
-              addedDate: new Date(),
+              addedDate: Date.now(),
               expiredAt: null,
               livemode: true,
               externalId: null,
@@ -362,7 +357,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
               quantity: 1,
               unitPrice: 999, // $9.99 (downgrade)
               type: SubscriptionItemType.Static,
-              addedDate: new Date(),
+              addedDate: Date.now(),
               expiredAt: null,
               livemode: true,
               externalId: null,
@@ -527,7 +522,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
               quantity: 1,
               unitPrice: 500,
               type: SubscriptionItemType.Static,
-              addedDate: new Date(),
+              addedDate: Date.now(),
               expiredAt: null,
               livemode: true,
               externalId: null,
@@ -564,7 +559,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
               quantity: 2,
               unitPrice: 4999,
               type: SubscriptionItemType.Static,
-              addedDate: new Date(),
+              addedDate: Date.now(),
               expiredAt: null,
               livemode: true,
               externalId: null,

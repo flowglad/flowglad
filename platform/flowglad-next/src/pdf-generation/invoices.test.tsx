@@ -120,7 +120,7 @@ describe('Invoice Components', () => {
         stripeChargeId: `ch_${Date.now()}`,
         refunded: true,
         refundedAmount: 6000,
-        refundedAt: new Date(),
+        refundedAt: Date.now(),
       })
 
       const { getByTestId } = render(
@@ -260,11 +260,17 @@ describe('Invoice Components', () => {
       )
 
       // Should show original amount ($60.00)
-      expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+      expect(getByTestId('original-amount')).toHaveTextContent(
+        '$60.00'
+      )
       // Should show discount amount ($10.00)
-      expect(getByTestId('discount-amount')).toHaveTextContent('-$10.00')
+      expect(getByTestId('discount-amount')).toHaveTextContent(
+        '-$10.00'
+      )
       // Should show subtotal ($50.00)
-      expect(getByTestId('subtotal-amount')).toHaveTextContent('$50.00')
+      expect(getByTestId('subtotal-amount')).toHaveTextContent(
+        '$50.00'
+      )
       // Should show total ($50.00)
       expect(getByTestId('total-amount')).toHaveTextContent('$50.00')
     })
@@ -276,17 +282,20 @@ describe('Invoice Components', () => {
         status: InvoiceStatus.Draft,
         priceId: price.id,
       })
-      
+
       // Update the invoice with the correct subtotal
       await adminTransaction(async ({ transaction }) => {
-        return await updateInvoice({
-          id: invoiceWithDiscount.id,
-          type: invoiceWithDiscount.type,
-          purchaseId: invoiceWithDiscount.purchaseId,
-          billingPeriodId: invoiceWithDiscount.billingPeriodId,
-          subscriptionId: invoiceWithDiscount.subscriptionId,
-          subtotal: 5400, // $54.00 after 10% discount
-        } as any, transaction)
+        return await updateInvoice(
+          {
+            id: invoiceWithDiscount.id,
+            type: invoiceWithDiscount.type,
+            purchaseId: invoiceWithDiscount.purchaseId,
+            billingPeriodId: invoiceWithDiscount.billingPeriodId,
+            subscriptionId: invoiceWithDiscount.subscriptionId,
+            subtotal: 5400, // $54.00 after 10% discount
+          } as any,
+          transaction
+        )
       })
 
       const { getByTestId } = render(
@@ -306,11 +315,17 @@ describe('Invoice Components', () => {
       )
 
       // Should show original amount ($60.00)
-      expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+      expect(getByTestId('original-amount')).toHaveTextContent(
+        '$60.00'
+      )
       // Should show discount amount ($6.00 - 10% of $60.00)
-      expect(getByTestId('discount-amount')).toHaveTextContent('-$6.00')
+      expect(getByTestId('discount-amount')).toHaveTextContent(
+        '-$6.00'
+      )
       // Should show subtotal ($54.00)
-      expect(getByTestId('subtotal-amount')).toHaveTextContent('$54.00')
+      expect(getByTestId('subtotal-amount')).toHaveTextContent(
+        '$54.00'
+      )
       // Should show total ($54.00)
       expect(getByTestId('total-amount')).toHaveTextContent('$54.00')
     })
@@ -322,19 +337,26 @@ describe('Invoice Components', () => {
         status: InvoiceStatus.Draft,
         priceId: price.id,
       })
-      
+
       // Update the invoice with the correct subtotal and tax
-      const updatedInvoiceWithTax = await adminTransaction(async ({ transaction }) => {
-        return await updateInvoice({
-          id: invoiceWithDiscountAndTax.id,
-          type: invoiceWithDiscountAndTax.type,
-          purchaseId: invoiceWithDiscountAndTax.purchaseId,
-          billingPeriodId: invoiceWithDiscountAndTax.billingPeriodId,
-          subscriptionId: invoiceWithDiscountAndTax.subscriptionId,
-          subtotal: 5400, // $54.00 after 10% discount
-          taxAmount: 540, // $5.40 tax
-        } as any, transaction)
-      })
+      const updatedInvoiceWithTax = await adminTransaction(
+        async ({ transaction }) => {
+          return await updateInvoice(
+            {
+              id: invoiceWithDiscountAndTax.id,
+              type: invoiceWithDiscountAndTax.type,
+              purchaseId: invoiceWithDiscountAndTax.purchaseId,
+              billingPeriodId:
+                invoiceWithDiscountAndTax.billingPeriodId,
+              subscriptionId:
+                invoiceWithDiscountAndTax.subscriptionId,
+              subtotal: 5400, // $54.00 after 10% discount
+              taxAmount: 540, // $5.40 tax
+            } as any,
+            transaction
+          )
+        }
+      )
 
       const { getByTestId } = render(
         <InvoiceTemplate
@@ -353,11 +375,17 @@ describe('Invoice Components', () => {
       )
 
       // Should show original amount ($60.00)
-      expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+      expect(getByTestId('original-amount')).toHaveTextContent(
+        '$60.00'
+      )
       // Should show discount amount ($6.00)
-      expect(getByTestId('discount-amount')).toHaveTextContent('-$6.00')
+      expect(getByTestId('discount-amount')).toHaveTextContent(
+        '-$6.00'
+      )
       // Should show subtotal ($54.00)
-      expect(getByTestId('subtotal-amount')).toHaveTextContent('$54.00')
+      expect(getByTestId('subtotal-amount')).toHaveTextContent(
+        '$54.00'
+      )
       // Should show tax ($5.40)
       expect(getByTestId('tax-amount')).toHaveTextContent('$5.40')
       // Should show total ($59.40)
@@ -371,17 +399,20 @@ describe('Invoice Components', () => {
         status: InvoiceStatus.Draft,
         priceId: price.id,
       })
-      
+
       // Update the invoice with the correct subtotal
       await adminTransaction(async ({ transaction }) => {
-        return await updateInvoice({
-          id: invoiceWithLargeDiscount.id,
-          type: invoiceWithLargeDiscount.type,
-          purchaseId: invoiceWithLargeDiscount.purchaseId,
-          billingPeriodId: invoiceWithLargeDiscount.billingPeriodId,
-          subscriptionId: invoiceWithLargeDiscount.subscriptionId,
-          subtotal: 0, // $0.00 after 100% discount
-        } as any, transaction)
+        return await updateInvoice(
+          {
+            id: invoiceWithLargeDiscount.id,
+            type: invoiceWithLargeDiscount.type,
+            purchaseId: invoiceWithLargeDiscount.purchaseId,
+            billingPeriodId: invoiceWithLargeDiscount.billingPeriodId,
+            subscriptionId: invoiceWithLargeDiscount.subscriptionId,
+            subtotal: 0, // $0.00 after 100% discount
+          } as any,
+          transaction
+        )
       })
 
       const { getByTestId } = render(
@@ -401,11 +432,17 @@ describe('Invoice Components', () => {
       )
 
       // Should show original amount ($60.00)
-      expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+      expect(getByTestId('original-amount')).toHaveTextContent(
+        '$60.00'
+      )
       // Should show discount amount ($60.00 - capped at 100%)
-      expect(getByTestId('discount-amount')).toHaveTextContent('-$60.00')
+      expect(getByTestId('discount-amount')).toHaveTextContent(
+        '-$60.00'
+      )
       // Should show subtotal ($0.00)
-      expect(getByTestId('subtotal-amount')).toHaveTextContent('$0.00')
+      expect(getByTestId('subtotal-amount')).toHaveTextContent(
+        '$0.00'
+      )
       // Should show total ($0.00)
       expect(getByTestId('total-amount')).toHaveTextContent('$0.00')
     })

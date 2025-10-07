@@ -27,8 +27,8 @@ const subscriptionDetails = {
 
 export const stubbedCheckoutSession: CheckoutSession.Record = {
   id: '1',
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
   priceId: '1',
   invoiceId: null,
   outputName: null,
@@ -39,7 +39,7 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
   customerEmail: 'test@test.com',
   stripeSetupIntentId: null,
   stripePaymentIntentId: null,
-  expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+  expires: Date.now() + 1000 * 60 * 60 * 24,
   billingAddress: null,
   purchaseId: null,
   discountId: null,

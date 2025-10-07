@@ -20,6 +20,7 @@ import { organizations } from '@/db/schema/organizations'
 import { sql } from 'drizzle-orm'
 import core from '@/utils/core'
 import { DestinationEnvironment, IntervalUnit } from '@/types'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'pricing_models'
 
@@ -58,23 +59,6 @@ export const pricingModels = pgTable(
   }
 ).enableRLS()
 
-export const pricingModelsSelectSchema = createSelectSchema(
-  pricingModels,
-  {
-    ...newBaseZodSelectSchemaColumns,
-  }
-)
-
-export const pricingModelsInsertSchema = createInsertSchema(
-  pricingModels
-).omit(ommittedColumnsForInsertSchema)
-
-export const pricingModelsUpdateSchema = pricingModelsInsertSchema
-  .partial()
-  .extend({
-    id: z.string(),
-  })
-
 const readOnlyColumns = {
   organizationId: true,
   livemode: true,
@@ -84,20 +68,22 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 }
 
-export const pricingModelsClientSelectSchema =
-  pricingModelsSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'PricingModelsClientSelectSchema' })
-
-export const pricingModelsClientUpdateSchema =
-  pricingModelsUpdateSchema
-    .omit(readOnlyColumns)
-    .meta({ id: 'PricingModelsClientUpdateSchema' })
-
-export const pricingModelsClientInsertSchema =
-  pricingModelsInsertSchema
-    .omit(readOnlyColumns)
-    .meta({ id: 'PricingModelsClientInsertSchema' })
+export const {
+  select: pricingModelsSelectSchema,
+  insert: pricingModelsInsertSchema,
+  update: pricingModelsUpdateSchema,
+  client: {
+    select: pricingModelsClientSelectSchema,
+    insert: pricingModelsClientInsertSchema,
+    update: pricingModelsClientUpdateSchema,
+  },
+} = buildSchemas(pricingModels, {
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'PricingModel',
+})
 
 export const pricingModelsPaginatedSelectSchema =
   createPaginatedSelectSchema(pricingModelsClientSelectSchema)

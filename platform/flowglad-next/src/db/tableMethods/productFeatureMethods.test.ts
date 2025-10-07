@@ -60,13 +60,13 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     await setupProductFeature({
       productId: product.id,
@@ -150,13 +150,13 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     // - Call `unexpireProductFeatures` with a list containing only the ID for Feature A and a non-existent Feature C.
     const result = await adminTransaction(async ({ transaction }) => {
@@ -189,7 +189,7 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
 
     // - Call `unexpireProductFeatures` with an empty `featureIds` array.
@@ -214,7 +214,7 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     // - Create a second, different product.
     const otherProduct = await setupProduct({
@@ -320,13 +320,13 @@ describe('syncProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` matching the two expired features.
@@ -371,7 +371,7 @@ describe('syncProductFeatures', () => {
       productId: product.id,
       featureId: featureC.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     // - Feature D is a new feature that doesn't have a product feature record yet.
 
@@ -424,7 +424,7 @@ describe('syncProductFeatures', () => {
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` = `['feature_A_id']`.

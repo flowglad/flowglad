@@ -31,22 +31,23 @@ import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpe
 import { PaymentStatus } from '@/types'
 
 export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
-  adjustmentDate: Date,
+  adjustmentDate: Date | number,
   billingPeriod: BillingPeriod.Record
 ) => {
-  if (adjustmentDate < billingPeriod.startDate) {
+  const adjustmentTimestamp = new Date(adjustmentDate).getTime()
+  if (adjustmentTimestamp < billingPeriod.startDate) {
     throw new Error(
       'Adjustment date is before billing period start date'
     )
   }
-  if (adjustmentDate > billingPeriod.endDate) {
+  if (adjustmentTimestamp > billingPeriod.endDate) {
     throw new Error(
       'Adjustment date is after billing period end date'
     )
   }
-  const billingPeriodStartMs = billingPeriod.startDate.getTime()
-  const billingPeriodEndMs = billingPeriod.endDate.getTime()
-  const adjustmentDateMs = adjustmentDate.getTime()
+  const billingPeriodStartMs = billingPeriod.startDate
+  const billingPeriodEndMs = billingPeriod.endDate
+  const adjustmentDateMs = adjustmentTimestamp
 
   const totalBillingPeriodMs =
     billingPeriodEndMs - billingPeriodStartMs
@@ -140,10 +141,13 @@ const calculateCorrectProrationAmount = async (
  * Uses the provided time to determine what's active at that specific moment.
  */
 export const syncSubscriptionWithActiveItems = async (
-  subscriptionId: string,
-  transaction: DbTransaction,
-  currentTime: Date
+  params: {
+    subscriptionId: string
+    currentTime: Date | number
+  },
+  transaction: DbTransaction
 ): Promise<Subscription.StandardRecord> => {
+  const { subscriptionId, currentTime } = params
   // Get all currently active subscription items at the specified time
   const activeItems = await selectCurrentlyActiveSubscriptionItems(
     { subscriptionId },
@@ -231,14 +235,14 @@ export const adjustSubscription = async (
       `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`
     )
   }
-  let adjustmentDate: Date
+  let adjustmentDate: number
   if (timing === SubscriptionAdjustmentTiming.Immediately) {
-    adjustmentDate = new Date()
+    adjustmentDate = Date.now()
   } else if (
     timing ===
     SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
   ) {
-    adjustmentDate = subscription.currentBillingPeriodEnd
+    adjustmentDate = subscription.currentBillingPeriodEnd!
   } else {
     throw new Error('Invalid timing')
   }
@@ -293,9 +297,11 @@ export const adjustSubscription = async (
     !adjustment.prorateCurrentBillingPeriod
   ) {
     const updatedSubscription = await syncSubscriptionWithActiveItems(
-      subscription.id,
-      transaction,
-      adjustmentDate
+      {
+        subscriptionId: subscription.id,
+        currentTime: adjustmentDate,
+      },
+      transaction
     )
     return { subscription: updatedSubscription, subscriptionItems }
   }
@@ -429,9 +435,11 @@ export const adjustSubscription = async (
   // Sync subscription record with currently active items (including new ones)
   // For immediate adjustments with proration
   const updatedSubscription = await syncSubscriptionWithActiveItems(
-    subscription.id,
-    transaction,
-    adjustmentDate
+    {
+      subscriptionId: subscription.id,
+      currentTime: adjustmentDate,
+    },
+    transaction
   )
   return { subscription: updatedSubscription, subscriptionItems }
 }

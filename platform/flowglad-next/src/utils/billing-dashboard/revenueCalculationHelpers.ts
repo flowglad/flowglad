@@ -330,8 +330,8 @@ export async function calculateMRRByMonth(
       console.log(`[MRR DEBUG] Billing Period ${index}:`, {
         id: bp.billingPeriod.id,
         subscriptionId: bp.subscription.id,
-        startDate: bp.billingPeriod.startDate.toISOString(),
-        endDate: bp.billingPeriod.endDate.toISOString(),
+        startDate: new Date(bp.billingPeriod.startDate).toISOString(),
+        endDate: new Date(bp.billingPeriod.endDate).toISOString(),
         interval: (bp.subscription as any).interval,
         intervalCount: bp.subscription.intervalCount,
         itemsCount: bp.billingPeriodItems.length,

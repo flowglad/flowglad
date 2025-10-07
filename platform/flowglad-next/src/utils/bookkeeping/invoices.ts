@@ -96,6 +96,7 @@ export const createInitialInvoiceForPurchase = async (
     0
   )
   const { billingAddress, bankPaymentOnly } = purchase
+  const now = Date.now()
   const invoiceInsert: Invoice.Insert = {
     livemode: purchase.livemode,
     customerId: purchase.customerId,
@@ -118,8 +119,8 @@ export const createInitialInvoiceForPurchase = async (
       ? (billingAddressSchema.parse(billingAddress).address
           .country as CountryCode)
       : null,
-    invoiceDate: new Date(),
-    dueDate: new Date(),
+    invoiceDate: now,
+    dueDate: now,
   }
   const invoice: Invoice.Record = await insertInvoice(
     invoiceInsert,

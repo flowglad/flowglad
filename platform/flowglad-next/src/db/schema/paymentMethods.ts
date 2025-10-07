@@ -6,7 +6,6 @@ import {
   text,
   boolean,
 } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
 import {
   pgEnumColumn,
   constructIndex,
@@ -30,6 +29,7 @@ import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { billingAddressSchema } from './organizations'
 import core, { zodOptionalNullableString } from '@/utils/core'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'payment_methods'
 
@@ -94,68 +94,34 @@ const columnRefinements = {
   metadata: metadataSchema.nullable().optional(),
 }
 
-/*
- * database schema
- */
-export const paymentMethodsInsertSchema = createSelectSchema(
-  paymentMethods,
-  columnRefinements
-).omit(ommittedColumnsForInsertSchema)
-
-export const paymentMethodsSelectSchema =
-  createSelectSchema(paymentMethods).extend(columnRefinements)
-
-export const paymentMethodsUpdateSchema = createSelectSchema(
-  paymentMethods,
-  columnRefinements
-)
-  .partial()
-  .extend({
-    id: z.string(),
-  })
-
-const createOnlyColumns = {
-  customerId: true,
-} as const
-
-const readOnlyColumns = {
-  livemode: true,
-} as const
-
-const hiddenColumns = {
-  stripePaymentMethodId: true,
-  externalId: true,
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const nonClientEditableColumns = {
-  ...readOnlyColumns,
-  ...hiddenColumns,
-  ...createOnlyColumns,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
+export const {
+  select: paymentMethodsSelectSchema,
+  insert: paymentMethodsInsertSchema,
+  update: paymentMethodsUpdateSchema,
+  client: {
+    select: paymentMethodClientSelectSchema,
+    insert: paymentMethodClientInsertSchema,
+    update: paymentMethodClientUpdateSchema,
+  },
+} = buildSchemas(paymentMethods, {
+  refine: {
+    ...columnRefinements,
+  },
+  client: {
+    hiddenColumns: {
+      stripePaymentMethodId: true,
+      externalId: true,
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      livemode: true,
+    },
+    createOnlyColumns: {
+      customerId: true,
+    },
+  },
+  entityName: 'PaymentMethod',
 })
-
-/*
- * client schemas
- */
-export const paymentMethodClientInsertSchema =
-  paymentMethodsInsertSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'PaymentMethodInsert' })
-
-export const paymentMethodClientUpdateSchema =
-  paymentMethodsUpdateSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'PaymentMethodUpdate' })
-
-export const paymentMethodClientSelectSchema =
-  paymentMethodsSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'PaymentMethodRecord' })
 
 export const paymentMethodsPaginatedSelectSchema =
   createPaginatedSelectSchema(paymentMethodClientSelectSchema)

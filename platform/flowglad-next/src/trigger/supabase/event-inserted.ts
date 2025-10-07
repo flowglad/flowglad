@@ -84,7 +84,7 @@ export const eventInsertedTask = task({
       }
 
       const updatedEvent = await updateEvent(
-        { id: event.id, processedAt: new Date() },
+        { id: event.id, processedAt: Date.now() },
         transaction
       )
       const organization = await selectOrganizationById(

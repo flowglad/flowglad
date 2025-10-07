@@ -230,11 +230,11 @@ describe('billingRunHelpers', async () => {
       const billingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
         startDate: new Date(
-          subscription.currentBillingPeriodStart!.getTime() -
+          subscription.currentBillingPeriodStart! -
             30 * 24 * 60 * 60 * 1000
         ),
         endDate: new Date(
-          subscription.currentBillingPeriodEnd!.getTime() -
+          subscription.currentBillingPeriodEnd! -
             30 * 24 * 60 * 60 * 1000
         ),
         status: BillingPeriodStatus.Active,
@@ -264,7 +264,7 @@ describe('billingRunHelpers', async () => {
           const updatedBillingPeriod = await updateBillingPeriod(
             {
               id: billingPeriod.id,
-              endDate: new Date(Date.now() - 180 * 1000),
+              endDate: Date.now() - 180 * 1000,
             },
             transaction
           )
@@ -554,8 +554,8 @@ describe('billingRunHelpers', async () => {
       expect(invoiceInsert.purchaseId).toBeNull()
 
       // Check dates are set
-      expect(invoiceInsert.invoiceDate).toBeInstanceOf(Date)
-      expect(invoiceInsert.dueDate).toBeInstanceOf(Date)
+      expect(invoiceInsert.invoiceDate).toBeDefined()
+      expect(invoiceInsert.dueDate).toBeDefined()
       expect(invoiceInsert.billingPeriodStartDate).toEqual(
         billingPeriod.startDate
       )
@@ -672,8 +672,12 @@ describe('billingRunHelpers', async () => {
           )
       )
 
-      expect(invoiceInsert.billingPeriodStartDate).toEqual(startDate)
-      expect(invoiceInsert.billingPeriodEndDate).toEqual(endDate)
+      expect(invoiceInsert.billingPeriodStartDate).toEqual(
+        startDate.getTime()
+      )
+      expect(invoiceInsert.billingPeriodEndDate).toEqual(
+        endDate.getTime()
+      )
     })
   })
 
@@ -850,11 +854,10 @@ describe('billingRunHelpers', async () => {
         )
 
         expect(retryInsert).toBeDefined()
-        const expectedRetryDate = new Date(
+        const expectedRetryDate =
           Date.now() + daysToRetry * 24 * 60 * 60 * 1000
-        )
-        expect(retryInsert!.scheduledFor.getTime()).toBeCloseTo(
-          expectedRetryDate.getTime(),
+        expect(retryInsert!.scheduledFor).toBeCloseTo(
+          expectedRetryDate,
           -3 // tolerance of 1 second
         )
 
@@ -863,8 +866,8 @@ describe('billingRunHelpers', async () => {
           ...billingRun,
           ...(retryInsert as BillingRun.Insert),
           id: `retry-run-${i}`,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
           status: retryInsert!.status,
         } as BillingRun.Record)
       }
@@ -876,8 +879,8 @@ describe('billingRunHelpers', async () => {
           scheduleBillingRunRetry(billingRun, transaction)
       )
       expect(retryBillingRun).toBeDefined()
-      expect(retryBillingRun?.scheduledFor.getTime()).toBeGreaterThan(
-        new Date().getTime() + 3 * 24 * 60 * 60 * 1000 - 60 * 1000
+      expect(retryBillingRun?.scheduledFor).toBeGreaterThan(
+        Date.now() + 3 * 24 * 60 * 60 * 1000 - 60 * 1000
       )
     })
 
@@ -894,9 +897,7 @@ describe('billingRunHelpers', async () => {
           const futureBillingPeriod = await updateBillingPeriod(
             {
               id: billingPeriod.id,
-              startDate: new Date(
-                Date.now() + 10 * 24 * 60 * 60 * 1000
-              ), // 10 days in the future
+              startDate: Date.now() + 10 * 24 * 60 * 60 * 1000, // 10 days in the future
             },
             transaction
           )
@@ -1283,7 +1284,7 @@ describe('billingRunHelpers', async () => {
       )
 
       // If the billing period is in the past, it should be marked as Completed
-      if (new Date() > billingPeriod.endDate) {
+      if (Date.now() > billingPeriod.endDate) {
         expect(result.billingPeriod.status).toBe(
           BillingPeriodStatus.Completed
         )
@@ -1324,13 +1325,15 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should handle nested billing details address for tax country', async () => {
+      const billingAddress: PaymentMethod.BillingDetails =
+        paymentMethod.billingDetails
       // Update payment method with nested address
       await adminTransaction(async ({ transaction }) => {
         await updatePaymentMethod(
           {
             id: paymentMethod.id,
             billingDetails: {
-              ...paymentMethod.billingDetails,
+              ...billingAddress,
               address: {
                 country: 'US',
                 line1: null,
@@ -1401,7 +1404,7 @@ describe('billingRunHelpers', async () => {
             currency: CurrencyCode.USD,
             status: PaymentStatus.Succeeded,
             organizationId: organization.id,
-            chargeDate: new Date(),
+            chargeDate: Date.now(),
             customerId: customer.id,
             invoiceId: (
               await setupInvoice({
@@ -1501,7 +1504,7 @@ describe('billingRunHelpers', async () => {
         billingPeriodId: billingPeriod.id,
         transactionId: 'dummy_txn_claim_' + Math.random(),
         customerId: customer.id,
-        usageDate: new Date(),
+        usageDate: Date.now(),
       })
       const initialEntry = await setupDebitLedgerEntry({
         organizationId: organization.id,
@@ -1563,7 +1566,7 @@ describe('billingRunHelpers', async () => {
             currency: CurrencyCode.USD,
             status: PaymentStatus.Succeeded,
             organizationId: organization.id,
-            chargeDate: new Date(),
+            chargeDate: Date.now(),
             customerId: customer.id,
             invoiceId: (
               await setupInvoice({
@@ -1828,7 +1831,7 @@ describe('billingRunHelpers', async () => {
           billingPeriodId: billingPeriod.id,
           transactionId: 'dummy_txn_1' + Math.random(),
           customerId: customer.id,
-          usageDate: new Date(),
+          usageDate: Date.now(),
         })
 
         const costEntry = await setupDebitLedgerEntry({
@@ -1899,7 +1902,7 @@ describe('billingRunHelpers', async () => {
           billingPeriodId: billingPeriod.id,
           transactionId: 'dummy_txn_1' + Math.random(),
           customerId: customer.id,
-          usageDate: new Date(Date.now() - 2000),
+          usageDate: Date.now() - 2000,
         })
 
         const usageEvent2 = await setupUsageEvent({
@@ -1911,7 +1914,7 @@ describe('billingRunHelpers', async () => {
           billingPeriodId: billingPeriod.id,
           transactionId: 'dummy_txn_2' + Math.random(),
           customerId: customer.id,
-          usageDate: new Date(Date.now() - 1000),
+          usageDate: Date.now() - 1000,
         })
 
         await setupDebitLedgerEntry({
@@ -2052,9 +2055,7 @@ describe('billingRunHelpers', async () => {
         sourceUsageEventId: ue3.id,
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
-        entryTimestamp: new Date(
-          billingPeriod.endDate.getTime() - 1000
-        ),
+        entryTimestamp: billingPeriod.endDate - 1000,
       })
 
       await adminTransaction(async ({ transaction }) => {
@@ -2137,7 +2138,7 @@ describe('billingRunHelpers', async () => {
           billingPeriodId: billingPeriod.id,
           transactionId: 'dummy_txn_included_' + Math.random(),
           customerId: customer.id,
-          usageDate: new Date(billingPeriodEndDate.getTime() - 1000), // within period
+          usageDate: billingPeriodEndDate.getTime() - 1000, // within period
         })
         await setupDebitLedgerEntry({
           organizationId: organization.id,
@@ -2149,9 +2150,7 @@ describe('billingRunHelpers', async () => {
           sourceUsageEventId: usageEvent1.id,
           status: LedgerEntryStatus.Posted,
           usageMeterId: usageMeter.id,
-          entryTimestamp: new Date(
-            billingPeriodEndDate.getTime() - 1000
-          ), // on the boundary
+          entryTimestamp: billingPeriodEndDate.getTime() - 1000, // on the boundary
         })
 
         // Cost excluded: timestamp is after the end date
@@ -2164,7 +2163,7 @@ describe('billingRunHelpers', async () => {
           billingPeriodId: billingPeriod.id,
           transactionId: 'dummy_txn_excluded_' + Math.random(),
           customerId: customer.id,
-          usageDate: new Date(billingPeriodEndDate.getTime() + 1000), // outside period
+          usageDate: billingPeriodEndDate.getTime() + 1000, // outside period
         })
         await setupDebitLedgerEntry({
           organizationId: organization.id,
@@ -2176,9 +2175,7 @@ describe('billingRunHelpers', async () => {
           sourceUsageEventId: usageEvent2.id,
           status: LedgerEntryStatus.Posted,
           usageMeterId: usageMeter.id,
-          entryTimestamp: new Date(
-            billingPeriodEndDate.getTime() + 1
-          ), // after the boundary
+          entryTimestamp: billingPeriodEndDate.getTime() + 1, // after the boundary
         })
 
         const result = await tabulateOutstandingUsageCosts(

@@ -8,10 +8,12 @@ import {
   livemodePolicy,
   ommittedColumnsForInsertSchema,
   merchantPolicy,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { FlowgladEventType } from '@/types'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'webhooks'
 
@@ -57,48 +59,29 @@ const columnRefinements = {
   url: z.string().url(),
 }
 
-/*
- * database schema
- */
-export const webhooksInsertSchema = createInsertSchema(webhooks)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const webhooksSelectSchema =
-  createSelectSchema(webhooks).extend(columnRefinements)
-
-export const webhooksUpdateSchema = webhooksInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
 const readOnlyColumns = {
   livemode: true,
+  organizationId: true,
 } as const
 
 const hiddenColumns = {} as const
 
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-  organizationId: true,
-} as const
-
-/*
- * client schemas
- */
-export const webhookClientInsertSchema = webhooksInsertSchema
-  .omit(nonClientEditableColumns)
-  .meta({ id: 'WebhookClientInsertSchema' })
-
-export const webhookClientUpdateSchema = webhooksUpdateSchema
-  .omit(nonClientEditableColumns)
-  .meta({ id: 'WebhookClientUpdateSchema' })
-
-export const webhookClientSelectSchema = webhooksSelectSchema
-  .omit({
-    position: true,
-  })
-  .meta({ id: 'WebhookClientSelectSchema' })
+export const {
+  insert: webhooksInsertSchema,
+  select: webhooksSelectSchema,
+  update: webhooksUpdateSchema,
+  client: {
+    insert: webhookClientInsertSchema,
+    select: webhookClientSelectSchema,
+    update: webhookClientUpdateSchema,
+  },
+} = buildSchemas(webhooks, {
+  refine: columnRefinements,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+})
 
 export namespace Webhook {
   export type Insert = z.infer<typeof webhooksInsertSchema>

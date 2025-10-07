@@ -762,14 +762,10 @@ describe('createCustomerBookkeeping', () => {
       // Check the subscription has renews = true for Subscription
       const subscription = result.result.subscription!
       expect(subscription.renews).toBe(true)
-      expect(subscription.currentBillingPeriodStart).toBeDefined()
-      expect(subscription.currentBillingPeriodEnd).toBeDefined()
-      expect(subscription.currentBillingPeriodStart).toBeInstanceOf(
-        Date
+      expect(subscription.currentBillingPeriodStart).toBeGreaterThan(
+        0
       )
-      expect(subscription.currentBillingPeriodEnd).toBeInstanceOf(
-        Date
-      )
+      expect(subscription.currentBillingPeriodEnd).toBeGreaterThan(0)
 
       // Verify billing period was created
       const billingPeriods = await adminTransaction(

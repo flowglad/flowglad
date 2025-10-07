@@ -262,8 +262,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       const sub = billingState.subscriptions[0]
       expect(sub.status).toBe(SubscriptionStatus.Trialing)
       expect(sub.trialEnd).toBeDefined()
-      const diff =
-        new Date(sub.trialEnd!).getTime() - new Date().getTime()
+      const diff = sub.trialEnd! - Date.now()
       expect(diff).toBeGreaterThanOrEqual(
         trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
       )

@@ -250,7 +250,7 @@ export const upsertPaymentForStripeCharge = async (
     amount: charge.amount,
     status: chargeStatusToPaymentStatus(charge.status),
     invoiceId,
-    chargeDate: dateFromStripeTimestamp(latestChargeDate),
+    chargeDate: dateFromStripeTimestamp(latestChargeDate).getTime(),
     refunded: false,
     organizationId,
     purchaseId,
@@ -378,16 +378,10 @@ export const ledgerCommandForPaymentSucceeded = async (
     price.productId,
     transaction
   )
-  // Choose the first UsageCreditGrant feature deterministically by createdAt ascending
+
   const usageCreditFeature = features
-    .filter(
-      (feature) => feature.type === FeatureType.UsageCreditGrant
-    )
-    .sort((a: any, b: any) => {
-      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
-      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
-      return aTime - bTime
-    })[0]
+    .sort((a, b) => a.position - b.position)
+    .find((feature) => feature.type === FeatureType.UsageCreditGrant)
 
   if (!usageCreditFeature) {
     return undefined
@@ -412,7 +406,7 @@ export const ledgerCommandForPaymentSucceeded = async (
     sourceReferenceId: payment.invoiceId,
     billingPeriodId: null,
     paymentId: payment.id,
-    issuedAt: new Date(),
+    issuedAt: Date.now(),
     expiresAt: null,
     sourceReferenceType:
       UsageCreditSourceReferenceType.InvoiceSettlement,
@@ -493,12 +487,7 @@ export const processPaymentIntentStatusUpdated = async (
     payment.customerId,
     transaction
   )
-
-  if (!customer) {
-    throw new Error(`Customer not found for payment ${payment.id}`)
-  }
-
-  const timestamp = new Date()
+  const timestamp = Date.now()
   const eventInserts: Event.Insert[] = []
   let ledgerCommand: LedgerCommand | undefined
   if (paymentIntent.status === 'succeeded') {

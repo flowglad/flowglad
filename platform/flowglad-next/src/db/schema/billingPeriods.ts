@@ -19,6 +19,7 @@ import core from '@/utils/core'
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { BillingPeriodStatus } from '@/types'
 import { sql } from 'drizzle-orm'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'billing_periods'
 
@@ -61,22 +62,6 @@ const columnRefinements = {
   status: core.createSafeZodEnum(BillingPeriodStatus),
 }
 
-/*
- * database schemas
- */
-export const billingPeriodsInsertSchema = createInsertSchema(
-  billingPeriods
-)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const billingPeriodsSelectSchema =
-  createSelectSchema(billingPeriods).extend(columnRefinements)
-
-export const billingPeriodsUpdateSchema = billingPeriodsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
 const readOnlyColumns = {
   subscriptionId: true,
 } as const
@@ -85,54 +70,42 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-const createOnlyColumns = {} as const
-
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
+export const {
+  select: billingPeriodsSelectSchema,
+  insert: billingPeriodsInsertSchema,
+  update: billingPeriodsUpdateSchema,
+  client: {
+    select: billingPeriodsClientSelectSchema,
+    insert: billingPeriodsClientInsertSchema,
+    update: billingPeriodsClientUpdateSchema,
+  },
+} = buildSchemas(billingPeriods, {
+  refine: columnRefinements,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'BillingPeriod',
 })
-
-/*
- * client schemas
- */
-export const billingPeriodClientInsertSchema =
-  billingPeriodsInsertSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'BillingPeriodClientInsertSchema' })
-
-export const billingPeriodClientUpdateSchema =
-  billingPeriodsUpdateSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'BillingPeriodClientUpdateSchema' })
-
-export const billingPeriodClientSelectSchema =
-  billingPeriodsSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'BillingPeriodClientSelectSchema' })
 
 export namespace BillingPeriod {
   export type Insert = z.infer<typeof billingPeriodsInsertSchema>
   export type Update = z.infer<typeof billingPeriodsUpdateSchema>
   export type Record = z.infer<typeof billingPeriodsSelectSchema>
   export type ClientInsert = z.infer<
-    typeof billingPeriodClientInsertSchema
+    typeof billingPeriodsClientInsertSchema
   >
   export type ClientUpdate = z.infer<
-    typeof billingPeriodClientUpdateSchema
+    typeof billingPeriodsClientUpdateSchema
   >
   export type ClientRecord = z.infer<
-    typeof billingPeriodClientSelectSchema
+    typeof billingPeriodsClientSelectSchema
   >
   export type Where = SelectConditions<typeof billingPeriods>
 }
 
 export const createBillingPeriodInputSchema = z.object({
-  billingPeriod: billingPeriodClientInsertSchema,
+  billingPeriod: billingPeriodsClientInsertSchema,
 })
 
 export type CreateBillingPeriodInput = z.infer<
@@ -140,7 +113,7 @@ export type CreateBillingPeriodInput = z.infer<
 >
 
 export const editBillingPeriodInputSchema = z.object({
-  billingPeriod: billingPeriodClientUpdateSchema,
+  billingPeriod: billingPeriodsClientUpdateSchema,
 })
 
 export type EditBillingPeriodInput = z.infer<

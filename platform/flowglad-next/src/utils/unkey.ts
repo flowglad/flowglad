@@ -156,7 +156,7 @@ export interface StandardCreateApiKeyParams {
   organization: Pick<Organization.Record, 'id'>
   userId: string
   type: FlowgladApiKeyType.Secret
-  expiresAt?: Date
+  expiresAt?: Date | number
 }
 
 interface CreateApiKeyResult {
@@ -184,7 +184,9 @@ export const secretApiKeyInputToUnkeyInput = (
     apiId: core.envVariable('UNKEY_API_ID'),
     name: `${organization.id} / ${apiEnvironment} / ${params.name}`,
     environment: apiEnvironment,
-    expires: params.expiresAt?.getTime(),
+    expires: params.expiresAt
+      ? new Date(params.expiresAt).getTime()
+      : undefined,
     externalId: organization.id,
     prefix: [maybeStagingPrefix, 'sk_', apiEnvironment].join(''),
     meta: secretMeta,
@@ -224,7 +226,9 @@ export const createSecretApiKey = async (
       active: true,
       unkeyId: result.keyId,
       type: FlowgladApiKeyType.Secret,
-      expiresAt: params.expiresAt,
+      expiresAt: params.expiresAt
+        ? new Date(params.expiresAt).getTime()
+        : undefined,
       hashText: hashData(result.key),
     },
     shownOnlyOnceKey: result.key,

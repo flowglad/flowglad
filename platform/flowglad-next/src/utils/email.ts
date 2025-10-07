@@ -167,7 +167,7 @@ export const sendPaymentFailedEmail = async (params: {
   organizationName: string
   organizationLogoUrl?: string
   invoiceNumber: string
-  orderDate: Date
+  orderDate: Date | number
   invoice: {
     subtotal: number | null
     taxAmount: number | null
@@ -178,7 +178,7 @@ export const sendPaymentFailedEmail = async (params: {
     price: number
     quantity: number
   }[]
-  retryDate?: Date
+  retryDate?: Date | number
   replyTo?: string | null
   discountInfo?: {
     discountName: string
@@ -202,7 +202,9 @@ export const sendPaymentFailedEmail = async (params: {
       organizationName: params.organizationName,
       organizationLogoUrl: params.organizationLogoUrl,
       lineItems: params.lineItems,
-      retryDate: params.retryDate,
+      retryDate: params.retryDate
+        ? new Date(params.retryDate)
+        : undefined,
       discountInfo: params.discountInfo,
       failureReason: params.failureReason,
       customerPortalUrl: params.customerPortalUrl,
@@ -222,7 +224,7 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
   to: string[]
   organizationName: string
   invoiceNumber: string
-  orderDate: Date
+  orderDate: Date | number
   amount: number
   customerId: string
   customerName: string

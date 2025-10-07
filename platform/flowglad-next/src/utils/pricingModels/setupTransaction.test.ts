@@ -108,7 +108,6 @@ describe('setupPricingModelTransaction (integration)', () => {
           slug: 'f1',
           name: 'Feat1',
           description: '',
-          livemode: false,
           usageMeterSlug: 'missing',
           amount: 1,
           renewalFrequency:
@@ -155,7 +154,6 @@ describe('setupPricingModelTransaction (integration)', () => {
           slug: 'f1',
           name: 'Feat1',
           description: '',
-          livemode: false,
           usageMeterSlug: 'um',
           amount: 10,
           renewalFrequency:
@@ -167,7 +165,6 @@ describe('setupPricingModelTransaction (integration)', () => {
           slug: 'f2',
           name: 'Feat2',
           description: '',
-          livemode: false,
           active: true,
         },
       ],

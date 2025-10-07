@@ -175,7 +175,7 @@ const priceProductJoinResultToProductAndPrices = (
   const products = Array.from(productMap.values())
   const prices = Array.from(pricesMap.values())
   const sortedPrices = prices.sort(
-    (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+    (a, b) => a.createdAt - b.createdAt
   )
 
   return products.map((product): ProductWithPrices => {

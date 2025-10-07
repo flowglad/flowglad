@@ -25,7 +25,7 @@ import { subscriptions } from '@/db/schema/subscriptions'
 import { usageMeters } from '@/db/schema/usageMeters'
 import { NormalBalanceType } from '@/types'
 import core from '@/utils/core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'ledger_accounts'
 
@@ -96,22 +96,14 @@ const columnRefinements = {
   version: core.safeZodPositiveIntegerOrZero,
 }
 
-export const ledgerAccountsInsertSchema = createInsertSchema(
-  ledgerAccounts
-)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-  .extend({
-    version: columnRefinements.version.optional(),
-    normalBalance: columnRefinements.normalBalance.optional(),
-  })
-
-export const ledgerAccountsSelectSchema =
-  createSelectSchema(ledgerAccounts).extend(columnRefinements)
-
-export const ledgerAccountsUpdateSchema = ledgerAccountsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
+export const {
+  insert: ledgerAccountsInsertSchema,
+  select: ledgerAccountsSelectSchema,
+  update: ledgerAccountsUpdateSchema,
+} = buildSchemas(ledgerAccounts, {
+  refine: columnRefinements,
+  entityName: 'LedgerAccount',
+})
 
 export namespace LedgerAccount {
   export type Insert = z.infer<typeof ledgerAccountsInsertSchema>

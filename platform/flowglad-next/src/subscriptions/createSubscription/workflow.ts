@@ -135,7 +135,7 @@ export const createSubscriptionWorkflow = async (
     )
   }
 
-  const timestamp = new Date()
+  const timestamp = Date.now()
   const customer = await selectCustomerById(
     updatedSubscription.customerId,
     transaction
