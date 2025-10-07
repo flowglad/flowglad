@@ -21,7 +21,7 @@ export function DataTableLinkableCell({
     <Link
       href={href}
       className={cn(
-        'flex items-center gap-0.5 group hover:underline transition-colors select-none',
+        'inline-flex max-w-full items-center gap-0.5 group hover:underline transition-colors select-none',
         className
       )}
       onClick={(e) => {

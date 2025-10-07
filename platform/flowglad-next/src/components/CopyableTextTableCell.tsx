@@ -17,7 +17,7 @@ const CopyableTextTableCell = ({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 cursor-pointer flex-row group',
+        'inline-flex max-w-full items-center gap-2 cursor-pointer flex-row group',
         className
       )}
       onClick={(e) => {
