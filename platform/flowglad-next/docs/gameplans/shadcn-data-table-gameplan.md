@@ -43,7 +43,7 @@ This document outlines a comprehensive analysis of our current data table implem
 - **Consistent UX** across 16+ tables
 - **Maintainable codebase** with standardized patterns
 - **Simplified interface** - no checkboxes/selection complexity
-- **Smart pagination** - auto-hides when ≤10 rows, clean "X results" display
+- **Smart pagination** - auto-hides when ≤10 rows, clean "X results" display (no page numbers), proper cursor handling for page size changes
 
 ## Four Areas with Multiple Valid Shadcn Approaches
 
@@ -60,10 +60,10 @@ According to Shadcn documentation, these areas have multiple valid implementatio
 - **Option B**: `DataTableViewOptions` reusable component
 - **Our Recommendation**: **Option B** for standardized behavior
 
-### 3. **Selection Count Display**
-- **Option A**: Separate `<div>` with selection count (main demo)
-- **Option B**: Built into `DataTablePagination` component
-- **Our Recommendation**: **Option B** for comprehensive pagination features
+### 3. **Pagination Display**
+- **Option A**: Separate `<div>` with selection count (main demo pattern)
+- **Option B**: Built into `DataTablePagination` component with page numbers
+- **Our Implementation**: **Simplified display** - total count only (e.g., "18 results"), no page numbers, auto-hides when ≤10 rows for cleaner UX
 
 ### 4. **Action Menu Implementation**
 - **Option A**: Simple inline `DropdownMenu` (suitable for basic actions)
@@ -1411,6 +1411,7 @@ export function DataTable({ filters = {} }) {
     pageIndex,
     pageSize,
     handlePaginationChange,
+    goToFirstPage,  // ✅ REQUIRED for proper page size changes
     data,
     isLoading,
     isFetching,
@@ -1433,10 +1434,10 @@ export function DataTable({ filters = {} }) {
         ? updater({ pageIndex, pageSize: currentPageSize })
         : updater
       
-      // Handle page size changes
+      // Handle page size changes - MUST use goToFirstPage() to clear cursors
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        handlePaginationChange(0) // Reset to first page
+        goToFirstPage()  // ✅ Properly clears cursor state and resets to first page
       }
       // Handle page navigation  
       else if (newPagination.pageIndex !== pageIndex) {
@@ -1453,6 +1454,8 @@ export function DataTable({ filters = {} }) {
 ```
 
 **This bridging is MANDATORY - DataTablePagination won't work without it.**
+
+**CRITICAL BUG FIX**: Using `handlePaginationChange(0)` instead of `goToFirstPage()` causes a cursor reuse bug where the table loads the wrong data segment when changing page size from later pages. `goToFirstPage()` properly clears all cursor state (`pageAfter`, `pageBefore`) and signals the backend for a fresh first page.
 
 ## Critical Shadcn Patterns We Must Follow
 
@@ -1909,11 +1912,17 @@ cell: ({ row }) => (
 {isLoading ? showLoading : (table.getRowModel().rows?.length ? showData : showEmpty)}
 ```
 
-#### **Issue: Page Size Changes Don't Work**
-**Cause**: Missing pagination bridge for server-side data
+#### **Issue: Page Size Changes Load Wrong Data**
+**Cause**: Cursor reuse bug - using `handlePaginationChange(0)` instead of `goToFirstPage()`
 ```typescript
-// ✅ FIX: Add pagination bridge
-const [currentPageSize, setCurrentPageSize] = useState(10)
+// ❌ BROKEN: Reuses stale cursors from previous page
+if (newPagination.pageSize !== currentPageSize) {
+  setCurrentPageSize(newPagination.pageSize)
+  handlePaginationChange(0)  // Bug: Triggers cursor logic that reuses pageAfter/pageBefore
+}
+
+// ✅ FIX: Use goToFirstPage() to properly clear cursor state
+const { goToFirstPage, handlePaginationChange } = usePaginatedTableState(...)
 
 onPaginationChange: (updater) => {
   const newPagination = typeof updater === 'function' 
@@ -1921,10 +1930,13 @@ onPaginationChange: (updater) => {
     
   if (newPagination.pageSize !== currentPageSize) {
     setCurrentPageSize(newPagination.pageSize)
-    handlePaginationChange(0)
+    goToFirstPage()  // Clears pageAfter/pageBefore and signals fresh first page
+  } else if (newPagination.pageIndex !== pageIndex) {
+    handlePaginationChange(newPagination.pageIndex)
   }
 }
 ```
+**Why This Matters**: When on page 2+ and changing page size, `handlePaginationChange(0)` compares new page index (0) with current (e.g., 2), triggering backward navigation logic that reuses the stale `startCursor` from the previous page/size combination, loading the wrong data segment.
 
 ### 🔧 **Implementation Gotchas**
 
@@ -1933,6 +1945,7 @@ onPaginationChange: (updater) => {
 3. **Always check loading state first** before checking data length
 4. **Never render table elements** inside column cell functions
 5. **Always bridge pagination state** for server-side data tables
+6. **Always use `goToFirstPage()` for page size changes** - `handlePaginationChange(0)` reuses stale cursors
 
 ### 🏗️ **Enterprise Implementation Pattern (Proven)**
 
@@ -1982,7 +1995,14 @@ export const columns: ColumnDef<TableRowData>[] = [
 export function DataTable({ filters = {} }) {
   const [currentPageSize, setCurrentPageSize] = React.useState(10) // ✅ REQUIRED
   
-  const { pageIndex, data, isLoading, isFetching } = usePaginatedTableState({
+  const { 
+    pageIndex, 
+    handlePaginationChange,
+    goToFirstPage,  // ✅ REQUIRED for page size changes
+    data, 
+    isLoading, 
+    isFetching 
+  } = usePaginatedTableState({
     pageSize: currentPageSize,  // ✅ REQUIRED
     filters,
     useQuery: trpc.table.getTableRows.useQuery,
@@ -1994,14 +2014,14 @@ export function DataTable({ filters = {} }) {
     manualPagination: true,
     pageCount: Math.ceil((data?.total || 0) / currentPageSize), // ✅ REQUIRED
     
-    // ✅ REQUIRED: Bridge pagination
+    // ✅ REQUIRED: Bridge pagination with proper cursor handling
     onPaginationChange: (updater) => {
       const newPagination = typeof updater === 'function' 
         ? updater({ pageIndex, pageSize: currentPageSize }) : updater
       
       if (newPagination.pageSize !== currentPageSize) {
         setCurrentPageSize(newPagination.pageSize)
-        handlePaginationChange(0)
+        goToFirstPage()  // ✅ CRITICAL: Clears cursor state, prevents wrong data load
       } else if (newPagination.pageIndex !== pageIndex) {
         handlePaginationChange(newPagination.pageIndex)
       }
@@ -2190,11 +2210,14 @@ Based on analysis across enterprise-scale complexity, these patterns are recomme
 - **Reason**: Standardized behavior and responsive design built-in
 - **Alternative**: Inline DropdownMenu acceptable for simple cases
 
-#### **3. Pagination Display: DataTablePagination (Option B - Enhanced)**
-- **Use**: `DataTablePagination` with smart visibility and clean display
-- **Reason**: Comprehensive pagination features + automatic UX optimization
-- **Benefits**: Page size selection, navigation, responsive design, smart hiding ≤10 rows, clean "X results" text
-- **CRITICAL**: Pass `totalCount={data?.total}` prop for server-side data
+#### **3. Pagination Display: DataTablePagination (Simplified)**
+- **Use**: `DataTablePagination` with simplified display showing only total count
+- **Display**: Shows "X results" (e.g., "18 results") - NO page numbers like "Page 1 of 5"
+- **Reason**: Cleaner UX focused on result count rather than pagination mechanics
+- **Benefits**: Page size selection, navigation, responsive design, smart hiding ≤10 rows
+- **CRITICAL**: 
+  - Pass `totalCount={data?.total}` prop for server-side data
+  - Use `goToFirstPage()` (not `handlePaginationChange(0)`) when page size changes to prevent cursor reuse bugs
 
 #### **4. Action Menus: Enhanced Wrapper (Option B)**
 - **Use**: `EnhancedDataTableActionsMenu` component we designed
@@ -2212,17 +2235,18 @@ Based on analysis across enterprise-scale complexity, these patterns are recomme
 
 1. [ ] **Simple text labels for ALL column headers** (CLEAN & MINIMAL)
 2. [ ] **`DataTablePagination` with totalCount prop for server-side data** (CRITICAL)
-3. [ ] **`DataTableViewOptions` for column visibility**
-4. [ ] **`EnhancedDataTableActionsMenu` for action menus**
-5. [ ] **NO CHECKBOXES/ROW SELECTION** for simplified UX
-6. [ ] **Preserve server-side filtering architecture**
-7. [ ] **Add client-side sorting and column filtering**
-8. [ ] **Follow 3-file structure** (columns.tsx, data-table.tsx, page.tsx)
-9. [ ] **CRITICAL UI: Enhanced search input with Search icon and loading states**
-10. [ ] **CRITICAL UI: Proper toolbar layout with create button on RIGHT after settings**
-11. [ ] **CRITICAL UI: Pagination wrapped in `<div className="py-2">` for proper spacing**
-12. [ ] **Move create buttons FROM page header TO table toolbar**
-13. [ ] **Smart pagination hiding when ≤10 rows + clean "X results" text**
+3. [ ] **Use `goToFirstPage()` for page size changes** (CRITICAL - prevents cursor reuse bug)
+4. [ ] **`DataTableViewOptions` for column visibility**
+5. [ ] **`EnhancedDataTableActionsMenu` for action menus**
+6. [ ] **NO CHECKBOXES/ROW SELECTION** for simplified UX
+7. [ ] **Preserve server-side filtering architecture**
+8. [ ] **Add client-side sorting and column filtering**
+9. [ ] **Follow 3-file structure** (columns.tsx, data-table.tsx, page.tsx)
+10. [ ] **CRITICAL UI: Enhanced search input with Search icon and loading states**
+11. [ ] **CRITICAL UI: Proper toolbar layout with create button on RIGHT after settings**
+12. [ ] **CRITICAL UI: Pagination wrapped in `<div className="py-2">` for proper spacing**
+13. [ ] **Move create buttons FROM page header TO table toolbar**
+14. [ ] **Simplified pagination display: "X results" only (no page numbers)**
 
 **Target: 95% Shadcn alignment while maintaining 100% enterprise functionality across all tables.**
 
@@ -2257,6 +2281,12 @@ After analyzing the implementation requirements, these are the **critical consid
 - **Reality**: Requires custom state bridging for server-side pagination
 - **Impact**: Page size changes and navigation broken without proper integration
 
+#### **6. Cursor-Based Pagination Subtleties**
+- **Original assumption**: `handlePaginationChange(0)` would reset to first page
+- **Reality**: Reuses stale cursors from previous page position, loading wrong data segment
+- **Impact**: Users see incorrect data when changing page size from later pages
+- **Solution**: Use `goToFirstPage()` which properly clears `pageAfter`/`pageBefore` cursors
+
 ### 🏆 **Enterprise Pattern Success Factors**
 
 Based on successful implementation, these factors are **critical for enterprise success**:
@@ -2266,6 +2296,7 @@ Based on successful implementation, these factors are **critical for enterprise 
 3. **State Bridging**: Custom handlers to connect TanStack Table to server-side hooks
 4. **Loading State Precision**: Proper precedence checking for optimal UX
 5. **HTML Structure Compliance**: Content-only rendering in column cells
+6. **Cursor State Management**: Use `goToFirstPage()` for page size changes to prevent data corruption
 
 ### 📈 **Success Metrics Targets**
 

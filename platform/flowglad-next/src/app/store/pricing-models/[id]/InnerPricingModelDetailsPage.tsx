@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { ProductsTable } from '@/app/store/products/ProductsTable'
+import { ProductsDataTable } from '@/app/store/products/data-table'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
@@ -8,13 +8,13 @@ import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
 import { Pencil, Plus } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
-import CustomersTable from '@/app/customers/CustomersTable'
+import { CustomersDataTable } from '@/app/customers/data-table'
 import { TableHeader } from '@/components/ui/table-header'
 import FeaturesTable from '@/app/features/FeaturesTable'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
 import DefaultBadge from '@/components/DefaultBadge'
-import UsageMetersTable from '@/app/store/usage-meters/UsageMetersTable'
+import { UsageMetersDataTable } from '@/app/store/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 
 export type InnerPricingModelDetailsPageProps = {
@@ -33,6 +33,28 @@ function InnerPricingModelDetailsPage({
     isCreateUsageMeterModalOpen,
     setIsCreateUsageMeterModalOpen,
   ] = useState(false)
+  const [activeProductFilter, setActiveProductFilter] =
+    useState<string>('all')
+
+  // Filter options for the button group
+  const productFilterOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+  ]
+
+  const getProductFilterForTab = (tab: string) => {
+    const baseFilter = { pricingModelId: pricingModel.id }
+
+    if (tab === 'all') {
+      return baseFilter
+    }
+
+    return {
+      ...baseFilter,
+      active: tab === 'active',
+    }
+  }
 
   return (
     <InternalPageContainer>
@@ -57,21 +79,17 @@ function InnerPricingModelDetailsPage({
         </div>
 
         <div className="flex flex-col gap-5">
-          <TableHeader
-            title="Products"
-            buttonLabel="Create Product"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
-              setIsCreateProductModalOpen(true)
-            }}
-          />
-          <ProductsTable
-            filters={{ pricingModelId: pricingModel.id }}
+          <ProductsDataTable
+            filters={getProductFilterForTab(activeProductFilter)}
+            filterOptions={productFilterOptions}
+            activeFilter={activeProductFilter}
+            onFilterChange={setActiveProductFilter}
+            onCreateProduct={() => setIsCreateProductModalOpen(true)}
           />
         </div>
         <div className="flex flex-col gap-5">
           <TableHeader title="Customers" noButtons />
-          <CustomersTable
+          <CustomersDataTable
             filters={{ pricingModelId: pricingModel.id }}
           />
         </div>
@@ -89,16 +107,11 @@ function InnerPricingModelDetailsPage({
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableHeader
-            title="Usage Meters"
-            buttonLabel="Create Usage Meter"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
-              setIsCreateUsageMeterModalOpen(true)
-            }}
-          />
-          <UsageMetersTable
+          <UsageMetersDataTable
             filters={{ pricingModelId: pricingModel.id }}
+            onCreateUsageMeter={() =>
+              setIsCreateUsageMeterModalOpen(true)
+            }
           />
         </div>
       </div>

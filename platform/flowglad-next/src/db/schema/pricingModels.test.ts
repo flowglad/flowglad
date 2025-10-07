@@ -35,12 +35,8 @@ describe('Pricing Models RLS - Organization Policy', async () => {
     }
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
 
-    org1DefaultPricingModel = await setupPricingModel({
-      organizationId: org1Data.organization.id,
-      name: 'Org1 Default PricingModel',
-      isDefault: true,
-      livemode: false,
-    })
+    // Use the testmode pricing model that setupOrg already created
+    org1DefaultPricingModel = org1Data.testmodePricingModel
 
     org1ExtraPricingModel = await setupPricingModel({
       organizationId: org1Data.organization.id,
@@ -51,19 +47,8 @@ describe('Pricing Models RLS - Organization Policy', async () => {
 
     // Setup Org 2 and its pricingModel
     org2Data = await setupOrg()
-    org2DefaultPricingModel = org2Data.pricingModel // Pricing Model created by setupOrg for org2 is livemode: true by default
-    // We need to ensure org2DefaultPricingModel for this test is also livemode:false if all others are.
-    // Or, ensure it is created with the desired livemode. For simplicity, let's update it.
-    await adminTransaction(async ({ transaction }) => {
-      org2DefaultPricingModel = await updatePricingModel(
-        {
-          id: org2DefaultPricingModel.id,
-          livemode: false,
-          name: 'Org2 Default Pricing Model - Test',
-        },
-        transaction
-      )
-    })
+    // Use the testmode pricing model that setupOrg already created
+    org2DefaultPricingModel = org2Data.testmodePricingModel
   })
 
   // Test cases for creating pricingModels

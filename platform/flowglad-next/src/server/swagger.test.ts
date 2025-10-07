@@ -693,12 +693,6 @@ describe('Swagger Configuration', () => {
         ;['createdAt', 'updatedAt'].forEach((key) => {
           const prop = schema.properties[key]
           if (prop && typeof prop === 'object') {
-            if (prop.type !== 'integer') {
-              console.log('====prop', prop)
-              throw new Error(
-                `Schema contains forbidden field "${key}" at path: ${path}`
-              )
-            }
             expect(prop.type).toBe('integer')
             expect(prop.minimum).toBe(TIMESTAMP_MIN)
             expect(prop.maximum).toBe(TIMESTAMP_MAX)

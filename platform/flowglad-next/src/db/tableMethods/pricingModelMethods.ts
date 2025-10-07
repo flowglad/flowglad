@@ -385,7 +385,11 @@ export const selectPricingModelForCustomer = async (
   }
   const [pricingModel] =
     await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-      { isDefault: true, organizationId: customer.organizationId },
+      {
+        isDefault: true,
+        organizationId: customer.organizationId,
+        livemode: customer.livemode,
+      },
       transaction
     )
 

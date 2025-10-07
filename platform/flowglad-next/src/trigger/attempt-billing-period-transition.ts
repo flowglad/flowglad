@@ -4,6 +4,7 @@ import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { attemptToTransitionSubscriptionBillingPeriod } from '@/subscriptions/billingPeriodHelpers'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
+import { storeTelemetry } from '@/utils/redis'
 
 export const attemptBillingPeriodTransitionTask = task({
   id: 'attempt-billing-period-transition',
@@ -31,6 +32,12 @@ export const attemptBillingPeriodTransitionTask = task({
     if (billingRun) {
       await executeBillingRun(billingRun.id)
     }
+
+    await storeTelemetry(
+      'subscription',
+      payload.billingPeriod.subscriptionId,
+      ctx.run.id
+    )
 
     return {
       message: 'Billing period transitioned',

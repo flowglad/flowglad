@@ -80,6 +80,11 @@ export const commitPaymentSucceededEvent = async (
     payment.customerId,
     transaction
   )
+
+  if (!customer) {
+    throw new Error(`Customer not found for payment ${payment.id}`)
+  }
+
   return commitEvent(
     {
       type: FlowgladEventType.PaymentSucceeded,
@@ -88,12 +93,10 @@ export const commitPaymentSucceededEvent = async (
       payload: {
         id: payment.id,
         object: EventNoun.Payment,
-        customer: customer
-          ? {
-              id: customer.id,
-              externalId: customer.externalId,
-            }
-          : undefined,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       organizationId: payment.organizationId,
       livemode: payment.livemode,
@@ -106,6 +109,15 @@ export const commitPaymentCanceledEvent = async (
   payment: Payment.Record,
   transaction: DbTransaction
 ) => {
+  const customer = await selectCustomerById(
+    payment.customerId,
+    transaction
+  )
+
+  if (!customer) {
+    throw new Error(`Customer not found for payment ${payment.id}`)
+  }
+
   return commitEvent(
     {
       type: FlowgladEventType.PaymentFailed,
@@ -114,6 +126,10 @@ export const commitPaymentCanceledEvent = async (
       payload: {
         id: payment.id,
         object: EventNoun.Payment,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       organizationId: payment.organizationId,
       livemode: payment.livemode,
@@ -134,6 +150,10 @@ export const commitCustomerCreatedEvent = async (
       payload: {
         id: customer.id,
         object: EventNoun.Customer,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       organizationId: customer.organizationId,
       livemode: customer.livemode,
@@ -154,6 +174,10 @@ export const commitCustomerUpdatedEvent = async (
       payload: {
         id: customer.id,
         object: EventNoun.Customer,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       organizationId: customer.organizationId,
       livemode: customer.livemode,
@@ -166,6 +190,15 @@ export const commitPurchaseCompletedEvent = async (
   purchase: Purchase.Record,
   transaction: DbTransaction
 ) => {
+  const customer = await selectCustomerById(
+    purchase.customerId,
+    transaction
+  )
+
+  if (!customer) {
+    throw new Error(`Customer not found for purchase ${purchase.id}`)
+  }
+
   return commitEvent(
     {
       type: FlowgladEventType.PurchaseCompleted,
@@ -174,6 +207,10 @@ export const commitPurchaseCompletedEvent = async (
       payload: {
         id: purchase.id,
         object: EventNoun.Purchase,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       organizationId: purchase.organizationId,
       livemode: purchase.livemode,
@@ -186,6 +223,17 @@ export const commitSubscriptionCreatedEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
+  const customer = await selectCustomerById(
+    subscription.customerId,
+    transaction
+  )
+
+  if (!customer) {
+    throw new Error(
+      `Customer not found for subscription ${subscription.id}`
+    )
+  }
+
   return commitEvent(
     {
       type: FlowgladEventType.SubscriptionCreated,
@@ -194,6 +242,10 @@ export const commitSubscriptionCreatedEvent = async (
       payload: {
         id: subscription.id,
         object: EventNoun.Subscription,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       organizationId: subscription.organizationId,
       livemode: subscription.livemode,
@@ -206,6 +258,17 @@ export const commitSubscriptionUpdatedEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
+  const customer = await selectCustomerById(
+    subscription.customerId,
+    transaction
+  )
+
+  if (!customer) {
+    throw new Error(
+      `Customer not found for subscription ${subscription.id}`
+    )
+  }
+
   return commitEvent(
     {
       type: FlowgladEventType.SubscriptionUpdated,
@@ -214,6 +277,10 @@ export const commitSubscriptionUpdatedEvent = async (
       payload: {
         id: subscription.id,
         object: EventNoun.Subscription,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       organizationId: subscription.organizationId,
       livemode: subscription.livemode,
@@ -226,6 +293,17 @@ export const commitSubscriptionCancelledEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
+  const customer = await selectCustomerById(
+    subscription.customerId,
+    transaction
+  )
+
+  if (!customer) {
+    throw new Error(
+      `Customer not found for subscription ${subscription.id}`
+    )
+  }
+
   return commitEvent(
     {
       type: FlowgladEventType.SubscriptionCancelled,
@@ -234,6 +312,10 @@ export const commitSubscriptionCancelledEvent = async (
       payload: {
         id: subscription.id,
         object: EventNoun.Subscription,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       organizationId: subscription.organizationId,
       livemode: subscription.livemode,

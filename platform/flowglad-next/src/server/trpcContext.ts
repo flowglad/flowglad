@@ -10,6 +10,7 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { getSession } from '@/utils/auth'
 import { User } from '@/db/schema/users'
 import { selectUsers } from '@/db/tableMethods/userMethods'
+import * as Sentry from '@sentry/nextjs'
 
 export const createContext = async (
   opts: trpcNext.CreateNextContextOptions
@@ -52,6 +53,15 @@ export const createContext = async (
         user = maybeUser
       }
     }
+  }
+
+  // Set user context in Sentry for error tracking
+  if (user) {
+    Sentry.setUser({
+      id: user.id,
+    })
+  } else {
+    Sentry.setUser(null)
   }
   return {
     user,

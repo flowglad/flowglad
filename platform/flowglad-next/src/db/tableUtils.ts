@@ -847,10 +847,7 @@ export const createPaginatedSelectSchema = <T extends {}>(
         message: 'Limit must be between 1 and 100',
       })
       .optional(),
-  }) as z.ZodType<{
-    cursor?: string
-    limit?: number
-  }>
+  })
 }
 
 export const createSupabaseWebhookSchema = <T extends PgTableWithId>({

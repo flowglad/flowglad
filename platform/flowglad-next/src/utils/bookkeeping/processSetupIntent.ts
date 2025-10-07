@@ -423,6 +423,12 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
   ): Promise<
     TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
   > => {
+    if (!customer) {
+      throw new Error(
+        `Customer is required for setup intent ${setupIntent.id}`
+      )
+    }
+
     if (!isCheckoutSessionSubscriptionCreating(checkoutSession)) {
       throw new Error(
         `createSubscriptionFromSetupIntentableCheckoutSession: checkout session ${checkoutSession.id} is not supported because it is of type ${checkoutSession.type}.`
@@ -574,6 +580,17 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         transaction
       )
       // Add upgrade event to the events to log
+      const customer = await selectCustomerById(
+        output.result.subscription.customerId,
+        transaction
+      )
+
+      if (!customer) {
+        throw new Error(
+          `Customer not found for subscription ${output.result.subscription.id}`
+        )
+      }
+
       eventInserts.push({
         type: FlowgladEventType.SubscriptionCreated,
         occurredAt: now,
@@ -588,6 +605,10 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         payload: {
           object: EventNoun.Subscription,
           id: output.result.subscription.id,
+          customer: {
+            id: customer.id,
+            externalId: customer.externalId,
+          },
         },
       })
     }
@@ -600,6 +621,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+
     eventInserts.push({
       type: FlowgladEventType.PurchaseCompleted,
       occurredAt: now,
@@ -612,6 +634,10 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       payload: {
         id: updatedPurchase.id,
         object: EventNoun.Purchase,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
     })
 

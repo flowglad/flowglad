@@ -27,7 +27,7 @@ export function DataTableViewOptions<TData>({
           <Settings2 className="w-4 h-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[150px]">
+      <DropdownMenuContent align="end" className="min-w-[180px]">
         <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {table
@@ -38,16 +38,21 @@ export function DataTableViewOptions<TData>({
               column.getCanHide()
           )
           .map((column) => {
+            // Get the column header text - if it's a string, use it; otherwise use formatted id
+            const displayName =
+              typeof column.columnDef.header === 'string'
+                ? column.columnDef.header
+                : column.id
+
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
-                className="capitalize"
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) =>
                   column.toggleVisibility(!!value)
                 }
               >
-                {column.id}
+                {displayName}
               </DropdownMenuCheckboxItem>
             )
           })}

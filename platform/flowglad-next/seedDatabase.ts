@@ -191,11 +191,22 @@ export const setupOrg = async (params?: {
       },
       transaction
     )
-    const pricingModel = await insertPricingModel(
+    // Create both live and testmode default pricing models
+    const livePricingModel = await insertPricingModel(
       {
         name: 'Flowglad Test Pricing Model',
         organizationId: organization.id,
         livemode: true,
+        isDefault: true,
+      },
+      transaction
+    )
+
+    const testmodePricingModel = await insertPricingModel(
+      {
+        name: 'Flowglad Test Pricing Model (testmode)',
+        organizationId: organization.id,
+        livemode: false,
         isDefault: true,
       },
       transaction
@@ -212,7 +223,7 @@ export const setupOrg = async (params?: {
         displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
-        pricingModelId: pricingModel.id,
+        pricingModelId: livePricingModel.id,
         externalId: null,
         default: true,
         slug: `default-product-${core.nanoid()}`,
@@ -240,7 +251,13 @@ export const setupOrg = async (params?: {
       },
       transaction
     )) as Price.SubscriptionRecord
-    return { organization, product, price, pricingModel }
+    return {
+      organization,
+      product,
+      price,
+      pricingModel: livePricingModel,
+      testmodePricingModel,
+    }
   })
 }
 

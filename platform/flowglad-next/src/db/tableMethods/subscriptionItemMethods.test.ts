@@ -980,6 +980,7 @@ describe('subscriptionItemMethods', async () => {
           quantity: 1,
           unitPrice: 100,
           priceId: price.id,
+          addedDate: pastDate, // Ensure it's added before anchorDate
         })
         await updateSubscriptionItem(
           {
@@ -999,6 +1000,7 @@ describe('subscriptionItemMethods', async () => {
           quantity: 1,
           unitPrice: 100,
           priceId: price.id,
+          addedDate: pastDate, // Ensure it's added before anchorDate
         })
         // Ensure expiredAt is explicitly null for this test case
         await updateSubscriptionItem(
@@ -1033,6 +1035,18 @@ describe('subscriptionItemMethods', async () => {
 
     it('should apply whereConditions in addition to active filter', async () => {
       await adminTransaction(async ({ transaction }) => {
+        // Update the original subscription item to have addedDate before anchorDate
+        await updateSubscriptionItem(
+          {
+            id: subscriptionItem.id,
+            addedDate: pastDate, // Ensure it's added before anchorDate
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+          transaction
+        )
+
         // Item that is active but has a different name
         await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1040,6 +1054,7 @@ describe('subscriptionItemMethods', async () => {
           quantity: 1,
           unitPrice: 100,
           priceId: price.id,
+          addedDate: pastDate, // Ensure it's added before anchorDate
         })
         // subscriptionItem is active by default (expiredAt is null)
 

@@ -95,6 +95,16 @@ export const cancelSubscriptionImmediately = async (
         transaction
       )
     }
+    /**
+     * Mark all prior billing periods with PastDue status as Canceled
+     */
+    if (billingPeriod.status === BillingPeriodStatus.PastDue) {
+      await safelyUpdateBillingPeriodStatus(
+        billingPeriod,
+        BillingPeriodStatus.Canceled,
+        transaction
+      )
+    }
   }
 
   if (result) {
