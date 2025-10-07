@@ -4,7 +4,7 @@ import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { sentenceCase } from 'change-case'
-import { Check, Hourglass, X, RotateCcw } from 'lucide-react'
+import { Check, Hourglass, X, RotateCcw, Rewind } from 'lucide-react'
 import { formatDate } from '@/utils/core'
 import {
   EnhancedDataTableActionsMenu,
@@ -56,7 +56,7 @@ function PaymentActionsMenu({
   const actionItems: ActionMenuItem[] = []
   actionItems.push({
     label: 'Refund Payment',
-    icon: <RotateCcw className="h-4 w-4" />,
+    icon: <Rewind className="h-4 w-4" />,
     disabled: payment.status !== PaymentStatus.Succeeded,
     helperText:
       payment.status !== PaymentStatus.Succeeded
