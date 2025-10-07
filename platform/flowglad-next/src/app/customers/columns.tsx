@@ -42,7 +42,7 @@ function CustomerActionsMenu({
 
   const actionItems: ActionMenuItem[] = [
     {
-      label: 'Edit Customer',
+      label: 'Edit',
       icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
     },

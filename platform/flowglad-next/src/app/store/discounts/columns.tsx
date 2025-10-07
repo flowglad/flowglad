@@ -68,12 +68,12 @@ function DiscountActionsMenu({
 
   const actionItems: ActionMenuItem[] = [
     {
-      label: 'Edit Discount',
+      label: 'Edit',
       icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
     },
     {
-      label: 'Delete Discount',
+      label: 'Delete',
       icon: <Trash2 className="h-4 w-4" />,
       handler: () => setIsDeleteOpen(true),
     },

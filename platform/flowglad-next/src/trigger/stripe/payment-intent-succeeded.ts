@@ -18,6 +18,7 @@ import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
 import { Event } from '@/db/schema/events'
+import { storeTelemetry } from '@/utils/redis'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -128,6 +129,8 @@ export const stripePaymentIntentSucceededTask = task({
       customerName: customer.name,
       customerEmail: customer.email,
     })
+
+    await storeTelemetry('payment', payment.id, ctx.run.id)
 
     return {
       message: 'Ok',

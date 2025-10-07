@@ -37,6 +37,7 @@ import { core } from '@/utils/core'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { StandardBillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
+import { syncSubscriptionWithActiveItems } from './adjustSubscription'
 
 interface CreateBillingPeriodParams {
   subscription: Subscription.StandardRecord
@@ -368,6 +369,14 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods.`
     )
   }
+
+  // Sync subscription header with newly active items after billing period rollover
+  subscription = await syncSubscriptionWithActiveItems(
+    subscription.id,
+    transaction,
+    new Date()
+  )
+
   const activeSubscriptionFeatureItems =
     await selectCurrentlyActiveSubscriptionItems(
       { subscriptionId: subscription.id },

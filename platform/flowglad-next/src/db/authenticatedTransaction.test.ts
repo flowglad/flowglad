@@ -275,6 +275,10 @@ describe('comprehensiveAuthenticatedTransaction', () => {
           payload: {
             object: EventNoun.Payment,
             id: 'test_event_1',
+            customer: {
+              id: 'test_customer_id',
+              externalId: 'test_external_id',
+            },
           },
           organizationId: testOrg1.id,
           metadata: {},

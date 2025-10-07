@@ -198,7 +198,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
     it('should correctly handle boundary conditions for billing period dates', async () => {
       await adminTransaction(async ({ transaction }) => {
-        // To test boundaries, we force a known “current” time.
+        // To test boundaries, we force a known "current" time.
         const fixedNow = new Date('2025-02-02T12:00:00Z')
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -226,7 +226,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           SubscriptionStatus.Canceled
         )
         // Since our logic checks "if (billingPeriod.startDate < endDate)" (and not <=),
-        // a cancellation exactly at the start may not trigger the “active period” update.
+        // a cancellation exactly at the start may not trigger the "active period" update.
         const updatedBP = await selectBillingPeriodById(
           bp.id,
           transaction
@@ -237,6 +237,155 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         // Restore the original Date.now.
         Date.now = originalDateNow
+      })
+    })
+
+    it('should set PastDue billing periods to Canceled when subscription is canceled', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create a subscription with multiple billing periods:
+        // - one PastDue billing period (e.g., from 2 months ago)
+        // - one active billing period (current)
+        // - one future billing period
+        const now = new Date()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+        })
+
+        // Create a PastDue billing period from 2 months ago
+        const pastDueBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(
+            now.getTime() - 60 * 24 * 60 * 60 * 1000
+          ), // 60 days ago
+          endDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+          status: BillingPeriodStatus.PastDue,
+        })
+
+        // Create an active billing period
+        const activeBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
+          endDate: new Date(now.getTime() + 1 * 60 * 60 * 1000), // 1 hour from now
+          status: BillingPeriodStatus.Active,
+        })
+
+        // Create a future billing period
+        const futureBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(now.getTime() + 2 * 60 * 60 * 1000), // 2 hours from now
+          endDate: new Date(now.getTime() + 3 * 60 * 60 * 1000), // 3 hours from now
+          status: BillingPeriodStatus.Upcoming,
+        })
+
+        // Cancel the subscription
+        const updatedSubscription =
+          await cancelSubscriptionImmediately(
+            subscription,
+            transaction
+          )
+
+        // Verify subscription is canceled
+        expect(updatedSubscription.status).toBe(
+          SubscriptionStatus.Canceled
+        )
+
+        // Verify the PastDue billing period is now Canceled
+        const updatedPastDueBP = await selectBillingPeriodById(
+          pastDueBP.id,
+          transaction
+        )
+        expect(updatedPastDueBP.status).toBe(
+          BillingPeriodStatus.Canceled
+        )
+
+        // Verify the active billing period is Completed
+        const updatedActiveBP = await selectBillingPeriodById(
+          activeBP.id,
+          transaction
+        )
+        expect(updatedActiveBP.status).toBe(
+          BillingPeriodStatus.Completed
+        )
+
+        // Verify the future billing period is Canceled
+        const updatedFutureBP = await selectBillingPeriodById(
+          futureBP.id,
+          transaction
+        )
+        expect(updatedFutureBP.status).toBe(
+          BillingPeriodStatus.Canceled
+        )
+      })
+    })
+
+    it('should handle multiple PastDue billing periods when subscription is canceled', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create a subscription with multiple PastDue billing periods
+        const now = new Date()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+        })
+
+        // Create three PastDue billing periods
+        const pastDueBP1 = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(
+            now.getTime() - 90 * 24 * 60 * 60 * 1000
+          ), // 90 days ago
+          endDate: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000), // 60 days ago
+          status: BillingPeriodStatus.PastDue,
+        })
+
+        const pastDueBP2 = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(
+            now.getTime() - 60 * 24 * 60 * 60 * 1000
+          ), // 60 days ago
+          endDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+          status: BillingPeriodStatus.PastDue,
+        })
+
+        const pastDueBP3 = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(
+            now.getTime() - 30 * 24 * 60 * 60 * 1000
+          ), // 30 days ago
+          endDate: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+          status: BillingPeriodStatus.PastDue,
+        })
+
+        // Cancel the subscription
+        await cancelSubscriptionImmediately(subscription, transaction)
+
+        // Verify all PastDue billing periods are now Canceled
+        const updatedPastDueBP1 = await selectBillingPeriodById(
+          pastDueBP1.id,
+          transaction
+        )
+        const updatedPastDueBP2 = await selectBillingPeriodById(
+          pastDueBP2.id,
+          transaction
+        )
+        const updatedPastDueBP3 = await selectBillingPeriodById(
+          pastDueBP3.id,
+          transaction
+        )
+
+        expect(updatedPastDueBP1.status).toBe(
+          BillingPeriodStatus.Canceled
+        )
+        expect(updatedPastDueBP2.status).toBe(
+          BillingPeriodStatus.Canceled
+        )
+        expect(updatedPastDueBP3.status).toBe(
+          BillingPeriodStatus.Canceled
+        )
       })
     })
   })

@@ -27,6 +27,7 @@ import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 
 /**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
@@ -135,6 +136,17 @@ export const createSubscriptionWorkflow = async (
   }
 
   const timestamp = new Date()
+  const customer = await selectCustomerById(
+    updatedSubscription.customerId,
+    transaction
+  )
+
+  if (!customer) {
+    throw new Error(
+      `Customer not found for subscription ${updatedSubscription.id}`
+    )
+  }
+
   const eventInserts: Event.Insert[] = [
     {
       type: FlowgladEventType.SubscriptionCreated,
@@ -144,6 +156,10 @@ export const createSubscriptionWorkflow = async (
       payload: {
         object: EventNoun.Subscription,
         id: updatedSubscription.id,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       submittedAt: timestamp,
       hash: constructSubscriptionCreatedEventHash(

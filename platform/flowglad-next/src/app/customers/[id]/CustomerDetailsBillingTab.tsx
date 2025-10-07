@@ -9,12 +9,12 @@ import InvoicesTable from '@/components/InvoicesTable'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
+import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
 import { TableHeader } from '@/components/ui/table-header'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 // import { useState } from 'react'
-import PaymentsTable from '@/app/finance/payments/PaymentsTable'
+import { PaymentsDataTable } from '@/app/finance/payments/data-table'
 import { DetailLabel } from '@/components/DetailLabel'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
@@ -156,8 +156,8 @@ export const CustomerBillingSubPage = ({
             usageEvents={usageEvents}
           />
           <div className="w-full flex flex-col gap-5 pb-20">
-            <TableHeader title="Subscriptions" noButtons />
-            <SubscriptionsTable
+            <SubscriptionsDataTable
+              title="Subscriptions"
               filters={{
                 customerId: customer.id,
               }}
@@ -170,8 +170,8 @@ export const CustomerBillingSubPage = ({
               // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
             />
             <InvoicesTable customer={customer} />
-            <TableHeader title="Payments" noButtons />
-            <PaymentsTable
+            <PaymentsDataTable
+              title="Payments"
               filters={{
                 customerId: customer.id,
               }}
