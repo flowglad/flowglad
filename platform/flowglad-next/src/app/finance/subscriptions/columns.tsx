@@ -94,9 +94,9 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
         </div>
       )
     },
-    size: 180,
-    minSize: 120,
-    maxSize: 250,
+    size: 200,
+    minSize: 200,
+    maxSize: 275,
   },
   {
     id: 'status',

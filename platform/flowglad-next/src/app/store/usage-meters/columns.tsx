@@ -52,9 +52,9 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
     id: 'name',
     accessorFn: (row) => row.usageMeter.name,
     header: 'Name',
-    size: 250,
-    minSize: 150,
-    maxSize: 400,
+    size: 200,
+    minSize: 200,
+    maxSize: 275,
     cell: ({ row }) => {
       const name = row.getValue('name') as string
       return (
