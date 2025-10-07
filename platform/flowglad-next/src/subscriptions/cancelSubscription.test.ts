@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   cancelSubscriptionImmediately,
   scheduleSubscriptionCancellation,
+  abortScheduledBillingRuns,
 } from '@/subscriptions/cancelSubscription'
 import { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
 import {
@@ -21,6 +22,7 @@ import {
   setupOrg,
 } from '@/../seedDatabase'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
+import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { BillingRun } from '@/db/schema/billingRuns'
@@ -388,6 +390,129 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
       })
     })
+
+    it('should abort all scheduled billing runs when subscription is canceled immediately', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = new Date()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+        })
+
+        const billingPeriod = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(now.getTime() - 60 * 60 * 1000), // 1 hour ago
+          endDate: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour later
+        })
+
+        // Create scheduled billing runs
+        const billingRun1 = await setupBillingRun({
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Scheduled,
+          scheduledFor: new Date(now.getTime() + 30 * 60 * 1000),
+        })
+
+        const billingRun2 = await setupBillingRun({
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Scheduled,
+          scheduledFor: new Date(now.getTime() + 45 * 60 * 1000),
+        })
+
+        // Cancel the subscription
+        await cancelSubscriptionImmediately(subscription, transaction)
+
+        // Verify all scheduled billing runs are now aborted
+        const updatedBillingRun1 = await selectBillingRunById(
+          billingRun1.id,
+          transaction
+        )
+        const updatedBillingRun2 = await selectBillingRunById(
+          billingRun2.id,
+          transaction
+        )
+
+        expect(updatedBillingRun1.status).toBe(
+          BillingRunStatus.Aborted
+        )
+        expect(updatedBillingRun2.status).toBe(
+          BillingRunStatus.Aborted
+        )
+      })
+    })
+
+    it('should only abort scheduled billing runs and not affect other statuses', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = new Date()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+        })
+
+        const billingPeriod = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(now.getTime() - 60 * 60 * 1000),
+          endDate: new Date(now.getTime() + 60 * 60 * 1000),
+        })
+
+        // Create billing runs with different statuses
+        const scheduledRun = await setupBillingRun({
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Scheduled,
+          scheduledFor: new Date(now.getTime() + 30 * 60 * 1000),
+        })
+
+        const succeededRun = await setupBillingRun({
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Succeeded,
+          scheduledFor: new Date(now.getTime() - 30 * 60 * 1000),
+        })
+
+        const failedRun = await setupBillingRun({
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Failed,
+          scheduledFor: new Date(now.getTime() - 15 * 60 * 1000),
+        })
+
+        // Cancel the subscription
+        await cancelSubscriptionImmediately(subscription, transaction)
+
+        // Verify only scheduled billing run is aborted
+        const updatedScheduledRun = await selectBillingRunById(
+          scheduledRun.id,
+          transaction
+        )
+        const updatedSucceededRun = await selectBillingRunById(
+          succeededRun.id,
+          transaction
+        )
+        const updatedFailedRun = await selectBillingRunById(
+          failedRun.id,
+          transaction
+        )
+
+        expect(updatedScheduledRun.status).toBe(
+          BillingRunStatus.Aborted
+        )
+        expect(updatedSucceededRun.status).toBe(
+          BillingRunStatus.Succeeded
+        )
+        expect(updatedFailedRun.status).toBe(BillingRunStatus.Failed)
+      })
+    })
   })
 
   /* --------------------------------------------------------------------------
@@ -615,6 +740,69 @@ describe('Subscription Cancellation Test Suite', async () => {
         Date.now = originalDateNow
       })
     })
+
+    it('should abort all scheduled billing runs when subscription cancellation is scheduled', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = new Date()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+        })
+
+        const currentBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(now.getTime() - 60 * 60 * 1000),
+          endDate: new Date(now.getTime() + 60 * 60 * 1000),
+        })
+
+        // Create scheduled billing runs
+        const billingRun1 = await setupBillingRun({
+          billingPeriodId: currentBP.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Scheduled,
+          scheduledFor: new Date(now.getTime() + 30 * 60 * 1000),
+        })
+
+        const billingRun2 = await setupBillingRun({
+          billingPeriodId: currentBP.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Scheduled,
+          scheduledFor: new Date(now.getTime() + 45 * 60 * 1000),
+        })
+
+        const params: ScheduleSubscriptionCancellationParams = {
+          id: subscription.id,
+          cancellation: {
+            timing:
+              SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+          },
+        }
+
+        // Schedule cancellation
+        await scheduleSubscriptionCancellation(params, transaction)
+
+        // Verify all scheduled billing runs are now aborted
+        const updatedBillingRun1 = await selectBillingRunById(
+          billingRun1.id,
+          transaction
+        )
+        const updatedBillingRun2 = await selectBillingRunById(
+          billingRun2.id,
+          transaction
+        )
+
+        expect(updatedBillingRun1.status).toBe(
+          BillingRunStatus.Aborted
+        )
+        expect(updatedBillingRun2.status).toBe(
+          BillingRunStatus.Aborted
+        )
+      })
+    })
   })
 
   /* --------------------------------------------------------------------------
@@ -763,5 +951,66 @@ describe('Subscription Cancellation Test Suite', async () => {
     //   // Here we simply verify a placeholder expectation.
     //   expect(true).toBe(true)
     // })
+  })
+
+  /* --------------------------------------------------------------------------
+     abortScheduledBillingRuns Function Tests
+  --------------------------------------------------------------------------- */
+  describe('abortScheduledBillingRuns', () => {
+    it('should be idempotent when called multiple times', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = new Date()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+        })
+
+        const billingPeriod = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: new Date(now.getTime() - 60 * 60 * 1000),
+          endDate: new Date(now.getTime() + 60 * 60 * 1000),
+        })
+
+        // Create scheduled billing runs
+        const billingRun1 = await setupBillingRun({
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Scheduled,
+          scheduledFor: new Date(now.getTime() + 30 * 60 * 1000),
+        })
+
+        const billingRun2 = await setupBillingRun({
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Scheduled,
+          scheduledFor: new Date(now.getTime() + 45 * 60 * 1000),
+        })
+
+        // Call the function twice
+        await abortScheduledBillingRuns(subscription.id, transaction)
+        await abortScheduledBillingRuns(subscription.id, transaction)
+
+        // Verify billing runs are still aborted (not double-aborted or in error state)
+        const updatedBillingRun1 = await selectBillingRunById(
+          billingRun1.id,
+          transaction
+        )
+        const updatedBillingRun2 = await selectBillingRunById(
+          billingRun2.id,
+          transaction
+        )
+
+        expect(updatedBillingRun1.status).toBe(
+          BillingRunStatus.Aborted
+        )
+        expect(updatedBillingRun2.status).toBe(
+          BillingRunStatus.Aborted
+        )
+      })
+    })
   })
 })

@@ -16,13 +16,37 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
+  selectBillingRuns,
+  updateBillingRun,
+} from '@/db/tableMethods/billingRunMethods'
+import {
   BillingPeriodStatus,
+  BillingRunStatus,
   SubscriptionCancellationArrangement,
   SubscriptionStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { z } from 'zod'
 import { idempotentSendOrganizationSubscriptionCanceledNotification } from '@/trigger/notifications/send-organization-subscription-canceled-notification'
+
+// Abort all scheduled billing runs for a subscription
+export const abortScheduledBillingRuns = async (
+  subscriptionId: string,
+  transaction: DbTransaction
+) => {
+  const scheduledBillingRuns = await selectBillingRuns(
+    {
+      subscriptionId,
+      status: BillingRunStatus.Scheduled,
+    },
+    transaction
+  )
+  for (const billingRun of scheduledBillingRuns) {
+    await updateBillingRun(
+      { id: billingRun.id, status: BillingRunStatus.Aborted },
+      transaction
+    )
+  }
+}
 
 // Cancel a subscription immediately
 export const cancelSubscriptionImmediately = async (
@@ -108,6 +132,11 @@ export const cancelSubscriptionImmediately = async (
       )
     }
   }
+
+  /**
+   * Abort all scheduled billing runs for the subscription
+   */
+  await abortScheduledBillingRuns(subscription.id, transaction)
 
   if (result) {
     updatedSubscription = result
@@ -212,6 +241,11 @@ export const scheduleSubscriptionCancellation = async (
       )
     }
   }
+
+  /**
+   * Abort all scheduled billing runs for the subscription
+   */
+  await abortScheduledBillingRuns(subscription.id, transaction)
 
   const result = await safelyUpdateSubscriptionStatus(
     subscription,
