@@ -297,83 +297,87 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
       expect(result.subscription.priceId).toBe(expensivePrice.id)
     }, 30000)
 
-    test('should handle downgrade without creating negative charges', { timeout: 45000 }, async () => {
-      const caller = createCaller(apiKeyToken)
+    test(
+      'should handle downgrade without creating negative charges',
+      { timeout: 45000 },
+      async () => {
+        const caller = createCaller(apiKeyToken)
 
-      // For downgrade test, we'll upgrade first then downgrade
-      // This avoids nested transaction issues in setup
+        // For downgrade test, we'll upgrade first then downgrade
+        // This avoids nested transaction issues in setup
 
-      // First upgrade to expensive plan
-      const upgradeResult = await caller.adjust({
-        id: subscription.id,
-        adjustment: {
-          newSubscriptionItems: [
-            {
-              subscriptionId: subscription.id,
-              priceId: expensivePrice.id,
-              name: 'Premium Plan',
-              quantity: 1,
-              unitPrice: 4999,
-              type: SubscriptionItemType.Static,
-              addedDate: Date.now(),
-              expiredAt: null,
-              livemode: true,
-              externalId: null,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-            },
-          ],
-          timing: SubscriptionAdjustmentTiming.Immediately,
-          prorateCurrentBillingPeriod: false, // No proration for setup
-        },
-      })
+        // First upgrade to expensive plan
+        const upgradeResult = await caller.adjust({
+          id: subscription.id,
+          adjustment: {
+            newSubscriptionItems: [
+              {
+                subscriptionId: subscription.id,
+                priceId: expensivePrice.id,
+                name: 'Premium Plan',
+                quantity: 1,
+                unitPrice: 4999,
+                type: SubscriptionItemType.Static,
+                addedDate: Date.now(),
+                expiredAt: null,
+                livemode: true,
+                externalId: null,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+              },
+            ],
+            timing: SubscriptionAdjustmentTiming.Immediately,
+            prorateCurrentBillingPeriod: false, // No proration for setup
+          },
+        })
 
-      // Verify upgrade worked
-      expect(upgradeResult.subscription.name).toBe('Premium Plan')
+        // Verify upgrade worked
+        expect(upgradeResult.subscription.name).toBe('Premium Plan')
 
-      // Create payment for expensive plan
-      await setupPayment({
-        stripeChargeId: `ch_${core.nanoid()}`,
-        status: PaymentStatus.Succeeded,
-        amount: 4999, // $49.99 already paid
-        customerId: customer.id,
-        organizationId: organization.id,
-        invoiceId: invoice.id,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: subscription.id,
-        paymentMethodId: paymentMethod.id,
-        livemode: true,
-      })
+        // Create payment for expensive plan
+        await setupPayment({
+          stripeChargeId: `ch_${core.nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 4999, // $49.99 already paid
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          livemode: true,
+        })
 
-      // Now downgrade with proration
-      const result = await caller.adjust({
-        id: subscription.id,
-        adjustment: {
-          newSubscriptionItems: [
-            {
-              subscriptionId: subscription.id,
-              priceId: price.id,
-              name: 'Basic Plan',
-              quantity: 1,
-              unitPrice: 999, // $9.99 (downgrade)
-              type: SubscriptionItemType.Static,
-              addedDate: Date.now(),
-              expiredAt: null,
-              livemode: true,
-              externalId: null,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-            },
-          ],
-          timing: SubscriptionAdjustmentTiming.Immediately,
-          prorateCurrentBillingPeriod: true,
-        },
-      })
+        // Now downgrade with proration
+        const result = await caller.adjust({
+          id: subscription.id,
+          adjustment: {
+            newSubscriptionItems: [
+              {
+                subscriptionId: subscription.id,
+                priceId: price.id,
+                name: 'Basic Plan',
+                quantity: 1,
+                unitPrice: 999, // $9.99 (downgrade)
+                type: SubscriptionItemType.Static,
+                addedDate: Date.now(),
+                expiredAt: null,
+                livemode: true,
+                externalId: null,
+                usageMeterId: null,
+                usageEventsPerUnit: null,
+              },
+            ],
+            timing: SubscriptionAdjustmentTiming.Immediately,
+            prorateCurrentBillingPeriod: true,
+          },
+        })
 
-      // Verify downgrade was applied
-      expect(result.subscription.name).toBe('Basic Plan')
-      expect(result.subscription.priceId).toBe(price.id)
-    })
+        // Verify downgrade was applied
+        expect(result.subscription.name).toBe('Basic Plan')
+        expect(result.subscription.priceId).toBe(price.id)
+      }
+    )
 
     test('should handle removing all items (empty subscription)', async () => {
       const caller = createCaller(apiKeyToken)

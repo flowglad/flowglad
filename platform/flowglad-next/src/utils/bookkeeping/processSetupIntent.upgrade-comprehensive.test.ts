@@ -153,7 +153,6 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       currency: CurrencyCode.USD,
     })
 
@@ -174,7 +173,6 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       currency: CurrencyCode.USD,
     })
 

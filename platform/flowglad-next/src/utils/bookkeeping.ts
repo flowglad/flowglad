@@ -299,13 +299,11 @@ export const createFreePlanPriceInsert = (
       active: true,
       name: config.name,
       trialPeriodDays: null,
-      setupFeeAmount: null,
       usageEventsPerUnit: null,
       usageMeterId: null,
       externalId: null,
       slug: config.slug,
       startsWithCreditTrial: false,
-      overagePriceId: null,
     }
   } else {
     // Return single payment price when no interval unit is provided
@@ -321,13 +319,11 @@ export const createFreePlanPriceInsert = (
       active: true,
       name: config.name,
       trialPeriodDays: null,
-      setupFeeAmount: null,
       usageEventsPerUnit: null,
       usageMeterId: null,
       externalId: null,
       slug: config.slug,
       startsWithCreditTrial: null,
-      overagePriceId: null,
     }
   }
 }

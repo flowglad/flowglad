@@ -1250,12 +1250,10 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
             isDefault: true,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
             startsWithCreditTrial: false,
-            overagePriceId: null,
             usageMeterId: null,
           },
           transaction
@@ -1274,12 +1272,10 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
             isDefault: true,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
             startsWithCreditTrial: false,
-            overagePriceId: null,
             usageMeterId: null,
           },
           transaction
@@ -1337,12 +1333,10 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
             isDefault: true,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
             startsWithCreditTrial: false,
-            overagePriceId: null,
             usageMeterId: null,
           },
           transaction
@@ -1361,12 +1355,10 @@ describe('Customer Role RLS Policies', () => {
             active: false,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
             startsWithCreditTrial: false,
-            overagePriceId: null,
             usageMeterId: null,
           },
           transaction
@@ -1775,12 +1767,10 @@ describe('Customer Role RLS Policies', () => {
                 active: true, // Price is active but product is not
                 livemode: true,
                 isDefault: true,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
                 usageEventsPerUnit: null,
                 startsWithCreditTrial: false,
-                overagePriceId: null,
                 usageMeterId: null,
               },
               transaction
@@ -1878,12 +1868,10 @@ describe('Customer Role RLS Policies', () => {
                 active: false, // Both product and price inactive
                 livemode: true,
                 isDefault: false,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
                 usageEventsPerUnit: null,
                 startsWithCreditTrial: false,
-                overagePriceId: null,
                 usageMeterId: null,
               },
               transaction
@@ -2127,7 +2115,6 @@ describe('Customer Role RLS Policies', () => {
         currency: CurrencyCode.USD,
         livemode: true,
         isDefault: true,
-        setupFeeAmount: 0,
         trialPeriodDays: 0,
       })
 

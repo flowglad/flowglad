@@ -166,7 +166,6 @@ describe('SubscriptionItemFeatureHelpers', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: false,
-      setupFeeAmount: 0,
       trialPeriodDays: 0,
       currency: CurrencyCode.USD,
     })

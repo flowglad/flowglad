@@ -394,7 +394,6 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
       currency: CurrencyCode.USD,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       trialPeriodDays: 0,
       externalId: undefined,
       usageMeterId: undefined,
@@ -410,7 +409,6 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
       currency: CurrencyCode.USD,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       trialPeriodDays: 0,
       externalId: undefined,
       usageMeterId: undefined,
@@ -513,7 +511,6 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
       currency: CurrencyCode.USD,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       trialPeriodDays: 0,
       externalId: undefined,
       usageMeterId: undefined,
@@ -602,7 +599,6 @@ describe('selectPricingModelForCustomer', () => {
       currency: CurrencyCode.USD,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       trialPeriodDays: 0,
     })
 
@@ -616,7 +612,6 @@ describe('selectPricingModelForCustomer', () => {
       currency: CurrencyCode.USD,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       trialPeriodDays: 0,
     })
   })

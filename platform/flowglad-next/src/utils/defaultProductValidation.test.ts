@@ -15,7 +15,6 @@ describe('defaultProductValidation', () => {
             type: PriceType.SinglePayment,
             slug: 'free',
             trialDays: 0,
-            setupFee: 0,
           },
         ],
       }
@@ -35,7 +34,6 @@ describe('defaultProductValidation', () => {
             type: PriceType.SinglePayment,
             slug: 'paid',
             trialDays: 0,
-            setupFee: 0,
           },
         ],
       }
@@ -55,14 +53,12 @@ describe('defaultProductValidation', () => {
             type: PriceType.SinglePayment,
             slug: 'free',
             trialDays: 0,
-            setupFee: 0,
           },
           {
             amount: 1000,
             type: PriceType.SinglePayment,
             slug: 'paid',
             trialDays: 0,
-            setupFee: 0,
           },
         ],
       }
@@ -82,33 +78,12 @@ describe('defaultProductValidation', () => {
             type: PriceType.SinglePayment,
             slug: 'trial',
             trialDays: 7,
-            setupFee: 0,
           },
         ],
       }
 
       expect(() => validateDefaultProductSchema(product)).toThrow(
         'Default products cannot have trials'
-      )
-    })
-
-    it('should fail for product with setup fee', () => {
-      const product = {
-        name: 'Setup Fee Plan',
-        slug: 'setup-fee-plan',
-        prices: [
-          {
-            amount: 0,
-            type: PriceType.SinglePayment,
-            slug: 'setup-fee',
-            trialDays: 0,
-            setupFee: 500,
-          },
-        ],
-      }
-
-      expect(() => validateDefaultProductSchema(product)).toThrow(
-        'Default products cannot have setup fees'
       )
     })
 
@@ -122,7 +97,6 @@ describe('defaultProductValidation', () => {
             type: PriceType.SinglePayment,
             slug: 'free',
             trialDays: 0,
-            setupFee: 0,
           },
         ],
       }

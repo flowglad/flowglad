@@ -34,8 +34,6 @@ export const singlePaymentDummyPrice: Price.SinglePaymentRecord = {
   intervalCount: null,
   intervalUnit: null,
   trialPeriodDays: null,
-  setupFeeAmount: null,
-  overagePriceId: null,
   usageEventsPerUnit: null,
   startsWithCreditTrial: null,
   usageMeterId: null,

@@ -32,7 +32,6 @@ const TrialFields = ({
   } = usePriceFormContext()
   const trialPeriodDays = watch('price.trialPeriodDays')
   const startsWithCreditTrial = watch('price.startsWithCreditTrial')
-  const overagePriceId = watch('price.overagePriceId')
   const [offerTrial, setOfferTrial] = useState(
     Boolean(trialPeriodDays && trialPeriodDays > 0)
   )
@@ -43,17 +42,6 @@ const TrialFields = ({
       setOfferTrial(Boolean(trialPeriodDays && trialPeriodDays > 0))
     }
   }, [trialPeriodDays, startsWithCreditTrial, setOfferTrial])
-  const [trialType, setTrialType] = useState<'credit' | 'time'>(
-    overagePriceId || startsWithCreditTrial ? 'credit' : 'time'
-  )
-
-  useEffect(() => {
-    if (startsWithCreditTrial) {
-      setTrialType('credit')
-    } else {
-      setTrialType(overagePriceId ? 'credit' : 'time')
-    }
-  }, [overagePriceId, startsWithCreditTrial, setTrialType])
 
   // When disabled, force trials off in the form and local UI state
   useEffect(() => {
@@ -89,42 +77,7 @@ const TrialFields = ({
       </div>
       {offerTrial && (
         <>
-          <div>
-            <Label className="mb-1">Trial Type</Label>
-            <Select
-              value={trialType}
-              onValueChange={(value) => {
-                if (disabled) {
-                  return
-                }
-                setTrialType(value as 'credit' | 'time')
-                if (value === 'credit') {
-                  setValue('price.startsWithCreditTrial', true)
-                } else {
-                  setValue('price.startsWithCreditTrial', null)
-                }
-              }}
-            >
-              <SelectTrigger disabled={disabled}>
-                <SelectValue placeholder="Select trial type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  value="time"
-                  description="For trials with a set number of days."
-                >
-                  Time
-                </SelectItem>
-                <SelectItem
-                  value="credit"
-                  disabled={!overagePriceId || disabled}
-                  description="For one-time credit grant trials. Requires an overage price"
-                >
-                  Credit
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Label className="mb-1">Trial Type</Label>
           <FormField
             name="price.trialPeriodDays"
             control={control}

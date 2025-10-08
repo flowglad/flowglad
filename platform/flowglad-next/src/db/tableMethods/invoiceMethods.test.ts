@@ -53,7 +53,6 @@ describe('selectInvoicesTableRowData', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       trialPeriodDays: 0,
       currency: CurrencyCode.USD,
     })

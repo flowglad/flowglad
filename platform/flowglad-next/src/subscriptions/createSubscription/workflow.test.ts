@@ -325,7 +325,6 @@ describe('createSubscriptionWorkflow', async () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         isDefault: false,
-        setupFeeAmount: 0,
         currency: CurrencyCode.USD,
         usageMeterId: usageMeter.id,
       })
@@ -412,7 +411,6 @@ describe('createSubscriptionWorkflow', async () => {
         unitPrice: 100,
         livemode: true,
         isDefault: false,
-        setupFeeAmount: 0,
         /**
          * TODO: clean up function signature
          */
@@ -462,7 +460,6 @@ describe('createSubscriptionWorkflow', async () => {
         unitPrice: 100,
         livemode: true,
         isDefault: false,
-        setupFeeAmount: 0,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
       })
@@ -833,8 +830,6 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
       intervalUnit: undefined,
       intervalCount: undefined,
       trialPeriodDays: null,
-      setupFeeAmount: null,
-      overagePriceId: null,
     }
     const usagePrice = await adminTransaction(
       async ({ transaction }) =>
@@ -1371,11 +1366,9 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
         usageMeterId: usageMeter.id,
         name: `${defaultSubscriptionPrice.name} (Usage)`,
         trialPeriodDays: null,
-        setupFeeAmount: null,
         intervalUnit: undefined,
         intervalCount: undefined,
         usageEventsPerUnit: 1,
-        overagePriceId: null,
       }
 
       const usagePrice = await updatePrice(

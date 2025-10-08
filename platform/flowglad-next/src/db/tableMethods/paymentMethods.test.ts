@@ -526,7 +526,6 @@ describe('selectRevenueDataForOrganization', () => {
         currency: CurrencyCode.USD,
         intervalUnit: IntervalUnit.Day,
         intervalCount: 1,
-        setupFeeAmount: 0,
       })
       const priceB = await setupPrice({
         productId: productB.id,
@@ -538,7 +537,6 @@ describe('selectRevenueDataForOrganization', () => {
         currency: CurrencyCode.USD,
         intervalUnit: IntervalUnit.Day,
         intervalCount: 1,
-        setupFeeAmount: 0,
       })
 
       // Setup Purchases
@@ -744,7 +742,6 @@ describe('selectRevenueDataForOrganization', () => {
         currency: CurrencyCode.USD,
         intervalUnit: IntervalUnit.Day,
         intervalCount: 1,
-        setupFeeAmount: 0,
       })
 
       const purchaseB = await setupPurchase({

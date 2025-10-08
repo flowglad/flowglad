@@ -56,7 +56,6 @@ describe('insertSubscriptionAndItems', () => {
         unitPrice: 100,
         livemode: true,
         isDefault: false,
-        setupFeeAmount: 0,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
       })
@@ -92,7 +91,6 @@ describe('insertSubscriptionAndItems', () => {
         unitPrice: 500,
         livemode: true,
         isDefault: false,
-        setupFeeAmount: 0,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
       })
@@ -159,7 +157,6 @@ describe('insertSubscriptionAndItems', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         isDefault: false,
-        setupFeeAmount: 0,
         currency: CurrencyCode.USD,
         usageMeterId: usageMeter.id,
         startsWithCreditTrial: true,

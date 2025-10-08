@@ -47,8 +47,6 @@ describe('Price Defaults', () => {
       intervalCount: null,
       intervalUnit: null,
       trialPeriodDays: null,
-      setupFeeAmount: null,
-      overagePriceId: null,
       usageEventsPerUnit: null,
       startsWithCreditTrial: null,
       usageMeterId: null,
@@ -111,7 +109,6 @@ describe('Price Defaults', () => {
   it('allow subscriptions to have no overage / usage fields', () => {
     const transformedToUsagePrice = {
       ...subscriptionDummyPrice,
-      overagePriceId: undefined,
       usageEventsPerUnit: undefined,
     }
     testStartingPriceToDestinationPrice(

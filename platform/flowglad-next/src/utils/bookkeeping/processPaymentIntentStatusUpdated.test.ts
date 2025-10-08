@@ -246,7 +246,6 @@ describe('ledgerCommandForPaymentSucceeded', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: false,
-      setupFeeAmount: 0,
       currency: organization.defaultCurrency,
     })
 
