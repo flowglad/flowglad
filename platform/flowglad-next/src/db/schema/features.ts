@@ -82,23 +82,14 @@ export const features = pgTable(
   ]
 ).enableRLS()
 
-const columnRefinements = {
-  type: core.createSafeZodEnum(FeatureType),
-  renewalFrequency: core
-    .createSafeZodEnum(FeatureUsageGrantFrequency)
-    .nullable(),
-  amount: z.number().int().nullable(),
-  usageMeterId: z.string().nullable(),
-}
-
 /*
  * Toggle Feature schemas via buildSchemas
  */
 const toggleFeatureSharedColumns = {
   type: z.literal(FeatureType.Toggle),
-  amount: z.literal(null).nullable(),
-  usageMeterId: z.literal(null).nullable(),
-  renewalFrequency: z.literal(null).nullable(),
+  amount: z.literal(null).optional(),
+  usageMeterId: z.literal(null).optional(),
+  renewalFrequency: z.literal(null).optional(),
 }
 
 export const {

@@ -96,9 +96,8 @@ const columnRefinements = {
   numberOfPayments: core.safeZodPositiveInteger.nullable(),
   code: z
     .string()
-    .min(3)
-    .max(20)
     .transform((code) => code.toUpperCase())
+    .pipe(z.string().min(3).max(20))
     .meta({
       description:
         'The discount code, must be unique and between 3 and 20 characters.',
@@ -108,7 +107,7 @@ const columnRefinements = {
 // Per-variant refinements for discriminator 'duration'
 const defaultDiscountsRefinements = {
   duration: z.literal(DiscountDuration.Once),
-  numberOfPayments: z.null(),
+  numberOfPayments: z.null().optional(),
 }
 
 const foreverDiscountsRefinements = {

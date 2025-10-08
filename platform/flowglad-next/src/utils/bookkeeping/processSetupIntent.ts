@@ -205,7 +205,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
 
 export const calculateTrialEnd = (params: {
   hasHadTrial: boolean
-  trialPeriodDays: number | null
+  trialPeriodDays: number | null | undefined
 }): number | undefined => {
   const { hasHadTrial, trialPeriodDays } = params
   if (

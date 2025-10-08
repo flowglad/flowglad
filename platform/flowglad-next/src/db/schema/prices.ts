@@ -172,7 +172,7 @@ const basePriceColumns = {
       'Whether or not this price is the default price for the product.'
     ),
   unitPrice: core.safeZodPositiveIntegerOrZero.describe(
-    'The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents. If'
+    'The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.'
   ),
   currency: currencyCodeSchema,
   usageEventsPerUnit: core.safeZodNullOrUndefined,
@@ -197,6 +197,7 @@ const subscriptionPriceColumns = {
   intervalUnit: intervalZodSchema,
   trialPeriodDays: core.safeZodPositiveIntegerOrZero
     .nullable()
+    .optional()
     .describe(
       'The trial period in days. If the trial period is 0 or null, there will be no trial period.'
     ),

@@ -435,7 +435,7 @@ describe('ledgerCommandForPaymentSucceeded', () => {
           transaction
         )
       })
-    ).rejects.toThrow('Value must be a positive integer')
+    ).rejects.toThrow('Too small: expected number to be >0')
   })
 
   it('ensures transaction is passed to all DB methods as last argument', async () => {
