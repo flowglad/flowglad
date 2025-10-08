@@ -20,7 +20,7 @@ import {
   productFeaturesUpdateSchema,
   ProductFeature,
 } from '@/db/schema/productFeatures'
-import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, or, gt } from 'drizzle-orm'
 import { features, featuresSelectSchema } from '../schema/features'
 import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
 import { Product } from '../schema/products'
@@ -134,7 +134,15 @@ export const selectFeaturesByProductFeatureWhere = async (
       feature: features,
     })
     .from(productFeatures)
-    .where(whereClauseFromObject(productFeatures, where))
+    .where(
+      and(
+        whereClauseFromObject(productFeatures, where),
+        or(
+          isNull(productFeatures.expiredAt),
+          gt(productFeatures.expiredAt, Date.now())
+        )
+      )
+    )
     .innerJoin(features, eq(productFeatures.featureId, features.id))
   return result.map(({ productFeature, feature }) => ({
     productFeature: productFeaturesSelectSchema.parse(productFeature),
