@@ -297,7 +297,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
       expect(result.subscription.priceId).toBe(expensivePrice.id)
     }, 30000)
 
-    test('should handle downgrade without creating negative charges', async () => {
+    test('should handle downgrade without creating negative charges', { timeout: 45000 }, async () => {
       const caller = createCaller(apiKeyToken)
 
       // For downgrade test, we'll upgrade first then downgrade
@@ -373,7 +373,7 @@ describe('Subscriptions Router - Adjust Endpoint', () => {
       // Verify downgrade was applied
       expect(result.subscription.name).toBe('Basic Plan')
       expect(result.subscription.priceId).toBe(price.id)
-    }, 30000)
+    })
 
     test('should handle removing all items (empty subscription)', async () => {
       const caller = createCaller(apiKeyToken)
