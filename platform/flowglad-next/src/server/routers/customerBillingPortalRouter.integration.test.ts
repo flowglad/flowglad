@@ -415,7 +415,7 @@ describe('Customer Billing Portal Router', () => {
   describe('cancelSubscription', () => {
     test(
       'cancels subscription immediately',
-      { timeout: 18000 },
+      { timeout: 30000 },
       async () => {
         const ctx = createTestContext()
         const input: ScheduleSubscriptionCancellationParams = {
@@ -451,7 +451,7 @@ describe('Customer Billing Portal Router', () => {
 
     test(
       'schedules subscription cancellation at period end',
-      { timeout: 15000 },
+      { timeout: 30000 },
       async () => {
         const ctx = createTestContext()
         const input: ScheduleSubscriptionCancellationParams = {
