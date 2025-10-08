@@ -2393,7 +2393,7 @@ describe('billingRunHelpers', async () => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
-              scheduledFor: new Date(),
+              scheduledFor: Date.now(),
               status: BillingRunStatus.Scheduled,
               subscriptionId: subscription.id,
               paymentMethodId: paymentMethod.id,
@@ -2411,7 +2411,7 @@ describe('billingRunHelpers', async () => {
             {
               billingPeriod,
               paymentMethod,
-              scheduledFor: new Date(),
+              scheduledFor: Date.now(),
             },
             transaction
           )
@@ -2441,7 +2441,7 @@ describe('billingRunHelpers', async () => {
         return safelyInsertBillingRun(
           {
             billingPeriodId: billingPeriod.id,
-            scheduledFor: new Date(),
+            scheduledFor: Date.now(),
             status: BillingRunStatus.Scheduled,
             subscriptionId: subscription.id,
             paymentMethodId: paymentMethod.id,
@@ -2457,7 +2457,7 @@ describe('billingRunHelpers', async () => {
           {
             billingPeriod,
             paymentMethod,
-            scheduledFor: new Date(),
+            scheduledFor: Date.now(),
           },
           transaction
         )

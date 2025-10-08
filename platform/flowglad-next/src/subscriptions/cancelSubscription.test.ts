@@ -415,7 +415,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           subscriptionId: subscription.id,
           paymentMethodId: paymentMethod.id,
           status: BillingRunStatus.Scheduled,
-          scheduledFor: new Date(now.getTime() + 30 * 60 * 1000),
+          scheduledFor: now.getTime() + 30 * 60 * 1000,
         })
 
         const billingRun2 = await setupBillingRun({
@@ -423,7 +423,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           subscriptionId: subscription.id,
           paymentMethodId: paymentMethod.id,
           status: BillingRunStatus.Scheduled,
-          scheduledFor: new Date(now.getTime() + 45 * 60 * 1000),
+          scheduledFor: now.getTime() + 45 * 60 * 1000,
         })
 
         // Cancel the subscription
@@ -470,7 +470,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           subscriptionId: subscription.id,
           paymentMethodId: paymentMethod.id,
           status: BillingRunStatus.Scheduled,
-          scheduledFor: new Date(now.getTime() + 30 * 60 * 1000),
+          scheduledFor: now.getTime() + 30 * 60 * 1000,
         })
 
         const succeededRun = await setupBillingRun({
@@ -478,7 +478,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           subscriptionId: subscription.id,
           paymentMethodId: paymentMethod.id,
           status: BillingRunStatus.Succeeded,
-          scheduledFor: new Date(now.getTime() - 30 * 60 * 1000),
+          scheduledFor: now.getTime() - 30 * 60 * 1000,
         })
 
         const failedRun = await setupBillingRun({
@@ -486,7 +486,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           subscriptionId: subscription.id,
           paymentMethodId: paymentMethod.id,
           status: BillingRunStatus.Failed,
-          scheduledFor: new Date(now.getTime() - 15 * 60 * 1000),
+          scheduledFor: now.getTime() - 15 * 60 * 1000,
         })
 
         // Cancel the subscription
@@ -765,7 +765,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           subscriptionId: subscription.id,
           paymentMethodId: paymentMethod.id,
           status: BillingRunStatus.Scheduled,
-          scheduledFor: new Date(now.getTime() + 30 * 60 * 1000),
+          scheduledFor: now.getTime() + 30 * 60 * 1000,
         })
 
         const billingRun2 = await setupBillingRun({
@@ -773,7 +773,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           subscriptionId: subscription.id,
           paymentMethodId: paymentMethod.id,
           status: BillingRunStatus.Scheduled,
-          scheduledFor: new Date(now.getTime() + 45 * 60 * 1000),
+          scheduledFor: now.getTime() + 45 * 60 * 1000,
         })
 
         const params: ScheduleSubscriptionCancellationParams = {
@@ -981,7 +981,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           subscriptionId: subscription.id,
           paymentMethodId: paymentMethod.id,
           status: BillingRunStatus.Scheduled,
-          scheduledFor: new Date(now.getTime() + 30 * 60 * 1000),
+          scheduledFor: now.getTime() + 30 * 60 * 1000,
         })
 
         const billingRun2 = await setupBillingRun({
@@ -989,7 +989,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           subscriptionId: subscription.id,
           paymentMethodId: paymentMethod.id,
           status: BillingRunStatus.Scheduled,
-          scheduledFor: new Date(now.getTime() + 45 * 60 * 1000),
+          scheduledFor: now.getTime() + 45 * 60 * 1000,
         })
 
         // Call the function twice
