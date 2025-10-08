@@ -11,9 +11,11 @@ import {
   billingRunsSelectSchema,
   billingRunsUpdateSchema,
 } from '@/db/schema/billingRuns'
-import { BillingRunStatus } from '@/types'
+import { BillingRunStatus, SubscriptionStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { eq, and, lt } from 'drizzle-orm'
+import { selectSubscriptionById } from './subscriptionMethods'
+import { z } from 'zod'
 
 const config: ORMMethodCreatorConfig<
   typeof billingRuns,
@@ -32,10 +34,24 @@ export const selectBillingRunById = createSelectById(
   config
 )
 
-export const insertBillingRun = createInsertFunction(
+const dangerouslyInsertBillingRun = createInsertFunction(
   billingRuns,
   config
 )
+
+export const safelyInsertBillingRun = async (
+  insert: z.infer<typeof billingRunsInsertSchema>,
+  transaction: DbTransaction
+) => {
+  const subscription = await selectSubscriptionById(
+    insert.subscriptionId,
+    transaction
+  )
+  if (subscription.status === SubscriptionStatus.Canceled) {
+    throw new Error('Cannot create billing run for canceled subscription')
+  }
+  return dangerouslyInsertBillingRun(insert, transaction)
+}
 
 export const updateBillingRun = createUpdateFunction(
   billingRuns,

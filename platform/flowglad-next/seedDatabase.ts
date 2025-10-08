@@ -20,7 +20,7 @@ import {
 import { users } from '@/db/schema/users'
 import { ApiKey, apiKeys } from '@/db/schema/apiKeys'
 import { insertBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
-import { insertBillingRun } from '@/db/tableMethods/billingRunMethods'
+import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
 import { insertBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
 import { insertInvoice } from '@/db/tableMethods/invoiceMethods'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
@@ -585,7 +585,7 @@ export const setupBillingRun = async ({
   subscriptionId: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertBillingRun(
+    return safelyInsertBillingRun(
       {
         billingPeriodId,
         paymentMethodId,

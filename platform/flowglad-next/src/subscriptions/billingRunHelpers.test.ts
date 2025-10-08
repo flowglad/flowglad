@@ -33,6 +33,7 @@ import {
   billingPeriodItemsToInvoiceLineItemInserts,
   calculateTotalAmountToCharge,
   tabulateOutstandingUsageCosts,
+  createBillingRun,
 } from './billingRunHelpers'
 import {
   BillingPeriodStatus,
@@ -60,8 +61,8 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Customer } from '@/db/schema/customers'
 import {
   selectBillingRunById,
-  selectBillingRuns,
   updateBillingRun,
+  safelyInsertBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
@@ -86,6 +87,7 @@ import {
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import core from '@/utils/core'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
@@ -912,6 +914,48 @@ describe('billingRunHelpers', async () => {
       expect(result.billingPeriod.status).toBe(
         BillingPeriodStatus.Upcoming
       )
+    })
+
+    it('should throw an error when trying to create a retry billing run for a canceled subscription', async () => {
+      // Update the subscription status to canceled
+      const canceledSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return safelyUpdateSubscriptionStatus(
+            subscription,
+            SubscriptionStatus.Canceled,
+            transaction
+          )
+        }
+      )
+
+      // The database-level protection should throw an error
+      await expect(
+        adminTransaction(({ transaction }) =>
+          scheduleBillingRunRetry(billingRun, transaction)
+        )
+      ).rejects.toThrow('Cannot create billing run for canceled subscription')
+    })
+
+    it('should schedule a retry billing run if the subscription is not canceled', async () => {
+      // Ensure the subscription is active
+      const activeSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return safelyUpdateSubscriptionStatus(
+            subscription,
+            SubscriptionStatus.Active,
+            transaction
+          )
+        }
+      )
+
+      const retryBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          scheduleBillingRunRetry(billingRun, transaction)
+      )
+
+      expect(retryBillingRun).toBeDefined()
+      expect(retryBillingRun?.status).toBe(BillingRunStatus.Scheduled)
+      expect(retryBillingRun?.subscriptionId).toBe(subscription.id)
     })
   })
 
@@ -2329,6 +2373,101 @@ describe('billingRunHelpers', async () => {
 
       expect(lineItems.length).toBe(1)
       expect(lineItems[0].type).toBe(SubscriptionItemType.Static)
+    })
+  })
+
+  describe('safelyInsertBillingRun Protection', () => {
+    it('should prevent ALL billing run creation for canceled subscriptions', async () => {
+      // Cancel the subscription
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdateSubscriptionStatus(
+          subscription,
+          SubscriptionStatus.Canceled,
+          transaction
+        )
+      })
+
+      // Test 1: Direct safelyInsertBillingRun call should fail
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return safelyInsertBillingRun(
+            {
+              billingPeriodId: billingPeriod.id,
+              scheduledFor: new Date(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: subscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: billingPeriod.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow('Cannot create billing run for canceled subscription')
+
+      // Test 2: createBillingRun should fail
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return createBillingRun(
+            {
+              billingPeriod,
+              paymentMethod,
+              scheduledFor: new Date(),
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow('Cannot create billing run for canceled subscription')
+
+      // Test 3: scheduleBillingRunRetry should fail
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return scheduleBillingRunRetry(billingRun, transaction)
+        })
+      ).rejects.toThrow('Cannot create billing run for canceled subscription')
+    })
+
+    it('should allow billing run creation for active subscriptions', async () => {
+      // Ensure subscription is active
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdateSubscriptionStatus(
+          subscription,
+          SubscriptionStatus.Active,
+          transaction
+        )
+      })
+
+      // All billing run creation methods should work
+      const directInsert = await adminTransaction(async ({ transaction }) => {
+        return safelyInsertBillingRun(
+          {
+            billingPeriodId: billingPeriod.id,
+            scheduledFor: new Date(),
+            status: BillingRunStatus.Scheduled,
+            subscriptionId: subscription.id,
+            paymentMethodId: paymentMethod.id,
+            livemode: billingPeriod.livemode,
+          },
+          transaction
+        )
+      })
+      expect(directInsert).toBeDefined()
+
+      const createBillingRunResult = await adminTransaction(async ({ transaction }) => {
+        return createBillingRun(
+          {
+            billingPeriod,
+            paymentMethod,
+            scheduledFor: new Date(),
+          },
+          transaction
+        )
+      })
+      expect(createBillingRunResult).toBeDefined()
+
+      const retryResult = await adminTransaction(async ({ transaction }) => {
+        return scheduleBillingRunRetry(billingRun, transaction)
+      })
+      expect(retryResult).toBeDefined()
     })
   })
 })

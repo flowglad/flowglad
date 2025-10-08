@@ -24,6 +24,9 @@ import {
   updateSubscriptionPaymentMethodSchema,
 } from '@/db/schema/subscriptions'
 import {
+  selectBillingPeriodById,
+} from '@/db/tableMethods/billingPeriodMethods'
+import {
   isSubscriptionCurrent,
   selectSubscriptionById,
   selectSubscriptionsPaginated,
@@ -56,13 +59,11 @@ import {
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
 import { selectSubscriptionCountsByStatus } from '@/db/tableMethods/subscriptionMethods'
-import { Event } from '@/db/schema/events'
-import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import {
   createBillingRunInsert,
   executeBillingRun,
 } from '@/subscriptions/billingRunHelpers'
-import { insertBillingRun } from '@/db/tableMethods/billingRunMethods'
+import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',
@@ -546,7 +547,7 @@ const retryBillingRunProcedure = protectedProcedure
           scheduledFor: new Date(),
           paymentMethod,
         })
-        return insertBillingRun(billingRunInsert, transaction)
+        return safelyInsertBillingRun(billingRunInsert, transaction)
       },
       { apiKey: ctx.apiKey }
     )
