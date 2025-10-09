@@ -15,6 +15,7 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
+  PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
   SubscriptionStatus,
@@ -29,6 +30,7 @@ import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import { PaymentStatus } from '@/types'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
 
 export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
   adjustmentDate: Date | number,
@@ -235,6 +237,22 @@ export const adjustSubscription = async (
       `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`
     )
   }
+
+  const priceIds = newSubscriptionItems.map((item) => item.priceId)
+  const prices = await selectPrices({ id: priceIds }, transaction)
+  const priceMap = new Map(prices.map((price) => [price.id, price]))
+  newSubscriptionItems.forEach((item) => {
+    const price = priceMap.get(item.priceId)
+    if (!price) {
+      throw new Error(`Price ${item.priceId} not found`)
+    }
+    if (price.type !== PriceType.Subscription) {
+      throw new Error(
+        `Only recurring prices can be used in subscriptions. Price ${price.id} is of type ${price.type}`
+      )
+    }
+  })
+
   let adjustmentDate: number
   if (timing === SubscriptionAdjustmentTiming.Immediately) {
     adjustmentDate = Date.now()

@@ -7,6 +7,9 @@ import {
 import {
   BillingPeriodStatus,
   BillingRunStatus,
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
   SubscriptionStatus,
@@ -24,6 +27,8 @@ import {
   setupBillingRun,
   setupBillingPeriodItem,
   setupPaymentMethod,
+  setupPrice,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 
 // Helpers to query the database after adjustments
@@ -48,7 +53,8 @@ import { BillingRun } from '@/db/schema/billingRuns'
 import { Subscription } from '@/db/schema/subscriptions'
 
 describe('adjustSubscription Integration Tests', async () => {
-  const { organization, price } = await setupOrg()
+  const { organization, price, product, pricingModel } =
+    await setupOrg()
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -196,6 +202,124 @@ describe('adjustSubscription Integration Tests', async () => {
             transaction
           )
         ).rejects.toThrow('Invalid timing')
+      })
+    })
+
+    it('should throw error when new subscription items have non-subscription price types', async () => {
+      // Create a usage meter first (required for usage-based prices)
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: false,
+      })
+
+      // Create a usage-based price to test the validation
+      const usagePrice = await setupPrice({
+        productId: product.id,
+        name: 'Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 50,
+        currency: CurrencyCode.USD,
+        isDefault: false,
+        livemode: false,
+        usageMeterId: usageMeter.id,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        name: 'Item 1',
+        quantity: 1,
+        unitPrice: 100,
+      })
+
+      const newItems: SubscriptionItem.Upsert[] = [
+        {
+          ...subscriptionItemCore,
+          name: 'Item 3',
+          quantity: 3,
+          unitPrice: 300,
+          priceId: usagePrice.id,
+          livemode: subscription.livemode,
+          externalId: null,
+          expiredAt: null,
+          type: SubscriptionItemType.Static,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+        },
+      ]
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriod(
+          {
+            id: billingPeriod.id,
+            startDate: Date.now() - 10 * 60 * 1000,
+            endDate: Date.now() + 10 * 60 * 1000,
+            status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+
+        await expect(
+          adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            transaction
+          )
+        ).rejects.toThrow(
+          /Only recurring prices can be used in subscriptions\. Price .+ is of type usage/
+        )
+
+        // Test SinglePayment price type rejection
+        const singlePaymentPrice = await setupPrice({
+          productId: product.id,
+          name: 'Single Payment Price',
+          type: PriceType.SinglePayment,
+          unitPrice: 2500,
+          currency: CurrencyCode.USD,
+          isDefault: false,
+          livemode: false,
+        })
+
+        const singlePaymentItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            name: 'Single Payment Item',
+            quantity: 1,
+            unitPrice: 2500,
+            priceId: singlePaymentPrice.id,
+            livemode: subscription.livemode,
+            externalId: null,
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+        ]
+
+        await expect(
+          adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: singlePaymentItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            transaction
+          )
+        ).rejects.toThrow(
+          /Only recurring prices can be used in subscriptions\. Price .+ is of type single_payment/
+        )
       })
     })
   })

@@ -857,8 +857,8 @@ export const setupPrice = async ({
   name: string
   type: PriceType
   unitPrice: number
-  intervalUnit: IntervalUnit
-  intervalCount: number
+  intervalUnit?: IntervalUnit
+  intervalCount?: number
   livemode: boolean
   isDefault: boolean
   usageMeterId?: string
@@ -924,6 +924,8 @@ export const setupPrice = async ({
             ...basePrice,
             ...priceConfig[PriceType.Subscription],
             type: PriceType.Subscription,
+            intervalUnit: intervalUnit ?? IntervalUnit.Month,
+            intervalCount: intervalCount ?? 1,
           },
           transaction
         )
@@ -934,6 +936,8 @@ export const setupPrice = async ({
             ...priceConfig[PriceType.Usage],
             usageMeterId: usageMeterId!,
             type: PriceType.Usage,
+            intervalUnit: intervalUnit ?? IntervalUnit.Month,
+            intervalCount: intervalCount ?? 1,
           },
           transaction
         )
