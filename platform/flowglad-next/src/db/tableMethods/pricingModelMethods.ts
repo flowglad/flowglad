@@ -18,7 +18,7 @@ import {
   pricingModelsUpdateSchema,
 } from '@/db/schema/pricingModels'
 import { DbTransaction } from '@/db/types'
-import { count, eq, and, inArray } from 'drizzle-orm'
+import { count, eq, and, inArray, or, isNull, gt } from 'drizzle-orm'
 import { products } from '../schema/products'
 import {
   selectPricesAndProductsByProductWhere,
@@ -290,9 +290,15 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
       .from(productFeatures)
       .innerJoin(features, eq(productFeatures.featureId, features.id))
       .where(
-        inArray(
-          productFeatures.productId,
-          productResults.map((product) => product.id)
+        and(
+          inArray(
+            productFeatures.productId,
+            productResults.map((product) => product.id)
+          ),
+          or(
+            isNull(productFeatures.expiredAt),
+            gt(productFeatures.expiredAt, new Date().getTime())
+          )
         )
       )
 

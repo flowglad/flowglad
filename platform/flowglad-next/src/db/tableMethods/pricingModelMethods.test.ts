@@ -20,7 +20,6 @@ import {
 } from './pricingModelMethods'
 import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
 import { setupCustomer } from '@/../seedDatabase'
-import { Customer } from '@/db/schema/customers'
 
 describe('safelyUpdatePricingModel', () => {
   let organization: Organization.Record
@@ -743,5 +742,286 @@ describe('selectPricingModelForCustomer', () => {
 
     expect(result.id).toBe(emptyPricingModel.id)
     expect(result.products).toHaveLength(0)
+  })
+})
+
+describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: any
+  let feature1: any
+  let feature2: any
+  let feature3: any
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+
+    // Create a product
+    product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product',
+    })
+
+    // Create a price for the product
+    await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      setupFeeAmount: 0,
+      trialPeriodDays: 0,
+      externalId: undefined,
+      usageMeterId: undefined,
+    })
+
+    // Create features
+    feature1 = await setupToggleFeature({
+      organizationId: organization.id,
+      name: 'Active Feature',
+      livemode: true,
+    })
+
+    feature2 = await setupToggleFeature({
+      organizationId: organization.id,
+      name: 'Expired Feature',
+      livemode: true,
+    })
+
+    feature3 = await setupToggleFeature({
+      organizationId: organization.id,
+      name: 'Future Expired Feature',
+      livemode: true,
+    })
+  })
+
+  it('should filter out expired features but keep active and future-expired features', async () => {
+    const now = Date.now()
+    const pastTime = now - 1000 * 60 * 60 * 24 // 1 day ago
+    const futureTime = now + 1000 * 60 * 60 * 24 // 1 day from now
+
+    // Assign features to product with different expiration times
+    await setupProductFeature({
+      productId: product.id,
+      featureId: feature1.id,
+      organizationId: organization.id,
+      // No expiration (null) - should be included
+    })
+
+    await setupProductFeature({
+      productId: product.id,
+      featureId: feature2.id,
+      organizationId: organization.id,
+      expiredAt: pastTime, // Expired in the past - should be filtered out
+    })
+
+    await setupProductFeature({
+      productId: product.id,
+      featureId: feature3.id,
+      organizationId: organization.id,
+      expiredAt: futureTime, // Expires in the future - should be included
+    })
+
+    // Query the pricing model
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    // Verify the results
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+    const productResult = pricingModelResult.products.find(
+      (p) => p.id === product.id
+    )
+
+    expect(productResult).toBeDefined()
+    expect(productResult?.features).toHaveLength(2) // Only active and future-expired
+
+    const featureIds = productResult?.features.map((f) => f.id) || []
+    expect(featureIds).toContain(feature1.id) // Active feature (no expiration)
+    expect(featureIds).toContain(feature3.id) // Future-expired feature
+    expect(featureIds).not.toContain(feature2.id) // Expired feature should be filtered out
+  })
+
+  it('should handle products with all expired features', async () => {
+    const now = Date.now()
+    const pastTime = now - 1000 * 60 * 60 * 24 // 1 day ago
+
+    // Assign only expired features
+    await setupProductFeature({
+      productId: product.id,
+      featureId: feature1.id,
+      organizationId: organization.id,
+      expiredAt: pastTime,
+    })
+
+    await setupProductFeature({
+      productId: product.id,
+      featureId: feature2.id,
+      organizationId: organization.id,
+      expiredAt: pastTime,
+    })
+
+    // Query the pricing model
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    // Verify the results
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+    const productResult = pricingModelResult.products.find(
+      (p) => p.id === product.id
+    )
+
+    expect(productResult).toBeDefined()
+    expect(productResult?.features).toHaveLength(0) // All features expired
+    expect(Array.isArray(productResult?.features)).toBe(true) // Should be empty array, not null
+  })
+
+  it('should handle products with no features assigned', async () => {
+    // Don't assign any features to the product
+
+    // Query the pricing model
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    // Verify the results
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+    const productResult = pricingModelResult.products.find(
+      (p) => p.id === product.id
+    )
+
+    expect(productResult).toBeDefined()
+    expect(productResult?.features).toHaveLength(0)
+    expect(Array.isArray(productResult?.features)).toBe(true)
+  })
+
+  it('should handle features that expire exactly at the current time', async () => {
+    const now = Date.now()
+
+    // Assign feature that expires exactly now
+    await setupProductFeature({
+      productId: product.id,
+      featureId: feature1.id,
+      organizationId: organization.id,
+      expiredAt: now, // Expires exactly now - should be filtered out
+    })
+
+    // Query the pricing model
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    // Verify the results
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+    const productResult = pricingModelResult.products.find(
+      (p) => p.id === product.id
+    )
+
+    expect(productResult).toBeDefined()
+    expect(productResult?.features).toHaveLength(0) // Feature expired exactly now should be filtered out
+  })
+
+  it('should handle mixed expiration scenarios across multiple products', async () => {
+    // Create a second product
+    const product2 = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Second Product',
+    })
+
+    // Create a price for the second product
+    await setupPrice({
+      productId: product2.id,
+      name: 'Second Product Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 2000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      setupFeeAmount: 0,
+      trialPeriodDays: 0,
+      externalId: undefined,
+      usageMeterId: undefined,
+    })
+
+    const now = Date.now()
+    const pastTime = now - 1000 * 60 * 60 * 24 // 1 day ago
+    const futureTime = now + 1000 * 60 * 60 * 24 // 1 day from now
+
+    // Product 1: Mix of active, expired, and future-expired features
+    await setupProductFeature({
+      productId: product.id,
+      featureId: feature1.id,
+      organizationId: organization.id,
+      // No expiration - should be included
+    })
+
+    await setupProductFeature({
+      productId: product.id,
+      featureId: feature2.id,
+      organizationId: organization.id,
+      expiredAt: pastTime, // Expired - should be filtered out
+    })
+
+    // Product 2: Only future-expired features
+    await setupProductFeature({
+      productId: product2.id,
+      featureId: feature3.id,
+      organizationId: organization.id,
+      expiredAt: futureTime, // Future expired - should be included
+    })
+
+    // Query the pricing model
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    // Verify the results
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+    expect(pricingModelResult.products).toHaveLength(3) // product, product2, and default product
+
+    // Check product 1 features
+    const product1Result = pricingModelResult.products.find(
+      (p) => p.id === product.id
+    )
+    expect(product1Result?.features).toHaveLength(1) // Only active feature
+    expect(product1Result?.features[0].id).toBe(feature1.id)
+
+    // Check product 2 features
+    const product2Result = pricingModelResult.products.find(
+      (p) => p.id === product2.id
+    )
+    expect(product2Result?.features).toHaveLength(1) // Only future-expired feature
+    expect(product2Result?.features[0].id).toBe(feature3.id)
   })
 })
