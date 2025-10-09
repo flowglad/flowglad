@@ -223,6 +223,25 @@ export const columns: ColumnDef<PriceTableRowData>[] = [
     maxSize: 115,
   },
   {
+    id: 'slug',
+    accessorFn: (row) => row.price.slug,
+    header: 'Slug',
+    cell: ({ row }) => {
+      const slug = row.getValue('slug') as string
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          <DataTableCopyableCell copyText={slug}>
+            {slug}
+          </DataTableCopyableCell>
+        </div>
+      )
+    },
+    size: 180,
+    minSize: 125,
+    maxSize: 250,
+  },
+
+  {
     id: 'isDefault',
     accessorFn: (row) => row.price.isDefault,
     header: 'Default',

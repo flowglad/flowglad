@@ -114,6 +114,24 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
     },
   },
   {
+    id: 'slug',
+    accessorFn: (row) => row.usageMeter.slug,
+    header: 'Slug',
+    cell: ({ row }) => {
+      const slug = row.getValue('slug') as string
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          <DataTableCopyableCell copyText={slug}>
+            {slug}
+          </DataTableCopyableCell>
+        </div>
+      )
+    },
+    size: 180,
+    minSize: 125,
+    maxSize: 250,
+  },
+  {
     id: 'id',
     accessorFn: (row) => row.usageMeter.id,
     header: 'ID',

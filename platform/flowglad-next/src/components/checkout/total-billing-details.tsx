@@ -271,7 +271,9 @@ export const TotalBillingDetails = React.forwardRef<
                   ? ''
                   : stripeCurrencyAmountToHumanReadableCurrencyAmount(
                       currency,
-                      totalDueAmount
+                      subscriptionDetails?.trialPeriodDays
+                        ? 0
+                        : totalDueAmount
                     )}
               </span>
             )}

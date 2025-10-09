@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/form'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import UsageMetersSelect from './UsageMetersSelect'
-import { usePriceConstraints } from '@/app/hooks/usePriceConstraints'
+import { getPriceConstraints } from '@/utils/priceConstraints'
 import core from '@/utils/core'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { useFormContext } from 'react-hook-form'
@@ -213,6 +213,91 @@ const SinglePaymentFields = ({
   )
 }
 
+const UsageFields = ({
+  defaultPriceLocked,
+}: {
+  defaultPriceLocked: boolean
+}) => {
+  const {
+    control,
+    watch,
+    setValue,
+    formState: { errors },
+  } = usePriceFormContext()
+  const { organization } = useAuthenticatedContext()
+  const zeroDecimal = isCurrencyZeroDecimal(
+    organization!.defaultCurrency
+  )
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-end gap-2.5">
+        <FormField
+          control={control}
+          name="__rawPriceString"
+          render={({ field }) => (
+            <FormItem className="flex-1">
+              <FormLabel>Amount</FormLabel>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {currencyCharacter(organization!.defaultCurrency)}
+                </span>
+                <FormControl>
+                  <CurrencyInput
+                    value={field.value?.toString() ?? ''}
+                    onValueChange={(value) => {
+                      if (!value) {
+                        const zeroValue = zeroDecimal ? '0' : '0.00'
+                        field.onChange(zeroValue)
+                        return
+                      }
+                      field.onChange(value)
+                    }}
+                    allowDecimals={!zeroDecimal}
+                    disabled={defaultPriceLocked}
+                  />
+                </FormControl>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          name="price.usageEventsPerUnit"
+          control={control}
+          render={({ field, fieldState }) => (
+            <FormItem className="flex-1">
+              <FormLabel>Usage Events Per Unit</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={1}
+                  max={2147483647}
+                  step={1}
+                  placeholder="e.g. 100"
+                  value={field.value?.toString() ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    const numValue = Number(value)
+                    if (!isNaN(numValue)) {
+                      field.onChange(numValue)
+                    }
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+      <UsageMetersSelect
+        name="price.usageMeterId"
+        control={control}
+      />
+    </div>
+  )
+}
+
 const PriceFormFields = ({
   priceOnly,
   edit,
@@ -240,7 +325,7 @@ const PriceFormFields = ({
   const isDefaultPrice =
     isDefaultPriceOverride ?? watch('price.isDefault') === true
   const { omitTrialFields, defaultPriceLocked, isDefaultLocked } =
-    usePriceConstraints({
+    getPriceConstraints({
       type,
       isDefaultProduct,
       isDefaultPrice,
@@ -267,16 +352,7 @@ const PriceFormFields = ({
       break
     case PriceType.Usage:
       typeFields = (
-        <div className="flex flex-col gap-2.5">
-          <SubscriptionFields
-            defaultPriceLocked={defaultPriceLocked}
-            omitTrialFields={omitTrialFields}
-          />
-          <UsageMetersSelect
-            name="price.usageMeterId"
-            control={control}
-          />
-        </div>
+        <UsageFields defaultPriceLocked={defaultPriceLocked} />
       )
       break
   }
