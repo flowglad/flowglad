@@ -17,7 +17,9 @@ import {
   SQLWrapper,
   isNull,
   Table,
+  ColumnBaseConfig,
 } from 'drizzle-orm'
+import { PgTimestampColumn } from './types'
 import { timestamptzMs } from './timestampMs'
 import core, { gitCommitId, IS_TEST } from '@/utils/core'
 import {
@@ -56,6 +58,7 @@ import {
 } from 'drizzle-zod'
 import { noCase, snakeCase } from 'change-case'
 import { countryCodeSchema } from './commonZodSchema'
+import { E } from 'vitest/dist/chunks/reporters.6vxQttCV.js'
 
 export const merchantRole = pgRole('merchant', {
   createRole: false,
@@ -1701,7 +1704,7 @@ export const clientWriteOmitsConstructor = <
  * ```
  */
 export const createNotExpiredFilter = (
-  expiredAtColumn: any,
+  expiredAtColumn: PgTimestampColumn,
   anchorDate: string | number | Date = Date.now()
 ): SQL | undefined => {
   const anchorTime = typeof anchorDate === 'string' || typeof anchorDate === 'number' 
