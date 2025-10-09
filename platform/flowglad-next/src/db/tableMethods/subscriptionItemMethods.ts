@@ -22,7 +22,8 @@ import {
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
-import { and, eq, gt, isNull, lte, or } from 'drizzle-orm'
+import { and, eq, gt, lte } from 'drizzle-orm'
+import { createNotExpiredFilter } from '../tableUtils'
 import {
   RichSubscription,
   richSubscriptionClientSelectSchema,
@@ -389,13 +390,7 @@ export const selectCurrentlyActiveSubscriptionItems = async (
           new Date(anchorDate).getTime()
         ),
         // Item must not have expired (expiredAt is null OR expiredAt > anchorDate)
-        or(
-          isNull(subscriptionItems.expiredAt),
-          gt(
-            subscriptionItems.expiredAt,
-            new Date(anchorDate).getTime()
-          )
-        )
+        createNotExpiredFilter(subscriptionItems.expiredAt, anchorDate)
       )
     )
 
