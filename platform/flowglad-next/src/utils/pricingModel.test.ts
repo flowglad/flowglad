@@ -410,9 +410,6 @@ describe('clonePricingModelTransaction', () => {
         sourcePrice.intervalCount
       )
       expect(clonedPrice.unitPrice).toBe(sourcePrice.unitPrice)
-      expect(clonedPrice.setupFeeAmount).toBe(
-        sourcePrice.setupFeeAmount
-      )
       expect(clonedPrice.trialPeriodDays).toBe(
         sourcePrice.trialPeriodDays
       )
@@ -2091,14 +2088,12 @@ describe('createProductTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 unitPrice: 1000,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
                 startsWithCreditTrial: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
@@ -2131,7 +2126,6 @@ describe('createProductTransaction', () => {
     expect(price.intervalCount).toBe(1)
     expect(price.intervalUnit).toBe(IntervalUnit.Month)
     expect(price.unitPrice).toBe(1000)
-    expect(price.setupFeeAmount).toBe(0)
     expect(price.trialPeriodDays).toBe(0)
     expect(price.currency).toBe(CurrencyCode.USD)
     expect(price.externalId).toBe(null)
@@ -2166,14 +2160,12 @@ describe('createProductTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 unitPrice: 1000,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
                 startsWithCreditTrial: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
@@ -2232,14 +2224,12 @@ describe('createProductTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 unitPrice: 1000,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
                 startsWithCreditTrial: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],

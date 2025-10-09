@@ -243,7 +243,6 @@ export const setupOrg = async (params?: {
         active: true,
         isDefault: true,
         unitPrice: 1000,
-        setupFeeAmount: 0,
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
         externalId: null,
@@ -846,7 +845,6 @@ export const setupPrice = async ({
   intervalCount,
   livemode,
   isDefault,
-  setupFeeAmount,
   trialPeriodDays,
   currency,
   externalId,
@@ -863,7 +861,6 @@ export const setupPrice = async ({
   intervalCount: number
   livemode: boolean
   isDefault: boolean
-  setupFeeAmount?: number
   usageMeterId?: string
   currency?: CurrencyCode
   externalId?: string
@@ -895,7 +892,6 @@ export const setupPrice = async ({
         name,
         intervalUnit,
         intervalCount,
-        setupFeeAmount: null,
         trialPeriodDays: null,
         usageMeterId,
         usageEventsPerUnit: 1,
@@ -904,7 +900,6 @@ export const setupPrice = async ({
         name,
         intervalUnit,
         intervalCount,
-        setupFeeAmount: setupFeeAmount ?? 0,
         trialPeriodDays: trialPeriodDays ?? null,
         usageEventsPerUnit: null,
         startsWithCreditTrial: startsWithCreditTrial ?? false,
@@ -2467,7 +2462,6 @@ export const setupUsageLedgerScenario = async (params: {
     intervalCount: 1,
     livemode,
     isDefault: false,
-    setupFeeAmount: 0,
     usageMeterId: usageMeter.id,
     ...(params.priceArgs ?? {}),
   })

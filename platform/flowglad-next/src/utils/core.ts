@@ -320,12 +320,8 @@ export const safeZodNonNegativeInteger = z.coerce
 
 export const safeZodPositiveInteger = z.coerce
   .number()
-  .transform((str) => Number(str))
-  .refine(
-    (arg) => z.number().int().positive().safeParse(arg).success,
-    { message: 'Value must be a positive integer' }
-  )
-  .describe('safeZodPositiveInteger')
+  .int()
+  .positive()
   .meta({
     description: 'A positive integer',
   })

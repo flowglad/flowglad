@@ -30,7 +30,6 @@ import core from '@/utils/core'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
-import { RecurringUsageCreditsOveragePriceSelect } from './OveragePriceSelect'
 import TrialFields from './PriceFormTrialFields'
 import { isCurrencyZeroDecimal } from '@/utils/stripe'
 import { currencyCharacter } from '@/registry/lib/currency'
@@ -120,11 +119,6 @@ const SubscriptionFields = ({
           )}
         />
       </div>
-      {productId && (
-        <RecurringUsageCreditsOveragePriceSelect
-          productId={productId}
-        />
-      )}
       {!omitTrialFields && (
         <TrialFields disabled={defaultPriceLocked} />
       )}

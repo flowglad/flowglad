@@ -189,9 +189,7 @@ describe('setupPricingModelTransaction (integration)', () => {
               name: 'Test Price',
               usageMeterId: null,
               trialPeriodDays: null,
-              setupFeeAmount: null,
               usageEventsPerUnit: null,
-              overagePriceId: null,
               active: true,
               intervalUnit: IntervalUnit.Month,
               intervalCount: 1,
@@ -205,9 +203,7 @@ describe('setupPricingModelTransaction (integration)', () => {
               name: 'Test Price',
               usageMeterSlug: 'um',
               trialPeriodDays: null,
-              setupFeeAmount: null,
               usageEventsPerUnit: 1,
-              overagePriceId: null,
               active: true,
               intervalUnit: IntervalUnit.Month,
               intervalCount: 1,
@@ -363,9 +359,7 @@ describe('setupPricingModelTransaction (integration)', () => {
                 name: 'Custom Free',
                 usageMeterId: null,
                 trialPeriodDays: null,
-                setupFeeAmount: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 active: true,
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
@@ -472,9 +466,7 @@ describe('setupPricingModelTransaction (integration)', () => {
                 name: 'Invalid Price',
                 usageMeterId: null,
                 trialPeriodDays: null,
-                setupFeeAmount: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 active: true,
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
@@ -528,9 +520,7 @@ describe('setupPricingModelTransaction (integration)', () => {
                 name: 'Invalid Price',
                 usageMeterId: null,
                 trialPeriodDays: 7, // Trial days - should fail
-                setupFeeAmount: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 active: true,
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
@@ -555,62 +545,6 @@ describe('setupPricingModelTransaction (integration)', () => {
           )
         )
       ).rejects.toThrow('Default products cannot have trials')
-    })
-
-    it('should reject default product with setup fees', async () => {
-      const input: SetupPricingModelInput = {
-        name: 'Test Pricing Model',
-        isDefault: false,
-        usageMeters: [],
-        features: [],
-        products: [
-          {
-            product: {
-              name: 'Invalid Default',
-              default: true,
-              description: '',
-              slug: 'invalid-default',
-              active: true,
-              imageURL: null,
-              displayFeatures: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-            },
-            prices: [
-              {
-                type: PriceType.Subscription,
-                slug: 'invalid-price',
-                isDefault: true,
-                name: 'Invalid Price',
-                usageMeterId: null,
-                trialPeriodDays: null,
-                setupFeeAmount: 50, // Setup fee - should fail
-                usageEventsPerUnit: null,
-                overagePriceId: null,
-                active: true,
-                intervalUnit: IntervalUnit.Month,
-                intervalCount: 1,
-                unitPrice: 0,
-                startsWithCreditTrial: false,
-              },
-            ],
-            features: [],
-          },
-        ],
-      }
-
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-        )
-      ).rejects.toThrow('Default products cannot have setup fees')
     })
 
     it('should reject default product using reserved "free" slug', async () => {
@@ -640,9 +574,7 @@ describe('setupPricingModelTransaction (integration)', () => {
                 name: 'Free Price',
                 usageMeterId: null,
                 trialPeriodDays: null,
-                setupFeeAmount: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 active: true,
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
@@ -747,9 +679,7 @@ describe('setupPricingModelTransaction (integration)', () => {
                 name: 'Test Price',
                 usageMeterId: null,
                 trialPeriodDays: null,
-                setupFeeAmount: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 active: true,
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,

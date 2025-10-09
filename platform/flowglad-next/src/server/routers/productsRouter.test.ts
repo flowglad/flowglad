@@ -84,13 +84,11 @@ describe('productsRouter - Default Product Constraints', () => {
           active: true,
           name: 'Regular Price',
           trialPeriodDays: null,
-          setupFeeAmount: null,
           usageEventsPerUnit: null,
           usageMeterId: null,
           externalId: null,
           slug: null,
           startsWithCreditTrial: false,
-          overagePriceId: null,
         },
         transaction
       )
@@ -186,13 +184,11 @@ describe('productsRouter - Default Product Constraints', () => {
               active: true,
               name: 'Regular Price',
               trialPeriodDays: null,
-              setupFeeAmount: null,
               usageEventsPerUnit: null,
               usageMeterId: null,
               externalId: null,
               slug: null,
               startsWithCreditTrial: false,
-              overagePriceId: null,
             },
             transaction
           )

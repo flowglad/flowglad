@@ -61,7 +61,6 @@ describe('createCustomerBookkeeping', () => {
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
       isDefault: true,
-      setupFeeAmount: 0,
       trialPeriodDays: 14,
       currency: CurrencyCode.USD,
       livemode,
@@ -176,7 +175,6 @@ describe('createCustomerBookkeeping', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         isDefault: true,
-        setupFeeAmount: 0,
         currency: CurrencyCode.USD,
         livemode: customProduct.livemode,
       })
@@ -346,7 +344,6 @@ describe('createCustomerBookkeeping', () => {
       //   intervalUnit: IntervalUnit.Month,
       //   intervalCount: 1,
       //   isDefault: false, // Not default
-      //   setupFeeAmount: 0,
       //   currency: CurrencyCode.USD,
       //   livemode,
       // })
@@ -1420,13 +1417,11 @@ describe('createPricingModelBookkeeping', () => {
       expect(defaultPrice.active).toBe(true)
       expect(defaultPrice.name).toBe('Free Plan')
       expect(defaultPrice.trialPeriodDays).toBeNull()
-      expect(defaultPrice.setupFeeAmount).toBeNull()
       expect(defaultPrice.usageEventsPerUnit).toBeNull()
       expect(defaultPrice.usageMeterId).toBeNull()
       expect(defaultPrice.externalId).toBeNull()
       expect(defaultPrice.slug).toBe('free')
       expect(defaultPrice.startsWithCreditTrial).toBeNull()
-      expect(defaultPrice.overagePriceId).toBeNull()
     })
 
     it('should inherit livemode from pricing model to product and price', async () => {
@@ -1759,13 +1754,11 @@ describe('createFreePlanPriceInsert', () => {
       expect(result.active).toBe(true)
       expect(result.name).toBe('Free Plan')
       expect(result.trialPeriodDays).toBeNull()
-      expect(result.setupFeeAmount).toBeNull()
       expect(result.usageEventsPerUnit).toBeNull()
       expect(result.usageMeterId).toBeNull()
       expect(result.externalId).toBeNull()
       expect(result.slug).toBe('free')
       expect(result.startsWithCreditTrial).toBeNull()
-      expect(result.overagePriceId).toBeNull()
     })
 
     it('should create a subscription price when interval unit is provided', () => {
@@ -1787,13 +1780,11 @@ describe('createFreePlanPriceInsert', () => {
       expect(result.active).toBe(true)
       expect(result.name).toBe('Free Plan')
       expect(result.trialPeriodDays).toBeNull()
-      expect(result.setupFeeAmount).toBeNull()
       expect(result.usageEventsPerUnit).toBeNull()
       expect(result.usageMeterId).toBeNull()
       expect(result.externalId).toBeNull()
       expect(result.slug).toBe('free')
       expect(result.startsWithCreditTrial).toBe(false)
-      expect(result.overagePriceId).toBeNull()
     })
   })
 

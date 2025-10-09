@@ -150,7 +150,6 @@ describe('billingRunHelpers', async () => {
       intervalCount: 1,
       livemode: true,
       isDefault: false,
-      setupFeeAmount: 0,
       currency: organization.defaultCurrency,
       usageMeterId: usageMeter.id,
     })
@@ -933,7 +932,9 @@ describe('billingRunHelpers', async () => {
         adminTransaction(({ transaction }) =>
           scheduleBillingRunRetry(billingRun, transaction)
         )
-      ).rejects.toThrow('Cannot create billing run for canceled subscription')
+      ).rejects.toThrow(
+        'Cannot create billing run for canceled subscription'
+      )
     })
 
     it('should schedule a retry billing run if the subscription is not canceled', async () => {
@@ -1744,7 +1745,6 @@ describe('billingRunHelpers', async () => {
         intervalCount: 1,
         livemode: true,
         isDefault: false,
-        setupFeeAmount: 0,
         currency: organization.defaultCurrency,
         usageMeterId: usageMeter.id,
       })
@@ -2402,7 +2402,9 @@ describe('billingRunHelpers', async () => {
             transaction
           )
         })
-      ).rejects.toThrow('Cannot create billing run for canceled subscription')
+      ).rejects.toThrow(
+        'Cannot create billing run for canceled subscription'
+      )
 
       // Test 2: createBillingRun should fail
       await expect(
@@ -2416,14 +2418,18 @@ describe('billingRunHelpers', async () => {
             transaction
           )
         })
-      ).rejects.toThrow('Cannot create billing run for canceled subscription')
+      ).rejects.toThrow(
+        'Cannot create billing run for canceled subscription'
+      )
 
       // Test 3: scheduleBillingRunRetry should fail
       await expect(
         adminTransaction(async ({ transaction }) => {
           return scheduleBillingRunRetry(billingRun, transaction)
         })
-      ).rejects.toThrow('Cannot create billing run for canceled subscription')
+      ).rejects.toThrow(
+        'Cannot create billing run for canceled subscription'
+      )
     })
 
     it('should allow billing run creation for active subscriptions', async () => {
@@ -2437,36 +2443,42 @@ describe('billingRunHelpers', async () => {
       })
 
       // All billing run creation methods should work
-      const directInsert = await adminTransaction(async ({ transaction }) => {
-        return safelyInsertBillingRun(
-          {
-            billingPeriodId: billingPeriod.id,
-            scheduledFor: Date.now(),
-            status: BillingRunStatus.Scheduled,
-            subscriptionId: subscription.id,
-            paymentMethodId: paymentMethod.id,
-            livemode: billingPeriod.livemode,
-          },
-          transaction
-        )
-      })
+      const directInsert = await adminTransaction(
+        async ({ transaction }) => {
+          return safelyInsertBillingRun(
+            {
+              billingPeriodId: billingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: subscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: billingPeriod.livemode,
+            },
+            transaction
+          )
+        }
+      )
       expect(directInsert).toBeDefined()
 
-      const createBillingRunResult = await adminTransaction(async ({ transaction }) => {
-        return createBillingRun(
-          {
-            billingPeriod,
-            paymentMethod,
-            scheduledFor: Date.now(),
-          },
-          transaction
-        )
-      })
+      const createBillingRunResult = await adminTransaction(
+        async ({ transaction }) => {
+          return createBillingRun(
+            {
+              billingPeriod,
+              paymentMethod,
+              scheduledFor: Date.now(),
+            },
+            transaction
+          )
+        }
+      )
       expect(createBillingRunResult).toBeDefined()
 
-      const retryResult = await adminTransaction(async ({ transaction }) => {
-        return scheduleBillingRunRetry(billingRun, transaction)
-      })
+      const retryResult = await adminTransaction(
+        async ({ transaction }) => {
+          return scheduleBillingRunRetry(billingRun, transaction)
+        }
+      )
       expect(retryResult).toBeDefined()
     })
   })
