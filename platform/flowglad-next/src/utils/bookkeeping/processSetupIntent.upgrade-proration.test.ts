@@ -130,7 +130,6 @@ describe('Subscription Upgrade with Proration', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       currency: CurrencyCode.USD,
     })
 
@@ -151,7 +150,6 @@ describe('Subscription Upgrade with Proration', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       currency: CurrencyCode.USD,
     })
   })

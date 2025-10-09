@@ -12,7 +12,8 @@ import {
   getActiveSubscriptionsForPeriod,
 } from '@/db/tableMethods/subscriptionMethods'
 import { subscriptions } from '@/db/schema/subscriptions'
-import { and, eq, gte, gt, lte, or, isNull } from 'drizzle-orm'
+import { and, eq, lte } from 'drizzle-orm'
+import { createDateNotPassedFilter } from '@/db/tableUtils'
 
 export interface MonthlyActiveSubscribers {
   month: Date
@@ -138,9 +139,9 @@ export async function calculateSubscriberBreakdown(
         // Started before previous month ended
         lte(subscriptions.startDate, previousMonthEnd.getTime()),
         // Not canceled before previous month started
-        or(
-          isNull(subscriptions.canceledAt),
-          gt(subscriptions.canceledAt, previousMonthStart.getTime())
+        createDateNotPassedFilter(
+          subscriptions.canceledAt,
+          previousMonthStart.getTime()
         )
       )
     )

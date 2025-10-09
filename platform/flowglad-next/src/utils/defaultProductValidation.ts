@@ -187,7 +187,6 @@ export const validateDefaultProductSchema = (product: {
     type: PriceType
     slug?: string
     trialDays?: number
-    setupFee?: number
   }>
 }) => {
   // Exactly one price and it must be the default price
@@ -204,11 +203,6 @@ export const validateDefaultProductSchema = (product: {
   // Check no trials
   if (price.trialDays && price.trialDays > 0) {
     throw new Error('Default products cannot have trials')
-  }
-
-  // Check no setup fees
-  if (price.setupFee && price.setupFee > 0) {
-    throw new Error('Default products cannot have setup fees')
   }
 
   // Check reserved slug usage

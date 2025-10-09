@@ -1,4 +1,3 @@
-import { z } from 'zod'
 import {
   createSelectById,
   createInsertFunction,
@@ -6,7 +5,6 @@ import {
   createSelectFunction,
   createUpsertFunction,
   createPaginatedSelectFunction,
-  createDeleteFunction,
   ORMMethodCreatorConfig,
   whereClauseFromObject,
   createBulkInsertFunction,
@@ -20,14 +18,11 @@ import {
   productFeaturesUpdateSchema,
   ProductFeature,
 } from '@/db/schema/productFeatures'
-import { and, eq, inArray, isNotNull, isNull, or, gt } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { createDateNotPassedFilter } from '../tableUtils'
 import { features, featuresSelectSchema } from '../schema/features'
 import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
 import { Product } from '../schema/products'
-
-// Define a truly empty Zod object schema for the update part
-const emptyUpdateSchema = z.object({}).strict()
-type EmptyUpdateSchemaType = typeof emptyUpdateSchema
 
 const config: ORMMethodCreatorConfig<
   typeof productFeatures,
@@ -137,10 +132,7 @@ export const selectFeaturesByProductFeatureWhere = async (
     .where(
       and(
         whereClauseFromObject(productFeatures, where),
-        or(
-          isNull(productFeatures.expiredAt),
-          gt(productFeatures.expiredAt, Date.now())
-        )
+        createDateNotPassedFilter(productFeatures.expiredAt)
       )
     )
     .innerJoin(features, eq(productFeatures.featureId, features.id))

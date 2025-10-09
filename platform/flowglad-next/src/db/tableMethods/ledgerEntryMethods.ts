@@ -20,24 +20,12 @@ import {
   LedgerEntryStatus,
   LedgerEntryType,
 } from '@/types'
-import {
-  and,
-  asc,
-  eq,
-  gt,
-  inArray,
-  isNull,
-  lt,
-  not,
-  or,
-} from 'drizzle-orm'
-import { LedgerTransaction } from '../schema/ledgerTransactions'
+import { and, asc, eq, gt, inArray, lt, not, or } from 'drizzle-orm'
+import { createDateNotPassedFilter } from '../tableUtils'
 import { selectUsageCredits } from './usageCreditMethods'
-import { selectUsageEvents } from './usageEventMethods'
 import { BillingRun } from '../schema/billingRuns'
 import core from '@/utils/core'
 import {
-  UsageMeter,
   UsageMeterBalance,
   usageMeters,
   usageMetersClientSelectSchema,
@@ -108,15 +96,6 @@ const balanceTypeWhereStatement = (
   }
 }
 
-const discardedAtFilterOutStatement = (
-  calculationDate: Date = new Date()
-) => {
-  return or(
-    isNull(ledgerEntries.discardedAt),
-    gt(ledgerEntries.discardedAt, new Date(calculationDate).getTime())
-  )
-}
-
 export const balanceFromEntries = (entries: LedgerEntry.Record[]) => {
   return entries.reduce((acc, entry) => {
     return entry.direction === LedgerEntryDirection.Credit
@@ -146,7 +125,7 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
     .where(
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
-        discardedAtFilterOutStatement(),
+        createDateNotPassedFilter(ledgerEntries.discardedAt),
         balanceTypeWhereStatement(balanceType)
       )
     )
@@ -199,7 +178,10 @@ export const selectUsageMeterBalancesForSubscriptions = async (
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
         balanceTypeWhereStatement('available'),
-        discardedAtFilterOutStatement(calculationDate)
+        createDateNotPassedFilter(
+          ledgerEntries.discardedAt,
+          calculationDate
+        )
       )
     )
 
@@ -256,7 +238,10 @@ export const aggregateAvailableBalanceForUsageCredit = async (
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
         balanceTypeWhereStatement('available'),
-        discardedAtFilterOutStatement(calculationDate),
+        createDateNotPassedFilter(
+          ledgerEntries.discardedAt,
+          calculationDate
+        ),
         // This entry type is a credit, but it doesn't credit the *usage credit balance*.
         // It credits the usage cost that is being offset by the credit application.
         // Therefore, we must exclude it from the balance calculation for the usage credit itself.
@@ -363,10 +348,10 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
           ])
         ),
         balanceTypeWhereStatement('posted'),
-        discardedAtFilterOutStatement(),
-        or(
-          gt(ledgerEntries.expiredAt, new Date(anchorDate).getTime()),
-          isNull(ledgerEntries.expiredAt)
+        createDateNotPassedFilter(ledgerEntries.discardedAt),
+        createDateNotPassedFilter(
+          ledgerEntries.expiredAt,
+          anchorDate
         ),
         lt(
           ledgerEntries.entryTimestamp,

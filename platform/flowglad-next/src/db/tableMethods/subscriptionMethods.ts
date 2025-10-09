@@ -6,8 +6,7 @@ import {
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
   createCursorPaginatedSelectFunction,
-  createBulkInsertOrDoNothingFunction,
-  whereClauseFromObject,
+  createDateNotPassedFilter,
 } from '@/db/tableUtils'
 import {
   nonRenewingStatusSchema,
@@ -24,8 +23,6 @@ import {
   lte,
   gte,
   eq,
-  desc,
-  gt,
   isNull,
   or,
   sql,
@@ -44,7 +41,6 @@ import {
   products,
   productsClientSelectSchema,
 } from '../schema/products'
-import { z } from 'zod'
 import { PaymentMethod } from '../schema/paymentMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -329,9 +325,9 @@ export const getActiveSubscriptionsForPeriod = async (
         // Subscription started before the period ended
         lte(subscriptions.startDate, new Date(endDate).getTime()),
         // Subscription was not canceled before the period started
-        or(
-          isNull(subscriptions.canceledAt),
-          gt(subscriptions.canceledAt, new Date(startDate).getTime())
+        createDateNotPassedFilter(
+          subscriptions.canceledAt,
+          new Date(startDate).getTime()
         ),
         // Exclude subscriptions that were upgraded away
         or(

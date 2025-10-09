@@ -35,7 +35,7 @@ describe('beforeEach setup', () => {
       apiKey: apiKeyToken,
       livemode: true,
       environment: 'live',
-      isApi: true as any,
+      isApi: true,
       path: '',
     } as any
   })
@@ -210,7 +210,6 @@ describe('pricesRouter.create', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         name: 'Auto Default',
-        setupFeeAmount: 0,
         trialPeriodDays: 0,
         slug: 'auto-default',
         active: true,
@@ -271,7 +270,6 @@ describe('pricesRouter.create', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         name: 'Initial Default',
-        setupFeeAmount: 0,
         trialPeriodDays: 0,
         slug: 'initial-default',
         active: true,
@@ -289,12 +287,11 @@ describe('pricesRouter.create', () => {
           intervalUnit: IntervalUnit.Month,
           intervalCount: 1,
           name: 'Duplicate Default',
-          setupFeeAmount: 0,
           trialPeriodDays: 0,
           slug: 'duplicate-default',
           active: true,
-        } as any,
-      } as any)
+        },
+      })
       throw new Error(
         'Expected TRPCError BAD_REQUEST for multiple default prices'
       )
@@ -379,7 +376,6 @@ describe('pricesRouter.create', () => {
           intervalUnit: IntervalUnit.Year,
           intervalCount: 1,
           name: 'Premium Plan',
-          setupFeeAmount: 0,
           trialPeriodDays: 0,
           slug: 'premium-plan',
           active: true,
@@ -443,7 +439,6 @@ describe('pricesRouter.create', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         name: 'Currency Check',
-        setupFeeAmount: 0,
         trialPeriodDays: 0,
         slug: 'currency-check',
         active: true,
