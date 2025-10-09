@@ -76,36 +76,33 @@ const TrialFields = ({
         </Label>
       </div>
       {offerTrial && (
-        <>
-          <Label className="mb-1">Trial Type</Label>
-          <FormField
-            name="price.trialPeriodDays"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FormItem>
-                <FormLabel>Trial Period Days</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={365}
-                    step={1}
-                    placeholder="7"
-                    value={field.value?.toString() ?? ''}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      const numValue = Number(value)
-                      if (!isNaN(numValue)) {
-                        field.onChange(numValue)
-                      }
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </>
+        <FormField
+          name="price.trialPeriodDays"
+          control={control}
+          render={({ field, fieldState }) => (
+            <FormItem>
+              <FormLabel>Trial Period Days</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={1}
+                  max={365}
+                  step={1}
+                  placeholder="7"
+                  value={field.value?.toString() ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    const numValue = Number(value)
+                    if (!isNaN(numValue)) {
+                      field.onChange(numValue)
+                    }
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       )}
     </div>
   )
