@@ -14,10 +14,8 @@ import {
   SQL,
   ilike,
   or,
-  SQLWrapper,
   isNull,
   Table,
-  ColumnBaseConfig,
 } from 'drizzle-orm'
 import { PgTimestampColumn } from './types'
 import { timestamptzMs } from './timestampMs'
@@ -27,7 +25,6 @@ import {
   integer,
   pgEnum,
   text,
-  timestamp,
   IndexBuilderOn,
   uniqueIndex,
   index,
@@ -37,7 +34,6 @@ import {
   pgPolicy,
   bigserial,
   pgRole,
-  customType,
 } from 'drizzle-orm/pg-core'
 import {
   type DbTransaction,
@@ -51,14 +47,11 @@ import { z } from 'zod'
 import {
   BuildRefine,
   BuildSchema,
-  createInsertSchema,
   createSelectSchema,
-  createUpdateSchema,
   NoUnknownKeys,
 } from 'drizzle-zod'
 import { noCase, snakeCase } from 'change-case'
 import { countryCodeSchema } from './commonZodSchema'
-import { E } from 'vitest/dist/chunks/reporters.6vxQttCV.js'
 
 export const merchantRole = pgRole('merchant', {
   createRole: false,
@@ -1694,16 +1687,16 @@ export const clientWriteOmitsConstructor = <
  * @example
  * ```typescript
  * // Filter out expired product features
- * const notExpiredCondition = createNotExpiredFilter(productFeatures.expiredAt)
+ * const notExpiredCondition = createDateNotPassedFilter(productFeatures.expiredAt)
  * 
  * // Filter out expired subscription items as of a specific date
- * const notExpiredAsOfDate = createNotExpiredFilter(
+ * const notExpiredAsOfDate = createDateNotPassedFilter(
  *   subscriptionItems.expiredAt, 
  *   '2024-01-01'
  * )
  * ```
  */
-export const createNotExpiredFilter = (
+export const createDateNotPassedFilter = (
   expiredAtColumn: PgTimestampColumn,
   anchorDate: string | number | Date = Date.now()
 ): SQL | undefined => {

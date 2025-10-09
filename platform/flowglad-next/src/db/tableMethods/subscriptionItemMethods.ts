@@ -5,7 +5,6 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createBulkInsertFunction,
-  createBulkUpsertFunction,
   SelectConditions,
   whereClauseFromObject,
   createBulkInsertOrDoNothingFunction,
@@ -22,12 +21,11 @@ import {
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
-import { and, eq, gt, lte } from 'drizzle-orm'
-import { createNotExpiredFilter } from '../tableUtils'
+import { and, eq, lte } from 'drizzle-orm'
+import { createDateNotPassedFilter } from '../tableUtils'
 import {
   RichSubscription,
   richSubscriptionClientSelectSchema,
-  RichSubscriptionItem,
 } from '@/subscriptions/schemas'
 import { pricesClientSelectSchema } from '../schema/prices'
 import { prices } from '../schema/prices'
@@ -35,7 +33,6 @@ import { isSubscriptionCurrent } from './subscriptionMethods'
 import { SubscriptionItemType, SubscriptionStatus } from '@/types'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItem,
-  selectSubscriptionItemFeatures,
   selectSubscriptionItemFeaturesWithFeatureSlug,
 } from './subscriptionItemFeatureMethods'
 import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
@@ -77,9 +74,6 @@ export const bulkInsertSubscriptionItems = createBulkInsertFunction(
   subscriptionItems,
   config
 )
-
-const innerBulkCreateOrDoNothingSubscriptionItems =
-  createBulkInsertOrDoNothingFunction(subscriptionItems, config)
 
 export const selectSubscriptionAndItems = async (
   whereClause: SelectConditions<typeof subscriptions>,
@@ -390,7 +384,7 @@ export const selectCurrentlyActiveSubscriptionItems = async (
           new Date(anchorDate).getTime()
         ),
         // Item must not have expired (expiredAt is null OR expiredAt > anchorDate)
-        createNotExpiredFilter(subscriptionItems.expiredAt, anchorDate)
+        createDateNotPassedFilter(subscriptionItems.expiredAt, anchorDate)
       )
     )
 

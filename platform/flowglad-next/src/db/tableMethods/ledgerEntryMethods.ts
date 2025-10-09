@@ -30,14 +30,11 @@ import {
   not,
   or,
 } from 'drizzle-orm'
-import { createNotExpiredFilter } from '../tableUtils'
-import { LedgerTransaction } from '../schema/ledgerTransactions'
+import { createDateNotPassedFilter } from '../tableUtils'
 import { selectUsageCredits } from './usageCreditMethods'
-import { selectUsageEvents } from './usageEventMethods'
 import { BillingRun } from '../schema/billingRuns'
 import core from '@/utils/core'
 import {
-  UsageMeter,
   UsageMeterBalance,
   usageMeters,
   usageMetersClientSelectSchema,
@@ -138,7 +135,7 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
     .where(
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
-        createNotExpiredFilter(ledgerEntries.discardedAt),
+        createDateNotPassedFilter(ledgerEntries.discardedAt),
         balanceTypeWhereStatement(balanceType)
       )
     )
@@ -191,7 +188,7 @@ export const selectUsageMeterBalancesForSubscriptions = async (
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
         balanceTypeWhereStatement('available'),
-        createNotExpiredFilter(ledgerEntries.discardedAt, calculationDate)
+        createDateNotPassedFilter(ledgerEntries.discardedAt, calculationDate)
       )
     )
 
@@ -248,7 +245,7 @@ export const aggregateAvailableBalanceForUsageCredit = async (
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
         balanceTypeWhereStatement('available'),
-        createNotExpiredFilter(ledgerEntries.discardedAt, calculationDate),
+        createDateNotPassedFilter(ledgerEntries.discardedAt, calculationDate),
         // This entry type is a credit, but it doesn't credit the *usage credit balance*.
         // It credits the usage cost that is being offset by the credit application.
         // Therefore, we must exclude it from the balance calculation for the usage credit itself.
@@ -355,8 +352,8 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
           ])
         ),
         balanceTypeWhereStatement('posted'),
-        createNotExpiredFilter(ledgerEntries.discardedAt),
-        createNotExpiredFilter(ledgerEntries.expiredAt, anchorDate),
+        createDateNotPassedFilter(ledgerEntries.discardedAt),
+        createDateNotPassedFilter(ledgerEntries.expiredAt, anchorDate),
         lt(
           ledgerEntries.entryTimestamp,
           new Date(anchorDate).getTime()
