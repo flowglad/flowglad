@@ -20,7 +20,8 @@ import {
   productFeaturesUpdateSchema,
   ProductFeature,
 } from '@/db/schema/productFeatures'
-import { and, eq, inArray, isNotNull, isNull, or, gt } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { createNotExpiredFilter } from '../tableUtils'
 import { features, featuresSelectSchema } from '../schema/features'
 import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
 import { Product } from '../schema/products'
@@ -137,10 +138,7 @@ export const selectFeaturesByProductFeatureWhere = async (
     .where(
       and(
         whereClauseFromObject(productFeatures, where),
-        or(
-          isNull(productFeatures.expiredAt),
-          gt(productFeatures.expiredAt, Date.now())
-        )
+        createNotExpiredFilter(productFeatures.expiredAt)
       )
     )
     .innerJoin(features, eq(productFeatures.featureId, features.id))

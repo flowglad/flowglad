@@ -1676,3 +1676,43 @@ export const clientWriteOmitsConstructor = <
     params
   )
 }
+
+/**
+ * Creates a SQL condition that filters out expired records.
+ * 
+ * This function consolidates the common pattern of filtering out records
+ * where `expiredAt` is not null and is in the past, while keeping records
+ * that are either not expired (expiredAt is null) or expire in the future.
+ * 
+ * @param expiredAtColumn - The column reference for the expiredAt field
+ * @param anchorDate - The date to compare against (defaults to current time)
+ * @returns SQL condition for filtering expired records
+ * 
+ * @example
+ * ```typescript
+ * // Filter out expired product features
+ * const notExpiredCondition = createNotExpiredFilter(productFeatures.expiredAt)
+ * 
+ * // Filter out expired subscription items as of a specific date
+ * const notExpiredAsOfDate = createNotExpiredFilter(
+ *   subscriptionItems.expiredAt, 
+ *   '2024-01-01'
+ * )
+ * ```
+ */
+export const createNotExpiredFilter = (
+  expiredAtColumn: any,
+  anchorDate: string | number | Date = Date.now()
+): SQL | undefined => {
+  const anchorTime = typeof anchorDate === 'string' || typeof anchorDate === 'number' 
+    ? new Date(anchorDate).getTime()
+    : anchorDate.getTime()
+    
+  // Create the condition that records are not expired
+  // This means: expiredAt IS NULL OR expiredAt > anchorTime
+  return or(
+    isNull(expiredAtColumn),
+    gt(expiredAtColumn, anchorTime)
+  )
+}
+

@@ -18,7 +18,7 @@ import {
   pricingModelsUpdateSchema,
 } from '@/db/schema/pricingModels'
 import { DbTransaction } from '@/db/types'
-import { count, eq, and, inArray, or, isNull, gt } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { products } from '../schema/products'
 import {
   selectPricesAndProductsByProductWhere,
@@ -42,6 +42,7 @@ import {
   features,
   featuresSelectSchema,
 } from '../schema/features'
+import { selectFeaturesByProductFeatureWhere } from './productFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof pricingModels,
@@ -282,25 +283,10 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         { pricingModelId: Array.from(uniquePricingModelsMap.keys()) },
         transaction
       )
-    const productFeaturesAndFeatures = await transaction
-      .select({
-        productFeature: productFeatures,
-        feature: features,
-      })
-      .from(productFeatures)
-      .innerJoin(features, eq(productFeatures.featureId, features.id))
-      .where(
-        and(
-          inArray(
-            productFeatures.productId,
-            productResults.map((product) => product.id)
-          ),
-          or(
-            isNull(productFeatures.expiredAt),
-            gt(productFeatures.expiredAt, new Date().getTime())
-          )
-        )
-      )
+    const productFeaturesAndFeatures = await selectFeaturesByProductFeatureWhere(
+      { productId: productResults.map((product) => product.id) },
+      transaction
+    )
 
     const productFeaturesAndFeaturesByProductId = new Map<
       string,
@@ -319,7 +305,7 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
             ) || []),
             {
               productFeature,
-              feature: featuresSelectSchema.parse(feature),
+              feature,
             },
           ]
         )

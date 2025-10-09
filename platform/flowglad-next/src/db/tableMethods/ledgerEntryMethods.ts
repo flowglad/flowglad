@@ -26,11 +26,11 @@ import {
   eq,
   gt,
   inArray,
-  isNull,
   lt,
   not,
   or,
 } from 'drizzle-orm'
+import { createNotExpiredFilter } from '../tableUtils'
 import { LedgerTransaction } from '../schema/ledgerTransactions'
 import { selectUsageCredits } from './usageCreditMethods'
 import { selectUsageEvents } from './usageEventMethods'
@@ -108,14 +108,6 @@ const balanceTypeWhereStatement = (
   }
 }
 
-const discardedAtFilterOutStatement = (
-  calculationDate: Date = new Date()
-) => {
-  return or(
-    isNull(ledgerEntries.discardedAt),
-    gt(ledgerEntries.discardedAt, new Date(calculationDate).getTime())
-  )
-}
 
 export const balanceFromEntries = (entries: LedgerEntry.Record[]) => {
   return entries.reduce((acc, entry) => {
@@ -146,7 +138,7 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
     .where(
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
-        discardedAtFilterOutStatement(),
+        createNotExpiredFilter(ledgerEntries.discardedAt),
         balanceTypeWhereStatement(balanceType)
       )
     )
@@ -199,7 +191,7 @@ export const selectUsageMeterBalancesForSubscriptions = async (
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
         balanceTypeWhereStatement('available'),
-        discardedAtFilterOutStatement(calculationDate)
+        createNotExpiredFilter(ledgerEntries.discardedAt, calculationDate)
       )
     )
 
@@ -256,7 +248,7 @@ export const aggregateAvailableBalanceForUsageCredit = async (
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
         balanceTypeWhereStatement('available'),
-        discardedAtFilterOutStatement(calculationDate),
+        createNotExpiredFilter(ledgerEntries.discardedAt, calculationDate),
         // This entry type is a credit, but it doesn't credit the *usage credit balance*.
         // It credits the usage cost that is being offset by the credit application.
         // Therefore, we must exclude it from the balance calculation for the usage credit itself.
@@ -363,11 +355,8 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
           ])
         ),
         balanceTypeWhereStatement('posted'),
-        discardedAtFilterOutStatement(),
-        or(
-          gt(ledgerEntries.expiredAt, new Date(anchorDate).getTime()),
-          isNull(ledgerEntries.expiredAt)
-        ),
+        createNotExpiredFilter(ledgerEntries.discardedAt),
+        createNotExpiredFilter(ledgerEntries.expiredAt, anchorDate),
         lt(
           ledgerEntries.entryTimestamp,
           new Date(anchorDate).getTime()
