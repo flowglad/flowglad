@@ -205,7 +205,6 @@ const processSetupIntent = async ({
     isCheckoutSessionSubscriptionCreating(checkoutSession) &&
     setupSuceededResult.billingRun?.id
   ) {
-    const { billingRun } = setupSuceededResult
     await executeBillingRun(setupSuceededResult.billingRun.id)
   }
 
