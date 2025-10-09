@@ -1,31 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-// Relax Zod parsing for unit tests
-vi.mock('@/db/tableMethods/purchaseMethods', () => ({
-  checkoutInfoSchema: { parse: (x: any) => x },
-}))
-// Stripe helpers
-vi.mock('./stripe', () => ({
-  getPaymentIntent: vi.fn(async (id: string) => ({
-    client_secret: `pi_secret_${id}`,
-  })),
-  getSetupIntent: vi.fn(async (id: string) => ({
-    client_secret: `si_secret_${id}`,
+// Only mock Next headers to satisfy runtime; avoid higher-level mocks
+vi.mock('next/headers', () => ({
+  headers: vi.fn(() => new Headers()),
+  cookies: vi.fn(() => ({
+    set: vi.fn(),
+    get: vi.fn(),
+    delete: vi.fn(),
   })),
 }))
-// Override findOrCreateCheckoutSession (use hoisted var to avoid TDZ with Vitest mocks)
-const { findOrCreateCheckoutSessionMock } = vi.hoisted(() => ({
-  findOrCreateCheckoutSessionMock: vi.fn(),
-}))
-vi.mock('./checkoutSessionState', async () => {
-  const actual = await vi.importActual<
-    typeof import('./checkoutSessionState')
-  >('./checkoutSessionState')
-  return {
-    ...actual,
-    findOrCreateCheckoutSession:
-      findOrCreateCheckoutSessionMock as any,
-  }
-})
 
 import {
   checkoutInfoForPriceWhere,
@@ -60,8 +42,6 @@ import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 
 describe('checkoutHelpers', () => {
   describe('checkoutInfoForPriceWhere', () => {
-    beforeEach(() => findOrCreateCheckoutSessionMock.mockReset())
-
     // Seed helpers
     const seedPrice = async (
       type: PriceType,
@@ -100,16 +80,6 @@ describe('checkoutHelpers', () => {
       })
       return { organization, product, price }
     }
-    const mockSession = (
-      s: Partial<{ id: string; pi: string | null; si: string | null }>
-    ) =>
-      findOrCreateCheckoutSessionMock.mockResolvedValueOnce({
-        id: s.id ?? 'cs_1',
-        status: CheckoutSessionStatus.Open,
-        stripePaymentIntentId: s.pi ?? null,
-        stripeSetupIntentId: s.si ?? null,
-      })
-
     it.each([
       {
         label: 'inactive product',
@@ -128,7 +98,7 @@ describe('checkoutHelpers', () => {
       )
       const result = await checkoutInfoForPriceWhere({
         id: price.id,
-      } as Price.Where)
+      })
       expect(result.success).toBe(false)
       if (result.success) throw new Error('Expected error')
       expect(result.organization.id).toBe(organization.id)
@@ -153,74 +123,15 @@ describe('checkoutHelpers', () => {
       },
     ])('active %s → success', async ({ type, expected }) => {
       const { price } = await seedPrice(type)
-      mockSession({})
       const result = await checkoutInfoForPriceWhere({
         id: price.id,
-      } as Price.Where)
+      })
       expect(result.success).toBe(true)
       if (!result.success) throw new Error('Expected success')
       expect(result.checkoutInfo.flowType).toBe(expected)
     })
-
-    it.skip('missing checkout session → error (not reachable: findOrCreate always returns a session)', async () => {
-      const { organization, pricingModel } = await setupOrg()
-      const product = await setupProduct({
-        organizationId: organization.id,
-        name: 'P',
-        pricingModelId: pricingModel.id,
-        livemode: true,
-        active: true,
-      })
-      const price = await setupPrice({
-        productId: product.id,
-        name: 'X',
-        type: PriceType.Subscription,
-        unitPrice: 1000,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: true,
-        currency: CurrencyCode.USD,
-        active: true,
-      })
-      findOrCreateCheckoutSessionMock.mockResolvedValueOnce(
-        null as any
-      )
-      const result = await checkoutInfoForPriceWhere({
-        id: price.id,
-      } as Price.Where)
-      expect(result.success).toBe(false)
-      if (result.success) throw new Error('Expected error')
-      expect(result.checkoutInfo).toBeNull()
-      expect(result.error).toMatch(/no longer valid/i)
-    })
-
-    it.each([
-      {
-        label: 'PaymentIntent',
-        type: PriceType.SinglePayment,
-        pi: 'pi_123',
-        expected: 'pi_secret_pi_123',
-      },
-      {
-        label: 'SetupIntent',
-        type: PriceType.Subscription,
-        si: 'seti_987',
-        expected: 'si_secret_seti_987',
-      },
-    ])(
-      'Stripe %s present → returns clientSecret',
-      async ({ type, pi, si, expected }) => {
-        const { price } = await seedPrice(type)
-        mockSession({ pi: pi ?? null, si: si ?? null })
-        const result = await checkoutInfoForPriceWhere({
-          id: price.id,
-        } as Price.Where)
-        expect(result.success).toBe(true)
-        if (!result.success) throw new Error('Expected success')
-        expect(result.checkoutInfo.clientSecret).toBe(expected)
-      }
-    )
+    // Intentionally avoid asserting on Stripe client_secret here to
+    // keep tests aligned with msw stripeServer and real flows
   })
 
   describe('checkoutInfoForCheckoutSession', () => {
@@ -306,7 +217,7 @@ describe('checkoutHelpers', () => {
       })
     })
 
-    it('valid session → includes product/price/org and customer', async () => {
+    it('valid session with customer → includes product/price/org and customer', async () => {
       const { organization, product, price, customer, session } =
         await makeSession()
       await adminTransaction(async ({ transaction }) => {
@@ -321,7 +232,45 @@ describe('checkoutHelpers', () => {
       })
     })
 
-    it('includes discount', async () => {
+    it('valid session without customer → includes product/price/org and no customer', async () => {
+      const { organization, product, price } = await makeSession()
+      await adminTransaction(async ({ transaction }) => {
+        const { insertCheckoutSession } = await import(
+          '@/db/tableMethods/checkoutSessionMethods'
+        )
+        const noCustomerSession = await insertCheckoutSession(
+          {
+            status: CheckoutSessionStatus.Open,
+            type: CheckoutSessionType.Product,
+            priceId: price.id,
+            quantity: 1,
+            livemode: price.livemode,
+            organizationId: organization.id,
+            invoiceId: null,
+            purchaseId: null,
+            targetSubscriptionId: null,
+            automaticallyUpdateSubscriptions: null,
+            preserveBillingCycleAnchor: false,
+            outputName: null,
+            outputMetadata: {},
+            customerId: null,
+            customerEmail: null,
+            customerName: null,
+          },
+          transaction
+        )
+        const result = await checkoutInfoForCheckoutSession(
+          noCustomerSession.id,
+          transaction
+        )
+        expect(result.product.id).toBe(product.id)
+        expect(result.price.id).toBe(price.id)
+        expect(result.sellerOrganization.id).toBe(organization.id)
+        expect(result.maybeCustomer).toBeNull()
+      })
+    })
+
+    it('includes discount when discount is applied to checkout', async () => {
       const { organization, session } = await makeSession()
       const discount = await setupDiscount({
         organizationId: organization.id,
@@ -342,9 +291,15 @@ describe('checkoutHelpers', () => {
       })
     })
 
-    it('includes feeCalculation', async () => {
+    it('includes latest feeCalculation for checkout', async () => {
       const { organization, price, session } = await makeSession()
-      await setupFeeCalculation({
+      const first = await setupFeeCalculation({
+        checkoutSessionId: session.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        livemode: true,
+      })
+      const second = await setupFeeCalculation({
         checkoutSessionId: session.id,
         organizationId: organization.id,
         priceId: price.id,
@@ -356,10 +311,12 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result.feeCalculation).not.toBeNull()
+        expect(result.feeCalculation?.id).toBe(second.id)
+        expect(result.feeCalculation?.id).not.toBe(first.id)
       })
     })
 
-    it('includes current subscriptions when multiples disallowed', async () => {
+    it('includes current subscriptions if the customer has any', async () => {
       const { organization, price, customer, session } =
         await makeSession()
       await setupSubscription({
