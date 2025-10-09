@@ -1,6 +1,5 @@
 import * as R from 'ramda'
 import { pgTable, jsonb, integer, text } from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
 import {
   tableBase,
   notNullStringForeignKey,
@@ -16,7 +15,6 @@ import {
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
-  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { prices } from '@/db/schema/prices'
@@ -25,13 +23,11 @@ import { sql } from 'drizzle-orm'
 import core from '@/utils/core'
 import { usageMeters } from './usageMeters'
 import { SubscriptionItemType } from '@/types'
+import { buildSchemas } from '@/db/createZodSchemas'
+import { zodEpochMs } from '@/db/timestampMs'
 
 const TABLE_NAME = 'subscription_items'
 
-const STATIC_SUBSCRIPTION_ITEM_DESCRIPTION =
-  'A static subscription item, representing a fixed fee component of a subscription.'
-const USAGE_SUBSCRIPTION_ITEM_DESCRIPTION =
-  'A usage-based subscription item, where charges are based on recorded usage events.'
 const SUBSCRIPTION_ITEM_SELECT_SCHEMA_DESCRIPTION =
   'A subscription item record, part of a subscription, detailing a specific product or service and its pricing terms. Can be static or usage-based.'
 const SUBSCRIPTION_ITEM_INSERT_SCHEMA_DESCRIPTION =
@@ -103,82 +99,96 @@ const baseColumnRefinements = {
   quantity: core.safeZodPositiveInteger,
   metadata: metadataSchema.nullable().optional(),
   // Accept ISO datetime strings or Date objects
-  addedDate: z.coerce.date(),
-  expiredAt: z.coerce
-    .date()
+  expiredAt: zodEpochMs
     .nullable()
+    .optional()
     .describe(
-      'Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list.'
+      'Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list. Epoch milliseconds.'
     ),
   // type refinement is handled by discriminated union literals
 }
 
-const baseSubscriptionItemSelectSchema = createSelectSchema(
-  subscriptionItems,
-  baseColumnRefinements
-)
+// Static and Usage subtype schemas via buildSchemas
+const staticRefineColumns = {
+  ...baseColumnRefinements,
+  type: z.literal(SubscriptionItemType.Static),
+  usageMeterId: z
+    .null()
+    .describe(
+      'Usage meter ID must be null for static subscription items.'
+    ),
+  usageEventsPerUnit: z
+    .null()
+    .describe(
+      'Usage events per unit must be null for static subscription items.'
+    ),
+} as const
 
-// Static Subscription Item Schemas
-export const staticSubscriptionItemSelectSchema =
-  baseSubscriptionItemSelectSchema
-    .extend({
-      type: z.literal(SubscriptionItemType.Static),
-      usageMeterId: z
-        .null()
-        .describe(
-          'Usage meter ID must be null for static subscription items.'
-        ),
-      usageEventsPerUnit: z
-        .null()
-        .describe(
-          'Usage events per unit must be null for static subscription items.'
-        ),
-    })
-    .describe(STATIC_SUBSCRIPTION_ITEM_DESCRIPTION)
+const usageRefineColumns = {
+  ...baseColumnRefinements,
+  type: z.literal(SubscriptionItemType.Usage),
+  usageMeterId: z
+    .string()
+    .describe(
+      'The usage meter associated with this usage-based subscription item.'
+    ),
+  usageEventsPerUnit: core.safeZodPositiveInteger.describe(
+    'The number of usage events that constitute one unit for billing.'
+  ),
+} as const
 
-export const staticSubscriptionItemInsertSchema =
-  staticSubscriptionItemSelectSchema
-    .omit(ommittedColumnsForInsertSchema)
-    .describe(STATIC_SUBSCRIPTION_ITEM_DESCRIPTION)
+const createOnlyColumns = {
+  subscriptionId: true,
+  priceId: true,
+} as const
 
-export const staticSubscriptionItemUpdateSchema =
-  staticSubscriptionItemInsertSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      type: z.literal(SubscriptionItemType.Static), // Type cannot be changed
-    })
-    .describe(STATIC_SUBSCRIPTION_ITEM_DESCRIPTION)
+const readOnlyColumns = {
+  livemode: true,
+} as const
 
-// Usage Subscription Item Schemas
-export const usageSubscriptionItemSelectSchema =
-  baseSubscriptionItemSelectSchema
-    .extend({
-      type: z.literal(SubscriptionItemType.Usage),
-      usageMeterId: z
-        .string()
-        .describe(
-          'The usage meter associated with this usage-based subscription item.'
-        ), // Overrides base nullable
-      usageEventsPerUnit: core.safeZodPositiveInteger.describe(
-        'The number of usage events that constitute one unit for billing.'
-      ), // Overrides base nullable
-    })
-    .describe(USAGE_SUBSCRIPTION_ITEM_DESCRIPTION)
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+} as const
 
-export const usageSubscriptionItemInsertSchema =
-  usageSubscriptionItemSelectSchema
-    .omit(ommittedColumnsForInsertSchema)
-    .describe(USAGE_SUBSCRIPTION_ITEM_DESCRIPTION)
+export const {
+  insert: staticSubscriptionItemInsertSchema,
+  select: staticSubscriptionItemSelectSchema,
+  update: staticSubscriptionItemUpdateSchema,
+  client: {
+    insert: staticSubscriptionItemClientInsertSchema,
+    select: staticSubscriptionItemClientSelectSchema,
+    update: staticSubscriptionItemClientUpdateSchema,
+  },
+} = buildSchemas(subscriptionItems, {
+  discriminator: 'type',
+  refine: staticRefineColumns,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+    createOnlyColumns,
+  },
+  entityName: 'StaticSubscriptionItem',
+})
 
-export const usageSubscriptionItemUpdateSchema =
-  usageSubscriptionItemInsertSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      type: z.literal(SubscriptionItemType.Usage), // Type cannot be changed
-    })
-    .describe(USAGE_SUBSCRIPTION_ITEM_DESCRIPTION)
+export const {
+  insert: usageSubscriptionItemInsertSchema,
+  select: usageSubscriptionItemSelectSchema,
+  update: usageSubscriptionItemUpdateSchema,
+  client: {
+    insert: usageSubscriptionItemClientInsertSchema,
+    select: usageSubscriptionItemClientSelectSchema,
+    update: usageSubscriptionItemClientUpdateSchema,
+  },
+} = buildSchemas(subscriptionItems, {
+  discriminator: 'type',
+  refine: usageRefineColumns,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+    createOnlyColumns,
+  },
+  entityName: 'UsageSubscriptionItem',
+})
 
 /*
  * database schema
@@ -204,59 +214,9 @@ export const subscriptionItemsUpdateSchema = z
   ])
   .describe(SUBSCRIPTION_ITEM_SELECT_SCHEMA_DESCRIPTION)
 
-const createOnlyColumns = {
-  subscriptionId: true,
-  priceId: true,
-} as const
-
-const readOnlyColumns = {
-  livemode: true,
-} as const
-
-const hiddenColumns = {
-  ...hiddenColumnsForClientSchema,
-} as const
-
 /*
- * client schemas
+ * client schemas (derived via buildSchemas above)
  */
-
-const clientNonEditableColumns = clientWriteOmitsConstructor({
-  ...readOnlyColumns,
-  ...hiddenColumns,
-})
-
-// Static Subscription Item Client Schemas
-export const staticSubscriptionItemClientInsertSchema =
-  staticSubscriptionItemInsertSchema
-    .omit(clientNonEditableColumns)
-    .meta({ id: 'StaticSubscriptionItemInsert' })
-export const staticSubscriptionItemClientUpdateSchema =
-  staticSubscriptionItemUpdateSchema
-    .omit(clientNonEditableColumns)
-    .omit(createOnlyColumns)
-    .meta({ id: 'StaticSubscriptionItemUpdate' })
-
-export const staticSubscriptionItemClientSelectSchema =
-  staticSubscriptionItemSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'StaticSubscriptionItemRecord' })
-
-// Usage Subscription Item Client Schemas
-export const usageSubscriptionItemClientInsertSchema =
-  usageSubscriptionItemInsertSchema
-    .omit(clientNonEditableColumns)
-    .meta({ id: 'UsageSubscriptionItemInsert' })
-export const usageSubscriptionItemClientUpdateSchema =
-  usageSubscriptionItemUpdateSchema
-    .omit(clientNonEditableColumns)
-    .omit(createOnlyColumns)
-    .meta({ id: 'UsageSubscriptionItemUpdate' })
-
-export const usageSubscriptionItemClientSelectSchema =
-  usageSubscriptionItemSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'UsageSubscriptionItemRecord' })
 
 // Client Discriminated Union Schemas
 export const subscriptionItemClientInsertSchema = z

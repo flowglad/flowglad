@@ -50,6 +50,13 @@ interface ProductsDataTableProps {
   filterOptions?: { value: string; label: string }[]
   activeFilter?: string
   onFilterChange?: (value: string) => void
+  buttonVariant?:
+    | 'default'
+    | 'outline'
+    | 'ghost'
+    | 'link'
+    | 'secondary'
+    | 'destructive'
 }
 
 export function ProductsDataTable({
@@ -58,6 +65,7 @@ export function ProductsDataTable({
   filterOptions,
   activeFilter,
   onFilterChange,
+  buttonVariant = 'default',
 }: ProductsDataTableProps) {
   const router = useRouter()
 
@@ -146,7 +154,7 @@ export function ProductsDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar with all improvements */}
-      <div className="flex items-center justify-between py-4 gap-4 min-w-0">
+      <div className="flex items-center justify-between pt-4 pb-2 gap-4 min-w-0">
         {/* Filter buttons on the left */}
         <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
           {filterOptions && activeFilter && onFilterChange && (
@@ -171,7 +179,7 @@ export function ProductsDataTable({
            */}
           <DataTableViewOptions table={table} />
           {onCreateProduct && (
-            <Button onClick={onCreateProduct}>
+            <Button onClick={onCreateProduct} variant={buttonVariant}>
               <Plus className="w-4 h-4 mr-2" />
               Create Product
             </Button>

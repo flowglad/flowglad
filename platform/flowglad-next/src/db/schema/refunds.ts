@@ -20,6 +20,7 @@ import {
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
+import { buildSchemas } from '@/db/createZodSchemas'
 import { organizations } from '@/db/schema/organizations'
 import { payments } from '@/db/schema/payments'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -87,19 +88,9 @@ export const refunds = pgTable(
 
 const columnRefinements = {
   amount: core.safeZodPositiveInteger,
-  refundProcessedAt: core.safeZodDate.nullable(),
   status: core.createSafeZodEnum(RefundStatus),
   currency: currencyCodeSchema,
 }
-
-export const refundsInsertSchema = createInsertSchema(refunds)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-export const refundsSelectSchema =
-  createSelectSchema(refunds).extend(columnRefinements)
-export const refundsUpdateSchema = refundsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
 
 const createOnlyColumns = {} as const
 const readOnlyColumns = {
@@ -107,11 +98,23 @@ const readOnlyColumns = {
 } as const
 const hiddenColumns = {} as const
 
-export const refundClientSelectSchema = refundsSelectSchema
-  .omit(hiddenColumns)
-  .meta({
-    id: 'RefundRecord',
-  })
+export const {
+  insert: refundsInsertSchema,
+  select: refundsSelectSchema,
+  update: refundsUpdateSchema,
+  client: {
+    select: refundClientSelectSchema,
+    insert: refundClientInsertSchema,
+    update: refundClientUpdateSchema,
+  },
+} = buildSchemas(refunds, {
+  refine: columnRefinements,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+    createOnlyColumns,
+  },
+})
 
 export namespace Refund {
   export type Insert = z.infer<typeof refundsInsertSchema>

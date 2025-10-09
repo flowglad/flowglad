@@ -2,9 +2,7 @@ import {
   boolean,
   text,
   pgTable,
-  pgPolicy,
   integer,
-  timestamp,
   jsonb,
 } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
@@ -16,16 +14,16 @@ import {
   constructIndex,
   livemodePolicy,
   pgEnumColumn,
-  ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { users } from '@/db/schema/users'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'usage_credit_balance_adjustments'
 
@@ -82,63 +80,36 @@ export const usageCreditBalanceAdjustments = pgTable(
 
 const columnRefinements = {
   amountAdjusted: core.safeZodPositiveInteger,
-  adjustmentInitiatedAt: core.safeZodDate,
   notes: z.string().nullable(),
   metadata: z.record(z.string(), z.any()).nullable(),
   adjustedByUserId: z.string().nullable(),
 }
 
-export const usageCreditBalanceAdjustmentsInsertSchema =
-  createInsertSchema(usageCreditBalanceAdjustments)
-    .omit(ommittedColumnsForInsertSchema)
-    .extend(columnRefinements)
-
-export const usageCreditBalanceAdjustmentsSelectSchema =
-  createSelectSchema(usageCreditBalanceAdjustments).extend(
-    columnRefinements
-  )
-
-export const usageCreditBalanceAdjustmentsUpdateSchema =
-  usageCreditBalanceAdjustmentsInsertSchema
-    .partial()
-    .extend({ id: z.string() })
-
-const createOnlyColumns = {} as const
-
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
-
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
-
-const clientWriteOmits = {
-  organizationId: true,
-  livemode: true,
-} as const
-
-/*
- * client schemas
- */
-export const usageCreditBalanceAdjustmentClientInsertSchema =
-  usageCreditBalanceAdjustmentsInsertSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'UsageCreditBalanceAdjustmentInsert' })
-
-export const usageCreditBalanceAdjustmentClientUpdateSchema =
-  usageCreditBalanceAdjustmentsUpdateSchema
-    .omit({
-      ...clientWriteOmits,
-    })
-    .meta({ id: 'UsageCreditBalanceAdjustmentUpdate' })
-
-export const usageCreditBalanceAdjustmentClientSelectSchema =
-  usageCreditBalanceAdjustmentsSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'UsageCreditBalanceAdjustmentRecord' })
+export const {
+  select: usageCreditBalanceAdjustmentsSelectSchema,
+  insert: usageCreditBalanceAdjustmentsInsertSchema,
+  update: usageCreditBalanceAdjustmentsUpdateSchema,
+  client: {
+    insert: usageCreditBalanceAdjustmentClientInsertSchema,
+    update: usageCreditBalanceAdjustmentClientUpdateSchema,
+    select: usageCreditBalanceAdjustmentClientSelectSchema,
+  },
+} = buildSchemas(usageCreditBalanceAdjustments, {
+  refine: {
+    ...columnRefinements,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      organizationId: true,
+      livemode: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'UsageCreditBalanceAdjustment',
+})
 
 export namespace UsageCreditBalanceAdjustment {
   export type Insert = z.infer<

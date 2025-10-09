@@ -27,6 +27,7 @@ import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { pricingModels } from './pricingModels'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'products'
 
@@ -111,61 +112,37 @@ const displayFeatureSchema = z.object({
 })
 
 const refinement = {
-  ...newBaseZodSelectSchemaColumns,
   name: z.string(),
   active: z.boolean(),
   displayFeatures: z.array(displayFeatureSchema).nullable(),
 }
 
-export const rawProductsSelectSchema = createSelectSchema(
-  products,
-  refinement
-)
+export const {
+  select: productsSelectSchema,
+  insert: productsInsertSchema,
+  update: productsUpdateSchema,
+  client: {
+    select: productsClientSelectSchema,
+    insert: baseClientInsertSchema,
+    update: productsClientUpdateSchema,
+  },
+} = buildSchemas(products, {
+  refine: refinement,
+  client: {
+    hiddenColumns: {
+      externalId: true,
+    },
+    createOnlyColumns: {
+      pricingModelId: true,
+    },
+  },
+  entityName: 'Product',
+})
 
-export const productsSelectSchema =
-  rawProductsSelectSchema.extend(refinement)
-
-export const productsInsertSchema = productsSelectSchema.omit(
-  ommittedColumnsForInsertSchema
-)
-
-export const productsUpdateSchema = productsInsertSchema
-  .partial()
-  .extend({
-    id: z.string(),
-  })
-
-const createOnlyColumns = {
-  pricingModelId: true,
-} as const
-
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
-
-const hiddenColumns = {
-  externalId: true,
-} as const
-
-const nonClientEditableColumns = {
-  ...readOnlyColumns,
-  ...hiddenColumns,
-} as const
-
-export const productsClientSelectSchema = productsSelectSchema
-  .omit(hiddenColumns)
-  .omit(hiddenColumnsForClientSchema)
-  .meta({
-    id: 'ProductRecord',
-  })
-
-export const productsClientInsertSchema = productsInsertSchema
-  .omit(nonClientEditableColumns)
+// Preserve the custom client insert refinement on slug
+export const productsClientInsertSchema = baseClientInsertSchema
   .refine(
     (data) => {
-      // Allow 'free' slug only for default products
-      // Normalize slug by converting to lowercase and trimming whitespace
       const normalizedSlug = data.slug?.toLowerCase().trim()
       if (normalizedSlug === 'free' && !data.default) {
         return false
@@ -177,18 +154,7 @@ export const productsClientInsertSchema = productsInsertSchema
       path: ['slug'],
     }
   )
-  .meta({
-    id: 'ProductInsert',
-  })
-
-export const productsClientUpdateSchema = productsUpdateSchema
-  .omit({
-    ...nonClientEditableColumns,
-    ...createOnlyColumns,
-  })
-  .meta({
-    id: 'ProductUpdate',
-  })
+  .meta({ id: 'ProductInsert' })
 
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
   createSupabaseWebhookSchema({

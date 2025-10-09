@@ -29,12 +29,12 @@ function PricingModelActionsMenu({
 
   const actionItems: ActionMenuItem[] = [
     {
-      label: 'Edit Pricing Model',
+      label: 'Edit',
       icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
     },
     {
-      label: 'Clone Pricing Model',
+      label: 'Duplicate',
       icon: <Copy className="h-4 w-4" />,
       handler: () => setIsCloneOpen(true),
     },
@@ -42,7 +42,7 @@ function PricingModelActionsMenu({
 
   if (!pricingModel.isDefault) {
     actionItems.push({
-      label: 'Set as Default',
+      label: 'Set Default',
       icon: <Star className="h-4 w-4" />,
       handler: () => setIsSetDefaultOpen(true),
     })

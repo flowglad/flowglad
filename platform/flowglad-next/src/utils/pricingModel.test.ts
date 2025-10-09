@@ -26,7 +26,10 @@ import {
   DestinationEnvironment,
 } from '@/types'
 import { core } from '@/utils/core'
-import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
+import {
+  selectPricingModelById,
+  selectPricingModels,
+} from '@/db/tableMethods/pricingModelMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
@@ -916,7 +919,7 @@ describe('clonePricingModelTransaction', () => {
           // Mark it as expired
           return await transaction
             .update(productFeatures)
-            .set({ expiredAt: new Date() })
+            .set({ expiredAt: Date.now() })
             .where(eq(productFeatures.id, pf.id))
             .returning()
             .then((rows) => rows[0])
@@ -1516,13 +1519,20 @@ describe('clonePricingModelTransaction', () => {
       // So we'll use that as our livemode default
       const livemodeDefaultPricingModel = sourcePricingModel
 
-      // Create a testmode default pricing model
-      const testmodeDefaultPricingModel = await setupPricingModel({
-        organizationId: organization.id,
-        name: 'Testmode Default',
-        livemode: false,
-        isDefault: true,
-      })
+      // Get the testmode pricing model that setupOrg already created
+      const testmodeDefaultPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const [pricingModel] = await selectPricingModels(
+            {
+              organizationId: organization.id,
+              livemode: false,
+              isDefault: true,
+            },
+            transaction
+          )
+          return pricingModel!
+        }
+      )
 
       // Verify both are default for their respective livemodes
       expect(livemodeDefaultPricingModel.isDefault).toBe(true)

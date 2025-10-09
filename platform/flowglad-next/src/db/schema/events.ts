@@ -29,6 +29,7 @@ import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { integer } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { organizations } from './organizations'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'events'
 
@@ -112,6 +113,8 @@ export const events = pgTable(
 export const eventPayloadSchema = z.object({
   id: z.string(),
   object: core.createSafeZodEnum(EventNoun),
+  // TODO: Make customer required after running DB migration to update existing events
+  // with customer payloads. Currently optional to avoid breaking existing events.
   customer: z
     .object({
       id: z.string(),
@@ -124,7 +127,6 @@ const columnRefinements = {
   type: core.createSafeZodEnum(FlowgladEventType),
   // eventCategory: core.createSafeZodEnum(EventCategory),
   // eventRetentionPolicy: core.createSafeZodEnum(EventRetentionPolicy),
-  processedAt: core.safeZodDate.nullable(),
   payload: eventPayloadSchema,
   // subjectEntity: core.createSafeZodEnum(EventNoun).nullable(),
   // objectEntity: core.createSafeZodEnum(EventNoun).nullable(),
@@ -132,16 +134,13 @@ const columnRefinements = {
   // objectId: core.safeZodPositiveInteger.nullable(),
 }
 
-export const eventsInsertSchema = createInsertSchema(events)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const eventsSelectSchema =
-  createSelectSchema(events).extend(columnRefinements)
-
-export const eventsUpdateSchema = eventsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
+export const {
+  insert: eventsInsertSchema,
+  select: eventsSelectSchema,
+  update: eventsUpdateSchema,
+} = buildSchemas(events, {
+  refine: columnRefinements,
+})
 
 export namespace Event {
   export type Insert = z.infer<typeof eventsInsertSchema>

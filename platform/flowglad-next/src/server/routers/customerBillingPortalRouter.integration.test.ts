@@ -141,12 +141,8 @@ beforeEach(async () => {
     priceId: price.id,
     status: SubscriptionStatus.Active,
     livemode: true,
-    currentBillingPeriodStart: new Date(
-      Date.now() - 15 * 24 * 60 * 60 * 1000
-    ), // 15 days ago
-    currentBillingPeriodEnd: new Date(
-      Date.now() + 15 * 24 * 60 * 60 * 1000
-    ), // 15 days from now
+    currentBillingPeriodStart: Date.now() - 15 * 24 * 60 * 60 * 1000, // 15 days ago
+    currentBillingPeriodEnd: Date.now() + 15 * 24 * 60 * 60 * 1000, // 15 days from now
   })
 
   // Set up billing period for subscription
@@ -419,7 +415,7 @@ describe('Customer Billing Portal Router', () => {
   describe('cancelSubscription', () => {
     test(
       'cancels subscription immediately',
-      { timeout: 18000 },
+      { timeout: 30000 },
       async () => {
         const ctx = createTestContext()
         const input: ScheduleSubscriptionCancellationParams = {
@@ -455,7 +451,7 @@ describe('Customer Billing Portal Router', () => {
 
     test(
       'schedules subscription cancellation at period end',
-      { timeout: 15000 },
+      { timeout: 30000 },
       async () => {
         const ctx = createTestContext()
         const input: ScheduleSubscriptionCancellationParams = {

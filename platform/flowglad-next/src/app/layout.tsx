@@ -19,6 +19,7 @@ import {
 import { auth, getSession } from '@/utils/auth'
 import { headers } from 'next/headers'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
+import * as Sentry from '@sentry/nextjs'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -70,6 +71,15 @@ export default async function RootLayout({
         membershipData.organization
       )
     }
+  }
+
+  // Set user context in Sentry for client-side error tracking
+  if (user) {
+    Sentry.setUser({
+      id: user.id,
+    })
+  } else {
+    Sentry.setUser(null)
   }
   const currentPath = headersList.get('x-pathname') || ''
   const role = currentPath.startsWith('/billing-portal/')

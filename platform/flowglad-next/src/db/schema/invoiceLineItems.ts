@@ -33,6 +33,7 @@ import { billingRuns } from './billingRuns'
 import { ledgerAccounts } from './ledgerAccounts'
 import { SubscriptionItemType } from '@/types'
 import { sql } from 'drizzle-orm'
+import { buildSchemas } from '../createZodSchemas'
 
 export const TABLE_NAME = 'invoice_line_items'
 
@@ -94,8 +95,9 @@ const baseColumnRefinements = {
 }
 
 const staticInvoiceLineItemColumnRefinements = {
-  ledgerAccountId: z.null(),
-  ledgerAccountCredit: z.null(),
+  type: z.literal(SubscriptionItemType.Static),
+  ledgerAccountId: z.null().optional(),
+  ledgerAccountCredit: z.null().optional(),
 }
 
 /**
@@ -107,64 +109,62 @@ const staticInvoiceLineItemColumnRefinements = {
  * and credit amount
  */
 const usageInvoiceLineItemColumnRefinements = {
+  type: z.literal(SubscriptionItemType.Usage),
   billingRunId: z.string(),
   ledgerAccountId: z.string(),
   ledgerAccountCredit: z.number(),
 }
 
-const baseInvoiceLineItemSelectSchema = createSelectSchema(
-  invoiceLineItems,
-  baseColumnRefinements
-)
+const createOnlyColumns = {
+  invoiceId: true,
+} as const
 
-// Static Invoice Line Item Schemas
-export const staticInvoiceLineItemSelectSchema =
-  baseInvoiceLineItemSelectSchema
-    .extend({
-      type: z.literal(SubscriptionItemType.Static),
-      ...staticInvoiceLineItemColumnRefinements,
-    })
-    .describe(STATIC_INVOICE_LINE_ITEM_DESCRIPTION)
+const readOnlyColumns = {
+  ledgerAccountId: true,
+  billingRunId: true,
+} as const
 
-export const staticInvoiceLineItemInsertSchema =
-  staticInvoiceLineItemSelectSchema
-    .omit(ommittedColumnsForInsertSchema)
-    .describe(STATIC_INVOICE_LINE_ITEM_DESCRIPTION)
+const hiddenColumns = {
+  ...hiddenColumnsForClientSchema,
+  ledgerAccountCredit: true,
+  ledgerAccountId: true,
+  billingRunId: true,
+} as const
 
-export const staticInvoiceLineItemUpdateSchema =
-  staticInvoiceLineItemInsertSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      type: z.literal(SubscriptionItemType.Static), // Type cannot be changed
-      ledgerAccountId: z.null(),
-      ledgerAccountCredit: z.null(),
-    })
-    .describe(STATIC_INVOICE_LINE_ITEM_DESCRIPTION)
+export const {
+  select: staticInvoiceLineItemSelectSchema,
+  insert: staticInvoiceLineItemInsertSchema,
+  update: staticInvoiceLineItemUpdateSchema,
+  client: {
+    select: staticInvoiceLineItemClientSelectSchema,
+    insert: staticInvoiceLineItemClientInsertSchema,
+    update: staticInvoiceLineItemClientUpdateSchema,
+  },
+} = buildSchemas(invoiceLineItems, {
+  discriminator: 'type',
+  refine: staticInvoiceLineItemColumnRefinements,
+  client: {
+    hiddenColumns,
+    createOnlyColumns,
+    readOnlyColumns,
+  },
+  entityName: 'StaticInvoiceLineItem',
+})
 
-// Usage Invoice Line Item Schemas
-export const usageInvoiceLineItemSelectSchema =
-  baseInvoiceLineItemSelectSchema
-    .extend({
-      type: z.literal(SubscriptionItemType.Usage),
-      ...usageInvoiceLineItemColumnRefinements,
-    })
-    .describe(USAGE_INVOICE_LINE_ITEM_DESCRIPTION)
-
-export const usageInvoiceLineItemInsertSchema =
-  usageInvoiceLineItemSelectSchema
-    .omit(ommittedColumnsForInsertSchema)
-    .describe(USAGE_INVOICE_LINE_ITEM_DESCRIPTION)
-
-export const usageInvoiceLineItemUpdateSchema =
-  usageInvoiceLineItemInsertSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      type: z.literal(SubscriptionItemType.Usage), // Type cannot be changed
-      ...usageInvoiceLineItemColumnRefinements,
-    })
-    .describe(USAGE_INVOICE_LINE_ITEM_DESCRIPTION)
+export const {
+  select: usageInvoiceLineItemSelectSchema,
+  insert: usageInvoiceLineItemInsertSchema,
+  update: usageInvoiceLineItemUpdateSchema,
+  client: {
+    select: usageInvoiceLineItemClientSelectSchema,
+    insert: usageInvoiceLineItemClientInsertSchema,
+    update: usageInvoiceLineItemClientUpdateSchema,
+  },
+} = buildSchemas(invoiceLineItems, {
+  refine: usageInvoiceLineItemColumnRefinements,
+  client: { hiddenColumns, createOnlyColumns, readOnlyColumns },
+  entityName: 'UsageInvoiceLineItem',
+})
 
 export const invoiceLineItemsInsertSchema = z
   .discriminatedUnion('type', [
@@ -186,65 +186,6 @@ export const invoiceLineItemsUpdateSchema = z
     usageInvoiceLineItemUpdateSchema,
   ])
   .describe(INVOICE_LINE_ITEM_UPDATE_SCHEMA_DESCRIPTION)
-
-const createOnlyColumns = {
-  invoiceId: true,
-} as const
-
-const readOnlyColumns = {
-  livemode: true,
-  ledgerAccountId: true,
-  billingRunId: true,
-} as const
-
-const hiddenColumns = {
-  ...hiddenColumnsForClientSchema,
-  ledgerAccountCredit: true,
-  ledgerAccountId: true,
-  billingRunId: true,
-} as const
-
-const clientNonEditableColumns = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
-  ...createOnlyColumns,
-})
-
-// Static Invoice Line Item Client Schemas
-export const staticInvoiceLineItemClientInsertSchema =
-  staticInvoiceLineItemInsertSchema
-    .omit(clientNonEditableColumns)
-    .meta({
-      id: 'StaticInvoiceLineItemInsert',
-    })
-export const staticInvoiceLineItemClientUpdateSchema =
-  staticInvoiceLineItemUpdateSchema
-    .omit(clientNonEditableColumns)
-    .meta({
-      id: 'StaticInvoiceLineItemUpdate',
-    })
-export const staticInvoiceLineItemClientSelectSchema =
-  staticInvoiceLineItemSelectSchema.omit(hiddenColumns).meta({
-    id: 'StaticInvoiceLineItemRecord',
-  })
-
-// Usage Invoice Line Item Client Schemas
-export const usageInvoiceLineItemClientInsertSchema =
-  usageInvoiceLineItemInsertSchema
-    .omit(clientNonEditableColumns)
-    .meta({
-      id: 'UsageInvoiceLineItemInsert',
-    })
-export const usageInvoiceLineItemClientUpdateSchema =
-  usageInvoiceLineItemUpdateSchema
-    .omit(clientNonEditableColumns)
-    .meta({
-      id: 'UsageInvoiceLineItemUpdate',
-    })
-export const usageInvoiceLineItemClientSelectSchema =
-  usageInvoiceLineItemSelectSchema.omit(hiddenColumns).meta({
-    id: 'UsageInvoiceLineItemRecord',
-  })
 
 // Client Discriminated Union Schemas
 export const invoiceLineItemsClientInsertSchema = z
@@ -343,7 +284,16 @@ export namespace InvoiceLineItem {
 // Add this new schema at the end of the file
 export const createInvoiceSchema = z.object({
   invoice: invoicesClientInsertSchema,
-  invoiceLineItems: invoiceLineItemsClientInsertSchema.array(),
+  invoiceLineItems: z
+    .discriminatedUnion('type', [
+      staticInvoiceLineItemClientInsertSchema.omit({
+        invoiceId: true,
+      }),
+      usageInvoiceLineItemClientInsertSchema.omit({
+        invoiceId: true,
+      }),
+    ])
+    .array(),
   autoSend: z.boolean().optional(),
 })
 

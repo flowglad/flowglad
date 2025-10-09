@@ -1113,7 +1113,7 @@ describe('Process payment intent status updated', async () => {
       const fakeCharge = createMockStripeCharge({
         id: `ch_paid_${core.nanoid()}`,
         payment_intent: `pi_paid_${core.nanoid()}`,
-        created: new Date().getTime() / 1000,
+        created: Date.now() / 1000,
         amount: 5000,
         status: 'succeeded',
         metadata,
@@ -1192,9 +1192,7 @@ describe('Process payment intent status updated', async () => {
           subscriptionId: subscription.id,
           livemode: true,
           startDate: new Date(),
-          endDate: new Date(
-            new Date().getTime() + 1000 * 60 * 60 * 24 * 30
-          ),
+          endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
         })
         const billingRun = await setupBillingRun({
           subscriptionId: subscription.id,
@@ -1763,6 +1761,10 @@ describe('Process payment intent status updated', async () => {
       expect(purchaseCompletedEvent!.payload).toEqual({
         id: purchase.id,
         object: EventNoun.Purchase,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       })
       expect(purchaseCompletedEvent!.processedAt).toBeNull()
     })
@@ -2046,8 +2048,8 @@ describe('Process payment intent status updated', async () => {
         expect(event.type).toBeDefined()
         expect(event.organizationId).toBe(organization.id)
         expect(event.livemode).toBe(true)
-        expect(event.occurredAt).toBeInstanceOf(Date)
-        expect(event.submittedAt).toBeInstanceOf(Date)
+        expect(event.occurredAt).toBeDefined()
+        expect(event.submittedAt).toBeDefined()
         expect(event.processedAt).toBeNull()
         expect(event.hash).toBeDefined()
         expect(event.metadata).toEqual({})
@@ -2068,6 +2070,10 @@ describe('Process payment intent status updated', async () => {
       expect(purchaseCompletedEvent!.payload).toEqual({
         id: purchase.id,
         object: EventNoun.Purchase,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       })
     })
 

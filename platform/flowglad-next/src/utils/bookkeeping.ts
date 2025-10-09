@@ -384,7 +384,7 @@ export const createCustomerBookkeeping = async (
     )
   }
 
-  const timestamp = new Date()
+  const timestamp = Date.now()
   const eventsToInsert: Event.Insert[] = []
 
   // Create customer created event
@@ -396,6 +396,10 @@ export const createCustomerBookkeeping = async (
     payload: {
       object: EventNoun.Customer,
       id: customer.id,
+      customer: {
+        id: customer.id,
+        externalId: customer.externalId,
+      },
     },
     submittedAt: timestamp,
     hash: constructCustomerCreatedEventHash(customer),

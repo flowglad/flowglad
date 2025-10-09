@@ -186,7 +186,7 @@ export const NestedFormModal = <T extends FieldValues>({
       <DialogContent
         allowContentOverflow={allowContentOverflow}
         className={cn(
-          'flex-1 max-h-[90vh] flex flex-col',
+          'flex max-h-[90vh] flex-col overflow-hidden',
           // Mobile-first responsive width
           'w-[calc(100vw-32px)]', // Ensure 16px padding on mobile
           extraWide && 'sm:w-full sm:max-w-6xl',
@@ -194,11 +194,17 @@ export const NestedFormModal = <T extends FieldValues>({
           !wide && !extraWide && 'sm:max-w-md'
         )}
       >
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="flex-1">{innerContent}</div>
-        {footer && <DialogFooter>{footer}</DialogFooter>}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {innerContent}
+        </div>
+        {footer && (
+          <DialogFooter className="flex-shrink-0 pt-4">
+            {footer}
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -300,7 +306,7 @@ const FormModal = <T extends FieldValues>({
       <DialogContent
         allowContentOverflow={allowContentOverflow}
         className={cn(
-          'flex-1 max-h-[90vh] flex flex-col',
+          'flex max-h-[90vh] flex-col overflow-hidden',
           // Mobile-first responsive width
           'w-[calc(100vw-32px)]', // Ensure 16px padding on mobile
           extraWide && 'sm:w-full sm:max-w-6xl',
@@ -308,12 +314,16 @@ const FormModal = <T extends FieldValues>({
           !wide && !extraWide && 'sm:max-w-md'
         )}
       >
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="flex-1">{innerContent}</div>
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {innerContent}
+        </div>
         {!hideFooter && footer && (
-          <DialogFooter>{footer}</DialogFooter>
+          <DialogFooter className="flex-shrink-0 pt-4">
+            {footer}
+          </DialogFooter>
         )}
       </DialogContent>
     </Dialog>

@@ -130,7 +130,7 @@ const processSucceededNotifications = async (
 
 interface BillingRunFailureNotificationParams
   extends BillingRunNotificationParams {
-  retryDate?: Date
+  retryDate?: Date | number
 }
 
 const processFailedNotifications = async (
@@ -220,7 +220,8 @@ export const processPaymentIntentEventForBillingRun = async (
   const eventTimestamp = dateFromStripeTimestamp(event.created)
   const eventPrecedesLastPaymentIntentEvent =
     billingRun.lastPaymentIntentEventTimestamp &&
-    billingRun.lastPaymentIntentEventTimestamp >= eventTimestamp
+    billingRun.lastPaymentIntentEventTimestamp >=
+      eventTimestamp.getTime()
   /**
    * If the last payment intent event timestamp is greater than the event timestamp being
    * processed, we can skip processing this event.
@@ -279,7 +280,7 @@ export const processPaymentIntentEventForBillingRun = async (
     {
       id: billingRun.id,
       status: billingRunStatus,
-      lastPaymentIntentEventTimestamp: eventTimestamp,
+      lastPaymentIntentEventTimestamp: eventTimestamp.getTime(),
     },
     transaction
   )
@@ -331,7 +332,7 @@ export const processPaymentIntentEventForBillingRun = async (
         (entry) => entry.ledgerAccountId!
       ),
     },
-    billingPeriod.endDate,
+    new Date(billingPeriod.endDate),
     transaction
   )
 

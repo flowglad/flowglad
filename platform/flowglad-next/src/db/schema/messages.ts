@@ -1,7 +1,6 @@
 import * as R from 'ramda'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import {
-  ommittedColumnsForInsertSchema,
   newBaseZodSelectSchemaColumns,
   constructIndex,
   constructUniqueIndex,
@@ -11,7 +10,6 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   timestampWithTimezoneColumn,
-  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import core from '@/utils/core'
 import { z } from 'zod'
@@ -63,64 +61,45 @@ export const messages = pgTable(
 
 // Common refinements for both SELECT and INSERT schemas
 const commonColumnRefinements = {
-  messageSentAt: core.safeZodDate,
   payload: z.unknown(),
 }
 
-// Column refinements for SELECT schemas only
-const selectColumnRefinements = {
-  ...newBaseZodSelectSchemaColumns,
-  ...commonColumnRefinements,
-}
-
-// Column refinements for INSERT schemas (without auto-generated columns)
-const insertColumnRefinements = {
-  ...commonColumnRefinements,
-}
-
-export const messagesSelectSchema = createSelectSchema(
-  messages,
-  selectColumnRefinements
-)
-
-export const messagesInsertSchema = createInsertSchema(messages)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(insertColumnRefinements)
-
-export const messagesUpdateSchema = messagesInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-const readOnlyColumns = {
-  customerId: true,
-  organizationMemberId: true,
-  platformId: true,
-  platformUserId: true,
-  platformThreadId: true,
-  platformChannelId: true,
-  rawText: true,
-  platform: true,
-  payload: true,
-  messageSentAt: true,
-  livemode: true,
-} as const
-
-const hiddenColumns = {
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
+export const {
+  select: messagesSelectSchema,
+  insert: messagesInsertSchema,
+  update: messagesUpdateSchema,
+  client: {
+    select: messagesClientSelectSchema,
+    update: messagesClientUpdateSchema,
+  },
+} = buildSchemas(messages, {
+  refine: {
+    ...commonColumnRefinements,
+  },
+  selectRefine: {
+    ...newBaseZodSelectSchemaColumns,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      customerId: true,
+      organizationMemberId: true,
+      platformId: true,
+      platformUserId: true,
+      platformThreadId: true,
+      platformChannelId: true,
+      rawText: true,
+      platform: true,
+      payload: true,
+      messageSentAt: true,
+      livemode: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'Messages',
 })
-
-export const messagesClientSelectSchema = messagesSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'MessagesClientSelectSchema' })
-
-export const messagesClientUpdateSchema = messagesUpdateSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'MessagesClientUpdateSchema' })
 
 export namespace Message {
   export type Insert = z.infer<typeof messagesInsertSchema>

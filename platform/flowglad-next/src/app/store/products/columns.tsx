@@ -58,7 +58,7 @@ function ProductActionsMenu({
 
   const actionItems: ActionMenuItem[] = [
     {
-      label: 'Edit product',
+      label: 'Edit',
       icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
     },
@@ -72,9 +72,7 @@ function ProductActionsMenu({
         : undefined,
     },
     {
-      label: product.active
-        ? 'Deactivate product'
-        : 'Activate product',
+      label: product.active ? 'Deactivate' : 'Activate',
       icon: product.active ? (
         <Archive className="h-4 w-4" />
       ) : (
@@ -115,6 +113,7 @@ function ProductActionsMenu({
         setIsOpen={setIsArchiveOpen}
         product={{
           id: product.id,
+          name: product.name,
           active: product.active,
         }}
       />

@@ -150,8 +150,8 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
             usageMeterId: pricesMap.get(usageEvent.priceId)
               ?.usageMeterId!,
             usageDate: usageEvent.usageDate
-              ? new Date(usageEvent.usageDate)
-              : new Date(),
+              ? usageEvent.usageDate
+              : Date.now(),
           }))
         return await bulkInsertOrDoNothingUsageEventsByTransactionId(
           usageInsertsWithBillingPeriodId,
@@ -174,10 +174,7 @@ const listUsageEventsProcedure = protectedProcedure
     return authenticatedTransaction(
       async ({ transaction }) => {
         const result = await selectUsageEventsPaginated(
-          {
-            cursor: input.cursor,
-            limit: input.limit,
-          },
+          input,
           transaction
         )
         return {

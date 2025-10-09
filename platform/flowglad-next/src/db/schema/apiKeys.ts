@@ -21,6 +21,8 @@ import { FlowgladApiKeyType } from '@/types'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 
 import core from '@/utils/core'
+import { buildSchemas } from '../createZodSchemas'
+import { zodEpochMs } from '../timestampMs'
 
 const TABLE_NAME = 'api_keys'
 
@@ -64,59 +66,94 @@ const columnRefinements = {
   type: core.createSafeZodEnum(FlowgladApiKeyType),
 }
 
-/*
- * database schemas
- */
-export const coreApiKeysInsertSchema = createInsertSchema(
-  apiKeys,
-  columnRefinements
-).omit(ommittedColumnsForInsertSchema)
+const readOnlyColumns = {
+  organizationId: true,
+  livemode: true,
+  token: true,
+} as const
 
-export const coreApiKeysSelectSchema = createSelectSchema(
-  apiKeys,
-  columnRefinements
-).extend(columnRefinements)
+const hiddenColumns = {
+  unkeyId: true,
+  ...hiddenColumnsForClientSchema,
+} as const
 
-export const coreApiKeysUpdateSchema = coreApiKeysInsertSchema
-  .partial()
-  .extend({ id: z.string() })
+// Publishable API key schemas
+const publishableApiKeyColumns = {
+  type: z.literal(FlowgladApiKeyType.Publishable),
+}
+
+export const {
+  insert: publishableApiKeysInsertSchema,
+  select: publishableApiKeysSelectSchema,
+  update: publishableApiKeysUpdateSchema,
+  client: {
+    select: publishableApiKeysClientSelectSchema,
+    insert: publishableApiKeysClientInsertSchema,
+    update: publishableApiKeysClientUpdateSchema,
+  },
+} = buildSchemas(apiKeys, {
+  refine: {
+    ...columnRefinements,
+    ...publishableApiKeyColumns,
+  },
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+})
 
 const hostedBillingApiKeyColumns = {
   type: z.literal(FlowgladApiKeyType.BillingPortalToken),
-  expiresAt: z.date(),
+  expiresAt: zodEpochMs,
   stackAuthHostedBillingUserId: z.string(),
 }
 
-// Hosted billing portal schemas
-export const hostedBillingPortalApiKeysInsertSchema =
-  coreApiKeysInsertSchema.extend(hostedBillingApiKeyColumns)
-export const hostedBillingPortalApiKeysSelectSchema =
-  coreApiKeysSelectSchema.extend(hostedBillingApiKeyColumns)
-export const hostedBillingPortalApiKeysUpdateSchema =
-  coreApiKeysUpdateSchema.extend(hostedBillingApiKeyColumns)
+export const {
+  insert: hostedBillingPortalApiKeysInsertSchema,
+  select: hostedBillingPortalApiKeysSelectSchema,
+  update: hostedBillingPortalApiKeysUpdateSchema,
+  client: {
+    select: hostedBillingPortalApiKeysClientSelectSchema,
+    insert: hostedBillingPortalApiKeysClientInsertSchema,
+    update: hostedBillingPortalApiKeysClientUpdateSchema,
+  },
+} = buildSchemas(apiKeys, {
+  refine: {
+    ...columnRefinements,
+    ...hostedBillingApiKeyColumns,
+  },
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'HostedBillingPortalApiKey',
+})
 
 // Secret API key schemas
 const secretApiKeyColumns = {
   type: z.literal(FlowgladApiKeyType.Secret),
 }
 
-export const secretApiKeysInsertSchema =
-  coreApiKeysInsertSchema.extend(secretApiKeyColumns)
-export const secretApiKeysSelectSchema =
-  coreApiKeysSelectSchema.extend(secretApiKeyColumns)
-export const secretApiKeysUpdateSchema =
-  coreApiKeysUpdateSchema.extend(secretApiKeyColumns)
-
-// Publishable API key schemas
-const publishableApiKeyColumns = {
-  type: z.literal(FlowgladApiKeyType.Publishable),
-}
-export const publishableApiKeysInsertSchema =
-  coreApiKeysInsertSchema.extend(publishableApiKeyColumns)
-export const publishableApiKeysSelectSchema =
-  coreApiKeysSelectSchema.extend(publishableApiKeyColumns)
-export const publishableApiKeysUpdateSchema =
-  coreApiKeysUpdateSchema.extend(publishableApiKeyColumns)
+export const {
+  insert: secretApiKeysInsertSchema,
+  select: secretApiKeysSelectSchema,
+  update: secretApiKeysUpdateSchema,
+  client: {
+    select: secretApiKeysClientSelectSchema,
+    insert: secretApiKeysClientInsertSchema,
+    update: secretApiKeysClientUpdateSchema,
+  },
+} = buildSchemas(apiKeys, {
+  refine: {
+    ...columnRefinements,
+    ...secretApiKeyColumns,
+  },
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'SecretApiKey',
+})
 
 // Combined discriminated union schemas
 export const apiKeysInsertSchema = z.discriminatedUnion('type', [
@@ -136,76 +173,6 @@ export const apiKeysUpdateSchema = z.discriminatedUnion('type', [
   publishableApiKeysUpdateSchema,
   hostedBillingPortalApiKeysUpdateSchema,
 ])
-
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-  token: true,
-} as const
-
-const hiddenColumns = {
-  unkeyId: true,
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
-})
-
-// Client schemas
-export const secretApiKeysClientInsertSchema =
-  secretApiKeysInsertSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'SecretApiKeyInsert' })
-export const secretApiKeysClientSelectSchema =
-  secretApiKeysSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'SecretApiKeyRecord' })
-export const secretApiKeysClientUpdateSchema =
-  secretApiKeysUpdateSchema
-    .omit({
-      ...clientWriteOmits,
-      expiresAt: true,
-    })
-    .meta({ id: 'SecretApiKeyUpdate' })
-
-export const publishableApiKeysClientInsertSchema =
-  publishableApiKeysInsertSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'PublishableApiKeyInsert' })
-export const publishableApiKeysClientSelectSchema =
-  publishableApiKeysSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'PublishableApiKeyRecord' })
-export const publishableApiKeysClientUpdateSchema =
-  publishableApiKeysUpdateSchema
-    .omit({
-      ...clientWriteOmits,
-      expiresAt: true,
-    })
-    .meta({ id: 'PublishableApiKeyUpdate' })
-
-export const hostedBillingPortalApiKeysClientInsertSchema =
-  hostedBillingPortalApiKeysInsertSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'HostedBillingPortalApiKeyInsert' })
-export const hostedBillingPortalApiKeysClientSelectSchema =
-  hostedBillingPortalApiKeysSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'HostedBillingPortalApiKeyRecord' })
-export const hostedBillingPortalApiKeysClientUpdateSchema =
-  hostedBillingPortalApiKeysUpdateSchema
-    .omit({
-      ...clientWriteOmits,
-      expiresAt: true,
-    })
-    .meta({ id: 'HostedBillingPortalApiKeyUpdate' })
 
 /*
  * client schemas
@@ -234,8 +201,13 @@ export const apiKeysClientUpdateSchema = z
   ])
   .meta({ id: 'ApiKeysClientUpdateSchema' })
 
-export const apiKeyClientWhereClauseSchema =
-  coreApiKeysSelectSchema.partial()
+export const apiKeyClientWhereClauseSchema = z
+  .union([
+    secretApiKeysClientSelectSchema.partial(),
+    publishableApiKeysClientSelectSchema.partial(),
+    hostedBillingPortalApiKeysClientSelectSchema.partial(),
+  ])
+  .meta({ id: 'ApiKeyClientWhereClauseSchema' })
 
 export const billingPortalApiKeyMetadataSchema = z.object({
   type: z.literal(FlowgladApiKeyType.BillingPortalToken),

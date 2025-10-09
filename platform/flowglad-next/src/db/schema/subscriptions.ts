@@ -21,7 +21,6 @@ import {
   constructUniqueIndex,
   metadataSchema,
   SelectConditions,
-  ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
@@ -40,6 +39,8 @@ import { organizations } from './organizations'
 import core from '@/utils/core'
 import { paymentMethods } from './paymentMethods'
 import { productsClientSelectSchema } from './products'
+import { buildSchemas } from '@/db/createZodSchemas'
+import { zodEpochMs } from '@/db/timestampMs'
 
 const TABLE_NAME = 'subscriptions'
 
@@ -150,15 +151,8 @@ const standardSubscriptionStatuses = Object.values(
 
 const standardColumnRefinements = {
   status: z.enum(standardSubscriptionStatuses),
-  currentBillingPeriodStart: z.date(),
-  currentBillingPeriodEnd: z.date(),
-  trialEnd: z.date().nullable().optional(),
-  canceledAt: z.date().nullable().optional(),
-  cancelScheduledAt: z.date().nullable().optional(),
-  metadata: metadataSchema.nullable().optional(),
   interval: core.createSafeZodEnum(IntervalUnit),
   intervalCount: core.safeZodPositiveInteger,
-  billingCycleAnchorDate: z.date(),
   renews: z.literal(true),
 }
 
@@ -181,15 +175,63 @@ export const nonRenewingColumnRefinements = {
 }
 
 /*
- * database schema
+ * database schema via buildSchemas (boolean discriminator 'renews')
  */
-const baseSelectSchema = createSelectSchema(subscriptions)
+export const {
+  select: standardSubscriptionSelectSchema,
+  insert: standardSubscriptionInsertSchema,
+  update: standardSubscriptionUpdateSchema,
+  client: {
+    select: standardSubscriptionClientSelectSchemaBase,
+    insert: standardSubscriptionClientInsertSchema,
+    update: standardSubscriptionClientUpdateSchema,
+  },
+} = buildSchemas(subscriptions, {
+  discriminator: 'renews',
+  refine: standardColumnRefinements,
+  client: {
+    hiddenColumns: {
+      stripeSetupIntentId: true,
+      externalId: true,
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      livemode: true,
+    },
+    createOnlyColumns: {
+      customerId: true,
+    },
+  },
+  entityName: 'StandardSubscription',
+})
 
-export const standardSubscriptionSelectSchema =
-  baseSelectSchema.extend(standardColumnRefinements)
-
-export const nonRenewingSubscriptionSelectSchema =
-  baseSelectSchema.extend(nonRenewingColumnRefinements)
+export const {
+  select: nonRenewingSubscriptionSelectSchema,
+  insert: nonRenewingSubscriptionInsertSchema,
+  update: nonRenewingSubscriptionUpdateSchema,
+  client: {
+    select: nonRenewingSubscriptionClientSelectSchemaBase,
+    insert: nonRenewingSubscriptionClientInsertSchema,
+    update: nonRenewingSubscriptionClientUpdateSchema,
+  },
+} = buildSchemas(subscriptions, {
+  discriminator: 'renews',
+  refine: nonRenewingColumnRefinements,
+  client: {
+    hiddenColumns: {
+      stripeSetupIntentId: true,
+      externalId: true,
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      livemode: true,
+    },
+    createOnlyColumns: {
+      customerId: true,
+    },
+  },
+  entityName: 'NonRenewingSubscription',
+})
 
 export const subscriptionsSelectSchema = z.discriminatedUnion(
   'renews',
@@ -199,14 +241,6 @@ export const subscriptionsSelectSchema = z.discriminatedUnion(
   ]
 )
 
-const standardSubscriptionInsertSchema =
-  standardSubscriptionSelectSchema.omit(
-    ommittedColumnsForInsertSchema
-  )
-const nonRenewingSubscriptionInsertSchema =
-  nonRenewingSubscriptionSelectSchema.omit(
-    ommittedColumnsForInsertSchema
-  )
 export const subscriptionsInsertSchema = z.discriminatedUnion(
   'renews',
   [
@@ -214,18 +248,6 @@ export const subscriptionsInsertSchema = z.discriminatedUnion(
     nonRenewingSubscriptionInsertSchema,
   ]
 )
-
-const standardSubscriptionUpdateSchema =
-  standardSubscriptionInsertSchema.partial().extend({
-    id: z.string(),
-    renews: z.literal(true),
-  })
-
-const nonRenewingSubscriptionUpdateSchema =
-  nonRenewingSubscriptionInsertSchema.partial().extend({
-    id: z.string(),
-    renews: z.literal(false),
-  })
 
 export const subscriptionsUpdateSchema = z.discriminatedUnion(
   'renews',
@@ -235,39 +257,11 @@ export const subscriptionsUpdateSchema = z.discriminatedUnion(
   ]
 )
 
-const createOnlyColumns = {
-  customerId: true,
-} as const
-
-const readOnlyColumns = {
-  livemode: true,
-} as const
-
-const hiddenColumns = {
-  stripeSetupIntentId: true,
-  externalId: true,
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
-  ...createOnlyColumns,
-})
-
-const nonClientEditableColumns = {
-  ...readOnlyColumns,
-  ...hiddenColumns,
-  ...createOnlyColumns,
-} as const
-
 /*
- * client schemas
+ * client schemas (extend buildSchemas with derived "current" field)
  */
-
 export const standardSubscriptionClientSelectSchema =
-  standardSubscriptionSelectSchema
-    .omit(hiddenColumns)
+  standardSubscriptionClientSelectSchemaBase
     .extend({
       current: z
         .boolean()
@@ -278,8 +272,7 @@ export const standardSubscriptionClientSelectSchema =
     .meta({ id: 'StandardSubscriptionRecord' })
 
 export const nonRenewingSubscriptionClientSelectSchema =
-  nonRenewingSubscriptionSelectSchema
-    .omit(hiddenColumns)
+  nonRenewingSubscriptionClientSelectSchemaBase
     .extend({
       current: z
         .boolean()
@@ -296,14 +289,6 @@ export const subscriptionClientSelectSchema = z
   ])
   .meta({ id: 'SubscriptionClientSelectSchema' })
 
-const standardSubscriptionClientInsertSchema =
-  standardSubscriptionInsertSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'StandardSubscriptionInsert' })
-const nonRenewingSubscriptionClientInsertSchema =
-  nonRenewingSubscriptionInsertSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'NonRenewingSubscriptionInsert' })
 export const subscriptionClientInsertSchema = z
   .discriminatedUnion('renews', [
     standardSubscriptionClientInsertSchema,
@@ -311,14 +296,6 @@ export const subscriptionClientInsertSchema = z
   ])
   .meta({ id: 'SubscriptionClientInsertSchema' })
 
-const standardSubscriptionClientUpdateSchema =
-  standardSubscriptionUpdateSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'StandardSubscriptionUpdate' })
-const nonRenewingSubscriptionClientUpdateSchema =
-  nonRenewingSubscriptionUpdateSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'NonRenewingSubscriptionUpdate' })
 export const subscriptionClientUpdateSchema = z
   .discriminatedUnion('renews', [
     standardSubscriptionClientUpdateSchema,
@@ -345,6 +322,18 @@ export const subscriptionsPaginatedSelectSchema =
 
 export const subscriptionsPaginatedListSchema =
   createPaginatedListQuerySchema(subscriptionClientSelectSchema)
+
+// Schema for updating subscription payment method
+export const updateSubscriptionPaymentMethodSchema = z.object({
+  id: z.string().describe('The subscription ID'),
+  paymentMethodId: z
+    .string()
+    .describe('The payment method ID to set for this subscription'),
+})
+
+export type UpdateSubscriptionPaymentMethod = z.infer<
+  typeof updateSubscriptionPaymentMethodSchema
+>
 
 export namespace Subscription {
   export type Insert = z.infer<typeof subscriptionsInsertSchema>
@@ -436,8 +425,7 @@ export const createSubscriptionInputSchema = z.object({
   quantity: z
     .number()
     .describe('The quantity of the price purchased.'),
-  startDate: z
-    .date()
+  startDate: zodEpochMs
     .optional()
     .describe(
       'The time when the subscription starts. If not provided, defaults to current time.'
@@ -449,8 +437,7 @@ export const createSubscriptionInputSchema = z.object({
     .describe(
       'The number of intervals that each billing period will last. If not provided, defaults to 1'
     ),
-  trialEnd: z
-    .date()
+  trialEnd: zodEpochMs
     .optional()
     .describe(
       `The time when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`
@@ -484,4 +471,12 @@ export const createSubscriptionInputSchema = z.object({
 
 export type CreateSubscriptionInputSchema = z.infer<
   typeof createSubscriptionInputSchema
+>
+
+export const retryBillingRunInputSchema = z.object({
+  billingPeriodId: z.string(),
+})
+
+export type RetryBillingRunInputSchema = z.infer<
+  typeof retryBillingRunInputSchema
 >

@@ -5,7 +5,6 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructUniqueIndex,
-  ommittedColumnsForInsertSchema,
   hiddenColumnsForClientSchema,
   createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
@@ -20,8 +19,8 @@ import {
 } from '@/db/tableUtils'
 import { products } from '@/db/schema/products'
 import { features } from '@/db/schema/features'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { organizations } from '@/db/schema/organizations'
+import { buildSchemas } from '@/db/createZodSchemas'
 const TABLE_NAME = 'product_features'
 
 export const productFeatures = pgTable(
@@ -74,49 +73,17 @@ export const productFeatures = pgTable(
   }
 ).enableRLS()
 
-const columnRefinements = {} // No special column refinements for this table
-
-/*
- * Core database schemas
- */
-export const productFeaturesInsertSchema = createInsertSchema(
-  productFeatures
-)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const productFeaturesSelectSchema =
-  createSelectSchema(productFeatures).extend(columnRefinements)
-
-// Update schema is kept for potential server-side use, but not exposed to client for this table type.
-export const productFeaturesUpdateSchema = productFeaturesInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-/*
- * Client-facing schemas
- */
-
-// Columns that are part of productFeaturesInsertSchema but are set by the server or not applicable for client insert.
-const serverSetColumnsForInsert = {
-  livemode: true, // from tableBase, server will set this based on context
-  organizationId: true, // from tableBase, server will set this based on context
-} as const
-
-// Columns to hide from client when selecting/reading productFeature records.
-const hiddenColumnsForSelect = {
-  ...hiddenColumnsForClientSchema, // id, createdAt, updatedAt, createdByCommit, updatedByCommit, position
-} as const
-
-export const productFeatureClientInsertSchema =
-  productFeaturesInsertSchema.omit(serverSetColumnsForInsert).meta({
-    id: 'ProductFeatureInsert',
-  })
-
-export const productFeatureClientSelectSchema =
-  productFeaturesSelectSchema.omit(hiddenColumnsForSelect).meta({
-    id: 'ProductFeatureRecord',
-  })
+export const {
+  select: productFeaturesSelectSchema,
+  insert: productFeaturesInsertSchema,
+  update: productFeaturesUpdateSchema,
+  client: {
+    select: productFeatureClientSelectSchema,
+    insert: productFeatureClientInsertSchema,
+  },
+} = buildSchemas(productFeatures, {
+  entityName: 'ProductFeature',
+})
 
 export namespace ProductFeature {
   export type Insert = z.infer<typeof productFeaturesInsertSchema>

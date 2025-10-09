@@ -250,7 +250,7 @@ export const upsertPaymentForStripeCharge = async (
     amount: charge.amount,
     status: chargeStatusToPaymentStatus(charge.status),
     invoiceId,
-    chargeDate: dateFromStripeTimestamp(latestChargeDate),
+    chargeDate: dateFromStripeTimestamp(latestChargeDate).getTime(),
     refunded: false,
     organizationId,
     purchaseId,
@@ -378,9 +378,10 @@ export const ledgerCommandForPaymentSucceeded = async (
     price.productId,
     transaction
   )
-  const usageCreditFeature = features.find(
-    (feature) => feature.type === FeatureType.UsageCreditGrant
-  )
+
+  const usageCreditFeature = features
+    .sort((a, b) => a.position - b.position)
+    .find((feature) => feature.type === FeatureType.UsageCreditGrant)
 
   if (!usageCreditFeature) {
     return undefined
@@ -405,7 +406,7 @@ export const ledgerCommandForPaymentSucceeded = async (
     sourceReferenceId: payment.invoiceId,
     billingPeriodId: null,
     paymentId: payment.id,
-    issuedAt: new Date(),
+    issuedAt: Date.now(),
     expiresAt: null,
     sourceReferenceType:
       UsageCreditSourceReferenceType.InvoiceSettlement,
@@ -486,7 +487,7 @@ export const processPaymentIntentStatusUpdated = async (
     payment.customerId,
     transaction
   )
-  const timestamp = new Date()
+  const timestamp = Date.now()
   const eventInserts: Event.Insert[] = []
   let ledgerCommand: LedgerCommand | undefined
   if (paymentIntent.status === 'succeeded') {
@@ -532,6 +533,10 @@ export const processPaymentIntentStatusUpdated = async (
       payload: {
         id: payment.id,
         object: EventNoun.Payment,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       submittedAt: timestamp,
       hash: constructPaymentFailedEventHash(payment),
@@ -540,6 +545,17 @@ export const processPaymentIntentStatusUpdated = async (
     })
   }
   if (purchase && purchase.status === PurchaseStatus.Paid) {
+    const purchaseCustomer = await selectCustomerById(
+      purchase.customerId,
+      transaction
+    )
+
+    if (!purchaseCustomer) {
+      throw new Error(
+        `Customer not found for purchase ${purchase.id}`
+      )
+    }
+
     eventInserts.push({
       type: FlowgladEventType.PurchaseCompleted,
       occurredAt: timestamp,
@@ -548,6 +564,10 @@ export const processPaymentIntentStatusUpdated = async (
       payload: {
         id: purchase.id,
         object: EventNoun.Purchase,
+        customer: {
+          id: purchaseCustomer.id,
+          externalId: purchaseCustomer.externalId,
+        },
       },
       submittedAt: timestamp,
       hash: constructPurchaseCompletedEventHash(purchase),

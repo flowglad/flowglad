@@ -16,7 +16,7 @@ const SignupLayout = ({
             <div className="flex flex-col justify-center items-center w-full">
               {children}
               <Link
-                href="https://flowglad.com/privacy-policy"
+                href="https://www.flowglad.com/privacy-policy"
                 className="text-sm text-muted-foreground mt-8"
               >
                 Privacy Policy

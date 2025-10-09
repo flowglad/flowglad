@@ -13,8 +13,7 @@ import EditProductModal from '@/components/forms/EditProductModal'
 import { Plus } from 'lucide-react'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
-import { TableHeader } from '@/components/ui/table-header'
-import PricesTable from './PricesTable'
+import { PricesDataTable } from './prices/data-table'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import PopoverMenu, {
@@ -109,30 +108,26 @@ function InternalProductDetailsPage(
           <div className="min-w-40 flex flex-col gap-5 pb-5">
             <DateRangeRevenueChart
               organizationCreatedAt={
-                organization?.createdAt ?? new Date()
+                organization?.createdAt
+                  ? new Date(organization.createdAt)
+                  : new Date()
               }
               alignDatePicker="right"
               productId={product.id}
             />
           </div>
         </div>
-        <TableHeader
+        <PricesDataTable
           title="Prices"
-          buttonLabel="Create Price"
-          buttonIcon={<Plus className="w-4 h-4" strokeWidth={2} />}
-          buttonOnClick={() => setIsCreatePriceOpen(true)}
-          buttonDisabled={product.default}
-          buttonDisabledTooltip={
-            product.default
-              ? 'Cannot create additional prices for the default plan'
-              : 'Product must be selected'
-          }
-        />
-        <PricesTable
           productId={product.id}
           filters={{
             productId: product.id,
           }}
+          onCreatePrice={
+            product.default
+              ? undefined
+              : () => setIsCreatePriceOpen(true)
+          }
         />
         <CreatePriceModal
           isOpen={isCreatePriceOpen}

@@ -4,11 +4,7 @@ import {
   CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import {
-  PriceType,
-  CheckoutSessionStatus,
-  SubscriptionStatus,
-} from '@/types'
+import { PriceType, CheckoutSessionStatus } from '@/types'
 import { shouldBlockCheckout } from '@/app/checkout/guard'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'

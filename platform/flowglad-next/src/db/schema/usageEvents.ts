@@ -16,13 +16,11 @@ import {
   livemodePolicy,
   constructUniqueIndex,
   SelectConditions,
-  hiddenColumnsForClientSchema,
   nullableStringForeignKey,
-  ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
-  clientWriteOmitsConstructor,
+  createPaginatedSelectSchema,
 } from '@/db/tableUtils'
 import { customers } from '@/db/schema/customers'
 import { usageMeters } from '@/db/schema/usageMeters'
@@ -31,8 +29,6 @@ import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { subscriptions } from './subscriptions'
 import { prices } from './prices'
 import {
-  createPaginatedSelectSchema,
-  createPaginatedListQuerySchema,
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
 } from '@/db/tableUtils'
@@ -40,6 +36,8 @@ import { customerClientSelectSchema } from './customers'
 import { subscriptionClientSelectSchema } from './subscriptions'
 import { usageMetersClientSelectSchema } from './usageMeters'
 import { pricesClientSelectSchema } from './prices'
+import { buildSchemas } from '../createZodSchemas'
+import { zodEpochMs } from '../timestampMs'
 
 const TABLE_NAME = 'usage_events'
 
@@ -160,11 +158,9 @@ export const usageEvents = pgTable(
 
 const columnRefinements = {
   amount: z.number().int().positive(),
-  usageDate: z
-    .date()
-    .describe(
-      'The date the usage occurred. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing peirod.'
-    ),
+  usageDate: zodEpochMs.describe(
+    'The date the usage occurred. If the usage occurs in a date that is outside of the current billing period, the usage will still be attached to the current billing period. Epoch milliseconds.'
+  ),
   billingPeriodId: z
     .string()
     .nullable()
@@ -185,21 +181,6 @@ const columnRefinements = {
     ),
 }
 
-export const usageEventsInsertSchema = createInsertSchema(usageEvents)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const usageEventsSelectSchema =
-  createSelectSchema(usageEvents).extend(columnRefinements)
-
-export const usageEventsUpdateSchema = usageEventsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-const hiddenColumns = {
-  ...hiddenColumnsForClientSchema,
-} as const
-
 const readOnlyColumns = {
   livemode: true,
   billingPeriodId: true,
@@ -213,39 +194,26 @@ const createOnlyColumns = {
   transactionId: true,
 } as const
 
-const clientWriteOmits = clientWriteOmitsConstructor({
-  ...hiddenColumns,
-  ...readOnlyColumns,
+export const {
+  select: usageEventsSelectSchema,
+  insert: usageEventsInsertSchema,
+  update: usageEventsUpdateSchema,
+  client: {
+    select: usageEventsClientSelectSchema,
+    insert: usageEventsClientInsertSchema,
+    update: usageEventsClientUpdateSchema,
+  },
+} = buildSchemas(usageEvents, {
+  refine: columnRefinements,
+  insertRefine: {
+    usageDate: columnRefinements.usageDate.optional(),
+  },
+  client: {
+    readOnlyColumns,
+    createOnlyColumns,
+  },
+  entityName: 'UsageEvent',
 })
-
-export const usageEventsClientSelectSchema = usageEventsSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'UsageEventsClientSelectSchema' })
-
-export const usageEventsClientUpdateSchema = usageEventsUpdateSchema
-  .extend({
-    usageDate: z
-      .number()
-      .optional()
-      .describe(
-        'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
-      ),
-  })
-  .omit(clientWriteOmitsConstructor(hiddenColumns))
-  .omit(createOnlyColumns)
-  .meta({ id: 'UsageEventsClientUpdateSchema' })
-
-export const usageEventsClientInsertSchema = usageEventsInsertSchema
-  .omit(clientWriteOmits)
-  .extend({
-    usageDate: z
-      .number()
-      .optional()
-      .describe(
-        'The date the usage occurred in unix epoch milliseconds. If not provided, the current timestamp will be used.'
-      ),
-  })
-  .meta({ id: 'UsageEventsClientInsertSchema' })
 
 export namespace UsageEvent {
   export type Insert = z.infer<typeof usageEventsInsertSchema>
@@ -283,15 +251,16 @@ export type BulkInsertUsageEventsInput = z.infer<
 >
 
 // Pagination schemas
-export const usageEventPaginatedSelectSchema = z.object({
-  cursor: z.string().optional(),
-  limit: z.number().min(1).max(100).default(10),
-  customerId: z.string().optional(),
-  usageMeterId: z.string().optional(),
-  subscriptionId: z.string().optional(),
-  dateFrom: z.string().optional(),
-  dateTo: z.string().optional(),
-})
+export const usageEventPaginatedSelectSchema =
+  createPaginatedSelectSchema(
+    z.object({
+      customerId: z.string().optional(),
+      usageMeterId: z.string().optional(),
+      subscriptionId: z.string().optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+    })
+  )
 
 export const usageEventPaginatedListSchema = z.object({
   items: z.array(usageEventsClientSelectSchema),
