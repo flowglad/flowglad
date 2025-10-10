@@ -79,6 +79,7 @@ function ProductActionsMenu({
         <ArchiveRestore className="h-4 w-4" />
       ),
       handler: () => setIsArchiveOpen(true),
+      disabled: product.default,
     },
   ]
 
