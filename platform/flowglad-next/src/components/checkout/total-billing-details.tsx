@@ -94,7 +94,7 @@ type TotalBillingDetailsParams =
   | PriceTotalBillingDetailsParams
   | InvoiceTotalBillingDetailsParams
 
-const calculateTotalBillingDetails = (
+export const calculateTotalBillingDetails = (
   params: TotalBillingDetailsParams
 ) => {
   const { purchase, feeCalculation, price, discount, invoice, type } =
@@ -120,7 +120,7 @@ const calculateTotalBillingDetails = (
         })
 
   let subtotalAmount: number = baseAmount
-  let discountAmount: number | null = calculateDiscountAmount(
+  let discountAmount: number = calculateDiscountAmount(
     baseAmount,
     discount
   )
@@ -189,8 +189,23 @@ export const TotalBillingDetails = React.forwardRef<
           feeCalculation,
         }
 
-  const { discountAmount, taxAmount, baseAmount, totalDueAmount } =
-    calculateTotalBillingDetails(totalBillingDetailsParams)
+  const {
+    discountAmount,
+    taxAmount,
+    baseAmount,
+    subtotalAmount,
+    totalDueAmount,
+  } = calculateTotalBillingDetails(totalBillingDetailsParams)
+
+  // For invoice flows, if the invoice is paid and there's no fee calculation, total due should be 0
+  let finalTotalDueAmount = totalDueAmount
+  if (
+    isInvoiceFlow &&
+    checkoutPageContext.invoice?.status === 'paid' &&
+    !feeCalculation
+  ) {
+    finalTotalDueAmount = 0
+  }
 
   let afterwardsTotal: number | null = null
   let afterwardsTotalLabel = ''
@@ -217,21 +232,25 @@ export const TotalBillingDetails = React.forwardRef<
       {!hideTotalLabels && (
         <BillingLine
           label="Subtotal"
-          amount={baseAmount}
+          amount={subtotalAmount}
           currency={currency}
           isLoading={editCheckoutSessionLoading}
           className="text-base"
         />
       )}
 
-      {discount && (
-        <BillingLine
-          label="Discount"
-          amount={discountAmount ?? 0}
-          currency={currency}
-          isLoading={editCheckoutSessionLoading}
-        />
-      )}
+      {/* TODO: check whether fee calculation should not have discountAmount if original price does not have a discount */}
+
+      {!hideTotalLabels &&
+        (discount ||
+          (discountAmount != null && discountAmount > 0)) && (
+          <BillingLine
+            label="Discount"
+            amount={discountAmount ?? 0}
+            currency={currency}
+            isLoading={editCheckoutSessionLoading}
+          />
+        )}
 
       {taxAmount != null && taxAmount > 0 && (
         <BillingLine
@@ -270,13 +289,13 @@ export const TotalBillingDetails = React.forwardRef<
                 className="text-lg font-bold text-gray-900"
                 data-testid="billing-info-total-due-amount"
               >
-                {totalDueAmount == null
+                {finalTotalDueAmount == null
                   ? ''
                   : stripeCurrencyAmountToHumanReadableCurrencyAmount(
                       currency,
                       subscriptionDetails?.trialPeriodDays
                         ? 0
-                        : totalDueAmount
+                        : finalTotalDueAmount
                     )}
               </span>
             )}
