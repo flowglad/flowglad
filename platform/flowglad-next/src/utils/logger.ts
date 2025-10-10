@@ -1,14 +1,10 @@
 // utils/logger.ts
 import { log as logtailLog } from '@logtail/next'
-import { trace, context } from '@opentelemetry/api'
+import { trace, context, SpanStatusCode } from '@opentelemetry/api'
 import core, { IS_DEV } from './core'
+import { ServiceContext, ApiEnvironment, LogData } from '@/types'
 
 const log = IS_DEV || !core.IS_PROD ? console : logtailLog
-
-type LogData = Record<string, any>
-
-type ServiceContext = 'webapp' | 'api'
-type ApiEnvironment = 'test' | 'live'
 
 // Helper to determine service context based on runtime and request path
 function getServiceContext(): ServiceContext {
@@ -62,42 +58,45 @@ function enrichWithContext(data: LogData = {}, overrides?: {
   return enrichedData
 }
 
+// Helper function to handle the common logging pattern
+function logWithContext(
+  level: 'debug' | 'info' | 'warn' | 'error',
+  message: string | Error,
+  data?: LogData & { service?: ServiceContext; apiEnvironment?: ApiEnvironment }
+) {
+  const { service, apiEnvironment, ...restData } = data || {}
+  const enrichedData = enrichWithContext(restData, { service, apiEnvironment })
+
+  if (level === 'error' && message instanceof Error) {
+    const span = trace.getActiveSpan()
+    if (span) {
+      span.recordException(message)
+      span.setStatus({ code: SpanStatusCode.ERROR, message: message.message })
+    }
+    log.error(message.message, {
+      ...enrichedData,
+      error_name: message.name,
+      error_stack: message.stack,
+    })
+  } else {
+    log[level](message as string, enrichedData)
+  }
+}
+
 export const logger = {
   debug: (message: string, data?: LogData & { service?: ServiceContext; apiEnvironment?: ApiEnvironment }) => {
-    const { service, apiEnvironment, ...restData } = data || {}
-    log.debug(message, enrichWithContext(restData, { service, apiEnvironment }))
+    logWithContext('debug', message, data)
   },
 
   info: (message: string, data?: LogData & { service?: ServiceContext; apiEnvironment?: ApiEnvironment }) => {
-    const { service, apiEnvironment, ...restData } = data || {}
-    log.info(message, enrichWithContext(restData, { service, apiEnvironment }))
+    logWithContext('info', message, data)
   },
 
   warn: (message: string, data?: LogData & { service?: ServiceContext; apiEnvironment?: ApiEnvironment }) => {
-    const { service, apiEnvironment, ...restData } = data || {}
-    log.warn(message, enrichWithContext(restData, { service, apiEnvironment }))
+    logWithContext('warn', message, data)
   },
 
   error: (message: string | Error, data?: LogData & { service?: ServiceContext; apiEnvironment?: ApiEnvironment }) => {
-    const { service, apiEnvironment, ...restData } = data || {}
-    const enrichedData = enrichWithContext(restData, { service, apiEnvironment })
-
-    if (message instanceof Error) {
-      const span = trace.getActiveSpan()
-      if (span) {
-        span.recordException(message)
-      }
-
-      log.error(message.message, {
-        ...enrichedData,
-        error_name: message.name,
-        error_stack: message.stack,
-      })
-    } else {
-      log.error(message, enrichedData)
-    }
+    logWithContext('error', message, data)
   },
 }
-
-// Export types for use in other files
-export type { ServiceContext, ApiEnvironment }
