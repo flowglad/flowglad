@@ -341,6 +341,7 @@ export const safeZodNullOrUndefined = z
   .transform(() => {
     return null
   })
+  .pipe(z.null())
   .describe('Omitted.')
 
 export const safeZodNullishString = z
