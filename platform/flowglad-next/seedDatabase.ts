@@ -1172,7 +1172,7 @@ export const setupCheckoutSession = async ({
   preserveBillingCycleAnchor,
 }: {
   organizationId: string
-  customerId: string
+  customerId: string | null
   priceId: string
   status: CheckoutSessionStatus
   type: CheckoutSessionType
@@ -1198,7 +1198,7 @@ export const setupCheckoutSession = async ({
   }
   const coreFields = {
     organizationId,
-    customerId,
+    customerId: customerId ?? null,
     customerEmail: 'test@test.com',
     customerName: 'Test Customer',
     billingAddress,
@@ -1207,7 +1207,12 @@ export const setupCheckoutSession = async ({
   }
   const addPaymentMethodCheckoutSessionInsert: CheckoutSession.AddPaymentMethodInsert =
     {
-      ...coreFields,
+      organizationId,
+      customerId: customerId!, // We'll check for null before using this
+      customerEmail: 'test@test.com',
+      customerName: 'Test Customer',
+      billingAddress,
+      paymentMethodType: PaymentMethodType.Card,
       priceId,
       status: status,
       type: CheckoutSessionType.AddPaymentMethod,
@@ -1265,6 +1270,9 @@ export const setupCheckoutSession = async ({
     }
   let insert: CheckoutSession.Insert
   if (type === CheckoutSessionType.AddPaymentMethod) {
+    if (!customerId) {
+      throw new Error('customerId is required for AddPaymentMethod checkout sessions')
+    }
     insert = addPaymentMethodCheckoutSessionInsert
   } else if (type === CheckoutSessionType.Product) {
     insert = productCheckoutSessionInsert
@@ -1275,6 +1283,9 @@ export const setupCheckoutSession = async ({
     if (invoiceId) {
       invoiceIdToUse = invoiceId
     } else {
+      if (!customerId) {
+        throw new Error('customerId is required for Invoice checkout sessions')
+      }
       const invoice = await setupInvoice({
         customerId: customerId,
         organizationId: organizationId,

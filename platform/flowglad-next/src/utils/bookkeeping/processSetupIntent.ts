@@ -21,10 +21,7 @@ import {
 } from '@/utils/stripe'
 import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
-import {
-  selectPurchaseById,
-  updatePurchase,
-} from '@/db/tableMethods/purchaseMethods'
+import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { Customer } from '@/db/schema/customers'
 import {
   checkoutSessionIsInTerminalState,
@@ -174,6 +171,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       discount,
       feeCalculation,
       discountRedemption,
+      eventsToInsert,
     } = await processPurchaseBookkeepingForCheckoutSession(
       {
         checkoutSession,
@@ -200,6 +198,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       feeCalculation,
       discountRedemption,
       paymentMethod,
+      eventsToInsert: eventsToInsert || [],
     }
   }
 
