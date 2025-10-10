@@ -16,6 +16,9 @@ import {
   UsageCreditStatus,
   UsageCreditSourceReferenceType,
 } from '@/types'
+import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { insertPrice } from '@/db/tableMethods/priceMethods'
 import {
   chargeStatusToPaymentStatus,
   updatePaymentToReflectLatestChargeStatus,
@@ -50,12 +53,12 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
+import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import {
   selectPurchaseById,
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
 import {
-  safelyUpdateInvoiceStatus,
   selectInvoiceById,
 } from '@/db/tableMethods/invoiceMethods'
 import {
@@ -1363,6 +1366,270 @@ describe('Process payment intent status updated', async () => {
         )
         expect(payment).toBeDefined()
         expect(payment.taxCountry).toBe('US')
+      })
+    })
+
+    describe('Anonymous Customer Creation with Pricing Models', () => {
+      it('creates anonymous customer with default pricing model when checkout session has no customer ID', async () => {
+        // Create a temporary customer for the checkout session setup
+        const tempCustomer = await setupCustomer({
+          organizationId: organization.id,
+        })
+        
+        // Create a checkout session that will be processed without a customer ID
+        const checkoutSession = await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: null, // No existing customer - test anonymous customer creation
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+
+        // Update the checkout session with the expected customer email and name
+        await adminTransaction(async ({ transaction }) => {
+          await updateCheckoutSession(
+            {
+              id: checkoutSession.id,
+              customerEmail: 'anonymous@example.com',
+              customerName: 'Anonymous User',
+              type: CheckoutSessionType.Product,
+            },
+            transaction
+          )
+          
+        })
+
+        // Create fee calculation required for checkout session processing
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as any,
+            transaction
+          )
+        })
+
+        const metadata: StripeIntentMetadata = {
+          checkoutSessionId: checkoutSession.id,
+          type: IntentMetadataType.CheckoutSession,
+        }
+
+        const fakePI: any = {
+          id: 'pi_anonymous',
+          metadata,
+          latest_charge: 'ch_anonymous',
+          status: 'succeeded',
+        }
+
+        const fakeCharge = createMockStripeCharge({
+          id: 'ch_anonymous',
+          payment_intent: 'pi_anonymous',
+          created: 1610000000,
+          amount: 10000,
+          status: 'succeeded',
+          customer: null, // No Stripe customer for anonymous checkout
+          billing_details: { 
+            name: 'Anonymous User',
+            email: 'anonymous@example.com',
+            address: { country: 'US' } 
+          } as any,
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+            },
+          } as any,
+        })
+
+        vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
+
+        const { payment } = await comprehensiveAdminTransaction(async ({ transaction }) =>
+          processPaymentIntentStatusUpdated(fakePI, transaction)
+        )
+
+        // Verify payment was created
+        expect(payment).toBeDefined()
+        expect(payment.taxCountry).toBe('US')
+
+        // Verify purchase was created through the payment
+        expect(payment.purchaseId).toBeDefined()
+
+        // Verify customer was created with pricing model
+        const createdCustomer = await adminTransaction(async ({ transaction }) => {
+          return selectCustomerById(payment.customerId, transaction)
+        })
+
+        expect(createdCustomer).toBeDefined()
+        expect(createdCustomer.email).toBeDefined()
+        expect(createdCustomer.name).toBeDefined()
+        expect(createdCustomer.pricingModelId).toBeDefined()
+        expect(createdCustomer.organizationId).toBeDefined()
+
+        // Verify that CustomerCreated events were actually inserted into the database
+        const events = await adminTransaction(async ({ transaction }) => {
+          return await selectEvents(
+            { organizationId: organization.id },
+            transaction
+          )
+        })
+        
+        
+        const customerCreatedEvent = events.find(
+          (event) => event.type === FlowgladEventType.CustomerCreated
+        )
+        expect(customerCreatedEvent).toBeDefined()
+        expect(customerCreatedEvent?.payload.object).toBe(EventNoun.Customer)
+        expect(customerCreatedEvent?.payload.id).toBeDefined() // Verify the event has a customer ID
+        
+        // Check for SubscriptionCreated event (created automatically for anonymous customers)
+        const subscriptionCreatedEvent = events.find(
+          (event) => event.type === FlowgladEventType.SubscriptionCreated
+        )
+        expect(subscriptionCreatedEvent).toBeDefined()
+        expect(subscriptionCreatedEvent?.payload.object).toBe(EventNoun.Subscription)
+        expect(subscriptionCreatedEvent?.payload.id).toBeDefined() // Verify the event has a subscription ID
+      })
+
+      it('creates anonymous customer with default pricing model and subscription when price is subscription type', async () => {
+        // Create a subscription price for testing
+        const subscriptionPrice = await adminTransaction(async ({ transaction }) => {
+          return insertPrice({
+            productId: product.id,
+            unitPrice: 2000,
+            isDefault: false,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: CurrencyCode.USD,
+            livemode: true,
+            active: true,
+            name: 'Monthly Subscription',
+            trialPeriodDays: null,
+            setupFeeAmount: null,
+            usageEventsPerUnit: null,
+            usageMeterId: null,
+            externalId: null,
+            slug: 'monthly-sub',
+            startsWithCreditTrial: false,
+            overagePriceId: null,
+          }, transaction)
+        })
+
+        // Create a temporary customer for the checkout session setup
+        const tempCustomer = await setupCustomer({
+          organizationId: organization.id,
+        })
+        
+        // Create a checkout session for subscription without a customer ID
+        const checkoutSession = await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: null, // No existing customer - test anonymous customer creation
+          priceId: subscriptionPrice.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+
+        // Update the checkout session with the expected customer email and name
+        await adminTransaction(async ({ transaction }) => {
+          await updateCheckoutSession(
+            {
+              id: checkoutSession.id,
+              customerEmail: 'subscription@example.com',
+              customerName: 'Subscription User',
+              type: CheckoutSessionType.Product,
+            },
+            transaction
+          )
+        })
+
+        // Create fee calculation required for checkout session processing
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as any,
+            transaction
+          )
+        })
+
+        const metadata: StripeIntentMetadata = {
+          checkoutSessionId: checkoutSession.id,
+          type: IntentMetadataType.CheckoutSession,
+        }
+
+        const fakePI: any = {
+          id: 'pi_subscription',
+          metadata,
+          latest_charge: 'ch_subscription',
+          status: 'succeeded',
+        }
+
+        const fakeCharge = createMockStripeCharge({
+          id: 'ch_subscription',
+          payment_intent: 'pi_subscription',
+          created: 1610000000,
+          amount: 2000,
+          status: 'succeeded',
+          customer: null, // No Stripe customer for anonymous checkout
+          billing_details: { 
+            name: 'Subscription User',
+            email: 'subscription@example.com',
+            address: { country: 'US' } 
+          } as any,
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+            },
+          } as any,
+        })
+
+        vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
+
+        const { payment } = await comprehensiveAdminTransaction(async ({ transaction }) =>
+          processPaymentIntentStatusUpdated(fakePI, transaction)
+        )
+
+        // Verify payment and purchase were created
+        expect(payment).toBeDefined()
+        expect(payment.purchaseId).toBeDefined()
+
+        // Verify customer was created with pricing model
+        const createdCustomer = await adminTransaction(async ({ transaction }) => {
+          return selectCustomerById(payment.customerId, transaction)
+        })
+
+        expect(createdCustomer).toBeDefined()
+        expect(createdCustomer.email).toBeDefined()
+        expect(createdCustomer.name).toBeDefined()
+        expect(createdCustomer.pricingModelId).toBeDefined()
+        expect(createdCustomer.organizationId).toBeDefined()
+
+        // Verify that CustomerCreated events were actually inserted into the database
+        const events = await adminTransaction(async ({ transaction }) => {
+          return await selectEvents(
+            { organizationId: organization.id },
+            transaction
+          )
+        })
+        
+        
+        const customerCreatedEvent = events.find(
+          (event) => event.type === FlowgladEventType.CustomerCreated
+        )
+        expect(customerCreatedEvent).toBeDefined()
+        expect(customerCreatedEvent?.payload.object).toBe(EventNoun.Customer)
+        expect(customerCreatedEvent?.payload.id).toBeDefined() // Verify the event has a customer ID
+        
+        // Check for SubscriptionCreated event (created automatically for anonymous customers)
+        const subscriptionCreatedEvent = events.find(
+          (event) => event.type === FlowgladEventType.SubscriptionCreated
+        )
+        expect(subscriptionCreatedEvent).toBeDefined()
+        expect(subscriptionCreatedEvent?.payload.object).toBe(EventNoun.Subscription)
+        expect(subscriptionCreatedEvent?.payload.id).toBeDefined() // Verify the event has a subscription ID
       })
     })
 

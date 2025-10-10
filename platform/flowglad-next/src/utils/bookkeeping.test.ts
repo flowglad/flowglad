@@ -18,12 +18,12 @@ import {
   CurrencyCode,
   BusinessOnboardingStatus,
   StripeConnectContractType,
+  EventNoun,
 } from '@/types'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { PricingModel } from '@/db/schema/pricingModels'
-import { UsageMeter } from '@/db/schema/usageMeters'
 import {
   selectPricingModelById,
   selectDefaultPricingModel,
@@ -144,6 +144,111 @@ describe('createCustomerBookkeeping', () => {
           (e) => e.type === FlowgladEventType.SubscriptionCreated
         )
       ).toBe(true)
+    })
+
+    it('should create anonymous customer with events when no userId is provided', async () => {
+      // setup:
+      // - create a customer without userId (anonymous)
+      // - verify events are created for customer creation
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `anonymous+${core.nanoid()}@example.com`,
+                name: 'Anonymous Customer',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+                pricingModelId: defaultPricingModel.id,
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              // No userId for anonymous customers
+              livemode,
+            }
+          )
+          return output
+        }
+      )
+
+      // expects:
+      // - customer should be created successfully
+      // - customer should have the specified pricing model
+      // - events should be created for customer creation
+      expect(result.result.customer).toBeDefined()
+      expect(result.result.customer.email).toContain('anonymous+')
+      expect(result.result.customer.organizationId).toBe(organization.id)
+      expect(result.result.customer.pricingModelId).toBe(defaultPricingModel.id)
+
+      // Verify events were created for customer creation
+      expect(result.eventsToInsert).toBeDefined()
+      expect(result.eventsToInsert?.length).toBeGreaterThan(0)
+      
+      const customerCreatedEvent = result.eventsToInsert?.find(
+        (e) => e.type === FlowgladEventType.CustomerCreated
+      )
+      expect(customerCreatedEvent).toBeDefined()
+      expect(customerCreatedEvent?.payload.object).toBe(EventNoun.Customer)
+      expect(customerCreatedEvent?.payload.id).toBe(result.result.customer.id)
+      expect(customerCreatedEvent?.organizationId).toBe(organization.id)
+      expect(customerCreatedEvent?.livemode).toBe(livemode)
+    })
+
+    it('should throw error when anonymous customer is created without pricing model', async () => {
+      // setup:
+      // - create an organization without any pricing models
+      // - attempt to create an anonymous customer without specifying pricingModelId
+
+      // Create a new org without default pricing model setup
+      const minimalOrg = await adminTransaction(
+        async ({ transaction }) => {
+          const [country] = await selectCountries(
+            { code: 'US' },
+            transaction
+          )
+          const org = await insertOrganization(
+            {
+              name: `Minimal Org ${core.nanoid()}`,
+              defaultCurrency: CurrencyCode.USD,
+              countryId: country.id,
+              onboardingStatus:
+                BusinessOnboardingStatus.FullyOnboarded,
+              stripeConnectContractType:
+                StripeConnectContractType.Platform,
+              featureFlags: {},
+            },
+            transaction
+          )
+          return org
+        }
+      )
+
+      // expects:
+      // - should throw error "Anonymous customers must have a pricing model specified"
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `anonymous+${core.nanoid()}@example.com`,
+                name: 'Anonymous Customer',
+                organizationId: minimalOrg.id,
+                externalId: `ext_${core.nanoid()}`,
+                // No pricingModelId specified
+              },
+            },
+            {
+              transaction,
+              organizationId: minimalOrg.id,
+              // No userId for anonymous customers
+              livemode,
+            }
+          )
+        })
+      ).rejects.toThrow('Anonymous customers must have a pricing model specified')
     })
 
     it('should create a customer with subscription from specified pricing model', async () => {

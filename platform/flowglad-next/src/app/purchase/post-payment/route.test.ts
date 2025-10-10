@@ -6,9 +6,10 @@ let mockSelectCheckoutSessionsResult: any[] = []
 
 vi.mock('@/db/adminTransaction', () => ({
   adminTransaction: vi.fn(async (cb: any) => cb({ transaction: {} })),
-  comprehensiveAdminTransaction: vi.fn(async (cb: any) =>
-    cb({ transaction: {} })
-  ),
+  comprehensiveAdminTransaction: vi.fn(async (cb: any) => {
+    const mockResult = await cb({ transaction: {} })
+    return mockResult.result
+  }),
 }))
 
 vi.mock('@/db/tableMethods/checkoutSessionMethods', () => ({
@@ -23,6 +24,7 @@ vi.mock(
     processNonPaymentCheckoutSession: vi.fn(async () => ({
       purchase: { id: 'pur_1', priceId: 'price_1', livemode: true },
       invoice: { id: 'inv_1' },
+      eventsToInsert: [],
     })),
   })
 )

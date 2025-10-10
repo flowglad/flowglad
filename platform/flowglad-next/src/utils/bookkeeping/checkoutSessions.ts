@@ -10,7 +10,6 @@ import {
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
-  createStripeCustomer,
   stripeIdFromObjectOrId,
   updatePaymentIntent,
 } from '@/utils/stripe'
@@ -24,11 +23,8 @@ import {
   EditCheckoutSessionInput,
   feeReadyCheckoutSessionSelectSchema,
   CheckoutSession,
-  CreateCheckoutSessionInput,
-  CreateCheckoutSessionObject,
 } from '@/db/schema/checkoutSessions'
 import {
-  insertCheckoutSession,
   selectCheckoutSessionById,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
@@ -38,11 +34,7 @@ import {
   FeeCalculation,
   checkoutSessionFeeCalculationParametersChanged,
 } from '@/db/schema/feeCalculations'
-import {
-  createCheckoutSessionFeeCalculation,
-  createFeeCalculationForCheckoutSession,
-  createInvoiceFeeCalculationForCheckoutSession,
-} from '@/utils/bookkeeping/fees/checkoutSession'
+import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import {
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
@@ -56,7 +48,6 @@ import {
   updateFeeCalculation,
 } from '@/db/tableMethods/feeCalculationMethods'
 import {
-  insertCustomer,
   selectCustomers,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
@@ -74,6 +65,9 @@ import {
 } from '@/db/tableMethods/invoiceMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { createCustomerBookkeeping } from '../bookkeeping'
+import { bulkInsertOrDoNothingEventsByHash } from '@/db/tableMethods/eventMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 
 export const editCheckoutSession = async (
   input: EditCheckoutSessionInput,
@@ -221,6 +215,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     )
   let customer: Customer.Record | null = null
   let purchase: Purchase.Record | null = null
+  let eventsToInsert: any[] = [] // Track events from customer creation
   if (checkoutSession.purchaseId) {
     purchase = await selectPurchaseById(
       checkoutSession.purchaseId,
@@ -269,36 +264,58 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
      * write access on existing customer organizations simply by guessing / inserting
      * the customer email.
      */
-    customer = await insertCustomer(
-      {
-        email: checkoutSession.customerEmail!,
-        name:
-          checkoutSession.customerName ??
-          checkoutSession.customerEmail!,
-        organizationId: product.organizationId,
-        billingAddress: checkoutSession.billingAddress,
-        externalId: core.nanoid(),
-        livemode: checkoutSession.livemode,
-      },
+    
+    // Get the default pricing model for the organization
+    const defaultPricingModel = await selectDefaultPricingModel(
+      { organizationId: product.organizationId, livemode: checkoutSession.livemode },
       transaction
     )
-    let stripeCustomerId: string | null = providedStripeCustomerId
-    // If no existing stripe customer, create new customer
-    if (!stripeCustomerId) {
-      const stripeCustomer = await createStripeCustomer({
-        email: checkoutSession.customerEmail!,
-        name: checkoutSession.customerName!,
-        livemode: checkoutSession.livemode,
-      })
-      stripeCustomerId = stripeCustomer.id
+    
+    if (!defaultPricingModel) {
+      throw new Error(`No default pricing model found for organization ${product.organizationId}`)
     }
-    customer = await updateCustomer(
+    
+    // Use createCustomerBookkeeping for anonymous customer creation
+    const customerBookkeepingResult = await createCustomerBookkeeping(
       {
-        id: customer.id,
-        stripeCustomerId,
+        customer: {
+          email: checkoutSession.customerEmail!,
+          name: checkoutSession.customerName ?? checkoutSession.customerEmail!,
+          organizationId: product.organizationId,
+          billingAddress: checkoutSession.billingAddress,
+          externalId: core.nanoid(),
+          pricingModelId: defaultPricingModel.id,
+        },
       },
-      transaction
+      {
+        transaction,
+        organizationId: product.organizationId,
+        livemode: checkoutSession.livemode,
+      }
     )
+    
+    customer = customerBookkeepingResult.result.customer
+    // Store events for later return
+    eventsToInsert = customerBookkeepingResult.eventsToInsert || []
+    
+    // Process events immediately after customer creation
+    if (customerBookkeepingResult.eventsToInsert && customerBookkeepingResult.eventsToInsert.length > 0) {
+      await bulkInsertOrDoNothingEventsByHash(
+        customerBookkeepingResult.eventsToInsert,
+        transaction
+      )
+    }
+    
+    // If we have a provided Stripe customer ID, update the customer record
+    if (providedStripeCustomerId && customer.stripeCustomerId !== providedStripeCustomerId) {
+      customer = await updateCustomer(
+        {
+          id: customer.id,
+          stripeCustomerId: providedStripeCustomerId,
+        },
+        transaction
+      )
+    }
   }
   if (!purchase) {
     const corePurchaseFields = {
@@ -415,6 +432,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     discount,
     feeCalculation,
     discountRedemption,
+    eventsToInsert,
   }
 }
 

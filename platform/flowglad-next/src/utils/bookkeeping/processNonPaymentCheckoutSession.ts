@@ -92,5 +92,9 @@ export const processNonPaymentCheckoutSession = async (
     },
     transaction
   )
-  return { purchase, invoice: invoiceForPurchase.invoice }
+  return { 
+    purchase, 
+    invoice: invoiceForPurchase.invoice,
+    eventsToInsert: upsertPurchaseResult.eventsToInsert || []
+  }
 }

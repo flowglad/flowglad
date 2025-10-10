@@ -22,7 +22,6 @@ import {
 import { createStripeCustomer } from './stripe'
 import { Purchase } from '@/db/schema/purchases'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import core from './core'
 import {
   insertPurchase,
   selectPurchaseById,
@@ -39,19 +38,12 @@ import {
 } from '@/db/tableMethods/priceMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
-  selectOpenNonExpiredCheckoutSessions,
-  updateCheckoutSessionsForOpenPurchase,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import {
   selectDefaultPricingModel,
   insertPricingModel,
   safelyInsertPricingModel,
   selectPricingModelById,
 } from '@/db/tableMethods/pricingModelMethods'
-import {
-  selectProducts,
-  insertProduct,
-} from '@/db/tableMethods/productMethods'
+import { insertProduct } from '@/db/tableMethods/productMethods'
 import {
   selectPrices,
   insertPrice,
@@ -339,7 +331,8 @@ export const createCustomerBookkeeping = async (
     transaction,
     organizationId,
     livemode,
-  }: AuthenticatedTransactionParams
+    userId,
+  }: Omit<AuthenticatedTransactionParams, 'userId'> & { userId?: string }
 ): Promise<
   TransactionOutput<{
     customer: Customer.Record
@@ -347,15 +340,21 @@ export const createCustomerBookkeeping = async (
     subscriptionItems?: SubscriptionItem.Record[]
   }>
 > => {
-  // Security: Validate that customer organizationId matches auth context
+  // Security: Validate that customer organizationId matches auth context (only for authenticated users)
   if (
-    payload.customer.organizationId &&
-    payload.customer.organizationId !== organizationId
-  ) {
+    userId && 
+    payload.customer.organizationId && 
+    payload.customer.organizationId !== organizationId) {
     throw new Error(
       'Customer organizationId must match authenticated organizationId'
     )
   }
+  
+  // For anonymous customers, ensure they have a pricing model
+  if (!userId && !payload.customer.pricingModelId) {
+    throw new Error('Anonymous customers must have a pricing model specified')
+  }
+
   const pricingModel = payload.customer.pricingModelId
     ? await selectPricingModelById(
         payload.customer.pricingModelId,
