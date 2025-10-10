@@ -139,7 +139,10 @@ export async function calculateSubscriberBreakdown(
         // Started before previous month ended
         lte(subscriptions.startDate, previousMonthEnd.getTime()),
         // Not canceled before previous month started
-        createDateNotPassedFilter(subscriptions.canceledAt, previousMonthStart.getTime())
+        createDateNotPassedFilter(
+          subscriptions.canceledAt,
+          previousMonthStart.getTime()
+        )
       )
     )
 

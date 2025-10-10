@@ -384,7 +384,10 @@ export const selectCurrentlyActiveSubscriptionItems = async (
           new Date(anchorDate).getTime()
         ),
         // Item must not have expired (expiredAt is null OR expiredAt > anchorDate)
-        createDateNotPassedFilter(subscriptionItems.expiredAt, anchorDate)
+        createDateNotPassedFilter(
+          subscriptionItems.expiredAt,
+          anchorDate
+        )
       )
     )
 
