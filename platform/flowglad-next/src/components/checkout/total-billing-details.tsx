@@ -94,7 +94,7 @@ type TotalBillingDetailsParams =
   | PriceTotalBillingDetailsParams
   | InvoiceTotalBillingDetailsParams
 
-const calculateTotalBillingDetails = (
+export const calculateTotalBillingDetails = (
   params: TotalBillingDetailsParams
 ) => {
   const { purchase, feeCalculation, price, discount, invoice, type } =
@@ -120,7 +120,7 @@ const calculateTotalBillingDetails = (
         })
 
   let subtotalAmount: number = baseAmount
-  let discountAmount: number | null = calculateDiscountAmount(
+  let discountAmount: number = calculateDiscountAmount(
     baseAmount,
     discount
   )
