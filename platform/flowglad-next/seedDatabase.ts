@@ -902,7 +902,7 @@ export const setupPrice = async ({
         intervalCount,
         trialPeriodDays: trialPeriodDays ?? null,
         usageEventsPerUnit: null,
-        startsWithCreditTrial: startsWithCreditTrial ?? false,
+        startsWithCreditTrial: null,
       },
     }
     if (type === PriceType.Usage && !usageMeterId) {

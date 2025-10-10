@@ -26,7 +26,10 @@ import {
   customers,
   customersSelectSchema,
 } from '@/db/schema/customers'
-import { organizations } from '@/db/schema/organizations'
+import {
+  billingAddressSchema,
+  organizations,
+} from '@/db/schema/organizations'
 import { prices } from '@/db/schema/prices'
 import {
   Product,
@@ -136,6 +139,7 @@ const refineColumns = {
   status: core.createSafeZodEnum(PurchaseStatus),
   priceType: core.createSafeZodEnum(PriceType),
   metadata: metadataSchema.nullable().optional(),
+  billingAddress: billingAddressSchema.nullable().optional(),
 }
 
 const nulledInstallmentColumns = {

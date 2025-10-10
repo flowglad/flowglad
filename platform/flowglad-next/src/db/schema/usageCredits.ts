@@ -123,7 +123,7 @@ const columnRefinements = {
     UsageCreditSourceReferenceType
   ),
   issuedAmount: core.safeZodPositiveInteger,
-  metadata: z.record(z.string(), z.string()).nullable(),
+  metadata: z.json().nullable(),
   paymentId: z.string().nullable(),
 }
 

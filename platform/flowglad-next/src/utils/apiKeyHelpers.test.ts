@@ -18,7 +18,6 @@ import { updateMembership } from '@/db/tableMethods/membershipMethods'
 describe('apiKeyHelpers', () => {
   let organization: Organization.Record
   let userId: string
-  let customerId: string
   let membershipId: string
 
   beforeEach(async () => {
@@ -30,7 +29,6 @@ describe('apiKeyHelpers', () => {
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
-    customerId = customer.id
 
     // Create a test membership
     const membership = await setupMemberships({

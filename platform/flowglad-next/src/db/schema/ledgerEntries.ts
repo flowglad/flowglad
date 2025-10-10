@@ -174,7 +174,7 @@ const columnRefinements = {
   status: core.createSafeZodEnum(LedgerEntryStatus),
   direction: core.createSafeZodEnum(LedgerEntryDirection),
   amount: core.safeZodPositiveIntegerOrZero,
-  metadata: z.record(z.string(), z.any()).nullable().optional(),
+  metadata: z.json().optional(),
 }
 
 const nulledSourceColumnRefinements = {

@@ -83,7 +83,6 @@ describe('pricesRouter - Default Price Constraints', () => {
           usageMeterId: null,
           externalId: null,
           slug: null,
-          startsWithCreditTrial: false,
         },
         transaction
       )
@@ -351,7 +350,6 @@ describe('pricesRouter - Default Price Constraints', () => {
             usageMeterId: null,
             externalId: null,
             slug: null,
-            startsWithCreditTrial: false,
           },
           transaction
         )
@@ -453,7 +451,6 @@ describe('pricesRouter - Default Price Constraints', () => {
               usageMeterId: null,
               externalId: null,
               slug: null,
-              startsWithCreditTrial: false,
             },
             transaction
           )
@@ -658,7 +655,6 @@ describe('pricesRouter - Default Price Constraints', () => {
               usageMeterId: null,
               externalId: null,
               slug: null,
-              startsWithCreditTrial: false,
             },
             transaction
           )

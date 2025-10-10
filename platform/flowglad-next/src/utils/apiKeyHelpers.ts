@@ -1,9 +1,6 @@
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { FlowgladApiKeyType } from '@/types'
-import {
-  AuthenticatedTransactionParams,
-  DbTransaction,
-} from '@/db/types'
+import { AuthenticatedTransactionParams } from '@/db/types'
 import {
   createSecretApiKey,
   replaceSecretApiKey,
@@ -17,8 +14,6 @@ import {
   CreateApiKeyInput,
   RotateApiKeyInput,
 } from '@/db/schema/apiKeys'
-import { Organization } from '@/db/schema/organizations'
-import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { deleteApiKeyVerificationResult } from './redis'
 

@@ -154,6 +154,7 @@ const standardColumnRefinements = {
   interval: core.createSafeZodEnum(IntervalUnit),
   intervalCount: core.safeZodPositiveInteger,
   renews: z.literal(true),
+  metadata: metadataSchema.nullable().optional(),
 }
 
 export const nonRenewingStatusSchema = z.enum([

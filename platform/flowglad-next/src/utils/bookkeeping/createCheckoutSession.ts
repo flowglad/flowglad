@@ -52,7 +52,7 @@ const checkoutSessionInsertFromInput = ({
     livemode,
     successUrl: checkoutSessionInput.successUrl,
     cancelUrl: checkoutSessionInput.cancelUrl,
-    outputMetadata: checkoutSessionInput.outputMetadata,
+    outputMetadata: checkoutSessionInput.outputMetadata ?? undefined,
     outputName: checkoutSessionInput.outputName,
     automaticallyUpdateSubscriptions: null,
   } as const

@@ -194,7 +194,6 @@ describe('setupPricingModelTransaction (integration)', () => {
               intervalUnit: IntervalUnit.Month,
               intervalCount: 1,
               unitPrice: 100,
-              startsWithCreditTrial: false,
             },
             {
               type: PriceType.Usage,
@@ -208,7 +207,6 @@ describe('setupPricingModelTransaction (integration)', () => {
               intervalUnit: IntervalUnit.Month,
               intervalCount: 1,
               unitPrice: 5,
-              startsWithCreditTrial: false,
             },
           ],
           features: ['f1', 'f2'],
@@ -364,7 +362,6 @@ describe('setupPricingModelTransaction (integration)', () => {
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 unitPrice: 0, // Zero price
-                startsWithCreditTrial: false,
               },
             ],
             features: [],
@@ -471,7 +468,6 @@ describe('setupPricingModelTransaction (integration)', () => {
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 unitPrice: 100, // Non-zero price - should fail
-                startsWithCreditTrial: false,
               },
             ],
             features: [],
@@ -525,7 +521,6 @@ describe('setupPricingModelTransaction (integration)', () => {
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 unitPrice: 0,
-                startsWithCreditTrial: false,
               },
             ],
             features: [],
@@ -579,7 +574,6 @@ describe('setupPricingModelTransaction (integration)', () => {
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 unitPrice: 0,
-                startsWithCreditTrial: false,
               },
             ],
             features: [],
@@ -684,7 +678,6 @@ describe('setupPricingModelTransaction (integration)', () => {
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 unitPrice: 100,
-                startsWithCreditTrial: false,
                 currency: 'INVALID_CURRENCY' as any, // Invalid currency
               },
             ],

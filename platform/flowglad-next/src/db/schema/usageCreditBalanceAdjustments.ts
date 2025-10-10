@@ -81,7 +81,7 @@ export const usageCreditBalanceAdjustments = pgTable(
 const columnRefinements = {
   amountAdjusted: core.safeZodPositiveInteger,
   notes: z.string().nullable(),
-  metadata: z.record(z.string(), z.any()).nullable(),
+  metadata: z.json().nullable(),
   adjustedByUserId: z.string().nullable(),
 }
 

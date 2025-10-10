@@ -203,10 +203,15 @@ const subscriptionPriceColumns = {
     ),
   usageEventsPerUnit: core.safeZodNullOrUndefined,
   usageMeterId: core.safeZodNullOrUndefined,
+  /**
+   * TODO: remove this field
+   */
   startsWithCreditTrial: z
     .boolean()
     .nullish()
-    .transform((val) => val ?? null)
+    .transform((val) => null)
+    .pipe(z.null())
+    .optional()
     .describe(
       'Whether or not subscriptions created from this price should automatically start with a credit trial. If true, the subscription will be created status "credit_trial".'
     ),

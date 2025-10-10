@@ -1253,7 +1253,6 @@ describe('Customer Role RLS Policies', () => {
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
             usageMeterId: null,
           },
           transaction
@@ -1275,7 +1274,6 @@ describe('Customer Role RLS Policies', () => {
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
             usageMeterId: null,
           },
           transaction
@@ -1336,7 +1334,7 @@ describe('Customer Role RLS Policies', () => {
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
+            startsWithCreditTrial: null,
             usageMeterId: null,
           },
           transaction
@@ -1358,7 +1356,7 @@ describe('Customer Role RLS Policies', () => {
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
+            startsWithCreditTrial: null,
             usageMeterId: null,
           },
           transaction
@@ -1770,7 +1768,7 @@ describe('Customer Role RLS Policies', () => {
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
                 usageEventsPerUnit: null,
-                startsWithCreditTrial: false,
+                startsWithCreditTrial: null,
                 usageMeterId: null,
               },
               transaction
@@ -1871,7 +1869,7 @@ describe('Customer Role RLS Policies', () => {
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
                 usageEventsPerUnit: null,
-                startsWithCreditTrial: false,
+                startsWithCreditTrial: null,
                 usageMeterId: null,
               },
               transaction
