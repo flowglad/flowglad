@@ -5,24 +5,11 @@ NODE_ENV=production pnpm tsx src/scripts/verifyMetadataUpgrades.ts
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
-import { selectCheckoutSessions } from '@/db/tableMethods/checkoutSessionMethods'
-import {
-  checkoutSessions,
-  checkoutSessionsSelectSchema,
-} from '@/db/schema/checkoutSessions'
-import { subscriptionsSelectSchema } from '@/db/schema/subscriptions'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
+import { checkoutSessions } from '@/db/schema/checkoutSessions'
 import { isNotNull } from 'drizzle-orm'
 import { paymentMethods } from '@/db/schema/paymentMethods'
-import { paymentMethodsSelectSchema } from '@/db/schema/paymentMethods'
-import {
-  usageCredits,
-  usageCreditsSelectSchema,
-} from '@/db/schema/usageCredits'
-import {
-  subscriptionItems,
-  subscriptionItemsSelectSchema,
-} from '@/db/schema/subscriptionItems'
+import { usageCredits } from '@/db/schema/usageCredits'
+import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { metadataSchema } from '@/db/tableUtils'
 
 async function verifyMetadataUpgrades(db: PostgresJsDatabase) {
