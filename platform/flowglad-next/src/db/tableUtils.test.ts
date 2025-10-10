@@ -23,7 +23,7 @@ import {
   updateProduct,
 } from './tableMethods/productMethods'
 import { insertPrice, updatePrice } from './tableMethods/priceMethods'
-import { whereClauseFromObject } from './tableUtils'
+import { metadataSchema, whereClauseFromObject } from './tableUtils'
 
 describe('createCursorPaginatedSelectFunction', () => {
   let organizationId: string
@@ -1423,5 +1423,22 @@ describe('whereClauseFromObject', () => {
       expect(result1).toBeDefined()
       expect(result2).toBeDefined()
     })
+  })
+})
+
+describe('metadataSchema', () => {
+  it('should parse a valid metadata object', () => {
+    const result = metadataSchema.safeParse({
+      key: 'value',
+    })
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({
+      key: 'value',
+    })
+  })
+  it('should parse an empty metadata object', () => {
+    const result = metadataSchema.safeParse({})
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({})
   })
 })

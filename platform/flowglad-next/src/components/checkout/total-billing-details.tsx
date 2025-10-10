@@ -192,7 +192,6 @@ export const TotalBillingDetails = React.forwardRef<
   const {
     discountAmount,
     taxAmount,
-    baseAmount,
     subtotalAmount,
     totalDueAmount,
   } = calculateTotalBillingDetails(totalBillingDetailsParams)

@@ -233,6 +233,7 @@ const addPaymentMethodCheckoutSessionRefinement = {
   type: z.literal(CheckoutSessionType.AddPaymentMethod),
   automaticallyUpdateSubscriptions: z
     .boolean()
+    .nullable()
     .optional()
     .describe(
       'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'
@@ -732,6 +733,7 @@ export const addPaymentMethodCheckoutSessionSchema =
       ),
     automaticallyUpdateSubscriptions: z
       .boolean()
+      .nullable()
       .optional()
       .describe(
         'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'
