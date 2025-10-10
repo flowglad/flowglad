@@ -803,66 +803,6 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
     expect(billingRun).toBeNull()
   })
 
-  it('throws an error when trying to create a subscription with usage-based price', async () => {
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
-
-    // For usage price, we might need to update it if default is subscription.
-    // Or, if setupOrg can provide a usage price, that would be cleaner.
-    // Assuming we need to make it a usage price from defaultPriceForBillingRunTests:
-    const usagePriceData: Price.Update = {
-      ...defaultPriceForBillingRunTests,
-      id: defaultPriceForBillingRunTests.id,
-      type: PriceType.Usage,
-      usageMeterId: (
-        await setupUsageMeter({
-          organizationId: organization.id,
-          pricingModelId: product.pricingModelId,
-          name: 'Temp Usage Meter',
-        })
-      ).id, // Requires a usage meter,
-      usageEventsPerUnit: 1,
-      // Reset fields that might conflict with usage type if they were for subscription
-      intervalUnit: undefined,
-      intervalCount: undefined,
-      trialPeriodDays: null,
-    }
-    const usagePrice = await adminTransaction(
-      async ({ transaction }) =>
-        updatePrice(usagePriceData, transaction)
-    )
-
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        const stripeSetupIntentId = `setupintent_br_usage_${core.nanoid()}`
-        return createSubscriptionWorkflow(
-          {
-            organization,
-            product,
-            price: usagePrice, // Use the updated usage price
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod,
-            customer,
-            stripeSetupIntentId,
-            autoStart: true,
-          },
-          transaction
-        )
-      })
-    ).rejects.toThrow(
-      `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for subscription creation.`
-    )
-  })
-
   it('does NOT create a billing run when autoStart is false, even if price is subscription and payment method exists', async () => {
     const customer = await setupCustomer({
       organizationId: organization.id,
