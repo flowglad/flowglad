@@ -46,6 +46,13 @@ export const createSubscriptionWorkflow = async (
     | NonRenewingCreateSubscriptionResult
   >
 > => {
+  // Check if price is usage type and throw error if so
+  if (params.price.type === PriceType.Usage) {
+    throw new Error(
+      `Price id: ${params.price.id} has usage price. Usage prices are not supported for subscription creation.`
+    )
+  }
+
   if (params.stripeSetupIntentId) {
     const existingSubscription = await selectSubscriptionAndItems(
       {
@@ -90,15 +97,7 @@ export const createSubscriptionWorkflow = async (
       transaction
     )
 
-  const includesUsageCreditGrants = subscriptionItemFeatures.some(
-    (item) => item.type === FeatureType.UsageCreditGrant
-  )
-
-  if (
-    price.type === PriceType.Usage ||
-    includesUsageCreditGrants ||
-    price.startsWithCreditTrial
-  ) {
+  if (price.startsWithCreditTrial) {
     await setupLedgerAccounts(
       {
         subscription,
