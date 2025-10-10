@@ -197,7 +197,8 @@ export const TotalBillingDetails = React.forwardRef<
   if (subscriptionDetails?.trialPeriodDays) {
     afterwardsTotalLabel = 'Total After Trial'
     // Calculate the actual price after trial (with discount applied)
-    const priceAfterTrial = subscriptionDetails.pricePerBillingCycle - (discountAmount ?? 0)
+    const priceAfterTrial =
+      subscriptionDetails.pricePerBillingCycle - (discountAmount ?? 0)
     afterwardsTotal = Math.max(0, priceAfterTrial) // Ensure it's not negative
   }
   const hideTotalLabels =

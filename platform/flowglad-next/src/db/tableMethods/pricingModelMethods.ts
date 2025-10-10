@@ -283,10 +283,11 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         { pricingModelId: Array.from(uniquePricingModelsMap.keys()) },
         transaction
       )
-    const productFeaturesAndFeatures = await selectFeaturesByProductFeatureWhere(
-      { productId: productResults.map((product) => product.id) },
-      transaction
-    )
+    const productFeaturesAndFeatures =
+      await selectFeaturesByProductFeatureWhere(
+        { productId: productResults.map((product) => product.id) },
+        transaction
+      )
 
     const productFeaturesAndFeaturesByProductId = new Map<
       string,

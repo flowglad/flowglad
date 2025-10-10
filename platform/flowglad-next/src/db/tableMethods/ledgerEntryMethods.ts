@@ -20,16 +20,7 @@ import {
   LedgerEntryStatus,
   LedgerEntryType,
 } from '@/types'
-import {
-  and,
-  asc,
-  eq,
-  gt,
-  inArray,
-  lt,
-  not,
-  or,
-} from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, lt, not, or } from 'drizzle-orm'
 import { createDateNotPassedFilter } from '../tableUtils'
 import { selectUsageCredits } from './usageCreditMethods'
 import { BillingRun } from '../schema/billingRuns'
@@ -104,7 +95,6 @@ const balanceTypeWhereStatement = (
       )
   }
 }
-
 
 export const balanceFromEntries = (entries: LedgerEntry.Record[]) => {
   return entries.reduce((acc, entry) => {
@@ -188,7 +178,10 @@ export const selectUsageMeterBalancesForSubscriptions = async (
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
         balanceTypeWhereStatement('available'),
-        createDateNotPassedFilter(ledgerEntries.discardedAt, calculationDate)
+        createDateNotPassedFilter(
+          ledgerEntries.discardedAt,
+          calculationDate
+        )
       )
     )
 
@@ -245,7 +238,10 @@ export const aggregateAvailableBalanceForUsageCredit = async (
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
         balanceTypeWhereStatement('available'),
-        createDateNotPassedFilter(ledgerEntries.discardedAt, calculationDate),
+        createDateNotPassedFilter(
+          ledgerEntries.discardedAt,
+          calculationDate
+        ),
         // This entry type is a credit, but it doesn't credit the *usage credit balance*.
         // It credits the usage cost that is being offset by the credit application.
         // Therefore, we must exclude it from the balance calculation for the usage credit itself.
@@ -353,7 +349,10 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
         ),
         balanceTypeWhereStatement('posted'),
         createDateNotPassedFilter(ledgerEntries.discardedAt),
-        createDateNotPassedFilter(ledgerEntries.expiredAt, anchorDate),
+        createDateNotPassedFilter(
+          ledgerEntries.expiredAt,
+          anchorDate
+        ),
         lt(
           ledgerEntries.entryTimestamp,
           new Date(anchorDate).getTime()
