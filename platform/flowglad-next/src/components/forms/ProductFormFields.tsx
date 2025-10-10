@@ -45,7 +45,7 @@ export const ProductFormFields = ({
 
   // Clear featureIds when price type is 'usage'
   useEffect(() => {
-    if (priceType === PriceType.Usage) {
+    if (!editProduct && priceType === PriceType.Usage) {
       form.setValue('featureIds', [])
     }
   }, [priceType, form])
