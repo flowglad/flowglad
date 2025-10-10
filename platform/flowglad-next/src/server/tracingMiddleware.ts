@@ -67,6 +67,8 @@ export function createTracingMiddleware() {
             logger.info(
               `[${requestId}] 🟡 TRPC Request: ${type} ${path}`,
               {
+                service: 'api',
+                apiEnvironment: environment,
                 requestId,
                 type,
                 path,
@@ -93,6 +95,8 @@ export function createTracingMiddleware() {
               logger.info(
                 `[${requestId}] 🟢 TRPC Success: ${type} ${path}`,
                 {
+                  service: 'api',
+                  apiEnvironment: environment,
                   requestId,
                   type,
                   path,
@@ -154,6 +158,8 @@ export function createTracingMiddleware() {
               logger.error(
                 `[${requestId}] 🔴 TRPC Error: ${type} ${path}`,
                 {
+                  service: 'api',
+                  apiEnvironment: environment,
                   error:
                     error instanceof Error
                       ? error

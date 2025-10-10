@@ -163,6 +163,7 @@ const innerHandler = async (
             'request.id': requestId,
           })
           logger.error('REST API Unauthorized: No unkey context', {
+            service: 'api',
             request_id: requestId,
             method: req.method,
             url: req.url,
@@ -201,6 +202,8 @@ const innerHandler = async (
         })
 
         logger.info(`[${requestId}] REST API Request Started`, {
+          service: 'api',
+          apiEnvironment: req.unkey?.environment as ApiEnvironment,
           request_id: requestId,
           method: req.method,
           path,
@@ -242,6 +245,8 @@ const innerHandler = async (
           })
 
           logger.warn(`[${requestId}] REST API Route Not Found`, {
+            service: 'api',
+            apiEnvironment: req.unkey?.environment as ApiEnvironment,
             request_id: requestId,
             method: req.method,
             path,
@@ -263,6 +268,8 @@ const innerHandler = async (
         })
 
         logger.info(`[${requestId}] Route matched`, {
+          service: 'api',
+          apiEnvironment: req.unkey?.environment as ApiEnvironment,
           request_id: requestId,
           route_pattern: routeKey,
           procedure: route.procedure,
@@ -306,6 +313,8 @@ const innerHandler = async (
             logger.error(
               `[${requestId}] Invalid JSON in request body`,
               {
+                service: 'api',
+                apiEnvironment: req.unkey?.environment as ApiEnvironment,
                 request_id: requestId,
                 error: error as Error,
                 parsing_duration_ms: inputParsingDuration,
@@ -433,6 +442,8 @@ const innerHandler = async (
           })
 
           logger.error(`[${requestId}] REST API Error`, {
+            service: 'api',
+            apiEnvironment: req.unkey?.environment as ApiEnvironment,
             request_id: requestId,
             method: req.method,
             path,
@@ -492,6 +503,8 @@ const innerHandler = async (
         })
 
         logger.info(`[${requestId}] REST API Success`, {
+          service: 'api',
+          apiEnvironment: req.unkey?.environment as ApiEnvironment,
           request_id: requestId,
           method: req.method,
           path,
@@ -523,6 +536,8 @@ const innerHandler = async (
         })
 
         logger.error(`[${requestId}] REST API Unexpected Error`, {
+          service: 'api',
+          apiEnvironment: req.unkey?.environment as ApiEnvironment,
           request_id: requestId,
           error: error as Error,
           method: req.method,
@@ -584,6 +599,7 @@ const withVerification = (
             logger.warn(
               'REST API Auth Failed: Missing authorization header',
               {
+                service: 'api',
                 method: req.method,
                 url: req.url,
               }
@@ -611,6 +627,7 @@ const withVerification = (
             logger.warn(
               'REST API Auth Failed: Invalid authorization format',
               {
+                service: 'api',
                 method: req.method,
                 url: req.url,
               }
@@ -646,6 +663,7 @@ const withVerification = (
             })
 
             logger.error('REST API Auth Error: Unkey error', {
+              service: 'api',
               error,
               method: req.method,
               url: req.url,
@@ -678,6 +696,7 @@ const withVerification = (
             })
 
             logger.warn('REST API Auth Failed: Verification failed', {
+              service: 'api',
               method: req.method,
               url: req.url,
               key_prefix: keyPrefix,
@@ -744,6 +763,7 @@ const withVerification = (
             }
 
             logger.warn('REST API Auth Failed: Invalid key', {
+              service: 'api',
               method: req.method,
               url: req.url,
               key_prefix: keyPrefix,
@@ -784,6 +804,8 @@ const withVerification = (
           }
 
           logger.info('REST API Auth Success', {
+            service: 'api',
+            apiEnvironment: result.environment as ApiEnvironment,
             method: req.method,
             url: req.url,
             key_prefix: keyPrefix,
