@@ -272,17 +272,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         // Query initial state
         const { billingPeriods, nonRenewingSubscription } =
           await adminTransaction(async ({ transaction }) => {
-            const usageMeter = await setupUsageMeter({
-              organizationId: organization.id,
-              pricingModelId: pricingModel.id,
-              name: 'Usage Meter',
-            })
+            // Create a subscription price but set renews to false to simulate non-renewing behavior
             const updatedPrice = await safelyUpdatePrice(
               {
                 id: price.id,
-                type: PriceType.Usage,
-                usageMeterId: usageMeter.id,
-                usageEventsPerUnit: 1,
+                type: PriceType.Subscription,
+                // Remove usage-specific fields
+                usageMeterId: null,
+                usageEventsPerUnit: null,
               },
               transaction
             )
@@ -323,19 +320,16 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should not schedule billing runs for non-renewing subscriptions', async () => {
-        const usageMeter = await setupUsageMeter({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Usage Meter',
-        })
         // Check that no billing runs were created
         await adminTransaction(async ({ transaction }) => {
+          // Create a subscription price but set renews to false to simulate non-renewing behavior
           const updatedPrice = await safelyUpdatePrice(
             {
               id: price.id,
-              type: PriceType.Usage,
-              usageMeterId: usageMeter.id,
-              usageEventsPerUnit: 1,
+              type: PriceType.Subscription,
+              // Remove usage-specific fields
+              usageMeterId: null,
+              usageEventsPerUnit: null,
             },
             transaction
           )

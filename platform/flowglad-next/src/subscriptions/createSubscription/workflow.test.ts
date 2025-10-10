@@ -303,7 +303,7 @@ describe('createSubscriptionWorkflow', async () => {
     // This nested describe can use `organization`, `product` from the outer scope's beforeEach.
     // It will set up its own customer and paymentMethod per test for clarity, or have its own beforeEach.
 
-    it('sets runBillingAtPeriodStart to false for usage price', async () => {
+    it('throws an error when trying to create a subscription with usage price', async () => {
       const usageCustomer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -329,29 +329,30 @@ describe('createSubscriptionWorkflow', async () => {
         usageMeterId: usageMeter.id,
       })
 
-      const {
-        result: { subscription: usageSubscription },
-      } = await adminTransaction(async ({ transaction }) => {
-        const stripeSetupIntentIdUsage = `setupintent_usage_price_${core.nanoid()}`
-        return createSubscriptionWorkflow(
-          {
-            organization,
-            product,
-            price: usagePrice, // Use the modified price
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: usagePaymentMethod,
-            customer: usageCustomer,
-            stripeSetupIntentId: stripeSetupIntentIdUsage,
-            autoStart: true,
-          },
-          transaction
-        )
-      })
-      expect(usageSubscription.runBillingAtPeriodStart).toBe(false)
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          const stripeSetupIntentIdUsage = `setupintent_usage_price_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price: usagePrice, // Use the modified price
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: usagePaymentMethod,
+              customer: usageCustomer,
+              stripeSetupIntentId: stripeSetupIntentIdUsage,
+              autoStart: true,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for subscription creation.`
+      )
     })
 
     it('sets runBillingAtPeriodStart to true for subscription price', async () => {
@@ -793,65 +794,6 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
           intervalCount: 1,
           defaultPaymentMethod: undefined,
           customer: customerWithoutPM,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
-    expect(billingRun).toBeNull()
-  })
-
-  it('does NOT create a billing run when price is usage-based, even if a default payment method exists', async () => {
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
-
-    // For usage price, we might need to update it if default is subscription.
-    // Or, if setupOrg can provide a usage price, that would be cleaner.
-    // Assuming we need to make it a usage price from defaultPriceForBillingRunTests:
-    const usagePriceData: Price.Update = {
-      ...defaultPriceForBillingRunTests,
-      id: defaultPriceForBillingRunTests.id,
-      type: PriceType.Usage,
-      usageMeterId: (
-        await setupUsageMeter({
-          organizationId: organization.id,
-          pricingModelId: product.pricingModelId,
-          name: 'Temp Usage Meter',
-        })
-      ).id, // Requires a usage meter,
-      usageEventsPerUnit: 1,
-      // Reset fields that might conflict with usage type if they were for subscription
-      intervalUnit: undefined,
-      intervalCount: undefined,
-      trialPeriodDays: null,
-    }
-    const usagePrice = await adminTransaction(
-      async ({ transaction }) =>
-        updatePrice(usagePriceData, transaction)
-    )
-
-    const {
-      result: { billingRun },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_br_usage_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: usagePrice, // Use the updated usage price
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
           stripeSetupIntentId,
           autoStart: true,
         },
@@ -1349,67 +1291,53 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
     })
   })
 
-  it('creates ledger accounts when the price is a usage price', async () => {
+  it('throws an error when trying to create a subscription with usage price for ledger account creation', async () => {
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       pricingModelId: defaultProduct.pricingModelId,
       name: 'Test Usage Meter for Ledger Account',
     })
 
-    const {
-      result: { subscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const usagePriceUpdatePayload: Price.Update = {
-        ...defaultSubscriptionPrice,
-        id: defaultSubscriptionPrice.id,
-        type: PriceType.Usage,
-        usageMeterId: usageMeter.id,
-        name: `${defaultSubscriptionPrice.name} (Usage)`,
-        trialPeriodDays: null,
-        intervalUnit: undefined,
-        intervalCount: undefined,
-        usageEventsPerUnit: 1,
-      }
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        const usagePriceUpdatePayload: Price.Update = {
+          ...defaultSubscriptionPrice,
+          id: defaultSubscriptionPrice.id,
+          type: PriceType.Usage,
+          usageMeterId: usageMeter.id,
+          name: `${defaultSubscriptionPrice.name} (Usage)`,
+          trialPeriodDays: null,
+          intervalUnit: undefined,
+          intervalCount: undefined,
+          usageEventsPerUnit: 1,
+        }
 
-      const usagePrice = await updatePrice(
-        usagePriceUpdatePayload,
-        transaction
-      )
-      const stripeSetupIntentId = `setupintent_ledger_usage_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product: defaultProduct,
-          price: usagePrice,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
-
-    const ledgerAccounts = await adminTransaction(
-      async ({ transaction }) => {
-        return selectLedgerAccounts(
-          { subscriptionId: subscription.id },
+        const usagePrice = await updatePrice(
+          usagePriceUpdatePayload,
           transaction
         )
-      }
+        const stripeSetupIntentId = `setupintent_ledger_usage_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product: defaultProduct,
+            price: usagePrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      })
+    ).rejects.toThrow(
+      `Price id: ${defaultSubscriptionPrice.id} has usage price. Usage prices are not supported for subscription creation.`
     )
-
-    expect(ledgerAccounts.length).toBeGreaterThan(0)
-    const accountForMeter = ledgerAccounts.find(
-      (acc) => acc.usageMeterId === usageMeter.id
-    )
-    expect(accountForMeter).toBeDefined()
-    expect(accountForMeter?.subscriptionId).toBe(subscription.id)
   })
 
   it('does NOT create ledger accounts when the price is not a usage price (e.g., subscription type)', async () => {
