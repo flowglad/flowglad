@@ -1,3 +1,12 @@
+import { render } from '@testing-library/react'
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+} from 'vitest'
 import { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
 import { CurrencyCode } from '@/types'
 import { dummyProduct } from '@/stubs/productStubs'
@@ -7,6 +16,8 @@ import { dummyOrganization } from '@/stubs/organizationStubs'
 import { CheckoutFlowType, IntervalUnit, PriceType } from '@/types'
 import core from '@/utils/core'
 import { stubbedCheckoutSession } from '@/stubs/checkoutContextStubs'
+import CheckoutPageProvider from '@/contexts/checkoutPageContext'
+import { TotalBillingDetails } from './total-billing-details'
 
 const mockCheckoutPageContext = (): CheckoutPageContextValues => {
   return {
@@ -44,3 +55,26 @@ const mockCheckoutPageContext = (): CheckoutPageContextValues => {
     clientSecret: '123',
   }
 }
+
+describe('TotalBillingDetails', () => {
+  beforeEach(() => {
+    vi.mock(
+      import('@/contexts/checkoutPageContext'),
+      async (importOriginal) => {
+        const actual = await importOriginal()
+        return {
+          ...actual,
+          useCheckoutPageContext: () => mockCheckoutPageContext(),
+          // your mocked methods
+        }
+      }
+    )
+  })
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+  it('should render', () => {
+    const { getByText } = render(<TotalBillingDetails />)
+    expect(getByText('Subtotal')).toBeInTheDocument()
+  })
+})

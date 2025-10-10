@@ -227,3 +227,17 @@ const CheckoutPageProvider = ({
 }
 
 export default CheckoutPageProvider
+
+export const TestCheckoutPageProvider = ({
+  children,
+  values,
+}: {
+  children: React.ReactNode
+  values: CheckoutPageContextValues
+}) => {
+  return (
+    <CheckoutPageProvider values={values}>
+      {children}
+    </CheckoutPageProvider>
+  )
+}
