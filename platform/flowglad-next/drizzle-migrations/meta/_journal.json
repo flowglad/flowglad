@@ -1709,6 +1709,13 @@
       "when": 1759943373361,
       "tag": "0244_daily_wildside",
       "breakpoints": true
+    },
+    {
+      "idx": 245,
+      "version": "7",
+      "when": 1760123342826,
+      "tag": "0245_nifty_stark_industries",
+      "breakpoints": true
     }
   ]
 }
