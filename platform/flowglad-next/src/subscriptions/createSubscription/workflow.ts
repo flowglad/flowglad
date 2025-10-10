@@ -15,7 +15,7 @@ import {
 import { insertSubscriptionAndItems } from './initializers'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
-import { PriceType, FeatureType, SubscriptionStatus } from '@/types'
+import { PriceType, SubscriptionStatus } from '@/types'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
 import { Event } from '@/db/schema/events'
 import {

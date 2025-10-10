@@ -6,15 +6,11 @@ import {
   setupPaymentMethod,
   setupSubscription,
   setupBillingPeriod,
-  setupBillingPeriodItem,
-  setupBillingRun,
   setupSubscriptionItem,
   setupUsageMeter,
-  setupLedgerAccount,
   setupUsageCreditGrantFeature,
   setupProductFeature,
-  setupSubscriptionItemFeature,
-  setupUsageCredit,
+  setupPrice,
 } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
@@ -22,13 +18,6 @@ import { Price } from '@/db/schema/prices'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import { UsageCredit } from '@/db/schema/usageCredits'
 import {
   SubscriptionStatus,
   BillingPeriodStatus,
@@ -269,20 +258,18 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should not create future billing periods for non-renewing subscriptions', async () => {
+        const singlePaymentPrice = await setupPrice({
+          productId: product.id,
+          type: PriceType.SinglePayment,
+          name: 'Single Payment Price',
+          unitPrice: 100,
+          livemode: true,
+          isDefault: false,
+        })
         // Query initial state
         const { billingPeriods, nonRenewingSubscription } =
           await adminTransaction(async ({ transaction }) => {
             // Create a subscription price but set renews to false to simulate non-renewing behavior
-            const updatedPrice = await safelyUpdatePrice(
-              {
-                id: price.id,
-                type: PriceType.Subscription,
-                // Remove usage-specific fields
-                usageMeterId: null,
-                usageEventsPerUnit: null,
-              },
-              transaction
-            )
             const {
               result: { subscription: nonRenewingSubscription },
             } = await createSubscriptionWorkflow(
@@ -290,7 +277,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 organization,
                 customer,
                 product,
-                price: updatedPrice,
+                price: singlePaymentPrice,
                 quantity: 1,
                 livemode: true,
                 startDate: new Date(),
@@ -695,17 +682,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Create credit trial price
-        const creditTrialPrice = await adminTransaction(
-          async ({ transaction }) => {
-            return updatePrice(
-              {
-                id: price.id,
-                type: PriceType.Subscription,
-              },
-              transaction
-            )
-          }
-        )
+        const creditTrialPrice = await setupPrice({
+          productId: product.id,
+          type: PriceType.SinglePayment,
+          name: 'Credit Trial Price',
+          unitPrice: 100,
+          livemode: true,
+          isDefault: false,
+        })
 
         // Create subscription with credit trial
         const result = await comprehensiveAdminTransaction(
@@ -722,6 +706,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 intervalCount: 1,
                 customer,
                 stripeSetupIntentId: `si_credits_${core.nanoid()}`,
+                autoStart: true,
               },
               transaction
             )
@@ -934,17 +919,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
     describe('Non-Renewing Subscriptions', () => {
       it('should never create billing runs for credit trial subscriptions', async () => {
         // Create credit trial price
-        const creditTrialPrice = await adminTransaction(
-          async ({ transaction }) => {
-            return updatePrice(
-              {
-                id: price.id,
-                type: PriceType.Subscription,
-              },
-              transaction
-            )
-          }
-        )
+        const creditTrialPrice = await setupPrice({
+          productId: product.id,
+          type: PriceType.SinglePayment,
+          name: 'Credit Trial Price',
+          unitPrice: 100,
+          livemode: true,
+          isDefault: false,
+        })
 
         // Create credit trial subscription WITH payment method
         const result = await comprehensiveAdminTransaction(
