@@ -172,6 +172,11 @@ export const createCheckoutSessionTransaction = async (
         'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
       )
     }
+    if (price.type === PriceType.Usage) {
+      throw new Error(
+        `Price id: ${price.id} has usage price. Usage prices are not supported for checkout sessions.`
+      )
+    }
   } else {
     organization = await selectOrganizationById(
       organizationId,
@@ -193,7 +198,6 @@ export const createCheckoutSessionTransaction = async (
   let stripePaymentIntentId: string | null = null
   if (
     price?.type === PriceType.Subscription ||
-    price?.type === PriceType.Usage ||
     checkoutSession.type === CheckoutSessionType.AddPaymentMethod ||
     checkoutSession.type === CheckoutSessionType.ActivateSubscription
   ) {

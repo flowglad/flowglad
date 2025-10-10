@@ -177,7 +177,7 @@ describe('createCheckoutSessionTransaction', () => {
     )
   })
 
-  it('should create a checkout session for a Usage-based product', async () => {
+  it('should throw an error when trying to create a checkout session for a Usage-based product', async () => {
     const checkoutSessionInput: CreateCheckoutSessionObject = {
       customerExternalId: customer.externalId,
       type: CheckoutSessionType.Product,
@@ -186,8 +186,8 @@ describe('createCheckoutSessionTransaction', () => {
       priceId: usagePrice.id,
     }
 
-    const { checkoutSession } = await adminTransaction(
-      async ({ transaction }) =>
+    await expect(
+      adminTransaction(async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
@@ -196,9 +196,10 @@ describe('createCheckoutSessionTransaction', () => {
           },
           transaction
         )
+      )
+    ).rejects.toThrow(
+      `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for checkout sessions.`
     )
-
-    expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
   })
 
   it('should create a checkout session for AddPaymentMethod', async () => {
