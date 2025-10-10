@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import core from './core'
 
 const cookieName = 'customer-billing-organization-id'
+
 export const clearCustomerBillingPortalOrganizationId = async () => {
   const cookieStore = await cookies()
   await cookieStore.delete(cookieName)
