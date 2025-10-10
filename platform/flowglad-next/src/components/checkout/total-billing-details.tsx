@@ -168,13 +168,6 @@ export const TotalBillingDetails = React.forwardRef<
     return null
   }
 
-  let afterwardsTotal: number | null = null
-  let afterwardsTotalLabel = ''
-  if (subscriptionDetails?.trialPeriodDays) {
-    afterwardsTotalLabel = 'Total After Trial'
-    afterwardsTotal = subscriptionDetails.pricePerBillingCycle
-  }
-
   const isInvoiceFlow = flowType === CheckoutFlowType.Invoice
   const totalBillingDetailsParams: TotalBillingDetailsParams =
     isInvoiceFlow
@@ -198,6 +191,16 @@ export const TotalBillingDetails = React.forwardRef<
 
   const { discountAmount, taxAmount, baseAmount, totalDueAmount } =
     calculateTotalBillingDetails(totalBillingDetailsParams)
+
+  let afterwardsTotal: number | null = null
+  let afterwardsTotalLabel = ''
+  if (subscriptionDetails?.trialPeriodDays) {
+    afterwardsTotalLabel = 'Total After Trial'
+    // Calculate the actual price after trial (with discount applied)
+    const priceAfterTrial =
+      subscriptionDetails.pricePerBillingCycle - (discountAmount ?? 0)
+    afterwardsTotal = Math.max(0, priceAfterTrial) // Ensure it's not negative
+  }
   const hideTotalLabels =
     flowType === CheckoutFlowType.Subscription &&
     checkoutPageContext.price.type === PriceType.Usage
@@ -239,7 +242,7 @@ export const TotalBillingDetails = React.forwardRef<
         />
       )}
 
-      {afterwardsTotal != null && afterwardsTotal > 0 && (
+      {afterwardsTotal != null && (
         <BillingLine
           label={afterwardsTotalLabel}
           amount={afterwardsTotal}
