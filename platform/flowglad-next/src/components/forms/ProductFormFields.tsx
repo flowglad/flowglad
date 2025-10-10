@@ -143,19 +143,6 @@ export const ProductFormFields = ({
                 />
               </div>
             )}
-            <div className="w-full">
-              {priceType !== PriceType.Usage && (
-                <ProductFeatureMultiSelect
-                  pricingModelId={product.pricingModelId}
-                  productId={
-                    editProduct
-                      ? (product as unknown as Product.ClientUpdate)
-                          .id
-                      : undefined
-                  }
-                />
-              )}
-            </div>
             {editProduct && (
               <FormField
                 control={form.control}
@@ -192,7 +179,19 @@ export const ProductFormFields = ({
           <div className="w-full mt-6">
             <PriceFormFields edit={editProduct} />
           </div>
-          <div className="w-full mt-6">
+          {priceType !== PriceType.Usage && (
+            <div className="w-full mt-6">
+              <ProductFeatureMultiSelect
+                pricingModelId={product.pricingModelId}
+                productId={
+                  editProduct
+                    ? (product as unknown as Product.ClientUpdate).id
+                    : undefined
+                }
+              />
+            </div>
+          )}
+          <div className="w-full mt-12">
             <FileInput
               directory="products"
               onUploadComplete={({ publicURL }) => {
