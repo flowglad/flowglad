@@ -17,7 +17,7 @@ export const users = pgTable(
     ...R.omit(['livemode'], tableBase('user')),
     id: text('id').primaryKey().unique().notNull(),
     name: text('name'),
-    email: text('email'),
+    email: text('email').notNull(),
     clerkId: text('clerk_id').unique(),
     betterAuthId: text('better_auth_id').unique(),
     stackAuthId: text('stack_auth_id').unique(),
