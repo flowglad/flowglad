@@ -63,6 +63,9 @@ export const SideNavigation = () => {
     onSuccess: async () => {
       await invalidateTRPC()
       await focusedMembership.refetch()
+      if (pathname.startsWith('/customers/')) {
+        router.push('/customers')
+      }
       router.refresh()
     },
   })
