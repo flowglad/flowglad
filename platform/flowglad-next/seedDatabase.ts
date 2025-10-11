@@ -850,7 +850,6 @@ export const setupPrice = async ({
   externalId,
   active = true,
   usageMeterId,
-  startsWithCreditTrial,
   slug,
 }: {
   productId: string
@@ -866,7 +865,6 @@ export const setupPrice = async ({
   externalId?: string
   trialPeriodDays?: number
   active?: boolean
-  startsWithCreditTrial?: boolean
   slug?: string
 }): Promise<Price.Record> => {
   return adminTransaction(async ({ transaction }) => {

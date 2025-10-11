@@ -159,7 +159,6 @@ describe('insertSubscriptionAndItems', () => {
         isDefault: false,
         currency: CurrencyCode.USD,
         usageMeterId: usageMeter.id,
-        startsWithCreditTrial: true,
       })
       // - Construct params for insertSubscriptionAndItems.
       const params = {
@@ -337,7 +336,6 @@ describe('insertSubscriptionAndItems', () => {
         intervalCount: 1,
         isDefault: false,
         currency: CurrencyCode.USD,
-        startsWithCreditTrial: false,
       })
       const params = {
         organization,
@@ -369,7 +367,7 @@ describe('insertSubscriptionAndItems', () => {
         name: 'Standard Usage Meter',
         pricingModelId: pricingModel.id,
       })
-      // - Create a price with type PriceType.Usage but ensure startsWithCreditTrial is false.
+      // - Create a price with type PriceType.Usage
       const usagePrice = await setupPrice({
         productId: product.id,
         type: PriceType.Usage,
@@ -381,7 +379,6 @@ describe('insertSubscriptionAndItems', () => {
         isDefault: false,
         currency: CurrencyCode.USD,
         usageMeterId: usageMeter.id,
-        startsWithCreditTrial: false,
       })
       // - Construct params for a standard subscription creation.
       const params = {
@@ -473,7 +470,6 @@ describe('insertSubscriptionAndItems', () => {
         livemode: true,
         isDefault: false,
         currency: CurrencyCode.USD,
-        startsWithCreditTrial: true,
       })
       // - Construct params for insertSubscriptionAndItems.
       const params = {
