@@ -62,12 +62,12 @@ export function createTracingMiddleware() {
                 'deployment.environment': environment,
               })
             }
-
+            const service = apiKey ? 'api' : 'webapp'
             // Log request start
             logger.info(
               `[${requestId}] 🟡 TRPC Request: ${type} ${path}`,
               {
-                apiKey,
+                service,
                 apiEnvironment: environment,
                 requestId,
                 type,
@@ -95,7 +95,7 @@ export function createTracingMiddleware() {
               logger.info(
                 `[${requestId}] 🟢 TRPC Success: ${type} ${path}`,
                 {
-                  apiKey,
+                  service,
                   apiEnvironment: environment,
                   requestId,
                   type,
@@ -158,7 +158,7 @@ export function createTracingMiddleware() {
               logger.error(
                 `[${requestId}] 🔴 TRPC Error: ${type} ${path}`,
                 {
-                  apiKey,
+                  service,
                   apiEnvironment: environment,
                   error:
                     error instanceof Error
