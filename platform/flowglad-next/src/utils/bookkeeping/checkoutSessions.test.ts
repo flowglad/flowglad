@@ -3,7 +3,6 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   DiscountAmountType,
-  FeeCalculationType,
   FlowgladEventType,
   InvoiceStatus,
   PaymentMethodType,
@@ -19,9 +18,7 @@ import {
   processStripeChargeForCheckoutSession,
 } from '@/utils/bookkeeping/checkoutSessions'
 import { Purchase } from '@/db/schema/purchases'
-import { Event } from '@/db/schema/events'
 import {
-  setupBillingPeriod,
   setupCustomer,
   setupDiscount,
   setupFeeCalculation,
@@ -50,29 +47,19 @@ import {
 import { Discount } from '@/db/schema/discounts'
 import {
   selectLatestFeeCalculation,
-  selectFeeCalculations,
-  updateFeeCalculation,
 } from '@/db/tableMethods/feeCalculationMethods'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
-import { updatePaymentIntent } from '../stripe'
 import { DbTransaction } from '@/db/types'
 import { eq } from 'drizzle-orm'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { createInitialInvoiceForPurchase } from '../bookkeeping'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
+import { selectEvents } from '@/db/tableMethods/eventMethods'
 import {
   BillingAddress,
   Organization,
   organizations,
 } from '@/db/schema/organizations'
-
-// vi.mock('@/utils/stripe', () => ({
-//   createStripeCustomer: vi.fn(),
-//   getSetupIntent: vi.fn(),
-//   updatePaymentIntent: vi.fn(),
-//   updateSetupIntent: vi.fn(),
-// }))
 
 type TestCharge = Pick<
   Stripe.Charge,
@@ -666,7 +653,7 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      const { result: bookkeepingResult, eventsToInsert } = await comprehensiveAdminTransaction(
+      const { result: bookkeepingResult, eventsToInsert, ledgerCommand } = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           const result = await processPurchaseBookkeepingForCheckoutSession(
             {
@@ -688,15 +675,16 @@ describe('Checkout Sessions', async () => {
       expect(bookkeepingResult.customer.email).toEqual('anonymous@example.com')
       expect(bookkeepingResult.customer.name).toEqual('Anonymous Customer')
       
-      // Verify customer creation events were created
-      expect(eventsToInsert).toBeDefined()
-      expect(eventsToInsert).toBeTruthy()
-      expect(eventsToInsert!.length).toBeGreaterThan(0)
+      const dbEvents = await adminTransaction(async ({ transaction }) => {
+        return selectEventsByCustomer(
+          bookkeepingResult.customer.id,
+          organization.id,
+          transaction
+        )
+      })
       
-      // Find the CustomerCreated event
-      const customerCreatedEvent = eventsToInsert!.find(
-        (event: Event.Insert) => event.type === FlowgladEventType.CustomerCreated
-      )
+      // Verify specific event types were created in database
+      const customerCreatedEvent = dbEvents.find(e => e.type === FlowgladEventType.CustomerCreated)
       expect(customerCreatedEvent).toBeDefined()
       expect(customerCreatedEvent?.payload.object).toEqual('customer')
       expect(customerCreatedEvent?.payload.customer).toBeDefined()
@@ -706,6 +694,12 @@ describe('Checkout Sessions', async () => {
         expect(customerCreatedEvent.payload.customer.id).toEqual(bookkeepingResult.customer.id)
         expect(customerCreatedEvent.payload.customer.externalId).toEqual(bookkeepingResult.customer.externalId)
       }
+      
+      // Check for subscription-related events
+      const subscriptionCreatedEvent = dbEvents.find(e => e.type === FlowgladEventType.SubscriptionCreated)
+      expect(subscriptionCreatedEvent).toBeDefined()
+      expect(subscriptionCreatedEvent?.payload.object).toEqual('subscription')
+      expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(bookkeepingResult.customer.id)
     })
 
     it('should use existing customer when linked to purchase', async () => {
@@ -1286,6 +1280,20 @@ async function deleteFeeCalculation(
   await transaction
     .delete(feeCalculations)
     .where(eq(feeCalculations.id, id))
+}
+
+// Helper function to query events by customer
+async function selectEventsByCustomer(
+  customerId: string,
+  organizationId: string,
+  transaction: DbTransaction
+) {
+  const allEvents = await selectEvents({ organizationId }, transaction)
+  
+  // Filter events for this specific customer by checking the payload
+  return allEvents.filter(event => 
+    event.payload.customer?.id === customerId
+  )
 }
 
 // Helper function to update an organization

@@ -232,6 +232,8 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
   let purchase: Purchase.Record | null = null
   let customerEvents: Event.Insert[] = []
   let customerLedgerCommand: any = null
+
+  // Step 1: Try to find existing customer by checkout session customer ID (logged-in user)
   if (checkoutSession.purchaseId) {
     purchase = await selectPurchaseById(
       checkoutSession.purchaseId,
@@ -248,13 +250,10 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       transaction
     )
   }
+
+  // Step 2: Validate that provided Stripe customer ID matches existing customer
   if (
     customer &&
-    /**
-     * This is important:
-     * there is no providedStripeCustomerId if the checkout session is for a single guest payment.
-     * In that case, we don't want to throw an error.
-     */
     providedStripeCustomerId &&
     providedStripeCustomerId !== customer.stripeCustomerId
   ) {
@@ -262,7 +261,9 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       `Attempting to process checkout session ${checkoutSession.id} with a different stripe customer ${providedStripeCustomerId} than the checkout session customer ${customer.stripeCustomerId} already linked to the purchase`
     )
   }
-  if (providedStripeCustomerId) {
+
+  // Step 3: If we have a providedStripeCustomerId, try to find existing customer by Stripe ID
+  if (!customer && providedStripeCustomerId) {
     const [customerWithStripeCustomerId] = await selectCustomers(
       {
         stripeCustomerId: providedStripeCustomerId,
@@ -271,6 +272,8 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     )
     customer = customerWithStripeCustomerId
   }
+
+  // Step 4: If still no customer, create one
   if (!customer) {
     /**
      * Create a new customer if one doesn't exist.
@@ -288,6 +291,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
           organizationId: product.organizationId,
           externalId: core.nanoid(),
           billingAddress: checkoutSession.billingAddress,
+          stripeCustomerId: providedStripeCustomerId,
         },
       },
       {
@@ -298,16 +302,6 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     )
     customer = customerResult.result.customer
     
-    // If we have a provided Stripe customer ID, update the customer with it
-    if (providedStripeCustomerId && customer.stripeCustomerId !== providedStripeCustomerId) {
-      customer = await updateCustomer(
-        {
-          id: customer.id,
-          stripeCustomerId: providedStripeCustomerId,
-        },
-        transaction
-      )
-    }
     
     // Store events/ledger from customer creation to bubble up
     customerEvents = customerResult.eventsToInsert || []

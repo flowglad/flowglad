@@ -160,6 +160,7 @@ const processCheckoutSession = async ({
         invoice: result.result.invoice,
       },
       eventsToInsert: result.eventsToInsert,
+      ledgerCommand: result.ledgerCommand,
     }
   })
 
