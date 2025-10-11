@@ -18,6 +18,7 @@ import {
   enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
   hiddenColumnsForClientSchema,
+  metadataSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
@@ -80,9 +81,9 @@ export const usageCreditBalanceAdjustments = pgTable(
 
 const columnRefinements = {
   amountAdjusted: core.safeZodPositiveInteger,
-  notes: z.string().nullable(),
-  metadata: z.json().nullable(),
-  adjustedByUserId: z.string().nullable(),
+  notes: z.string().nullable().optional(),
+  metadata: metadataSchema.nullable().optional(),
+  adjustedByUserId: z.string().nullable().optional(),
 }
 
 export const {

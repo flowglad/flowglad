@@ -12,9 +12,51 @@ import { paymentMethods } from '@/db/schema/paymentMethods'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { metadataSchema } from '@/db/tableUtils'
+import { purchases } from '@/db/schema/purchases'
+import { billingAddressSchema } from '@/db/schema/organizations'
+import { z } from 'zod'
 
 async function verifyMetadataUpgrades(db: PostgresJsDatabase) {
   await db.transaction(async (tx) => {
+    const purchasesMetadata = await db
+      .select({
+        id: purchases.id,
+        metadata: purchases.metadata,
+        billingAddress: purchases.billingAddress,
+      })
+      .from(purchases)
+    let purchasesErrors = 0
+    purchasesMetadata.forEach((purchase) => {
+      const result = metadataSchema
+        .nullable()
+        .optional()
+        .safeParse(purchase.metadata)
+      if (!result.success) {
+        purchasesErrors++
+        console.log(
+          `Error parsing purchase metadata ${purchase.id}: ${z.treeifyError(result.error).errors.join(', ')}`
+        )
+        if (purchase.billingAddress) {
+          const result = billingAddressSchema
+            .nullable()
+            .optional()
+            .safeParse(purchase.billingAddress)
+          if (!result.success) {
+            purchasesErrors++
+            console.log(
+              `Error parsing purchase billing address ${purchase.id}: ${result.error.issues.join(', ')}`
+            )
+          }
+        }
+      }
+    })
+
+    if (purchasesMetadata.length > 0 && purchasesErrors === 0) {
+      console.log(
+        '✅✅✅ All purchases metadata parsed successfully.'
+      )
+    }
+
     // ---- Checkout Sessions ----
     const checkoutSessionMetadata = await db
       .select({
@@ -41,7 +83,7 @@ async function verifyMetadataUpgrades(db: PostgresJsDatabase) {
       checkoutSessionErrors === 0
     ) {
       console.log(
-        'All checkout session metadata parsed successfully.'
+        '✅✅✅ All checkout session metadata parsed successfully.'
       )
     }
 
@@ -68,7 +110,9 @@ async function verifyMetadataUpgrades(db: PostgresJsDatabase) {
       paymentMethodMetadata.length > 0 &&
       paymentMethodErrors === 0
     ) {
-      console.log('All payment method metadata parsed successfully.')
+      console.log(
+        '✅✅✅ All payment method metadata parsed successfully.'
+      )
     }
 
     // ---- Usage Credits ----
@@ -91,7 +135,9 @@ async function verifyMetadataUpgrades(db: PostgresJsDatabase) {
       }
     })
     if (usageCreditMetadata.length > 0 && usageCreditErrors === 0) {
-      console.log('All usage credit metadata parsed successfully.')
+      console.log(
+        '✅✅✅ All usage credit metadata parsed successfully.'
+      )
     }
 
     // ---- Subscription Items ----
@@ -120,7 +166,7 @@ async function verifyMetadataUpgrades(db: PostgresJsDatabase) {
       subscriptionItemErrors === 0
     ) {
       console.log(
-        'All subscription item metadata parsed successfully.'
+        '✅✅✅ All subscription item metadata parsed successfully.'
       )
     }
   })
