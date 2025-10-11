@@ -8,6 +8,7 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
+import { setCheckoutSessionCookie } from '@/server/mutations/setCheckoutSessionCookie'
 import {
   selectCheckoutSessionById,
   selectCheckoutSessions,
@@ -38,6 +39,9 @@ import { billingAddressSchema } from '@/db/schema/organizations'
 import { adminTransaction } from '@/db/adminTransaction'
 import { getIntentStatus } from '@/utils/bookkeeping/intentStatus'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
+import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
+import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
+import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'checkoutSession',
@@ -263,5 +267,9 @@ export const checkoutSessionsRouter = router({
     setBillingAddress: setBillingAddressProcedure,
     setAutomaticallyUpdateSubscriptions:
       setAutomaticallyUpdateSubscriptionsProcedure,
+    attemptDiscountCode,
+    clearDiscountCode,
+    confirm: confirmCheckoutSession,
+    setSession: setCheckoutSessionCookie,
   },
 })

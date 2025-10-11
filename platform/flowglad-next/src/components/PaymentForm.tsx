@@ -157,10 +157,8 @@ const PaymentForm = () => {
     redirectUrl,
     currency,
     checkoutSession,
-    product,
     flowType,
     subscriptionDetails,
-    customer,
     editCheckoutSessionCustomerEmail,
     editCheckoutSessionPaymentMethodType,
     editCheckoutSessionBillingAddress,
@@ -168,7 +166,6 @@ const PaymentForm = () => {
     checkoutBlocked,
     feeCalculation,
     readonlyCustomerEmail,
-    sellerOrganization,
   } = checkoutPageContext
   const [emailEmbedReady, setEmailEmbedReady] = useState(true)
   const [paymentEmbedReady, setPaymentEmbedReady] = useState(false)
@@ -189,7 +186,7 @@ const PaymentForm = () => {
   >(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const confirmCheckoutSession =
-    trpc.purchases.confirmSession.useMutation()
+    trpc.checkoutSessions.public.confirm.useMutation()
 
   const totalDueAmount: number | null = feeCalculation
     ? calculateTotalDueAmount(feeCalculation)

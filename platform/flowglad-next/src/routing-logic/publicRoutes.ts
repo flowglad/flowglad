@@ -27,11 +27,8 @@ const publicRoutes = [
    * otherwise anon users will hit 307 redirects.
    */
   '/api/trpc/customerBillingPortal.requestMagicLink',
-  '/api/trpc/purchases.(.*)Session',
   '/api/trpc/checkoutSessions.public.(.*)',
   '/api/trpc/purchases.requestAccess',
-  '/api/trpc/discounts.attempt',
-  '/api/trpc/discounts.clear',
   '/api/trpc/utils.logout',
   '/apple-touch-icon(.*).png',
   '/api/v1/(.*)',
