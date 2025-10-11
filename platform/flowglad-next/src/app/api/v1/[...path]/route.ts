@@ -163,7 +163,7 @@ const innerHandler = async (
             'request.id': requestId,
           })
           logger.error('REST API Unauthorized: No unkey context', {
-            apiKey: undefined,
+            service: 'api',
             request_id: requestId,
             method: req.method,
             url: req.url,
@@ -202,7 +202,7 @@ const innerHandler = async (
         })
 
         logger.info(`[${requestId}] REST API Request Started`, {
-          apiKey: req.unkey?.keyId,
+          service: 'api',
           apiEnvironment: req.unkey?.environment as ApiEnvironment,
           request_id: requestId,
           method: req.method,
@@ -245,7 +245,7 @@ const innerHandler = async (
           })
 
           logger.warn(`[${requestId}] REST API Route Not Found`, {
-            apiKey: req.unkey?.keyId,
+            service: 'api',
             apiEnvironment: req.unkey?.environment as ApiEnvironment,
             request_id: requestId,
             method: req.method,
@@ -268,7 +268,7 @@ const innerHandler = async (
         })
 
         logger.info(`[${requestId}] Route matched`, {
-          apiKey: req.unkey?.keyId,
+          service: 'api',
           apiEnvironment: req.unkey?.environment as ApiEnvironment,
           request_id: requestId,
           route_pattern: routeKey,
@@ -313,8 +313,9 @@ const innerHandler = async (
             logger.error(
               `[${requestId}] Invalid JSON in request body`,
               {
-                apiKey: req.unkey?.keyId,
-                apiEnvironment: req.unkey?.environment as ApiEnvironment,
+                service: 'api',
+                apiEnvironment: req.unkey
+                  ?.environment as ApiEnvironment,
                 request_id: requestId,
                 error: error as Error,
                 parsing_duration_ms: inputParsingDuration,
@@ -442,7 +443,7 @@ const innerHandler = async (
           })
 
           logger.error(`[${requestId}] REST API Error`, {
-            apiKey: req.unkey?.keyId,
+            service: 'api',
             apiEnvironment: req.unkey?.environment as ApiEnvironment,
             request_id: requestId,
             method: req.method,
@@ -503,7 +504,7 @@ const innerHandler = async (
         })
 
         logger.info(`[${requestId}] REST API Success`, {
-          apiKey: req.unkey?.keyId,
+          service: 'api',
           apiEnvironment: req.unkey?.environment as ApiEnvironment,
           request_id: requestId,
           method: req.method,
@@ -536,7 +537,7 @@ const innerHandler = async (
         })
 
         logger.error(`[${requestId}] REST API Unexpected Error`, {
-          apiKey: req.unkey?.keyId,
+          service: 'api',
           apiEnvironment: req.unkey?.environment as ApiEnvironment,
           request_id: requestId,
           error: error as Error,
@@ -599,7 +600,7 @@ const withVerification = (
             logger.warn(
               'REST API Auth Failed: Missing authorization header',
               {
-                apiKey: undefined,
+                service: 'api',
                 method: req.method,
                 url: req.url,
               }
@@ -627,7 +628,7 @@ const withVerification = (
             logger.warn(
               'REST API Auth Failed: Invalid authorization format',
               {
-                apiKey: undefined,
+                service: 'api',
                 method: req.method,
                 url: req.url,
               }
@@ -663,7 +664,7 @@ const withVerification = (
             })
 
             logger.error('REST API Auth Error: Unkey error', {
-              apiKey: undefined,
+              service: 'api',
               error,
               method: req.method,
               url: req.url,
@@ -696,7 +697,7 @@ const withVerification = (
             })
 
             logger.warn('REST API Auth Failed: Verification failed', {
-              apiKey: keyPrefix,
+              service: 'api',
               method: req.method,
               url: req.url,
               key_prefix: keyPrefix,
@@ -763,7 +764,7 @@ const withVerification = (
             }
 
             logger.warn('REST API Auth Failed: Invalid key', {
-              apiKey: keyPrefix,
+              service: 'api',
               method: req.method,
               url: req.url,
               key_prefix: keyPrefix,
@@ -804,7 +805,7 @@ const withVerification = (
           }
 
           logger.info('REST API Auth Success', {
-            apiKey: result.keyId,
+            service: 'api',
             apiEnvironment: result.environment as ApiEnvironment,
             method: req.method,
             url: req.url,
