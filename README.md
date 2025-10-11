@@ -398,3 +398,15 @@ We're building a payments layer that lets you:
 - Unlock more payment providers from a single integration
 
 Achieving this mission will take time. It will be hard. It might even make some people unhappy. But with AI bringing more and more developers on line and exploding the complexity of startup billing, the need is more urgent than ever.
+
+
+
+## ⭐ Star History
+
+<a href="https://www.star-history.com/#flowglad/flowglad&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=flowglad/flowglad&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=flowglad/flowglad&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=flowglad/flowglad&type=Date" />
+ </picture>
+</a>
