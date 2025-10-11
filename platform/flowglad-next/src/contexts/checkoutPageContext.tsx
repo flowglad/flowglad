@@ -159,10 +159,6 @@ export const useCheckoutPageContext =
     const currency = currencyFromCheckoutInfoCore(checkoutInfo)
     const subscriptionDetails =
       subscriptionDetailsFromCheckoutInfoCore(checkoutInfo)
-    console.log(
-      '==== checkoutSession ====',
-      checkoutInfo.checkoutSession
-    )
     return {
       ...checkoutInfo,
       subscriptionDetails,
