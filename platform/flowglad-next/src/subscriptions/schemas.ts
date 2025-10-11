@@ -3,7 +3,6 @@ import {
   subscriptionItemsSelectSchema,
   subscriptionItemClientSelectSchema,
   subscriptionItemClientInsertSchema,
-  usageSubscriptionItemClientSelectSchema,
   staticSubscriptionItemClientSelectSchema,
 } from '@/db/schema/subscriptionItems'
 import {
@@ -58,14 +57,9 @@ export type AdjustSubscriptionParams = z.infer<
 >
 
 export const richSubscriptionItemClientSelectSchema =
-  z.discriminatedUnion('type', [
-    usageSubscriptionItemClientSelectSchema.extend({
-      price: pricesClientSelectSchema,
-    }),
-    staticSubscriptionItemClientSelectSchema.extend({
-      price: pricesClientSelectSchema,
-    }),
-  ])
+  staticSubscriptionItemClientSelectSchema.extend({
+    price: pricesClientSelectSchema,
+  })
 
 const richSubscriptionExperimentalSchema = z
   .object({

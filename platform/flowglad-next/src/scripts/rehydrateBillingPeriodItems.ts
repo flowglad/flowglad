@@ -12,7 +12,8 @@ import {
   bulkInsertBillingPeriodItems,
   selectBillingPeriodItems,
 } from '@/db/tableMethods/billingPeriodItemMethods'
-import { SubscriptionItemType } from '@/types'
+import { PriceType, SubscriptionItemType } from '@/types'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
 async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
   // eslint-disable-next-line no-console
@@ -55,43 +56,49 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
       )
     }
     const billingPeriodItemInserts: BillingPeriodItem.Insert[] = []
-    result?.subscriptionItems.forEach((item) => {
-      if (item.expiredAt && item.expiredAt > billingPeriod.endDate) {
-        return
-      }
-      if (item.createdAt > billingPeriod.startDate) {
-        return
-      }
-      if (item.type === SubscriptionItemType.Usage) {
-        const insert: BillingPeriodItem.UsageInsert = {
-          billingPeriodId: billingPeriod.id,
-          name: item.name ?? '',
-          description: item.name ?? '',
-          livemode: item.livemode,
-          unitPrice: item.unitPrice,
-          quantity: item.quantity,
-          type: item.type,
-          usageMeterId: item.usageMeterId,
-          usageEventsPerUnit: item.usageEventsPerUnit,
-          discountRedemptionId: null,
+    if (result?.subscriptionItems) {
+      for (const item of result.subscriptionItems) {
+        if (
+          item.expiredAt &&
+          item.expiredAt > billingPeriod.endDate
+        ) {
+          continue
         }
-        billingPeriodItemInserts.push(insert)
-      } else {
-        const insert: BillingPeriodItem.StaticInsert = {
-          billingPeriodId: billingPeriod.id,
-          name: item.name ?? '',
-          description: item.name ?? '',
-          livemode: item.livemode,
-          type: item.type,
-          unitPrice: item.unitPrice,
-          quantity: item.quantity,
-          usageMeterId: item.usageMeterId,
-          usageEventsPerUnit: item.usageEventsPerUnit,
-          discountRedemptionId: null,
+        if (item.createdAt > billingPeriod.startDate) {
+          continue
         }
-        billingPeriodItemInserts.push(insert)
+        const price = await selectPriceById(item.priceId, transaction)
+        if (price.type === PriceType.Usage) {
+          const insert: BillingPeriodItem.UsageInsert = {
+            billingPeriodId: billingPeriod.id,
+            name: item.name ?? '',
+            description: item.name ?? '',
+            livemode: item.livemode,
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            type: SubscriptionItemType.Usage,
+            usageMeterId: price.usageMeterId,
+            usageEventsPerUnit: price.usageEventsPerUnit,
+            discountRedemptionId: null,
+          }
+          billingPeriodItemInserts.push(insert)
+        } else {
+          const insert: BillingPeriodItem.StaticInsert = {
+            billingPeriodId: billingPeriod.id,
+            name: item.name ?? '',
+            description: item.name ?? '',
+            livemode: item.livemode,
+            type: item.type,
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            usageMeterId: item.usageMeterId,
+            usageEventsPerUnit: item.usageEventsPerUnit,
+            discountRedemptionId: null,
+          }
+          billingPeriodItemInserts.push(insert)
+        }
       }
-    })
+    }
     await bulkInsertBillingPeriodItems(
       billingPeriodItemInserts,
       transaction

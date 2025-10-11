@@ -1070,62 +1070,36 @@ export const setupSubscriptionItem = async ({
     if (!subscription) {
       throw new Error('Subscription not found')
     }
-    if (type === SubscriptionItemType.Usage) {
-      if (!usageMeterId) {
-        throw new Error('Usage meter ID is required for usage items')
-      }
-      if (usageEventsPerUnit === undefined) {
-        throw new Error(
-          'Usage events per unit is required for usage items'
-        )
-      }
-      if (priceId) {
-        throw new Error('Price ID is not allowed for usage items')
-      }
-      const insert: SubscriptionItem.UsageInsert = {
-        subscriptionId: subscription.id,
-        name,
-        quantity,
-        unitPrice,
-        livemode: subscription.livemode,
-        priceId: priceId ?? subscription.priceId!,
-        addedDate: addedDate ?? Date.now(),
-        expiredAt: null,
-        metadata: metadata ?? {},
-        externalId: null,
-        type,
-        usageMeterId,
-        usageEventsPerUnit,
-      }
-      return insertSubscriptionItem(insert, transaction)
-    } else {
-      if (usageMeterId) {
-        throw new Error(
-          'Usage meter ID is not allowed for static items'
-        )
-      }
-      if (usageEventsPerUnit) {
-        throw new Error(
-          'Usage events per unit is not allowed for static items'
-        )
-      }
-      const insert: SubscriptionItem.StaticInsert = {
-        subscriptionId: subscription.id,
-        name,
-        quantity,
-        unitPrice,
-        livemode: subscription.livemode,
-        priceId: priceId ?? subscription.priceId!,
-        addedDate: addedDate ?? Date.now(),
-        expiredAt: null,
-        metadata: metadata ?? {},
-        externalId: null,
-        type,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
-      }
-      return insertSubscriptionItem(insert, transaction)
+    if (type !== SubscriptionItemType.Static) {
+      throw new Error('Subscription item type must be static')
     }
+
+    if (usageMeterId) {
+      throw new Error(
+        'Usage meter ID is not allowed for static items'
+      )
+    }
+    if (usageEventsPerUnit) {
+      throw new Error(
+        'Usage events per unit is not allowed for static items'
+      )
+    }
+    const insert: SubscriptionItem.StaticInsert = {
+      subscriptionId: subscription.id,
+      name,
+      quantity,
+      unitPrice,
+      livemode: subscription.livemode,
+      priceId: priceId ?? subscription.priceId!,
+      addedDate: addedDate ?? Date.now(),
+      expiredAt: null,
+      metadata: metadata ?? {},
+      externalId: null,
+      type: SubscriptionItemType.Static,
+      usageMeterId: null,
+      usageEventsPerUnit: null,
+    }
+    return insertSubscriptionItem(insert, transaction)
   })
 }
 
@@ -2482,9 +2456,9 @@ export const setupUsageLedgerScenario = async (params: {
     name: 'Test Subscription Item',
     quantity: 1,
     unitPrice: price.unitPrice,
-    type: SubscriptionItemType.Usage,
-    usageMeterId: usageMeter.id,
-    usageEventsPerUnit: 1,
+    // type: SubscriptionItemType.Usage,
+    // usageMeterId: usageMeter.id,
+    // usageEventsPerUnit: 1,
     ...(params.subscriptionItemArgs ?? {}),
   })
   const billingPeriod = await setupBillingPeriod({
