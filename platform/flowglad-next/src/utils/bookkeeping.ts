@@ -303,7 +303,6 @@ export const createFreePlanPriceInsert = (
       usageMeterId: null,
       externalId: null,
       slug: config.slug,
-      startsWithCreditTrial: false,
     }
   } else {
     // Return single payment price when no interval unit is provided

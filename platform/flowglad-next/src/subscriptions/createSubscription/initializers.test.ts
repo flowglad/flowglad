@@ -159,7 +159,6 @@ describe('insertSubscriptionAndItems', () => {
         isDefault: false,
         currency: CurrencyCode.USD,
         usageMeterId: usageMeter.id,
-        startsWithCreditTrial: true,
       })
       // - Construct params for insertSubscriptionAndItems.
       const params = {
@@ -172,6 +171,7 @@ describe('insertSubscriptionAndItems', () => {
         startDate: new Date(),
         interval: IntervalUnit.Month,
         intervalCount: 1,
+        autoStart: true,
       }
       // expects:
       // - The call to insertSubscriptionAndItems should succeed.
@@ -336,7 +336,6 @@ describe('insertSubscriptionAndItems', () => {
         intervalCount: 1,
         isDefault: false,
         currency: CurrencyCode.USD,
-        startsWithCreditTrial: false,
       })
       const params = {
         organization,
@@ -368,7 +367,7 @@ describe('insertSubscriptionAndItems', () => {
         name: 'Standard Usage Meter',
         pricingModelId: pricingModel.id,
       })
-      // - Create a price with type PriceType.Usage but ensure startsWithCreditTrial is false.
+      // - Create a price with type PriceType.Usage
       const usagePrice = await setupPrice({
         productId: product.id,
         type: PriceType.Usage,
@@ -380,7 +379,6 @@ describe('insertSubscriptionAndItems', () => {
         isDefault: false,
         currency: CurrencyCode.USD,
         usageMeterId: usageMeter.id,
-        startsWithCreditTrial: false,
       })
       // - Construct params for a standard subscription creation.
       const params = {
@@ -461,26 +459,17 @@ describe('insertSubscriptionAndItems', () => {
   })
 
   describe('createNonRenewingSubscriptionAndItems (indirectly tested)', () => {
-    it('should correctly create a credit trial subscription and items', async () => {
+    it('should correctly create a non-renewing subscription and items', async () => {
       // setup:
-      // - Create a usage meter.
-      const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: 'Credit Trial Usage Meter 2',
-        pricingModelId: pricingModel.id,
-      })
-      // - Create a price with type PriceType.Usage and startsWithCreditTrial = true.
+      // - Create a price with type PriceType.SinglePayment
       const creditTrialPrice = await setupPrice({
         productId: product.id,
-        type: PriceType.Subscription,
+        type: PriceType.SinglePayment,
         name: 'Credit Trial Price 2',
         unitPrice: 0,
         livemode: true,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
         isDefault: false,
         currency: CurrencyCode.USD,
-        startsWithCreditTrial: true,
       })
       // - Construct params for insertSubscriptionAndItems.
       const params = {
@@ -493,6 +482,7 @@ describe('insertSubscriptionAndItems', () => {
         startDate: new Date(),
         interval: IntervalUnit.Month,
         intervalCount: 1,
+        autoStart: true,
       }
 
       // expects:

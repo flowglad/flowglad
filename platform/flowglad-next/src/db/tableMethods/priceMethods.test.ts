@@ -291,7 +291,6 @@ describe('priceMethods.ts', () => {
         externalId: null,
         active: true,
         usageEventsPerUnit: null,
-        startsWithCreditTrial: false,
         usageMeterId: null,
         slug: `another-default-price+${core.nanoid()}`,
       }
@@ -352,7 +351,6 @@ describe('priceMethods.ts', () => {
           externalId: null,
           active: true,
           usageEventsPerUnit: null,
-          startsWithCreditTrial: false,
           usageMeterId: null,
           slug: `non-default-price+${core.nanoid()}`,
         }

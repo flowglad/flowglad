@@ -119,7 +119,6 @@ describe('Pay as You Go Workflow E2E', () => {
       livemode: true,
       isDefault: true,
       usageMeterId: usageMeter.id,
-      startsWithCreditTrial: true,
     })
     const usagePrice = await setupPrice({
       productId: paidProduct.id,

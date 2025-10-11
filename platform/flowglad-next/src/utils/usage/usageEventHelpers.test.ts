@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import * as core from 'nanoid'
 
 // Schema imports
@@ -7,10 +7,7 @@ import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Price } from '@/db/schema/prices'
 import { Subscription } from '@/db/schema/subscriptions'
-import {
-  UsageEvent,
-  CreateUsageEventInput,
-} from '@/db/schema/usageEvents'
+import { CreateUsageEventInput } from '@/db/schema/usageEvents'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
@@ -45,19 +42,17 @@ import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 
 describe('usageEventHelpers', () => {
-  let organization: Organization.Record
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let usagePrice: Price.Record
   let mainSubscription: Subscription.Record
   let mainBillingPeriod: BillingPeriod.Record
   let ledgerAccount: LedgerAccount.Record
-
+  let organization: Organization.Record
   beforeEach(async () => {
     await adminTransaction(async ({ transaction }) => {
       const orgSetup = await setupOrg()
       organization = orgSetup.organization
-
       customer = await setupCustomer({
         organizationId: organization.id,
       })

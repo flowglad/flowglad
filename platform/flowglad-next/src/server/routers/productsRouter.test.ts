@@ -88,7 +88,6 @@ describe('productsRouter - Default Product Constraints', () => {
           usageMeterId: null,
           externalId: null,
           slug: null,
-          startsWithCreditTrial: false,
         },
         transaction
       )
@@ -188,7 +187,6 @@ describe('productsRouter - Default Product Constraints', () => {
               usageMeterId: null,
               externalId: null,
               slug: null,
-              startsWithCreditTrial: false,
             },
             transaction
           )

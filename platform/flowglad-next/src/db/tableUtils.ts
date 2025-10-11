@@ -1229,7 +1229,18 @@ export const createPaginatedListQuerySchema = <T extends z.ZodType>(
   }>
 }
 
-export const metadataSchema = z.record(z.string(), z.any())
+const metadataValueSchema = z.union([
+  z.string().max(500),
+  z.number(),
+  z.boolean(),
+])
+
+export const metadataSchema = z
+  .record(z.string(), metadataValueSchema)
+  .meta({
+    description: 'JSON object',
+    id: 'Metadata',
+  })
 
 export const createPaginatedTableRowOutputSchema = <
   T extends z.ZodType,

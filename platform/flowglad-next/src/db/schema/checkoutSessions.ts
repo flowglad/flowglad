@@ -20,6 +20,7 @@ import {
   merchantPolicy,
   customerPolicy,
   timestampWithTimezoneColumn,
+  metadataSchema,
 } from '@/db/tableUtils'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { billingAddressSchema } from '@/db/schema/organizations'
@@ -141,11 +142,6 @@ export const checkoutSessions = pgTable(
   }
 ).enableRLS()
 
-export const checkoutSessionOutputMetadataSchema = z
-  .record(z.string(), z.any())
-  .nullable()
-  .optional()
-
 const insertRefine = {
   expires: zodEpochMs
     .default(() => Date.now() + 1000 * 60 * 60 * 24)
@@ -163,7 +159,7 @@ const commonRefinement = {
     .createSafeZodEnum(PaymentMethodType)
     .nullable()
     .optional(),
-  outputMetadata: checkoutSessionOutputMetadataSchema.optional(),
+  outputMetadata: metadataSchema.nullable().optional(),
 }
 
 const purchaseCheckoutSessionRefinement = {
@@ -178,13 +174,12 @@ const purchaseCheckoutSessionRefinement = {
 
 const invoiceCheckoutSessionRefinement = {
   invoiceId: z.string(),
-  priceId: z.null().optional(),
-  purchaseId: z.null().optional(),
-  automaticallyUpdateSubscriptions:
-    core.safeZodNullOrUndefined.optional(),
-  targetSubscriptionId: z.null().optional(),
+  priceId: core.safeZodNullOrUndefined,
+  purchaseId: core.safeZodNullOrUndefined,
+  automaticallyUpdateSubscriptions: core.safeZodNullOrUndefined,
+  targetSubscriptionId: core.safeZodNullOrUndefined,
   type: z.literal(CheckoutSessionType.Invoice),
-  outputMetadata: z.null().optional(),
+  outputMetadata: core.safeZodNullOrUndefined,
   preserveBillingCycleAnchor: z.literal(false).optional(),
 }
 
@@ -238,6 +233,7 @@ const addPaymentMethodCheckoutSessionRefinement = {
   type: z.literal(CheckoutSessionType.AddPaymentMethod),
   automaticallyUpdateSubscriptions: z
     .boolean()
+    .nullable()
     .optional()
     .describe(
       'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'
@@ -618,9 +614,7 @@ export namespace CheckoutSession {
   export type PaginatedList = z.infer<
     typeof checkoutSessionsPaginatedListSchema
   >
-  export type OutputMetadata = z.infer<
-    typeof checkoutSessionOutputMetadataSchema
-  >
+  export type OutputMetadata = z.infer<typeof metadataSchema>
 
   export type Where = SelectConditions<typeof checkoutSessions>
 
@@ -689,12 +683,7 @@ const coreCheckoutSessionSchema = z.object({
     .describe(
       'The URL to redirect to after the purchase is canceled or fails'
     ),
-  outputMetadata: z
-    .record(z.string(), z.any())
-    .optional()
-    .describe(
-      'Metadata that will get added to the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
-    ),
+  outputMetadata: metadataSchema.nullable().optional(),
   outputName: z
     .string()
     .optional()
@@ -744,6 +733,7 @@ export const addPaymentMethodCheckoutSessionSchema =
       ),
     automaticallyUpdateSubscriptions: z
       .boolean()
+      .nullable()
       .optional()
       .describe(
         'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'

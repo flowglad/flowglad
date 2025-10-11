@@ -1784,7 +1784,7 @@ describe('createFreePlanPriceInsert', () => {
       expect(result.usageMeterId).toBeNull()
       expect(result.externalId).toBeNull()
       expect(result.slug).toBe('free')
-      expect(result.startsWithCreditTrial).toBe(false)
+      expect(result.startsWithCreditTrial).toBeUndefined()
     })
   })
 
@@ -1974,14 +1974,14 @@ describe('createFreePlanPriceInsert', () => {
   })
 
   describe('subscription vs single payment differences', () => {
-    it('should set startsWithCreditTrial to false for subscription prices', () => {
+    it('should set startsWithCreditTrial to undefined for subscription prices', () => {
       const result = createFreePlanPriceInsert(
         defaultProduct,
         defaultCurrency,
         IntervalUnit.Month
       )
 
-      expect(result.startsWithCreditTrial).toBe(false)
+      expect(result.startsWithCreditTrial).toBeUndefined()
     })
 
     it('should set startsWithCreditTrial to null for single payment prices', () => {

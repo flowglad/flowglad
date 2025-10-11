@@ -388,7 +388,6 @@ describe('Checkout Sessions', async () => {
                 priceId: price.id,
                 targetSubscriptionId: null,
                 automaticallyUpdateSubscriptions: null,
-                outputMetadata: null,
                 preserveBillingCycleAnchor: false,
                 type: CheckoutSessionType.Product,
               },
