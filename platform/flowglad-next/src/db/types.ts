@@ -28,6 +28,29 @@ export type PgStringColumn = PgColumn<
   {}
 >
 
+// For timestampWithTimezoneColumn() columns only - stores ms as numbers, timezone-aware
+export type PgTimestampColumn = PgColumn<
+  {
+    name: string
+    tableName: string
+    dataType: 'custom'
+    columnType: 'PgCustomColumn'
+    data: number
+    driverParam: string | Date
+    notNull: boolean
+    hasDefault: boolean
+    isPrimaryKey: boolean
+    isAutoincrement: boolean
+    hasRuntimeDefault: boolean
+    enumValues: undefined
+    baseColumn: never
+    identity: undefined
+    generated: undefined
+  },
+  {},
+  {}
+>
+
 export type PgTableWithId = PgTable & {
   id: SQLWrapper
 }

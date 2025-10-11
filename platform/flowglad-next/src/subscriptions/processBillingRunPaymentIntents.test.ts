@@ -87,14 +87,14 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
 
   it('skips processing for out-of-order event', async () => {
     const stripePaymentIntentId =
-      `pi_outoforder_${new Date().getTime()}` + core.nanoid()
+      `pi_outoforder_${Date.now()}` + core.nanoid()
     const stripeChargeId =
-      `ch_outoforder_${new Date().getTime()}` + core.nanoid()
+      `ch_outoforder_${Date.now()}` + core.nanoid()
     // Seed a billing run whose lastPaymentIntentEventTimestamp is in the future
     const newBillingRun = await setupBillingRun({
       stripePaymentIntentId,
       // Set the last event timestamp to a time later than the event's created time.
-      lastPaymentIntentEventTimestamp: new Date(200000),
+      lastPaymentIntentEventTimestamp: new Date(200000).getTime(),
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       subscriptionId: subscription.id,
@@ -148,12 +148,12 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
 
   it('processes a PaymentIntentSucceeded event correctly', async () => {
     const stripePaymentIntentId =
-      `pi_succeeded_${new Date().getTime()}` + core.nanoid()
+      `pi_succeeded_${Date.now()}` + core.nanoid()
     const stripeChargeId =
-      `ch_${new Date().getTime()}__succeeded` + core.nanoid()
+      `ch_${Date.now()}__succeeded` + core.nanoid()
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
-      lastPaymentIntentEventTimestamp: new Date(0),
+      lastPaymentIntentEventTimestamp: 0,
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       subscriptionId: subscription.id,
@@ -212,9 +212,9 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
       )
-      expect(
-        updatedBillingRun.lastPaymentIntentEventTimestamp?.getTime()
-      ).toBe(event.created * 1000)
+      expect(updatedBillingRun.lastPaymentIntentEventTimestamp).toBe(
+        event.created * 1000
+      )
       expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
 
       expect(result?.billingRun.id).toBe(billingRun.id)
@@ -237,12 +237,12 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
 
   it('processes the same PaymentIntentSucceededEvent twice and issues command only once', async () => {
     const stripePaymentIntentId =
-      `pi_succeeded_idem_${new Date().getTime()}` + core.nanoid()
+      `pi_succeeded_idem_${Date.now()}` + core.nanoid()
     const stripeChargeId =
-      `ch_idem_${new Date().getTime()}__succeeded` + core.nanoid()
+      `ch_idem_${Date.now()}__succeeded` + core.nanoid()
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
-      lastPaymentIntentEventTimestamp: new Date(0),
+      lastPaymentIntentEventTimestamp: 0,
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       subscriptionId: subscription.id,
@@ -304,12 +304,11 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
 
   it('processes a PaymentIntentPaymentFailed event correctly', async () => {
     const stripePaymentIntentId =
-      `pi_${new Date().getTime()}___canceled` + core.nanoid()
-    const stripeChargeId =
-      `ch_${new Date().getTime()}___failed` + core.nanoid()
+      `pi_${Date.now()}___canceled` + core.nanoid()
+    const stripeChargeId = `ch_${Date.now()}___failed` + core.nanoid()
     const failedBillingRun = await setupBillingRun({
       stripePaymentIntentId,
-      lastPaymentIntentEventTimestamp: new Date(),
+      lastPaymentIntentEventTimestamp: Date.now(),
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       subscriptionId: subscription.id,
@@ -334,7 +333,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
     await adminTransaction(async ({ transaction }) => {
       const event: Stripe.PaymentIntentPaymentFailedEvent = {
-        created: new Date().getTime() / 1000,
+        created: Date.now() / 1000,
         data: {
           object: {
             id: stripePaymentIntentId,
@@ -372,10 +371,10 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   })
 
   it('processes a PaymentIntentCanceled event correctly', async () => {
-    const stripePaymentIntentId = `pi_${new Date().getTime()}__canceled`
+    const stripePaymentIntentId = `pi_${Date.now()}__canceled`
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
-      lastPaymentIntentEventTimestamp: new Date(0),
+      lastPaymentIntentEventTimestamp: 0,
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       subscriptionId: subscription.id,
@@ -464,10 +463,10 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   })
 
   it('processes a PaymentIntentProcessing event correctly', async () => {
-    const stripePaymentIntentId = `pi_${new Date().getTime()}___processing`
+    const stripePaymentIntentId = `pi_${Date.now()}___processing`
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
-      lastPaymentIntentEventTimestamp: new Date(0),
+      lastPaymentIntentEventTimestamp: 0,
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       subscriptionId: subscription.id,
@@ -538,11 +537,11 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   })
 
   it('processes a PaymentIntentRequiresAction event correctly', async () => {
-    const stripePaymentIntentId = `pi_${new Date().getTime()}___requires_action`
-    const stripeChargeId = `ch_${new Date().getTime()}___processing`
+    const stripePaymentIntentId = `pi_${Date.now()}___requires_action`
+    const stripeChargeId = `ch_${Date.now()}___processing`
     const billingRun = await setupBillingRun({
       stripePaymentIntentId,
-      lastPaymentIntentEventTimestamp: new Date(0),
+      lastPaymentIntentEventTimestamp: 0,
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       livemode: true,
@@ -623,10 +622,10 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   })
 
   it('throws an error if no invoice is found for the billing period', async () => {
-    const paymentIntentId = `pi_${new Date().getTime()}_no_invoice`
+    const paymentIntentId = `pi_${Date.now()}_no_invoice`
     const billingRun = await setupBillingRun({
       stripePaymentIntentId: paymentIntentId,
-      lastPaymentIntentEventTimestamp: new Date(0),
+      lastPaymentIntentEventTimestamp: 0,
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       subscriptionId: subscription.id,
@@ -662,7 +661,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   it('throws an error if no latest charge is found in the event', async () => {
     const billingRun = await setupBillingRun({
       stripePaymentIntentId: 'pi_no_charge',
-      lastPaymentIntentEventTimestamp: new Date(0),
+      lastPaymentIntentEventTimestamp: 0,
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       subscriptionId: subscription.id,
@@ -706,7 +705,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   // in pre-determined states.
 
   // it('throws an error if no payment record is found for the latest charge', async () =>
-  //   const paymentIntentId = `pi_no_payment_${new Date().getTime()}`
+  //   const paymentIntentId = `pi_no_payment_${Date.now()}`
   //   const billingRun = await setupBillingRun({
   //     stripePaymentIntentId: paymentIntentId,
   //     lastPaymentIntentEventTimestamp: new Date(0),

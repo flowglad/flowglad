@@ -23,7 +23,7 @@ import {
   updateProduct,
 } from './tableMethods/productMethods'
 import { insertPrice, updatePrice } from './tableMethods/priceMethods'
-import { whereClauseFromObject } from './tableUtils'
+import { metadataSchema, whereClauseFromObject } from './tableUtils'
 
 describe('createCursorPaginatedSelectFunction', () => {
   let organizationId: string
@@ -132,10 +132,8 @@ describe('createCursorPaginatedSelectFunction', () => {
     // Verify records are ordered by creation date descending (newest first)
     for (let i = 0; i < result.items.length - 1; i++) {
       expect(
-        result.items[i].customer.createdAt.getTime()
-      ).toBeGreaterThanOrEqual(
-        result.items[i + 1].customer.createdAt.getTime()
-      )
+        result.items[i].customer.createdAt
+      ).toBeGreaterThanOrEqual(result.items[i + 1].customer.createdAt)
     }
   })
 
@@ -688,18 +686,18 @@ describe('createCursorPaginatedSelectFunction', () => {
     // Verify first page is ordered by creation date descending (newest first)
     for (let i = 0; i < firstPage.items.length - 1; i++) {
       expect(
-        firstPage.items[i].customer.createdAt.getTime()
+        firstPage.items[i].customer.createdAt
       ).toBeGreaterThanOrEqual(
-        firstPage.items[i + 1].customer.createdAt.getTime()
+        firstPage.items[i + 1].customer.createdAt
       )
     }
 
     // Verify last page is ordered by creation date descending (newest first)
     for (let i = 0; i < lastPage.items.length - 1; i++) {
       expect(
-        lastPage.items[i].customer.createdAt.getTime()
+        lastPage.items[i].customer.createdAt
       ).toBeGreaterThanOrEqual(
-        lastPage.items[i + 1].customer.createdAt.getTime()
+        lastPage.items[i + 1].customer.createdAt
       )
     }
 
@@ -709,10 +707,8 @@ describe('createCursorPaginatedSelectFunction', () => {
     const firstItemFromLastPage = lastPage.items[0]
 
     expect(
-      lastItemFromFirstPage.customer.createdAt.getTime()
-    ).toBeGreaterThanOrEqual(
-      firstItemFromLastPage.customer.createdAt.getTime()
-    )
+      lastItemFromFirstPage.customer.createdAt
+    ).toBeGreaterThanOrEqual(firstItemFromLastPage.customer.createdAt)
   })
 
   it('should ignore cursor parameters when goToFirst or goToLast are used', async () => {
@@ -1427,5 +1423,22 @@ describe('whereClauseFromObject', () => {
       expect(result1).toBeDefined()
       expect(result2).toBeDefined()
     })
+  })
+})
+
+describe('metadataSchema', () => {
+  it('should parse a valid metadata object', () => {
+    const result = metadataSchema.safeParse({
+      key: 'value',
+    })
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({
+      key: 'value',
+    })
+  })
+  it('should parse an empty metadata object', () => {
+    const result = metadataSchema.safeParse({})
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({})
   })
 })

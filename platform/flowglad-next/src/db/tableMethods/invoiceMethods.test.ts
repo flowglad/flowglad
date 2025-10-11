@@ -53,7 +53,6 @@ describe('selectInvoicesTableRowData', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       trialPeriodDays: 0,
       currency: CurrencyCode.USD,
     })
@@ -157,10 +156,8 @@ describe('selectInvoicesTableRowData', () => {
     // Verify records are ordered by creation date descending (newest first)
     for (let i = 0; i < result.items.length - 1; i++) {
       expect(
-        result.items[i].invoice.createdAt.getTime()
-      ).toBeGreaterThanOrEqual(
-        result.items[i + 1].invoice.createdAt.getTime()
-      )
+        result.items[i].invoice.createdAt
+      ).toBeGreaterThanOrEqual(result.items[i + 1].invoice.createdAt)
     }
   })
 

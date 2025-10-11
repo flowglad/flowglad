@@ -36,13 +36,23 @@ const checkoutSessionInsertFromInput = ({
   organizationId: string
   livemode: boolean
 }): CheckoutSession.Insert => {
-  const coreFields = {
+  const coreFields: Pick<
+    CheckoutSession.Insert,
+    | 'organizationId'
+    | 'status'
+    | 'livemode'
+    | 'successUrl'
+    | 'cancelUrl'
+    | 'outputMetadata'
+    | 'outputName'
+    | 'automaticallyUpdateSubscriptions'
+  > = {
     organizationId,
     status: CheckoutSessionStatus.Open,
     livemode,
     successUrl: checkoutSessionInput.successUrl,
     cancelUrl: checkoutSessionInput.cancelUrl,
-    outputMetadata: checkoutSessionInput.outputMetadata,
+    outputMetadata: checkoutSessionInput.outputMetadata ?? undefined,
     outputName: checkoutSessionInput.outputName,
     automaticallyUpdateSubscriptions: null,
   } as const
@@ -59,6 +69,7 @@ const checkoutSessionInsertFromInput = ({
     }
     return {
       ...coreFields,
+      automaticallyUpdateSubscriptions: null,
       type: CheckoutSessionType.Product,
       invoiceId: null,
       priceId: checkoutSessionInput.priceId,
@@ -161,6 +172,11 @@ export const createCheckoutSessionTransaction = async (
         'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
       )
     }
+    if (price.type === PriceType.Usage) {
+      throw new Error(
+        `Price id: ${price.id} has usage price. Usage prices are not supported for checkout sessions.`
+      )
+    }
   } else {
     organization = await selectOrganizationById(
       organizationId,
@@ -182,7 +198,6 @@ export const createCheckoutSessionTransaction = async (
   let stripePaymentIntentId: string | null = null
   if (
     price?.type === PriceType.Subscription ||
-    price?.type === PriceType.Usage ||
     checkoutSession.type === CheckoutSessionType.AddPaymentMethod ||
     checkoutSession.type === CheckoutSessionType.ActivateSubscription
   ) {

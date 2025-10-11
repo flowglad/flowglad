@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import * as core from 'nanoid'
 
 // Schema imports
@@ -7,10 +7,7 @@ import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Price } from '@/db/schema/prices'
 import { Subscription } from '@/db/schema/subscriptions'
-import {
-  UsageEvent,
-  CreateUsageEventInput,
-} from '@/db/schema/usageEvents'
+import { CreateUsageEventInput } from '@/db/schema/usageEvents'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
@@ -45,19 +42,17 @@ import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 
 describe('usageEventHelpers', () => {
-  let organization: Organization.Record
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let usagePrice: Price.Record
   let mainSubscription: Subscription.Record
   let mainBillingPeriod: BillingPeriod.Record
   let ledgerAccount: LedgerAccount.Record
-
+  let organization: Organization.Record
   beforeEach(async () => {
     await adminTransaction(async ({ transaction }) => {
       const orgSetup = await setupOrg()
       organization = orgSetup.organization
-
       customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -83,7 +78,6 @@ describe('usageEventHelpers', () => {
         intervalCount: 1,
         livemode: true,
         isDefault: false,
-        setupFeeAmount: 0,
         currency: CurrencyCode.USD,
         usageMeterId: usageMeter.id,
       })
@@ -120,7 +114,7 @@ describe('usageEventHelpers', () => {
         subscriptionId: mainSubscription.id,
         transactionId: `txn_${core.nanoid()}`,
         amount: 10,
-        usageDate: new Date().getTime(),
+        usageDate: Date.now(),
         properties: { custom_field: 'happy_path_value' },
       }
       const input: CreateUsageEventInput = {
@@ -387,7 +381,7 @@ describe('usageEventHelpers', () => {
     })
 
     it('should handle usageEvent.usageDate (timestamp and undefined)', async () => {
-      const timestamp = new Date().getTime()
+      const timestamp = Date.now()
       const datePresentDetails: CreateUsageEventInput['usageEvent'] =
         {
           priceId: usagePrice.id,
@@ -408,7 +402,7 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      expect(resultWithDate.usageDate!.getTime()).toBe(timestamp)
+      expect(resultWithDate.usageDate!).toBe(timestamp)
 
       const dateAbsentDetails: CreateUsageEventInput['usageEvent'] = {
         priceId: usagePrice.id,
@@ -486,10 +480,8 @@ describe('usageEventHelpers', () => {
       })
       await setupBillingPeriod({
         subscriptionId: testmodeSubscription.id,
-        startDate: new Date(),
-        endDate: new Date(
-          new Date().getTime() + 30 * 24 * 60 * 60 * 1000
-        ),
+        startDate: Date.now(),
+        endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
         livemode: false,
       })
       const liveFalseDetails: CreateUsageEventInput['usageEvent'] = {

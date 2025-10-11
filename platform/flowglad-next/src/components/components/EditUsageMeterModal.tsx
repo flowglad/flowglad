@@ -20,16 +20,28 @@ const EditUsageMeterModal: React.FC<EditUsageMeterModalProps> = ({
   usageMeter,
 }) => {
   const editUsageMeter = trpc.usageMeters.update.useMutation()
+
+  // Explicitly exclude create-only and read-only fields from defaultValues
+  const {
+    pricingModelId,
+    organizationId,
+    livemode,
+    ...editableFields
+  } = usageMeter
+
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="Edit Usage Meter"
       formSchema={editUsageMeterSchema}
-      defaultValues={{ usageMeter }}
+      defaultValues={{
+        id: usageMeter.id,
+        usageMeter: editableFields,
+      }}
       onSubmit={editUsageMeter.mutateAsync}
     >
-      <UsageMeterFormFields />
+      <UsageMeterFormFields edit={true} />
     </FormModal>
   )
 }

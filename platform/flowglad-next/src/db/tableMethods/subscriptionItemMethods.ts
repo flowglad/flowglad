@@ -5,7 +5,6 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createBulkInsertFunction,
-  createBulkUpsertFunction,
   SelectConditions,
   whereClauseFromObject,
   createBulkInsertOrDoNothingFunction,
@@ -22,21 +21,18 @@ import {
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
-import { and, eq, gt, isNull, or } from 'drizzle-orm'
+import { and, eq, lte } from 'drizzle-orm'
+import { createDateNotPassedFilter } from '../tableUtils'
 import {
   RichSubscription,
   richSubscriptionClientSelectSchema,
-  RichSubscriptionItem,
 } from '@/subscriptions/schemas'
-import {
-  pricesClientSelectSchema,
-} from '../schema/prices'
+import { pricesClientSelectSchema } from '../schema/prices'
 import { prices } from '../schema/prices'
 import { isSubscriptionCurrent } from './subscriptionMethods'
 import { SubscriptionItemType, SubscriptionStatus } from '@/types'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItem,
-  selectSubscriptionItemFeatures,
   selectSubscriptionItemFeaturesWithFeatureSlug,
 } from './subscriptionItemFeatureMethods'
 import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
@@ -78,9 +74,6 @@ export const bulkInsertSubscriptionItems = createBulkInsertFunction(
   subscriptionItems,
   config
 )
-
-const innerBulkCreateOrDoNothingSubscriptionItems =
-  createBulkInsertOrDoNothingFunction(subscriptionItems, config)
 
 export const selectSubscriptionAndItems = async (
   whereClause: SelectConditions<typeof subscriptions>,
@@ -157,7 +150,7 @@ export const bulkCreateOrUpdateSubscriptionItems = async (
 
 export const expireSubscriptionItem = async (
   subscriptionItemId: string,
-  expiredAt: Date,
+  expiredAt: Date | number,
   transaction: DbTransaction
 ) => {
   const subscriptionItem = await selectSubscriptionItemById(
@@ -170,7 +163,7 @@ export const expireSubscriptionItem = async (
   await updateSubscriptionItem(
     {
       id: subscriptionItemId,
-      expiredAt,
+      expiredAt: new Date(expiredAt).getTime(),
       type: subscriptionItem.type,
       usageMeterId: subscriptionItem.usageMeterId,
       usageEventsPerUnit: subscriptionItem.usageEventsPerUnit,
@@ -179,7 +172,7 @@ export const expireSubscriptionItem = async (
   )
   await expireSubscriptionItemFeaturesForSubscriptionItem(
     subscriptionItemId,
-    expiredAt,
+    new Date(expiredAt).getTime(),
     transaction
   )
 }
@@ -244,7 +237,7 @@ const processSubscriptionRow = (
 const isSubscriptionItemActive = (
   item: typeof subscriptionItems.$inferSelect
 ): boolean => {
-  return !item.expiredAt || item.expiredAt > new Date()
+  return !item.expiredAt || item.expiredAt > Date.now()
 }
 
 /**
@@ -376,7 +369,7 @@ export const bulkInsertOrDoNothingSubscriptionItemsByExternalId = (
 
 export const selectCurrentlyActiveSubscriptionItems = async (
   whereConditions: SelectConditions<typeof subscriptionItems>,
-  anchorDate: Date,
+  anchorDate: Date | number,
   transaction: DbTransaction
 ) => {
   const result = await transaction
@@ -385,9 +378,15 @@ export const selectCurrentlyActiveSubscriptionItems = async (
     .where(
       and(
         whereClauseFromObject(subscriptionItems, whereConditions),
-        or(
-          isNull(subscriptionItems.expiredAt),
-          gt(subscriptionItems.expiredAt, anchorDate)
+        // Item must have started (addedDate <= anchorDate)
+        lte(
+          subscriptionItems.addedDate,
+          new Date(anchorDate).getTime()
+        ),
+        // Item must not have expired (expiredAt is null OR expiredAt > anchorDate)
+        createDateNotPassedFilter(
+          subscriptionItems.expiredAt,
+          anchorDate
         )
       )
     )

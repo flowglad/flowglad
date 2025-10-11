@@ -5,11 +5,12 @@
 This guide provides step-by-step instructions for **cherry-picking Shadcn frontend patterns** from the `data-table-refactor` branch **without making any backend, database, or API changes**. This is a pure frontend refactor that adopts modern table patterns while preserving all existing backend functionality.
 
 **Purpose**: Migrate tables to Shadcn best practices (frontend-only)  
-**Reference**: `data-table-refactor` branch (13 tables already refactored)  
+**Reference**: `data-table-refactor` branch (14 tables already refactored)  
 **Method**: Cherry-pick frontend patterns, skip backend changes  
 **Based on**: Successful customers table migration (completed Oct 2025)  
 **Time Estimate**: 30-60 minutes per table  
-**Risk Level**: Low (zero backend impact)
+**Risk Level**: Low (zero backend impact)  
+**Progress**: 16 of 16 tables completed (100% COMPLETE as of Oct 2025) ✅
 
 ---
 
@@ -38,21 +39,67 @@ git show origin/data-table-refactor:platform/flowglad-next/src/app/finance/payme
 
 **Tables already refactored in that branch** (use as reference):
 - ✅ Customers (completed in main branch)
-- ✅ Products
-- ✅ Subscriptions
-- ✅ Payments
-- ✅ Invoices
-- ✅ Features
-- ✅ Prices
-- ✅ Discounts
-- ✅ Webhooks
-- ✅ API Keys
-- ✅ Usage Meters
-- ✅ Pricing Models
-- ✅ Organization Members
+- ✅ Products (completed in main branch)
+- ✅ Pricing Models (completed in main branch)
+- ✅ Discounts (completed in main branch)
+- ✅ Usage Meters (completed in main branch)
+- ✅ Purchases (completed in main branch)
+- ✅ Subscriptions (completed in main branch)
+- ✅ Payments (completed in main branch)
+- ✅ Invoices (completed in main branch)
+- ✅ Features (completed in main branch)
+- ✅ Webhooks (completed in main branch)
+- ✅ API Keys (completed in main branch)
+- ✅ Organization Members (completed in main branch)
+- ✅ Prices (completed in main branch)
+
+**Additional tables found (not in reference branch - manually migrated)**:
+- ✅ Subscription Items (detail page table - completed)
+- ✅ Usage Events (detail page table - completed)
+- ✅ Purchases (customer detail page variant - completed)
+
+**Migration Status Summary (as of Oct 2025)**:
+- **16 of 16 tables completed** (100% COMPLETE ✅)
+- **All tables migrated to Shadcn pattern!**
+- **Completed tables include**:
+  - ✅ All standard patterns: `tableLayout: 'fixed'`, column sizing, filter reset
+  - ✅ Customer links: Invoices, Payments, Subscriptions use `DataTableLinkableCell`
+  - ✅ Title support: All tables support `title` prop for detail pages
+  - ✅ No search (except Customers): Backend only supports search for customers table
+  - ✅ Integrated toolbars: Create buttons, filters, column visibility all in table component
 
 **Why use git commands instead of GitHub UI?**  
 The GitHub web interface had issues displaying these files, but git commands work reliably to access the reference implementations.
+
+---
+
+## 📊 Completed Tables Reference (Oct 2025)
+
+Quick reference for patterns used in each completed table:
+
+| Table | Customer Links | Title Prop | Filters | Create Button | Special Features |
+|-------|----------------|------------|---------|---------------|------------------|
+| Customers | N/A | ✅ | archived, orgId, pricingModelId | ✅ | Search enabled, detail pages |
+| Products | ❌ | ✅ | active, pricingModelId, orgId | ✅ | Image column, filter tabs |
+| Pricing Models | ❌ | ✅ | isDefault, orgId | ✅ | Default badge |
+| Discounts | ❌ | ✅ | active, orgId | ✅ | - |
+| Usage Meters | ❌ | ✅ | pricingModelId | ✅ | - |
+| Purchases | ❌ | ✅ | customerId, status, orgId | ❌ | Status badges |
+| Subscriptions | ✅ | ✅ | status, customerId, orgId | ❌ | Cancel action, detail pages |
+| Payments | ✅ | ✅ | status, customerId, subscriptionId, invoiceId, orgId | ✅ | Refund action, detail pages |
+| Invoices | ✅ | ✅ | status, customerId, subscriptionId | ❌ | Opens in new tab, reminder emails |
+| Features | ❌ | ✅ | pricingModelId | ✅ | Type logic, no Catalog column |
+| Webhooks | ❌ | ✅ | active, orgId | ✅ | Show signing secret action |
+| API Keys | ❌ | ✅ | type, orgId | ✅ | Conditional delete, conditional copy |
+| Org Members | ❌ | ✅ | None | ✅ | buttonVariant='outline', simple 2-column |
+
+**Key Takeaways**:
+- Only **Customers, Subscriptions, Payments, and Invoices** need customer links
+- All 13 tables support the `title` prop for detail pages
+- Only **Customers** has search functionality enabled (backend limitation)
+- Most tables have create buttons integrated into toolbar
+- Features table intentionally omits Catalog column (shown only on pricing model pages)
+- Organization Members uses `buttonVariant="outline"` on settings tab
 
 ---
 
@@ -395,6 +442,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Pencil, Copy, Trash } from 'lucide-react'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
@@ -548,7 +596,27 @@ export const columns: ColumnDef<YourTableRowDataType>[] = [
     maxSize: 180,
   },
   
-  // PATTERN 7: Actions column (always last)
+  // PATTERN 7: Customer name with link (for tables with customer data)
+  {
+    id: 'customerName',
+    accessorFn: (row) => row.customer.name,
+    header: 'Customer',
+    cell: ({ row }) => {
+      const customer = row.original.customer
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          <DataTableLinkableCell href={`/customers/${customer.id}`}>
+            {customer.name}
+          </DataTableLinkableCell>
+        </div>
+      )
+    },
+    size: 150,
+    minSize: 120,
+    maxSize: 200,
+  },
+  
+  // PATTERN 8: Actions column (always last)
   {
     id: 'actions',
     enableHiding: false,
@@ -633,12 +701,16 @@ export interface YourTableFilters {
 
 interface YourDataTableProps {
   filters?: YourTableFilters
+  title?: string  // For displaying section title on detail pages
   onCreateEntity?: () => void
+  buttonVariant?: 'default' | 'outline' | 'ghost' | 'link' | 'secondary' | 'destructive'  // Optional: Customize button style
 }
 
 export function YourDataTable({
   filters = {},
+  title,
   onCreateEntity,
+  buttonVariant = 'default',
 }: YourDataTableProps) {
   const router = useRouter()
 
@@ -735,8 +807,18 @@ export function YourDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex items-center pt-4 pb-3">
-        <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+        {/* Title on the left (for detail pages) */}
+        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
+          {title && (
+            <h3 className="text-lg font-semibold whitespace-nowrap">
+              {title}
+            </h3>
+          )}
+        </div>
+        
+        {/* Controls on the right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* ⚠️ ONLY for customers table - remove for other tables */}
           <CollapsibleSearch
             value={inputValue}
@@ -747,7 +829,7 @@ export function YourDataTable({
           />
           <DataTableViewOptions table={table} />
           {onCreateEntity && (
-            <Button onClick={onCreateEntity}>
+            <Button onClick={onCreateEntity} variant={buttonVariant}>
               <Plus className="w-4 h-4 mr-2" />
               Create [Entity]
             </Button>
@@ -1016,11 +1098,14 @@ const getProductFilterForTab = (tab: string) => {
 // Example: Read-only table on a detail page
 <div className="flex flex-col gap-5">
   <YourDataTable
+    title="[Entities]"  // ✅ Add title for section heading
     filters={{ parentEntityId: parentEntity.id }}
     // No onCreateEntity, filterOptions, etc. - just the filters
   />
 </div>
 ```
+
+**⚠️ IMPORTANT**: Always include the `title` prop when using tables on detail pages. This provides a consistent section heading and matches the pattern used by all migrated tables (Payments, Subscriptions, Invoices).
 
 #### Checklist for Each Usage
 
@@ -1068,6 +1153,8 @@ rm src/app/[path]/[TableName]Table.tsx
 **All other tables (Products, Subscriptions, Payments, Invoices, Features, Prices, Discounts, Webhooks, API Keys, Usage Meters, Pricing Models, Organization Members) should use this pattern.**
 
 Simply omit the search-related code when migrating these tables:
+
+**Note**: The toolbar structure below still includes the title display for detail pages. Keep this pattern even without search.
 
 ```typescript
 // 1. In data-table.tsx - DON'T import or use search hook:
@@ -1153,12 +1240,16 @@ export interface YourTableFilters {
 
 interface YourDataTableProps {
   filters?: YourTableFilters
+  title?: string
   onCreateEntity?: () => void
+  buttonVariant?: 'default' | 'outline' | 'ghost' | 'link' | 'secondary' | 'destructive'
 }
 
 export function YourDataTable({
   filters = {},
+  title,
   onCreateEntity,
+  buttonVariant = 'default',
 }: YourDataTableProps) {
   const router = useRouter()
 
@@ -1243,12 +1334,22 @@ export function YourDataTable({
   return (
     <div className="w-full">
       {/* Toolbar WITHOUT search */}
-      <div className="flex items-center pt-4 pb-3">
-        <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+        {/* Title on the left (for detail pages) */}
+        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
+          {title && (
+            <h3 className="text-lg font-semibold whitespace-nowrap">
+              {title}
+            </h3>
+          )}
+        </div>
+        
+        {/* Controls on the right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* ✅ NO CollapsibleSearch - goes straight to controls */}
           <DataTableViewOptions table={table} />
           {onCreateEntity && (
-            <Button onClick={onCreateEntity}>
+            <Button onClick={onCreateEntity} variant={buttonVariant}>
               <Plus className="w-4 h-4 mr-2" />
               Create [Entity]
             </Button>
@@ -1274,6 +1375,42 @@ export function YourDataTable({
   )
 }
 ```
+
+### Tables With Customer Links
+
+**⚠️ CRITICAL**: If your table displays customer data (Invoices, Payments, Subscriptions, etc.), the customer name column MUST be linkable.
+
+```typescript
+// In columns.tsx - Import DataTableLinkableCell
+import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
+
+// Customer column pattern
+{
+  id: 'customerName',
+  accessorFn: (row) => row.customer.name,
+  header: 'Customer',
+  cell: ({ row }) => {
+    const customer = row.original.customer
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <DataTableLinkableCell href={`/customers/${customer.id}`}>
+          {customer.name}
+        </DataTableLinkableCell>
+      </div>
+    )
+  },
+  size: 150,
+  minSize: 120,
+  maxSize: 200,
+},
+```
+
+**Why this matters:**
+- Provides consistent navigation UX across all tables
+- Matches pattern used in Payments, Subscriptions, and Invoices tables
+- `stopPropagation` prevents row click from interfering with link click
+
+---
 
 ### Tables With Filter Tabs (Active/Archived)
 
@@ -1325,6 +1462,100 @@ const filterOptions = [
   onCreateEntity={() => setIsCreateOpen(true)}
 />
 ```
+
+### Tables Without Filters (Organization Members Pattern)
+
+For simple tables that don't need any filtering (like Organization Members), use an empty filter interface:
+
+```typescript
+// In data-table.tsx
+export interface OrganizationMembersTableFilters {
+  // No filters needed for this simple table
+}
+
+// When calling usePaginatedTableState
+const { ... } = usePaginatedTableState<
+  OrganizationMemberTableRowData,
+  Record<string, never>  // ✅ Use Record<string, never> instead of empty interface
+>({
+  initialCurrentCursor: undefined,
+  pageSize: currentPageSize,
+  filters: {},  // ✅ Pass empty object
+  useQuery: trpc.organizations.getMembersTableRowData.useQuery,
+})
+```
+
+**Why this matters**: Some tables genuinely don't need filtering. Use `Record<string, never>` as the type parameter and pass an empty object for filters.
+
+---
+
+### Custom Button Variants on Detail Pages
+
+For tables on detail pages where you need a different button style (like outline instead of default):
+
+```typescript
+// In data-table.tsx interface
+interface YourDataTableProps {
+  filters?: YourTableFilters
+  title?: string
+  onCreateEntity?: () => void
+  buttonVariant?: 'default' | 'outline' | 'ghost' | 'link' | 'secondary' | 'destructive'
+}
+
+// In function parameters with default
+export function YourDataTable({
+  filters = {},
+  title,
+  onCreateEntity,
+  buttonVariant = 'default',  // ✅ Default to 'default' variant
+}: YourDataTableProps) {
+
+// In toolbar button
+<Button onClick={onCreateEntity} variant={buttonVariant}>
+  <Plus className="w-4 h-4 mr-2" />
+  Create [Entity]
+</Button>
+
+// Usage on detail page with outline variant
+<YourDataTable
+  title="[Entities]"
+  filters={{ parentId: parent.id }}
+  onCreateEntity={() => setIsCreateOpen(true)}
+  buttonVariant="outline"  // ✅ Custom button style for detail page
+/>
+```
+
+**Use cases**:
+- Organization Settings tab uses `variant="outline"` for team members
+- Most main listing pages use default variant
+- Detail pages may use outline for visual hierarchy
+
+---
+
+### Hiding Redundant Columns Based on Context
+
+When a table is only shown in a specific context, remove columns that are redundant:
+
+**Example**: Features table is only shown on Pricing Model detail pages
+```typescript
+// ❌ DON'T include a "Catalog" or "Pricing Model" column
+// The context already tells us which pricing model we're in
+
+// ✅ DO only show relevant columns:
+export const columns: ColumnDef<FeatureRow>[] = [
+  { id: 'name', ... },      // Feature name
+  { id: 'status', ... },    // Active/inactive
+  { id: 'type', ... },      // Toggle/Grant/etc
+  { id: 'slug', ... },      // Copyable slug
+  { id: 'id', ... },        // Copyable ID
+  { id: 'actions', ... },   // Actions menu
+  // ❌ NO 'catalog' column - redundant in this context
+]
+```
+
+**Why this matters**: Users already know the context from the page they're on. Showing redundant information wastes space and creates visual clutter.
+
+---
 
 ### Tables With Image Columns
 
@@ -1974,6 +2205,24 @@ Before copying patterns from the reference branch, verify they're frontend-only:
 
 ## Revision History
 
+- **v1.9** (Oct 2025) - **MIGRATION PROGRESS UPDATE & NEW PATTERNS**: Updated migration status to reflect 16 of 16 tables completed (100%). Completed migrations: Invoices, Features, Webhooks, API Keys, Organization Members, Usage Events, Subscription Items, and Purchases. Added new patterns discovered during migrations:
+  - Added `buttonVariant` prop for customizing create button style on detail pages
+  - Added "Tables Without Filters" pattern using `Record<string, never>`
+  - Added "Hiding Redundant Columns Based on Context" pattern (e.g., removing Catalog from Features when shown on pricing model page)
+  - Added "Custom Button Variants on Detail Pages" section with usage examples
+  - Updated all code templates to include buttonVariant parameter with default value
+  - Updated table list to show completion status for each table (13/16 complete)
+  - Added migration progress tracking to executive summary
+- **v1.8** (Oct 2025) - **CRITICAL PATTERNS UPDATE**: Added mandatory patterns for customer links and detail page titles:
+  - Added `DataTableLinkableCell` import requirement for customer columns
+  - Added PATTERN 7: Customer name with link to customer detail page
+  - Added `title` prop to data-table interface and all code templates
+  - Updated toolbar structure to display title on detail pages
+  - Added dedicated section "Tables With Customer Links" explaining the pattern
+  - Updated "Pattern 3: Detail Pages" to always include title prop
+  - Applied to all code examples (with search and without search)
+  - These patterns are now used in Invoices, Payments, and Subscriptions tables
+- **v1.7** (Oct 2025) - Added documentation for 3 additional tables found in codebase that weren't mentioned in original list: Subscription Items, Usage Events, and Purchases (customer detail page variant). These tables need manual migration as they don't have reference implementations in the `data-table-refactor` branch.
 - **v1.6** (Oct 2025) - **COMPREHENSIVE COLUMN SIZING UPDATE**: Major update incorporating complete TanStack Table column sizing documentation. Changes:
   - Added "Column Sizing Properties Deep Dive" section explaining space distribution algorithm
   - Corrected `minSize` default from 50 to 20 (TanStack default)

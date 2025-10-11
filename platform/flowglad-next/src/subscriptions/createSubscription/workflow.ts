@@ -15,7 +15,7 @@ import {
 import { insertSubscriptionAndItems } from './initializers'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
-import { PriceType, FeatureType, SubscriptionStatus } from '@/types'
+import { PriceType, SubscriptionStatus } from '@/types'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
 import { Event } from '@/db/schema/events'
 import {
@@ -27,6 +27,7 @@ import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 
 /**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
@@ -45,6 +46,13 @@ export const createSubscriptionWorkflow = async (
     | NonRenewingCreateSubscriptionResult
   >
 > => {
+  // Check if price is usage type and throw error if so
+  if (params.price.type === PriceType.Usage) {
+    throw new Error(
+      `Price id: ${params.price.id} has usage price. Usage prices are not supported for subscription creation.`
+    )
+  }
+
   if (params.stripeSetupIntentId) {
     const existingSubscription = await selectSubscriptionAndItems(
       {
@@ -89,15 +97,7 @@ export const createSubscriptionWorkflow = async (
       transaction
     )
 
-  const includesUsageCreditGrants = subscriptionItemFeatures.some(
-    (item) => item.type === FeatureType.UsageCreditGrant
-  )
-
-  if (
-    price.type === PriceType.Usage ||
-    includesUsageCreditGrants ||
-    price.startsWithCreditTrial
-  ) {
+  if (price.startsWithCreditTrial) {
     await setupLedgerAccounts(
       {
         subscription,
@@ -134,7 +134,18 @@ export const createSubscriptionWorkflow = async (
     )
   }
 
-  const timestamp = new Date()
+  const timestamp = Date.now()
+  const customer = await selectCustomerById(
+    updatedSubscription.customerId,
+    transaction
+  )
+
+  if (!customer) {
+    throw new Error(
+      `Customer not found for subscription ${updatedSubscription.id}`
+    )
+  }
+
   const eventInserts: Event.Insert[] = [
     {
       type: FlowgladEventType.SubscriptionCreated,
@@ -144,6 +155,10 @@ export const createSubscriptionWorkflow = async (
       payload: {
         object: EventNoun.Subscription,
         id: updatedSubscription.id,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       submittedAt: timestamp,
       hash: constructSubscriptionCreatedEventHash(

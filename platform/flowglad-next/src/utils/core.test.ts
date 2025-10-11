@@ -32,3 +32,14 @@ describe('organizationBillingPortalURL', () => {
     )
   })
 })
+
+describe('safeZodNullOrUndefined', () => {
+  it('should return null for null', () => {
+    const result = core.safeZodNullOrUndefined.parse(null)
+    expect(result).toBe(null)
+  })
+  it('should return null for undefined', () => {
+    const result = core.safeZodNullOrUndefined.parse(undefined)
+    expect(result).toBe(null)
+  })
+})

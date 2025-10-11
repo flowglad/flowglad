@@ -33,6 +33,7 @@ import {
   billingPeriodItemsToInvoiceLineItemInserts,
   calculateTotalAmountToCharge,
   tabulateOutstandingUsageCosts,
+  createBillingRun,
 } from './billingRunHelpers'
 import {
   BillingPeriodStatus,
@@ -60,8 +61,8 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Customer } from '@/db/schema/customers'
 import {
   selectBillingRunById,
-  selectBillingRuns,
   updateBillingRun,
+  safelyInsertBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
@@ -86,6 +87,7 @@ import {
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import core from '@/utils/core'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
@@ -148,7 +150,6 @@ describe('billingRunHelpers', async () => {
       intervalCount: 1,
       livemode: true,
       isDefault: false,
-      setupFeeAmount: 0,
       currency: organization.defaultCurrency,
       usageMeterId: usageMeter.id,
     })
@@ -228,11 +229,11 @@ describe('billingRunHelpers', async () => {
       const billingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
         startDate: new Date(
-          subscription.currentBillingPeriodStart!.getTime() -
+          subscription.currentBillingPeriodStart! -
             30 * 24 * 60 * 60 * 1000
         ),
         endDate: new Date(
-          subscription.currentBillingPeriodEnd!.getTime() -
+          subscription.currentBillingPeriodEnd! -
             30 * 24 * 60 * 60 * 1000
         ),
         status: BillingPeriodStatus.Active,
@@ -262,7 +263,7 @@ describe('billingRunHelpers', async () => {
           const updatedBillingPeriod = await updateBillingPeriod(
             {
               id: billingPeriod.id,
-              endDate: new Date(Date.now() - 180 * 1000),
+              endDate: Date.now() - 180 * 1000,
             },
             transaction
           )
@@ -552,8 +553,8 @@ describe('billingRunHelpers', async () => {
       expect(invoiceInsert.purchaseId).toBeNull()
 
       // Check dates are set
-      expect(invoiceInsert.invoiceDate).toBeInstanceOf(Date)
-      expect(invoiceInsert.dueDate).toBeInstanceOf(Date)
+      expect(invoiceInsert.invoiceDate).toBeDefined()
+      expect(invoiceInsert.dueDate).toBeDefined()
       expect(invoiceInsert.billingPeriodStartDate).toEqual(
         billingPeriod.startDate
       )
@@ -670,8 +671,12 @@ describe('billingRunHelpers', async () => {
           )
       )
 
-      expect(invoiceInsert.billingPeriodStartDate).toEqual(startDate)
-      expect(invoiceInsert.billingPeriodEndDate).toEqual(endDate)
+      expect(invoiceInsert.billingPeriodStartDate).toEqual(
+        startDate.getTime()
+      )
+      expect(invoiceInsert.billingPeriodEndDate).toEqual(
+        endDate.getTime()
+      )
     })
   })
 
@@ -848,11 +853,10 @@ describe('billingRunHelpers', async () => {
         )
 
         expect(retryInsert).toBeDefined()
-        const expectedRetryDate = new Date(
+        const expectedRetryDate =
           Date.now() + daysToRetry * 24 * 60 * 60 * 1000
-        )
-        expect(retryInsert!.scheduledFor.getTime()).toBeCloseTo(
-          expectedRetryDate.getTime(),
+        expect(retryInsert!.scheduledFor).toBeCloseTo(
+          expectedRetryDate,
           -3 // tolerance of 1 second
         )
 
@@ -861,8 +865,8 @@ describe('billingRunHelpers', async () => {
           ...billingRun,
           ...(retryInsert as BillingRun.Insert),
           id: `retry-run-${i}`,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
           status: retryInsert!.status,
         } as BillingRun.Record)
       }
@@ -874,8 +878,8 @@ describe('billingRunHelpers', async () => {
           scheduleBillingRunRetry(billingRun, transaction)
       )
       expect(retryBillingRun).toBeDefined()
-      expect(retryBillingRun?.scheduledFor.getTime()).toBeGreaterThan(
-        new Date().getTime() + 3 * 24 * 60 * 60 * 1000 - 60 * 1000
+      expect(retryBillingRun?.scheduledFor).toBeGreaterThan(
+        Date.now() + 3 * 24 * 60 * 60 * 1000 - 60 * 1000
       )
     })
 
@@ -892,9 +896,7 @@ describe('billingRunHelpers', async () => {
           const futureBillingPeriod = await updateBillingPeriod(
             {
               id: billingPeriod.id,
-              startDate: new Date(
-                Date.now() + 10 * 24 * 60 * 60 * 1000
-              ), // 10 days in the future
+              startDate: Date.now() + 10 * 24 * 60 * 60 * 1000, // 10 days in the future
             },
             transaction
           )
@@ -911,6 +913,50 @@ describe('billingRunHelpers', async () => {
       expect(result.billingPeriod.status).toBe(
         BillingPeriodStatus.Upcoming
       )
+    })
+
+    it('should throw an error when trying to create a retry billing run for a canceled subscription', async () => {
+      // Update the subscription status to canceled
+      const canceledSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return safelyUpdateSubscriptionStatus(
+            subscription,
+            SubscriptionStatus.Canceled,
+            transaction
+          )
+        }
+      )
+
+      // The database-level protection should throw an error
+      await expect(
+        adminTransaction(({ transaction }) =>
+          scheduleBillingRunRetry(billingRun, transaction)
+        )
+      ).rejects.toThrow(
+        'Cannot create billing run for canceled subscription'
+      )
+    })
+
+    it('should schedule a retry billing run if the subscription is not canceled', async () => {
+      // Ensure the subscription is active
+      const activeSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return safelyUpdateSubscriptionStatus(
+            subscription,
+            SubscriptionStatus.Active,
+            transaction
+          )
+        }
+      )
+
+      const retryBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          scheduleBillingRunRetry(billingRun, transaction)
+      )
+
+      expect(retryBillingRun).toBeDefined()
+      expect(retryBillingRun?.status).toBe(BillingRunStatus.Scheduled)
+      expect(retryBillingRun?.subscriptionId).toBe(subscription.id)
     })
   })
 
@@ -1239,7 +1285,7 @@ describe('billingRunHelpers', async () => {
       )
 
       // If the billing period is in the past, it should be marked as Completed
-      if (new Date() > billingPeriod.endDate) {
+      if (Date.now() > billingPeriod.endDate) {
         expect(result.billingPeriod.status).toBe(
           BillingPeriodStatus.Completed
         )
@@ -1280,13 +1326,15 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should handle nested billing details address for tax country', async () => {
+      const billingAddress: PaymentMethod.BillingDetails =
+        paymentMethod.billingDetails
       // Update payment method with nested address
       await adminTransaction(async ({ transaction }) => {
         await updatePaymentMethod(
           {
             id: paymentMethod.id,
             billingDetails: {
-              ...paymentMethod.billingDetails,
+              ...billingAddress,
               address: {
                 country: 'US',
                 line1: null,
@@ -1357,7 +1405,7 @@ describe('billingRunHelpers', async () => {
             currency: CurrencyCode.USD,
             status: PaymentStatus.Succeeded,
             organizationId: organization.id,
-            chargeDate: new Date(),
+            chargeDate: Date.now(),
             customerId: customer.id,
             invoiceId: (
               await setupInvoice({
@@ -1457,7 +1505,7 @@ describe('billingRunHelpers', async () => {
         billingPeriodId: billingPeriod.id,
         transactionId: 'dummy_txn_claim_' + Math.random(),
         customerId: customer.id,
-        usageDate: new Date(),
+        usageDate: Date.now(),
       })
       const initialEntry = await setupDebitLedgerEntry({
         organizationId: organization.id,
@@ -1519,7 +1567,7 @@ describe('billingRunHelpers', async () => {
             currency: CurrencyCode.USD,
             status: PaymentStatus.Succeeded,
             organizationId: organization.id,
-            chargeDate: new Date(),
+            chargeDate: Date.now(),
             customerId: customer.id,
             invoiceId: (
               await setupInvoice({
@@ -1697,7 +1745,6 @@ describe('billingRunHelpers', async () => {
         intervalCount: 1,
         livemode: true,
         isDefault: false,
-        setupFeeAmount: 0,
         currency: organization.defaultCurrency,
         usageMeterId: usageMeter.id,
       })
@@ -1784,7 +1831,7 @@ describe('billingRunHelpers', async () => {
           billingPeriodId: billingPeriod.id,
           transactionId: 'dummy_txn_1' + Math.random(),
           customerId: customer.id,
-          usageDate: new Date(),
+          usageDate: Date.now(),
         })
 
         const costEntry = await setupDebitLedgerEntry({
@@ -1855,7 +1902,7 @@ describe('billingRunHelpers', async () => {
           billingPeriodId: billingPeriod.id,
           transactionId: 'dummy_txn_1' + Math.random(),
           customerId: customer.id,
-          usageDate: new Date(Date.now() - 2000),
+          usageDate: Date.now() - 2000,
         })
 
         const usageEvent2 = await setupUsageEvent({
@@ -1867,7 +1914,7 @@ describe('billingRunHelpers', async () => {
           billingPeriodId: billingPeriod.id,
           transactionId: 'dummy_txn_2' + Math.random(),
           customerId: customer.id,
-          usageDate: new Date(Date.now() - 1000),
+          usageDate: Date.now() - 1000,
         })
 
         await setupDebitLedgerEntry({
@@ -2008,9 +2055,7 @@ describe('billingRunHelpers', async () => {
         sourceUsageEventId: ue3.id,
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
-        entryTimestamp: new Date(
-          billingPeriod.endDate.getTime() - 1000
-        ),
+        entryTimestamp: billingPeriod.endDate - 1000,
       })
 
       await adminTransaction(async ({ transaction }) => {
@@ -2093,7 +2138,7 @@ describe('billingRunHelpers', async () => {
           billingPeriodId: billingPeriod.id,
           transactionId: 'dummy_txn_included_' + Math.random(),
           customerId: customer.id,
-          usageDate: new Date(billingPeriodEndDate.getTime() - 1000), // within period
+          usageDate: billingPeriodEndDate.getTime() - 1000, // within period
         })
         await setupDebitLedgerEntry({
           organizationId: organization.id,
@@ -2105,9 +2150,7 @@ describe('billingRunHelpers', async () => {
           sourceUsageEventId: usageEvent1.id,
           status: LedgerEntryStatus.Posted,
           usageMeterId: usageMeter.id,
-          entryTimestamp: new Date(
-            billingPeriodEndDate.getTime() - 1000
-          ), // on the boundary
+          entryTimestamp: billingPeriodEndDate.getTime() - 1000, // on the boundary
         })
 
         // Cost excluded: timestamp is after the end date
@@ -2120,7 +2163,7 @@ describe('billingRunHelpers', async () => {
           billingPeriodId: billingPeriod.id,
           transactionId: 'dummy_txn_excluded_' + Math.random(),
           customerId: customer.id,
-          usageDate: new Date(billingPeriodEndDate.getTime() + 1000), // outside period
+          usageDate: billingPeriodEndDate.getTime() + 1000, // outside period
         })
         await setupDebitLedgerEntry({
           organizationId: organization.id,
@@ -2132,9 +2175,7 @@ describe('billingRunHelpers', async () => {
           sourceUsageEventId: usageEvent2.id,
           status: LedgerEntryStatus.Posted,
           usageMeterId: usageMeter.id,
-          entryTimestamp: new Date(
-            billingPeriodEndDate.getTime() + 1
-          ), // after the boundary
+          entryTimestamp: billingPeriodEndDate.getTime() + 1, // after the boundary
         })
 
         const result = await tabulateOutstandingUsageCosts(
@@ -2332,6 +2373,113 @@ describe('billingRunHelpers', async () => {
 
       expect(lineItems.length).toBe(1)
       expect(lineItems[0].type).toBe(SubscriptionItemType.Static)
+    })
+  })
+
+  describe('safelyInsertBillingRun Protection', () => {
+    it('should prevent ALL billing run creation for canceled subscriptions', async () => {
+      // Cancel the subscription
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdateSubscriptionStatus(
+          subscription,
+          SubscriptionStatus.Canceled,
+          transaction
+        )
+      })
+
+      // Test 1: Direct safelyInsertBillingRun call should fail
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return safelyInsertBillingRun(
+            {
+              billingPeriodId: billingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: subscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: billingPeriod.livemode,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for canceled subscription'
+      )
+
+      // Test 2: createBillingRun should fail
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return createBillingRun(
+            {
+              billingPeriod,
+              paymentMethod,
+              scheduledFor: Date.now(),
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for canceled subscription'
+      )
+
+      // Test 3: scheduleBillingRunRetry should fail
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return scheduleBillingRunRetry(billingRun, transaction)
+        })
+      ).rejects.toThrow(
+        'Cannot create billing run for canceled subscription'
+      )
+    })
+
+    it('should allow billing run creation for active subscriptions', async () => {
+      // Ensure subscription is active
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdateSubscriptionStatus(
+          subscription,
+          SubscriptionStatus.Active,
+          transaction
+        )
+      })
+
+      // All billing run creation methods should work
+      const directInsert = await adminTransaction(
+        async ({ transaction }) => {
+          return safelyInsertBillingRun(
+            {
+              billingPeriodId: billingPeriod.id,
+              scheduledFor: Date.now(),
+              status: BillingRunStatus.Scheduled,
+              subscriptionId: subscription.id,
+              paymentMethodId: paymentMethod.id,
+              livemode: billingPeriod.livemode,
+            },
+            transaction
+          )
+        }
+      )
+      expect(directInsert).toBeDefined()
+
+      const createBillingRunResult = await adminTransaction(
+        async ({ transaction }) => {
+          return createBillingRun(
+            {
+              billingPeriod,
+              paymentMethod,
+              scheduledFor: Date.now(),
+            },
+            transaction
+          )
+        }
+      )
+      expect(createBillingRunResult).toBeDefined()
+
+      const retryResult = await adminTransaction(
+        async ({ transaction }) => {
+          return scheduleBillingRunRetry(billingRun, transaction)
+        }
+      )
+      expect(retryResult).toBeDefined()
     })
   })
 })

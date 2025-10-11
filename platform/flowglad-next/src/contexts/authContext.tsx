@@ -71,14 +71,14 @@ const AuthProvider = ({
   const [organization, setOrganization] = useState<
     Organization.ClientRecord | undefined
   >(values.organization)
+  const session = useSession()
+  const authenticated = session.data?.user?.id !== undefined
   const {
     data: focusedMembership,
     refetch: refetchFocusedMembership,
   } = trpc.organizations.getFocusedMembership.useQuery(undefined, {
-    enabled: values.role === 'merchant',
+    enabled: values.role === 'merchant' && authenticated,
   })
-  const session = useSession()
-  const authenticated = session.data?.user?.id !== undefined
   /**
    * A race condition happens where sometimes the layout renders
    * before the user is fetched when first logging in.

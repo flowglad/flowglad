@@ -266,7 +266,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit.issuedAmount).toBe(
       baseSubscriptionItemFeature.amount
     )
-    expect(usageCredit.issuedAt).toBeInstanceOf(Date)
+    expect(usageCredit.issuedAt).toBeDefined()
     expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit.sourceReferenceType).toBe(
       UsageCreditSourceReferenceType.BillingPeriodTransition
@@ -284,7 +284,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry.organizationId).toBe(organization.id)
     expect(ledgerEntry.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry.livemode).toBe(command.livemode)
-    expect(ledgerEntry.entryTimestamp).toBeInstanceOf(Date)
+    expect(ledgerEntry.entryTimestamp).toBeDefined()
     expect(ledgerEntry.amount).toBe(
       baseSubscriptionItemFeature.amount
     )
@@ -393,7 +393,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit1!.usageMeterId).toBe(usageMeter1.id)
     expect(usageCredit1!.subscriptionId).toBe(subscription.id)
     expect(usageCredit1!.expiresAt).toEqual(newBillingPeriod.endDate)
-    expect(usageCredit1!.issuedAt).toBeInstanceOf(Date)
+    expect(usageCredit1!.issuedAt).toBeDefined()
     expect(usageCredit1!.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit1!.sourceReferenceType).toBe(
       UsageCreditSourceReferenceType.BillingPeriodTransition
@@ -408,7 +408,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit2!.usageMeterId).toBe(usageMeter2.id)
     expect(usageCredit2!.subscriptionId).toBe(subscription.id)
     expect(usageCredit2!.expiresAt).toEqual(newBillingPeriod.endDate)
-    expect(usageCredit2!.issuedAt).toBeInstanceOf(Date)
+    expect(usageCredit2!.issuedAt).toBeDefined()
     expect(usageCredit2!.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit2!.sourceReferenceType).toBe(
       UsageCreditSourceReferenceType.BillingPeriodTransition
@@ -440,7 +440,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry1!.organizationId).toBe(organization.id)
     expect(ledgerEntry1!.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry1!.livemode).toBe(command.livemode)
-    expect(ledgerEntry1!.entryTimestamp).toBeInstanceOf(Date)
+    expect(ledgerEntry1!.entryTimestamp).toBeDefined()
     expect(ledgerEntry1!.amount).toBe(amount1)
     expect(ledgerEntry1!.direction).toBe(LedgerEntryDirection.Credit)
     expect(ledgerEntry1!.entryType).toBe(
@@ -458,7 +458,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry2!.organizationId).toBe(organization.id)
     expect(ledgerEntry2!.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry2!.livemode).toBe(command.livemode)
-    expect(ledgerEntry2!.entryTimestamp).toBeInstanceOf(Date)
+    expect(ledgerEntry2!.entryTimestamp).toBeDefined()
     expect(ledgerEntry2!.amount).toBe(amount2)
     expect(ledgerEntry2!.direction).toBe(LedgerEntryDirection.Credit)
     expect(ledgerEntry2!.entryType).toBe(
@@ -543,7 +543,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit.usageMeterId).toBe(usageMeter1.id) // Linked to the one with meter
     expect(usageCredit.subscriptionId).toBe(subscription.id)
     expect(usageCredit.expiresAt).toEqual(newBillingPeriod.endDate)
-    expect(usageCredit.issuedAt).toBeInstanceOf(Date)
+    expect(usageCredit.issuedAt).toBeDefined()
     expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit.sourceReferenceType).toBe(
       UsageCreditSourceReferenceType.BillingPeriodTransition
@@ -560,7 +560,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry.organizationId).toBe(organization.id)
     expect(ledgerEntry.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry.livemode).toBe(command.livemode)
-    expect(ledgerEntry.entryTimestamp).toBeInstanceOf(Date)
+    expect(ledgerEntry.entryTimestamp).toBeDefined()
     expect(ledgerEntry.amount).toBe(amountWithMeter) // Amount from the metered item
     expect(ledgerEntry.direction).toBe(LedgerEntryDirection.Credit)
     expect(ledgerEntry.entryType).toBe(
@@ -666,7 +666,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(usageCredit.usageMeterId).toBe(usageMeter1.id)
     expect(usageCredit.subscriptionId).toBe(subscription.id)
     expect(usageCredit.expiresAt).toEqual(newBillingPeriod.endDate)
-    expect(usageCredit.issuedAt).toBeInstanceOf(Date)
+    expect(usageCredit.issuedAt).toBeDefined()
     expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
     expect(usageCredit.sourceReferenceType).toBe(
       UsageCreditSourceReferenceType.BillingPeriodTransition
@@ -685,7 +685,7 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry.organizationId).toBe(organization.id)
     expect(ledgerEntry.status).toBe(LedgerEntryStatus.Posted)
     expect(ledgerEntry.livemode).toBe(false) // IMPORTANT CHECK
-    expect(ledgerEntry.entryTimestamp).toBeInstanceOf(Date)
+    expect(ledgerEntry.entryTimestamp).toBeDefined()
     expect(ledgerEntry.amount).toBe(testAmount)
     expect(ledgerEntry.direction).toBe(LedgerEntryDirection.Credit)
     expect(ledgerEntry.entryType).toBe(

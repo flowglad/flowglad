@@ -41,12 +41,22 @@ export interface CustomersTableFilters {
 
 interface CustomersDataTableProps {
   filters?: CustomersTableFilters
+  title?: string
   onCreateCustomer?: () => void
+  buttonVariant?:
+    | 'default'
+    | 'outline'
+    | 'ghost'
+    | 'link'
+    | 'secondary'
+    | 'destructive'
 }
 
 export function CustomersDataTable({
   filters = {},
+  title,
   onCreateCustomer,
+  buttonVariant = 'default',
 }: CustomersDataTableProps) {
   const router = useRouter()
 
@@ -75,6 +85,13 @@ export function CustomersDataTable({
     searchQuery: searchQuery,
     useQuery: trpc.customers.getTableRows.useQuery,
   })
+
+  // Reset to first page when filters change
+  const filtersKey = JSON.stringify(filters)
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
 
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -134,8 +151,18 @@ export function CustomersDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar with all improvements */}
-      <div className="flex items-center pt-4 pb-3">
-        <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+        {/* Title on the left (for detail pages) */}
+        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
+          {title && (
+            <h3 className="text-lg font-semibold truncate">
+              {title}
+            </h3>
+          )}
+        </div>
+
+        {/* Controls on the right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <CollapsibleSearch
             value={inputValue}
             onChange={setInputValue}
@@ -145,7 +172,10 @@ export function CustomersDataTable({
           />
           <DataTableViewOptions table={table} />
           {onCreateCustomer && (
-            <Button onClick={onCreateCustomer}>
+            <Button
+              onClick={onCreateCustomer}
+              variant={buttonVariant}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Customer
             </Button>

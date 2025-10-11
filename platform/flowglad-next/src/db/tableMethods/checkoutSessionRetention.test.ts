@@ -79,7 +79,7 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       livemode: true,
     })
     const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
-    const backdate = new Date(Date.now() - fifteenDaysMs)
+    const backdate = Date.now() - fifteenDaysMs
     await adminTransaction(async ({ transaction }) => {
       await transaction
         .update(checkoutSessions)
@@ -128,7 +128,7 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       livemode: true,
     })
     const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
-    const backdate = new Date(Date.now() - fifteenDaysMs)
+    const backdate = Date.now() - fifteenDaysMs
     await adminTransaction(async ({ transaction }) => {
       await transaction
         .update(checkoutSessions)
@@ -183,7 +183,7 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       livemode: true,
     })
     const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
-    const backdate = new Date(Date.now() - fifteenDaysMs)
+    const backdate = Date.now() - fifteenDaysMs
     await adminTransaction(async ({ transaction }) => {
       await transaction
         .update(checkoutSessions)
@@ -250,7 +250,7 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
         quantity: 1,
         livemode: true,
       })
-      const backdate = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
+      const backdate = Date.now() - 15 * 24 * 60 * 60 * 1000
       await adminTransaction(async ({ transaction }) => {
         await transaction
           .update(checkoutSessions)
@@ -291,9 +291,7 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       livemode: true,
     })
     // set createdAt to now - 14d + 60s ⇒ not older than cutoff
-    const backdate = new Date(
-      Date.now() - 14 * 24 * 60 * 60 * 1000 + 60 * 1000
-    )
+    const backdate = Date.now() - 14 * 24 * 60 * 60 * 1000 + 60 * 1000
     await adminTransaction(async ({ transaction }) => {
       await transaction
         .update(checkoutSessions)
@@ -320,7 +318,7 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       quantity: 1,
       livemode: true,
     })
-    const backdate = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
+    const backdate = Date.now() - 15 * 24 * 60 * 60 * 1000
     await adminTransaction(async ({ transaction }) => {
       await transaction
         .update(checkoutSessions)

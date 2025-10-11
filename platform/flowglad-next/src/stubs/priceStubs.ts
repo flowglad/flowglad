@@ -9,8 +9,8 @@ import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 export const subscriptionDummyPrice: Price.SubscriptionRecord = {
   id: '1',
   name: 'Subscription',
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
   ...nulledPriceColumns,
   intervalCount: 1,
   intervalUnit: IntervalUnit.Month,
@@ -31,6 +31,12 @@ export const subscriptionDummyPrice: Price.SubscriptionRecord = {
 export const singlePaymentDummyPrice: Price.SinglePaymentRecord = {
   ...subscriptionDummyPrice,
   ...singlePaymentPriceDefaultColumns,
+  intervalCount: null,
+  intervalUnit: null,
+  trialPeriodDays: null,
+  usageEventsPerUnit: null,
+  startsWithCreditTrial: null,
+  usageMeterId: null,
 }
 
 export const usageDummyPrice: Price.UsageRecord = {

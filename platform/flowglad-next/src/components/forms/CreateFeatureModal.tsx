@@ -40,7 +40,6 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
           usageMeterId: null,
           renewalFrequency: null,
           active: true,
-          livemode,
         },
       }}
       onSubmit={async (data) => {

@@ -5,7 +5,6 @@ import debounce from 'debounce'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { FormDescription } from '@/components/ui/form'
 import { CheckoutFlowType } from '@/types'
 import {
   Form,
@@ -20,7 +19,12 @@ interface DiscountCodeFormData {
 
 export default function DiscountCodeInput() {
   const checkoutPageContext = useCheckoutPageContext()
-  const { discount, flowType } = checkoutPageContext
+  const {
+    discount,
+    flowType,
+    attemptDiscountCode,
+    clearDiscountCode,
+  } = checkoutPageContext
   const [discountCodeStatus, setDiscountCodeStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >(discount ? 'success' : 'idle')
@@ -41,9 +45,6 @@ export default function DiscountCodeInput() {
   })
 
   const discountCode = form.watch('discountCode')
-
-  const { attemptDiscountCode, clearDiscountCode } =
-    checkoutPageContext
 
   // Extract purchase and product from context with proper type checking
   const purchase =

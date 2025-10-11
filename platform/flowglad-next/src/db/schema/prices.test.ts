@@ -12,6 +12,7 @@ import {
   subscriptionPriceDefaultColumns,
   usagePriceDefaultColumns,
 } from './prices'
+import { PriceType } from '@/types'
 
 const testStartingPriceToDestinationPrice = (
   startingPrice: Price.Record,
@@ -43,6 +44,12 @@ describe('Price Defaults', () => {
     const transformedToSinglePaymentPrice = {
       ...subscriptionDummyPrice,
       ...singlePaymentPriceDefaultColumns,
+      intervalCount: null,
+      intervalUnit: null,
+      trialPeriodDays: null,
+      usageEventsPerUnit: null,
+      startsWithCreditTrial: null,
+      usageMeterId: null,
     }
     testStartingPriceToDestinationPrice(
       transformedToSinglePaymentPrice,
@@ -66,6 +73,10 @@ describe('Price Defaults', () => {
       ...usageDummyPrice,
       ...singlePaymentPriceDefaultColumns,
       usageEventsPerUnit: null,
+      intervalCount: null,
+      intervalUnit: null,
+      startsWithCreditTrial: null,
+      usageMeterId: null,
     }
     testStartingPriceToDestinationPrice(
       transformedToSinglePaymentPrice,
@@ -98,7 +109,6 @@ describe('Price Defaults', () => {
   it('allow subscriptions to have no overage / usage fields', () => {
     const transformedToUsagePrice = {
       ...subscriptionDummyPrice,
-      overagePriceId: undefined,
       usageEventsPerUnit: undefined,
     }
     testStartingPriceToDestinationPrice(

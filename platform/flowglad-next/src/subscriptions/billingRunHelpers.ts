@@ -15,7 +15,7 @@ import { Payment } from '@/db/schema/payments'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import {
-  insertBillingRun,
+  safelyInsertBillingRun,
   selectBillingRunById,
   selectBillingRuns,
   updateBillingRun,
@@ -49,6 +49,7 @@ import {
   PaymentStatus,
   FeatureType,
   SubscriptionItemType,
+  SubscriptionStatus,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
@@ -72,7 +73,7 @@ import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
   paymentMethod: PaymentMethod.Record
-  scheduledFor: Date
+  scheduledFor: Date | number
 }
 
 export const createBillingRunInsert = (
@@ -81,7 +82,7 @@ export const createBillingRunInsert = (
   const { billingPeriod, scheduledFor } = params
   return {
     billingPeriodId: billingPeriod.id,
-    scheduledFor,
+    scheduledFor: new Date(scheduledFor).getTime(),
     status: BillingRunStatus.Scheduled,
     subscriptionId: billingPeriod.subscriptionId,
     paymentMethodId: params.paymentMethod.id,
@@ -94,7 +95,7 @@ export const createBillingRun = async (
   transaction: DbTransaction
 ) => {
   const insert = createBillingRunInsert(params)
-  return insertBillingRun(insert, transaction)
+  return safelyInsertBillingRun(insert, transaction)
 }
 
 export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
@@ -185,8 +186,8 @@ export const createInvoiceInsertForBillingRun = async (
       .country as CountryCode,
     currency: params.currency,
     livemode: billingPeriod.livemode,
-    invoiceDate: new Date(),
-    dueDate: new Date(),
+    invoiceDate: Date.now(),
+    dueDate: Date.now(),
     status: InvoiceStatus.Draft,
     billingPeriodStartDate: billingPeriod.startDate,
     billingPeriodEndDate: billingPeriod.endDate,
@@ -207,7 +208,7 @@ export type OutstandingUsageCostAggregation = {
 // Helper function to tabulate outstanding usage costs
 export const tabulateOutstandingUsageCosts = async (
   subscriptionId: string,
-  billingPeriodEndDate: Date,
+  billingPeriodEndDate: Date | number,
   transaction: DbTransaction
 ): Promise<{
   outstandingUsageCostsByLedgerAccountId: Map<
@@ -355,7 +356,7 @@ export const processOutstandingBalanceForBillingPeriod = async (
   transaction: DbTransaction
 ): Promise<BillingPeriod.Record> => {
   if (
-    new Date() > billingPeriod.endDate &&
+    Date.now() > billingPeriod.endDate &&
     billingPeriod.status !== BillingPeriodStatus.PastDue
   ) {
     return updateBillingPeriod(
@@ -391,11 +392,11 @@ export const processNoMoreDueForBillingPeriod = async (
     },
     transaction
   )
-  const billingPeriodConcluded = new Date() > billingPeriod.endDate
+  const now = Date.now()
+  const billingPeriodConcluded = now > billingPeriod.endDate
   const billingPeriodActive =
-    new Date() >= billingPeriod.startDate &&
-    new Date() <= billingPeriod.endDate
-  const billingPeriodFuture = new Date() < billingPeriod.startDate
+    now >= billingPeriod.startDate && now < billingPeriod.endDate
+  const billingPeriodFuture = now < billingPeriod.startDate
   let billingPeriodStatus: BillingPeriodStatus
   if (billingPeriodFuture) {
     billingPeriodStatus = BillingPeriodStatus.Upcoming
@@ -444,7 +445,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   const { rawOutstandingUsageCosts: usageOverages } =
     await tabulateOutstandingUsageCosts(
       billingPeriod.subscriptionId,
-      billingPeriod.endDate,
+      new Date(billingPeriod.endDate),
       transaction
     )
   const { feeCalculation, totalDueAmount } =
@@ -609,7 +610,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     currency: invoice.currency,
     status: PaymentStatus.Processing,
     organizationId: organization.id,
-    chargeDate: new Date(),
+    chargeDate: Date.now(),
     customerId: customer.id,
     invoiceId: invoice.id,
     paymentMethodId: paymentMethod.id,
@@ -935,9 +936,7 @@ export const constructBillingRunRetryInsert = (
   return {
     billingPeriodId: billingRun.billingPeriodId,
     status: BillingRunStatus.Scheduled,
-    scheduledFor: new Date(
-      Date.now() + daysFromNowToRetry * dayInMilliseconds
-    ),
+    scheduledFor: Date.now() + daysFromNowToRetry * dayInMilliseconds,
     subscriptionId: billingRun.subscriptionId,
     paymentMethodId: billingRun.paymentMethodId,
     livemode: billingRun.livemode,
@@ -968,5 +967,5 @@ export const scheduleBillingRunRetry = async (
   if (!retryBillingRun) {
     return
   }
-  return insertBillingRun(retryBillingRun, transaction)
+  return safelyInsertBillingRun(retryBillingRun, transaction)
 }

@@ -16,7 +16,7 @@ const BillingPortalRedirectPage = async ({
   const { organizationId } = await params
   const session = await getSession()
   if (!session) {
-    throw new Error('User not authenticated')
+    redirect(`/billing-portal/${organizationId}/sign-in`)
   }
   const user = await betterAuthUserToApplicationUser(session.user)
   const customers = await authenticatedTransaction(

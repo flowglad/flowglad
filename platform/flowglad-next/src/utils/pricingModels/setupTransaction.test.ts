@@ -108,7 +108,6 @@ describe('setupPricingModelTransaction (integration)', () => {
           slug: 'f1',
           name: 'Feat1',
           description: '',
-          livemode: false,
           usageMeterSlug: 'missing',
           amount: 1,
           renewalFrequency:
@@ -155,7 +154,6 @@ describe('setupPricingModelTransaction (integration)', () => {
           slug: 'f1',
           name: 'Feat1',
           description: '',
-          livemode: false,
           usageMeterSlug: 'um',
           amount: 10,
           renewalFrequency:
@@ -167,7 +165,6 @@ describe('setupPricingModelTransaction (integration)', () => {
           slug: 'f2',
           name: 'Feat2',
           description: '',
-          livemode: false,
           active: true,
         },
       ],
@@ -192,14 +189,11 @@ describe('setupPricingModelTransaction (integration)', () => {
               name: 'Test Price',
               usageMeterId: null,
               trialPeriodDays: null,
-              setupFeeAmount: null,
               usageEventsPerUnit: null,
-              overagePriceId: null,
               active: true,
               intervalUnit: IntervalUnit.Month,
               intervalCount: 1,
               unitPrice: 100,
-              startsWithCreditTrial: false,
             },
             {
               type: PriceType.Usage,
@@ -208,14 +202,11 @@ describe('setupPricingModelTransaction (integration)', () => {
               name: 'Test Price',
               usageMeterSlug: 'um',
               trialPeriodDays: null,
-              setupFeeAmount: null,
               usageEventsPerUnit: 1,
-              overagePriceId: null,
               active: true,
               intervalUnit: IntervalUnit.Month,
               intervalCount: 1,
               unitPrice: 5,
-              startsWithCreditTrial: false,
             },
           ],
           features: ['f1', 'f2'],
@@ -366,14 +357,11 @@ describe('setupPricingModelTransaction (integration)', () => {
                 name: 'Custom Free',
                 usageMeterId: null,
                 trialPeriodDays: null,
-                setupFeeAmount: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 active: true,
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 unitPrice: 0, // Zero price
-                startsWithCreditTrial: false,
               },
             ],
             features: [],
@@ -475,14 +463,11 @@ describe('setupPricingModelTransaction (integration)', () => {
                 name: 'Invalid Price',
                 usageMeterId: null,
                 trialPeriodDays: null,
-                setupFeeAmount: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 active: true,
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 unitPrice: 100, // Non-zero price - should fail
-                startsWithCreditTrial: false,
               },
             ],
             features: [],
@@ -531,14 +516,11 @@ describe('setupPricingModelTransaction (integration)', () => {
                 name: 'Invalid Price',
                 usageMeterId: null,
                 trialPeriodDays: 7, // Trial days - should fail
-                setupFeeAmount: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 active: true,
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 unitPrice: 0,
-                startsWithCreditTrial: false,
               },
             ],
             features: [],
@@ -558,62 +540,6 @@ describe('setupPricingModelTransaction (integration)', () => {
           )
         )
       ).rejects.toThrow('Default products cannot have trials')
-    })
-
-    it('should reject default product with setup fees', async () => {
-      const input: SetupPricingModelInput = {
-        name: 'Test Pricing Model',
-        isDefault: false,
-        usageMeters: [],
-        features: [],
-        products: [
-          {
-            product: {
-              name: 'Invalid Default',
-              default: true,
-              description: '',
-              slug: 'invalid-default',
-              active: true,
-              imageURL: null,
-              displayFeatures: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-            },
-            prices: [
-              {
-                type: PriceType.Subscription,
-                slug: 'invalid-price',
-                isDefault: true,
-                name: 'Invalid Price',
-                usageMeterId: null,
-                trialPeriodDays: null,
-                setupFeeAmount: 50, // Setup fee - should fail
-                usageEventsPerUnit: null,
-                overagePriceId: null,
-                active: true,
-                intervalUnit: IntervalUnit.Month,
-                intervalCount: 1,
-                unitPrice: 0,
-                startsWithCreditTrial: false,
-              },
-            ],
-            features: [],
-          },
-        ],
-      }
-
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-        )
-      ).rejects.toThrow('Default products cannot have setup fees')
     })
 
     it('should reject default product using reserved "free" slug', async () => {
@@ -643,14 +569,11 @@ describe('setupPricingModelTransaction (integration)', () => {
                 name: 'Free Price',
                 usageMeterId: null,
                 trialPeriodDays: null,
-                setupFeeAmount: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 active: true,
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 unitPrice: 0,
-                startsWithCreditTrial: false,
               },
             ],
             features: [],
@@ -750,14 +673,11 @@ describe('setupPricingModelTransaction (integration)', () => {
                 name: 'Test Price',
                 usageMeterId: null,
                 trialPeriodDays: null,
-                setupFeeAmount: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 active: true,
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 unitPrice: 100,
-                startsWithCreditTrial: false,
                 currency: 'INVALID_CURRENCY' as any, // Invalid currency
               },
             ],

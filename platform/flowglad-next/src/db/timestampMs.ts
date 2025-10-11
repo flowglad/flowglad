@@ -13,7 +13,7 @@ export function timestamptzMs(name: string) {
     driverData: Date | string
   }>({
     dataType: () => 'timestamptz',
-    toDriver: (n) => new Date(n),
+    toDriver: (n) => new Date(n).toISOString(),
     fromDriver: (v) =>
       v instanceof Date ? v.getTime() : Date.parse(v as string),
   })(name)
@@ -22,21 +22,22 @@ export function timestamptzMs(name: string) {
     defaultNow() {
       return base.notNull().default(sql`now()`)
     },
+    __brand: TIMESTAMPTZ_MS,
   })
-
   // Make the brand visible to the type system:
   return withDefaultNow as typeof withDefaultNow & EpochBrand
 }
 
-export const zEpochMs = z.coerce
+export const zodEpochMs = z.coerce
   .date()
-  .transform((v) =>
-    v instanceof Date
+  .transform((v) => {
+    return v instanceof Date
       ? v.getTime()
       : typeof v === 'string'
         ? Date.parse(v)
-        : v < 1e12
-          ? v * 1000
-          : v
-  )
-  .pipe(z.number().int())
+        : v
+  })
+  .pipe(z.int())
+  .meta({
+    description: 'Epoch milliseconds.',
+  })

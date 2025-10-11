@@ -64,7 +64,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
       throw error
     }
     if (!result) {
-      throw new Error('No result')
+      throw new Error('No result for provided API key')
     }
     const meta = parseUnkeyMeta(result.meta)
     return {
@@ -303,7 +303,9 @@ export const dbInfoForCustomerBillingPortal = async ({
     organizationId,
   })
   if (!result) {
-    throw new Error('Customer not found')
+    throw new Error(
+      `Customer not found for user ${betterAuthId} and ${organizationId}`
+    )
   }
   const { customer, user } = result
   return {
@@ -320,9 +322,10 @@ export const dbInfoForCustomerBillingPortal = async ({
         aud: 'stub',
         email: user.email!,
         role: 'customer',
-        created_at: user.createdAt.toISOString(),
-        updated_at:
-          user.updatedAt?.toISOString() || new Date().toISOString(),
+        created_at: new Date(user.createdAt).toISOString(),
+        updated_at: user.updatedAt
+          ? new Date(user.updatedAt).toISOString()
+          : new Date().toISOString(),
         app_metadata: {
           provider: 'customerBillingPortal',
         },

@@ -79,13 +79,10 @@ describe('pricesRouter - Default Price Constraints', () => {
           active: true,
           name: 'Regular Price',
           trialPeriodDays: null,
-          setupFeeAmount: null,
           usageEventsPerUnit: null,
           usageMeterId: null,
           externalId: null,
           slug: null,
-          startsWithCreditTrial: false,
-          overagePriceId: null,
         },
         transaction
       )
@@ -349,13 +346,10 @@ describe('pricesRouter - Default Price Constraints', () => {
             active: true,
             name: 'Other Price',
             trialPeriodDays: null,
-            setupFeeAmount: null,
             usageEventsPerUnit: null,
             usageMeterId: null,
             externalId: null,
             slug: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
           },
           transaction
         )
@@ -391,8 +385,9 @@ describe('pricesRouter - Default Price Constraints', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             name: 'Duplicate Default',
-          } as any,
-        } as any)
+            trialPeriodDays: 0,
+          },
+        })
       ).rejects.toThrow(TRPCError)
     })
   })
@@ -452,13 +447,10 @@ describe('pricesRouter - Default Price Constraints', () => {
               active: true,
               name: 'Another Price',
               trialPeriodDays: null,
-              setupFeeAmount: null,
               usageEventsPerUnit: null,
               usageMeterId: null,
               externalId: null,
               slug: null,
-              startsWithCreditTrial: false,
-              overagePriceId: null,
             },
             transaction
           )
@@ -523,12 +515,11 @@ describe('pricesRouter - Default Price Constraints', () => {
             intervalUnit: IntervalUnit.Year,
             intervalCount: 1,
             name: 'Premium Plan',
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             slug: 'premium-plan',
             active: true,
-          } as any,
-        } as any)
+          },
+        })
       ).rejects.toThrow(
         'Cannot create additional prices for the default plan'
       )
@@ -599,7 +590,6 @@ describe('pricesRouter - Default Price Constraints', () => {
           intervalUnit: IntervalUnit.Month,
           intervalCount: 1,
           name: 'Premium Default Price',
-          setupFeeAmount: 0,
           trialPeriodDays: 0,
           slug: 'premium-default',
           active: true,
@@ -635,7 +625,9 @@ describe('pricesRouter - Default Price Constraints', () => {
             type: PriceType.Subscription,
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
-          } as any,
+            trialPeriodDays: 0,
+            isDefault: true,
+          },
         } as any)
       ).rejects.toThrow(
         'Default prices for default products must have a unitPrice of 0'
@@ -659,13 +651,10 @@ describe('pricesRouter - Default Price Constraints', () => {
               active: true,
               name: 'Another Default',
               trialPeriodDays: null,
-              setupFeeAmount: null,
               usageEventsPerUnit: null,
               usageMeterId: null,
               externalId: null,
               slug: null,
-              startsWithCreditTrial: false,
-              overagePriceId: null,
             },
             transaction
           )

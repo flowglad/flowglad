@@ -4,17 +4,21 @@ import InternalPageContainer from '@/components/InternalPageContainer'
 import { PageHeader } from '@/components/ui/page-header'
 import { RichSubscription } from '@/subscriptions/schemas'
 import { TableHeader } from '@/components/ui/table-header'
-import PaymentsTable from '../../payments/PaymentsTable'
+import { PaymentsDataTable } from '../../payments/data-table'
 import { useAuthContext } from '@/contexts/authContext'
-import SubscriptionItemsTable from './SubscriptionItemsTable'
+import { SubscriptionItemsDataTable } from './subscription-items/data-table'
 import SubscriptionStatusBadge from '../SubscriptionStatusBadge'
 import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { CardPaymentMethodLabel } from '@/components/PaymentMethodLabel'
 import { PaymentMethodType } from '@/types'
 import { Label } from '@/components/ui/label'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Pencil } from 'lucide-react'
+import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
-import InvoicesTable from '@/components/InvoicesTable'
+import { InvoicesDataTable } from '../../invoices/data-table'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -24,6 +28,8 @@ const InnerSubscriptionPage = ({
   defaultPaymentMethod: PaymentMethod.ClientRecord | null
 }) => {
   const { organization } = useAuthContext()
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+
   if (!organization) {
     return <div>Loading...</div>
   }
@@ -55,7 +61,17 @@ const InnerSubscriptionPage = ({
                 : ' -'}
             </div>
             <div className="flex w-full flex-col gap-2">
-              <Label>Payment Method</Label>
+              <div className="flex items-center justify-between">
+                <Label>Payment Method</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditDialogOpen(true)}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              </div>
               {defaultPaymentMethod &&
                 defaultPaymentMethod.type ===
                   PaymentMethodType.Card && (
@@ -70,22 +86,36 @@ const InnerSubscriptionPage = ({
                     }
                   />
                 )}
+              {!defaultPaymentMethod && (
+                <p className="text-sm text-muted-foreground">
+                  No payment method set
+                </p>
+              )}
             </div>
           </div>
         </div>
-        <TableHeader title="Items" noButtons />
-        <SubscriptionItemsTable
+        <SubscriptionItemsDataTable
+          title="Items"
           subscriptionItems={subscription.subscriptionItems}
+          currencyCode={organization.defaultCurrency}
         />
-        <TableHeader title="Invoices" noButtons />
-        <InvoicesTable
+        <InvoicesDataTable
+          title="Invoices"
           filters={{ subscriptionId: subscription.id }}
         />
-        <TableHeader title="Payments" noButtons />
-        <PaymentsTable
+        <PaymentsDataTable
+          title="Payments"
           filters={{ subscriptionId: subscription.id }}
         />
       </div>
+
+      <EditSubscriptionPaymentMethodModal
+        isOpen={isEditDialogOpen}
+        setIsOpen={setIsEditDialogOpen}
+        subscriptionId={subscription.id}
+        customerId={subscription.customerId}
+        currentPaymentMethodId={defaultPaymentMethod?.id}
+      />
     </InternalPageContainer>
   )
 }

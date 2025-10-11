@@ -42,7 +42,7 @@ function CustomerActionsMenu({
 
   const actionItems: ActionMenuItem[] = [
     {
-      label: 'Edit Customer',
+      label: 'Edit',
       icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
     },
@@ -84,7 +84,9 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
         {row.getValue('name')}
       </div>
     ),
-    minSize: 140,
+    size: 200,
+    minSize: 200,
+    maxSize: 275,
   },
   {
     id: 'email',

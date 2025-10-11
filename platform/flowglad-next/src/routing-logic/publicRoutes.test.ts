@@ -511,7 +511,21 @@ describe('middlewareLogic - public routes coverage', () => {
         expect(result.proceed).toBe(true)
       })
     })
-
+    it('should allow access to batched procedures on checkout sessions without session', () => {
+      const paths = [
+        '/api/trpc/checkoutSessions.public.attemptDiscountCode,checkoutSessions.public.clearDiscountCode,checkoutSessions.public.confirm',
+      ]
+      paths.forEach((path) => {
+        const result = middlewareLogic({
+          sessionCookie: null,
+          isProtectedRoute: false,
+          pathName: path,
+          customerBillingPortalOrganizationId: null,
+          req: { nextUrl: `https://example.com${path}` },
+        })
+        expect(result.proceed).toBe(true)
+      })
+    })
     it('should allow access to preview-ui routes without session', () => {
       const paths = [
         '/preview-ui',

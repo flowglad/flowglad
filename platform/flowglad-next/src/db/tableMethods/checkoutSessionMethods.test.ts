@@ -22,8 +22,8 @@ describe('checkoutSessionIsInTerminalState', () => {
         // Include minimal required properties for the stub
         id: 'test-id',
         type: CheckoutSessionType.Product,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       } as CheckoutSession.Record
 
       expect(checkoutSessionIsInTerminalState(checkoutSession)).toBe(
@@ -46,8 +46,8 @@ describe('checkoutSessionIsInTerminalState', () => {
         // Include minimal required properties for the stub
         id: 'test-id',
         type: CheckoutSessionType.Product,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       } as CheckoutSession.Record
 
       expect(checkoutSessionIsInTerminalState(checkoutSession)).toBe(
@@ -72,8 +72,8 @@ describe('isCheckoutSessionSubscriptionCreating', () => {
         // Include minimal required properties for the stub
         id: 'test-id',
         status: CheckoutSessionStatus.Open,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       } as CheckoutSession.Record
 
       expect(
@@ -96,8 +96,8 @@ describe('isCheckoutSessionSubscriptionCreating', () => {
         // Include minimal required properties for the stub
         id: 'test-id',
         status: CheckoutSessionStatus.Open,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       } as CheckoutSession.Record
 
       expect(

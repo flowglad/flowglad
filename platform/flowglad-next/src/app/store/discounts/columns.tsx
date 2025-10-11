@@ -64,18 +64,12 @@ function DiscountActionsMenu({
   discount: Discount.ClientRecord
 }) {
   const [isEditOpen, setIsEditOpen] = React.useState(false)
-  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false)
 
   const actionItems: ActionMenuItem[] = [
     {
-      label: 'Edit Discount',
+      label: 'Edit',
       icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
-    },
-    {
-      label: 'Delete Discount',
-      icon: <Trash2 className="h-4 w-4" />,
-      handler: () => setIsDeleteOpen(true),
     },
   ]
 
@@ -85,11 +79,6 @@ function DiscountActionsMenu({
         isOpen={isEditOpen}
         setIsOpen={setIsEditOpen}
         discount={discount}
-      />
-      <DeleteDiscountModal
-        id={discount.id}
-        isOpen={isDeleteOpen}
-        setIsOpen={setIsDeleteOpen}
       />
     </EnhancedDataTableActionsMenu>
   )

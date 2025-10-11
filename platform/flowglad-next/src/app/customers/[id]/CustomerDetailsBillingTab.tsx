@@ -3,18 +3,17 @@ import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import { UsageEvent } from '@/db/schema/usageEvents'
-import PurchasesTable from './PurchasesTable'
-import UsageEventsTable from './UsageEventsTable'
-import InvoicesTable from '@/components/InvoicesTable'
+import { PurchasesDataTable } from './purchases/data-table'
+import { UsageEventsDataTable } from './usage-events/data-table'
+import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
-import { TableHeader } from '@/components/ui/table-header'
+import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 // import { useState } from 'react'
-import PaymentsTable from '@/app/finance/payments/PaymentsTable'
+import { PaymentsDataTable } from '@/app/finance/payments/data-table'
 import { DetailLabel } from '@/components/DetailLabel'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
@@ -119,8 +118,10 @@ const CustomerDetailsSection = ({
           <DetailLabel
             label="Latest Usage"
             value={
-              latestUsageEvent
-                ? core.formatDate(latestUsageEvent.usageDate)
+              latestUsageEvent?.usageDate
+                ? core.formatDate(
+                    new Date(latestUsageEvent.usageDate)
+                  )
                 : 'None'
             }
           />
@@ -156,34 +157,32 @@ export const CustomerBillingSubPage = ({
             usageEvents={usageEvents}
           />
           <div className="w-full flex flex-col gap-5 pb-20">
-            <TableHeader title="Subscriptions" noButtons />
-            <SubscriptionsTable
+            <SubscriptionsDataTable
+              title="Subscriptions"
               filters={{
                 customerId: customer.id,
               }}
             />
-            <TableHeader
+            <InvoicesDataTable
               title="Invoices"
-              noButtons
-              // buttonLabel="Create Invoice"
-              // buttonIcon={<Plus size={16} />}
-              // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
-            />
-            <InvoicesTable customer={customer} />
-            <TableHeader title="Payments" noButtons />
-            <PaymentsTable
               filters={{
                 customerId: customer.id,
               }}
             />
-            <TableHeader title="Purchases" noButtons />
-            <PurchasesTable
+            <PaymentsDataTable
+              title="Payments"
               filters={{
                 customerId: customer.id,
               }}
             />
-            <TableHeader title="Usage Events" noButtons />
-            <UsageEventsTable
+            <PurchasesDataTable
+              title="Purchases"
+              filters={{
+                customerId: customer.id,
+              }}
+            />
+            <UsageEventsDataTable
+              title="Usage Events"
               filters={{
                 customerId: customer.id,
               }}

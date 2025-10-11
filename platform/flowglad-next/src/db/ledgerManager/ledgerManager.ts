@@ -4,7 +4,6 @@ import {
   AdminCreditAdjustedLedgerCommand,
   CreditGrantExpiredLedgerCommand,
   PaymentRefundedLedgerCommand,
-  BillingRecalculatedLedgerCommand,
   LedgerCommandResult,
   ledgerCommandSchema,
 } from '@/db/ledgerManager/ledgerManagerTypes'
@@ -79,7 +78,7 @@ const processAdminCreditAdjustedLedgerCommand = async (
     subscriptionId: command.subscriptionId!,
     organizationId: command.organizationId,
     livemode: command.livemode,
-    entryTimestamp: new Date(),
+    entryTimestamp: Date.now(),
     status: LedgerEntryStatus.Posted,
     discardedAt: null,
     direction: LedgerEntryDirection.Debit, // Debits reduce credit balance
@@ -167,31 +166,6 @@ const processPaymentRefundedLedgerCommand = async (
   }
 }
 
-const processBillingRecalculatedLedgerCommand = async (
-  command: BillingRecalculatedLedgerCommand,
-  transaction: DbTransaction
-): Promise<LedgerCommandResult> => {
-  const ledgerTransactionInput: LedgerTransaction.Insert = {
-    organizationId: command.organizationId,
-    livemode: command.livemode,
-    type: command.type,
-    description: command.transactionDescription ?? null,
-    metadata: command.transactionMetadata ?? null,
-    initiatingSourceType: command.type,
-    initiatingSourceId: command.payload.newCalculation.id,
-    subscriptionId: command.subscriptionId!,
-  }
-  // TODO: Implement LedgerEntry creation for BillingRecalculated
-  const insertedLedgerTransaction = await insertLedgerTransaction(
-    ledgerTransactionInput,
-    transaction
-  )
-  return {
-    ledgerTransaction: insertedLedgerTransaction,
-    ledgerEntries: [],
-  }
-}
-
 export const processLedgerCommand = async (
   rawCommand: LedgerCommand,
   transaction: DbTransaction
@@ -225,11 +199,6 @@ export const processLedgerCommand = async (
       )
     case LedgerTransactionType.PaymentRefunded:
       return processPaymentRefundedLedgerCommand(command, transaction)
-    case LedgerTransactionType.BillingRecalculated:
-      return processBillingRecalculatedLedgerCommand(
-        command,
-        transaction
-      )
     case LedgerTransactionType.SettleInvoiceUsageCosts:
       return processSettleInvoiceUsageCostsLedgerCommand(
         command,

@@ -299,13 +299,10 @@ export const createFreePlanPriceInsert = (
       active: true,
       name: config.name,
       trialPeriodDays: null,
-      setupFeeAmount: null,
       usageEventsPerUnit: null,
       usageMeterId: null,
       externalId: null,
       slug: config.slug,
-      startsWithCreditTrial: false,
-      overagePriceId: null,
     }
   } else {
     // Return single payment price when no interval unit is provided
@@ -321,13 +318,11 @@ export const createFreePlanPriceInsert = (
       active: true,
       name: config.name,
       trialPeriodDays: null,
-      setupFeeAmount: null,
       usageEventsPerUnit: null,
       usageMeterId: null,
       externalId: null,
       slug: config.slug,
       startsWithCreditTrial: null,
-      overagePriceId: null,
     }
   }
 }
@@ -384,7 +379,7 @@ export const createCustomerBookkeeping = async (
     )
   }
 
-  const timestamp = new Date()
+  const timestamp = Date.now()
   const eventsToInsert: Event.Insert[] = []
 
   // Create customer created event
@@ -396,6 +391,10 @@ export const createCustomerBookkeeping = async (
     payload: {
       object: EventNoun.Customer,
       id: customer.id,
+      customer: {
+        id: customer.id,
+        externalId: customer.externalId,
+      },
     },
     submittedAt: timestamp,
     hash: constructCustomerCreatedEventHash(customer),

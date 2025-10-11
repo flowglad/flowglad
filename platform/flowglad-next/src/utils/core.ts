@@ -15,7 +15,12 @@ import { camelCase, sentenceCase } from 'change-case'
 import latinMap from './latinMap'
 import { z } from 'zod'
 import axios, { AxiosRequestConfig } from 'axios'
-import { CurrencyCode, Nullish, StripePriceMode } from '@/types'
+import {
+  CountryCode,
+  CurrencyCode,
+  Nullish,
+  StripePriceMode,
+} from '@/types'
 
 export const envVariable = (key: string) => process.env[key] || ''
 
@@ -315,12 +320,8 @@ export const safeZodNonNegativeInteger = z.coerce
 
 export const safeZodPositiveInteger = z.coerce
   .number()
-  .transform((str) => Number(str))
-  .refine(
-    (arg) => z.number().int().positive().safeParse(arg).success,
-    { message: 'Value must be a positive integer' }
-  )
-  .describe('safeZodPositiveInteger')
+  .int()
+  .positive()
   .meta({
     description: 'A positive integer',
   })
@@ -340,7 +341,8 @@ export const safeZodNullOrUndefined = z
   .transform(() => {
     return null
   })
-  .describe('safeZodNullOrUndefined')
+  .pipe(z.null())
+  .describe('Omitted.')
 
 export const safeZodNullishString = z
   .string()
@@ -357,14 +359,13 @@ export const nanoid = customAlphabet(
 
 type EnumValues<T> = T extends Record<string, infer U> ? U : never
 
-export const createSafeZodEnum = <T extends Record<string, string>>(
+export const createSafeZodEnum = <
+  T extends Record<string, string | number>,
+>(
   enumType: T
 ) => {
-  const values = Object.values(enumType) as [
-    EnumValues<T>,
-    ...EnumValues<T>[],
-  ]
-  return z.enum(values as [EnumValues<T>, ...EnumValues<T>[]])
+  // Use nativeEnum so the inferred type is the TS enum type
+  return z.nativeEnum(enumType)
 }
 
 /**
@@ -509,6 +510,8 @@ export const organizationBillingPortalURL = (params: {
   )
 }
 
+export const nowTime = () => Date.now()
+
 export const core = {
   IS_PROD,
   IS_TEST,
@@ -549,6 +552,7 @@ export const core = {
   gitCommitId,
   customerBillingPortalURL,
   organizationBillingPortalURL,
+  nowTime,
   safeZodNullOrUndefined,
   safeZodNullishString,
   safeZodPositiveInteger,

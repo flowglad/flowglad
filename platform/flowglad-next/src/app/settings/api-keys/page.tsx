@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import ApiKeysTable from './ApiKeysTable'
+import { ApiKeysDataTable } from './data-table'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
 import { Plus } from 'lucide-react'
@@ -27,10 +27,11 @@ function ApiKeysPage() {
             </Button>
           }
         />
-        <ApiKeysTable
+        <ApiKeysDataTable
           filters={{
             type: FlowgladApiKeyType.Secret,
           }}
+          onCreateApiKey={() => setIsCreateModalOpen(true)}
         />
         <CreateApiKeyModal
           isOpen={isCreateModalOpen}

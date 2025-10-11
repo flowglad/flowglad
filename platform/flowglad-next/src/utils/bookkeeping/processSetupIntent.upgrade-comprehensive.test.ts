@@ -21,7 +21,7 @@ import { Price } from '@/db/schema/prices'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { Purchase } from '@/db/schema/purchases'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { core } from '@/utils/core'
+import { core, nowTime } from '@/utils/core'
 import {
   setupOrg,
   setupCustomer,
@@ -153,7 +153,6 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       currency: CurrencyCode.USD,
     })
 
@@ -174,7 +173,6 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       currency: CurrencyCode.USD,
     })
 
@@ -187,10 +185,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       status: SubscriptionStatus.Active,
       livemode: true,
       isFreePlan: true,
-      currentBillingPeriodStart: new Date(),
+      currentBillingPeriodStart: Date.now(),
       currentBillingPeriodEnd: new Date(
         Date.now() + 30 * 24 * 60 * 60 * 1000
-      ),
+      ).getTime(),
     })
 
     // Create checkout session for paid product (common for upgrade tests)
@@ -370,7 +368,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             id: freeSubscription.id,
             renews: false,
             status: SubscriptionStatus.Canceled,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             cancellationReason: CancellationReason.CustomerRequest,
           },
           transaction
@@ -430,6 +428,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
     })
 
     it('should handle multiple free subscriptions gracefully', async () => {
+      const now = Date.now()
       // Create a second free subscription (edge case scenario)
       const secondFreeSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -439,10 +438,8 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: SubscriptionStatus.Active,
         livemode: true,
         isFreePlan: true,
-        currentBillingPeriodStart: new Date(),
-        currentBillingPeriodEnd: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000
-        ),
+        currentBillingPeriodStart: now,
+        currentBillingPeriodEnd: now + 30 * 24 * 60 * 60 * 1000,
       })
 
       // First cancel the older free subscription to avoid multiple active subscriptions
@@ -452,7 +449,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             id: freeSubscription.id,
             renews: false,
             status: SubscriptionStatus.Canceled,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             cancellationReason: CancellationReason.CustomerRequest,
           },
           transaction
@@ -849,7 +846,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             id: freeSubscription.id,
             renews: false,
             status: SubscriptionStatus.Canceled,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             cancellationReason: CancellationReason.CustomerRequest,
           },
           transaction
@@ -970,7 +967,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
         // Billing period end should be in the future
         expect(
-          newSubscription.currentBillingPeriodEnd!.getTime()
+          newSubscription.currentBillingPeriodEnd!
         ).toBeGreaterThan(Date.now())
 
         // The new subscription should have the correct price
@@ -1185,6 +1182,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
     })
 
     it('should link subscriptions correctly in linkUpgradedSubscriptions', async () => {
+      const now = Date.now()
       // Create a new paid subscription to link to
       const newPaidSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -1194,10 +1192,8 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: SubscriptionStatus.Active,
         livemode: true,
         isFreePlan: false,
-        currentBillingPeriodStart: new Date(),
-        currentBillingPeriodEnd: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000
-        ),
+        currentBillingPeriodStart: now,
+        currentBillingPeriodEnd: now + 30 * 24 * 60 * 60 * 1000,
       })
 
       await adminTransaction(async ({ transaction }) => {
@@ -1208,7 +1204,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             renews: false,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
           },
           transaction
         )
@@ -1496,11 +1492,11 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         const newSubscription = subscriptions[0]
         // Should have trial end date set
         expect(newSubscription.trialEnd).toBeDefined()
-        expect(newSubscription.trialEnd).toBeInstanceOf(Date)
+        expect(newSubscription.trialEnd).toBeDefined()
 
         // Trial should be approximately 14 days from now
         const daysDiff = Math.round(
-          (newSubscription.trialEnd!.getTime() - Date.now()) /
+          (newSubscription.trialEnd! - Date.now()) /
             (1000 * 60 * 60 * 24)
         )
         expect(daysDiff).toBeGreaterThanOrEqual(13)
@@ -1522,8 +1518,8 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         customerId: customerWithTrialHistory.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Canceled,
-        trialEnd: new Date('2023-01-15'), // Had a trial in the past
-        canceledAt: new Date('2023-02-01'),
+        trialEnd: new Date('2023-01-15').getTime(), // Had a trial in the past
+        canceledAt: new Date('2023-02-01').getTime(),
       })
 
       // Create a price with trial period
@@ -1923,7 +1919,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             renews: false,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
           },
           transaction
         )
@@ -1985,7 +1981,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             renews: false,
             status: SubscriptionStatus.Canceled,
             cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date(),
+            canceledAt: Date.now(),
             replacedBySubscriptionId: firstPaidSub.id,
           },
           transaction

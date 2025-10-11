@@ -150,6 +150,7 @@ export async function checkoutInfoForPriceWhere(
       checkoutSession,
       feeCalculation,
       discount,
+      features,
     }
     return {
       checkoutInfo: checkoutInfoSchema.parse(rawCheckoutInfo),

@@ -1,10 +1,17 @@
 'use client'
 
+import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
+import { Pencil } from 'lucide-react'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { formatDate } from '@/utils/core'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
+import {
+  EnhancedDataTableActionsMenu,
+  ActionMenuItem,
+} from '@/components/ui/enhanced-data-table-actions-menu'
+import EditUsageMeterModal from '@/components/components/EditUsageMeterModal'
 
 type UsageMeterTableRowData = {
   usageMeter: UsageMeter.ClientRecord
@@ -14,14 +21,40 @@ type UsageMeterTableRowData = {
   }
 }
 
+function UsageMeterActionsMenu({
+  usageMeter,
+}: {
+  usageMeter: UsageMeter.ClientRecord
+}) {
+  const [isEditOpen, setIsEditOpen] = React.useState(false)
+
+  const actionItems: ActionMenuItem[] = [
+    {
+      label: 'Edit',
+      icon: <Pencil className="h-4 w-4" />,
+      handler: () => setIsEditOpen(true),
+    },
+  ]
+
+  return (
+    <EnhancedDataTableActionsMenu items={actionItems}>
+      <EditUsageMeterModal
+        isOpen={isEditOpen}
+        setIsOpen={setIsEditOpen}
+        usageMeter={usageMeter}
+      />
+    </EnhancedDataTableActionsMenu>
+  )
+}
+
 export const columns: ColumnDef<UsageMeterTableRowData>[] = [
   {
     id: 'name',
     accessorFn: (row) => row.usageMeter.name,
     header: 'Name',
-    size: 250,
-    minSize: 150,
-    maxSize: 400,
+    size: 200,
+    minSize: 200,
+    maxSize: 275,
     cell: ({ row }) => {
       const name = row.getValue('name') as string
       return (
@@ -81,6 +114,24 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
     },
   },
   {
+    id: 'slug',
+    accessorFn: (row) => row.usageMeter.slug,
+    header: 'Slug',
+    cell: ({ row }) => {
+      const slug = row.getValue('slug') as string
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          <DataTableCopyableCell copyText={slug}>
+            {slug}
+          </DataTableCopyableCell>
+        </div>
+      )
+    },
+    size: 180,
+    minSize: 125,
+    maxSize: 250,
+  },
+  {
     id: 'id',
     accessorFn: (row) => row.usageMeter.id,
     header: 'ID',
@@ -97,5 +148,21 @@ export const columns: ColumnDef<UsageMeterTableRowData>[] = [
         </div>
       )
     },
+  },
+  {
+    id: 'actions',
+    enableHiding: false,
+    enableResizing: false,
+    cell: ({ row }) => {
+      const usageMeter = row.original.usageMeter
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          <UsageMeterActionsMenu usageMeter={usageMeter} />
+        </div>
+      )
+    },
+    size: 1,
+    minSize: 56,
+    maxSize: 56,
   },
 ]

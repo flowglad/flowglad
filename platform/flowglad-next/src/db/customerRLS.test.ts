@@ -402,7 +402,7 @@ describe('Customer Role RLS Policies', () => {
       customerId: customerA_Org1.id,
       organizationId: org1.id,
       paymentMethodId: paymentMethodA_Org1.id,
-      chargeDate: new Date(),
+      chargeDate: Date.now(),
       livemode: true,
     })
 
@@ -414,7 +414,7 @@ describe('Customer Role RLS Policies', () => {
       customerId: customerB_Org1.id,
       organizationId: org1.id,
       paymentMethodId: paymentMethodB_Org1.id,
-      chargeDate: new Date(),
+      chargeDate: Date.now(),
       livemode: true,
     })
   })
@@ -1136,7 +1136,7 @@ describe('Customer Role RLS Policies', () => {
             {
               id: subscriptionB_Org1.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: new Date(),
+              canceledAt: Date.now(),
               renews: false,
             },
             transaction
@@ -1250,12 +1250,9 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
             isDefault: true,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
             usageMeterId: null,
           },
           transaction
@@ -1274,12 +1271,9 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
             isDefault: true,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
             usageMeterId: null,
           },
           transaction
@@ -1337,12 +1331,10 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
             isDefault: true,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
+            startsWithCreditTrial: null,
             usageMeterId: null,
           },
           transaction
@@ -1361,12 +1353,10 @@ describe('Customer Role RLS Policies', () => {
             active: false,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
+            startsWithCreditTrial: null,
             usageMeterId: null,
           },
           transaction
@@ -1775,12 +1765,10 @@ describe('Customer Role RLS Policies', () => {
                 active: true, // Price is active but product is not
                 livemode: true,
                 isDefault: true,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
                 usageEventsPerUnit: null,
-                startsWithCreditTrial: false,
-                overagePriceId: null,
+                startsWithCreditTrial: null,
                 usageMeterId: null,
               },
               transaction
@@ -1878,12 +1866,10 @@ describe('Customer Role RLS Policies', () => {
                 active: false, // Both product and price inactive
                 livemode: true,
                 isDefault: false,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
                 usageEventsPerUnit: null,
-                startsWithCreditTrial: false,
-                overagePriceId: null,
+                startsWithCreditTrial: null,
                 usageMeterId: null,
               },
               transaction
@@ -2107,7 +2093,7 @@ describe('Customer Role RLS Policies', () => {
       const orgData = await setupOrg()
       organization = orgData.organization
       defaultPricingModel = orgData.pricingModel
-      
+
       // Create a product for the default pricing model
       const defaultProduct = await setupProduct({
         organizationId: organization.id,
@@ -2127,7 +2113,6 @@ describe('Customer Role RLS Policies', () => {
         currency: CurrencyCode.USD,
         livemode: true,
         isDefault: true,
-        setupFeeAmount: 0,
         trialPeriodDays: 0,
       })
 
@@ -2151,15 +2136,20 @@ describe('Customer Role RLS Policies', () => {
       expect(customerWithNullPricingModel.pricingModelId).toBeNull()
 
       // Test as a customer (not merchant) to reproduce the RLS issue
-      const { selectPricingModelForCustomer } = await import('./tableMethods/pricingModelMethods')
-      
+      const { selectPricingModelForCustomer } = await import(
+        './tableMethods/pricingModelMethods'
+      )
+
       // Use the helper function to simulate customer accessing billing portal with proper RLS context
       const result = await authenticatedCustomerTransaction(
         customerWithNullPricingModel,
         user,
         organization,
         async ({ transaction }) => {
-          return selectPricingModelForCustomer(customerWithNullPricingModel, transaction)
+          return selectPricingModelForCustomer(
+            customerWithNullPricingModel,
+            transaction
+          )
         }
       )
 

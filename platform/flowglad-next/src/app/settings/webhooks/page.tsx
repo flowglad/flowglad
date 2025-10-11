@@ -2,12 +2,10 @@
 
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import WebhooksTable from './WebhooksTable'
+import { WebhooksDataTable } from './data-table'
 import { PageHeader } from '@/components/ui/page-header'
-import { Button } from '@/components/ui/button'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import CreateWebhookModal from '@/components/forms/CreateWebhookModal'
-import { Plus } from 'lucide-react'
 
 function WebhooksPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -16,18 +14,11 @@ function WebhooksPage() {
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <PageHeader
-          title="Webhooks"
-          className="mb-6"
-          action={
-            <Button onClick={() => setIsCreateModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Webhook
-            </Button>
-          }
-        />
+        <PageHeader title="Webhooks" className="mb-6" />
 
-        <WebhooksTable />
+        <WebhooksDataTable
+          onCreateWebhook={() => setIsCreateModalOpen(true)}
+        />
         <CreateWebhookModal
           isOpen={isCreateModalOpen}
           setIsOpen={setIsCreateModalOpen}

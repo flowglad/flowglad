@@ -5,14 +5,13 @@ import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  ommittedColumnsForInsertSchema,
   livemodePolicy,
   constructUniqueIndex,
   pgEnumColumn,
   merchantPolicy,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import core from '@/utils/core'
 import { subscriptions } from './subscriptions'
 import { LedgerTransactionType } from '@/types'
@@ -78,40 +77,19 @@ const columnRefinements = {
   type: core.createSafeZodEnum(LedgerTransactionType),
 }
 
-export const ledgerTransactionsInsertSchema = createInsertSchema(
-  ledgerTransactions
-)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const ledgerTransactionsSelectSchema = createSelectSchema(
-  ledgerTransactions
-).extend(columnRefinements)
-
-export const ledgerTransactionsUpdateSchema =
-  ledgerTransactionsInsertSchema.partial().extend({ id: z.string() })
-
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
-const clientWriteOmits = {
-  organizationId: true,
-  livemode: true,
-} as const
-
-export const ledgerTransactionClientInsertSchema =
-  ledgerTransactionsInsertSchema.omit(clientWriteOmits).meta({
-    id: 'LedgerTransactionInsert',
-  })
-export const ledgerTransactionClientUpdateSchema =
-  ledgerTransactionsUpdateSchema.omit({ ...clientWriteOmits }).meta({
-    id: 'LedgerTransactionUpdate',
-  })
-export const ledgerTransactionClientSelectSchema =
-  ledgerTransactionsSelectSchema.omit(hiddenColumns).meta({
-    id: 'LedgerTransactionRecord',
-  })
+export const {
+  insert: ledgerTransactionsInsertSchema,
+  select: ledgerTransactionsSelectSchema,
+  update: ledgerTransactionsUpdateSchema,
+  client: {
+    insert: ledgerTransactionClientInsertSchema,
+    update: ledgerTransactionClientUpdateSchema,
+    select: ledgerTransactionClientSelectSchema,
+  },
+} = buildSchemas(ledgerTransactions, {
+  refine: columnRefinements,
+  entityName: 'LedgerTransaction',
+})
 
 export namespace LedgerTransaction {
   export type Insert = z.infer<typeof ledgerTransactionsInsertSchema>

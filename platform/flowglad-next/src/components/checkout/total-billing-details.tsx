@@ -94,7 +94,7 @@ type TotalBillingDetailsParams =
   | PriceTotalBillingDetailsParams
   | InvoiceTotalBillingDetailsParams
 
-const calculateTotalBillingDetails = (
+export const calculateTotalBillingDetails = (
   params: TotalBillingDetailsParams
 ) => {
   const { purchase, feeCalculation, price, discount, invoice, type } =
@@ -120,7 +120,7 @@ const calculateTotalBillingDetails = (
         })
 
   let subtotalAmount: number = baseAmount
-  let discountAmount: number | null = calculateDiscountAmount(
+  let discountAmount: number = calculateDiscountAmount(
     baseAmount,
     discount
   )
@@ -168,13 +168,6 @@ export const TotalBillingDetails = React.forwardRef<
     return null
   }
 
-  let afterwardsTotal: number | null = null
-  let afterwardsTotalLabel = ''
-  if (subscriptionDetails?.trialPeriodDays) {
-    afterwardsTotalLabel = 'Total After Trial'
-    afterwardsTotal = subscriptionDetails.pricePerBillingCycle
-  }
-
   const isInvoiceFlow = flowType === CheckoutFlowType.Invoice
   const totalBillingDetailsParams: TotalBillingDetailsParams =
     isInvoiceFlow
@@ -196,8 +189,32 @@ export const TotalBillingDetails = React.forwardRef<
           feeCalculation,
         }
 
-  const { discountAmount, taxAmount, baseAmount, totalDueAmount } =
-    calculateTotalBillingDetails(totalBillingDetailsParams)
+  const {
+    discountAmount,
+    taxAmount,
+    subtotalAmount,
+    totalDueAmount,
+  } = calculateTotalBillingDetails(totalBillingDetailsParams)
+
+  // For invoice flows, if the invoice is paid and there's no fee calculation, total due should be 0
+  let finalTotalDueAmount = totalDueAmount
+  if (
+    isInvoiceFlow &&
+    checkoutPageContext.invoice?.status === 'paid' &&
+    !feeCalculation
+  ) {
+    finalTotalDueAmount = 0
+  }
+
+  let afterwardsTotal: number | null = null
+  let afterwardsTotalLabel = ''
+  if (subscriptionDetails?.trialPeriodDays) {
+    afterwardsTotalLabel = 'Total After Trial'
+    // Calculate the actual price after trial (with discount applied)
+    const priceAfterTrial =
+      subscriptionDetails.pricePerBillingCycle - (discountAmount ?? 0)
+    afterwardsTotal = Math.max(0, priceAfterTrial) // Ensure it's not negative
+  }
   const hideTotalLabels =
     flowType === CheckoutFlowType.Subscription &&
     checkoutPageContext.price.type === PriceType.Usage
@@ -214,21 +231,25 @@ export const TotalBillingDetails = React.forwardRef<
       {!hideTotalLabels && (
         <BillingLine
           label="Subtotal"
-          amount={baseAmount}
+          amount={subtotalAmount}
           currency={currency}
           isLoading={editCheckoutSessionLoading}
           className="text-base"
         />
       )}
 
-      {discount && (
-        <BillingLine
-          label="Discount"
-          amount={discountAmount ?? 0}
-          currency={currency}
-          isLoading={editCheckoutSessionLoading}
-        />
-      )}
+      {/* TODO: check whether fee calculation should not have discountAmount if original price does not have a discount */}
+
+      {!hideTotalLabels &&
+        (discount ||
+          (discountAmount != null && discountAmount > 0)) && (
+          <BillingLine
+            label="Discount"
+            amount={discountAmount ?? 0}
+            currency={currency}
+            isLoading={editCheckoutSessionLoading}
+          />
+        )}
 
       {taxAmount != null && taxAmount > 0 && (
         <BillingLine
@@ -239,7 +260,7 @@ export const TotalBillingDetails = React.forwardRef<
         />
       )}
 
-      {afterwardsTotal != null && afterwardsTotal > 0 && (
+      {afterwardsTotal != null && (
         <BillingLine
           label={afterwardsTotalLabel}
           amount={afterwardsTotal}
@@ -267,11 +288,13 @@ export const TotalBillingDetails = React.forwardRef<
                 className="text-lg font-bold text-gray-900"
                 data-testid="billing-info-total-due-amount"
               >
-                {totalDueAmount == null
+                {finalTotalDueAmount == null
                   ? ''
                   : stripeCurrencyAmountToHumanReadableCurrencyAmount(
                       currency,
-                      totalDueAmount
+                      subscriptionDetails?.trialPeriodDays
+                        ? 0
+                        : finalTotalDueAmount
                     )}
               </span>
             )}

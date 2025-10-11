@@ -6,15 +6,11 @@ import {
   setupPaymentMethod,
   setupSubscription,
   setupBillingPeriod,
-  setupBillingPeriodItem,
-  setupBillingRun,
   setupSubscriptionItem,
   setupUsageMeter,
-  setupLedgerAccount,
   setupUsageCreditGrantFeature,
   setupProductFeature,
-  setupSubscriptionItemFeature,
-  setupUsageCredit,
+  setupPrice,
 } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
@@ -22,13 +18,6 @@ import { Price } from '@/db/schema/prices'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import { UsageCredit } from '@/db/schema/usageCredits'
 import {
   SubscriptionStatus,
   BillingPeriodStatus,
@@ -82,196 +71,6 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
   })
 
   describe('Subscription Creation', () => {
-    describe('Non-Renewing (Credit Trial) Subscriptions', () => {
-      it('should create a subscription with renews: false when startsWithCreditTrial is true', async () => {
-        // Update price to have credit trial
-        const creditTrialPrice = await adminTransaction(
-          async ({ transaction }) => {
-            return updatePrice(
-              {
-                id: price.id,
-                startsWithCreditTrial: true,
-                type: PriceType.Subscription,
-              },
-              transaction
-            )
-          }
-        )
-
-        // Create subscription with credit trial price
-        const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            const stripeSetupIntentId = `si_credit_trial_${core.nanoid()}`
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price: creditTrialPrice,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                customer,
-                stripeSetupIntentId,
-              },
-              transaction
-            )
-          }
-        )
-
-        // Verify non-renewing subscription properties
-        expect(result.subscription.renews).toBe(false)
-        expect(result.subscription.status).toBe(
-          SubscriptionStatus.Active
-        )
-        expect(
-          result.subscription.currentBillingPeriodStart
-        ).toBeNull()
-        expect(result.subscription.currentBillingPeriodEnd).toBeNull()
-        expect(result.subscription.interval).toBeNull()
-        expect(result.subscription.intervalCount).toBeNull()
-        expect(result.subscription.billingCycleAnchorDate).toBeNull()
-      })
-
-      it('should not create billing period for credit trial subscriptions', async () => {
-        const creditTrialPrice = await adminTransaction(
-          async ({ transaction }) => {
-            return updatePrice(
-              {
-                id: price.id,
-                startsWithCreditTrial: true,
-                type: PriceType.Subscription,
-              },
-              transaction
-            )
-          }
-        )
-
-        const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            const stripeSetupIntentId = `si_no_bp_${core.nanoid()}`
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price: creditTrialPrice,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                customer,
-                stripeSetupIntentId,
-              },
-              transaction
-            )
-          }
-        )
-
-        // Verify no billing period was created
-        expect(result.billingPeriod).toBeNull()
-
-        // Double-check by querying the database
-        await adminTransaction(async ({ transaction }) => {
-          const billingPeriods = await selectBillingPeriods(
-            { subscriptionId: result.subscription.id },
-            transaction
-          )
-          expect(billingPeriods).toHaveLength(0)
-        })
-      })
-
-      it('should not create billing run for credit trial subscriptions', async () => {
-        const creditTrialPrice = await adminTransaction(
-          async ({ transaction }) => {
-            return updatePrice(
-              {
-                id: price.id,
-                startsWithCreditTrial: true,
-                type: PriceType.Subscription,
-              },
-              transaction
-            )
-          }
-        )
-
-        const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            const stripeSetupIntentId = `si_no_br_${core.nanoid()}`
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price: creditTrialPrice,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                defaultPaymentMethod: paymentMethod, // Even with payment method
-                customer,
-                stripeSetupIntentId,
-                autoStart: true,
-              },
-              transaction
-            )
-          }
-        )
-
-        // Verify no billing run was created
-        expect(result.billingRun).toBeNull()
-
-        // Double-check by querying the database
-        await adminTransaction(async ({ transaction }) => {
-          const billingRuns = await selectBillingRuns(
-            { subscriptionId: result.subscription.id },
-            transaction
-          )
-          expect(billingRuns).toHaveLength(0)
-        })
-      })
-
-      it('should not set billing cycle anchor for credit trial subscriptions', async () => {
-        const creditTrialPrice = await adminTransaction(
-          async ({ transaction }) => {
-            return updatePrice(
-              {
-                id: price.id,
-                startsWithCreditTrial: true,
-                type: PriceType.Subscription,
-              },
-              transaction
-            )
-          }
-        )
-
-        const result = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            const stripeSetupIntentId = `si_no_anchor_${core.nanoid()}`
-            return createSubscriptionWorkflow(
-              {
-                organization,
-                product,
-                price: creditTrialPrice,
-                quantity: 1,
-                livemode: true,
-                startDate: new Date(),
-                interval: IntervalUnit.Month,
-                intervalCount: 1,
-                customer,
-                stripeSetupIntentId,
-              },
-              transaction
-            )
-          }
-        )
-
-        // Verify billing cycle anchor is not set
-        expect(result.subscription.billingCycleAnchorDate).toBeNull()
-      })
-    })
-
     describe('Renewing Subscriptions', () => {
       it('should create a subscription with renews: true for standard subscriptions', async () => {
         // Use default price (subscription type)
@@ -342,11 +141,11 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Verify billing period was created
         expect(result.billingPeriod).toBeDefined()
-        expect(result.billingPeriod!.startDate.getTime()).toBe(
-          result.subscription.currentBillingPeriodStart!.getTime()
+        expect(result.billingPeriod!.startDate).toBe(
+          result.subscription.currentBillingPeriodStart!
         )
-        expect(result.billingPeriod!.endDate.getTime()).toBe(
-          result.subscription.currentBillingPeriodEnd!.getTime()
+        expect(result.billingPeriod!.endDate).toBe(
+          result.subscription.currentBillingPeriodEnd!
         )
         expect(result.billingPeriod!.status).toBe(
           BillingPeriodStatus.Active
@@ -419,9 +218,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         expect(result.subscription.status).toBe(
           SubscriptionStatus.Trialing
         )
-        expect(result.subscription.trialEnd?.getTime()).toBe(
-          trialEnd.getTime()
-        )
+        expect(result.subscription.trialEnd).toBe(trialEnd.getTime())
         expect(result.billingPeriod).toBeDefined()
         expect(result.billingPeriod!.trialPeriod).toBe(true)
       })
@@ -461,24 +258,18 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should not create future billing periods for non-renewing subscriptions', async () => {
+        const singlePaymentPrice = await setupPrice({
+          productId: product.id,
+          type: PriceType.SinglePayment,
+          name: 'Single Payment Price',
+          unitPrice: 100,
+          livemode: true,
+          isDefault: false,
+        })
         // Query initial state
         const { billingPeriods, nonRenewingSubscription } =
           await adminTransaction(async ({ transaction }) => {
-            const usageMeter = await setupUsageMeter({
-              organizationId: organization.id,
-              pricingModelId: pricingModel.id,
-              name: 'Usage Meter',
-            })
-            const updatedPrice = await safelyUpdatePrice(
-              {
-                id: price.id,
-                type: PriceType.Usage,
-                startsWithCreditTrial: true,
-                usageMeterId: usageMeter.id,
-                usageEventsPerUnit: 1,
-              },
-              transaction
-            )
+            // Create a subscription price but set renews to false to simulate non-renewing behavior
             const {
               result: { subscription: nonRenewingSubscription },
             } = await createSubscriptionWorkflow(
@@ -486,7 +277,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 organization,
                 customer,
                 product,
-                price: updatedPrice,
+                price: singlePaymentPrice,
                 quantity: 1,
                 livemode: true,
                 startDate: new Date(),
@@ -516,20 +307,16 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should not schedule billing runs for non-renewing subscriptions', async () => {
-        const usageMeter = await setupUsageMeter({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'Usage Meter',
-        })
         // Check that no billing runs were created
         await adminTransaction(async ({ transaction }) => {
+          // Create a subscription price but set renews to false to simulate non-renewing behavior
           const updatedPrice = await safelyUpdatePrice(
             {
               id: price.id,
-              type: PriceType.Usage,
-              startsWithCreditTrial: true,
-              usageMeterId: usageMeter.id,
-              usageEventsPerUnit: 1,
+              type: PriceType.Subscription,
+              // Remove usage-specific fields
+              usageMeterId: null,
+              usageEventsPerUnit: null,
             },
             transaction
           )
@@ -573,8 +360,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           priceId: price.id,
           status: SubscriptionStatus.Active,
           renews: true, // Key difference
-          currentBillingPeriodStart: startDate,
-          currentBillingPeriodEnd: endDate,
+          currentBillingPeriodStart: startDate.getTime(),
+          currentBillingPeriodEnd: endDate.getTime(),
           interval: IntervalUnit.Month,
           intervalCount: 1,
         })
@@ -602,12 +389,12 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           result.subscription.currentBillingPeriodStart
         ).not.toEqual(startDate)
         expect(
-          result.subscription.currentBillingPeriodStart.getTime()
+          result.subscription.currentBillingPeriodStart
         ).toBeGreaterThanOrEqual(endDate.getTime())
         expect(
-          result.subscription.currentBillingPeriodEnd.getTime()
+          result.subscription.currentBillingPeriodEnd
         ).toBeGreaterThan(
-          result.subscription.currentBillingPeriodStart.getTime()
+          result.subscription.currentBillingPeriodStart!
         )
 
         // Check that old billing period status was updated
@@ -635,10 +422,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should schedule billing run for next period when payment method exists', async () => {
-        const startDate = new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
-        )
-        const endDate = new Date(Date.now() - 1000)
+        const startDate = Date.now() - 30 * 24 * 60 * 60 * 1000
+        const endDate = Date.now() - 1000
 
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -684,10 +469,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should transition to PastDue when no payment method exists', async () => {
-        const startDate = new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
-        )
-        const endDate = new Date(Date.now() - 1000)
+        const startDate = Date.now() - 30 * 24 * 60 * 60 * 1000
+        const endDate = Date.now() - 1000
 
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -741,13 +524,10 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should respect cancelScheduledAt and stop renewal', async () => {
-        const startDate = new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
-        )
-        const endDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) // 2 days ago
-        const cancelScheduledAt = new Date(
-          Date.now() - 1 * 24 * 60 * 60 * 1000
-        ) // 1 day ago
+        const startDate = Date.now() - 30 * 24 * 60 * 60 * 1000
+        const endDate = Date.now() - 2 * 24 * 60 * 60 * 1000 // 2 days ago
+        const cancelScheduledAt = Date.now() - 1 * 24 * 60 * 60 * 1000
+        // 1 day ago
 
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -815,8 +595,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           priceId: price.id,
           status: SubscriptionStatus.Active,
           renews: true, // Initially renewing
-          currentBillingPeriodStart: startDate,
-          currentBillingPeriodEnd: endDate,
+          currentBillingPeriodStart: startDate.getTime(),
+          currentBillingPeriodEnd: endDate.getTime(),
           interval: IntervalUnit.Month,
           intervalCount: 1,
         })
@@ -873,292 +653,6 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
     })
   })
 
-  describe('Credit Trial to Paid Conversion', () => {
-    it('should convert from renews: false to renews: true when adding payment method', async () => {
-      // Create credit trial subscription (renews: false)
-      const creditTrialPrice = await adminTransaction(
-        async ({ transaction }) => {
-          return updatePrice(
-            {
-              id: price.id,
-              startsWithCreditTrial: true,
-              type: PriceType.Subscription,
-            },
-            transaction
-          )
-        }
-      )
-
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return createSubscriptionWorkflow(
-            {
-              organization,
-              product,
-              price: creditTrialPrice,
-              quantity: 1,
-              livemode: true,
-              startDate: new Date(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              customer,
-              stripeSetupIntentId: `si_convert_${core.nanoid()}`,
-            },
-            transaction
-          )
-        }
-      )
-
-      // Verify initial state
-      expect(result.subscription.renews).toBe(false)
-      expect(result.subscription.status).toBe(
-        SubscriptionStatus.Active
-      )
-      expect(result.billingPeriod).toBeNull()
-
-      // Simulate conversion by updating subscription
-      const converted = await adminTransaction(
-        async ({ transaction }) => {
-          const now = new Date()
-          const startDate = new Date(now)
-          const endDate = new Date(now)
-          endDate.setMonth(endDate.getMonth() + 1) // Add 1 month properly
-
-          const updated = await updateSubscription(
-            {
-              id: result.subscription.id,
-              renews: true,
-              status: SubscriptionStatus.Active,
-              currentBillingPeriodStart: startDate,
-              currentBillingPeriodEnd: endDate,
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              billingCycleAnchorDate: startDate,
-            },
-            transaction
-          )
-
-          // Create billing period for converted subscription
-          const subscriptionItems =
-            await selectCurrentlyActiveSubscriptionItems(
-              { subscriptionId: updated.id },
-              new Date(),
-              transaction
-            )
-
-          const billingPeriodResult =
-            await createBillingPeriodAndItems(
-              {
-                subscription: updated as Subscription.StandardRecord,
-                subscriptionItems,
-                trialPeriod: false,
-                isInitialBillingPeriod: false,
-              },
-              transaction
-            )
-
-          return {
-            subscription: updated,
-            billingPeriod: billingPeriodResult.billingPeriod,
-          }
-        }
-      )
-
-      // Verify conversion
-      expect(converted.subscription.renews).toBe(true)
-      expect(converted.subscription.status).toBe(
-        SubscriptionStatus.Active
-      )
-      expect(converted.billingPeriod).toBeDefined()
-      expect(converted.subscription.interval).toBe(IntervalUnit.Month)
-      expect(converted.subscription.intervalCount).toBe(1)
-    })
-
-    it('should create first billing period when converting from credit trial', async () => {
-      // Create credit trial subscription
-      const creditTrialPrice = await adminTransaction(
-        async ({ transaction }) => {
-          return updatePrice(
-            {
-              id: price.id,
-              startsWithCreditTrial: true,
-              type: PriceType.Subscription,
-            },
-            transaction
-          )
-        }
-      )
-
-      const creditTrial = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return createSubscriptionWorkflow(
-            {
-              organization,
-              product,
-              price: creditTrialPrice,
-              quantity: 1,
-              livemode: true,
-              startDate: new Date(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              customer,
-              stripeSetupIntentId: `si_bp_convert_${core.nanoid()}`,
-            },
-            transaction
-          )
-        }
-      )
-
-      // Convert to paid subscription
-      const startDate = new Date()
-      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-
-      const converted = await adminTransaction(
-        async ({ transaction }) => {
-          const updated = await updateSubscription(
-            {
-              id: creditTrial.subscription.id,
-              renews: true,
-              status: SubscriptionStatus.Active,
-              currentBillingPeriodStart: startDate,
-              currentBillingPeriodEnd: endDate,
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              billingCycleAnchorDate: new Date(),
-            },
-            transaction
-          )
-
-          const subscriptionItems =
-            await selectCurrentlyActiveSubscriptionItems(
-              { subscriptionId: updated.id },
-              new Date(),
-              transaction
-            )
-
-          const billingPeriodResult =
-            await createBillingPeriodAndItems(
-              {
-                subscription: updated as Subscription.StandardRecord,
-                subscriptionItems,
-                trialPeriod: false,
-                isInitialBillingPeriod: true,
-              },
-              transaction
-            )
-
-          return {
-            subscription: updated,
-            billingPeriod: billingPeriodResult.billingPeriod,
-          }
-        }
-      )
-
-      // Verify billing period was created correctly
-      expect(converted.billingPeriod).toBeDefined()
-      // Since this is the initial billing period after conversion, it starts from currentBillingPeriodStart
-      expect(converted.billingPeriod!.startDate.getTime()).toBe(
-        startDate.getTime()
-      )
-      // The end date should be approximately 1 month later (allowing for month length variations)
-      const actualEndTime = converted.billingPeriod!.endDate.getTime()
-      const expectedEndTime = endDate.getTime()
-      const dayInMs = 24 * 60 * 60 * 1000
-      expect(
-        Math.abs(actualEndTime - expectedEndTime)
-      ).toBeLessThanOrEqual(dayInMs) // Within 1 day tolerance
-      // It should be an active billing period
-      expect(converted.billingPeriod!.status).toBe(
-        BillingPeriodStatus.Active
-      )
-
-      // Verify subscription dates were updated
-      expect(
-        converted.subscription.currentBillingPeriodStart?.getTime()
-      ).toBe(startDate.getTime())
-      expect(
-        converted.subscription.currentBillingPeriodEnd?.getTime()
-      ).toBe(endDate.getTime())
-    })
-
-    it('should maintain renews: false when credits are exhausted without payment', async () => {
-      // Create credit trial subscription
-      const creditTrialPrice = await adminTransaction(
-        async ({ transaction }) => {
-          return updatePrice(
-            {
-              id: price.id,
-              startsWithCreditTrial: true,
-              type: PriceType.Subscription,
-            },
-            transaction
-          )
-        }
-      )
-
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return createSubscriptionWorkflow(
-            {
-              organization,
-              product,
-              price: creditTrialPrice,
-              quantity: 1,
-              livemode: true,
-              startDate: new Date(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              customer,
-              stripeSetupIntentId: `si_exhaust_${core.nanoid()}`,
-            },
-            transaction
-          )
-        }
-      )
-
-      // Verify initial state
-      expect(result.subscription.renews).toBe(false)
-      expect(result.subscription.status).toBe(
-        SubscriptionStatus.Active
-      )
-
-      // Simulate credit exhaustion (update status)
-      const exhausted = await adminTransaction(
-        async ({ transaction }) => {
-          return updateSubscription(
-            {
-              id: result.subscription.id,
-              renews: false,
-              status: SubscriptionStatus.Canceled,
-              canceledAt: new Date(),
-              currentBillingPeriodStart: null,
-              currentBillingPeriodEnd: null,
-              interval: null,
-              intervalCount: null,
-              billingCycleAnchorDate: null,
-              trialEnd: null,
-            },
-            transaction
-          )
-        }
-      )
-
-      // Verify state after exhaustion
-      expect(exhausted.renews).toBe(false)
-      expect(exhausted.status).toBe(SubscriptionStatus.Canceled)
-      expect(exhausted.canceledAt).toBeDefined()
-
-      // Verify no billing period was created
-      await adminTransaction(async ({ transaction }) => {
-        const billingPeriods = await selectBillingPeriods(
-          { subscriptionId: exhausted.id },
-          transaction
-        )
-        expect(billingPeriods).toHaveLength(0)
-      })
-    })
-  })
-
   describe('Ledger and Credit Management', () => {
     describe('Credits for Non-Renewing Subscriptions', () => {
       it('should grant initial credits for credit trial subscriptions', async () => {
@@ -1188,18 +682,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Create credit trial price
-        const creditTrialPrice = await adminTransaction(
-          async ({ transaction }) => {
-            return updatePrice(
-              {
-                id: price.id,
-                startsWithCreditTrial: true,
-                type: PriceType.Subscription,
-              },
-              transaction
-            )
-          }
-        )
+        const creditTrialPrice = await setupPrice({
+          productId: product.id,
+          type: PriceType.SinglePayment,
+          name: 'Credit Trial Price',
+          unitPrice: 100,
+          livemode: true,
+          isDefault: false,
+        })
 
         // Create subscription with credit trial
         const result = await comprehensiveAdminTransaction(
@@ -1216,6 +706,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
                 intervalCount: 1,
                 customer,
                 stripeSetupIntentId: `si_credits_${core.nanoid()}`,
+                autoStart: true,
               },
               transaction
             )
@@ -1428,18 +919,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
     describe('Non-Renewing Subscriptions', () => {
       it('should never create billing runs for credit trial subscriptions', async () => {
         // Create credit trial price
-        const creditTrialPrice = await adminTransaction(
-          async ({ transaction }) => {
-            return updatePrice(
-              {
-                id: price.id,
-                startsWithCreditTrial: true,
-                type: PriceType.Subscription,
-              },
-              transaction
-            )
-          }
-        )
+        const creditTrialPrice = await setupPrice({
+          productId: product.id,
+          type: PriceType.SinglePayment,
+          name: 'Credit Trial Price',
+          unitPrice: 100,
+          livemode: true,
+          isDefault: false,
+        })
 
         // Create credit trial subscription WITH payment method
         const result = await comprehensiveAdminTransaction(

@@ -26,7 +26,10 @@ import {
   DestinationEnvironment,
 } from '@/types'
 import { core } from '@/utils/core'
-import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
+import {
+  selectPricingModelById,
+  selectPricingModels,
+} from '@/db/tableMethods/pricingModelMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
@@ -407,9 +410,6 @@ describe('clonePricingModelTransaction', () => {
         sourcePrice.intervalCount
       )
       expect(clonedPrice.unitPrice).toBe(sourcePrice.unitPrice)
-      expect(clonedPrice.setupFeeAmount).toBe(
-        sourcePrice.setupFeeAmount
-      )
       expect(clonedPrice.trialPeriodDays).toBe(
         sourcePrice.trialPeriodDays
       )
@@ -916,7 +916,7 @@ describe('clonePricingModelTransaction', () => {
           // Mark it as expired
           return await transaction
             .update(productFeatures)
-            .set({ expiredAt: new Date() })
+            .set({ expiredAt: Date.now() })
             .where(eq(productFeatures.id, pf.id))
             .returning()
             .then((rows) => rows[0])
@@ -1516,13 +1516,20 @@ describe('clonePricingModelTransaction', () => {
       // So we'll use that as our livemode default
       const livemodeDefaultPricingModel = sourcePricingModel
 
-      // Create a testmode default pricing model
-      const testmodeDefaultPricingModel = await setupPricingModel({
-        organizationId: organization.id,
-        name: 'Testmode Default',
-        livemode: false,
-        isDefault: true,
-      })
+      // Get the testmode pricing model that setupOrg already created
+      const testmodeDefaultPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const [pricingModel] = await selectPricingModels(
+            {
+              organizationId: organization.id,
+              livemode: false,
+              isDefault: true,
+            },
+            transaction
+          )
+          return pricingModel!
+        }
+      )
 
       // Verify both are default for their respective livemodes
       expect(livemodeDefaultPricingModel.isDefault).toBe(true)
@@ -2081,14 +2088,12 @@ describe('createProductTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 unitPrice: 1000,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
                 startsWithCreditTrial: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
@@ -2121,7 +2126,6 @@ describe('createProductTransaction', () => {
     expect(price.intervalCount).toBe(1)
     expect(price.intervalUnit).toBe(IntervalUnit.Month)
     expect(price.unitPrice).toBe(1000)
-    expect(price.setupFeeAmount).toBe(0)
     expect(price.trialPeriodDays).toBe(0)
     expect(price.currency).toBe(CurrencyCode.USD)
     expect(price.externalId).toBe(null)
@@ -2156,14 +2160,12 @@ describe('createProductTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 unitPrice: 1000,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
                 startsWithCreditTrial: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
@@ -2222,14 +2224,12 @@ describe('createProductTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 unitPrice: 1000,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
                 startsWithCreditTrial: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
