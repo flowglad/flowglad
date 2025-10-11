@@ -2,7 +2,12 @@
 import { log as logtailLog } from '@logtail/next'
 import { trace, context, SpanStatusCode } from '@opentelemetry/api'
 import core, { IS_DEV } from './core'
-import { ServiceContext, ApiEnvironment, LogData, LoggerData } from '@/types'
+import {
+  ServiceContext,
+  ApiEnvironment,
+  LogData,
+  LoggerData,
+} from '@/types'
 
 const log = IS_DEV || !core.IS_PROD ? console : logtailLog
 
@@ -19,22 +24,33 @@ function getServiceContext(apiKey?: string): ServiceContext {
 }
 
 // Helper to enrich log data with trace context and service metadata
-function enrichWithContext(data: LogData = {}, overrides?: {
-  service?: ServiceContext,
-  apiEnvironment?: ApiEnvironment,
-  apiKey?: string
-}): LogData {
+function enrichWithContext(
+  data: LogData = {},
+  overrides?: {
+    service?: ServiceContext
+    apiEnvironment?: ApiEnvironment
+    apiKey?: string
+  }
+): LogData {
   const span = trace.getActiveSpan()
 
   const enrichedData: LogData = {
     ...data,
-    service: overrides?.service ?? data.service ?? getServiceContext(overrides?.apiKey),
-    deployment_env: core.IS_PROD ? 'production' : core.IS_TEST ? 'test' : 'development',
+    service:
+      overrides?.service ??
+      data.service ??
+      getServiceContext(overrides?.apiKey),
+    deployment_env: core.IS_PROD
+      ? 'production'
+      : core.IS_TEST
+        ? 'test'
+        : 'development',
   }
 
   // Add API environment if provided or if we can detect it
   if (overrides?.apiEnvironment || data.apiEnvironment) {
-    enrichedData.api_environment = overrides?.apiEnvironment ?? data.apiEnvironment
+    enrichedData.api_environment =
+      overrides?.apiEnvironment ?? data.apiEnvironment
   }
 
   // Add trace context if available
@@ -53,20 +69,31 @@ function enrichWithContext(data: LogData = {}, overrides?: {
   return enrichedData
 }
 
+interface LoggerDataWithApiKey extends LoggerData {
+  apiKey?: string
+}
+
 // Helper function to handle the common logging pattern
 function logWithContext(
   level: 'debug' | 'info' | 'warn' | 'error',
   message: string | Error,
-  data?: LoggerData & { apiKey?: string }
+  data?: LoggerDataWithApiKey
 ) {
   const { service, apiEnvironment, apiKey, ...restData } = data || {}
-  const enrichedData = enrichWithContext(restData, { service, apiEnvironment, apiKey })
+  const enrichedData = enrichWithContext(restData, {
+    service,
+    apiEnvironment,
+    apiKey,
+  })
 
   if (level === 'error' && message instanceof Error) {
     const span = trace.getActiveSpan()
     if (span) {
       span.recordException(message)
-      span.setStatus({ code: SpanStatusCode.ERROR, message: message.message })
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: message.message,
+      })
     }
     log.error(message.message, {
       ...enrichedData,
@@ -79,19 +106,19 @@ function logWithContext(
 }
 
 export const logger = {
-  debug: (message: string, data?: LoggerData & { apiKey?: string }) => {
+  debug: (message: string, data?: LoggerDataWithApiKey) => {
     logWithContext('debug', message, data)
   },
 
-  info: (message: string, data?: LoggerData & { apiKey?: string }) => {
+  info: (message: string, data?: LoggerDataWithApiKey) => {
     logWithContext('info', message, data)
   },
 
-  warn: (message: string, data?: LoggerData & { apiKey?: string }) => {
+  warn: (message: string, data?: LoggerDataWithApiKey) => {
     logWithContext('warn', message, data)
   },
 
-  error: (message: string | Error, data?: LoggerData & { apiKey?: string }) => {
+  error: (message: string | Error, data?: LoggerDataWithApiKey) => {
     logWithContext('error', message, data)
   },
 }
