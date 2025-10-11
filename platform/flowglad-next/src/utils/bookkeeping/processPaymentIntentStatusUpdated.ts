@@ -92,7 +92,7 @@ export const upsertPaymentForStripeCharge = async (
     paymentIntentMetadata: StripeIntentMetadata
   },
   transaction: DbTransaction
-) => {
+): Promise<{ payment: Payment.Record; eventsToInsert: Event.Insert[] }> => {
   const paymentIntentId = charge.payment_intent
     ? stripeIdFromObjectOrId(charge.payment_intent)
     : null
@@ -115,6 +115,7 @@ export const upsertPaymentForStripeCharge = async (
   let customerId: Nullish<string> = null
   let currency: Nullish<CurrencyCode> = null
   let subscriptionId: Nullish<string> = null
+  let checkoutSessionEvents: Event.Insert[] = []
   if (paymentIntentMetadata.type === IntentMetadataType.BillingRun) {
     const billingRun = await selectBillingRunById(
       paymentIntentMetadata.billingRunId,
@@ -146,9 +147,12 @@ export const upsertPaymentForStripeCharge = async (
     paymentIntentMetadata.type === IntentMetadataType.CheckoutSession
   ) {
     const {
-      checkoutSession,
-      purchase: updatedPurchase,
-      invoice,
+      result: {
+        checkoutSession,
+        purchase: updatedPurchase,
+        invoice,
+      },
+      eventsToInsert: eventsFromCheckoutSession = [],
     } = await processStripeChargeForCheckoutSession(
       {
         checkoutSessionId: paymentIntentMetadata.checkoutSessionId,
@@ -156,6 +160,7 @@ export const upsertPaymentForStripeCharge = async (
       },
       transaction
     )
+    checkoutSessionEvents = eventsFromCheckoutSession
     if (checkoutSession.type === CheckoutSessionType.Invoice) {
       let [maybeInvoiceAndLineItems] =
         await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
@@ -273,7 +278,7 @@ export const upsertPaymentForStripeCharge = async (
       charge,
       transaction
     )
-  return latestPayment
+  return { payment: latestPayment, eventsToInsert: checkoutSessionEvents }
 }
 
 /**
@@ -469,7 +474,7 @@ export const processPaymentIntentStatusUpdated = async (
       `No charge found for payment intent ${paymentIntent.id}`
     )
   }
-  const payment = await upsertPaymentForStripeCharge(
+  const { payment, eventsToInsert: checkoutSessionEvents } = await upsertPaymentForStripeCharge(
     {
       charge: latestCharge,
       paymentIntentMetadata: stripeIntentMetadataSchema.parse(
@@ -577,7 +582,7 @@ export const processPaymentIntentStatusUpdated = async (
   }
   return {
     result: { payment },
-    eventsToInsert: eventInserts,
+    eventsToInsert: [...checkoutSessionEvents, ...eventInserts],
     ledgerCommand,
   }
 }

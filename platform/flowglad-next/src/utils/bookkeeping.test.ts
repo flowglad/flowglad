@@ -88,7 +88,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id,
-              userId: 'user_test',
               livemode,
             }
           )
@@ -195,7 +194,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id,
-              userId: 'user_test',
               livemode: customProduct.livemode,
             }
           )
@@ -270,7 +268,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id,
-              userId: 'user_test',
               livemode,
             }
           )
@@ -364,7 +361,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id,
-              userId: 'user_test',
               livemode,
             }
           )
@@ -426,7 +422,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id,
-              userId: 'user_test',
               livemode,
             }
           )
@@ -511,7 +506,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: minimalOrg.id,
-              userId: 'user_test',
               livemode,
             }
           )
@@ -563,7 +557,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id, // Auth context org
-              userId: 'user_test',
               livemode,
             }
           )
@@ -591,7 +584,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id,
-              userId: 'user_test',
               livemode,
             }
           )
@@ -671,7 +663,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id,
-              userId: 'user_test',
               livemode,
             }
           )
@@ -744,7 +735,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id,
-              userId: 'user_test',
               livemode,
             }
           )
@@ -841,7 +831,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id,
-              userId: 'user_test',
               livemode,
             }
           )
@@ -873,7 +862,6 @@ describe('createCustomerBookkeeping', () => {
             {
               transaction,
               organizationId: organization.id,
-              userId: 'user_test',
               livemode,
             }
           )

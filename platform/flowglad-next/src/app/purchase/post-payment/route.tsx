@@ -137,7 +137,7 @@ const processCheckoutSession = async ({
   checkoutSessionId,
   request,
 }: ProcessCheckoutSessionParams): Promise<ProcessCheckoutSessionResult> => {
-  const result = await adminTransaction(async ({ transaction }) => {
+  const result = await comprehensiveAdminTransaction(async ({ transaction }) => {
     const [checkoutSession] = await selectCheckoutSessions(
       {
         id: checkoutSessionId,
@@ -154,9 +154,13 @@ const processCheckoutSession = async ({
       transaction
     )
     return {
-      checkoutSession,
-      purchase: result.purchase,
-      invoice: result.invoice,
+      result: {
+        checkoutSession,
+        purchase: result.result.purchase,
+        invoice: result.result.invoice,
+      },
+      eventsToInsert: result.eventsToInsert,
+      ledgerCommand: result.ledgerCommand,
     }
   })
 
