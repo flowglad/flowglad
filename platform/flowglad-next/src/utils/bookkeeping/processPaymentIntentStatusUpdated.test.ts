@@ -2415,9 +2415,6 @@ describe('Process payment intent status updated', async () => {
              )
          )
 
-         // Debug: log all events to see what we're getting
-         console.log('All events:', eventsToInsert?.map(e => ({ type: e.type, object: e.payload.object })))
-
          // Should have PaymentSucceeded event
          const paymentSucceededEvent = eventsToInsert?.find(
            (e) => e.type === FlowgladEventType.PaymentSucceeded
