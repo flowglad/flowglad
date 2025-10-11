@@ -101,7 +101,7 @@ const createCustomerProcedure = protectedProcedure
                   organizationId,
                 },
               },
-              { transaction, userId, livemode, organizationId }
+              { transaction, livemode, organizationId }
             )
 
           if (ctx.path) {

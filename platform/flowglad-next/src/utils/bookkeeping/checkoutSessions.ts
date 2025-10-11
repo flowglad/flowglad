@@ -15,6 +15,7 @@ import {
   updatePaymentIntent,
 } from '@/utils/stripe'
 import { Purchase } from '@/db/schema/purchases'
+import { Event } from '@/db/schema/events'
 import {
   selectPurchaseById,
   updatePurchase,
@@ -74,6 +75,8 @@ import {
 } from '@/db/tableMethods/invoiceMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { createCustomerBookkeeping } from '@/utils/bookkeeping'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 
 export const editCheckoutSession = async (
   input: EditCheckoutSessionInput,
@@ -213,7 +216,13 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     stripeCustomerId: string | null
   },
   transaction: DbTransaction
-) => {
+): Promise<TransactionOutput<{
+  purchase: Purchase.Record
+  customer: Customer.Record
+  discount: Discount.Record | null
+  feeCalculation: FeeCalculation.Record
+  discountRedemption: DiscountRedemption.Record | null
+}>> => {
   const [{ price, product }] =
     await selectPriceProductAndOrganizationByPriceWhere(
       { id: checkoutSession.priceId! },
@@ -221,6 +230,10 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     )
   let customer: Customer.Record | null = null
   let purchase: Purchase.Record | null = null
+  let customerEvents: Event.Insert[] = []
+  let customerLedgerCommand: any = null
+
+  // Step 1: Try to find existing customer by checkout session customer ID (logged-in user)
   if (checkoutSession.purchaseId) {
     purchase = await selectPurchaseById(
       checkoutSession.purchaseId,
@@ -237,13 +250,10 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       transaction
     )
   }
+
+  // Step 2: Validate that provided Stripe customer ID matches existing customer
   if (
     customer &&
-    /**
-     * This is important:
-     * there is no providedStripeCustomerId if the checkout session is for a single guest payment.
-     * In that case, we don't want to throw an error.
-     */
     providedStripeCustomerId &&
     providedStripeCustomerId !== customer.stripeCustomerId
   ) {
@@ -251,7 +261,9 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       `Attempting to process checkout session ${checkoutSession.id} with a different stripe customer ${providedStripeCustomerId} than the checkout session customer ${customer.stripeCustomerId} already linked to the purchase`
     )
   }
-  if (providedStripeCustomerId) {
+
+  // Step 3: If we have a providedStripeCustomerId, try to find existing customer by Stripe ID
+  if (!customer && providedStripeCustomerId) {
     const [customerWithStripeCustomerId] = await selectCustomers(
       {
         stripeCustomerId: providedStripeCustomerId,
@@ -260,6 +272,8 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     )
     customer = customerWithStripeCustomerId
   }
+
+  // Step 4: If still no customer, create one
   if (!customer) {
     /**
      * Create a new customer if one doesn't exist.
@@ -269,36 +283,29 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
      * write access on existing customer organizations simply by guessing / inserting
      * the customer email.
      */
-    customer = await insertCustomer(
+    const customerResult = await createCustomerBookkeeping(
       {
-        email: checkoutSession.customerEmail!,
-        name:
-          checkoutSession.customerName ??
-          checkoutSession.customerEmail!,
+        customer: {
+          email: checkoutSession.customerEmail!,
+          name: checkoutSession.customerName ?? checkoutSession.customerEmail!,
+          organizationId: product.organizationId,
+          externalId: core.nanoid(),
+          billingAddress: checkoutSession.billingAddress,
+          stripeCustomerId: providedStripeCustomerId,
+        },
+      },
+      {
+        transaction,
         organizationId: product.organizationId,
-        billingAddress: checkoutSession.billingAddress,
-        externalId: core.nanoid(),
         livemode: checkoutSession.livemode,
-      },
-      transaction
+      }
     )
-    let stripeCustomerId: string | null = providedStripeCustomerId
-    // If no existing stripe customer, create new customer
-    if (!stripeCustomerId) {
-      const stripeCustomer = await createStripeCustomer({
-        email: checkoutSession.customerEmail!,
-        name: checkoutSession.customerName!,
-        livemode: checkoutSession.livemode,
-      })
-      stripeCustomerId = stripeCustomer.id
-    }
-    customer = await updateCustomer(
-      {
-        id: customer.id,
-        stripeCustomerId,
-      },
-      transaction
-    )
+    customer = customerResult.result.customer
+    
+    
+    // Store events/ledger from customer creation to bubble up
+    customerEvents = customerResult.eventsToInsert || []
+    customerLedgerCommand = customerResult.ledgerCommand
   }
   if (!purchase) {
     const corePurchaseFields = {
@@ -410,11 +417,15 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     }
   }
   return {
-    purchase,
-    customer,
-    discount,
-    feeCalculation,
-    discountRedemption,
+    result: {
+      purchase,
+      customer,
+      discount,
+      feeCalculation,
+      discountRedemption,
+    },
+    eventsToInsert: customerEvents,
+    ledgerCommand: customerLedgerCommand,
   }
 }
 
@@ -456,7 +467,10 @@ export const processStripeChargeForInvoiceCheckoutSession = async (
     charge: Pick<Stripe.Charge, 'status' | 'amount'>
   },
   transaction: DbTransaction
-) => {
+): Promise<TransactionOutput<{
+  checkoutSession: CheckoutSession.Record
+  invoice: Invoice.Record
+}>> => {
   const invoice = await selectInvoiceById(
     checkoutSession.invoiceId,
     transaction
@@ -500,8 +514,11 @@ export const processStripeChargeForInvoiceCheckoutSession = async (
       transaction
     )
     return {
-      checkoutSession: updatedCheckoutSession,
-      invoice: updatedInvoice,
+      result: {
+        checkoutSession: updatedCheckoutSession,
+        invoice: updatedInvoice,
+      },
+      eventsToInsert: [],
     }
   }
   if (checkoutSessionStatus === CheckoutSessionStatus.Pending) {
@@ -511,8 +528,11 @@ export const processStripeChargeForInvoiceCheckoutSession = async (
       transaction
     )
     return {
-      checkoutSession: updatedCheckoutSession,
-      invoice: updatedInvoice,
+      result: {
+        checkoutSession: updatedCheckoutSession,
+        invoice: updatedInvoice,
+      },
+      eventsToInsert: [],
     }
   } else if (
     checkoutSessionStatus === CheckoutSessionStatus.Succeeded
@@ -526,14 +546,20 @@ export const processStripeChargeForInvoiceCheckoutSession = async (
         transaction
       )
       return {
-        checkoutSession: updatedCheckoutSession,
-        invoice: updatedInvoice,
+        result: {
+          checkoutSession: updatedCheckoutSession,
+          invoice: updatedInvoice,
+        },
+        eventsToInsert: [],
       }
     }
   }
   return {
-    checkoutSession: updatedCheckoutSession,
-    invoice,
+    result: {
+      checkoutSession: updatedCheckoutSession,
+      invoice,
+    },
+    eventsToInsert: [],
   }
 }
 
@@ -561,17 +587,22 @@ export const processStripeChargeForCheckoutSession = async (
     >
   },
   transaction: DbTransaction
-): Promise<{
+): Promise<TransactionOutput<{
   purchase: Purchase.Record | null
   invoice: Invoice.Record | null
   checkoutSession: CheckoutSession.Record
-}> => {
+}>> => {
   let purchase: Purchase.Record | null = null
   let checkoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
     transaction
   )
 
+  let invoice: Invoice.Record | null = null
+  let purchaseBookkeepingResult: Awaited<
+    ReturnType<typeof processPurchaseBookkeepingForCheckoutSession>
+  > | null = null;
+  
   if (checkoutSession.type === CheckoutSessionType.Invoice) {
     const result = await processStripeChargeForInvoiceCheckoutSession(
       {
@@ -581,19 +612,22 @@ export const processStripeChargeForCheckoutSession = async (
       transaction
     )
     return {
-      purchase: null,
-      invoice: result.invoice,
-      checkoutSession: result.checkoutSession,
+      result: {
+        purchase: null,
+        invoice: result.result.invoice,
+        checkoutSession: result.result.checkoutSession,
+      },
+      eventsToInsert: result.eventsToInsert,
+      ledgerCommand: result.ledgerCommand,
     }
   }
-  let invoice: Invoice.Record | null = null
   const checkoutSessionStatus =
     checkoutSessionStatusFromStripeCharge(charge)
   if (
     checkoutSessionStatus === CheckoutSessionStatus.Succeeded ||
     checkoutSessionStatus === CheckoutSessionStatus.Pending
   ) {
-    const purchaseBookkeepingResult =
+    purchaseBookkeepingResult =
       await processPurchaseBookkeepingForCheckoutSession(
         {
           checkoutSession,
@@ -603,14 +637,16 @@ export const processStripeChargeForCheckoutSession = async (
         },
         transaction
       )
-    purchase = purchaseBookkeepingResult.purchase
-    const invoiceForPurchase = await createInitialInvoiceForPurchase(
-      {
-        purchase,
-      },
-      transaction
-    )
-    invoice = invoiceForPurchase.invoice
+    purchase = purchaseBookkeepingResult.result.purchase
+    if (purchase) {
+      const invoiceForPurchase = await createInitialInvoiceForPurchase(
+        {
+          purchase,
+        },
+        transaction
+      )
+      invoice = invoiceForPurchase.invoice
+    }
   }
   checkoutSession = await updateCheckoutSession(
     {
@@ -623,9 +659,13 @@ export const processStripeChargeForCheckoutSession = async (
     transaction
   )
   return {
-    purchase,
-    invoice,
-    checkoutSession,
+    result: {
+      purchase,
+      invoice,
+      checkoutSession,
+    },
+    eventsToInsert: purchaseBookkeepingResult?.eventsToInsert || [],
+    ledgerCommand: purchaseBookkeepingResult?.ledgerCommand,
   }
 }
 

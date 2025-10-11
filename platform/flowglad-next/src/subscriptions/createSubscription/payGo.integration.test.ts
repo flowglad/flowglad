@@ -147,7 +147,6 @@ describe('Pay as You Go Workflow E2E', () => {
             transaction,
             organizationId: organization.id,
             livemode: true,
-            userId: 'test-user',
           }
         )
       })
