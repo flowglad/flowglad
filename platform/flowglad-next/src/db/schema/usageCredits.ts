@@ -19,6 +19,7 @@ import {
   constructUniqueIndex,
   timestampWithTimezoneColumn,
   hiddenColumnsForClientSchema,
+  metadataSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -123,7 +124,7 @@ const columnRefinements = {
     UsageCreditSourceReferenceType
   ),
   issuedAmount: core.safeZodPositiveInteger,
-  metadata: z.json().nullable(),
+  metadata: metadataSchema.nullable().optional(),
   paymentId: z.string().nullable(),
 }
 
