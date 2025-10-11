@@ -13,7 +13,6 @@ import {
 } from '@/db/schema/purchases'
 import { protectedProcedure, router } from '@/server/trpc'
 import { createPurchase } from '@/server/mutations/createPurchase'
-import { setCheckoutSessionCookie } from '@/server/mutations/setCheckoutSessionCookie'
 import { editCheckoutSession } from '@/server/mutations/editCheckoutSession'
 import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
 import { requestPurchaseAccessSession } from '@/server/mutations/requestPurchaseAccessSession'
@@ -71,7 +70,6 @@ export const purchasesRouter = router({
   // Create purchase
   create: createPurchase,
   // Purchase session management
-  createSession: setCheckoutSessionCookie,
   updateSession: editCheckoutSession,
   confirmSession: confirmCheckoutSession,
   requestAccess: requestPurchaseAccessSession,

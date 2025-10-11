@@ -9,7 +9,7 @@ export const useSetCheckoutSessionCookieEffect = (
   const { checkoutSession } = checkoutInfo
   const checkoutSessionId = checkoutSession.id
   const setCheckoutSessionCookie =
-    trpc.purchases.createSession.useMutation()
+    trpc.checkoutSessions.public.setSession.useMutation()
   const componentIsMounted = useRef(true)
 
   useEffect(() => {
