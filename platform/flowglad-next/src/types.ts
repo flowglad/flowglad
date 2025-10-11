@@ -691,6 +691,9 @@ export enum OfferingType {
 }
 
 export type ApiEnvironment = 'test' | 'live'
+export type ServiceContext = 'webapp' | 'api'
+export type LogData = Record<string, any>
+export type LoggerData = LogData & { service?: ServiceContext; apiEnvironment?: ApiEnvironment }
 
 export enum FlowgladApiKeyType {
   Publishable = 'publishable',
