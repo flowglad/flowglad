@@ -24,8 +24,52 @@ import {
 import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { Country } from '@/db/schema/countries'
 import { Customer } from '@/db/schema/customers'
+import { tryCatch } from 'ramda'
 
 const DIGITAL_TAX_CODE = 'txcd_10000000'
+
+//country support lists
+export const stripeConnectSupportedCountries = [
+  'AU',
+  'AT',
+  'BE',
+  'BG',
+  'BR',
+  'CA',
+  'CH',
+  'CY',
+  'CZ',
+  'DE',
+  'DK',
+  'EE',
+  'ES',
+  'FI',
+  'FR',
+  'GB',
+  'GR',
+  'HK',
+  'HR',
+  'HU',
+  'IE',
+  'IT',
+  'JP',
+  'LT',
+  'LU',
+  'LV',
+  'MT',
+  'MX',
+  'NL',
+  'NO',
+  'NZ',
+  'PL',
+  'PT',
+  'RO',
+  'SE',
+  'SG',
+  'SI',
+  'SK',
+  'US',
+]
 
 export const cardPaymentsCountries = [
   'AU',
@@ -281,6 +325,70 @@ export const stripeSupportedCurrencies: readonly CurrencyCode[] = [
   CurrencyCode.ZMW,
 ]
 
+export const validateStripeCountrySupport = (
+  countryCode: CountryCode
+) => {
+  const isSupported =
+    stripeConnectSupportedCountries.includes(countryCode)
+
+  if (!isSupported) {
+    throw new Error(
+      `Stripe Connect is not available in ${getCountryName(countryCode)}. ` +
+        `Please check Stripe's supported countries: https://docs.flowglad.com/countries`
+    )
+  }
+
+  return true
+}
+
+//helper to get country
+
+const getCountryName = (countryCode: CountryCode): string => {
+  const countryName: Record<string, string> = {
+    AU: 'Australia',
+    AT: 'Austria',
+    BE: 'Belgium',
+    BG: 'Bulgaria',
+    BR: 'Brazil',
+    CA: 'Canada',
+    CH: 'Switzerland',
+    CY: 'Cyprus',
+    CZ: 'Czech Republic',
+    DE: 'Germany',
+    DK: 'Denmark',
+    EE: 'Estonia',
+    ES: 'Spain',
+    FI: 'Finland',
+    FR: 'France',
+    GB: 'United Kingdom',
+    GR: 'Greece',
+    HK: 'Hong Kong',
+    HR: 'Croatia',
+    HU: 'Hungary',
+    IE: 'Ireland',
+    IT: 'Italy',
+    JP: 'Japan',
+    LT: 'Lithuania',
+    LU: 'Luxembourg',
+    LV: 'Latvia',
+    MT: 'Malta',
+    MX: 'Mexico',
+    NL: 'Netherlands',
+    NO: 'Norway',
+    NZ: 'New Zealand',
+    PL: 'Poland',
+    PT: 'Portugal',
+    RO: 'Romania',
+    SE: 'Sweden',
+    SG: 'Singapore',
+    SI: 'Slovenia',
+    SK: 'Slovakia',
+    US: 'United States',
+  }
+
+  return countryName[countryCode] || countryCode
+}
+
 export const isCurrencyZeroDecimal = (currency: CurrencyCode) => {
   return zeroDecimalCurrencies.includes(currency)
 }
@@ -467,6 +575,12 @@ export const createConnectedAccount = async ({
   countryCode: CountryCode
   livemode: boolean
 }) => {
+  try {
+    validateStripeCountrySupport(countryCode)
+  } catch (error: any) {
+    throw new Error(`Cannot create Stripe account: ${error.message}`)
+  }
+
   /**
    * US accounts need to accept the full terms of service, even for MoR arrangements
    * @see https://docs.stripe.com/connect/cross-border-payouts#restrictions-and-requirements
