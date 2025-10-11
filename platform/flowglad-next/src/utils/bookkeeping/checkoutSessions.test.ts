@@ -1210,7 +1210,7 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      expect(purchase).toBeDefined()
+      expect(result.result.purchase).toBeDefined()
       expect(result.result.invoice).toBeDefined()
       expect(result.result.checkoutSession.status).toEqual(
         CheckoutSessionStatus.Succeeded
