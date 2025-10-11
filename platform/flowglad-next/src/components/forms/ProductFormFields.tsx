@@ -22,6 +22,8 @@ import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
 import { Product } from '@/db/schema/products'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import { useEffect } from 'react'
+import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
+import { PriceType } from '@/types'
 
 export const ProductFormFields = ({
   editProduct = false,
@@ -29,7 +31,9 @@ export const ProductFormFields = ({
   editProduct?: boolean
 }) => {
   const form = useFormContext<CreateProductSchema>()
+  const priceForm = usePriceFormContext()
   const product = form.watch('product')
+  const priceType = priceForm.watch('price.type')
   const isDefaultProduct = product?.default === true
 
   // Ensure default products remain active in UI
@@ -38,6 +42,13 @@ export const ProductFormFields = ({
       form.setValue('product.active', true)
     }
   }, [isDefaultProduct, product?.active, form])
+
+  // Clear featureIds when price type is 'usage'
+  useEffect(() => {
+    if (!editProduct && priceType === PriceType.Usage) {
+      form.setValue('featureIds', [])
+    }
+  }, [priceType, form])
 
   if (
     !core.IS_PROD &&
@@ -132,16 +143,6 @@ export const ProductFormFields = ({
                 />
               </div>
             )}
-            <div className="w-full">
-              <ProductFeatureMultiSelect
-                pricingModelId={product.pricingModelId}
-                productId={
-                  editProduct
-                    ? (product as unknown as Product.ClientUpdate).id
-                    : undefined
-                }
-              />
-            </div>
             {editProduct && (
               <FormField
                 control={form.control}
@@ -178,7 +179,19 @@ export const ProductFormFields = ({
           <div className="w-full mt-6">
             <PriceFormFields edit={editProduct} />
           </div>
-          <div className="w-full mt-6">
+          {priceType !== PriceType.Usage && (
+            <div className="w-full mt-6">
+              <ProductFeatureMultiSelect
+                pricingModelId={product.pricingModelId}
+                productId={
+                  editProduct
+                    ? (product as unknown as Product.ClientUpdate).id
+                    : undefined
+                }
+              />
+            </div>
+          )}
+          <div className="w-full mt-12">
             <FileInput
               directory="products"
               onUploadComplete={({ publicURL }) => {
