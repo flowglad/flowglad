@@ -4,6 +4,7 @@ import {
   CheckoutSessionType,
   DiscountAmountType,
   FeeCalculationType,
+  FlowgladEventType,
   InvoiceStatus,
   PaymentMethodType,
   PaymentStatus,
@@ -18,6 +19,7 @@ import {
   processStripeChargeForCheckoutSession,
 } from '@/utils/bookkeeping/checkoutSessions'
 import { Purchase } from '@/db/schema/purchases'
+import { Event } from '@/db/schema/events'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -33,7 +35,7 @@ import {
 } from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransaction, comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import core from '../core'
 import Stripe from 'stripe'
@@ -648,6 +650,64 @@ describe('Checkout Sessions', async () => {
   })
 
   describe('processPurchaseBookkeepingForCheckoutSession', () => {
+    it('should create customer creation events when creating a new customer for anonymous checkout', async () => {
+      // Update checkout session to have no customer ID (anonymous checkout)
+      const updatedCheckoutSession = await adminTransaction(
+        async ({ transaction }) => {
+          return updateCheckoutSession(
+            {
+              ...checkoutSession,
+              customerId: null,
+              customerEmail: 'anonymous@example.com',
+              customerName: 'Anonymous Customer',
+            } as CheckoutSession.Update,
+            transaction
+          )
+        }
+      )
+
+      const { result: bookkeepingResult, eventsToInsert } = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          const result = await processPurchaseBookkeepingForCheckoutSession(
+            {
+              checkoutSession: updatedCheckoutSession,
+              stripeCustomerId: `cus_${core.nanoid()}`,
+            },
+            transaction
+          )
+          return {
+            result,
+            eventsToInsert: result.eventsToInsert,
+            ledgerCommand: result.ledgerCommand,
+          }
+        }
+      )
+
+      // Verify customer was created
+      expect(bookkeepingResult.customer).toBeDefined()
+      expect(bookkeepingResult.customer.email).toEqual('anonymous@example.com')
+      expect(bookkeepingResult.customer.name).toEqual('Anonymous Customer')
+      
+      // Verify customer creation events were created
+      expect(eventsToInsert).toBeDefined()
+      expect(eventsToInsert).toBeTruthy()
+      expect(eventsToInsert!.length).toBeGreaterThan(0)
+      
+      // Find the CustomerCreated event
+      const customerCreatedEvent = eventsToInsert!.find(
+        (event: Event.Insert) => event.type === FlowgladEventType.CustomerCreated
+      )
+      expect(customerCreatedEvent).toBeDefined()
+      expect(customerCreatedEvent?.payload.object).toEqual('customer')
+      expect(customerCreatedEvent?.payload.customer).toBeDefined()
+      
+      // Type guard to ensure customer exists
+      if (customerCreatedEvent?.payload.customer) {
+        expect(customerCreatedEvent.payload.customer.id).toEqual(bookkeepingResult.customer.id)
+        expect(customerCreatedEvent.payload.customer.externalId).toEqual(bookkeepingResult.customer.externalId)
+      }
+    })
+
     it('should use existing customer when linked to purchase', async () => {
       // Update checkout session to have a purchase ID
       await adminTransaction(async ({ transaction }) => {
@@ -662,7 +722,7 @@ describe('Checkout Sessions', async () => {
         )
       })
 
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return processPurchaseBookkeepingForCheckoutSession(
             {
@@ -678,7 +738,7 @@ describe('Checkout Sessions', async () => {
     })
 
     it('should use existing customer when linked to checkout session', async () => {
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return processPurchaseBookkeepingForCheckoutSession(
             {
@@ -706,7 +766,7 @@ describe('Checkout Sessions', async () => {
       })
 
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        comprehensiveAdminTransaction(async ({ transaction }) => {
           return processPurchaseBookkeepingForCheckoutSession(
             {
               checkoutSession,
@@ -719,7 +779,7 @@ describe('Checkout Sessions', async () => {
     })
 
     it('should find customer by Stripe customer ID when provided', async () => {
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return processPurchaseBookkeepingForCheckoutSession(
             {
@@ -748,7 +808,7 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return processPurchaseBookkeepingForCheckoutSession(
             {
@@ -778,7 +838,7 @@ describe('Checkout Sessions', async () => {
           transaction
         )
       })
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return processPurchaseBookkeepingForCheckoutSession(
             {
@@ -805,7 +865,7 @@ describe('Checkout Sessions', async () => {
         )
       })
 
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return processPurchaseBookkeepingForCheckoutSession(
             {
@@ -817,7 +877,7 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      expect(result.purchase.id).toBeDefined()
+      expect(purchase.id).toBeDefined()
     })
 
     it('should apply discount when fee calculation has a discount ID', async () => {
@@ -842,7 +902,7 @@ describe('Checkout Sessions', async () => {
           )
         const [discountRedemption] = await selectDiscountRedemptions(
           {
-            purchaseId: result.purchase.id,
+            purchaseId: result.result.purchase.id,
           },
           transaction
         )
@@ -852,7 +912,7 @@ describe('Checkout Sessions', async () => {
     })
 
     it('should link fee calculation to purchase record', async () => {
-      const { latestFeeCalculation, result } = await adminTransaction(
+      const { latestFeeCalculation, result } = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           const result =
             await processPurchaseBookkeepingForCheckoutSession(
@@ -869,12 +929,16 @@ describe('Checkout Sessions', async () => {
               },
               transaction
             )
-          return { latestFeeCalculation, result }
+          return {
+            result: { latestFeeCalculation, result },
+            eventsToInsert: result.eventsToInsert,
+            ledgerCommand: result.ledgerCommand,
+          }
         }
       )
 
       expect(latestFeeCalculation?.purchaseId).toEqual(
-        result.purchase.id
+        result.result.purchase.id
       )
     })
 
@@ -885,7 +949,7 @@ describe('Checkout Sessions', async () => {
       })
 
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        comprehensiveAdminTransaction(async ({ transaction }) => {
           return processPurchaseBookkeepingForCheckoutSession(
             {
               checkoutSession,
@@ -943,7 +1007,7 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return processStripeChargeForInvoiceCheckoutSession(
             {
@@ -993,7 +1057,7 @@ describe('Checkout Sessions', async () => {
         })
       })
 
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return processStripeChargeForInvoiceCheckoutSession(
             {
@@ -1030,7 +1094,7 @@ describe('Checkout Sessions', async () => {
         customer.stripeCustomerId!
       )
 
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return processStripeChargeForInvoiceCheckoutSession(
             {
@@ -1080,7 +1144,7 @@ describe('Checkout Sessions', async () => {
         })
       })
 
-      const result = await adminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return processStripeChargeForInvoiceCheckoutSession(
             {
@@ -1124,9 +1188,9 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      expect(result.purchase).toBeNull()
-      expect(result.invoice).toBeDefined()
-      expect(result.checkoutSession.status).toEqual(
+      expect(result.result.purchase).toBeNull()
+      expect(result.result.invoice).toBeDefined()
+      expect(result.result.checkoutSession.status).toEqual(
         CheckoutSessionStatus.Succeeded
       )
     })
@@ -1152,9 +1216,9 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      expect(result.purchase).toBeDefined()
-      expect(result.invoice).toBeDefined()
-      expect(result.checkoutSession.status).toEqual(
+      expect(purchase).toBeDefined()
+      expect(result.result.invoice).toBeDefined()
+      expect(result.result.checkoutSession.status).toEqual(
         CheckoutSessionStatus.Succeeded
       )
     })
@@ -1177,8 +1241,8 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      expect(result.purchase).toBeNull()
-      expect(result.invoice).toBeNull()
+      expect(result.result.purchase).toBeNull()
+      expect(result.result.invoice).toBeNull()
     })
 
     it('should update checkout session with customer information from charge', async () => {
@@ -1203,10 +1267,10 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      expect(result.checkoutSession.customerName).toEqual(
+      expect(result.result.checkoutSession.customerName).toEqual(
         succeededCharge.billing_details?.name
       )
-      expect(result.checkoutSession.customerEmail).toEqual(
+      expect(result.result.checkoutSession.customerEmail).toEqual(
         succeededCharge.billing_details?.email
       )
     })

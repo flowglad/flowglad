@@ -169,11 +169,13 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       )
 
     const {
-      purchase,
-      customer,
-      discount,
-      feeCalculation,
-      discountRedemption,
+      result: {
+        purchase,
+        customer,
+        discount,
+        feeCalculation,
+        discountRedemption,
+      },
     } = await processPurchaseBookkeepingForCheckoutSession(
       {
         checkoutSession,

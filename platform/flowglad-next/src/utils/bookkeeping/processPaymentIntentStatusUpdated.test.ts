@@ -29,6 +29,7 @@ import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Organization } from '@/db/schema/organizations'
+import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -71,6 +72,7 @@ import {
   selectUsageCreditById,
   selectUsageCredits,
 } from '@/db/tableMethods/usageCreditMethods'
+import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 
 // Mock helper functions
 const createMockStripeCharge = (
@@ -912,8 +914,8 @@ describe('Process payment intent status updated', async () => {
           transaction
         )
       )
-      expect(result.amount).toBe(5000)
-      expect(result.stripeChargeId).toBe('ch1')
+      expect(result.payment.amount).toBe(5000)
+      expect(result.payment.stripeChargeId).toBe('ch1')
     })
 
     it('maintains idempotency by not creating duplicate payment records', async () => {
@@ -967,13 +969,13 @@ describe('Process payment intent status updated', async () => {
             transaction
           )
       )
-      expect(result2.id).toEqual(result1.id)
-      expect(result2.amount).toEqual(result1.amount)
-      expect(result2.stripeChargeId).toEqual(result1.stripeChargeId)
-      expect(result2.paymentMethodId).toEqual(result1.paymentMethodId)
-      expect(result2.invoiceId).toEqual(result1.invoiceId)
-      expect(result2.purchaseId).toEqual(result1.purchaseId)
-      expect(result2.status).toEqual(result1.status)
+      expect(result2.payment.id).toEqual(result1.payment.id)
+      expect(result2.payment.amount).toEqual(result1.payment.amount)
+      expect(result2.payment.stripeChargeId).toEqual(result1.payment.stripeChargeId)
+      expect(result2.payment.paymentMethodId).toEqual(result1.payment.paymentMethodId)
+      expect(result2.payment.invoiceId).toEqual(result1.payment.invoiceId)
+      expect(result2.payment.purchaseId).toEqual(result1.payment.purchaseId)
+      expect(result2.payment.status).toEqual(result1.payment.status)
     })
 
     it('handles zero amount charges', async () => {
@@ -1013,7 +1015,7 @@ describe('Process payment intent status updated', async () => {
           transaction
         )
       )
-      expect(result.amount).toBe(0)
+      expect(result.payment.amount).toBe(0)
     })
 
     it('handles charges with missing billing details gracefully', async () => {
@@ -1088,7 +1090,7 @@ describe('Process payment intent status updated', async () => {
           transaction
         )
       )
-      expect(result.refunded).toBe(false)
+      expect(result.payment.refunded).toBe(false)
     })
     it('marks the invoice as paid when the charge is successful and the invoice total is met', async () => {
       const paymentMethod = await setupPaymentMethod({
@@ -2323,6 +2325,112 @@ describe('Process payment intent status updated', async () => {
 
       expect(paymentSucceededEvent).toBeUndefined()
       expect(purchaseCompletedEvent).toBeUndefined()
+    })
+
+    it('should include customer creation events when processing anonymous checkout', async () => {
+      // Create an anonymous checkout session (no customer ID)
+      const anonymousCheckoutSession = await adminTransaction(
+        async ({ transaction }) => {
+          const session = await setupCheckoutSession({
+            organizationId: organization.id,
+            customerId: customer.id, // Start with a customer, then remove it
+            priceId: price.id,
+            status: CheckoutSessionStatus.Open,
+            type: CheckoutSessionType.Product,
+            quantity: 1,
+            livemode: true,
+          })
+          
+          // Update to remove customer ID to make it anonymous
+          return updateCheckoutSession(
+            {
+              ...session,
+              customerId: null,
+              customerEmail: 'anonymous@example.com',
+              customerName: 'Anonymous Customer',
+            } as CheckoutSession.Update,
+            transaction
+          )
+        }
+      )
+
+      // Create a fee calculation for the anonymous checkout
+      await adminTransaction(async ({ transaction }) => {
+        await setupFeeCalculation({
+          checkoutSessionId: anonymousCheckoutSession.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+      })
+
+         const mockPaymentIntent = {
+           id: `pi_${core.nanoid()}`,
+           status: 'succeeded' as const,
+           metadata: {
+             type: 'checkout_session',
+             checkoutSessionId: anonymousCheckoutSession.id,
+           },
+           latest_charge: `ch_${core.nanoid()}`,
+         }
+
+         // Mock the Stripe charge
+         const mockCharge = createMockStripeCharge({
+           id: mockPaymentIntent.latest_charge,
+           payment_intent: mockPaymentIntent.id,
+           status: 'succeeded',
+           amount: 10000,
+           currency: 'usd',
+           payment_method_details: {
+             type: 'card',
+             card: {
+               brand: 'visa',
+               last4: '4242',
+               amount_authorized: 10000,
+               authorization_code: '123456',
+               checks: {
+                 address_line1_check: 'pass',
+                 address_postal_code_check: 'pass',
+                 cvc_check: 'pass',
+               },
+               country: 'US',
+               exp_month: 1,
+               exp_year: 2024,
+               funding: 'credit',
+               installments: null,
+               mandate: null,
+               network: 'visa',
+               three_d_secure: null,
+               wallet: null,
+             },
+           },
+         })
+         vi.mocked(getStripeCharge).mockResolvedValue(mockCharge)
+
+         const { result, eventsToInsert } = await adminTransaction(
+           async ({ transaction }) =>
+             processPaymentIntentStatusUpdated(
+               mockPaymentIntent,
+               transaction
+             )
+         )
+
+         // Debug: log all events to see what we're getting
+         console.log('All events:', eventsToInsert?.map(e => ({ type: e.type, object: e.payload.object })))
+
+         // Should have PaymentSucceeded event
+         const paymentSucceededEvent = eventsToInsert?.find(
+           (e) => e.type === FlowgladEventType.PaymentSucceeded
+         )
+         expect(paymentSucceededEvent).toBeDefined()
+
+         // Should have CustomerCreated event from the anonymous checkout
+         const customerCreatedEvent = eventsToInsert?.find(
+           (e) => e.type === FlowgladEventType.CustomerCreated
+         )
+         expect(customerCreatedEvent).toBeDefined()
+         expect(customerCreatedEvent?.payload.object).toEqual(EventNoun.Customer)
+         expect(customerCreatedEvent?.payload.customer).toBeDefined()
     })
   })
 })

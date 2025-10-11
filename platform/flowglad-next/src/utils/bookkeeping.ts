@@ -335,7 +335,7 @@ export const createCustomerBookkeeping = async (
     transaction,
     organizationId,
     livemode,
-  }: AuthenticatedTransactionParams
+  }: Omit<AuthenticatedTransactionParams, 'userId'>
 ): Promise<
   TransactionOutput<{
     customer: Customer.Record
