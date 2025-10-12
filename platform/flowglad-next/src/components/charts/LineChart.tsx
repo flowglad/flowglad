@@ -631,6 +631,12 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
     >(undefined)
     const categoryColors = constructCategoryColors(categories, colors)
 
+    const dataWithUniqueIds = React.useMemo(
+      () =>
+        data.map((item, index) => ({ ...item, __uniqueId: index })),
+      [data]
+    )
+
     const yAxisDomain = getYAxisDomain(
       autoMinValue,
       minValue,
@@ -708,7 +714,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
          */}
         <ResponsiveContainer width={'100%'} height={'100%'}>
           <RechartsLineChart
-            data={data}
+            data={dataWithUniqueIds}
             width={width || 800}
             height={height || 300}
             onClick={
