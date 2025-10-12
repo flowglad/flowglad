@@ -613,6 +613,12 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
     >(undefined)
     const categoryColors = constructCategoryColors(categories, colors)
 
+    const dataWithUniqueIds = React.useMemo(
+      () =>
+        data.map((item, index) => ({ ...item, __uniqueId: index })),
+      [data]
+    )
+
     const yAxisDomain = getYAxisDomain(
       autoMinValue,
       minValue,
@@ -744,7 +750,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
           <RechartsAreaChart
             width={width || 800}
             height={height || 300}
-            data={data}
+            data={dataWithUniqueIds}
             onClick={
               hasOnValueChange && (activeLegend || activeDot)
                 ? () => {
