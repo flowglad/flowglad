@@ -557,6 +557,8 @@ const innerHandler = async (
   )
 }
 
+const SDK_API_KEY_MESSAGE = `Please check that you are providing a valid API key. If requesting via SDK, ensure the FLOWGLAD_SECRET_KEY is set in your environment variables.`
+
 const withVerification = (
   handler: (
     req: NextRequestWithUnkeyContext,
@@ -605,7 +607,10 @@ const withVerification = (
                 url: req.url,
               }
             )
-            return new Response('Unauthorized', { status: 401 })
+            return new Response(
+              'Unauthorized. Authorization header is required, and must include api key in format Authorization: "Bearer <key>", or Authorization: "<key>"',
+              { status: 401 }
+            )
           }
 
           const apiKey = getApiKeyHeader(authorizationHeader)
@@ -633,7 +638,10 @@ const withVerification = (
                 url: req.url,
               }
             )
-            return new Response('Unauthorized', { status: 401 })
+            return new Response(
+              'Either the API key was missing, or it was in an invalid format. Authorization header is required, and must include api key in format Authorization: "Bearer <key>", or Authorization: "<key>"',
+              { status: 401 }
+            )
           }
 
           // Track API key prefix for debugging (first 8 chars)
@@ -671,13 +679,18 @@ const withVerification = (
               key_prefix: keyPrefix,
               verification_duration_ms: verificationDuration,
             })
-            return new Response('Unauthorized', { status: 401 })
+            return new Response(
+              'API key verification failed. ' + SDK_API_KEY_MESSAGE,
+              { status: 401 }
+            )
           }
 
           if (!result) {
             authSpan.setStatus({
               code: SpanStatusCode.ERROR,
-              message: 'API key verification returned no result',
+              message:
+                'API key verification returned no result. ' +
+                SDK_API_KEY_MESSAGE,
             })
             authSpan.setAttributes({
               'auth.error': 'verification_failed',
@@ -772,7 +785,10 @@ const withVerification = (
               error_code: result.code,
               verification_duration_ms: verificationDuration,
             })
-            return new Response('Unauthorized', { status: 401 })
+            return new Response(
+              'API key invalid. ' + SDK_API_KEY_MESSAGE,
+              { status: 401 }
+            )
           }
 
           // Check if using expired key (shouldn't happen if valid=true, but double-check)

@@ -486,17 +486,22 @@ export const gitCommitId = () => {
   }
   return commitId
 }
+const LOCALHOST_URL = 'http://localhost:3000'
+
 export const emailBaseUrl =
-  envVariable('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000'
+  envVariable('NEXT_PUBLIC_APP_URL') ?? LOCALHOST_URL
 
 export const customerBillingPortalURL = (params: {
   organizationId: string
   customerId?: string
 }) => {
   const { organizationId, customerId } = params
+  const baseUrl = IS_TEST
+    ? LOCALHOST_URL
+    : process.env.NEXT_PUBLIC_APP_URL || LOCALHOST_URL
   return safeUrl(
     `/billing-portal/${organizationId}/${customerId ?? ''}`,
-    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+    baseUrl
   )
 }
 

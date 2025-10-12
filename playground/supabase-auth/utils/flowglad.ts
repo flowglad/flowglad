@@ -12,5 +12,6 @@ export const flowgladServer = new FlowgladServer({
   //     externalId: '___IPasdkfasdfasdfasdfjalks123'
   //   };
   // },
+  apiKey: 'EXTREMELY_INVALID_API_KEY_1234567890',
   baseURL: 'http://localhost:3000'
 });
