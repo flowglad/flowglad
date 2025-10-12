@@ -157,9 +157,9 @@ export const expireSubscriptionItem = async (
     subscriptionItemId,
     transaction
   )
-  if (subscriptionItem.type === SubscriptionItemType.Usage) {
-    throw new Error('Usage items cannot be expired')
-  }
+  // if (subscriptionItem.type === SubscriptionItemType.Usage) {
+  //   throw new Error('Usage items cannot be expired')
+  // }
   await updateSubscriptionItem(
     {
       id: subscriptionItemId,

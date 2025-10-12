@@ -29,7 +29,7 @@ import { zodEpochMs } from '@/db/timestampMs'
 const TABLE_NAME = 'subscription_items'
 
 const SUBSCRIPTION_ITEM_SELECT_SCHEMA_DESCRIPTION =
-  'A subscription item record, part of a subscription, detailing a specific product or service and its pricing terms. Can be static or usage-based.'
+  'A subscription item record, part of a subscription, detailing a specific product or service and its pricing terms.'
 const SUBSCRIPTION_ITEM_INSERT_SCHEMA_DESCRIPTION =
   'A new subscription item.'
 const SUBSCRIPTION_ITEM_UPDATE_SCHEMA_DESCRIPTION =
@@ -46,6 +46,7 @@ const columns = {
   priceId: notNullStringForeignKey('price_id', prices),
   unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
+  // TODO: can remove usageEventsPerUnit, usageMeterId?
   usageEventsPerUnit: integer('usage_events_per_unit'),
   usageMeterId: nullableStringForeignKey(
     'usage_meter_id',
@@ -73,7 +74,7 @@ export const subscriptionItems = pgTable(
       constructIndex(TABLE_NAME, [table.subscriptionId]),
       constructIndex(TABLE_NAME, [table.priceId]),
       constructUniqueIndex(TABLE_NAME, [table.externalId]),
-      constructIndex(TABLE_NAME, [table.usageMeterId]),
+      // constructIndex(TABLE_NAME, [table.usageMeterId]),
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
@@ -105,10 +106,9 @@ const baseColumnRefinements = {
     .describe(
       'Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list. Epoch milliseconds.'
     ),
-  // type refinement is handled by discriminated union literals
 }
 
-// Static and Usage subtype schemas via buildSchemas
+// Static subtype schemas via buildSchemas
 const staticRefineColumns = {
   ...baseColumnRefinements,
   type: z.literal(SubscriptionItemType.Static),
@@ -122,19 +122,6 @@ const staticRefineColumns = {
     .describe(
       'Usage events per unit must be null for static subscription items.'
     ),
-} as const
-
-const usageRefineColumns = {
-  ...baseColumnRefinements,
-  type: z.literal(SubscriptionItemType.Usage),
-  usageMeterId: z
-    .string()
-    .describe(
-      'The usage meter associated with this usage-based subscription item.'
-    ),
-  usageEventsPerUnit: core.safeZodPositiveInteger.describe(
-    'The number of usage events that constitute one unit for billing.'
-  ),
 } as const
 
 const createOnlyColumns = {
@@ -170,79 +157,41 @@ export const {
   entityName: 'StaticSubscriptionItem',
 })
 
-export const {
-  insert: usageSubscriptionItemInsertSchema,
-  select: usageSubscriptionItemSelectSchema,
-  update: usageSubscriptionItemUpdateSchema,
-  client: {
-    insert: usageSubscriptionItemClientInsertSchema,
-    select: usageSubscriptionItemClientSelectSchema,
-    update: usageSubscriptionItemClientUpdateSchema,
-  },
-} = buildSchemas(subscriptionItems, {
-  discriminator: 'type',
-  refine: usageRefineColumns,
-  client: {
-    hiddenColumns,
-    readOnlyColumns,
-    createOnlyColumns,
-  },
-  entityName: 'UsageSubscriptionItem',
-})
-
 /*
  * database schema
  */
-export const subscriptionItemsInsertSchema = z
-  .discriminatedUnion('type', [
-    staticSubscriptionItemInsertSchema,
-    usageSubscriptionItemInsertSchema,
-  ])
-  .describe(SUBSCRIPTION_ITEM_SELECT_SCHEMA_DESCRIPTION)
+export const subscriptionItemsInsertSchema =
+  staticSubscriptionItemInsertSchema.describe(
+    SUBSCRIPTION_ITEM_INSERT_SCHEMA_DESCRIPTION
+  )
 
-export const subscriptionItemsSelectSchema = z
-  .discriminatedUnion('type', [
-    staticSubscriptionItemSelectSchema,
-    usageSubscriptionItemSelectSchema,
-  ])
-  .describe(SUBSCRIPTION_ITEM_SELECT_SCHEMA_DESCRIPTION)
+export const subscriptionItemsSelectSchema =
+  staticSubscriptionItemSelectSchema.describe(
+    SUBSCRIPTION_ITEM_SELECT_SCHEMA_DESCRIPTION
+  )
 
-export const subscriptionItemsUpdateSchema = z
-  .discriminatedUnion('type', [
-    staticSubscriptionItemUpdateSchema,
-    usageSubscriptionItemUpdateSchema,
-  ])
-  .describe(SUBSCRIPTION_ITEM_SELECT_SCHEMA_DESCRIPTION)
+export const subscriptionItemsUpdateSchema =
+  staticSubscriptionItemUpdateSchema.describe(
+    SUBSCRIPTION_ITEM_SELECT_SCHEMA_DESCRIPTION
+  )
 
 /*
  * client schemas (derived via buildSchemas above)
  */
 
 // Client Discriminated Union Schemas
-export const subscriptionItemClientInsertSchema = z
-  .discriminatedUnion('type', [
-    staticSubscriptionItemClientInsertSchema,
-    usageSubscriptionItemClientInsertSchema,
-  ])
-  .meta({
+export const subscriptionItemClientInsertSchema =
+  staticSubscriptionItemClientInsertSchema.meta({
     id: 'SubscriptionItemInsert',
   })
 
-export const subscriptionItemClientUpdateSchema = z
-  .discriminatedUnion('type', [
-    staticSubscriptionItemClientUpdateSchema,
-    usageSubscriptionItemClientUpdateSchema,
-  ])
-  .meta({
+export const subscriptionItemClientUpdateSchema =
+  staticSubscriptionItemClientUpdateSchema.meta({
     id: 'SubscriptionItemUpdate',
   })
 
-export const subscriptionItemClientSelectSchema = z
-  .discriminatedUnion('type', [
-    staticSubscriptionItemClientSelectSchema,
-    usageSubscriptionItemClientSelectSchema,
-  ])
-  .meta({
+export const subscriptionItemClientSelectSchema =
+  staticSubscriptionItemClientSelectSchema.meta({
     id: 'SubscriptionItemRecord',
   })
 
@@ -260,16 +209,6 @@ export namespace SubscriptionItem {
   >
   export type StaticRecord = z.infer<
     typeof staticSubscriptionItemSelectSchema
-  >
-
-  export type UsageInsert = z.infer<
-    typeof usageSubscriptionItemInsertSchema
-  >
-  export type UsageUpdate = z.infer<
-    typeof usageSubscriptionItemUpdateSchema
-  >
-  export type UsageRecord = z.infer<
-    typeof usageSubscriptionItemSelectSchema
   >
 
   export type ClientInsert = z.infer<
@@ -291,16 +230,6 @@ export namespace SubscriptionItem {
   >
   export type ClientStaticRecord = z.infer<
     typeof staticSubscriptionItemClientSelectSchema
-  >
-
-  export type ClientUsageInsert = z.infer<
-    typeof usageSubscriptionItemClientInsertSchema
-  >
-  export type ClientUsageUpdate = z.infer<
-    typeof usageSubscriptionItemClientUpdateSchema
-  >
-  export type ClientUsageRecord = z.infer<
-    typeof usageSubscriptionItemClientSelectSchema
   >
 
   export type Where = SelectConditions<typeof subscriptionItems>
