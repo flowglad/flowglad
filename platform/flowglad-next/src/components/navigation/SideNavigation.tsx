@@ -63,6 +63,14 @@ export const SideNavigation = () => {
     onSuccess: async () => {
       await invalidateTRPC()
       await focusedMembership.refetch()
+      /**
+       * Redirects the user back to `customers` page from
+       * `customer/id` when switching between live/test mode to avoid
+       * 404 or page crashes
+       */
+      if (pathname.startsWith('/customers/')) {
+        router.push('/customers')
+      }
       router.refresh()
     },
   })

@@ -41,6 +41,9 @@ const CustomerPage = async ({
         { id },
         transaction
       )
+      if (!result) {
+        return notFound()
+      }
       const purchases = await selectPurchases(
         {
           customerId: result.customer.id,
