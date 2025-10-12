@@ -19,20 +19,18 @@ if [ -z "$USERNAME" ] || [ -z "$BRANCH" ]; then
     exit 1
 fi
 
-# Get the repo name from the current git remote
-REPO=$(git config --get remote.origin.url | sed -E 's/.*[:/](.+\/.+)(\.git)?$/\1/' | sed 's/\.git$//')
-
-if [ -z "$REPO" ]; then
-    echo "Error: Could not determine repository name"
-    exit 1
-fi
-
 REMOTE_NAME="temp-${USERNAME}"
-FORK_URL="https://github.com/${USERNAME}/${REPO##*/}.git"
+FORK_URL="https://github.com/${USERNAME}/flowglad.git"
 LOCAL_BRANCH="${USERNAME}-${BRANCH}"
 
-echo "Adding remote: $REMOTE_NAME -> $FORK_URL"
-git remote add "$REMOTE_NAME" "$FORK_URL"
+# Check if remote already exists
+if git remote get-url "$REMOTE_NAME" &> /dev/null; then
+    echo "Remote $REMOTE_NAME already exists, updating URL to $FORK_URL"
+    git remote set-url "$REMOTE_NAME" "$FORK_URL"
+else
+    echo "Adding remote: $REMOTE_NAME -> $FORK_URL"
+    git remote add "$REMOTE_NAME" "$FORK_URL"
+fi
 
 echo "Fetching from $REMOTE_NAME..."
 git fetch "$REMOTE_NAME"
