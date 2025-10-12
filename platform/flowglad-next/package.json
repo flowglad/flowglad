@@ -25,6 +25,7 @@
     "migrations:drop": "drizzle-kit drop",
     "migrations:generate": "drizzle-kit generate",
     "migrations:push": "tsx ./src/scripts/migrate.ts",
+    "seed:countries": "tsx src/scripts/seed-countries.ts",
     "shadcn:build": "shadcn build --output 'public/ui'",
     "validate:registry": "tsx src/scripts/validate-registry.ts",
     "test:telemetry": "tsx scripts/verify-telemetry.ts"
