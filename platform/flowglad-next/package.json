@@ -7,7 +7,7 @@
     "prebuild": "dotenvx run -f .env.local -- pnpm tsx src/scripts/removeDevRoutes.ts && pnpm build:preview-css",
     "build": "pnpm lint && next build",
     "build:preview-css": "tsx src/scripts/build-preview-css.ts",
-    "checkout-fork": "tsx src/scripts/checkout-fork.sh",
+    "checkout-fork": "chmod +x ./src/scripts/checkout-fork.sh && ./src/scripts/checkout-fork.sh",
     "start": "next start",
     "lint": "next lint && tsc --noEmit && pnpm validate:registry",
     "install-packages": "pnpm install --ignore-workspace",
