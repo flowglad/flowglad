@@ -173,7 +173,7 @@ export const createCheckoutSessionTransaction = async (
         'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
       )
     }
-    // FIXME: Re-enable this once usage prices are supported
+    // FIXME: Re-enable this once usage prices are deprecated
     // if (price.type === PriceType.Usage) {
     //   throw new Error(
     //     `Price id: ${price.id} has usage price. Usage prices are not supported for checkout sessions.`
@@ -199,6 +199,8 @@ export const createCheckoutSessionTransaction = async (
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null
   if (
+    // FIXME: Remove this once usage prices are deprecated
+    price?.type === PriceType.Usage ||
     price?.type === PriceType.Subscription ||
     checkoutSession.type === CheckoutSessionType.AddPaymentMethod ||
     checkoutSession.type === CheckoutSessionType.ActivateSubscription
