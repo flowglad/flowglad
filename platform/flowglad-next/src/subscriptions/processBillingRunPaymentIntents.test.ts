@@ -701,7 +701,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       )
     })
   })
-  // TODO: restore this test once we have a way to set up payment intents with associated charges
+  // FIXME: restore this test once we have a way to set up payment intents with associated charges
   // in pre-determined states.
 
   // it('throws an error if no payment record is found for the latest charge', async () =>

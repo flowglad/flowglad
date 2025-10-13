@@ -685,7 +685,7 @@ type ExecuteBillingRunStepsResult = {
 }
 
 /**
- * TODO : support discount redemptions
+ * FIXME : support discount redemptions
  * @param billingRun
  * @param livemode
  */
@@ -922,7 +922,7 @@ export const constructBillingRunRetryInsert = (
   allBillingRunsForBillingPeriod: BillingRun.Record[]
 ): BillingRun.Insert | undefined => {
   /**
-   * TODO: mark the subscription as canceled (?)
+   * FIXME: mark the subscription as canceled (?)
    */
   if (
     allBillingRunsForBillingPeriod.length >=

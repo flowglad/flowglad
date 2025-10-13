@@ -426,7 +426,7 @@ describe('Ledger Management System', async () => {
       })
     })
 
-    // TODO: figure out how to enforce these at the db layer, and maybe in the business logic layer
+    // FIXME: figure out how to enforce these at the db layer, and maybe in the business logic layer
     //     describe('2. Immutability & Lifecycle of LedgerEntries', () => {
     //       it('should prevent alteration of core financial fields of a "posted" LedgerEntry', () => {
     //         // Test logic: Attempt to update amount, currency, etc., of a posted entry

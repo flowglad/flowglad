@@ -82,7 +82,7 @@ export const paymentMethodBillingDetailsSchema = z.object({
   email: zodOptionalNullableString,
   address: z.object({
     ...billingAddressSchema.shape.address.shape,
-    // TODO: remove this
+    // FIXME: remove this
     address: billingAddressSchema.shape.address.nullish(),
   }),
 })

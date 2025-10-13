@@ -144,8 +144,8 @@ export const selectCustomerAndCustomerTableRows = async (
     } else if (!data?.earliestPurchase) {
       status = InferredCustomerStatus.Pending
     }
-    // TODO: else / if for customers with purchases that have ended
-    // TODO: else / if for customers with unpaid invoices
+    // FIXME: else / if for customers with purchases that have ended
+    // FIXME: else / if for customers with unpaid invoices
     return {
       customer: customersSelectSchema.parse(row.customer),
       totalSpend: dataByCustomerId.get(`${row.customer.id}`)
@@ -280,8 +280,8 @@ export const selectCustomersTableRowData = async (
     } else if (!data?.earliestPurchase) {
       status = InferredCustomerStatus.Pending
     }
-    // TODO: else / if for customers with purchases that have ended
-    // TODO: else / if for customers with unpaid invoices
+    // FIXME: else / if for customers with purchases that have ended
+    // FIXME: else / if for customers with unpaid invoices
     return {
       customer: customersSelectSchema.parse(row.customer),
       totalSpend: Number(
@@ -399,8 +399,8 @@ export const selectCustomersCursorPaginatedWithTableRowData =
         } else if (!data?.earliestPurchase) {
           status = InferredCustomerStatus.Pending
         }
-        // TODO: else / if for customers with purchases that have ended
-        // TODO: else / if for customers with unpaid invoices
+        // FIXME: else / if for customers with purchases that have ended
+        // FIXME: else / if for customers with unpaid invoices
         return {
           customer: customersSelectSchema.parse(row),
           totalSpend: Number(

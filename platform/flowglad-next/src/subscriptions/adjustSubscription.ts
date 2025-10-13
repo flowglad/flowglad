@@ -430,7 +430,7 @@ export const adjustSubscription = async (
     subscription.backupPaymentMethodId ??
     null
   /**
-   * TODO: create a more helpful message for adjustment subscriptions on trial
+   * FIXME: create a more helpful message for adjustment subscriptions on trial
    */
   if (!paymentMethodId) {
     throw new Error(
