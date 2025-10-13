@@ -557,7 +557,7 @@ const innerHandler = async (
   )
 }
 
-const SDK_API_KEY_MESSAGE = `Please check that you are providing a valid API key. If requesting via SDK, ensure the FLOWGLAD_SECRET_KEY is set in your environment variables.`
+const SDK_API_KEY_MESSAGE = `Please check that you are providing a valid API key. If requesting via SDK, ensure the FLOWGLAD_SECRET_KEY is set in your server's environment variables.`
 
 const withVerification = (
   handler: (
