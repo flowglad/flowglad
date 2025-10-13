@@ -39,10 +39,12 @@ const SubscriptionFields = ({
   defaultPriceLocked,
   omitTrialFields,
   productId,
+  edit,
 }: {
   defaultPriceLocked: boolean
   omitTrialFields: boolean
   productId?: string
+  edit?: boolean
 }) => {
   const { control } = usePriceFormContext()
   const { organization } = useAuthenticatedContext()
@@ -74,7 +76,7 @@ const SubscriptionFields = ({
                       field.onChange(value)
                     }}
                     allowDecimals={!zeroDecimal}
-                    disabled={defaultPriceLocked}
+                    disabled={edit || defaultPriceLocked}
                   />
                 </FormControl>
               </div>
@@ -93,7 +95,7 @@ const SubscriptionFields = ({
                 <Select
                   value={field.value ?? ''}
                   onValueChange={field.onChange}
-                  disabled={defaultPriceLocked}
+                  disabled={edit || defaultPriceLocked}
                 >
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select interval" />
@@ -120,7 +122,7 @@ const SubscriptionFields = ({
         />
       </div>
       {!omitTrialFields && (
-        <TrialFields disabled={defaultPriceLocked} />
+        <TrialFields disabled={edit || defaultPriceLocked} />
       )}
     </>
   )
@@ -163,8 +165,10 @@ const SubscriptionFields = ({
 
 const SinglePaymentFields = ({
   defaultPriceLocked,
+  edit,
 }: {
   defaultPriceLocked: boolean
+  edit?: boolean
 }) => {
   const { control } = usePriceFormContext()
   const { organization } = useAuthenticatedContext()
@@ -195,7 +199,7 @@ const SinglePaymentFields = ({
                     field.onChange(value)
                   }}
                   allowDecimals={!zeroDecimal}
-                  disabled={defaultPriceLocked}
+                  disabled={edit || defaultPriceLocked}
                 />
               </FormControl>
             </div>
@@ -209,8 +213,10 @@ const SinglePaymentFields = ({
 
 const UsageFields = ({
   defaultPriceLocked,
+  edit,
 }: {
   defaultPriceLocked: boolean
+  edit?: boolean
 }) => {
   const {
     control,
@@ -248,7 +254,7 @@ const UsageFields = ({
                       field.onChange(value)
                     }}
                     allowDecimals={!zeroDecimal}
-                    disabled={defaultPriceLocked}
+                    disabled={edit || defaultPriceLocked}
                   />
                 </FormControl>
               </div>
@@ -277,6 +283,7 @@ const UsageFields = ({
                       field.onChange(numValue)
                     }
                   }}
+                  disabled={edit}
                 />
               </FormControl>
               <FormMessage />
@@ -287,6 +294,7 @@ const UsageFields = ({
       <UsageMetersSelect
         name="price.usageMeterId"
         control={control}
+        disabled={edit}
       />
     </div>
   )
@@ -334,6 +342,7 @@ const PriceFormFields = ({
           productId={productId}
           defaultPriceLocked={defaultPriceLocked}
           omitTrialFields={omitTrialFields}
+          edit={edit}
         />
       )
       break
@@ -341,12 +350,16 @@ const PriceFormFields = ({
       typeFields = (
         <SinglePaymentFields
           defaultPriceLocked={defaultPriceLocked}
+          edit={edit}
         />
       )
       break
     case PriceType.Usage:
       typeFields = (
-        <UsageFields defaultPriceLocked={defaultPriceLocked} />
+        <UsageFields
+          defaultPriceLocked={defaultPriceLocked}
+          edit={edit}
+        />
       )
       break
   }
@@ -363,6 +376,13 @@ const PriceFormFields = ({
         <p className="text-xs text-muted-foreground">
           Amount, trial settings, name, slug, type, and default status
           are locked for the default price of a default plan.
+        </p>
+      )}
+      {priceOnly && edit && !isDefaultLocked && (
+        <p className="text-xs text-muted-foreground">
+          Price type, amount, interval, trial settings, usage events
+          per unit, and usage meter cannot be edited after creation to
+          maintain billing consistency.
         </p>
       )}
       {priceOnly && (

@@ -17,6 +17,7 @@ import { parseUnkeyMeta } from '@/utils/unkey'
 import { auth, getSession } from '@/utils/auth'
 import { User } from 'better-auth'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
+import { headers } from 'next/headers'
 
 type SessionUser = Session['user']
 
@@ -278,7 +279,16 @@ export const requestingCustomerAndUser = async ({
     .where(
       and(
         eq(users.betterAuthId, betterAuthId),
-        eq(customers.organizationId, organizationId)
+        eq(customers.organizationId, organizationId),
+        /**
+         * For now, only support granting access to livemode customers,
+         * so we can avoid unintentionally allowing customers to get access
+         * to test mode customers for the merchant who match their email.
+         *
+         * FIXME: support billing portal access for test mode customers specifically.
+         * This will require more sophisticated auth business logic.
+         */
+        eq(customers.livemode, true)
       )
     )
     .limit(1)
@@ -303,9 +313,7 @@ export const dbInfoForCustomerBillingPortal = async ({
     organizationId,
   })
   if (!result) {
-    throw new Error(
-      `Customer not found for user ${betterAuthId} and ${organizationId}`
-    )
+    throw new Error('Customer not found')
   }
   const { customer, user } = result
   return {
@@ -328,6 +336,7 @@ export const dbInfoForCustomerBillingPortal = async ({
           : new Date().toISOString(),
         app_metadata: {
           provider: 'customerBillingPortal',
+          customer_id: customer.id,
         },
       },
       app_metadata: { provider: 'customerBillingPortal' },

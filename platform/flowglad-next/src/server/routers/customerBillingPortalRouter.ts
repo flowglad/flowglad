@@ -354,7 +354,7 @@ const requestMagicLinkProcedure = publicProcedure
           email, // required
           callbackURL: core.safeUrl(
             `/billing-portal/${organizationId}/magic-link-success`,
-            process.env.NEXT_PUBLIC_APP_URL!
+            core.NEXT_PUBLIC_APP_URL
           ),
         },
         // This endpoint requires session cookies.
@@ -469,6 +469,7 @@ const getCustomersForUserAndOrganizationProcedure =
             {
               userId: ctx.user.id,
               organizationId: ctx.organizationId,
+              livemode: true,
             },
             transaction
           )

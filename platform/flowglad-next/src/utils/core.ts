@@ -488,20 +488,20 @@ export const gitCommitId = () => {
 }
 const LOCALHOST_URL = 'http://localhost:3000'
 
-export const emailBaseUrl =
-  envVariable('NEXT_PUBLIC_APP_URL') ?? LOCALHOST_URL
+const NEXT_PUBLIC_APP_URL = IS_TEST
+  ? LOCALHOST_URL
+  : process.env.NEXT_PUBLIC_APP_URL || LOCALHOST_URL
+
+export const emailBaseUrl = NEXT_PUBLIC_APP_URL
 
 export const customerBillingPortalURL = (params: {
   organizationId: string
   customerId?: string
 }) => {
   const { organizationId, customerId } = params
-  const baseUrl = IS_TEST
-    ? LOCALHOST_URL
-    : process.env.NEXT_PUBLIC_APP_URL || LOCALHOST_URL
   return safeUrl(
-    `/billing-portal/${organizationId}/${customerId ?? ''}`,
-    baseUrl
+    `/billing-portal/${organizationId}/${customerId || ''}`,
+    NEXT_PUBLIC_APP_URL
   )
 }
 
@@ -511,7 +511,7 @@ export const organizationBillingPortalURL = (params: {
   const { organizationId } = params
   return safeUrl(
     `/billing-portal/${organizationId}`,
-    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+    NEXT_PUBLIC_APP_URL
   )
 }
 
@@ -521,6 +521,7 @@ export const core = {
   IS_PROD,
   IS_TEST,
   DEV_ENVIRONMENT_NOTIF_PREFIX,
+  NEXT_PUBLIC_APP_URL,
   notEmptyOrNil,
   envVariable,
   camelCase,

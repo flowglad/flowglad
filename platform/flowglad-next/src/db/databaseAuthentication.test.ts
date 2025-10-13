@@ -1111,15 +1111,21 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       expect(org2Result.jwtClaim.role).toBe('customer')
     })
 
-    it('should set correct livemode based on customer record', async () => {
-      // Create test mode customer
+    it('should correctly set livemode to true for livemode customer', async () => {
+      const liveModeResult = await dbInfoForCustomerBillingPortal({
+        betterAuthId: customerUser.betterAuthId!,
+        organizationId: customerOrg.id,
+      })
+      expect(liveModeResult.livemode).toBe(true)
+    })
+
+    it('should throw for a test mode customer', async () => {
       const testModeCustomer = await setupCustomer({
         organizationId: customerOrg.id,
         email: 'testmode@test.com',
         livemode: false,
       })
 
-      // Create user for test mode customer
       const testModeUser = await adminTransaction(
         async ({ transaction }) => {
           const [user] = await transaction
@@ -1132,7 +1138,6 @@ describe('Customer Role vs Merchant Role Authentication', () => {
             })
             .returning()
 
-          // Update customer with userId
           await transaction
             .update(customers)
             .set({ userId: user.id })
@@ -1142,20 +1147,71 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         }
       )
 
-      const testModeResult = await dbInfoForCustomerBillingPortal({
-        betterAuthId: testModeUser.betterAuthId!,
+      await expect(
+        dbInfoForCustomerBillingPortal({
+          betterAuthId: testModeUser.betterAuthId!,
+          organizationId: customerOrg.id,
+        })
+      ).rejects.toThrow('Customer not found')
+    })
+
+    it('should select only livemode customer when both exist and set customer_id claim', async () => {
+      // Create a separate livemode customer explicitly, and a test-mode customer for same org
+      const liveModeCustomer = await setupCustomer({
+        organizationId: customerOrg.id,
+        email: `livemode-${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+      const liveModeUser = await adminTransaction(
+        async ({ transaction }) => {
+          const [user] = await transaction
+            .insert(users)
+            .values({
+              id: `usr_${core.nanoid()}`,
+              email: liveModeCustomer.email!,
+              name: 'Live Mode Customer User',
+              betterAuthId: `bau_${core.nanoid()}`,
+            })
+            .returning()
+          await transaction
+            .update(customers)
+            .set({ userId: (user as User.Record).id })
+            .where(eq(customers.id, liveModeCustomer.id))
+          return user as User.Record
+        }
+      )
+
+      const testModeCustomer = await setupCustomer({
+        organizationId: customerOrg.id,
+        email: `testmode-${core.nanoid()}@test.com`,
+        livemode: false,
+      })
+      await adminTransaction(async ({ transaction }) => {
+        const [user] = await transaction
+          .insert(users)
+          .values({
+            id: `usr_${core.nanoid()}`,
+            email: testModeCustomer.email!,
+            name: 'Test Mode Customer User',
+            betterAuthId: `bau_${core.nanoid()}`,
+          })
+          .returning()
+        await transaction
+          .update(customers)
+          .set({ userId: (user as User.Record).id })
+          .where(eq(customers.id, testModeCustomer.id))
+      })
+
+      const livemodeResult = await dbInfoForCustomerBillingPortal({
+        betterAuthId: liveModeUser.betterAuthId!,
         organizationId: customerOrg.id,
       })
 
-      expect(testModeResult.livemode).toBe(false)
-
-      // Compare with live mode customer
-      const liveModeResult = await dbInfoForCustomerBillingPortal({
-        betterAuthId: customerUser.betterAuthId!,
-        organizationId: customerOrg.id,
-      })
-
-      expect(liveModeResult.livemode).toBe(true)
+      expect(livemodeResult.userId).toBe(liveModeUser.id)
+      expect(livemodeResult.livemode).toBe(true)
+      expect(
+        livemodeResult.jwtClaim.user_metadata.app_metadata.customer_id
+      ).toBe(liveModeCustomer.id)
     })
   })
 

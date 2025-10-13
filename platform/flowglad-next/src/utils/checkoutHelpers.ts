@@ -144,7 +144,7 @@ export async function checkoutInfoForPriceWhere(
       flowType: CheckoutFlowType.SinglePayment,
       redirectUrl: core.safeUrl(
         `/purchase/post-payment`,
-        core.envVariable('NEXT_PUBLIC_APP_URL')
+        core.NEXT_PUBLIC_APP_URL
       ),
       clientSecret,
       checkoutSession,
@@ -170,7 +170,7 @@ export async function checkoutInfoForPriceWhere(
       flowType: CheckoutFlowType.Subscription,
       redirectUrl: core.safeUrl(
         `/purchase/post-payment`,
-        core.envVariable('NEXT_PUBLIC_APP_URL')
+        core.NEXT_PUBLIC_APP_URL
       ),
       clientSecret,
       readonlyCustomerEmail: maybeCustomer?.email,

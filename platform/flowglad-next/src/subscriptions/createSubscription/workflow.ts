@@ -46,12 +46,13 @@ export const createSubscriptionWorkflow = async (
     | NonRenewingCreateSubscriptionResult
   >
 > => {
+  // FIXME: Re-enable this once usage prices are fully deprecated
   // Check if price is usage type and throw error if so
-  if (params.price.type === PriceType.Usage) {
-    throw new Error(
-      `Price id: ${params.price.id} has usage price. Usage prices are not supported for subscription creation.`
-    )
-  }
+  // if (params.price.type === PriceType.Usage) {
+  //   throw new Error(
+  //     `Price id: ${params.price.id} has usage price. Usage prices are not supported for subscription creation.`
+  //   )
+  // }
 
   if (params.stripeSetupIntentId) {
     const existingSubscription = await selectSubscriptionAndItems(

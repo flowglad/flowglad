@@ -451,5 +451,18 @@ export const setUserIdForCustomerRecords = async (
   await transaction
     .update(customersTable)
     .set({ userId })
-    .where(eq(customersTable.email, customerEmail))
+    .where(
+      and(
+        eq(customersTable.email, customerEmail),
+        /*
+         * For now, only support setting user id for livemode customers,
+         * so we can avoid unintentionally setting user id for test mode customers
+         * for the merchant.
+         *
+         * FIXME: support setting user id for test mode customers specifically.
+         * This will require more sophisticated auth business logic.
+         */
+        eq(customersTable.livemode, true)
+      )
+    )
 }

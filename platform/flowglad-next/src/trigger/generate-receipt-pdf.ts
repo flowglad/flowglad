@@ -40,7 +40,7 @@ export const generatePaymentReceiptPdfTask = task({
      */
     const urlBase = core.IS_DEV
       ? 'https://staging.flowglad.com'
-      : core.envVariable('NEXT_PUBLIC_APP_URL')
+      : core.NEXT_PUBLIC_APP_URL
     const invoiceUrl = core.safeUrl(
       `/invoice/view/${payment.organizationId}/${invoice.id}/receipt-pdf-preview`,
       urlBase
