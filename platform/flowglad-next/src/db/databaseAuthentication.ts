@@ -313,9 +313,6 @@ export const dbInfoForCustomerBillingPortal = async ({
     organizationId,
   })
   if (!result) {
-    await auth.api.signOut({
-      headers: await headers(),
-    })
     throw new Error('Customer not found')
   }
   const { customer, user } = result
@@ -339,6 +336,7 @@ export const dbInfoForCustomerBillingPortal = async ({
           : new Date().toISOString(),
         app_metadata: {
           provider: 'customerBillingPortal',
+          customer_id: customer.id,
         },
       },
       app_metadata: { provider: 'customerBillingPortal' },
