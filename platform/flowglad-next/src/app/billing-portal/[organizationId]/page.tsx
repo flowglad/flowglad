@@ -22,7 +22,7 @@ const BillingPortalRedirectPage = async ({
   const customers = await authenticatedTransaction(
     async ({ transaction }) => {
       return selectCustomers(
-        { userId: user.id, organizationId },
+        { userId: user.id, organizationId, livemode: true },
         transaction
       )
     }
