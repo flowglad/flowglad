@@ -186,7 +186,8 @@ export const NestedFormModal = <T extends FieldValues>({
       <DialogContent
         allowContentOverflow={allowContentOverflow}
         className={cn(
-          'flex max-h-[90vh] flex-col overflow-hidden',
+          'flex max-h-[90vh] flex-col',
+          // Don't override overflow - let DialogContent handle it based on allowContentOverflow prop
           // Mobile-first responsive width
           'w-[calc(100vw-32px)]', // Ensure 16px padding on mobile
           extraWide && 'sm:w-full sm:max-w-6xl',
@@ -197,8 +198,24 @@ export const NestedFormModal = <T extends FieldValues>({
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto min-h-0">
-          {innerContent}
+        <div
+          className={cn(
+            'flex-1 min-h-0',
+            allowContentOverflow
+              ? 'overflow-visible'
+              : 'overflow-y-auto'
+          )}
+          style={
+            !allowContentOverflow ? { padding: '4px' } : undefined
+          }
+        >
+          <div
+            style={
+              !allowContentOverflow ? { margin: '-4px' } : undefined
+            }
+          >
+            {innerContent}
+          </div>
         </div>
         {footer && (
           <DialogFooter className="flex-shrink-0 pt-4">
@@ -306,7 +323,8 @@ const FormModal = <T extends FieldValues>({
       <DialogContent
         allowContentOverflow={allowContentOverflow}
         className={cn(
-          'flex max-h-[90vh] flex-col overflow-hidden',
+          'flex max-h-[90vh] flex-col',
+          // Don't override overflow - let DialogContent handle it based on allowContentOverflow prop
           // Mobile-first responsive width
           'w-[calc(100vw-32px)]', // Ensure 16px padding on mobile
           extraWide && 'sm:w-full sm:max-w-6xl',
@@ -317,8 +335,24 @@ const FormModal = <T extends FieldValues>({
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto min-h-0">
-          {innerContent}
+        <div
+          className={cn(
+            'flex-1 min-h-0',
+            allowContentOverflow
+              ? 'overflow-visible'
+              : 'overflow-y-auto'
+          )}
+          style={
+            !allowContentOverflow ? { padding: '4px' } : undefined
+          }
+        >
+          <div
+            style={
+              !allowContentOverflow ? { margin: '-4px' } : undefined
+            }
+          >
+            {innerContent}
+          </div>
         </div>
         {!hideFooter && footer && (
           <DialogFooter className="flex-shrink-0 pt-4">
