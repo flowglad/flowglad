@@ -11,6 +11,15 @@ export const validatePriceImmutableFields = ({
   update: Partial<Price.Update>
   existing: Price.Record
 }): void => {
+  // disallow update of discriminator
+  // need to include type in permissible fields passed
+  // in order for discriminated union on update schemas to work correctly
+  if (update.type !== undefined && update.type !== existing.type) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: `Cannot change type after price creation. This field is immutable.`,
+    })
+  }
   // These fields should never change after creation
   for (const field of priceImmutableFields) {
     if (

@@ -55,16 +55,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
       formSchema={editPriceFormSchema}
       defaultValues={defaultValues}
       onSubmit={(input) => {
-        editPrice.mutateAsync({
-          ...input,
-          price: {
-            ...input.price,
-            unitPrice: rawStringAmountToCountableCurrencyAmount(
-              organization!.defaultCurrency,
-              input.__rawPriceString!
-            ),
-          },
-        })
+        editPrice.mutateAsync(input)
       }}
     >
       <PriceFormFields

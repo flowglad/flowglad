@@ -53,13 +53,13 @@ const readOnlyColumns = {
 
 const createOnlyColumns = {
   productId: true,
-  type: true,
   usageMeterId: true,
   usageEventsPerUnit: true,
   intervalUnit: true,
   intervalCount: true,
   startsWithCreditTrial: true,
   trialPeriodDays: true,
+  unitPrice: true,
 } as const
 
 export const priceImmutableFields = Object.keys(createOnlyColumns)
