@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
         'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       ],
       environment: 'jsdom',
+      globals: true,
       setupFiles: ['./vitest.setup.ts'],
       env: loadEnv(mode, process.cwd(), ''),
       deps: {
