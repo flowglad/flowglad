@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* 
 run the following in the terminal
-pnpm tsx src/scripts/verfiyApiContract.ts
+pnpm tsx src/scripts/verifyApiContract.ts
 */
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
