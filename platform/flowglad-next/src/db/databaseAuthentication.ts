@@ -17,6 +17,7 @@ import { parseUnkeyMeta } from '@/utils/unkey'
 import { auth, getSession } from '@/utils/auth'
 import { User } from 'better-auth'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
+import { headers } from 'next/headers'
 
 type SessionUser = Session['user']
 
@@ -312,9 +313,10 @@ export const dbInfoForCustomerBillingPortal = async ({
     organizationId,
   })
   if (!result) {
-    throw new Error(
-      `Customer not found for user ${betterAuthId} and ${organizationId}`
-    )
+    await auth.api.signOut({
+      headers: await headers(),
+    })
+    throw new Error('Customer not found')
   }
   const { customer, user } = result
   return {

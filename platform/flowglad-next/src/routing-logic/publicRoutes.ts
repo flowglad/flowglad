@@ -6,6 +6,7 @@ const publicRoutes = [
   '/billing-portal/(.*)/sign-in',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/logout',
   '/handler/(.*)',
   '/api/ping',
   '/api/webhook-stripe/(.*)',
