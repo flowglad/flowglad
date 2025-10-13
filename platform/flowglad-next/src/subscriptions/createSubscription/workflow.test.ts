@@ -413,7 +413,7 @@ describe('createSubscriptionWorkflow', async () => {
         livemode: true,
         isDefault: false,
         /**
-         * TODO: clean up function signature
+         * FIXME: clean up function signature
          */
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
@@ -1888,7 +1888,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_trial_discount_${core.nanoid()}`
         const discountRedemption = await insertDiscountRedemption(
-          // @ts-expect-error - TODO: fix this
+          // @ts-expect-error - FIXME: fix this
           {
             purchaseId: purchase.id,
             discountId: discount.id,

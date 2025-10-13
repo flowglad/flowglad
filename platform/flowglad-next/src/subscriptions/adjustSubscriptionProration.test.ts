@@ -71,7 +71,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
     })
 
     // Set up subscription with billing period centered around current date for 50% split
-    const nowMs = Date.now() // TODO: Refactor to use static date instead of Date.now()
+    const nowMs = Date.now() // FIXME: Refactor to use static date instead of Date.now()
     const billingPeriodStart = nowMs - 30 * 24 * 60 * 60 * 1000 // 30 days ago (epoch ms)
     const billingPeriodEnd = nowMs + 30 * 24 * 60 * 60 * 1000 // 30 days from now (epoch ms)
 
@@ -142,7 +142,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           name: 'Premium Plan',
           quantity: 1,
           unitPrice: 4999, // $49.99
-          addedDate: Date.now(), // TODO: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
+          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -242,7 +242,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           name: 'Premium Plan',
           quantity: 1,
           unitPrice: 4999, // $49.99
-          addedDate: Date.now(), // TODO: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
+          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -335,7 +335,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           name: 'Premium Plan',
           quantity: 1,
           unitPrice: 4999, // $49.99
-          addedDate: Date.now(), // TODO: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
+          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -432,7 +432,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           unitPrice: 999, // Keep existing plan
           addedDate:
             Number(subscription.currentBillingPeriodStart) ||
-            Date.now(), // TODO: Refactor to use static date instead of Date.now() - Start of billing period
+            Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Start of billing period
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -451,7 +451,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             new Date().getFullYear(),
             6,
             1
-          ).getTime(), // TODO: Refactor to use static date instead of Date.now() - July 1st of current year
+          ).getTime(), // FIXME: Refactor to use static date instead of Date.now() - July 1st of current year
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -587,7 +587,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       await updateSubscriptionItem(
         {
           id: subscriptionItem.id,
-          expiredAt: Date.now(), // TODO: Refactor to use static date instead of Date.now()
+          expiredAt: Date.now(), // FIXME: Refactor to use static date instead of Date.now()
           type: SubscriptionItemType.Static,
         },
         transaction
@@ -624,7 +624,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           name: 'Basic Plan',
           quantity: 1,
           unitPrice: 999, // $9.99 (cheaper plan)
-          addedDate: Date.now(), // TODO: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
+          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (middle of billing period)
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -723,7 +723,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           name: 'Replacement Plan',
           quantity: 1,
           unitPrice: 2999, // $29.99 replacement plan
-          addedDate: Date.now(), // TODO: Refactor to use static date instead of Date.now() - Current date
+          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -831,7 +831,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           name: 'Free Plan',
           quantity: 1,
           unitPrice: 0, // Free plan
-          addedDate: Date.now(), // TODO: Refactor to use static date instead of Date.now() - Current date (30% through period)
+          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (30% through period)
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -945,7 +945,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           name: 'Premium Plan',
           quantity: 1,
           unitPrice: 4999, // $49.99
-          addedDate: Date.now(), // TODO: Refactor to use static date instead of Date.now() - Current date (50% through period)
+          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (50% through period)
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -1049,7 +1049,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           name: 'Standard Plan',
           quantity: 1,
           unitPrice: 2500, // $25.00
-          addedDate: Date.now(), // TODO: Refactor to use static date instead of Date.now() - Current date (40% through period)
+          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (40% through period)
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,
@@ -1157,7 +1157,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           name: 'Free Plan',
           quantity: 1,
           unitPrice: 0, // Free plan
-          addedDate: Date.now(), // TODO: Refactor to use static date instead of Date.now() - Current date (50% through period)
+          addedDate: Date.now(), // FIXME: Refactor to use static date instead of Date.now() - Current date (50% through period)
           type: SubscriptionItemType.Static,
           expiredAt: null,
           livemode: true,

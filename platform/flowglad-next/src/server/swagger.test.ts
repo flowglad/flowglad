@@ -44,7 +44,7 @@ describe('Swagger Configuration', () => {
     }
 
     it('should not have forbidden fields in any input schemas', () => {
-      // TODO: stronger types
+      // FIXME: stronger types
       Object.values(paths || {}).forEach((path: any) => {
         Object.values(path).forEach((method: any) => {
           if (
@@ -663,7 +663,7 @@ describe('Swagger Configuration', () => {
         expect(route).toBeDefined()
         // Assuming GET (list) and POST (create)
         expect(Object.keys(route || {}).sort()).toEqual(
-          // TODO: standardize list methods / procedures
+          // FIXME: standardize list methods / procedures
           ['post'].sort()
         )
       })

@@ -479,7 +479,7 @@ export interface SupabaseUpdatePayload<T = object> {
  * @see https://docs.stripe.com/payments/payment-intents/verifying-status#checking-status-retrieve
  */
 export enum PaymentStatus {
-  // TODO: remove "canceled"
+  // FIXME: remove "canceled"
   Canceled = 'canceled',
   Failed = 'failed',
   Refunded = 'refunded',
@@ -713,7 +713,7 @@ export enum BillingPeriodStatus {
   Canceled = 'canceled',
   PastDue = 'past_due',
   ScheduledToCancel = 'scheduled_to_cancel',
-  // TODO: Add a status for "CollectionAbandoned" - when a billing period's payment collection has been abandoned
+  // FIXME: Add a status for "CollectionAbandoned" - when a billing period's payment collection has been abandoned
 }
 
 export enum BillingRunStatus {
@@ -810,7 +810,7 @@ export enum UsageCreditSourceReferenceType {
   InvoiceSettlement = 'invoice_settlement',
   ManualAdjustment = 'manual_adjustment',
   BillingPeriodTransition = 'billing_period_transition',
-  // TODO: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
+  // FIXME: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
 }
 
 export enum RefundStatus {

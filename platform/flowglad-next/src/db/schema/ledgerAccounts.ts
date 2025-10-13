@@ -45,7 +45,7 @@ export const ledgerAccounts = pgTable(
       'usage_meter_id',
       usageMeters
     ),
-    // TODO: add currency column
+    // FIXME: add currency column
     // currency: text('currency').notNull(),
     normalBalance: pgEnumColumn({
       enumName: 'NormalBalanceType',

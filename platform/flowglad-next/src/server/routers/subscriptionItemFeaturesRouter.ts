@@ -78,7 +78,7 @@ const createSubscriptionItemFeature = protectedProcedure
               'Organization ID is required for this operation.',
           })
         }
-        // TODO: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
+        // FIXME: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
 
         const { id: subscriptionItemFeatureId } =
           await insertSubscriptionItemFeature(

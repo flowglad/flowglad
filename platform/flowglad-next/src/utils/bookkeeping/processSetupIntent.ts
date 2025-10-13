@@ -273,7 +273,7 @@ export const checkoutSessionFromSetupIntent = async (
   if (!metadata) {
     throw new Error('No metadata found')
   }
-  // TODO: handle non-success cases
+  // FIXME: handle non-success cases
   if (setupIntent.status !== 'succeeded') {
     throw new Error(
       `Setup intent ${setupIntent.id} is not succeeded, but ${setupIntent.status}.`

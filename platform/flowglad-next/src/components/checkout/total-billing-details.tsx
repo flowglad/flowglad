@@ -238,7 +238,7 @@ export const TotalBillingDetails = React.forwardRef<
         />
       )}
 
-      {/* TODO: check whether fee calculation should not have discountAmount if original price does not have a discount */}
+      {/* FIXME: check whether fee calculation should not have discountAmount if original price does not have a discount */}
 
       {!hideTotalLabels &&
         (discount ||

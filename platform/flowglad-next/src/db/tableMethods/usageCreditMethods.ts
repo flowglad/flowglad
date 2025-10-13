@@ -81,7 +81,7 @@ export const bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter
  * This will set the status of all pending usage credits for the payment to posted.
  * This will not fail if some of the usage credits are already posted.
  *
- * TODO: design question: should this be for ALL usage meters? Or just one per?
+ * FIXME: design question: should this be for ALL usage meters? Or just one per?
  */
 export const safelyFinalizeUsageCreditForSucceededPayment = async (
   payment: Payment.Record,

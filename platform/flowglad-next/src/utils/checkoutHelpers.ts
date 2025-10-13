@@ -56,7 +56,7 @@ export async function checkoutInfoForPriceWhere(
         transaction
       )
     if (!product.active || !price.active) {
-      // TODO: ERROR PAGE UI
+      // FIXME: ERROR PAGE UI
       return {
         product,
         price,
@@ -113,7 +113,7 @@ export async function checkoutInfoForPriceWhere(
   })
   const { checkoutSession, organization, features } = result
   if (!checkoutSession) {
-    // TODO: ERROR PAGE UI
+    // FIXME: ERROR PAGE UI
     return {
       checkoutInfo: null,
       success: false,
