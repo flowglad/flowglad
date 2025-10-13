@@ -111,7 +111,7 @@ const PayPurchasePage = async ({
     purchase,
     redirectUrl: core.safeUrl(
       `/purchase/post-payment`,
-      core.envVariable('NEXT_PUBLIC_APP_URL')
+      core.NEXT_PUBLIC_APP_URL
     ),
     clientSecret: stripeIntent.client_secret,
   })

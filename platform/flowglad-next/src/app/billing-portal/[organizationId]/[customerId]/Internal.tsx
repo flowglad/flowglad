@@ -136,7 +136,7 @@ function BillingPortalPage() {
     window.open(
       core.safeUrl(
         `/invoice/view/${organizationId}/${invoiceId}`,
-        process.env.NEXT_PUBLIC_APP_URL!
+        core.NEXT_PUBLIC_APP_URL
       ),
       '_blank'
     )

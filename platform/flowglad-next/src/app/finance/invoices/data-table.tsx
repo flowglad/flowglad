@@ -1,5 +1,5 @@
 'use client'
-
+import core from '@/utils/core'
 import * as React from 'react'
 import {
   ColumnFiltersState,
@@ -222,7 +222,7 @@ export function InvoicesDataTable({
                   }
                   // Navigate to invoice details (opens in new tab)
                   const invoice = row.original.invoice
-                  const invoiceUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invoice/view/${invoice.organizationId}/${invoice.id}`
+                  const invoiceUrl = `${core.NEXT_PUBLIC_APP_URL}/invoice/view/${invoice.organizationId}/${invoice.id}`
                   window.open(
                     invoiceUrl,
                     '_blank',

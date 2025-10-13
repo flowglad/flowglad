@@ -1,3 +1,4 @@
+import core from '@/utils/core'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -230,8 +231,8 @@ export const createCheckoutSessionTransaction = async (
   const url =
     updatedCheckoutSession.type ===
     CheckoutSessionType.AddPaymentMethod
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
-      : `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      ? `${core.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
+      : `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
   return {
     checkoutSession: updatedCheckoutSession,
     url,

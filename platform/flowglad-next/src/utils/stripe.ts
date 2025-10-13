@@ -444,18 +444,21 @@ export const rawStringAmountToCountableCurrencyAmount = (
   return Math.round(Number(amount) * 100)
 }
 
+const stripeApiKey = (livemode: boolean) => {
+  if (core.IS_TEST) {
+    return 'fake_test_key_123'
+  }
+  return livemode
+    ? core.envVariable('STRIPE_SECRET_KEY')
+    : core.envVariable('STRIPE_TEST_MODE_SECRET_KEY') || ''
+}
 export const stripe = (livemode: boolean) => {
-  return new Stripe(
-    livemode
-      ? core.envVariable('STRIPE_SECRET_KEY')
-      : core.envVariable('STRIPE_TEST_MODE_SECRET_KEY') || '',
-    {
-      apiVersion: '2024-09-30.acacia',
-      httpClient: core.IS_TEST
-        ? Stripe.createFetchHttpClient()
-        : undefined,
-    }
-  )
+  return new Stripe(stripeApiKey(livemode), {
+    apiVersion: '2024-09-30.acacia',
+    httpClient: core.IS_TEST
+      ? Stripe.createFetchHttpClient()
+      : undefined,
+  })
 }
 
 export const createConnectedAccount = async ({

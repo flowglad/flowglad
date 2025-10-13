@@ -1,8 +1,9 @@
 import { emailOTPClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
+import core from './core'
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
+  baseURL: core.NEXT_PUBLIC_APP_URL,
   plugins: [emailOTPClient()],
 })
 

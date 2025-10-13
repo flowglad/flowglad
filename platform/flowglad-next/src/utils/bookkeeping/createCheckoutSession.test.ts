@@ -32,9 +32,6 @@ describe('createCheckoutSessionTransaction', () => {
   let subscriptionPrice: Price.Record
   let usagePrice: Price.Record
   let usageMeter: UsageMeter.Record
-  beforeAll(() => {
-    process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'
-  })
 
   beforeEach(async () => {
     const { organization: org, pricingModel } = await setupOrg()
@@ -145,7 +142,7 @@ describe('createCheckoutSessionTransaction', () => {
     expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
     expect(checkoutSession.stripeSetupIntentId).toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
   })
 
@@ -173,7 +170,7 @@ describe('createCheckoutSessionTransaction', () => {
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
     expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
   })
 
@@ -225,7 +222,7 @@ describe('createCheckoutSessionTransaction', () => {
 
     expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
     )
   })
 
@@ -254,7 +251,7 @@ describe('createCheckoutSessionTransaction', () => {
     expect(checkoutSession.stripeSetupIntentId).toBeDefined()
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
   })
 
@@ -386,7 +383,7 @@ describe('createCheckoutSessionTransaction', () => {
       expect(checkoutSession.customerName).toBeNull()
       expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
       expect(url).toBe(
-        `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+        `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
       )
     })
 

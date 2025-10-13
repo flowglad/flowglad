@@ -42,6 +42,7 @@ import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createChec
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
 import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
 import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
+import core from '@/utils/core'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'checkoutSession',
@@ -131,7 +132,7 @@ export const updateCheckoutSession = protectedProcedure
         }
         return {
           checkoutSession: updatedCheckoutSession,
-          url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${updatedCheckoutSession.id}`,
+          url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${updatedCheckoutSession.id}`,
         }
       },
       { apiKey: ctx.apiKey }
@@ -151,7 +152,7 @@ const getCheckoutSessionProcedure = protectedProcedure
         )
         return {
           checkoutSession,
-          url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
+          url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
         }
       },
       {
