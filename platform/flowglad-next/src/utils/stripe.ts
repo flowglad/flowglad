@@ -446,7 +446,7 @@ export const rawStringAmountToCountableCurrencyAmount = (
 
 const stripeApiKey = (livemode: boolean) => {
   if (core.IS_TEST) {
-    return 'fake_test_key_123'
+    return 'sk_test_fake_key_1234567890abcdef'
   }
   return livemode
     ? core.envVariable('STRIPE_SECRET_KEY')
