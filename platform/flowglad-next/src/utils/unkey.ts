@@ -18,7 +18,9 @@ import { logger } from './logger'
 
 export const unkey = () =>
   new Unkey({
-    rootKey: core.envVariable('UNKEY_ROOT_KEY'),
+    rootKey: core.IS_TEST
+      ? 'test_root_key'
+      : core.envVariable('UNKEY_ROOT_KEY'),
   })
 
 export const verifyApiKey = async (apiKey: string) => {

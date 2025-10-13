@@ -31,9 +31,6 @@ describe('createNonInvoiceCheckoutSession', () => {
   let subscriptionPrice: Price.Record
   let usagePrice: Price.Record
   let usageMeter: UsageMeter.Record
-  beforeAll(() => {
-    process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'
-  })
 
   beforeEach(async () => {
     const { organization: org, pricingModel } = await setupOrg()

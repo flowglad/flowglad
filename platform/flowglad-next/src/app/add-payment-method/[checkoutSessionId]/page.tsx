@@ -77,7 +77,7 @@ const CheckoutSessionPage = async ({
     sellerOrganization,
     redirectUrl: core.safeUrl(
       `/purchase/post-payment`,
-      core.envVariable('NEXT_PUBLIC_APP_URL')
+      core.NEXT_PUBLIC_APP_URL
     ),
     readonlyCustomerEmail: customer.email,
     feeCalculation: null,

@@ -32,9 +32,6 @@ describe('createCheckoutSessionTransaction', () => {
   let subscriptionPrice: Price.Record
   let usagePrice: Price.Record
   let usageMeter: UsageMeter.Record
-  beforeAll(() => {
-    process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'
-  })
 
   beforeEach(async () => {
     const { organization: org, pricingModel } = await setupOrg()
@@ -145,7 +142,7 @@ describe('createCheckoutSessionTransaction', () => {
     expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
     expect(checkoutSession.stripeSetupIntentId).toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
   })
 
@@ -173,34 +170,35 @@ describe('createCheckoutSessionTransaction', () => {
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
     expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
   })
 
-  it('should throw an error when trying to create a checkout session for a Usage-based product', async () => {
-    const checkoutSessionInput: CreateCheckoutSessionObject = {
-      customerExternalId: customer.externalId,
-      type: CheckoutSessionType.Product,
-      successUrl: 'http://success.url',
-      cancelUrl: 'http://cancel.url',
-      priceId: usagePrice.id,
-    }
+  // FIXME: Re-enable this once usage price checkouts are fully deprecated
+  // it('should throw an error when trying to create a checkout session for a Usage-based product', async () => {
+  //   const checkoutSessionInput: CreateCheckoutSessionObject = {
+  //     customerExternalId: customer.externalId,
+  //     type: CheckoutSessionType.Product,
+  //     successUrl: 'http://success.url',
+  //     cancelUrl: 'http://cancel.url',
+  //     priceId: usagePrice.id,
+  //   }
 
-    await expect(
-      adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
-      )
-    ).rejects.toThrow(
-      `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for checkout sessions.`
-    )
-  })
+  //   await expect(
+  //     adminTransaction(async ({ transaction }) =>
+  //       createCheckoutSessionTransaction(
+  //         {
+  //           checkoutSessionInput,
+  //           organizationId: organization.id,
+  //           livemode: false,
+  //         },
+  //         transaction
+  //       )
+  //     )
+  //   ).rejects.toThrow(
+  //     `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for checkout sessions.`
+  //   )
+  // })
 
   it('should create a checkout session for AddPaymentMethod', async () => {
     const checkoutSessionInput: CreateCheckoutSessionObject = {
@@ -224,7 +222,7 @@ describe('createCheckoutSessionTransaction', () => {
 
     expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
     )
   })
 
@@ -253,7 +251,7 @@ describe('createCheckoutSessionTransaction', () => {
     expect(checkoutSession.stripeSetupIntentId).toBeDefined()
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
   })
 
@@ -385,7 +383,7 @@ describe('createCheckoutSessionTransaction', () => {
       expect(checkoutSession.customerName).toBeNull()
       expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
       expect(url).toBe(
-        `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+        `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
       )
     })
 

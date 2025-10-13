@@ -95,7 +95,7 @@ const CustomerInvoiceOpenView = async (
     readonlyCustomerEmail: customer.email,
     redirectUrl: core.safeUrl(
       `/invoice/view/${organization.id}/${invoice.id}`,
-      core.envVariable('NEXT_PUBLIC_APP_URL')
+      core.NEXT_PUBLIC_APP_URL
     ),
     checkoutSession,
   }

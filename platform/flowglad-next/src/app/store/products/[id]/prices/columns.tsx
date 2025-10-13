@@ -83,7 +83,7 @@ function PriceActionsMenu({
     React.useState(false)
 
   const copyTextHandler = useCopyTextHandler({
-    text: `${process.env.NEXT_PUBLIC_APP_URL}/price/${price.id}/purchase`,
+    text: `${core.NEXT_PUBLIC_APP_URL}/price/${price.id}/purchase`,
   })
 
   const items: ActionMenuItem[] = [

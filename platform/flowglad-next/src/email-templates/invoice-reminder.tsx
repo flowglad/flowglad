@@ -12,11 +12,9 @@ import {
   Paragraph,
   Signature,
 } from './components/themed'
+import core from '@/utils/core'
 
-const baseUrl =
-  process.env.VERCEL_URL ??
-  process.env.NEXT_PUBLIC_APP_URL ??
-  'https://localhost:3000'
+const baseUrl = process.env.VERCEL_URL || core.NEXT_PUBLIC_APP_URL
 
 export const InvoiceReminderEmail = ({
   invoice,

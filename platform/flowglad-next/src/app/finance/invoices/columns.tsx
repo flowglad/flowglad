@@ -78,7 +78,7 @@ function InvoiceActionsMenu({
   const [isSendReminderEmailOpen, setIsSendReminderEmailOpen] =
     React.useState(false)
 
-  const invoiceUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invoice/view/${invoice.organizationId}/${invoice.id}`
+  const invoiceUrl = `${core.NEXT_PUBLIC_APP_URL}/invoice/view/${invoice.organizationId}/${invoice.id}`
   const copyInvoiceUrlHandler = useCopyTextHandler({
     text: invoiceUrl,
   })

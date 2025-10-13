@@ -106,7 +106,7 @@ const CheckoutSessionPage = async ({
     type: price.type,
     redirectUrl: core.safeUrl(
       `/purchase/post-payment`,
-      core.envVariable('NEXT_PUBLIC_APP_URL')
+      core.NEXT_PUBLIC_APP_URL
     ),
     discount,
     readonlyCustomerEmail: maybeCustomer?.email,

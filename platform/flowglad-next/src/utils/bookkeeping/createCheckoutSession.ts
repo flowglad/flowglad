@@ -1,3 +1,4 @@
+import core from '@/utils/core'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -172,11 +173,12 @@ export const createCheckoutSessionTransaction = async (
         'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
       )
     }
-    if (price.type === PriceType.Usage) {
-      throw new Error(
-        `Price id: ${price.id} has usage price. Usage prices are not supported for checkout sessions.`
-      )
-    }
+    // FIXME: Re-enable this once usage prices are deprecated
+    // if (price.type === PriceType.Usage) {
+    //   throw new Error(
+    //     `Price id: ${price.id} has usage price. Usage prices are not supported for checkout sessions.`
+    //   )
+    // }
   } else {
     organization = await selectOrganizationById(
       organizationId,
@@ -197,6 +199,8 @@ export const createCheckoutSessionTransaction = async (
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null
   if (
+    // FIXME: Remove this once usage prices are deprecated
+    price?.type === PriceType.Usage ||
     price?.type === PriceType.Subscription ||
     checkoutSession.type === CheckoutSessionType.AddPaymentMethod ||
     checkoutSession.type === CheckoutSessionType.ActivateSubscription
@@ -229,8 +233,8 @@ export const createCheckoutSessionTransaction = async (
   const url =
     updatedCheckoutSession.type ===
     CheckoutSessionType.AddPaymentMethod
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
-      : `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      ? `${core.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
+      : `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
   return {
     checkoutSession: updatedCheckoutSession,
     url,
