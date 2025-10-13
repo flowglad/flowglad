@@ -137,7 +137,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     cell: ({ row }) => {
       const customer = row.original.customer
       return (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div>
           <DataTableLinkableCell href={`/customers/${customer.id}`}>
             {customer.name}
           </DataTableLinkableCell>
@@ -153,7 +153,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     accessorFn: (row) => row.invoice.invoiceNumber,
     header: 'Number',
     cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
+      <div>
         <DataTableCopyableCell
           copyText={row.getValue('invoiceNumber')}
         >
@@ -239,7 +239,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     accessorFn: (row) => row.invoice.id,
     header: 'ID',
     cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
+      <div>
         <DataTableCopyableCell copyText={row.getValue('invoiceId')}>
           {row.getValue('invoiceId')}
         </DataTableCopyableCell>

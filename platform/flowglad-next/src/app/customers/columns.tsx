@@ -93,7 +93,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     accessorFn: (row) => row.customer.email,
     header: 'Email',
     cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
+      <div>
         <DataTableCopyableCell
           copyText={row.getValue('email')}
           className="lowercase"
@@ -152,7 +152,7 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     accessorFn: (row) => row.customer.id,
     header: 'ID',
     cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
+      <div>
         <DataTableCopyableCell copyText={row.getValue('customerId')}>
           {row.getValue('customerId')}
         </DataTableCopyableCell>

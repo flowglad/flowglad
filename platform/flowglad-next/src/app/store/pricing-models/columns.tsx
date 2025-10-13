@@ -118,7 +118,7 @@ export const columns: ColumnDef<PricingModel.TableRow>[] = [
     cell: ({ row }) => {
       const id = row.getValue('id') as string
       return (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div>
           <DataTableCopyableCell copyText={id}>
             {id}
           </DataTableCopyableCell>
