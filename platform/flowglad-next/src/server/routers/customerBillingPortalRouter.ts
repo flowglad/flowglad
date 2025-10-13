@@ -469,6 +469,7 @@ const getCustomersForUserAndOrganizationProcedure =
             {
               userId: ctx.user.id,
               organizationId: ctx.organizationId,
+              livemode: true,
             },
             transaction
           )
