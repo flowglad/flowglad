@@ -192,7 +192,7 @@ export const columns: ColumnDef<ProductRow>[] = [
     accessorFn: (row) => row.product.id,
     header: 'ID',
     cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
+      <div>
         <div className="min-w-0 max-w-[250px]">
           <DataTableCopyableCell copyText={row.getValue('productId')}>
             <span

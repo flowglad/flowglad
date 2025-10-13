@@ -87,7 +87,7 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
       const displayName =
         customer.name.length === 0 ? customer.email : customer.name
       return (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div>
           <DataTableLinkableCell href={`/customers/${customer.id}`}>
             {displayName}
           </DataTableLinkableCell>
@@ -117,7 +117,7 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
     cell: ({ row }) => {
       const product = row.original.product
       return (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div>
           <DataTableLinkableCell
             href={`/store/products/${product.id}`}
           >
@@ -169,7 +169,7 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
     cell: ({ row }) => {
       const id = row.getValue('subscriptionId') as string
       return (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div>
           <DataTableCopyableCell copyText={id}>
             {id}
           </DataTableCopyableCell>
