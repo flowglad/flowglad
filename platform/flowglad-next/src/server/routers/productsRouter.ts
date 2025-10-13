@@ -177,7 +177,10 @@ export const updateProduct = protectedProcedure
               existingProduct
             )
             // Validate immutable fields for ALL prices
-            validatePriceImmutableFields(input.price, existingPrice)
+            validatePriceImmutableFields({
+              update: input.price,
+              existing: existingPrice,
+            })
             // Disallow slug changes for the default price of a default product (parity with pricesRouter.update)
             if (
               existingProduct.default &&
@@ -191,7 +194,6 @@ export const updateProduct = protectedProcedure
                   'Cannot change the slug of the default price for a default product',
               })
             }
-            // @ts-ignore - Type is validated by validatePriceImmutableFields above
             await safelyUpdatePrice(
               {
                 ...input.price,
