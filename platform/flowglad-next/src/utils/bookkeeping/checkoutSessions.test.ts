@@ -457,7 +457,7 @@ describe('Checkout Sessions', async () => {
                   address: newBillingAddress,
                 },
                 /**
-                 * TODO: review why we have preserveBillingCycleAnchor required
+                 * FIXME: review why we have preserveBillingCycleAnchor required
                  */
                 preserveBillingCycleAnchor: false,
                 type: CheckoutSessionType.Product,

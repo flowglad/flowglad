@@ -931,7 +931,7 @@ describe('Subscription Upgrade with Proration', () => {
     })
 
     it.skip('should create billing run with correct scheduledFor when proration occurs', async () => {
-      // TODO: Fix this test - it's causing timeouts
+      // FIXME: Fix this test - it's causing timeouts
       // The test logic is correct but needs investigation into why selectBillingRuns is timing out
     })
   })

@@ -1251,7 +1251,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 10000
               )
             })
-            // A: TODO: ask about addedDate for existing items
+            // A: FIXME: ask about addedDate for existing items
 
             // A: check item2's expiredAt is within last few seconds
             const item2FromResult = result.subscriptionItems.find(
@@ -1410,7 +1410,7 @@ describe('adjustSubscription Integration Tests', async () => {
             expect(bpItems.length).toBeGreaterThan(
               billingPeriodItemsBefore.length
             )
-            // TODO: fix pro ration billing period items
+            // FIXME: fix pro ration billing period items
             // Expect removal (credit) for Basic Plan portion and addition charge for Premium Plan portion
             // expect(
             //   bpItems.some((i) =>
@@ -1547,7 +1547,7 @@ describe('adjustSubscription Integration Tests', async () => {
               0
             )
             expect(netDelta).toBeGreaterThanOrEqual(0)
-            // TODO: fix pro ration billing period items
+            // FIXME: fix pro ration billing period items
             // Optionally, ensure a net charge adjustment entry exists and is non-negative
             const netAdj = newBpItems.find((i) =>
               i.name.includes('Proration: Net charge adjustment')
@@ -2038,7 +2038,7 @@ describe('adjustSubscription Integration Tests', async () => {
           // Expect two proration adjustments: one for each item whose quantity changed
           // but this fails as it's not handled in adjustSubscription yet
           // expect(bpItems.length - bpItemsBefore.length).toBe(2)
-          // TODO: check bpItems fields
+          // FIXME: check bpItems fields
         })
       })
     })

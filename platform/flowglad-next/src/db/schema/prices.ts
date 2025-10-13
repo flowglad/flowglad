@@ -204,7 +204,7 @@ const subscriptionPriceColumns = {
   usageEventsPerUnit: core.safeZodNullOrUndefined,
   usageMeterId: core.safeZodNullOrUndefined,
   /**
-   * TODO: remove this field
+   * FIXME: remove this field
    */
   startsWithCreditTrial: z
     .boolean()

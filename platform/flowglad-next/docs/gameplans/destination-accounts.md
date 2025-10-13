@@ -153,34 +153,34 @@ The following existing columns will be **removed** from their current tables. Th
     *   Remove the old `stripe...Id` columns from `customers`, `payments`, etc.
     *   Make the foreign keys in the link tables (e.g. `destination_account_customers.externalId`) non-nullable where appropriate for Stripe type DAs.
 
-## VI. TODOs / Open Questions
+## VI. FIXMEs / Open Questions
 
 ### Technical Implementation & Design
-*   **[TODO] Incremental Rollout Strategy**: Define a detailed, phased approach for introducing these changes to minimize risk, starting with schema introduction, then data migration, then logic changes. How can we run both systems (old column lookups and new DA-based lookups) in parallel for a period?
-*   **[TODO] Security of `destination_accounts.credentials`**: Define the encryption mechanism (e.g., HashiCorp Vault, application-level encryption using KMS). How are keys managed? Who/what has decryption access?
-*   **[TODO] API Key Management for BYOK**: How will API key rotation/updates be handled for self-custodied Stripe DAs?
-*   **[TODO] Linking Existing External Entities**: If an organization connects an existing Stripe account, what's the process for mapping their existing Stripe Customers/PaymentMethods to Flowglad entities, especially if those Flowglad entities also exist from prior interactions (e.g., via the platform DA)?
-*   **[TODO] Transactionality & Sagas**: How will operations that span Flowglad DB updates and calls to external DAs be managed to ensure data consistency? (e.g., sagas, compensating transactions).
-*   **[TODO] Impact Analysis on `stripe.ts`**: Detailed plan for refactoring `stripe.ts` for dynamic SDK instantiation per DA.
-*   **[TODO] Detailed Webhook Architecture**: Finalize the URL structure and processing logic for DA-specific webhooks.
-*   **[TODO] Database Indexing**: Review and optimize indexes on new tables based on expected query patterns.
-*   **[TODO] Livemode Handling**: Ensure `livemode` is consistently applied and respected across all DA operations and data storage.
+*   **[FIXME] Incremental Rollout Strategy**: Define a detailed, phased approach for introducing these changes to minimize risk, starting with schema introduction, then data migration, then logic changes. How can we run both systems (old column lookups and new DA-based lookups) in parallel for a period?
+*   **[FIXME] Security of `destination_accounts.credentials`**: Define the encryption mechanism (e.g., HashiCorp Vault, application-level encryption using KMS). How are keys managed? Who/what has decryption access?
+*   **[FIXME] API Key Management for BYOK**: How will API key rotation/updates be handled for self-custodied Stripe DAs?
+*   **[FIXME] Linking Existing External Entities**: If an organization connects an existing Stripe account, what's the process for mapping their existing Stripe Customers/PaymentMethods to Flowglad entities, especially if those Flowglad entities also exist from prior interactions (e.g., via the platform DA)?
+*   **[FIXME] Transactionality & Sagas**: How will operations that span Flowglad DB updates and calls to external DAs be managed to ensure data consistency? (e.g., sagas, compensating transactions).
+*   **[FIXME] Impact Analysis on `stripe.ts`**: Detailed plan for refactoring `stripe.ts` for dynamic SDK instantiation per DA.
+*   **[FIXME] Detailed Webhook Architecture**: Finalize the URL structure and processing logic for DA-specific webhooks.
+*   **[FIXME] Database Indexing**: Review and optimize indexes on new tables based on expected query patterns.
+*   **[FIXME] Livemode Handling**: Ensure `livemode` is consistently applied and respected across all DA operations and data storage.
 
 ### Product & UX
-*   **[TODO] UI/UX for DA Management**: Design the interface for organizations to add, configure (including credential input), and manage their DAs.
-*   **[TODO] DA Selection in Workflows**: How will users select a DA for specific operations if not using the organization's default DA?
-*   **[TODO] Error Handling & Reconciliation UX**: How will errors from different DAs be surfaced to users? What tools or views will be provided for reconciliation?
+*   **[FIXME] UI/UX for DA Management**: Design the interface for organizations to add, configure (including credential input), and manage their DAs.
+*   **[FIXME] DA Selection in Workflows**: How will users select a DA for specific operations if not using the organization's default DA?
+*   **[FIXME] Error Handling & Reconciliation UX**: How will errors from different DAs be surfaced to users? What tools or views will be provided for reconciliation?
 
 ### Business & Operations
-*   **[TODO] Platform Fee Management**:
+*   **[FIXME] Platform Fee Management**:
     *   How does Flowglad identify and calculate its platform fee when transactions occur on a self-custodied Stripe account (or other DA types)?
     *   Where and how will Flowglad track the fees owed to it by organizations using their own DAs?
     *   How will Flowglad collect these fees (e.g., separate invoicing, debiting from a platform-controlled account)?
-*   **[TODO] Data Migration Plan**: Detailed steps, scripts, and validation for migrating existing Stripe IDs.
-*   **[TODO] Permissions Model**: Define which user roles within an organization can view, create, edit, or delete Destination Accounts and their configurations.
+*   **[FIXME] Data Migration Plan**: Detailed steps, scripts, and validation for migrating existing Stripe IDs.
+*   **[FIXME] Permissions Model**: Define which user roles within an organization can view, create, edit, or delete Destination Accounts and their configurations.
 
 ### Future Considerations
-*   **[TODO] Extensibility for `BANK_WIRE` and other DAs**: While designing for Stripe, keep the model generic enough. What specific fields in `destination_accounts.configuration` or `destination_account_transactions.data` would a `BANK_WIRE` DA need?
-*   **[TODO] Payouts/Transfers**: How will this model support initiating payouts or transfers *from* these DAs if that becomes a requirement? (The `destination_account_transactions.flowgladEntityType` could include `PAYOUT`).
+*   **[FIXME] Extensibility for `BANK_WIRE` and other DAs**: While designing for Stripe, keep the model generic enough. What specific fields in `destination_accounts.configuration` or `destination_account_transactions.data` would a `BANK_WIRE` DA need?
+*   **[FIXME] Payouts/Transfers**: How will this model support initiating payouts or transfers *from* these DAs if that becomes a requirement? (The `destination_account_transactions.flowgladEntityType` could include `PAYOUT`).
 
 This document should serve as a starting point for breaking down the "Destination Accounts" epic into smaller, manageable user stories and engineering tasks.

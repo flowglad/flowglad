@@ -95,7 +95,7 @@ export const OrderReceiptEmail = ({
       >
         Thanks for the purchase!
       </Paragraph>
-      {/* TODO: create customer portal.... */}
+      {/* FIXME: create customer portal.... */}
       <EmailButton
         href={core.customerBillingPortalURL({
           organizationId,

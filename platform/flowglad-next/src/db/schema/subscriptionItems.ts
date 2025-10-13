@@ -46,7 +46,7 @@ const columns = {
   priceId: notNullStringForeignKey('price_id', prices),
   unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
-  // TODO: can remove usageEventsPerUnit, usageMeterId?
+  // FIXME: can remove usageEventsPerUnit, usageMeterId?
   usageEventsPerUnit: integer('usage_events_per_unit'),
   usageMeterId: nullableStringForeignKey(
     'usage_meter_id',

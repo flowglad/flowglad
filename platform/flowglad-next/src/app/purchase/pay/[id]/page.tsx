@@ -85,7 +85,7 @@ const PayPurchasePage = async ({
     ? await getSetupIntent(checkoutSession.stripeSetupIntentId)
     : await getPaymentIntent(checkoutSession.stripePaymentIntentId!)
   /**
-   * TODO: more helpful error screen
+   * FIXME: more helpful error screen
    */
   if (!stripeIntent) {
     notFound()

@@ -143,7 +143,7 @@ function PriceActionsMenu({
     destructive: true,
     disabled: !canDelist,
     handler: () => {
-      // TODO: Implement delete price functionality
+      // FIXME: Implement delete price functionality
     },
   })
 

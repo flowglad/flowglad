@@ -102,7 +102,7 @@ Notes:
 
 ```112:160:platform/flowglad-next/src/utils/bookkeeping/processPaymentIntentStatusUpdated.ts
   } else if ('invoiceId' in paymentIntentMetadata) {
-    // TODO: the whole "invoiceId" block should be removed
+    // FIXME: the whole "invoiceId" block should be removed
     // we now support paying invoices through purchase sessions,
     // which seems to be more adaptive,
     // and allows us to use the CheckoutPageContext and PaymentForm

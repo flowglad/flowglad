@@ -184,7 +184,7 @@ export const createSubscriptionFeatureItems = async (
         return []
       }
       /**
-       * TODO: this can potentially create duplicate feature grants if somehow the subscriptions
+       * FIXME: this can potentially create duplicate feature grants if somehow the subscriptions
        * include multiple prices from the same product id.
        * We should find a way to deduplicate those
        */

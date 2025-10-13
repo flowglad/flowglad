@@ -47,7 +47,7 @@ export const commitEvent = async (
 }
 
 /**
- * TODO: restore this, but with native subscription implementation
+ * FIXME: restore this, but with native subscription implementation
  * @param payment
  * @param transaction
  * @returns
