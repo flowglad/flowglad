@@ -23,9 +23,7 @@ import {
   subscriptionsTableRowDataSchema,
   updateSubscriptionPaymentMethodSchema,
 } from '@/db/schema/subscriptions'
-import {
-  selectBillingPeriodById,
-} from '@/db/tableMethods/billingPeriodMethods'
+import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import {
   isSubscriptionCurrent,
   selectSubscriptionById,
@@ -98,6 +96,13 @@ const adjustSubscriptionProcedure = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
+    // TODO: feature flag
+    throw new TRPCError({
+      code: 'NOT_IMPLEMENTED',
+      message:
+        'TBD: Subscription adjustments are currently under development. This feature will be available soon. Please visit ... / contact ...',
+    })
+
     const { subscription, subscriptionItems } =
       await authenticatedTransaction(
         async ({ transaction }) => {
