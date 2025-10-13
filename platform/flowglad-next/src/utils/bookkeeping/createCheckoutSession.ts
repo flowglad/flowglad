@@ -172,11 +172,12 @@ export const createCheckoutSessionTransaction = async (
         'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
       )
     }
-    if (price.type === PriceType.Usage) {
-      throw new Error(
-        `Price id: ${price.id} has usage price. Usage prices are not supported for checkout sessions.`
-      )
-    }
+    // FIXME: Re-enable this once usage prices are supported
+    // if (price.type === PriceType.Usage) {
+    //   throw new Error(
+    //     `Price id: ${price.id} has usage price. Usage prices are not supported for checkout sessions.`
+    //   )
+    // }
   } else {
     organization = await selectOrganizationById(
       organizationId,
