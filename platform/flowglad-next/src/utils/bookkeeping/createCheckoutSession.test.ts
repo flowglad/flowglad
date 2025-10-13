@@ -177,30 +177,31 @@ describe('createCheckoutSessionTransaction', () => {
     )
   })
 
-  it('should throw an error when trying to create a checkout session for a Usage-based product', async () => {
-    const checkoutSessionInput: CreateCheckoutSessionObject = {
-      customerExternalId: customer.externalId,
-      type: CheckoutSessionType.Product,
-      successUrl: 'http://success.url',
-      cancelUrl: 'http://cancel.url',
-      priceId: usagePrice.id,
-    }
+  // FIXME: Re-enable this once usage price checkouts are fully deprecated
+  // it('should throw an error when trying to create a checkout session for a Usage-based product', async () => {
+  //   const checkoutSessionInput: CreateCheckoutSessionObject = {
+  //     customerExternalId: customer.externalId,
+  //     type: CheckoutSessionType.Product,
+  //     successUrl: 'http://success.url',
+  //     cancelUrl: 'http://cancel.url',
+  //     priceId: usagePrice.id,
+  //   }
 
-    await expect(
-      adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
-      )
-    ).rejects.toThrow(
-      `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for checkout sessions.`
-    )
-  })
+  //   await expect(
+  //     adminTransaction(async ({ transaction }) =>
+  //       createCheckoutSessionTransaction(
+  //         {
+  //           checkoutSessionInput,
+  //           organizationId: organization.id,
+  //           livemode: false,
+  //         },
+  //         transaction
+  //       )
+  //     )
+  //   ).rejects.toThrow(
+  //     `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for checkout sessions.`
+  //   )
+  // })
 
   it('should create a checkout session for AddPaymentMethod', async () => {
     const checkoutSessionInput: CreateCheckoutSessionObject = {
