@@ -232,7 +232,7 @@ jobs:
         run: pnpm test
         working-directory: packages/react
 
-    check-todo:
+  check-todo:
     runs-on: ubuntu-latest
     name: Check for todo comments
     steps:
