@@ -20,11 +20,13 @@ import { useEffect } from 'react'
 interface UsageMetersSelectProps {
   name: string
   control: Control<any>
+  disabled?: boolean
 }
 
 const UsageMetersSelect = ({
   name,
   control,
+  disabled,
 }: UsageMetersSelectProps) => {
   const { data: usageMeters, isLoading: isLoadingUsageMeters } =
     useListUsageMetersQuery()
@@ -58,6 +60,7 @@ const UsageMetersSelect = ({
                 <Select
                   value={field.value}
                   onValueChange={field.onChange}
+                  disabled={disabled}
                 >
                   <SelectTrigger>
                     <SelectValue />
