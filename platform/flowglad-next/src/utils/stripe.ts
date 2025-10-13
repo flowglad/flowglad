@@ -1048,6 +1048,8 @@ export const paymentMethodFromStripeCharge = (
       return PaymentMethodType.Card
     case 'ach_debit':
       return PaymentMethodType.USBankAccount
+    case 'us_bank_account':
+      return PaymentMethodType.USBankAccount
     case 'sepa_debit':
       return PaymentMethodType.SEPADebit
     case 'link':
