@@ -141,7 +141,7 @@ const innerHandler = async (
     `REST ${req.method}`,
     { kind: SpanKind.SERVER },
     async (parentSpan) => {
-      // Extract Stainless SDK version from headers
+      // Extract SDK version from headers
       const sdkVersion = req.headers.get('X-Stainless-Package-Version') || undefined
       
       try {
@@ -202,7 +202,7 @@ const innerHandler = async (
           'user.id': userId,
           'api.environment': req.unkey?.environment || 'unknown',
           'api.key_type': apiKeyType,
-          'stainless.sdk_version': sdkVersion,
+          'rest_sdk_version': sdkVersion,
         })
 
         logger.info(`[${requestId}] REST API Request Started`, {
@@ -217,7 +217,7 @@ const innerHandler = async (
           environment: req.unkey?.environment,
           api_key_type: apiKeyType,
           body_size_bytes: requestBodySize,
-          stainless_sdk_version: sdkVersion,
+          rest_sdk_version: sdkVersion,
         })
 
         // Create a new context with our parent span
@@ -521,7 +521,7 @@ const innerHandler = async (
           response_size_bytes: responseSize,
           endpoint_category: endpointCategory,
           operation_type: operationType,
-          stainless_sdk_version: sdkVersion,
+          rest_sdk_version: sdkVersion,
         })
 
         return NextResponse.json(responseData)
@@ -550,7 +550,7 @@ const innerHandler = async (
           method: req.method,
           url: req.url,
           total_duration_ms: totalDuration,
-          stainless_sdk_version: sdkVersion,
+          rest_sdk_version: sdkVersion,
         })
 
         return NextResponse.json(
