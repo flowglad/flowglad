@@ -97,7 +97,7 @@ const adjustSubscriptionProcedure = protectedProcedure
     })
   )
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction, ctx }) => {
         if (!ctx.organization) {
           throw new TRPCError({
@@ -112,14 +112,16 @@ const adjustSubscriptionProcedure = protectedProcedure
             transaction
           )
         return {
-          subscription: {
-            ...subscription,
-            current: isSubscriptionCurrent(
-              subscription.status,
-              subscription.cancellationReason
-            ),
+          result: {
+            subscription: {
+              ...subscription,
+              current: isSubscriptionCurrent(
+                subscription.status,
+                subscription.cancellationReason
+              ),
+            },
+            subscriptionItems,
           },
-          subscriptionItems,
         }
       }
     )
