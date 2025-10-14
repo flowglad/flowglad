@@ -83,7 +83,8 @@ const adjustSubscriptionProcedure = protectedProcedure
     openapi: {
       method: 'POST',
       path: '/api/v1/subscriptions/{id}/adjust',
-      summary: 'Adjust a Subscription',
+      summary:
+        'Adjust a Subscription. Note: Immediate adjustments are in private preview. Adjustments at the end of the current billing period are generally available.',
       tags: ['Subscriptions'],
       protect: true,
     },
@@ -95,34 +96,34 @@ const adjustSubscriptionProcedure = protectedProcedure
       subscriptionItems: subscriptionItemClientSelectSchema.array(),
     })
   )
-  .mutation(async ({ input, ctx }) => {
-    // TODO: feature flag
-    throw new TRPCError({
-      code: 'NOT_IMPLEMENTED',
-      message:
-        'TBD: Subscription adjustments are currently under development. This feature will be available soon. Please visit ... / contact ...',
-    })
-
-    const { subscription, subscriptionItems } =
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          return adjustSubscription(input, transaction)
-        },
-        {
-          apiKey: ctx.apiKey,
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, ctx }) => {
+        if (!ctx.organization) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Organization not found',
+          })
         }
-      )
-    return {
-      subscription: {
-        ...subscription,
-        current: isSubscriptionCurrent(
-          subscription.status,
-          subscription.cancellationReason
-        ),
-      },
-      subscriptionItems,
-    }
-  })
+        const { subscription, subscriptionItems } =
+          await adjustSubscription(
+            input,
+            ctx.organization,
+            transaction
+          )
+        return {
+          subscription: {
+            ...subscription,
+            current: isSubscriptionCurrent(
+              subscription.status,
+              subscription.cancellationReason
+            ),
+          },
+          subscriptionItems,
+        }
+      }
+    )
+  )
 
 const cancelSubscriptionProcedure = protectedProcedure
   .meta({
