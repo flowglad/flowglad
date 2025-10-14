@@ -94,15 +94,28 @@ const getSessionFromParams = async (
   params: FlowgladServerSessionParams
 ) => {
   let coreCustomerUser: CoreCustomerUser | null = null
-  if ('nextAuth' in params) {
-    coreCustomerUser = await getSessionFromNextAuth(params)
-  } else if ('supabaseAuth' in params) {
-    coreCustomerUser = await sessionFromSupabaseAuth(params)
-  } else if ('clerk' in params) {
-    coreCustomerUser = await sessionFromClerkAuth(params)
-  } else if (params.getRequestingCustomer) {
-    coreCustomerUser = await params.getRequestingCustomer()
+  const providerCount = [
+    'nextAuth' in params,
+    'supabaseAuth' in params,
+    'clerk' in params,
+  ].filter(Boolean).length
+  if (providerCount > 1) {
+    throw new Error(
+      'FlowgladError: Only one of nextAuth, supabaseAuth, or clerk may be defined at a time.'
+    )
   }
+  if (params.getRequestingCustomer) {
+    coreCustomerUser = await params.getRequestingCustomer()
+  } else {
+    if ('nextAuth' in params) {
+      coreCustomerUser = await getSessionFromNextAuth(params)
+    } else if ('supabaseAuth' in params) {
+      coreCustomerUser = await sessionFromSupabaseAuth(params)
+    } else if ('clerk' in params) {
+      coreCustomerUser = await sessionFromClerkAuth(params)
+    }
+  }
+
   const customerSchema = z.object({
     externalId: z.string().min(1),
     name: z.string().min(1),
