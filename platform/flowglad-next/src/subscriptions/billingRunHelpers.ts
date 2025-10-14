@@ -662,14 +662,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   }
 }
 
-export const calculateTotalAmountToCharge = (params: {
-  totalDueAmount: number
-  totalAmountPaid: number
-  payments: Payment.Record[]
-}) => {
-  const { totalDueAmount, totalAmountPaid } = params
-  return Math.max(0, totalDueAmount - totalAmountPaid)
-}
 
 // Define return type for executeBillingRunCalculationAndBookkeepingSteps
 type ExecuteBillingRunStepsResult = {
@@ -749,15 +741,8 @@ export const executeBillingRun = async (billingRunId: string) => {
           const currentBillingPeriodObject =
             resultFromSteps.billingPeriod
 
-          // Calculate total amount to charge within the transaction
-          const totalAmountToCharge = calculateTotalAmountToCharge({
-            totalDueAmount: resultFromSteps.totalDueAmount,
-            totalAmountPaid: resultFromSteps.totalAmountPaid,
-            payments: resultFromSteps.payments,
-          })
-
           // Handle zero amount case within the transaction
-          if (totalAmountToCharge <= 0) {
+          if (resultFromSteps.totalDueAmount <= 0) {
             await updateInvoice(
               {
                 ...resultFromSteps.invoice,
@@ -797,7 +782,7 @@ export const executeBillingRun = async (billingRunId: string) => {
             }
             
             paymentIntent = await createPaymentIntentForBillingRun({
-              amount: totalAmountToCharge,
+              amount: resultFromSteps.payment.amount,
               currency: resultFromSteps.invoice.currency,
               stripeCustomerId: resultFromSteps.customer.stripeCustomerId,
               stripePaymentMethodId: resultFromSteps.paymentMethod.stripePaymentMethodId,

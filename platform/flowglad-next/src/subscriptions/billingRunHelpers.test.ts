@@ -31,7 +31,6 @@ import {
   constructBillingRunRetryInsert,
   createInvoiceInsertForBillingRun,
   billingPeriodItemsToInvoiceLineItemInserts,
-  calculateTotalAmountToCharge,
   tabulateOutstandingUsageCosts,
   createBillingRun,
 } from './billingRunHelpers'
@@ -317,41 +316,6 @@ describe('billingRunHelpers', async () => {
         )
       )
       expect(result.invoice.status).toBe(InvoiceStatus.Paid)
-    })
-    it('should calculate the correct amount to charge based on total due and amount paid', async () => {
-      const totalDueAmount = 1000
-      const totalAmountPaid = 400
-      const payments: Payment.Record[] = []
-
-      const amountToCharge = calculateTotalAmountToCharge({
-        totalDueAmount,
-        totalAmountPaid,
-        payments,
-      })
-
-      expect(amountToCharge).toBe(600)
-    })
-
-    it('should return 0 when amount paid equals or exceeds total due', async () => {
-      const totalDueAmount = 1000
-      const totalAmountPaid = 1000
-      const payments: Payment.Record[] = []
-
-      const amountToCharge = calculateTotalAmountToCharge({
-        totalDueAmount,
-        totalAmountPaid,
-        payments,
-      })
-
-      expect(amountToCharge).toBe(0)
-
-      const overpaidAmount = calculateTotalAmountToCharge({
-        totalDueAmount: 1000,
-        totalAmountPaid: 1200,
-        payments: [],
-      })
-
-      expect(overpaidAmount).toBe(0)
     })
   })
 
