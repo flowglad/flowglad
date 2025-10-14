@@ -1,16 +1,3 @@
-/**
- * adjustSubscription Integration Tests
- *
- * IMPORTANT: Immediate subscription adjustments require the
- * ImmediateSubscriptionAdjustments feature flag to be enabled on the organization.
- *
- * Tests that use SubscriptionAdjustmentTiming.Immediately have been marked with
- * .skip() and include "(REQUIRES FEATURE FLAG)" in their description.
- *
- * See the "Feature Flag: ImmediateSubscriptionAdjustments" test suite for tests
- * that verify the feature flag behavior.
- */
-
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   adjustSubscription,
@@ -199,12 +186,8 @@ describe('adjustSubscription Integration Tests', async () => {
 
   /* ==========================================================================
      Error Conditions
-     NOTE: These tests are commented out because they require the 
-     ImmediateSubscriptionAdjustments feature flag to be enabled.
-     See the "Feature Flag: ImmediateSubscriptionAdjustments" tests above
-     for tests that verify the feature flag behavior.
   ========================================================================== */
-  describe.skip('Error Conditions', () => {
+  describe('Error Conditions', () => {
     it('should throw "Subscription is in terminal state" if the subscription is terminal', async () => {
       // Create a subscription already in a terminal state.
       const canceledSubscription = await setupSubscription({
@@ -233,6 +216,15 @@ describe('adjustSubscription Integration Tests', async () => {
           },
           transaction
         )
+        const orgWithFeatureFlag = await updateOrganization(
+          {
+            id: organization.id,
+            featureFlags: {
+              [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+            },
+          },
+          transaction
+        )
 
         await expect(
           adjustSubscription(
@@ -244,7 +236,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: false,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
         ).rejects.toThrow('Subscription is in terminal state')
@@ -260,7 +252,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: false,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
         ).rejects.toThrow('Subscription is in terminal state')
@@ -296,6 +288,16 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
+        const orgWithFeatureFlag = await updateOrganization(
+          {
+            id: organization.id,
+            featureFlags: {
+              [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+            },
+          },
+          transaction
+        )
+
         await expect(
           adjustSubscription(
             {
@@ -306,7 +308,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: false,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
         ).rejects.toThrow(
@@ -329,6 +331,15 @@ describe('adjustSubscription Integration Tests', async () => {
             startDate: Date.now() - 10 * 60 * 1000,
             endDate: Date.now() + 10 * 60 * 1000,
             status: BillingPeriodStatus.Active,
+          },
+          transaction
+        )
+        const orgWithFeatureFlag = await updateOrganization(
+          {
+            id: organization.id,
+            featureFlags: {
+              [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+            },
           },
           transaction
         )
@@ -405,6 +416,15 @@ describe('adjustSubscription Integration Tests', async () => {
           },
           transaction
         )
+        const orgWithFeatureFlag = await updateOrganization(
+          {
+            id: organization.id,
+            featureFlags: {
+              [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+            },
+          },
+          transaction
+        )
 
         await expect(
           adjustSubscription(
@@ -416,7 +436,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: false,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
         ).rejects.toThrow(
@@ -459,7 +479,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: false,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
         ).rejects.toThrow(
@@ -469,6 +489,15 @@ describe('adjustSubscription Integration Tests', async () => {
     })
     it('should throw when adjusting a non-existent subscription id', async () => {
       await adminTransaction(async ({ transaction }) => {
+        const orgWithFeatureFlag = await updateOrganization(
+          {
+            id: organization.id,
+            featureFlags: {
+              [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+            },
+          },
+          transaction
+        )
         await expect(
           adjustSubscription(
             {
@@ -479,7 +508,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: false,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
         ).rejects.toThrow()
@@ -645,6 +674,15 @@ describe('adjustSubscription Integration Tests', async () => {
               usageEventsPerUnit: null,
             },
           ]
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
 
           // Should NOT throw - AtEndOfCurrentBillingPeriod doesn't require feature flag
           const result = await adjustSubscription(
@@ -656,7 +694,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
 
@@ -670,8 +708,7 @@ describe('adjustSubscription Integration Tests', async () => {
      Subscription Record Update
   ========================================================================== */
     describe('Subscription Record Update', () => {
-      // NOTE: This test uses immediate adjustments and requires feature flag
-      it.skip('should update subscription record when subscription items change to maintain data consistency (REQUIRES FEATURE FLAG)', async () => {
+      it('should update subscription record when subscription items change to maintain data consistency', async () => {
         await adminTransaction(async ({ transaction }) => {
           // Create initial subscription item
           const initialItem = await setupSubscriptionItem({
@@ -706,6 +743,15 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           ]
 
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
           const result = await adjustSubscription(
             {
               id: subscription.id,
@@ -715,7 +761,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: false,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
 
@@ -763,8 +809,7 @@ describe('adjustSubscription Integration Tests', async () => {
         })
       })
 
-      // NOTE: This test uses immediate adjustments and requires feature flag
-      it.skip('should use the most expensive subscription item when multiple items exist (REQUIRES FEATURE FLAG)', async () => {
+      it('should use the most expensive subscription item when multiple items exist', async () => {
         await adminTransaction(async ({ transaction }) => {
           // Create billing period
           await updateBillingPeriod(
@@ -800,6 +845,15 @@ describe('adjustSubscription Integration Tests', async () => {
               usageEventsPerUnit: null,
             },
           ]
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
 
           const result = await adjustSubscription(
             {
@@ -810,7 +864,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: false,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
 
@@ -890,6 +944,15 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           ]
 
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
           const result = await adjustSubscription(
             {
               id: subscription.id,
@@ -899,7 +962,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
 
@@ -934,8 +997,7 @@ describe('adjustSubscription Integration Tests', async () => {
         })
       })
 
-      // NOTE: This test uses immediate adjustments and requires feature flag
-      it.skip('should handle subscription record update with proration enabled (REQUIRES FEATURE FLAG)', async () => {
+      it('should handle subscription record update with proration enabled', async () => {
         await adminTransaction(async ({ transaction }) => {
           // Create initial subscription item
           await setupSubscriptionItem({
@@ -969,6 +1031,16 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           ]
 
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
+
           const result = await adjustSubscription(
             {
               id: subscription.id,
@@ -978,7 +1050,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: true,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
 
@@ -1364,14 +1436,8 @@ describe('adjustSubscription Integration Tests', async () => {
     })
     /* ==========================================================================
      Immediate Adjustments
-     
-     NOTE: These tests are commented out because they require the 
-     ImmediateSubscriptionAdjustments feature flag to be enabled.
-     See the "Feature Flag: ImmediateSubscriptionAdjustments" tests above
-     for tests that verify the feature flag behavior.
   ========================================================================== */
-    // TODO: Uncomment and update these tests to enable the feature flag
-    describe.skip('Immediate Adjustments (REQUIRES FEATURE FLAG)', () => {
+    describe('Immediate Adjustments', () => {
       describe('when prorateCurrentBillingPeriod is true', () => {
         it('should create proration adjustments, remove deleted items, and execute a billing run', async () => {
           // Create two existing subscription items.
@@ -1439,6 +1505,17 @@ describe('adjustSubscription Integration Tests', async () => {
               transaction
             )
 
+            const orgWithFeatureFlag = await updateOrganization(
+              {
+                id: organization.id,
+                featureFlags: {
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
+                    true,
+                },
+              },
+              transaction
+            )
+
             await adjustSubscription(
               {
                 id: subscription.id,
@@ -1448,7 +1525,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
 
@@ -1606,6 +1683,17 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             ]
 
+            const orgWithFeatureFlag = await updateOrganization(
+              {
+                id: organization.id,
+                featureFlags: {
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
+                    true,
+                },
+              },
+              transaction
+            )
+
             const result = await adjustSubscription(
               {
                 id: subscription.id,
@@ -1615,7 +1703,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
 
@@ -1699,6 +1787,17 @@ describe('adjustSubscription Integration Tests', async () => {
                 usageEventsPerUnit: null,
               },
             ]
+            const orgWithFeatureFlag = await updateOrganization(
+              {
+                id: organization.id,
+                featureFlags: {
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
+                    true,
+                },
+              },
+              transaction
+            )
+
             const upgradeResult = await adjustSubscription(
               {
                 id: subscription.id,
@@ -1708,7 +1807,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: false,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
             expect(upgradeResult.subscription.name).toBe(premiumName)
@@ -1748,7 +1847,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
 
@@ -1803,6 +1902,17 @@ describe('adjustSubscription Integration Tests', async () => {
 
             const originalName = subscription.name
 
+            const orgWithFeatureFlag = await updateOrganization(
+              {
+                id: organization.id,
+                featureFlags: {
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
+                    true,
+                },
+              },
+              transaction
+            )
+
             const result = await adjustSubscription(
               {
                 id: subscription.id,
@@ -1812,7 +1922,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
 
@@ -1868,6 +1978,17 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             ]
 
+            const orgWithFeatureFlag = await updateOrganization(
+              {
+                id: organization.id,
+                featureFlags: {
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
+                    true,
+                },
+              },
+              transaction
+            )
+
             const result = await adjustSubscription(
               {
                 id: subscription.id,
@@ -1877,7 +1998,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
 
@@ -1944,6 +2065,17 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             ]
 
+            const orgWithFeatureFlag = await updateOrganization(
+              {
+                id: organization.id,
+                featureFlags: {
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
+                    true,
+                },
+              },
+              transaction
+            )
+
             await adjustSubscription(
               {
                 id: subscription.id,
@@ -1953,7 +2085,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: false,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
 
@@ -2178,12 +2310,8 @@ describe('adjustSubscription Integration Tests', async () => {
     // A: add test for adjustment on existing items fields
     /* ==========================================================================
      Adjustments on existing Items' Quantity
-     
-     NOTE: These tests are commented out because they use immediate adjustments
-     which require the ImmediateSubscriptionAdjustments feature flag.
   ========================================================================== */
-    // TODO: Uncomment and update these tests to enable the feature flag
-    describe.skip('adjustmentsOnExistingItemsQuantity (REQUIRES FEATURE FLAG)', () => {
+    describe('adjustmentsOnExistingItemsQuantity', () => {
       it('should update quantity on existing items correctly and create proration adjustments if prorateCurrentBillingPeriod is true', async () => {
         const item1 = await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -2221,6 +2349,17 @@ describe('adjustSubscription Integration Tests', async () => {
               quantity: 1,
             },
           ]
+
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
+
           await adjustSubscription(
             {
               id: subscription.id,
@@ -2230,7 +2369,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: true,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
 
@@ -2332,12 +2471,8 @@ describe('adjustSubscription Integration Tests', async () => {
 
     /* ==========================================================================
      Edge Cases and Error Handling
-     
-     NOTE: Most tests in this section use immediate adjustments and require 
-     the ImmediateSubscriptionAdjustments feature flag to be enabled.
   ========================================================================== */
-    // TODO: Uncomment and update these tests to enable the feature flag
-    describe.skip('Edge Cases and Error Handling (REQUIRES FEATURE FLAG)', () => {
+    describe('Edge Cases and Error Handling', () => {
       it('should handle a zero-duration billing period', async () => {
         const zeroDurationBillingPeriod = await setupBillingPeriod({
           subscriptionId: subscription.id,
@@ -2373,6 +2508,16 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           ]
 
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
+
           await expect(
             adjustSubscription(
               {
@@ -2383,7 +2528,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
           ).rejects.toThrow()
@@ -2429,6 +2574,16 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           ]
 
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
+
           await expect(
             adjustSubscription(
               {
@@ -2439,7 +2594,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
           ).rejects.toThrow()
@@ -2472,6 +2627,16 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           ]
 
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
+
           await adjustSubscription(
             {
               id: subscription.id,
@@ -2481,7 +2646,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: false,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
 
@@ -2523,6 +2688,16 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           ]
 
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
+
           await expect(
             adjustSubscription(
               {
@@ -2533,7 +2708,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
           ).rejects.toThrow()
@@ -2562,6 +2737,16 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           ]
 
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
+
           await adjustSubscription(
             {
               id: subscription.id,
@@ -2571,7 +2756,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: true,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
 
@@ -2617,6 +2802,17 @@ describe('adjustSubscription Integration Tests', async () => {
               },
             ]
 
+            const orgWithFeatureFlag = await updateOrganization(
+              {
+                id: organization.id,
+                featureFlags: {
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
+                    true,
+                },
+              },
+              transaction
+            )
+
             await adjustSubscription(
               {
                 id: subscription.id,
@@ -2626,7 +2822,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
           })
@@ -2661,6 +2857,17 @@ describe('adjustSubscription Integration Tests', async () => {
               livemode: false,
             },
           ]
+
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
+
           await expect(
             adjustSubscription(
               {
@@ -2671,7 +2878,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
           ).rejects.toThrow()
@@ -2706,6 +2913,17 @@ describe('adjustSubscription Integration Tests', async () => {
               livemode: false,
             },
           ]
+
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
+
           await expect(
             adjustSubscription(
               {
@@ -2716,7 +2934,7 @@ describe('adjustSubscription Integration Tests', async () => {
                   prorateCurrentBillingPeriod: true,
                 },
               },
-              organization,
+              orgWithFeatureFlag,
               transaction
             )
           ).rejects.toThrow()
@@ -2726,12 +2944,8 @@ describe('adjustSubscription Integration Tests', async () => {
 
     /* ==========================================================================
      Bulk Operations
-     
-     NOTE: These tests use immediate adjustments and require the 
-     ImmediateSubscriptionAdjustments feature flag to be enabled.
   ========================================================================== */
-    // TODO: Uncomment and update these tests to enable the feature flag
-    describe.skip('Bulk Operations (REQUIRES FEATURE FLAG)', () => {
+    describe('Bulk Operations', () => {
       it('should correctly bulk update subscription items and insert proration adjustments', async () => {
         await adminTransaction(async ({ transaction }) => {
           const item1 = await setupSubscriptionItem({
@@ -2768,6 +2982,17 @@ describe('adjustSubscription Integration Tests', async () => {
               usageEventsPerUnit: null,
             },
           ]
+
+          const orgWithFeatureFlag = await updateOrganization(
+            {
+              id: organization.id,
+              featureFlags: {
+                [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+              },
+            },
+            transaction
+          )
+
           await adjustSubscription(
             {
               id: subscription.id,
@@ -2777,7 +3002,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 prorateCurrentBillingPeriod: true,
               },
             },
-            organization,
+            orgWithFeatureFlag,
             transaction
           )
           const result =
@@ -2831,6 +3056,18 @@ describe('adjustSubscription Integration Tests', async () => {
                   usageEventsPerUnit: null,
                 },
               ]
+
+              const orgWithFeatureFlag = await updateOrganization(
+                {
+                  id: organization.id,
+                  featureFlags: {
+                    [FeatureFlag.ImmediateSubscriptionAdjustments]:
+                      true,
+                  },
+                },
+                transaction
+              )
+
               await adjustSubscription(
                 {
                   id: subscription.id,
@@ -2840,7 +3077,7 @@ describe('adjustSubscription Integration Tests', async () => {
                     prorateCurrentBillingPeriod: false,
                   },
                 },
-                organization,
+                orgWithFeatureFlag,
                 transaction
               )
             })
