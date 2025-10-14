@@ -20,6 +20,13 @@ export default function Logout() {
 
   useEffect(() => {
     const performLogout = async () => {
+      /**
+       * This is a workaround to avoid infinite
+       * redirects when the logout mutation is pending.
+       */
+      if (logoutMutation.isPending) {
+        return
+      }
       await logoutMutation.mutateAsync()
       const redirectParam = searchParams.get('redirect')
       if (redirectParam && isValidRedirectUrl(redirectParam)) {
