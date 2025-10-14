@@ -5,6 +5,7 @@ import {
   authenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
+import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
 import {
   editPriceSchema,
   pricesClientSelectSchema,
@@ -181,6 +182,12 @@ export const updatePrice = protectedProcedure
         // Validate that default prices on default products maintain their constraints
         validateDefaultPriceUpdate(price, existingPrice, product)
 
+        // Validate immutable fields for ALL prices
+        validatePriceImmutableFields({
+          update: price,
+          existing: existingPrice,
+        })
+
         // Disallow slug changes for the default price of a default product
         if (
           product.default &&
@@ -196,7 +203,10 @@ export const updatePrice = protectedProcedure
         }
 
         const updatedPrice = await safelyUpdatePrice(
-          price,
+          {
+            ...price,
+            type: existingPrice.type,
+          },
           transaction
         )
         return {

@@ -231,14 +231,46 @@ describe('apiKeyHelpers', () => {
 })
 
 describe('getApiKeyHeader', () => {
-  it('should return the second fragment if there are exactly 2 fragments', () => {
+  it('returns the key when header is "Bearer <key>"', () => {
     const authorizationHeader = 'Bearer 1234567890'
     const apiKey = getApiKeyHeader(authorizationHeader)
     expect(apiKey).toBe('1234567890')
   })
-  it('should return the original authorization header if there are not exactly 2 fragments', () => {
+
+  it('accepts a raw key when there is no space', () => {
     const authorizationHeader = '1234567890'
     const apiKey = getApiKeyHeader(authorizationHeader)
     expect(apiKey).toBe('1234567890')
+  })
+
+  it('trims surrounding whitespace before processing', () => {
+    expect(getApiKeyHeader('   1234567890   ')).toBe('1234567890')
+    expect(getApiKeyHeader('   Bearer 1234567890   ')).toBe(
+      '1234567890'
+    )
+  })
+
+  it('rejects non-Bearer authorization schemes that contain spaces', () => {
+    expect(getApiKeyHeader('Basic abcdef')).toBeNull()
+    expect(getApiKeyHeader('Token 123')).toBeNull()
+    expect(getApiKeyHeader('ApiKey 123')).toBeNull()
+  })
+
+  it('rejects multi-word headers that do not start with "Bearer "', () => {
+    expect(getApiKeyHeader('Foo Bar Baz')).toBeNull()
+    expect(getApiKeyHeader('Bearer: 123')).toBeNull()
+  })
+
+  it('returns "Bearer" when header is exactly "Bearer" (no space)', () => {
+    expect(getApiKeyHeader('Bearer')).toBe('Bearer')
+  })
+
+  it('returns the entire string when there is no space and not Bearer prefix', () => {
+    expect(getApiKeyHeader('Bearer123')).toBe('Bearer123')
+  })
+
+  it('does not trim the extracted key beyond the single Bearer space', () => {
+    // Current logic slices right after 'Bearer ' and does not trim the remainder
+    expect(getApiKeyHeader('Bearer    123')).toBe('   123')
   })
 })

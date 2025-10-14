@@ -11,6 +11,7 @@ import {
   validateDefaultProductUpdate,
   validateDefaultPriceUpdate,
 } from '@/utils/defaultProductValidation'
+import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
 import {
   createProductTransaction,
   editProduct as editProductPricingModel,
@@ -175,6 +176,11 @@ export const updateProduct = protectedProcedure
               existingPrice,
               existingProduct
             )
+            // Validate immutable fields for ALL prices
+            validatePriceImmutableFields({
+              update: input.price,
+              existing: existingPrice,
+            })
             // Disallow slug changes for the default price of a default product (parity with pricesRouter.update)
             if (
               existingProduct.default &&
@@ -188,7 +194,13 @@ export const updateProduct = protectedProcedure
                   'Cannot change the slug of the default price for a default product',
               })
             }
-            await safelyUpdatePrice(input.price, transaction)
+            await safelyUpdatePrice(
+              {
+                ...input.price,
+                type: existingPrice.type,
+              },
+              transaction
+            )
           }
           return {
             product: updatedProduct,
