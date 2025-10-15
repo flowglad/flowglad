@@ -302,7 +302,9 @@ export const updatePaymentToReflectLatestChargeStatus = async (
     newPaymentStatus,
     transaction
   )
-  if (newPaymentStatus === PaymentStatus.Failed) {
+  // Only send notifications when payment status actually changes to Failed
+  // (prevents duplicate notifications on webhook retries for already-failed payments)
+  if (newPaymentStatus === PaymentStatus.Failed && payment.status !== newPaymentStatus) {
     updatedPayment = await updatePayment(
       {
         id: payment.id,
