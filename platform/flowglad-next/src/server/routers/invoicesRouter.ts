@@ -96,7 +96,6 @@ const getInvoiceProcedure = protectedProcedure
   })
 
 const createInvoiceProcedure = protectedProcedure
-  .meta(openApiMetas.POST)
   .input(createInvoiceSchema)
   .output(
     z.object({

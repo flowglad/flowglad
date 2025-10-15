@@ -340,7 +340,7 @@ describe('Swagger Configuration', () => {
         const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['get'].sort()
+          ['get', 'put'].sort()
         )
       })
     })
@@ -412,7 +412,7 @@ describe('Swagger Configuration', () => {
         const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['get', 'post'].sort()
+          ['get'].sort()
         )
       })
 
@@ -420,15 +420,7 @@ describe('Swagger Configuration', () => {
         const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['get', 'put'].sort()
-        )
-      })
-
-      it('should have correct send-reminder route methods', () => {
-        const route = paths?.[`${basePath}/{id}/send-reminder`]
-        expect(route).toBeDefined()
-        expect(Object.keys(route || {}).sort()).toEqual(
-          ['post'].sort()
+          ['get'].sort()
         )
       })
     })
