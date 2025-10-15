@@ -1310,7 +1310,9 @@ export const confirmPaymentIntentForBillingRun = async (
   livemode: boolean
 ) => {
   // Confirm the payment intent with Stripe
-  return stripe(livemode).paymentIntents.confirm(paymentIntentId)
+  return stripe(livemode).paymentIntents.confirm(paymentIntentId, {
+    off_session: true
+  })
 }
 
 export const getStripePaymentMethod = async (
