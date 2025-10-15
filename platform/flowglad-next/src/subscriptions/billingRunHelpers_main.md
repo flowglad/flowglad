@@ -663,15 +663,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   }
 }
 
-export const calculateTotalAmountToCharge = (params: {
-  totalDueAmount: number
-  totalAmountPaid: number
-  payments: Payment.Record[]
-}) => {
-  const { totalDueAmount, totalAmountPaid } = params
-  return Math.max(0, totalDueAmount - totalAmountPaid)
-}
-
 // Define return type for executeBillingRunCalculationAndBookkeepingSteps
 type ExecuteBillingRunStepsResult = {
   invoice: Invoice.Record

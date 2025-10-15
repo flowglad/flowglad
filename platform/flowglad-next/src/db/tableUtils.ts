@@ -334,6 +334,10 @@ export const createUpdateFunction = <
       const parsedUpdate = updateSchema.parse(
         update
       ) as InferInsertModel<T>
+      // Exclude id field from update to avoid primary key constraint issues
+      if ('id' in parsedUpdate) {
+        delete parsedUpdate.id
+      }
       const [result] = await transaction
         .update(table)
         .set({
