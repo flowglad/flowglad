@@ -40,7 +40,6 @@ const columns = {
     'organization_id',
     organizations
   ),
-  displayFeatures: jsonb('display_features'),
   active: boolean('active').notNull().default(true),
   /**
    * The label to display for the unit of the product in singular form.
@@ -105,16 +104,9 @@ export const products = pgTable(TABLE_NAME, columns, (table) => {
   ]
 }).enableRLS()
 
-const displayFeatureSchema = z.object({
-  enabled: z.boolean(),
-  label: z.string(),
-  details: z.string().nullish(),
-})
-
 const refinement = {
   name: z.string(),
   active: z.boolean(),
-  displayFeatures: z.array(displayFeatureSchema).nullable(),
 }
 
 export const {

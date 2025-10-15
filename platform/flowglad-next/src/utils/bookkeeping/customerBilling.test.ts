@@ -741,7 +741,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
               'Non-default product for testing checkout sessions',
             imageURL: 'https://flowglad.com/logo.png',
             active: true,
-            displayFeatures: [],
             singularQuantityLabel: 'seat',
             pluralQuantityLabel: 'seats',
             pricingModelId: pricingModel.id,
