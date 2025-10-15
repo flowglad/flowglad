@@ -340,7 +340,7 @@ describe('Swagger Configuration', () => {
         const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['get', 'put'].sort()
+          ['get'].sort()
         )
       })
     })
