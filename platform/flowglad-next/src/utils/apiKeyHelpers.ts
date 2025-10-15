@@ -109,10 +109,15 @@ export const rotateSecretApiKeyTransaction = async (
 }
 
 export const getApiKeyHeader = (authorizationHeader: string) => {
-  const authorizationFragments = authorizationHeader
-    .trim()
-    .split(/\s+/, 2)
-  return authorizationFragments.length == 2
-    ? authorizationFragments[1]
-    : authorizationHeader
+  const trimmed = authorizationHeader.trim()
+  if (trimmed.toLowerCase().startsWith('bearer ')) {
+    // Only accept 'Bearer <key>'; reject all other prefixes
+    return trimmed.slice('Bearer '.length)
+  }
+  // If there's no space (just a key), accept it
+  if (!trimmed.includes(' ')) {
+    return trimmed
+  }
+  // For any other type of Authorization header, reject
+  return null
 }

@@ -141,7 +141,7 @@ const innerHandler = async (
     `REST ${req.method}`,
     { kind: SpanKind.SERVER },
     async (parentSpan) => {
-      // Extract Stainless SDK version from headers
+      // Extract SDK version from headers
       const sdkVersion = req.headers.get('X-Stainless-Package-Version') || undefined
       
       try {
@@ -202,7 +202,7 @@ const innerHandler = async (
           'user.id': userId,
           'api.environment': req.unkey?.environment || 'unknown',
           'api.key_type': apiKeyType,
-          'stainless.sdk_version': sdkVersion,
+          'rest_sdk_version': sdkVersion,
         })
 
         logger.info(`[${requestId}] REST API Request Started`, {
@@ -217,7 +217,7 @@ const innerHandler = async (
           environment: req.unkey?.environment,
           api_key_type: apiKeyType,
           body_size_bytes: requestBodySize,
-          stainless_sdk_version: sdkVersion,
+          rest_sdk_version: sdkVersion,
         })
 
         // Create a new context with our parent span
@@ -521,7 +521,7 @@ const innerHandler = async (
           response_size_bytes: responseSize,
           endpoint_category: endpointCategory,
           operation_type: operationType,
-          stainless_sdk_version: sdkVersion,
+          rest_sdk_version: sdkVersion,
         })
 
         return NextResponse.json(responseData)
@@ -550,7 +550,7 @@ const innerHandler = async (
           method: req.method,
           url: req.url,
           total_duration_ms: totalDuration,
-          stainless_sdk_version: sdkVersion,
+          rest_sdk_version: sdkVersion,
         })
 
         return NextResponse.json(
@@ -563,6 +563,8 @@ const innerHandler = async (
     }
   )
 }
+
+const SDK_API_KEY_MESSAGE = `Please check that you are providing a valid API key. If requesting via SDK, ensure the FLOWGLAD_SECRET_KEY is set in your server's environment variables.`
 
 const withVerification = (
   handler: (
@@ -612,7 +614,10 @@ const withVerification = (
                 url: req.url,
               }
             )
-            return new Response('Unauthorized', { status: 401 })
+            return new Response(
+              'Unauthorized. Authorization header is required, and must include api key in format Authorization: "Bearer <key>", or Authorization: "<key>"',
+              { status: 401 }
+            )
           }
 
           const apiKey = getApiKeyHeader(authorizationHeader)
@@ -640,7 +645,10 @@ const withVerification = (
                 url: req.url,
               }
             )
-            return new Response('Unauthorized', { status: 401 })
+            return new Response(
+              'Either the API key was missing, or it was in an invalid format. Authorization header is required, and must include api key in format Authorization: "Bearer <key>", or Authorization: "<key>"',
+              { status: 401 }
+            )
           }
 
           // Track API key prefix for debugging (first 8 chars)
@@ -678,13 +686,18 @@ const withVerification = (
               key_prefix: keyPrefix,
               verification_duration_ms: verificationDuration,
             })
-            return new Response('Unauthorized', { status: 401 })
+            return new Response(
+              'API key verification failed. ' + SDK_API_KEY_MESSAGE,
+              { status: 401 }
+            )
           }
 
           if (!result) {
             authSpan.setStatus({
               code: SpanStatusCode.ERROR,
-              message: 'API key verification returned no result',
+              message:
+                'API key verification returned no result. ' +
+                SDK_API_KEY_MESSAGE,
             })
             authSpan.setAttributes({
               'auth.error': 'verification_failed',
@@ -779,7 +792,10 @@ const withVerification = (
               error_code: result.code,
               verification_duration_ms: verificationDuration,
             })
-            return new Response('Unauthorized', { status: 401 })
+            return new Response(
+              'API key invalid. ' + SDK_API_KEY_MESSAGE,
+              { status: 401 }
+            )
           }
 
           // Check if using expired key (shouldn't happen if valid=true, but double-check)

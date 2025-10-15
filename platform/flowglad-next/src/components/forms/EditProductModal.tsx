@@ -62,21 +62,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         ),
       }}
       onSubmit={async (input) => {
-        let price = input.price
-        if (input.price) {
-          const unitPrice = rawStringAmountToCountableCurrencyAmount(
-            organization.defaultCurrency,
-            input.__rawPriceString!
-          )
-          price = {
-            ...input.price,
-            unitPrice,
-          }
-        }
-        await editProduct.mutateAsync({
-          ...input,
-          price,
-        })
+        await editProduct.mutateAsync(input)
       }}
       key={`${product.id}-${pricesLoading}`}
       mode="drawer"
