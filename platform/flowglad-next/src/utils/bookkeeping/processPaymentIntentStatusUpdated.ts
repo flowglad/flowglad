@@ -297,36 +297,36 @@ export const updatePaymentToReflectLatestChargeStatus = async (
 ) => {
   const newPaymentStatus = chargeStatusToPaymentStatus(charge.status)
   let updatedPayment: Payment.Record = payment
-  if (payment.status !== newPaymentStatus) {
-    updatedPayment = await safelyUpdatePaymentStatus(
-      payment,
-      newPaymentStatus,
+  updatedPayment = await safelyUpdatePaymentStatus(
+    payment,
+    newPaymentStatus,
+    transaction
+  )
+  // Only send notifications when payment status actually changes to Failed
+  // (prevents duplicate notifications on webhook retries for already-failed payments)
+  if (newPaymentStatus === PaymentStatus.Failed && payment.status !== newPaymentStatus) {
+    updatedPayment = await updatePayment(
+      {
+        id: payment.id,
+        failureCode: charge.failure_code,
+        failureMessage: charge.failure_message,
+      },
       transaction
     )
-    if (newPaymentStatus === PaymentStatus.Failed) {
-      updatedPayment = await updatePayment(
-        {
-          id: payment.id,
-          failureCode: charge.failure_code,
-          failureMessage: charge.failure_message,
-        },
-        transaction
-      )
-      await sendCustomerPaymentFailedNotificationIdempotently(
-        updatedPayment
-      )
-      await idempotentSendOrganizationPaymentFailedNotification({
-        organizationId: updatedPayment.organizationId,
-        customerId: updatedPayment.customerId,
-        amount: updatedPayment.amount,
-        currency: updatedPayment.currency,
-        invoiceNumber: updatedPayment.invoiceId,
-        failureReason:
-          updatedPayment.failureMessage ||
-          updatedPayment.failureCode ||
-          undefined,
-      })
-    }
+    await sendCustomerPaymentFailedNotificationIdempotently(
+      updatedPayment
+    )
+    await idempotentSendOrganizationPaymentFailedNotification({
+      organizationId: updatedPayment.organizationId,
+      customerId: updatedPayment.customerId,
+      amount: updatedPayment.amount,
+      currency: updatedPayment.currency,
+      invoiceNumber: updatedPayment.invoiceId,
+      failureReason:
+        updatedPayment.failureMessage ||
+        updatedPayment.failureCode ||
+        undefined,
+    })
   }
   /**
    * Update associated invoice if it exists
