@@ -8,7 +8,6 @@ export const dummyProduct: Product.Record = {
   description: 'Test Product Description',
   imageURL: null,
   organizationId: '1',
-  displayFeatures: null,
   active: true,
   livemode: false,
   singularQuantityLabel: null,
