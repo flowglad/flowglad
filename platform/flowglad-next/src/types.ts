@@ -781,6 +781,7 @@ export type SetupIntentableCheckoutSessionType = Exclude<
 export enum FeatureFlag {
   Usage = 'usage',
   ImmediateSubscriptionAdjustments = 'immediate_subscription_adjustments',
+  SubscriptionWithUsage = 'subscription_with_usage',
 }
 
 export enum UsageMeterAggregationType {
