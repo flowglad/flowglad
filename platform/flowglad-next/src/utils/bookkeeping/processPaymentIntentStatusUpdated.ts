@@ -297,36 +297,34 @@ export const updatePaymentToReflectLatestChargeStatus = async (
 ) => {
   const newPaymentStatus = chargeStatusToPaymentStatus(charge.status)
   let updatedPayment: Payment.Record = payment
-  if (payment.status !== newPaymentStatus) {
-    updatedPayment = await safelyUpdatePaymentStatus(
-      payment,
-      newPaymentStatus,
+  updatedPayment = await safelyUpdatePaymentStatus(
+    payment,
+    newPaymentStatus,
+    transaction
+  )
+  if (newPaymentStatus === PaymentStatus.Failed) {
+    updatedPayment = await updatePayment(
+      {
+        id: payment.id,
+        failureCode: charge.failure_code,
+        failureMessage: charge.failure_message,
+      },
       transaction
     )
-    if (newPaymentStatus === PaymentStatus.Failed) {
-      updatedPayment = await updatePayment(
-        {
-          id: payment.id,
-          failureCode: charge.failure_code,
-          failureMessage: charge.failure_message,
-        },
-        transaction
-      )
-      await sendCustomerPaymentFailedNotificationIdempotently(
-        updatedPayment
-      )
-      await idempotentSendOrganizationPaymentFailedNotification({
-        organizationId: updatedPayment.organizationId,
-        customerId: updatedPayment.customerId,
-        amount: updatedPayment.amount,
-        currency: updatedPayment.currency,
-        invoiceNumber: updatedPayment.invoiceId,
-        failureReason:
-          updatedPayment.failureMessage ||
-          updatedPayment.failureCode ||
-          undefined,
-      })
-    }
+    await sendCustomerPaymentFailedNotificationIdempotently(
+      updatedPayment
+    )
+    await idempotentSendOrganizationPaymentFailedNotification({
+      organizationId: updatedPayment.organizationId,
+      customerId: updatedPayment.customerId,
+      amount: updatedPayment.amount,
+      currency: updatedPayment.currency,
+      invoiceNumber: updatedPayment.invoiceId,
+      failureReason:
+        updatedPayment.failureMessage ||
+        updatedPayment.failureCode ||
+        undefined,
+    })
   }
   /**
    * Update associated invoice if it exists
