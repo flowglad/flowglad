@@ -401,4 +401,4 @@ Achieving this mission will take time. It will be hard. It might even make some 
 
 ## Other languages
 
-This README is also [available in Brazillian Portuguese]([url](README.pt-BR.md)).
+This README is also [available in Brazilian Portuguese](README.pt-BR.md).
