@@ -1,3 +1,4 @@
+```
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
@@ -12,7 +13,6 @@ import { Invoice } from '@/db/schema/invoices'
 import { Organization } from '@/db/schema/organizations'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Payment } from '@/db/schema/payments'
-import Stripe from 'stripe'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -57,6 +57,7 @@ import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import { createAndFinalizeSubscriptionFeeCalculation } from '@/utils/bookkeeping/fees/subscription'
 import core from '@/utils/core'
 import {
+  createAndConfirmPaymentIntentForBillingRun,
   createPaymentIntentForBillingRun,
   confirmPaymentIntentForBillingRun,
   stripeIdFromObjectOrId,
@@ -662,6 +663,14 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   }
 }
 
+export const calculateTotalAmountToCharge = (params: {
+  totalDueAmount: number
+  totalAmountPaid: number
+  payments: Payment.Record[]
+}) => {
+  const { totalDueAmount, totalAmountPaid } = params
+  return Math.max(0, totalDueAmount - totalAmountPaid)
+}
 
 // Define return type for executeBillingRunCalculationAndBookkeepingSteps
 type ExecuteBillingRunStepsResult = {
@@ -676,7 +685,6 @@ type ExecuteBillingRunStepsResult = {
   totalDueAmount: number
   totalAmountPaid: number
   payments: Payment.Record[]
-  paymentIntent?: Stripe.Response<Stripe.PaymentIntent> | null
 }
 
 /**
@@ -693,6 +701,7 @@ export const executeBillingRun = async (billingRunId: string) => {
   }
   try {
     const {
+      // Adjusted destructuring
       invoice,
       payment,
       feeCalculation,
@@ -703,7 +712,6 @@ export const executeBillingRun = async (billingRunId: string) => {
       totalAmountPaid,
       organization,
       payments,
-      paymentIntent,
     } =
       await comprehensiveAdminTransaction<ExecuteBillingRunStepsResult>(
         async ({ transaction }) => {
@@ -741,141 +749,141 @@ export const executeBillingRun = async (billingRunId: string) => {
           const currentBillingPeriodObject =
             resultFromSteps.billingPeriod
 
-          // Handle zero amount case within the transaction
-          // Calculate the actual amount to charge after accounting for existing payments
-          const amountToCharge = Math.max(0, resultFromSteps.totalDueAmount - resultFromSteps.totalAmountPaid)
-          
-          if (amountToCharge <= 0) {
-            await updateInvoice(
-              {
-                ...resultFromSteps.invoice,
-                status: InvoiceStatus.Paid,
-              } as Invoice.Update,
-              transaction
-            )
-            await updateBillingRun(
-              {
-                id: billingRun.id,
-                status: BillingRunStatus.Succeeded,
-              },
-              transaction
-            )
-            return {
-              result: {
-                ...resultFromSteps,
-                paymentIntent: null,
-              },
-            }
-          }
-
-          // Create payment intent within the transaction
-          let paymentIntent = null
-          if (resultFromSteps.payment) {
-            if (!resultFromSteps.customer.stripeCustomerId) {
-              throw new Error(
-                `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
-                  ` Customer: ${resultFromSteps.customer.id}; Billing Period: ${resultFromSteps.billingPeriod.id}`
-              )
-            }
-            if (!resultFromSteps.paymentMethod.stripePaymentMethodId) {
-              throw new Error(
-                `Cannot run billing for a billing period with a payment method that does not have a stripe payment method id.` +
-                  `Payment Method: ${resultFromSteps.paymentMethod.id}; Billing Period: ${resultFromSteps.billingPeriod.id}`
-              )
-            }
-            
-            paymentIntent = await createPaymentIntentForBillingRun({
-              amount: amountToCharge,
-              currency: resultFromSteps.invoice.currency,
-              stripeCustomerId: resultFromSteps.customer.stripeCustomerId,
-              stripePaymentMethodId: resultFromSteps.paymentMethod.stripePaymentMethodId,
-              billingPeriodId: billingRun.billingPeriodId,
-              billingRunId: billingRun.id,
-              feeCalculation: resultFromSteps.feeCalculation,
-              organization: resultFromSteps.organization,
-              livemode: billingRun.livemode,
-            })
-
-            // Update payment record with payment intent ID
-            await updatePayment(
-              {
-                id: resultFromSteps.payment.id,
-                stripePaymentIntentId: paymentIntent.id,
-              },
-              transaction
-            )
-            await updateInvoice(
-              {
-                id: resultFromSteps.invoice.id,
-                stripePaymentIntentId: paymentIntent.id,
-                purchaseId: resultFromSteps.invoice.purchaseId,
-                billingPeriodId: resultFromSteps.invoice.billingPeriodId,
-                type: resultFromSteps.invoice.type,
-                subscriptionId: resultFromSteps.invoice.subscriptionId,
-                billingRunId: billingRun.id,
-              } as Invoice.Update,
-              transaction
-            )
-            await safelyUpdateInvoiceStatus(
-              resultFromSteps.invoice,
-              InvoiceStatus.AwaitingPaymentConfirmation,
-              transaction
-            )
-            await updateBillingRun(
-              {
-                id: billingRun.id,
-                status: BillingRunStatus.AwaitingPaymentConfirmation,
-                stripePaymentIntentId: paymentIntent.id,
-              },
-              transaction
-            )
-          }
-
           return {
-            result: {
-              ...resultFromSteps,
-              paymentIntent,
-            },
+            result: resultFromSteps,
             eventsToInsert: [],
-            ledgerCommand: undefined,
           }
         },
         {
           livemode: billingRun.livemode,
         }
       )
-      
-    // Trigger PDF generation as a non-failing side effect
+    if (!customer.stripeCustomerId) {
+      throw new Error(
+        `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
+          ` Customer: ${customer.id}; Billing Period: ${billingPeriod.id}`
+      )
+    }
+    if (!paymentMethod.stripePaymentMethodId) {
+      throw new Error(
+        `Cannot run billing for a billing period with a payment method that does not have a stripe payment method id.` +
+          `Payment Method: ${paymentMethod.id}; Billing Period: ${billingPeriod.id}`
+      )
+    }
+    /**
+     * Only proceed with a charge attempt if there is a payment
+     */
+    if (!payment) {
+      return
+    }
+
+    const totalAmountToCharge = calculateTotalAmountToCharge({
+      totalDueAmount,
+      totalAmountPaid,
+      payments,
+    })
     if (!core.IS_TEST) {
+      /**
+       * Deliberately NOT using the idempotency key here -
+       * it's possible that the invoice will change before the billing run is processed.
+       * It may actually be ok to execute idempotently, but this is safer for now.
+       */
       await generateInvoicePdfTask.trigger({
         invoiceId: invoice.id,
       })
     }
-    
-    // Only proceed with payment confirmation if there is a payment intent
-    if (!paymentIntent) {
+    /**
+     * If the total amount to charge is less than or equal to 0,
+     * we can skip the charge attempt.
+     */
+    if (totalAmountToCharge <= 0) {
+      await adminTransaction(async ({ transaction }) => {
+        await updateInvoice(
+          {
+            ...invoice,
+            status: InvoiceStatus.Paid,
+          } as Invoice.Update,
+          transaction
+        )
+        await updateBillingRun(
+          {
+            id: billingRun.id,
+            status: BillingRunStatus.Succeeded,
+          },
+          transaction
+        )
+      })
       return
     }
 
-    // Confirm payment intent (outside transaction)
+    // Step 1: Create payment intent
+    const paymentIntent = await createPaymentIntentForBillingRun({
+      amount: totalAmountToCharge,
+      currency: invoice.currency,
+      stripeCustomerId: customer.stripeCustomerId,
+      stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
+      billingPeriodId: billingRun.billingPeriodId,
+      billingRunId: billingRun.id,
+      feeCalculation,
+      organization,
+      livemode: billingRun.livemode,
+    });
+
+    // Step 2: Associate with payment record (close transaction)
+    await adminTransaction(async ({ transaction }) => {
+      await updatePayment(
+        {
+          id: payment.id,
+          stripePaymentIntentId: paymentIntent.id,
+        },
+        transaction
+      )
+      await updateInvoice(
+        {
+          id: invoice.id,
+          stripePaymentIntentId: paymentIntent.id,
+          purchaseId: invoice.purchaseId,
+          billingPeriodId: invoice.billingPeriodId,
+          type: invoice.type,
+          subscriptionId: invoice.subscriptionId,
+          billingRunId: billingRun.id,
+        } as Invoice.Update,
+        transaction
+      )
+      await safelyUpdateInvoiceStatus(
+        invoice,
+        InvoiceStatus.AwaitingPaymentConfirmation,
+        transaction
+      )
+      await updateBillingRun(
+        {
+          id: billingRun.id,
+          status: BillingRunStatus.AwaitingPaymentConfirmation,
+          stripePaymentIntentId: paymentIntent.id,
+        },
+        transaction
+      )
+    }, {
+      livemode: billingRun.livemode,
+    })
+
+    // Step 3: Confirm payment intent (outside transaction)
     const confirmationResult = await confirmPaymentIntentForBillingRun(
       paymentIntent.id, 
       billingRun.livemode
     );
 
-    // Update payment record with charge ID
-    if (payment) {
-      await adminTransaction(async ({ transaction }) => {
-        await updatePayment({
-          id: payment.id,
-          stripeChargeId: confirmationResult.latest_charge
-            ? stripeIdFromObjectOrId(confirmationResult.latest_charge)
-            : null,
-        }, transaction);
-      }, {
-        livemode: billingRun.livemode,
-      });
-    }
+    // Step 4: Update payment record with charge ID
+    await adminTransaction(async ({ transaction }) => {
+      await updatePayment({
+        id: payment.id,
+        stripeChargeId: confirmationResult.latest_charge
+          ? stripeIdFromObjectOrId(confirmationResult.latest_charge)
+          : null,
+      }, transaction);
+    }, {
+      livemode: billingRun.livemode,
+    });
 
     return {
       invoice,
@@ -974,3 +982,4 @@ export const scheduleBillingRunRetry = async (
   }
   return safelyInsertBillingRun(retryBillingRun, transaction)
 }
+```
