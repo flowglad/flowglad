@@ -57,6 +57,8 @@ import { createAndFinalizeSubscriptionFeeCalculation } from '@/utils/bookkeeping
 import core from '@/utils/core'
 import {
   createAndConfirmPaymentIntentForBillingRun,
+  createPaymentIntentForBillingRun,
+  confirmPaymentIntentForBillingRun,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
@@ -813,77 +815,87 @@ export const executeBillingRun = async (billingRunId: string) => {
       return
     }
 
-    const paymentIntent =
-      await createAndConfirmPaymentIntentForBillingRun({
-        amount: totalAmountToCharge,
-        currency: invoice.currency,
-        stripeCustomerId: customer.stripeCustomerId,
-        stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
-        billingPeriodId: billingRun.billingPeriodId,
-        billingRunId: billingRun.id,
-        feeCalculation,
-        organization,
-        livemode: billingRun.livemode,
-      })
+    // Step 1: Create payment intent
+    const paymentIntent = await createPaymentIntentForBillingRun({
+      amount: totalAmountToCharge,
+      currency: invoice.currency,
+      stripeCustomerId: customer.stripeCustomerId,
+      stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
+      billingPeriodId: billingRun.billingPeriodId,
+      billingRunId: billingRun.id,
+      feeCalculation,
+      organization,
+      livemode: billingRun.livemode,
+    });
 
-    return adminTransaction(
-      async ({ transaction }) => {
-        await updatePayment(
-          {
-            id: payment.id,
-            stripePaymentIntentId: paymentIntent.id,
-            stripeChargeId: paymentIntent.latest_charge
-              ? stripeIdFromObjectOrId(paymentIntent.latest_charge)
-              : null,
-          },
-          transaction
-        )
-        await updateInvoice(
-          {
-            id: invoice.id,
-            stripePaymentIntentId: paymentIntent.id,
-            purchaseId: invoice.purchaseId,
-            billingPeriodId: invoice.billingPeriodId,
-            type: invoice.type,
-            subscriptionId: invoice.subscriptionId,
-            /**
-             * We need to update the billing run id to the new billing run id.
-             * So that future ledger commands will map to the correct billing run.
-             */
-            billingRunId: billingRun.id,
-          } as Invoice.Update,
-          transaction
-        )
-        await safelyUpdateInvoiceStatus(
-          invoice,
-          InvoiceStatus.AwaitingPaymentConfirmation,
-          transaction
-        )
-        await updateBillingRun(
-          {
-            id: billingRun.id,
-            status: BillingRunStatus.AwaitingPaymentConfirmation,
-            stripePaymentIntentId: paymentIntent.id,
-          },
-          transaction
-        )
-        return {
-          invoice,
-          payment,
-          feeCalculation,
-          customer,
-          billingPeriod,
-          paymentMethod,
-          totalDueAmount,
-          totalAmountPaid,
-          organization,
-          payments,
-        }
-      },
-      {
-        livemode: billingRun.livemode,
-      }
-    )
+    // Step 2: Associate with payment record (close transaction)
+    await adminTransaction(async ({ transaction }) => {
+      await updatePayment(
+        {
+          id: payment.id,
+          stripePaymentIntentId: paymentIntent.id,
+        },
+        transaction
+      )
+      await updateInvoice(
+        {
+          id: invoice.id,
+          stripePaymentIntentId: paymentIntent.id,
+          purchaseId: invoice.purchaseId,
+          billingPeriodId: invoice.billingPeriodId,
+          type: invoice.type,
+          subscriptionId: invoice.subscriptionId,
+          billingRunId: billingRun.id,
+        } as Invoice.Update,
+        transaction
+      )
+      await safelyUpdateInvoiceStatus(
+        invoice,
+        InvoiceStatus.AwaitingPaymentConfirmation,
+        transaction
+      )
+      await updateBillingRun(
+        {
+          id: billingRun.id,
+          status: BillingRunStatus.AwaitingPaymentConfirmation,
+          stripePaymentIntentId: paymentIntent.id,
+        },
+        transaction
+      )
+    }, {
+      livemode: billingRun.livemode,
+    })
+
+    // Step 3: Confirm payment intent (outside transaction)
+    const confirmationResult = await confirmPaymentIntentForBillingRun(
+      paymentIntent.id, 
+      billingRun.livemode
+    );
+
+    // Step 4: Update payment record with charge ID
+    await adminTransaction(async ({ transaction }) => {
+      await updatePayment({
+        id: payment.id,
+        stripeChargeId: confirmationResult.latest_charge
+          ? stripeIdFromObjectOrId(confirmationResult.latest_charge)
+          : null,
+      }, transaction);
+    }, {
+      livemode: billingRun.livemode,
+    });
+
+    return {
+      invoice,
+      payment,
+      feeCalculation,
+      customer,
+      billingPeriod,
+      paymentMethod,
+      totalDueAmount,
+      totalAmountPaid,
+      organization,
+      payments,
+    }
   } catch (error) {
     console.error('Error executing billing run', {
       billingRunId,
