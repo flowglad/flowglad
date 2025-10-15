@@ -190,7 +190,6 @@ const createInvoiceProcedure = protectedProcedure
   })
 
 const updateInvoiceProcedure = protectedProcedure
-  .meta(openApiMetas.PUT)
   .input(editInvoiceSchema)
   .output(
     z.object({
