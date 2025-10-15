@@ -112,7 +112,7 @@ const defaultDiscountsRefinements = {
 
 const foreverDiscountsRefinements = {
   duration: z.literal(DiscountDuration.Forever),
-  numberOfPayments: z.null(),
+  numberOfPayments: z.null().optional(),
 }
 
 const numberOfPaymentsDiscountsRefinements = {
