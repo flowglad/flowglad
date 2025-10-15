@@ -232,7 +232,32 @@ describe('paymentMethods.ts', () => {
       })
     })
 
-    it('throws error when payment is in a terminal state', async () => {
+    it('returns existing payment when updating terminal state to same status', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create a payment in a terminal state
+        const terminalPayment = await setupPayment({
+          stripeChargeId: `ch_${nanoid()}`,
+          status: PaymentStatus.Failed,
+          amount: 1000,
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          paymentMethod: PaymentMethodType.Card,
+        })
+
+        const result = await safelyUpdatePaymentStatus(
+          terminalPayment,
+          PaymentStatus.Failed,
+          transaction
+        )
+
+        expect(result.id).toBe(terminalPayment.id)
+        expect(result.status).toBe(PaymentStatus.Failed)
+      })
+    })
+
+    it('throws error when payment is updated to different terminal state', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Create a payment in a terminal state
         const terminalPayment = await setupPayment({

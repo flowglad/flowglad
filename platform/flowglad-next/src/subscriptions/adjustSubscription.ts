@@ -15,6 +15,7 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
+  FeatureFlag,
   PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
@@ -31,6 +32,8 @@ import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import { PaymentStatus } from '@/types'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { hasFeatureFlag } from '@/utils/organizationHelpers'
+import { Organization } from '@/db/schema/organizations'
 
 export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
   adjustmentDate: Date | number,
@@ -218,6 +221,7 @@ export const syncSubscriptionWithActiveItems = async (
  */
 export const adjustSubscription = async (
   params: AdjustSubscriptionParams,
+  organization: Organization.Record,
   transaction: DbTransaction
 ): Promise<{
   subscription: Subscription.StandardRecord
@@ -225,6 +229,16 @@ export const adjustSubscription = async (
 }> => {
   const { adjustment, id } = params
   const { newSubscriptionItems, timing } = adjustment
+
+  if (
+    timing === SubscriptionAdjustmentTiming.Immediately &&
+    !hasFeatureFlag(
+      organization,
+      FeatureFlag.ImmediateSubscriptionAdjustments
+    )
+  ) {
+    throw new Error('Immediate adjustments are in private preview.')
+  }
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
