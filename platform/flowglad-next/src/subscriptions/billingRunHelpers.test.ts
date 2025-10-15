@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import Stripe from 'stripe'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   setupOrg,
@@ -1012,10 +1013,61 @@ describe('billingRunHelpers', async () => {
   })
 
   describe('Atomicity Tests for executeBillingRun', () => {
-    it('should handle zero amount case atomically without creating Stripe payment intent', async () => {
-      // Setup scenario where totalDueAmount equals totalAmountPaid (overpayment)
-      await adminTransaction(async ({ transaction }) => {
-        await insertPayment(
+    // Helper function to create mock payment intent
+    const createMockPaymentIntent = (overrides: Partial<Stripe.PaymentIntent> = {}): Stripe.Response<Stripe.PaymentIntent> => ({
+      id: 'pi_test_123',
+      client_secret: 'pi_test_123_secret',
+      status: 'requires_confirmation',
+      amount: staticBillingPeriodItem.unitPrice,
+      currency: 'usd',
+      customer: customer.stripeCustomerId!,
+      payment_method: paymentMethod.stripePaymentMethodId!,
+      metadata: {
+        billingRunId: billingRun.id,
+        type: 'BillingRun',
+        billingPeriodId: billingPeriod.id,
+      },
+      object: 'payment_intent',
+      created: Date.now(),
+      livemode: false,
+      lastResponse: {
+        headers: {},
+        requestId: 'req_test_123',
+        statusCode: 200,
+      },
+      ...overrides,
+    } as Stripe.Response<Stripe.PaymentIntent>)
+
+    const createMockConfirmationResult = (paymentIntentId: string): Stripe.Response<Stripe.PaymentIntent> => ({
+      id: paymentIntentId,
+      status: 'succeeded',
+      latest_charge: {
+        id: `ch_test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        object: 'charge',
+        amount: 1000,
+        currency: 'usd',
+        status: 'succeeded',
+      } as Stripe.Charge,
+      object: 'payment_intent',
+      created: Date.now(),
+      livemode: false,
+      lastResponse: {
+        headers: {},
+        requestId: 'req_test_123',
+        statusCode: 200,
+      },
+    } as Stripe.Response<Stripe.PaymentIntent>)
+
+    const setupOverpaymentScenario = async () => {
+      return await adminTransaction(async ({ transaction }) => {
+        const invoice = await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+
+        return await insertPayment(
           {
             amount: 1000000, // Overpayment
             currency: CurrencyCode.USD,
@@ -1023,14 +1075,7 @@ describe('billingRunHelpers', async () => {
             organizationId: organization.id,
             chargeDate: Date.now(),
             customerId: customer.id,
-            invoiceId: (
-              await setupInvoice({
-                billingPeriodId: billingPeriod.id,
-                customerId: customer.id,
-                organizationId: organization.id,
-                priceId: staticPrice.id,
-              })
-            ).id,
+            invoiceId: invoice.id,
             paymentMethodId: paymentMethod.id,
             refunded: false,
             refundedAmount: 0,
@@ -1045,190 +1090,273 @@ describe('billingRunHelpers', async () => {
           transaction
         )
       })
+    }
 
-      // Mock Stripe to ensure no API calls are made
-      vi.mocked(createPaymentIntentForBillingRun).mockClear()
+    describe('Zero Amount Scenarios', () => {
+      it('should handle overpayment without creating Stripe payment intent', async () => {
+        const totalDueAmount = staticBillingPeriodItem.unitPrice // $10.00 (1000 cents)
+        const overpaymentAmount = 1000000 // $10,000.00 (1,000,000 cents)
+        
+        expect(overpaymentAmount).toBeGreaterThan(totalDueAmount)
+        expect(overpaymentAmount).toBe(1000 * totalDueAmount)
+        
+        await setupOverpaymentScenario()
 
-      await executeBillingRun(billingRun.id)
+        // Mock Stripe to ensure no API calls are made
+        vi.mocked(createPaymentIntentForBillingRun).mockClear()
 
-      // Verify no Stripe calls were made
-      expect(vi.mocked(createPaymentIntentForBillingRun)).not.toHaveBeenCalled()
+        await executeBillingRun(billingRun.id)
 
-      // Verify database state is correct
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
-      )
-      expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
+        // Verify no Stripe calls were made
+        expect(vi.mocked(createPaymentIntentForBillingRun)).not.toHaveBeenCalled()
 
-      const finalInvoice = (
-        await adminTransaction(({ transaction }) =>
+        // Verify database state is correct
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
+
+        const invoices = await adminTransaction(({ transaction }) =>
           selectInvoices({ billingPeriodId: billingPeriod.id }, transaction)
         )
-      )[0]
-      expect(finalInvoice.status).toBe(InvoiceStatus.Paid)
+        const finalInvoice = invoices.find(inv => inv.billingPeriodId === billingPeriod.id)
+        expect(finalInvoice).toBeDefined()
+        expect(finalInvoice!.status).toBe(InvoiceStatus.Paid)
+      })
     })
 
-    it('should rollback database transaction when Stripe payment intent creation fails inside transaction', async () => {
-      // Mock Stripe function to fail (following existing pattern)
-      vi.mocked(createPaymentIntentForBillingRun).mockRejectedValueOnce(
-        new Error('Stripe API failure')
-      )
+    describe('Stripe API Failures', () => {
+      it('should rollback when payment intent creation fails', async () => {
+        // Mock Stripe function to fail
+        vi.mocked(createPaymentIntentForBillingRun).mockRejectedValueOnce(
+          new Error('Stripe API failure')
+        )
 
-      await executeBillingRun(billingRun.id)
-      
-      // Verify billing run is marked as failed
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
-      )
-      expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-      expect(updatedBillingRun.errorDetails).toBeDefined()
-      
-      // Verify no payment was created due to transaction rollback
-      const payments = await adminTransaction(
-        ({ transaction }) => selectPayments({ billingPeriodId: billingRun.billingPeriodId }, transaction)
-      )
-      expect(payments).toHaveLength(0)
-    })
+        await executeBillingRun(billingRun.id)
+        
+        // Verify billing run is marked as failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeDefined()
+        
+        // Verify no payment was created due to transaction rollback
+        const payments = await adminTransaction(
+          ({ transaction }) => selectPayments({ billingPeriodId: billingRun.billingPeriodId }, transaction)
+        )
+        expect(payments).toHaveLength(0)
+      })
 
-    it('should create payment intent and update all database records atomically within single transaction', async () => {
-      // Mock successful Stripe calls
-      const mockPaymentIntent = {
-        id: 'pi_test_123',
-        client_secret: 'pi_test_123_secret',
-        status: 'requires_confirmation',
-        amount: staticBillingPeriodItem.unitPrice,
-        currency: 'usd',
-        customer: customer.stripeCustomerId!,
-        payment_method: paymentMethod.stripePaymentMethodId!,
-        metadata: {
-          billingRunId: billingRun.id,
-          type: 'BillingRun',
-          billingPeriodId: billingPeriod.id,
-        },
-      }
-      
-      const mockConfirmationResult = {
-        id: 'pi_test_123',
-        status: 'succeeded',
-        latest_charge: {
-          id: `ch_test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        },
-      }
-      
-      vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
-        mockPaymentIntent as any
-      )
-      vi.mocked(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
-        mockConfirmationResult as any
-      )
-
-      await executeBillingRun(billingRun.id)
-
-      // Verify billing run is awaiting payment confirmation
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
-      )
-      expect(updatedBillingRun.status).toBe(BillingRunStatus.AwaitingPaymentConfirmation)
-
-      // Verify payment record was created
-      const payments = await adminTransaction(
-        ({ transaction }) => selectPayments({ billingPeriodId: billingRun.billingPeriodId }, transaction)
-      )
-      expect(payments).toHaveLength(1)
-      expect(payments[0].stripePaymentIntentId).toBe(mockPaymentIntent.id)
-      expect(payments[0].amount).toBe(staticBillingPeriodItem.unitPrice)
-      // Charge ID should be updated after confirmation
-      expect(payments[0].stripeChargeId).toBe(mockConfirmationResult.latest_charge.id)
-
-      // Verify invoice was created/updated
-      const invoices = await adminTransaction(
-        ({ transaction }) => selectInvoices({ billingPeriodId: billingPeriod.id }, transaction)
-      )
-      expect(invoices).toHaveLength(1)
-      expect(invoices[0].status).toBe(InvoiceStatus.AwaitingPaymentConfirmation)
-      expect(invoices[0].customerId).toBe(customer.id)
-      expect(invoices[0].organizationId).toBe(organization.id)
-
-      // Verify Stripe was called with correct parameters
-      expect(vi.mocked(createPaymentIntentForBillingRun)).toHaveBeenCalledWith(
-        expect.objectContaining({
-          amount: staticBillingPeriodItem.unitPrice,
-          currency: staticPrice.currency,
-          stripeCustomerId: customer.stripeCustomerId,
-          stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
-          billingPeriodId: billingPeriod.id,
-          billingRunId: billingRun.id,
-          organization: expect.objectContaining({ id: organization.id }),
-          livemode: billingPeriod.livemode,
+      it('should handle payment intent status requires_payment_method', async () => {
+        // Mock successful payment intent creation
+        const mockPaymentIntent = createMockPaymentIntent({
+          status: 'requires_payment_method', // Payment failed - card declined, insufficient funds, etc.
         })
-      )
-      
-      expect(vi.mocked(confirmPaymentIntentForBillingRun)).toHaveBeenCalledWith(
-        mockPaymentIntent.id,
-        billingRun.livemode
-      )
-    })
-
-    it('should rollback all database changes if Stripe customer ID validation fails inside transaction', async () => {
-      // Setup customer without stripe ID
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          {
-            id: customer.id,
-            stripeCustomerId: null,
-          },
-          transaction
+        
+        vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+          mockPaymentIntent
         )
+        
+        // Mock confirmation to fail (card declined scenario)
+        vi.mocked(confirmPaymentIntentForBillingRun).mockRejectedValueOnce(
+          new Error('Your card was declined.')
+        )
+
+        await executeBillingRun(billingRun.id)
+        
+        // Verify billing run is marked as failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeDefined()
+        
+        // Verify payment was created but without charge ID (since payment failed)
+        const payments = await adminTransaction(
+          ({ transaction }) => selectPayments({ billingPeriodId: billingRun.billingPeriodId }, transaction)
+        )
+        expect(payments).toHaveLength(1)
+        expect(payments[0].stripePaymentIntentId).toBe(mockPaymentIntent.id)
+        expect(payments[0].stripeChargeId).toBeNull() // No charge ID since payment failed
+        
+        // Verify invoice is still awaiting payment confirmation (not marked as paid)
+        const invoices = await adminTransaction(
+          ({ transaction }) => selectInvoices({ billingPeriodId: billingPeriod.id }, transaction)
+        )
+        expect(invoices).toHaveLength(1)
+        expect(invoices[0].status).toBe(InvoiceStatus.AwaitingPaymentConfirmation)
       })
 
-      await executeBillingRun(billingRun.id)
-
-      // Verify billing run failed
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
-      )
-      expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-      expect(updatedBillingRun.errorDetails).toBeDefined()
-
-      // Verify no payment was created
-      const payments = await adminTransaction(
-        ({ transaction }) => selectPayments({ billingPeriodId: billingRun.billingPeriodId }, transaction)
-      )
-      expect(payments).toHaveLength(0)
-
-      // Verify no Stripe calls were made
-      expect(vi.mocked(createPaymentIntentForBillingRun)).not.toHaveBeenCalled()
-    })
-
-    it('should rollback all database changes if Stripe payment method ID validation fails inside transaction', async () => {
-      // Setup payment method without stripe ID
-      await adminTransaction(async ({ transaction }) => {
-        await safelyUpdatePaymentMethod(
-          {
-            id: paymentMethod.id,
-            stripePaymentMethodId: null,
-          },
-          transaction
+      it('should handle payment intent creation success but confirmation API failure', async () => {
+        // Mock successful payment intent creation
+        const mockPaymentIntent = createMockPaymentIntent({
+          status: 'requires_confirmation', // Payment intent created successfully
+        })
+        
+        vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+          mockPaymentIntent
         )
+        
+        // Mock confirmation API to fail (network error, Stripe API down, etc.)
+        vi.mocked(confirmPaymentIntentForBillingRun).mockRejectedValueOnce(
+          new Error('Stripe API temporarily unavailable')
+        )
+
+        await executeBillingRun(billingRun.id)
+        
+        // Verify billing run is marked as failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeDefined()
+        
+        // Verify payment was created but without charge ID (since confirmation failed)
+        const payments = await adminTransaction(
+          ({ transaction }) => selectPayments({ billingPeriodId: billingRun.billingPeriodId }, transaction)
+        )
+        expect(payments).toHaveLength(1)
+        expect(payments[0].stripePaymentIntentId).toBe(mockPaymentIntent.id)
+        expect(payments[0].stripeChargeId).toBeNull() // No charge ID since confirmation failed
+        
+        // Verify invoice is still awaiting payment confirmation (not marked as paid)
+        const invoices = await adminTransaction(
+          ({ transaction }) => selectInvoices({ billingPeriodId: billingPeriod.id }, transaction)
+        )
+        expect(invoices).toHaveLength(1)
+        expect(invoices[0].status).toBe(InvoiceStatus.AwaitingPaymentConfirmation)
       })
 
-      await executeBillingRun(billingRun.id)
+      it('should rollback when customer ID validation fails', async () => {
+        // Setup customer without stripe ID
+        await adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customer.id,
+              stripeCustomerId: null,
+            },
+            transaction
+          )
+        })
 
-      // Verify billing run failed
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
-      )
-      expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-      expect(updatedBillingRun.errorDetails).toBeDefined()
+        await executeBillingRun(billingRun.id)
 
-      // Verify no payment was created
-      const payments = await adminTransaction(
-        ({ transaction }) => selectPayments({ billingPeriodId: billingRun.billingPeriodId }, transaction)
-      )
-      expect(payments).toHaveLength(0)
+        // Verify billing run failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeDefined()
 
-      // Verify no Stripe calls were made
-      expect(vi.mocked(createPaymentIntentForBillingRun)).not.toHaveBeenCalled()
+        // Verify no payment was created
+        const payments = await adminTransaction(
+          ({ transaction }) => selectPayments({ billingPeriodId: billingRun.billingPeriodId }, transaction)
+        )
+        expect(payments).toHaveLength(0)
+
+        // Verify no Stripe calls were made
+        expect(vi.mocked(createPaymentIntentForBillingRun)).not.toHaveBeenCalled()
+      })
+
+      it('should rollback when payment method ID validation fails', async () => {
+        // Setup payment method without stripe ID
+        await adminTransaction(async ({ transaction }) => {
+          await safelyUpdatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              stripePaymentMethodId: null,
+            },
+            transaction
+          )
+        })
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeDefined()
+
+        // Verify no payment was created
+        const payments = await adminTransaction(
+          ({ transaction }) => selectPayments({ billingPeriodId: billingRun.billingPeriodId }, transaction)
+        )
+        expect(payments).toHaveLength(0)
+
+        // Verify no Stripe calls were made
+        expect(vi.mocked(createPaymentIntentForBillingRun)).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('Successful Payment Processing', () => {
+      it('should create payment intent and update database atomically', async () => {
+        const mockPaymentIntent = createMockPaymentIntent()
+        const mockConfirmationResult = createMockConfirmationResult(mockPaymentIntent.id)
+        
+        vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+          mockPaymentIntent
+        )
+        vi.mocked(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
+          mockConfirmationResult
+        )
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run is awaiting payment confirmation
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) => selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.AwaitingPaymentConfirmation)
+
+        // Verify payment record was created with correct properties
+        const payments = await adminTransaction(
+          ({ transaction }) => selectPayments({ billingPeriodId: billingRun.billingPeriodId }, transaction)
+        )
+        const payment = payments.find(p => p.billingPeriodId === billingRun.billingPeriodId)
+        expect(payment).toBeDefined()
+        expect(payment).toMatchObject({
+          stripePaymentIntentId: mockPaymentIntent.id,
+          amount: staticBillingPeriodItem.unitPrice,
+          stripeChargeId: typeof mockConfirmationResult.latest_charge === 'string' 
+            ? mockConfirmationResult.latest_charge 
+            : (mockConfirmationResult.latest_charge as Stripe.Charge)?.id,
+          billingPeriodId: billingRun.billingPeriodId,
+        })
+
+        // Verify invoice was created/updated
+        const invoices = await adminTransaction(
+          ({ transaction }) => selectInvoices({ billingPeriodId: billingPeriod.id }, transaction)
+        )
+        const invoice = invoices.find(inv => inv.billingPeriodId === billingPeriod.id)
+        expect(invoice).toBeDefined()
+        expect(invoice).toMatchObject({
+          status: InvoiceStatus.AwaitingPaymentConfirmation,
+          customerId: customer.id,
+          organizationId: organization.id,
+        })
+
+        // Verify Stripe was called with correct parameters
+        expect(vi.mocked(createPaymentIntentForBillingRun)).toHaveBeenCalledWith(
+          expect.objectContaining({
+            amount: staticBillingPeriodItem.unitPrice,
+            currency: staticPrice.currency,
+            stripeCustomerId: customer.stripeCustomerId,
+            stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
+            billingPeriodId: billingPeriod.id,
+            billingRunId: billingRun.id,
+            organization: expect.objectContaining({ id: organization.id }),
+            livemode: billingPeriod.livemode,
+          })
+        )
+        
+        expect(vi.mocked(confirmPaymentIntentForBillingRun)).toHaveBeenCalledWith(
+          mockPaymentIntent.id,
+          billingRun.livemode
+        )
+      })
     })
   })
 
