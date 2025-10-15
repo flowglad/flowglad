@@ -106,22 +106,14 @@ const baseColumnRefinements = {
     .describe(
       'Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list. Epoch milliseconds.'
     ),
+  usageMeterId: core.safeZodNullOrUndefined.optional(),
+  usageEventsPerUnit: core.safeZodNullOrUndefined.optional(),
 }
 
 // Static subtype schemas via buildSchemas
 const staticRefineColumns = {
   ...baseColumnRefinements,
   type: z.literal(SubscriptionItemType.Static),
-  usageMeterId: z
-    .null()
-    .describe(
-      'Usage meter ID must be null for static subscription items.'
-    ),
-  usageEventsPerUnit: z
-    .null()
-    .describe(
-      'Usage events per unit must be null for static subscription items.'
-    ),
 } as const
 
 const createOnlyColumns = {
