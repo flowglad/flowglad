@@ -114,8 +114,8 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
           description: '',
           livemode: params.subscription.livemode,
           type: item.type,
-          usageMeterId: item.usageMeterId,
-          usageEventsPerUnit: item.usageEventsPerUnit,
+          // usageMeterId: item.usageMeterId,
+          // usageEventsPerUnit: item.usageEventsPerUnit,
         }
         return billingPeriodItemInsert
       })

@@ -104,8 +104,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       unitPrice: 999, // $9.99
       addedDate: billingPeriodStart,
       type: SubscriptionItemType.Static,
-      usageMeterId: undefined,
-      usageEventsPerUnit: undefined,
     })
 
     // Set up invoice for payments to reference
@@ -147,8 +145,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -247,8 +243,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -340,8 +334,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -437,8 +429,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
         {
           // Add new item (no ID = new item)
@@ -456,8 +446,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -629,8 +617,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -728,8 +714,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -836,8 +820,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -950,8 +932,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -1054,8 +1034,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -1162,8 +1140,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 

@@ -120,8 +120,6 @@ describe('adjustSubscription Integration Tests', async () => {
     | 'addedDate'
     | 'externalId'
     | 'type'
-    | 'usageMeterId'
-    | 'usageEventsPerUnit'
   >
   beforeEach(async () => {
     customer = await setupCustomer({

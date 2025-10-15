@@ -1096,8 +1096,6 @@ export const setupSubscriptionItem = async ({
       metadata: metadata ?? {},
       externalId: null,
       type: SubscriptionItemType.Static,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
     }
     return insertSubscriptionItem(insert, transaction)
   })
