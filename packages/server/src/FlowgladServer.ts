@@ -22,6 +22,7 @@ import {
 } from './types'
 import { z } from 'zod'
 import { Flowglad as FlowgladNode } from '@flowglad/node'
+import { type CustomerBillingDetails } from '@flowglad/types'
 
 const getSessionFromNextAuth = async (
   params: NextjsAuthFlowgladServerSessionParams
@@ -179,6 +180,9 @@ export class FlowgladServer {
       }[]
     return {
       ...rawBilling,
+      billingPortalUrl: (
+        rawBilling as unknown as CustomerBillingDetails
+      ).billingPortalUrl,
       checkFeatureAccess: constructCheckFeatureAccess(
         currentSubscriptionsWithExperimental
       ),

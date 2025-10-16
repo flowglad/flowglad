@@ -343,6 +343,7 @@ export const FlowgladContextProvider = (
           paymentMethods: billingData.paymentMethods,
           currentSubscriptions: billingData.currentSubscriptions,
           catalog: billingData.catalog,
+          billingPortalUrl: billingData.billingPortalUrl,
         }}
       >
         {props.children}
@@ -414,6 +415,7 @@ export const FlowgladContextProvider = (
         loaded: true,
         loadBilling,
         customer: billingData.customer,
+        billingPortalUrl: billingData.billingPortalUrl,
         createCheckoutSession,
         createAddPaymentMethodCheckoutSession,
         cancelSubscription,

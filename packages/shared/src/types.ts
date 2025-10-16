@@ -41,7 +41,13 @@ export interface UsageMeterBalance {
 }
 
 export type CustomerRetrieveBillingResponse =
-  FlowgladNode.Customers.CustomerRetrieveBillingResponse
+  FlowgladNode.Customers.CustomerRetrieveBillingResponse & {
+    /**
+     * Force-add the billing portal URL to the billing response
+     * for now, until we update the Node SDK to include the billing portal URL
+     */
+    billingPortalUrl: string
+  }
 
 export type BillingWithChecks = CustomerRetrieveBillingResponse & {
   /**
