@@ -96,7 +96,6 @@ const getInvoiceProcedure = protectedProcedure
   })
 
 const createInvoiceProcedure = protectedProcedure
-  .meta(openApiMetas.POST)
   .input(createInvoiceSchema)
   .output(
     z.object({
@@ -190,7 +189,6 @@ const createInvoiceProcedure = protectedProcedure
   })
 
 const updateInvoiceProcedure = protectedProcedure
-  .meta(openApiMetas.PUT)
   .input(editInvoiceSchema)
   .output(
     z.object({
@@ -216,15 +214,6 @@ const updateInvoiceProcedure = protectedProcedure
   })
 
 const sendInvoiceReminderProcedure = protectedProcedure
-  .meta(
-    createPostOpenApiMeta({
-      resource: 'invoices',
-      routeSuffix: 'send-reminder',
-      summary: 'Send Reminder Email for an Invoice',
-      tags: ['Invoices', 'Invoice', 'Invoice Reminder'],
-      requireIdParam: true,
-    })
-  )
   .input(sendInvoiceReminderSchema)
   .output(z.object({ success: z.boolean() }))
   .mutation(async ({ ctx, input }) => {

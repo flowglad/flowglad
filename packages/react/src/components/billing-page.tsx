@@ -82,7 +82,6 @@ const CurrentSubscriptionOrPricingTable = ({
       products={catalog.products.map((product) => ({
         name: product.name,
         description: product.description,
-        displayFeatures: product.displayFeatures,
         primaryButtonText: 'Subscribe',
         disabled: product.default,
         onClickPrimaryButton: () => {

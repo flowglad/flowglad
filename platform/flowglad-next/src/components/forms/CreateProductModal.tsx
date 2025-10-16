@@ -24,7 +24,6 @@ const defaultProduct: Product.ClientInsert = {
   active: true,
   description: '',
   imageURL: '',
-  displayFeatures: [],
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
   pricingModelId: 'pricing_model_111____',

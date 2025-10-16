@@ -839,7 +839,6 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
           singularQuantityLabel:
             'Test product singular quantity label',
           pluralQuantityLabel: 'Test product plural quantity label',
-          displayFeatures: null,
           active: true,
           externalId: null,
           pricingModelId: org1Data.pricingModel.id,

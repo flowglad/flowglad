@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   BillingPeriodStatus,
+  FeatureFlag,
   PaymentStatus,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
@@ -38,6 +39,7 @@ import { updateSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethod
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import core from '@/utils/core'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 
 describe('Proration Logic - Payment Status Scenarios', () => {
   // Global test state - will be reset before each test
@@ -55,6 +57,19 @@ describe('Proration Logic - Payment Status Scenarios', () => {
     const orgData = await setupOrg()
     organization = orgData.organization
     price = orgData.price
+
+    // Enable feature flag for immediate adjustments
+    await adminTransaction(async ({ transaction }) => {
+      organization = await updateOrganization(
+        {
+          id: organization.id,
+          featureFlags: {
+            [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+          },
+        },
+        transaction
+      )
+    })
 
     // Set up customer
     customer = await setupCustomer({
@@ -158,6 +173,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -256,6 +272,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -347,6 +364,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -459,6 +477,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -522,6 +541,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -630,6 +650,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -727,6 +748,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -833,6 +855,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -945,6 +968,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -1047,6 +1071,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -1153,6 +1178,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 

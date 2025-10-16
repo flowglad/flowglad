@@ -21,7 +21,9 @@ import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
 import { zodEpochMs } from '@/db/timestampMs'
 
 export const adjustSubscriptionImmediatelySchema = z.object({
-  timing: z.literal(SubscriptionAdjustmentTiming.Immediately),
+  timing: z
+    .literal(SubscriptionAdjustmentTiming.Immediately)
+    .describe('Note: Immediate adjustments are in private preview.'),
   newSubscriptionItems: z.array(
     z.union([
       subscriptionItemClientInsertSchema,

@@ -32,30 +32,8 @@ export default function Pricing({ user }: Props) {
 
   const products = billing.catalog?.products.map((item) => {
     return {
-      ...item.product,
+      ...item,
       primaryButtonText: 'Subscribe',
-      displayFeatures: [
-        {
-          details: '100% Satisfaction Guarantee',
-          label: 'Satisfaction Guarantee',
-          enabled: true
-        },
-        {
-          details: 'Cancel anytime',
-          label: 'Cancel anytime',
-          enabled: true
-        },
-        {
-          details: 'No hidden fees',
-          label: 'No hidden fees',
-          enabled: true
-        },
-        {
-          details: 'Free trial',
-          label: 'Free trial',
-          enabled: true
-        }
-      ],
       prices: item.prices.map((price) => {
         return {
           ...price,
