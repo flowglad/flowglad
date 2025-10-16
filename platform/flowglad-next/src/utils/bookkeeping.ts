@@ -271,7 +271,6 @@ export const createFreePlanProductInsert = (
     organizationId: pricingModel.organizationId,
     livemode: pricingModel.livemode,
     active: true,
-    displayFeatures: null,
     singularQuantityLabel: null,
     pluralQuantityLabel: null,
     imageURL: null,

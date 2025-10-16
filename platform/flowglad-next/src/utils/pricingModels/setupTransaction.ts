@@ -272,7 +272,6 @@ export const setupPricingModelTransaction = async (
           pricingModelId: pricingModel.id,
         })
       ),
-      displayFeatures: null,
       description: null,
       imageURL: null,
       active: true,
