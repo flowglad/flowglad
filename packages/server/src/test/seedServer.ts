@@ -8,13 +8,13 @@ export const setupProduct = async (params: {
 }) => {
   const admin = createTestFlowgladServerAdmin()
   const product = await admin.createProduct({
+    // @ts-expect-error - displayFeatures is not in the product schema
     product: {
       name: params.name,
       description: params.description,
       active:
         typeof params.active === 'boolean' ? params.active : false,
       catalogId: params.catalogId,
-      displayFeatures: [],
       imageURL: null,
       pluralQuantityLabel: 'items',
       singularQuantityLabel: 'item',

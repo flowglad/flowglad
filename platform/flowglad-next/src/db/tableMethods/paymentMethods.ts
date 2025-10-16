@@ -271,6 +271,10 @@ export const safelyUpdatePaymentStatus = async (
   status: PaymentStatus,
   transaction: DbTransaction
 ) => {
+  // If already in the target status, return existing payment (idempotent)
+  if (payment.status === status) {
+    return payment
+  }
   if (isPaymentInTerminalState(payment)) {
     throw new Error(
       `Payment ${payment.id} is in a terminal state: ${payment.status}; cannot update to ${status}`

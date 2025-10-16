@@ -29,7 +29,8 @@ interface PricingTableProduct
 }
 
 interface PricingTableProps {
-  products: PricingTableProduct[]
+  // FIXME: Remove displayFeatures ommission upon next Node SDK release
+  products: Omit<PricingTableProduct, 'displayFeatures'>[]
 }
 
 function PricingTableButton({
@@ -113,9 +114,6 @@ function PricingTableProductColumn({
           </p>
         )}
       </div>
-      {product.displayFeatures && (
-        <FeatureList features={product.displayFeatures} />
-      )}
       <div className="flowglad-flex flowglad-flex-col flowglad-gap-2">
         <PricingTableButton
           type="button"

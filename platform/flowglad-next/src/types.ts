@@ -693,7 +693,10 @@ export enum OfferingType {
 export type ApiEnvironment = 'test' | 'live'
 export type ServiceContext = 'webapp' | 'api'
 export type LogData = Record<string, any>
-export type LoggerData = LogData & { service?: ServiceContext; apiEnvironment?: ApiEnvironment }
+export type LoggerData = LogData & {
+  service?: ServiceContext
+  apiEnvironment?: ApiEnvironment
+}
 
 export enum FlowgladApiKeyType {
   Publishable = 'publishable',
@@ -777,6 +780,8 @@ export type SetupIntentableCheckoutSessionType = Exclude<
 
 export enum FeatureFlag {
   Usage = 'usage',
+  ImmediateSubscriptionAdjustments = 'immediate_subscription_adjustments',
+  SubscriptionWithUsage = 'subscription_with_usage',
 }
 
 export enum UsageMeterAggregationType {
