@@ -194,20 +194,10 @@ describe('billingRunHelpers', async () => {
       description: 'Test Description',
     })
 
-    usageBillingPeriodItem = await setupBillingPeriodItem({
-      billingPeriodId: billingPeriod.id,
-      quantity: 1, // Usage items typically start at 0 quantity in BPI
-      unitPrice: usageBasedPrice.unitPrice,
-      name: usageBasedPrice.name ?? 'Global Usage Based Item Name',
-      type: SubscriptionItemType.Usage,
-      usageMeterId: usageMeter.id,
-      usageEventsPerUnit: 1,
-      description: 'Test Description',
-    })
-
     billingPeriodItems = [
       staticBillingPeriodItem,
-      usageBillingPeriodItem,
+      // Note: we've removed usageBillingPeriodItem
+      // Usage charges come through the usageOverages parameter instead
     ]
 
     ledgerAccount = await setupLedgerAccount({
@@ -300,6 +290,7 @@ describe('billingRunHelpers', async () => {
           )
       )
       expect(totalDueAmount).toBeGreaterThan(0)
+      // TODO: check the total due amount is correct
     })
 
     it('should not create a payment intent if the invoice is in a terminal state', async () => {
@@ -514,9 +505,16 @@ describe('billingRunHelpers', async () => {
         organizationId: organization.id,
         priceId: staticPrice.id,
       })
+      const zeroQuantityBillingPeriodItem = {
+        ...staticBillingPeriodItem,
+        quantity: 0,
+      }
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: invoice.id,
-        billingPeriodItems,
+        billingPeriodItems: [
+          staticBillingPeriodItem,
+          zeroQuantityBillingPeriodItem,
+        ],
         usageOverages: [],
         billingRunId: billingRun.id,
       })
@@ -1629,78 +1627,87 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should return quantity 0 if usageEventsPerUnit is null', () => {
-      const usageBpiWithNull = {
-        ...usageBillingPeriodItem,
-        usageEventsPerUnit: null,
-        type: SubscriptionItemType.Usage,
-      }
+      // Test that when usageEventsPerUnit is null in usageOverages, quantity becomes 0
       const usageOverages = [
         {
           usageMeterId: usageMeter.id,
           balance: 100,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: null as any, // null to test the edge case
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          billingPeriodItemName: null,
+          billingPeriodItemDescription: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: 'some-invoice-id',
         billingRunId: billingRun.id,
-        billingPeriodItems: [
-          {
-            ...usageBpiWithNull,
-            usageMeterId: usageMeter.id,
-            usageEventsPerUnit: 0,
-            type: SubscriptionItemType.Usage,
-          },
-        ],
+        billingPeriodItems: [],
         usageOverages,
       })
       expect(lineItems.length).toBe(0)
     })
 
     it('should not create line items if usageEventsPerUnit is 0', () => {
-      const usageBpiWithZero = {
-        ...usageBillingPeriodItem,
-        usageEventsPerUnit: 0,
-      }
+      // Test that when usageEventsPerUnit is 0 in usageOverages, no line items are created
       const usageOverages = [
         {
           usageMeterId: usageMeter.id,
           balance: 100,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 0,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          billingPeriodItemName: null,
+          billingPeriodItemDescription: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: 'some-invoice-id',
         billingRunId: billingRun.id,
-        billingPeriodItems: [
-          {
-            ...usageBpiWithZero,
-            usageMeterId: usageMeter.id,
-            type: SubscriptionItemType.Usage,
-          },
-        ],
+        billingPeriodItems: [],
         usageOverages,
       })
       expect(lineItems.length).toBe(0)
     })
 
-    it('should ignore usage overages that do not have a matching billing period item', () => {
+    it('should process usage overages regardless of matching billing period items', () => {
+      // Usage overages are processed independently - they don't need to match billing period items
       const usageOverages = [
         {
           usageMeterId: 'some-other-meter-id',
           balance: 100,
           ledgerAccountId: 'some-other-account-id',
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          billingPeriodItemName: null,
+          billingPeriodItemDescription: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: 'some-invoice-id',
         billingRunId: billingRun.id,
-        billingPeriodItems: [staticBillingPeriodItem], // Does not contain a matching usage item
+        billingPeriodItems: [staticBillingPeriodItem],
         usageOverages,
       })
 
-      expect(lineItems.length).toBe(1)
-      expect(lineItems[0].type).toBe(SubscriptionItemType.Static)
+      expect(lineItems.length).toBe(2) // 1 static + 1 usage
+      const staticItem = lineItems.find(
+        (item) => item.type === SubscriptionItemType.Static
+      )
+      const usageItem = lineItems.find(
+        (item) => item.type === SubscriptionItemType.Usage
+      )
+      expect(staticItem).toBeDefined()
+      expect(usageItem).toBeDefined()
     })
   })
 
@@ -2086,6 +2093,13 @@ describe('billingRunHelpers', async () => {
           usageMeterId: usageMeter.id,
           subscriptionId: subscription.id,
           outstandingBalance: 100,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: 10,
+          livemode: true,
+          billingPeriodItemName: 'Usage',
+          billingPeriodItemDescription:
+            expect.stringContaining('usageEventId'),
         })
 
         const aggCostLa3 =
@@ -2095,6 +2109,13 @@ describe('billingRunHelpers', async () => {
           usageMeterId: usageMeter.id,
           subscriptionId: subscription.id,
           outstandingBalance: 200,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: 10,
+          livemode: true,
+          billingPeriodItemName: 'Usage',
+          billingPeriodItemDescription:
+            expect.stringContaining('usageEventId'),
         })
 
         expect(
@@ -2236,13 +2257,20 @@ describe('billingRunHelpers', async () => {
           usageMeterId: usageMeter.id,
           balance: 100,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          billingPeriodItemName: null,
+          billingPeriodItemDescription: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
 
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: invoice.id,
         billingRunId: billingRun.id,
-        billingPeriodItems: [usageBillingPeriodItem],
+        billingPeriodItems: [],
         usageOverages,
       })
 
@@ -2261,13 +2289,20 @@ describe('billingRunHelpers', async () => {
           usageMeterId: usageMeter.id,
           balance: 0,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          billingPeriodItemName: null,
+          billingPeriodItemDescription: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
 
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: invoice.id,
         billingRunId: billingRun.id,
-        billingPeriodItems: [usageBillingPeriodItem],
+        billingPeriodItems: [],
         usageOverages,
       })
 
@@ -2280,12 +2315,19 @@ describe('billingRunHelpers', async () => {
           usageMeterId: usageMeter.id,
           balance: 500,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          billingPeriodItemName: null,
+          billingPeriodItemDescription: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: invoice.id,
         billingRunId: billingRun.id,
-        billingPeriodItems, // Contains both static and usage items from beforeEach
+        billingPeriodItems: [staticBillingPeriodItem], // Only static items - usage comes from usageOverages
         usageOverages,
       })
 
@@ -2301,78 +2343,85 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should return quantity 0 if usageEventsPerUnit is null', () => {
-      const usageBpiWithNull = {
-        ...usageBillingPeriodItem,
-        usageEventsPerUnit: null,
-        type: SubscriptionItemType.Usage,
-      }
       const usageOverages = [
         {
           usageMeterId: usageMeter.id,
           balance: 100,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: null as any, // null to test the edge case
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          billingPeriodItemName: null,
+          billingPeriodItemDescription: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: invoice.id,
         billingRunId: billingRun.id,
-        billingPeriodItems: [
-          {
-            ...usageBpiWithNull,
-            usageMeterId: usageMeter.id,
-            usageEventsPerUnit: 0,
-            type: SubscriptionItemType.Usage,
-          },
-        ],
+        billingPeriodItems: [],
         usageOverages,
       })
       expect(lineItems.length).toBe(0)
     })
 
     it('should not create line items if usageEventsPerUnit is 0', () => {
-      const usageBpiWithZero = {
-        ...usageBillingPeriodItem,
-        usageEventsPerUnit: 0,
-      }
       const usageOverages = [
         {
           usageMeterId: usageMeter.id,
           balance: 100,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 0, // 0 to test filtering
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          billingPeriodItemName: null,
+          billingPeriodItemDescription: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: invoice.id,
         billingRunId: billingRun.id,
-        billingPeriodItems: [
-          {
-            ...usageBpiWithZero,
-            usageMeterId: usageMeter.id,
-            type: SubscriptionItemType.Usage,
-          },
-        ],
+        billingPeriodItems: [], // No static items, testing usage only
         usageOverages,
       })
       expect(lineItems.length).toBe(0)
     })
 
-    it('should ignore usage overages that do not have a matching billing period item', () => {
+    it('should process usage overages regardless of matching billing period items', () => {
+      // Usage overages are processed independently - they don't need to match billing period items
       const usageOverages = [
         {
           usageMeterId: 'some-other-meter-id',
           balance: 100,
           ledgerAccountId: 'some-other-account-id',
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          billingPeriodItemName: null,
+          billingPeriodItemDescription: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
       const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
         invoiceId: invoice.id,
         billingRunId: billingRun.id,
-        billingPeriodItems: [staticBillingPeriodItem], // Does not contain a matching usage item
+        billingPeriodItems: [staticBillingPeriodItem],
         usageOverages,
       })
 
-      expect(lineItems.length).toBe(1)
-      expect(lineItems[0].type).toBe(SubscriptionItemType.Static)
+      expect(lineItems.length).toBe(2) // 1 static + 1 usage
+      const staticItem = lineItems.find(
+        (item) => item.type === SubscriptionItemType.Static
+      )
+      const usageItem = lineItems.find(
+        (item) => item.type === SubscriptionItemType.Usage
+      )
+      expect(staticItem).toBeDefined()
+      expect(usageItem).toBeDefined()
     })
   })
 

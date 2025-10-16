@@ -190,7 +190,13 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     }
     const billingPeriodItems = [staticItem, usageItem]
     const usageOverages = [
-      { usageMeterId: usageMeterRec.id, balance: 100 },
+      {
+        usageMeterId: usageMeterRec.id,
+        balance: 100,
+        priceId: orgData.price.id,
+        usageEventsPerUnit: 1,
+        unitPrice: 5,
+      },
     ]
 
     const discountRedemptionRec: DiscountRedemption.Record = {

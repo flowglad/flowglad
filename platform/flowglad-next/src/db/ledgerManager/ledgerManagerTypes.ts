@@ -210,4 +210,10 @@ export interface OutstandingUsageCostAggregation {
   usageMeterId: string
   subscriptionId: string
   outstandingBalance: number
+  priceId: string
+  usageEventsPerUnit: number
+  unitPrice: number
+  livemode: boolean
+  billingPeriodItemName: string | null
+  billingPeriodItemDescription: string | null
 }

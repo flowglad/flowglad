@@ -532,8 +532,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 200,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -595,8 +593,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 200,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -656,8 +652,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 200,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
           const orgWithFeatureFlag = await updateOrganization(
