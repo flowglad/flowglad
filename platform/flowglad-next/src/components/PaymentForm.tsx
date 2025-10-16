@@ -37,20 +37,19 @@ import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
 import { Switch } from '@/components/ui/switch'
 
-// Type definitions for AddressElement value
-type AddressElementAddress = {
-  line1?: string
-  line2?: string | null
-  city?: string
-  state?: string
-  postal_code?: string
-  country?: string
-}
+const addressElementSchema = z.object({
+  name: z.string().min(1).optional(),
+  address: z.object({
+    line1: z.string().min(1).optional(),
+    line2: z.string().nullable().optional(),
+    city: z.string().min(1).optional(),
+    state: z.string().min(1).optional(),
+    postal_code: z.string().min(1).optional(),
+    country: z.string().min(1).optional(),
+  }).optional()
+})
 
-type AddressElementValue = {
-  name?: string
-  address?: AddressElementAddress
-}
+type AddressElementValue = z.infer<typeof addressElementSchema>
 
 // Utility function to force reflow for Stripe iframes to prevent rendering issues
 const forceStripeElementsReflow = () => {
@@ -204,49 +203,36 @@ const PaymentForm = () => {
   const confirmCheckoutSession =
     trpc.checkoutSessions.public.confirm.useMutation()
 
-  // Individual field validators
-  const isNameProvided = (value: string | undefined): boolean => {
-    return Boolean(value && value.trim().length > 0)
-  }
-
-  const isLine1Provided = (line1: string | undefined): boolean => {
-    return Boolean(line1 && line1.trim())
-  }
-
-  const isCityProvided = (city: string | undefined): boolean => {
-    return Boolean(city && city.trim())
-  }
-
-  const isStateProvided = (state: string | undefined): boolean => {
-    return Boolean(state && state.trim())
-  }
-
-  const isPostalCodeProvided = (postalCode: string | undefined): boolean => {
-    return Boolean(postalCode && postalCode.trim())
-  }
-
-  const isCountryProvided = (country: string | undefined): boolean => {
-    return Boolean(country && country.trim())
-  }
-
-  // Generate specific error messages
-  const generateErrorMessage = (value: AddressElementValue | null): string => {
-    const missing = []
+  const validateAddressElement = (value: AddressElementValue | null): string => {
+    if (!value) return 'Please provide your billing information'
     
-    if (!isNameProvided(value?.name)) missing.push('name')
-    if (!isLine1Provided(value?.address?.line1)) missing.push('address')
-    if (!isCityProvided(value?.address?.city)) missing.push('city')
-    if (!isStateProvided(value?.address?.state)) missing.push('state')
-    if (!isPostalCodeProvided(value?.address?.postal_code)) missing.push('postal code')
-    if (!isCountryProvided(value?.address?.country)) missing.push('country')
-
-    if (missing.length === 0) return ''
-    if (missing.length === 1) return `Please provide your ${missing[0]}`
-    if (missing.length === 2) return `Please provide your ${missing[0]} and ${missing[1]}`
+    const result = addressElementSchema.safeParse(value)
+    if (result.success) return ''
+    
+    // Map Zod field names to user-friendly names
+    const fieldNameMap: Record<string, string> = {
+      'name': 'name',
+      'address.line1': 'address',
+      'address.city': 'city',
+      'address.state': 'state',
+      'address.postal_code': 'postal code',
+      'address.country': 'country'
+    }
+    
+    // Extract field names from validation errors
+    const missingFields = result.error.issues.map(issue => {
+      const fieldPath = issue.path.join('.')
+      return fieldNameMap[fieldPath] || fieldPath
+    })
+    
+    // Generate sentence-formatted error message
+    if (missingFields.length === 0) return ''
+    if (missingFields.length === 1) return `Please provide your ${missingFields[0]}`
+    if (missingFields.length === 2) return `Please provide your ${missingFields[0]} and ${missingFields[1]}`
     
     // For 3+ items: "Please provide your X, Y, and Z"
-    const lastItem = missing.pop()
-    return `Please provide your ${missing.join(', ')}, and ${lastItem}`
+    const lastItem = missingFields.pop()
+    return `Please provide your ${missingFields.join(', ')}, and ${lastItem}`
   }
 
   const totalDueAmount: number | null = feeCalculation
@@ -324,8 +310,7 @@ const PaymentForm = () => {
         // Validate name and address before server call
         const latest = addressElementValue ?? (await elements?.getElement(AddressElement)?.getValue())?.value ?? null
         
-        // Check if all required fields are provided
-        const errorMessage = generateErrorMessage(latest)
+        const errorMessage = validateAddressElement(latest)
         if (errorMessage) {
           setErrorMessage(errorMessage)
           setIsSubmitting(false)
@@ -367,8 +352,6 @@ const PaymentForm = () => {
           flowType === CheckoutFlowType.AddPaymentMethod
         let error: StripeError | undefined
         
-        // Get the latest address element value for billing details
-        const latestForBilling = addressElementValue ?? (await elements?.getElement(AddressElement)?.getValue())?.value ?? null
         if (useConfirmSetup) {
           try {
             const { error: confirmationError } =
@@ -380,8 +363,7 @@ const PaymentForm = () => {
                     ? {
                         billing_details: {
                           email: readonlyCustomerEmail,
-                          // Name will be collected from AddressElement
-                          name: latestForBilling?.name ?? checkoutSession.billingAddress?.name,
+                          name: checkoutSession.billingAddress?.name,
                         },
                       }
                     : undefined,
@@ -407,8 +389,8 @@ const PaymentForm = () => {
                   ? {
                       billing_details: {
                         email: readonlyCustomerEmail,
-                        // Name will be collected from AddressElement
-                        name: latestForBilling?.name ?? checkoutSession.billingAddress?.name,
+                        // Use server state as primary source to avoid race conditions
+                        name: checkoutSession.billingAddress?.name,
                       },
                     }
                   : undefined,
