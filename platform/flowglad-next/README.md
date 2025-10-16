@@ -69,6 +69,25 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 3. `src/trigger` is the main entry point for trigger workflows.
 4. `src/db` is the main entry point for database ORMs.
 
+### Docker
+
+To build and run the Next.js app in Docker (serving on port 3000):
+
+```bash
+# From platform/flowglad-next
+docker build -t flowglad-next .
+
+# Provide env at runtime as needed (DATABASE_URL, NEXTAUTH_URL, etc.)
+docker run --rm -p 3000:3000 \
+  -e DATABASE_URL=postgresql://user:pass@host:5432/db \
+  -e NEXTAUTH_URL=http://localhost:3000 \
+  --name flowglad-next flowglad-next
+```
+
+Notes:
+- The image uses Next.js standalone output and runs `server.js` on port 3000.
+- If your build relies on `.env.local`, set required variables via `--build-arg` or ensure they are not required at build-time. Runtime envs should be passed to `docker run`.
+
 ### Database Access
 
 All access happens through database transactions. This ensures atomicity and consistency across multiple database operations.

@@ -15,12 +15,7 @@ import { camelCase, sentenceCase } from 'change-case'
 import latinMap from './latinMap'
 import { z } from 'zod'
 import axios, { AxiosRequestConfig } from 'axios'
-import {
-  CountryCode,
-  CurrencyCode,
-  Nullish,
-  StripePriceMode,
-} from '@/types'
+import { Nullish, StripePriceMode } from '@/types'
 
 export const envVariable = (key: string) => process.env[key] || ''
 
@@ -356,8 +351,6 @@ export const nanoid = customAlphabet(
   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
   21
 )
-
-type EnumValues<T> = T extends Record<string, infer U> ? U : never
 
 export const createSafeZodEnum = <
   T extends Record<string, string | number>,

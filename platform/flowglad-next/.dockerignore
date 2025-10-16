@@ -1,0 +1,25 @@
+# Node / Next.js
+node_modules
+.next
+.turbo
+.vercel
+
+# Logs and caches
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store
+.cache
+
+# Environment and local files
+.env*
+!.env_user.example
+.dev-routes-backup
+.DS_Store
+
+# Build artifacts
+dist
+coverage
+tsconfig.tsbuildinfo
+

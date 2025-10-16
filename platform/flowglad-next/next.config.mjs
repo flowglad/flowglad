@@ -3,6 +3,7 @@ import { withLogtail } from '@logtail/next'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   outputFileTracingIncludes: {
     registry: ['./src/registry/**/*'],
   },
