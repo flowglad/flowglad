@@ -214,6 +214,6 @@ export interface OutstandingUsageCostAggregation {
   usageEventsPerUnit: number
   unitPrice: number
   livemode: boolean
-  billingPeriodItemName: string | null
-  billingPeriodItemDescription: string | null
+  name: string | null
+  description: string | null
 }

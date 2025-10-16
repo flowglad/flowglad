@@ -50,6 +50,7 @@ import {
   FeatureType,
   SubscriptionItemType,
   SubscriptionStatus,
+  UsageBillingInfo,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
@@ -115,14 +116,15 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
     billingPeriodItems: BillingPeriodItem.Record[]
     organization: Organization.Record
     billingRun: BillingRun.Record
-    usageOverages: {
-      usageEventId: string
-      usageMeterId: string
-      balance: number
-      priceId: string
-      usageEventsPerUnit: number
-      unitPrice: number
-    }[]
+    usageOverages: Pick<
+      UsageBillingInfo,
+      | 'usageEventId'
+      | 'usageMeterId'
+      | 'balance'
+      | 'priceId'
+      | 'usageEventsPerUnit'
+      | 'unitPrice'
+    >[]
   },
   transaction: DbTransaction
 ): Promise<{
@@ -253,9 +255,8 @@ export const tabulateOutstandingUsageCosts = async (
           usageEventsPerUnit: usageCost.usageEventsPerUnit,
           unitPrice: usageCost.unitPrice,
           livemode: usageCost.livemode,
-          billingPeriodItemName: usageCost.billingPeriodItemName,
-          billingPeriodItemDescription:
-            usageCost.billingPeriodItemDescription,
+          name: usageCost.name,
+          description: usageCost.description,
         }
       )
     } else {
@@ -271,75 +272,64 @@ export const tabulateOutstandingUsageCosts = async (
   }
 }
 
-export const billingPeriodItemsToInvoiceLineItemInserts = ({
-  invoiceId,
-  billingPeriodItems,
-  usageOverages,
-  billingRunId,
-}: {
-  billingRunId: string
-  invoiceId: string
-  billingPeriodItems: BillingPeriodItem.Record[]
-  usageOverages: {
-    ledgerAccountId: string
-    usageMeterId: string
-    balance: number
-    priceId: string
-    usageEventsPerUnit: number
-    unitPrice: number
-    livemode: boolean
-    billingPeriodItemName: string | null
-    billingPeriodItemDescription: string | null
-    usageEventId: string
-  }[]
-}): InvoiceLineItem.Insert[] => {
-  const invoiceLineItemInserts: (
-    | InvoiceLineItem.Insert
-    | undefined
-  )[] = billingPeriodItems.map((billingPeriodItem) => {
-    const insert: InvoiceLineItem.StaticInsert = {
-      invoiceId,
-      billingRunId,
-      quantity: billingPeriodItem.quantity,
-      livemode: billingPeriodItem.livemode,
-      price: billingPeriodItem.unitPrice,
-      description: `${billingPeriodItem.name}${
-        billingPeriodItem.description &&
-        ` - ${billingPeriodItem.description}`
-      }`,
-      type: SubscriptionItemType.Static,
-      ledgerAccountId: null,
-      ledgerAccountCredit: null,
-      priceId: null,
-    }
-    return insert
-  })
+export const billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts =
+  ({
+    invoiceId,
+    billingPeriodItems,
+    usageOverages,
+    billingRunId,
+  }: {
+    billingRunId: string
+    invoiceId: string
+    billingPeriodItems: BillingPeriodItem.Record[]
+    usageOverages: Omit<UsageBillingInfo, 'usageEventId'>[]
+  }): InvoiceLineItem.Insert[] => {
+    const invoiceLineItemInserts: (
+      | InvoiceLineItem.Insert
+      | undefined
+    )[] = billingPeriodItems.map((billingPeriodItem) => {
+      const insert: InvoiceLineItem.StaticInsert = {
+        invoiceId,
+        billingRunId,
+        quantity: billingPeriodItem.quantity,
+        livemode: billingPeriodItem.livemode,
+        price: billingPeriodItem.unitPrice,
+        description: `${billingPeriodItem.name}${
+          billingPeriodItem.description &&
+          ` - ${billingPeriodItem.description}`
+        }`,
+        type: SubscriptionItemType.Static,
+        ledgerAccountId: null,
+        ledgerAccountCredit: null,
+        priceId: null,
+      }
+      return insert
+    })
 
-  const usageLineItemInserts = usageOverages.map((usageOverage) => {
-    const insert: InvoiceLineItem.UsageInsert = {
-      priceId: usageOverage.priceId,
-      billingRunId,
-      invoiceId,
-      ledgerAccountCredit: usageOverage.balance,
-      quantity:
-        usageOverage.balance && usageOverage.usageEventsPerUnit
-          ? usageOverage.balance / usageOverage.usageEventsPerUnit
-          : 0,
-      type: SubscriptionItemType.Usage,
-      ledgerAccountId: usageOverage!.ledgerAccountId,
-      livemode: usageOverage.livemode,
-      price: usageOverage.unitPrice,
-      description: `${usageOverage.billingPeriodItemName ?? ''} ${
-        usageOverage.billingPeriodItemDescription &&
-        ` - ${usageOverage.billingPeriodItemDescription}`
-      }`,
-    }
-    return insert
-  })
-  return [...invoiceLineItemInserts, ...usageLineItemInserts]
-    .filter((item) => item !== undefined)
-    .filter((item) => item.quantity > 0)
-}
+    const usageLineItemInserts = usageOverages.map((usageOverage) => {
+      const insert: InvoiceLineItem.UsageInsert = {
+        priceId: usageOverage.priceId,
+        billingRunId,
+        invoiceId,
+        ledgerAccountCredit: usageOverage.balance,
+        quantity:
+          usageOverage.balance && usageOverage.usageEventsPerUnit
+            ? usageOverage.balance / usageOverage.usageEventsPerUnit
+            : 0,
+        type: SubscriptionItemType.Usage,
+        ledgerAccountId: usageOverage!.ledgerAccountId,
+        livemode: usageOverage.livemode,
+        price: usageOverage.unitPrice,
+        description: `${usageOverage.name ?? ''} ${
+          usageOverage.description && ` - ${usageOverage.description}`
+        }`,
+      }
+      return insert
+    })
+    return [...invoiceLineItemInserts, ...usageLineItemInserts]
+      .filter((item) => item !== undefined)
+      .filter((item) => item.quantity > 0)
+  }
 
 export const processOutstandingBalanceForBillingPeriod = async (
   billingPeriod: BillingPeriod.Record,
@@ -535,7 +525,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   await deleteInvoiceLineItemsByinvoiceId(invoice.id, transaction)
 
   const invoiceLineItemInserts =
-    billingPeriodItemsToInvoiceLineItemInserts({
+    billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
       invoiceId: invoice.id,
       billingPeriodItems,
       usageOverages,

@@ -30,7 +30,7 @@ import {
   scheduleBillingRunRetry,
   constructBillingRunRetryInsert,
   createInvoiceInsertForBillingRun,
-  billingPeriodItemsToInvoiceLineItemInserts,
+  billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts,
   calculateTotalAmountToCharge,
   tabulateOutstandingUsageCosts,
   createBillingRun,
@@ -509,15 +509,16 @@ describe('billingRunHelpers', async () => {
         ...staticBillingPeriodItem,
         quantity: 0,
       }
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingPeriodItems: [
-          staticBillingPeriodItem,
-          zeroQuantityBillingPeriodItem,
-        ],
-        usageOverages: [],
-        billingRunId: billingRun.id,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingPeriodItems: [
+            staticBillingPeriodItem,
+            zeroQuantityBillingPeriodItem,
+          ],
+          usageOverages: [],
+          billingRunId: billingRun.id,
+        })
       expect(lineItems.length).toBe(1)
     })
   })
@@ -1143,7 +1144,7 @@ describe('billingRunHelpers', async () => {
       // Create some initial line items
       await adminTransaction(async ({ transaction }) => {
         const initialLineItems =
-          billingPeriodItemsToInvoiceLineItemInserts({
+          billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
             invoiceId: invoice.id,
             billingPeriodItems: [
               {
@@ -1611,12 +1612,13 @@ describe('billingRunHelpers', async () => {
         ...staticBillingPeriodItem,
         quantity: 0,
       }
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: 'some-invoice-id',
-        billingRunId: billingRun.id,
-        billingPeriodItems: [staticBpiWithZeroQuantity],
-        usageOverages: [],
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: 'some-invoice-id',
+          billingRunId: billingRun.id,
+          billingPeriodItems: [staticBpiWithZeroQuantity],
+          usageOverages: [],
+        })
       expect(lineItems.length).toBe(0)
     })
 
@@ -1631,17 +1633,18 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: null as any, // null to test the edge case
           unitPrice: usageBasedPrice.unitPrice,
           livemode: true,
-          billingPeriodItemName: null,
-          billingPeriodItemDescription: null,
+          name: null,
+          description: null,
           usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: 'some-invoice-id',
-        billingRunId: billingRun.id,
-        billingPeriodItems: [],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: 'some-invoice-id',
+          billingRunId: billingRun.id,
+          billingPeriodItems: [],
+          usageOverages,
+        })
       expect(lineItems.length).toBe(0)
     })
 
@@ -1656,17 +1659,18 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: 0,
           unitPrice: usageBasedPrice.unitPrice,
           livemode: true,
-          billingPeriodItemName: null,
-          billingPeriodItemDescription: null,
+          name: null,
+          description: null,
           usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: 'some-invoice-id',
-        billingRunId: billingRun.id,
-        billingPeriodItems: [],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: 'some-invoice-id',
+          billingRunId: billingRun.id,
+          billingPeriodItems: [],
+          usageOverages,
+        })
       expect(lineItems.length).toBe(0)
     })
 
@@ -1681,17 +1685,18 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: 1,
           unitPrice: usageBasedPrice.unitPrice,
           livemode: true,
-          billingPeriodItemName: null,
-          billingPeriodItemDescription: null,
+          name: null,
+          description: null,
           usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: 'some-invoice-id',
-        billingRunId: billingRun.id,
-        billingPeriodItems: [staticBillingPeriodItem],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: 'some-invoice-id',
+          billingRunId: billingRun.id,
+          billingPeriodItems: [staticBillingPeriodItem],
+          usageOverages,
+        })
 
       expect(lineItems.length).toBe(2) // 1 static + 1 usage
       const staticItem = lineItems.find(
@@ -2091,9 +2096,8 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: 1,
           unitPrice: 10,
           livemode: true,
-          billingPeriodItemName: 'Usage',
-          billingPeriodItemDescription:
-            expect.stringContaining('usageEventId'),
+          name: expect.stringContaining('Usage: '),
+          description: expect.stringContaining('usageEventId'),
         })
 
         const aggCostLa3 =
@@ -2107,9 +2111,8 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: 1,
           unitPrice: 10,
           livemode: true,
-          billingPeriodItemName: 'Usage',
-          billingPeriodItemDescription:
-            expect.stringContaining('usageEventId'),
+          name: expect.stringContaining('Usage: '),
+          description: expect.stringContaining('usageEventId'),
         })
 
         expect(
@@ -2227,12 +2230,13 @@ describe('billingRunHelpers', async () => {
       })
     })
     it('should correctly generate a Static invoice line item', () => {
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [staticBillingPeriodItem],
-        usageOverages: [],
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [staticBillingPeriodItem],
+          usageOverages: [],
+        })
 
       expect(lineItems.length).toBe(1)
       const staticLineItem =
@@ -2255,18 +2259,19 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: 1,
           unitPrice: usageBasedPrice.unitPrice,
           livemode: true,
-          billingPeriodItemName: null,
-          billingPeriodItemDescription: null,
+          name: null,
+          description: null,
           usageEventId: 'test-usage-event-id',
         },
       ]
 
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [],
+          usageOverages,
+        })
 
       expect(lineItems.length).toBe(1)
       const usageLineItem =
@@ -2287,18 +2292,19 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: 1,
           unitPrice: usageBasedPrice.unitPrice,
           livemode: true,
-          billingPeriodItemName: null,
-          billingPeriodItemDescription: null,
+          name: null,
+          description: null,
           usageEventId: 'test-usage-event-id',
         },
       ]
 
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [],
+          usageOverages,
+        })
 
       expect(lineItems.length).toBe(0)
     })
@@ -2313,17 +2319,18 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: 1,
           unitPrice: usageBasedPrice.unitPrice,
           livemode: true,
-          billingPeriodItemName: null,
-          billingPeriodItemDescription: null,
+          name: null,
+          description: null,
           usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [staticBillingPeriodItem], // Only static items - usage comes from usageOverages
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [staticBillingPeriodItem], // Only static items - usage comes from usageOverages
+          usageOverages,
+        })
 
       expect(lineItems.length).toBe(2)
       const staticItem = lineItems.find(
@@ -2346,17 +2353,18 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: null as any, // null to test the edge case
           unitPrice: usageBasedPrice.unitPrice,
           livemode: true,
-          billingPeriodItemName: null,
-          billingPeriodItemDescription: null,
+          name: null,
+          description: null,
           usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [],
+          usageOverages,
+        })
       expect(lineItems.length).toBe(0)
     })
 
@@ -2370,17 +2378,18 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: 0, // 0 to test filtering
           unitPrice: usageBasedPrice.unitPrice,
           livemode: true,
-          billingPeriodItemName: null,
-          billingPeriodItemDescription: null,
+          name: null,
+          description: null,
           usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [], // No static items, testing usage only
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [], // No static items, testing usage only
+          usageOverages,
+        })
       expect(lineItems.length).toBe(0)
     })
 
@@ -2395,17 +2404,18 @@ describe('billingRunHelpers', async () => {
           usageEventsPerUnit: 1,
           unitPrice: usageBasedPrice.unitPrice,
           livemode: true,
-          billingPeriodItemName: null,
-          billingPeriodItemDescription: null,
+          name: null,
+          description: null,
           usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [staticBillingPeriodItem],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [staticBillingPeriodItem],
+          usageOverages,
+        })
 
       expect(lineItems.length).toBe(2) // 1 static + 1 usage
       const staticItem = lineItems.find(

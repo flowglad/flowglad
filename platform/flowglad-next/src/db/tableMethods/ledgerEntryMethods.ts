@@ -16,10 +16,11 @@ import {
 } from '@/db/schema/ledgerEntries'
 import { DbTransaction } from '../types'
 import {
+  CurrencyCode,
   LedgerEntryDirection,
   LedgerEntryStatus,
   LedgerEntryType,
-  SubscriptionItemType,
+  UsageBillingInfo,
 } from '@/types'
 import { and, asc, eq, gt, inArray, lt, not, or } from 'drizzle-orm'
 import { createDateNotPassedFilter } from '../tableUtils'
@@ -35,6 +36,7 @@ import {
 import { usageEvents } from '../schema/usageEvents'
 import { prices } from '../schema/prices'
 import { billingPeriodItems } from '../schema/billingPeriodItems'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerEntries,
@@ -331,20 +333,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
   >,
   anchorDate: Date | number,
   transaction: DbTransaction
-): Promise<
-  {
-    usageEventId: string
-    usageMeterId: string
-    ledgerAccountId: string
-    balance: number
-    priceId: string
-    usageEventsPerUnit: number
-    unitPrice: number
-    livemode: boolean
-    billingPeriodItemName: string | null
-    billingPeriodItemDescription: string | null
-  }[]
-> => {
+): Promise<UsageBillingInfo[]> => {
   const result = await transaction
     .select()
     .from(ledgerEntries)
@@ -407,6 +396,8 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       usageEventsPerUnit: prices.usageEventsPerUnit,
       unitPrice: prices.unitPrice,
       livemode: usageEvents.livemode,
+      usageMeterName: usageMeters.name,
+      currency: prices.currency,
     })
     .from(usageEvents)
     .innerJoin(
@@ -424,8 +415,11 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
         usageEventsPerUnit: item.usageEventsPerUnit!,
         unitPrice: item.unitPrice,
         livemode: item.livemode,
-        billingPeriodItemName: 'Usage',
-        billingPeriodItemDescription: `usageEventId: ${item.usageEventId}, priceId: ${item.priceId}, usageEventsPerUnit: ${item.usageEventsPerUnit}, unitPrice: ${item.unitPrice}`,
+        name:
+          'Usage: ' +
+          item.usageMeterName +
+          ` at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(item.currency as CurrencyCode, item.unitPrice)} per ${item.usageEventsPerUnit}`,
+        description: `usageEventId: ${item.usageEventId}, priceId: ${item.priceId}, usageEventsPerUnit: ${item.usageEventsPerUnit}, unitPrice: ${item.unitPrice}`,
       },
     ])
   )
@@ -448,9 +442,8 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
         usageEventsPerUnit: priceInfo.usageEventsPerUnit,
         unitPrice: priceInfo.unitPrice,
         livemode: priceInfo.livemode,
-        billingPeriodItemName: priceInfo.billingPeriodItemName,
-        billingPeriodItemDescription:
-          priceInfo.billingPeriodItemDescription,
+        name: priceInfo.name,
+        description: priceInfo.description,
       }
     }
   )

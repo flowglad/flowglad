@@ -15,6 +15,7 @@ import {
   FeeCalculationType,
   SubscriptionItemType,
   CountryCode,
+  UsageBillingInfo,
 } from '@/types'
 import { Country } from '@/db/schema/countries'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -29,24 +30,26 @@ export interface SubscriptionFeeCalculationParams {
   organizationCountry: Country.Record
   livemode: boolean
   currency: CurrencyCode
-  usageOverages: {
-    usageMeterId: string
-    balance: number
-    priceId: string
-    usageEventsPerUnit: number
-    unitPrice: number
-  }[]
+  usageOverages: Pick<
+    UsageBillingInfo,
+    | 'usageMeterId'
+    | 'balance'
+    | 'priceId'
+    | 'usageEventsPerUnit'
+    | 'unitPrice'
+  >[]
 }
 
 export const calculateBillingItemBaseAmount = (
   items: BillingPeriodItem.Record[],
-  overages: {
-    usageMeterId: string
-    balance: number
-    priceId: string
-    usageEventsPerUnit: number
-    unitPrice: number
-  }[]
+  overages: Pick<
+    UsageBillingInfo,
+    | 'usageMeterId'
+    | 'balance'
+    | 'priceId'
+    | 'usageEventsPerUnit'
+    | 'unitPrice'
+  >[]
 ): number => {
   const staticAmt = items
     .filter((i) => i.type === SubscriptionItemType.Static)
