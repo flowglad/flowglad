@@ -297,10 +297,6 @@ export const billingPeriodItemsToInvoiceLineItemInserts = ({
     | InvoiceLineItem.Insert
     | undefined
   )[] = billingPeriodItems.map((billingPeriodItem) => {
-    if (billingPeriodItem.type === SubscriptionItemType.Usage) {
-      throw new Error('Usage billing period items are not supported')
-    }
-
     const insert: InvoiceLineItem.StaticInsert = {
       invoiceId,
       billingRunId,

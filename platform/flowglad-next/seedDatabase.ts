@@ -636,6 +636,11 @@ export const setupBillingPeriodItem = async ({
           'Discount redemption ID is not allowed for usage items'
         )
       }
+      if (type === SubscriptionItemType.Usage) {
+        throw new Error(
+          'Usage type is not allowed for billing period items'
+        )
+      }
       const insert: BillingPeriodItem.Insert = {
         billingPeriodId,
         quantity,
@@ -643,8 +648,6 @@ export const setupBillingPeriodItem = async ({
         name,
         description,
         type,
-        usageMeterId,
-        usageEventsPerUnit,
         discountRedemptionId: null,
         livemode,
       }
@@ -673,9 +676,7 @@ export const setupBillingPeriodItem = async ({
         description,
         type,
         livemode,
-        usageMeterId: null,
         discountRedemptionId: null,
-        usageEventsPerUnit: null,
       }
       return insertBillingPeriodItem(insert, transaction)
     }

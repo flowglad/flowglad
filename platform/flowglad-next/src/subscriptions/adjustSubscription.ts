@@ -429,8 +429,6 @@ export const adjustSubscription = async (
       description: `Adjustment to reach correct net charge. ${message}. Current total: $${(currentTotal / 100).toFixed(2)}, Target: $${(netChargeAmount / 100).toFixed(2)}`,
       livemode: subscription.livemode,
       type: SubscriptionItemType.Static,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
       discountRedemptionId: null,
     })
   }

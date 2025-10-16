@@ -105,8 +105,6 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       unitPrice: 5000,
       quantity: 1,
       discountRedemptionId: null,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
       createdAt: nowTime,
       updatedAt: nowTime,
       livemode: true,
@@ -161,8 +159,6 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       unitPrice: 3000,
       quantity: 1,
       discountRedemptionId: null,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
       createdAt: nowTime,
       updatedAt: nowTime,
       livemode: false,
@@ -170,25 +166,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       updatedByCommit: null,
       position: 0,
     }
-    const usageItem: BillingPeriodItem.UsageRecord = {
-      id: core.nanoid(),
-      billingPeriodId: billingPeriodRec.id,
-      name: 'Usage Component Euro',
-      description: 'Usage part of Euro plan',
-      type: SubscriptionItemType.Usage,
-      unitPrice: 5,
-      quantity: 1,
-      discountRedemptionId: null,
-      usageMeterId: usageMeterRec.id,
-      usageEventsPerUnit: 1,
-      createdAt: nowTime,
-      updatedAt: nowTime,
-      livemode: false,
-      createdByCommit: null,
-      updatedByCommit: null,
-      position: 0,
-    }
-    const billingPeriodItems = [staticItem, usageItem]
+    const billingPeriodItems = [staticItem]
     const usageOverages = [
       {
         usageMeterId: usageMeterRec.id,

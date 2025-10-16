@@ -708,18 +708,12 @@ describe('billingRunHelpers', async () => {
 
       expect(result.feeCalculation).toBeDefined()
       expect(result.totalDueAmount).toBeGreaterThan(0)
-      const usageBillingPeriodItems = billingPeriodItems.filter(
-        (item) => item.usageMeterId !== null
-      )
+
       expect(result.totalDueAmount).toBe(
         billingPeriodItems.reduce(
           (acc, item) => acc + item.unitPrice * item.quantity,
           0
-        ) -
-          usageBillingPeriodItems.reduce(
-            (acc, item) => acc + item.unitPrice * item.quantity,
-            0
-          )
+        )
       )
     })
 
