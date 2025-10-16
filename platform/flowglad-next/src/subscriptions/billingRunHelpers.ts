@@ -662,7 +662,6 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   }
 }
 
-
 // Define return type for executeBillingRunCalculationAndBookkeepingSteps
 type ExecuteBillingRunStepsResult = {
   invoice: Invoice.Record
