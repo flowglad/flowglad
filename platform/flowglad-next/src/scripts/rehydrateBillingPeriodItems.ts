@@ -91,8 +91,6 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
             type: item.type,
             unitPrice: item.unitPrice,
             quantity: item.quantity,
-            // usageMeterId: item.usageMeterId,
-            // usageEventsPerUnit: item.usageEventsPerUnit,
             discountRedemptionId: null,
           }
           billingPeriodItemInserts.push(insert)

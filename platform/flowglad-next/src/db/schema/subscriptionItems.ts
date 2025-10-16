@@ -46,12 +46,6 @@ const columns = {
   priceId: notNullStringForeignKey('price_id', prices),
   unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
-  // FIXME: can remove usageEventsPerUnit, usageMeterId?
-  // usageEventsPerUnit: integer('usage_events_per_unit'),
-  // usageMeterId: nullableStringForeignKey(
-  //   'usage_meter_id',
-  //   usageMeters
-  // ),
   metadata: jsonb('metadata'),
   type: pgEnumColumn({
     enumName: 'SubscriptionItemType',
@@ -106,8 +100,6 @@ const baseColumnRefinements = {
     .describe(
       'Used as a flag to soft delete a subscription item without losing its history for auditability. If set, it will be removed from the subscription items list and will not be included in the billing period item list. Epoch milliseconds.'
     ),
-  // usageMeterId: core.safeZodNullOrUndefined.optional(),
-  // usageEventsPerUnit: core.safeZodNullOrUndefined.optional(),
 }
 
 // Static subtype schemas via buildSchemas

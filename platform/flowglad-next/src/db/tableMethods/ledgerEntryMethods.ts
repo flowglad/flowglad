@@ -416,7 +416,6 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     .innerJoin(prices, eq(usageEvents.priceId, prices.id))
     .where(inArray(usageEvents.id, usageEventIds))
 
-  // Create a map for quick lookup
   const priceInfoByUsageEventId = new Map(
     usageEventsWithPrices.map((item) => [
       item.usageEventId,
