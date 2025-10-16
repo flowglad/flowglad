@@ -14,6 +14,7 @@ import {
   Signature,
   Paragraph,
 } from './components/themed'
+import TestModeBanner from './components/TestBanner'
 
 export const OrderReceiptEmail = ({
   invoiceNumber,
@@ -53,6 +54,7 @@ export const OrderReceiptEmail = ({
 
   return (
     <EmailLayout previewText="Thanks for your order!">
+      <TestModeBanner><TestModeBanner/>
       <Header
         title="Thanks for your order!"
         organizationLogoUrl={organizationLogoUrl}

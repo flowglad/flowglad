@@ -13,6 +13,7 @@ import {
   Signature,
 } from './components/themed'
 import core from '@/utils/core'
+import TestModeBanner from './components/TestBanner'
 
 const baseUrl = process.env.VERCEL_URL || core.NEXT_PUBLIC_APP_URL
 
@@ -51,6 +52,7 @@ export const InvoiceReminderEmail = ({
 
   return (
     <EmailLayout previewText="Invoice Reminder">
+      <TestModeBanner><TestModeBanner/>
       <Header
         title="Invoice Reminder"
         organizationLogoUrl={organizationLogoUrl}
