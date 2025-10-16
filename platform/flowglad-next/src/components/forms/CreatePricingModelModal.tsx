@@ -4,13 +4,20 @@ import { useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { PricingModelTemplateSelector } from './PricingModelTemplateSelector'
-import { TemplatePreviewModal } from '@/components/pricing-model-templates/TemplatePreviewModal'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { TemplateSelectorContent } from './TemplateSelectorContent'
+import { TemplatePreviewContent } from '@/components/pricing-model-templates/TemplatePreviewContent'
 import FormModal from '@/components/forms/FormModal'
 import PricingModelFormFields from '@/components/forms/PricingModelFormFields'
 import { createPricingModelSchema } from '@/db/schema/pricingModels'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import { generateTemplateName } from '@/utils/pricingModelTemplates'
+
+type ModalView = 'selector' | 'preview' | 'blank'
 
 interface CreatePricingModelModalProps {
   isOpen: boolean
@@ -22,12 +29,9 @@ const CreatePricingModelModal: React.FC<
 > = ({ isOpen, setIsOpen }) => {
   const router = useRouter()
 
-  // Modal state management
-  const [showTemplateSelector, setShowTemplateSelector] =
-    useState(true)
-  const [showTemplatePreview, setShowTemplatePreview] =
-    useState(false)
-  const [showBlankForm, setShowBlankForm] = useState(false)
+  // Single modal with different views
+  const [currentView, setCurrentView] =
+    useState<ModalView>('selector')
   const [selectedTemplate, setSelectedTemplate] =
     useState<PricingModelTemplate | null>(null)
 
@@ -63,21 +67,22 @@ const CreatePricingModelModal: React.FC<
     })
 
   const resetState = () => {
-    setShowTemplateSelector(true)
-    setShowTemplatePreview(false)
-    setShowBlankForm(false)
+    setCurrentView('selector')
     setSelectedTemplate(null)
   }
 
   const handleTemplateSelect = (template: PricingModelTemplate) => {
     setSelectedTemplate(template)
-    setShowTemplateSelector(false)
-    setShowTemplatePreview(true)
+    setCurrentView('preview')
   }
 
   const handleCreateBlank = () => {
-    setShowTemplateSelector(false)
-    setShowBlankForm(true)
+    setCurrentView('blank')
+  }
+
+  const handleBackToSelector = () => {
+    setCurrentView('selector')
+    setSelectedTemplate(null)
   }
 
   const handleConfirmTemplate = async () => {
@@ -97,55 +102,65 @@ const CreatePricingModelModal: React.FC<
     resetState()
   }
 
+  // Render blank form separately as it has its own Dialog
+  if (currentView === 'blank') {
+    return (
+      <FormModal
+        isOpen={isOpen}
+        setIsOpen={(open) => {
+          if (!open) {
+            handleCloseModal()
+          }
+        }}
+        title="Create Pricing Model"
+        formSchema={createPricingModelSchema}
+        defaultValues={{ pricingModel: { name: '' } }}
+        onSubmit={createPricingModelMutation.mutateAsync}
+      >
+        <PricingModelFormFields />
+      </FormModal>
+    )
+  }
+
+  // Single Dialog with one DialogContent that changes styling based on view
   return (
-    <>
-      {/* Template Selector Modal */}
-      {showTemplateSelector && (
-        <PricingModelTemplateSelector
-          isOpen={isOpen && showTemplateSelector}
-          setIsOpen={handleCloseModal}
-          onTemplateSelect={handleTemplateSelect}
-          onCreateBlank={handleCreateBlank}
-        />
-      )}
+    <Dialog open={isOpen} onOpenChange={handleCloseModal}>
+      <DialogContent
+        className={
+          currentView === 'selector'
+            ? 'w-[calc(100vw-32px)] sm:w-[calc(100vw-64px)] sm:max-w-[1200px] p-0 sm:p-0 gap-0 max-h-[90vh] overflow-hidden rounded-3xl'
+            : 'w-[calc(100vw-32px)] sm:max-w-[600px] p-4 sm:p-4 gap-0 overflow-clip'
+        }
+        style={{
+          transition: 'none',
+          animation: 'none',
+          transitionDuration: '0s',
+          animationDuration: '0s',
+        }}
+      >
+        <DialogTitle className="sr-only">
+          {currentView === 'selector'
+            ? 'Create Pricing Model'
+            : selectedTemplate?.metadata.title}
+        </DialogTitle>
 
-      {/* Template Preview Modal */}
-      {showTemplatePreview && selectedTemplate && (
-        <TemplatePreviewModal
-          isOpen={showTemplatePreview}
-          setIsOpen={(open) => {
-            if (!open) {
-              setShowTemplatePreview(false)
-              setShowTemplateSelector(true)
-              setSelectedTemplate(null)
-            }
-          }}
-          template={selectedTemplate}
-          onConfirm={handleConfirmTemplate}
-          isCreating={setupPricingModelMutation.isPending}
-        />
-      )}
-
-      {/* Blank Pricing Model Form (existing behavior) */}
-      {showBlankForm && (
-        <FormModal
-          isOpen={isOpen && showBlankForm}
-          setIsOpen={(open) => {
-            if (!open) {
-              handleCloseModal()
-            } else {
-              setShowBlankForm(true)
-            }
-          }}
-          title="Create Pricing Model"
-          formSchema={createPricingModelSchema}
-          defaultValues={{ pricingModel: { name: '' } }}
-          onSubmit={createPricingModelMutation.mutateAsync}
-        >
-          <PricingModelFormFields />
-        </FormModal>
-      )}
-    </>
+        {currentView === 'selector' ? (
+          <TemplateSelectorContent
+            onTemplateSelect={handleTemplateSelect}
+            onCreateBlank={handleCreateBlank}
+          />
+        ) : (
+          selectedTemplate && (
+            <TemplatePreviewContent
+              template={selectedTemplate}
+              onBack={handleBackToSelector}
+              onConfirm={handleConfirmTemplate}
+              isCreating={setupPricingModelMutation.isPending}
+            />
+          )
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
 

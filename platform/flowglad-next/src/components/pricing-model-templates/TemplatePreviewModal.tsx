@@ -95,10 +95,10 @@ export function TemplatePreviewModal({
                       className="flex flex-col gap-2 w-full"
                     >
                       {/* Product Card */}
-                      <div className="bg-secondary/25 p-3 rounded-xl flex items-center w-full">
+                      <div className="bg-accent p-3 rounded-2xl flex items-center w-full">
                         {/* Product Name */}
                         <div className="flex-1 min-w-0 flex gap-2 items-center px-2 py-0">
-                          <h3 className="text-lg font-semibold whitespace-nowrap">
+                          <h3 className="text-md font-semibold whitespace-nowrap">
                             {product.product.name}
                           </h3>
                         </div>
@@ -107,7 +107,7 @@ export function TemplatePreviewModal({
                         <div className="flex-1 min-w-0 flex items-start justify-end px-2 py-0">
                           <div className="flex-1 flex gap-1.5 items-center">
                             <div className="flex items-end justify-center whitespace-nowrap">
-                              <span className="text-lg font-semibold">
+                              <span className="text-md font-semibold">
                                 {formatCurrency(
                                   defaultPrice.unitPrice
                                 ).replace('.00', '')}

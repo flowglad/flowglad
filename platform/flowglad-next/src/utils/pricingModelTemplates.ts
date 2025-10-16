@@ -54,10 +54,10 @@ export function getTemplateCounts(input: SetupPricingModelInput) {
 
 /**
  * Generate unique name for cloned template
- * @example generateTemplateName("Usage-Limit Subscription") => "Usage-Limit Subscription (My Template)"
+ * @example generateTemplateName("Usage-Limit Subscription") => "Usage-Limit Subscription"
  */
 export function generateTemplateName(
   baseTemplateName: string
 ): string {
-  return `${baseTemplateName} (My Template)`
+  return baseTemplateName
 }

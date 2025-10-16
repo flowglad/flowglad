@@ -12,45 +12,52 @@ export function TemplateGrid({
   templates,
   onTemplateSelect,
 }: TemplateGridProps) {
-  // Group templates into rows of 2
-  const rows: Array<
-    [PricingModelTemplate, PricingModelTemplate | undefined]
-  > = []
-  for (let i = 0; i < templates.length; i += 2) {
-    rows.push([templates[i], templates[i + 1]])
-  }
-
   return (
-    <div className="flex flex-col">
-      {rows.map((row, rowIndex) => {
-        const [firstTemplate, secondTemplate] = row
-        return (
-          <div
-            key={rowIndex}
-            className="flex flex-row border-t border-dashed first:border-t-0"
-          >
-            <div className="flex-1 min-w-0">
-              <TemplateCard
-                metadata={firstTemplate.metadata}
-                onCustomize={() => onTemplateSelect(firstTemplate)}
-              />
-            </div>
-            {secondTemplate !== undefined && (
-              <>
-                <div className="w-px border-l border-dashed" />
+    <div className="flex flex-col px-4 py-4 md:px-8 md:py-8">
+      {/* Mobile/Tablet: Single column */}
+      <div className="md:hidden flex flex-col gap-8">
+        {templates.map((template, index) => (
+          <div key={index}>
+            <TemplateCard
+              metadata={template.metadata}
+              onCustomize={() => onTemplateSelect(template)}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: Two columns */}
+      <div className="hidden md:flex md:flex-col gap-8">
+        {Array.from({ length: Math.ceil(templates.length / 2) }).map(
+          (_, rowIndex) => {
+            const firstTemplate = templates[rowIndex * 2]
+            const secondTemplate = templates[rowIndex * 2 + 1]
+
+            return (
+              <div key={rowIndex} className="flex flex-row gap-8">
                 <div className="flex-1 min-w-0">
                   <TemplateCard
-                    metadata={secondTemplate.metadata}
+                    metadata={firstTemplate.metadata}
                     onCustomize={() =>
-                      onTemplateSelect(secondTemplate)
+                      onTemplateSelect(firstTemplate)
                     }
                   />
                 </div>
-              </>
-            )}
-          </div>
-        )
-      })}
+                {secondTemplate !== undefined && (
+                  <div className="flex-1 min-w-0">
+                    <TemplateCard
+                      metadata={secondTemplate.metadata}
+                      onCustomize={() =>
+                        onTemplateSelect(secondTemplate)
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            )
+          }
+        )}
+      </div>
     </div>
   )
 }
