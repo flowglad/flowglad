@@ -1108,6 +1108,7 @@ describe('billingRunHelpers', async () => {
         expect(payments).toHaveLength(1)
         expect(payments[0].stripePaymentIntentId).toBe(mockPaymentIntent.id)
         expect(payments[0].stripeChargeId).toBeNull() // No charge ID since payment failed
+        expect(payments[0].status).toBe(PaymentStatus.Processing) // Payment created but not yet confirmed
         
         // Verify invoice is still awaiting payment confirmation (not marked as paid)
         const invoices = await adminTransaction(
@@ -1156,6 +1157,7 @@ describe('billingRunHelpers', async () => {
         expect(payments).toHaveLength(1)
         expect(payments[0].stripePaymentIntentId).toBe(mockPaymentIntent.id)
         expect(payments[0].stripeChargeId).toBeNull() // No charge ID since confirmation failed
+        expect(payments[0].status).toBe(PaymentStatus.Processing) // Payment created but confirmation failed
         
         // Verify invoice is still awaiting payment confirmation (not marked as paid)
         const invoices = await adminTransaction(
