@@ -37,6 +37,21 @@ import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
 import { Switch } from '@/components/ui/switch'
 
+// Type definitions for AddressElement value
+type AddressElementAddress = {
+  line1?: string
+  line2?: string | null
+  city?: string
+  state?: string
+  postal_code?: string
+  country?: string
+}
+
+type AddressElementValue = {
+  name?: string
+  address?: AddressElementAddress
+}
+
 // Utility function to force reflow for Stripe iframes to prevent rendering issues
 const forceStripeElementsReflow = () => {
   // Force reflow on all Stripe Elements containers
@@ -185,8 +200,54 @@ const PaymentForm = () => {
     string | undefined
   >(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [addressElementValue, setAddressElementValue] = useState<AddressElementValue | null>(null)
   const confirmCheckoutSession =
     trpc.checkoutSessions.public.confirm.useMutation()
+
+  // Individual field validators
+  const isNameProvided = (value: string | undefined): boolean => {
+    return Boolean(value && value.trim().length > 0)
+  }
+
+  const isLine1Provided = (line1: string | undefined): boolean => {
+    return Boolean(line1 && line1.trim())
+  }
+
+  const isCityProvided = (city: string | undefined): boolean => {
+    return Boolean(city && city.trim())
+  }
+
+  const isStateProvided = (state: string | undefined): boolean => {
+    return Boolean(state && state.trim())
+  }
+
+  const isPostalCodeProvided = (postalCode: string | undefined): boolean => {
+    return Boolean(postalCode && postalCode.trim())
+  }
+
+  const isCountryProvided = (country: string | undefined): boolean => {
+    return Boolean(country && country.trim())
+  }
+
+  // Generate specific error messages
+  const generateErrorMessage = (value: AddressElementValue | null): string => {
+    const missing = []
+    
+    if (!isNameProvided(value?.name)) missing.push('name')
+    if (!isLine1Provided(value?.address?.line1)) missing.push('address')
+    if (!isCityProvided(value?.address?.city)) missing.push('city')
+    if (!isStateProvided(value?.address?.state)) missing.push('state')
+    if (!isPostalCodeProvided(value?.address?.postal_code)) missing.push('postal code')
+    if (!isCountryProvided(value?.address?.country)) missing.push('country')
+
+    if (missing.length === 0) return ''
+    if (missing.length === 1) return `Please provide your ${missing[0]}`
+    if (missing.length === 2) return `Please provide your ${missing[0]} and ${missing[1]}`
+    
+    // For 3+ items: "Please provide your X, Y, and Z"
+    const lastItem = missing.pop()
+    return `Please provide your ${missing.join(', ')}, and ${lastItem}`
+  }
 
   const totalDueAmount: number | null = feeCalculation
     ? calculateTotalDueAmount(feeCalculation)
@@ -260,6 +321,17 @@ const PaymentForm = () => {
 
         setIsSubmitting(true)
 
+        // Validate name and address before server call
+        const latest = addressElementValue ?? (await elements?.getElement(AddressElement)?.getValue())?.value ?? null
+        
+        // Check if all required fields are provided
+        const errorMessage = generateErrorMessage(latest)
+        if (errorMessage) {
+          setErrorMessage(errorMessage)
+          setIsSubmitting(false)
+          return
+        }
+
         try {
           await confirmCheckoutSession.mutateAsync({
             id: checkoutSession.id,
@@ -294,6 +366,9 @@ const PaymentForm = () => {
           flowType === CheckoutFlowType.Subscription ||
           flowType === CheckoutFlowType.AddPaymentMethod
         let error: StripeError | undefined
+        
+        // Get the latest address element value for billing details
+        const latestForBilling = addressElementValue ?? (await elements?.getElement(AddressElement)?.getValue())?.value ?? null
         if (useConfirmSetup) {
           try {
             const { error: confirmationError } =
@@ -306,7 +381,7 @@ const PaymentForm = () => {
                         billing_details: {
                           email: readonlyCustomerEmail,
                           // Name will be collected from AddressElement
-                          name: checkoutSession.billingAddress?.name,
+                          name: latestForBilling?.name ?? checkoutSession.billingAddress?.name,
                         },
                       }
                     : undefined,
@@ -333,7 +408,7 @@ const PaymentForm = () => {
                       billing_details: {
                         email: readonlyCustomerEmail,
                         // Name will be collected from AddressElement
-                        name: checkoutSession.billingAddress?.name,
+                        name: latestForBilling?.name ?? checkoutSession.billingAddress?.name,
                       },
                     }
                   : undefined,
@@ -474,6 +549,8 @@ const PaymentForm = () => {
               setTimeout(forceStripeElementsReflow, 100)
             }}
             onChange={async (event) => {
+              setAddressElementValue(event.value as AddressElementValue)
+
               if (
                 event.complete &&
                 checkoutSession.status === CheckoutSessionStatus.Open
