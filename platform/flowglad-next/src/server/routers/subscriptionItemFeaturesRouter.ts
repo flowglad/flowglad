@@ -78,7 +78,7 @@ const createSubscriptionItemFeature = protectedProcedure
               'Organization ID is required for this operation.',
           })
         }
-        // TODO: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
+        // FIXME: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
 
         const { id: subscriptionItemFeatureId } =
           await insertSubscriptionItemFeature(
@@ -151,7 +151,8 @@ const expireSubscriptionItemFeature = protectedProcedure
   .meta(
     createPostOpenApiMeta({
       resource: pluralResourceName, // Use plural form for the path base
-      summary:
+      summary: 'Expire Subscription Item Feature',
+      description:
         'Expire a feature attached to a subscription item, no longer granting the customer access to it',
       tags: tags,
       routeSuffix: 'expire', // This appends /deactivate

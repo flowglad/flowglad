@@ -50,6 +50,7 @@ import {
   FeatureType,
   SubscriptionItemType,
   SubscriptionStatus,
+  UsageBillingInfo,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
@@ -57,6 +58,8 @@ import { createAndFinalizeSubscriptionFeeCalculation } from '@/utils/bookkeeping
 import core from '@/utils/core'
 import {
   createAndConfirmPaymentIntentForBillingRun,
+  createPaymentIntentForBillingRun,
+  confirmPaymentIntentForBillingRun,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
@@ -69,6 +72,7 @@ import {
   claimLedgerEntriesWithOutstandingBalances,
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
+import { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
@@ -112,11 +116,15 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
     billingPeriodItems: BillingPeriodItem.Record[]
     organization: Organization.Record
     billingRun: BillingRun.Record
-    usageOverages: {
-      usageEventId: string
-      usageMeterId: string
-      balance: number
-    }[]
+    usageOverages: Pick<
+      UsageBillingInfo,
+      | 'usageEventId'
+      | 'usageMeterId'
+      | 'balance'
+      | 'priceId'
+      | 'usageEventsPerUnit'
+      | 'unitPrice'
+    >[]
   },
   transaction: DbTransaction
 ): Promise<{
@@ -198,13 +206,6 @@ export const createInvoiceInsertForBillingRun = async (
   }
 }
 
-export type OutstandingUsageCostAggregation = {
-  ledgerAccountId: string
-  usageMeterId: string
-  subscriptionId: string
-  outstandingBalance: number
-}
-
 // Helper function to tabulate outstanding usage costs
 export const tabulateOutstandingUsageCosts = async (
   subscriptionId: string,
@@ -250,6 +251,12 @@ export const tabulateOutstandingUsageCosts = async (
           usageMeterId: usageCost.usageMeterId,
           subscriptionId: subscriptionId,
           outstandingBalance: usageCost.balance,
+          priceId: usageCost.priceId,
+          usageEventsPerUnit: usageCost.usageEventsPerUnit,
+          unitPrice: usageCost.unitPrice,
+          livemode: usageCost.livemode,
+          name: usageCost.name,
+          description: usageCost.description,
         }
       )
     } else {
@@ -265,91 +272,64 @@ export const tabulateOutstandingUsageCosts = async (
   }
 }
 
-export const billingPeriodItemsToInvoiceLineItemInserts = ({
-  invoiceId,
-  billingPeriodItems,
-  usageOverages,
-  billingRunId,
-}: {
-  billingRunId: string
-  invoiceId: string
-  billingPeriodItems: BillingPeriodItem.Record[]
-  usageOverages: {
-    ledgerAccountId: string
-    usageMeterId: string
-    balance: number
-  }[]
-}): InvoiceLineItem.Insert[] => {
-  const usageOverageByUsageMeterId = new Map<
-    string,
-    {
-      usageMeterId: string
-      balance: number
-      ledgerAccountId: string
-    }
-  >(
-    usageOverages.map((usageOverage) => [
-      usageOverage.usageMeterId,
-      usageOverage,
-    ])
-  )
-  const invoiceLineItemInserts: (
-    | InvoiceLineItem.Insert
-    | undefined
-  )[] = billingPeriodItems.map((billingPeriodItem) => {
-    if (billingPeriodItem.type === SubscriptionItemType.Usage) {
-      const usageOverage = usageOverageByUsageMeterId.get(
-        billingPeriodItem.usageMeterId
-      )
-      /**
-       * If there is no usage overage for the usage meter, we skip the line item.
-       */
-      if (!usageOverage) {
-        return undefined
-      }
-      const insert: InvoiceLineItem.UsageInsert = {
-        priceId: null,
-        billingRunId,
+export const billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts =
+  ({
+    invoiceId,
+    billingPeriodItems,
+    usageOverages,
+    billingRunId,
+  }: {
+    billingRunId: string
+    invoiceId: string
+    billingPeriodItems: BillingPeriodItem.Record[]
+    usageOverages: Omit<UsageBillingInfo, 'usageEventId'>[]
+  }): InvoiceLineItem.Insert[] => {
+    const invoiceLineItemInserts: (
+      | InvoiceLineItem.Insert
+      | undefined
+    )[] = billingPeriodItems.map((billingPeriodItem) => {
+      const insert: InvoiceLineItem.StaticInsert = {
         invoiceId,
-        ledgerAccountCredit: usageOverage.balance,
-        quantity:
-          usageOverage.balance && billingPeriodItem.usageEventsPerUnit
-            ? usageOverage.balance /
-              billingPeriodItem.usageEventsPerUnit
-            : 0,
-        type: SubscriptionItemType.Usage,
-        ledgerAccountId: usageOverage!.ledgerAccountId,
+        billingRunId,
+        quantity: billingPeriodItem.quantity,
         livemode: billingPeriodItem.livemode,
         price: billingPeriodItem.unitPrice,
         description: `${billingPeriodItem.name}${
           billingPeriodItem.description &&
           ` - ${billingPeriodItem.description}`
         }`,
+        type: SubscriptionItemType.Static,
+        ledgerAccountId: null,
+        ledgerAccountCredit: null,
+        priceId: null,
       }
       return insert
-    }
+    })
 
-    const insert: InvoiceLineItem.StaticInsert = {
-      invoiceId,
-      billingRunId,
-      quantity: billingPeriodItem.quantity,
-      livemode: billingPeriodItem.livemode,
-      price: billingPeriodItem.unitPrice,
-      description: `${billingPeriodItem.name}${
-        billingPeriodItem.description &&
-        ` - ${billingPeriodItem.description}`
-      }`,
-      type: SubscriptionItemType.Static,
-      ledgerAccountId: null,
-      ledgerAccountCredit: null,
-      priceId: null,
-    }
-    return insert
-  })
-  return invoiceLineItemInserts
-    .filter((item) => item !== undefined)
-    .filter((item) => item.quantity > 0)
-}
+    const usageLineItemInserts = usageOverages.map((usageOverage) => {
+      const insert: InvoiceLineItem.UsageInsert = {
+        priceId: usageOverage.priceId,
+        billingRunId,
+        invoiceId,
+        ledgerAccountCredit: usageOverage.balance,
+        quantity:
+          usageOverage.balance && usageOverage.usageEventsPerUnit
+            ? usageOverage.balance / usageOverage.usageEventsPerUnit
+            : 0,
+        type: SubscriptionItemType.Usage,
+        ledgerAccountId: usageOverage!.ledgerAccountId,
+        livemode: usageOverage.livemode,
+        price: usageOverage.unitPrice,
+        description: `${usageOverage.name ?? ''} ${
+          usageOverage.description && ` - ${usageOverage.description}`
+        }`,
+      }
+      return insert
+    })
+    return [...invoiceLineItemInserts, ...usageLineItemInserts]
+      .filter((item) => item !== undefined)
+      .filter((item) => item.quantity > 0)
+  }
 
 export const processOutstandingBalanceForBillingPeriod = async (
   billingPeriod: BillingPeriod.Record,
@@ -545,7 +525,7 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
   await deleteInvoiceLineItemsByinvoiceId(invoice.id, transaction)
 
   const invoiceLineItemInserts =
-    billingPeriodItemsToInvoiceLineItemInserts({
+    billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
       invoiceId: invoice.id,
       billingPeriodItems,
       usageOverages,
@@ -685,7 +665,7 @@ type ExecuteBillingRunStepsResult = {
 }
 
 /**
- * TODO : support discount redemptions
+ * FIXME : support discount redemptions
  * @param billingRun
  * @param livemode
  */
@@ -813,28 +793,26 @@ export const executeBillingRun = async (billingRunId: string) => {
       return
     }
 
-    const paymentIntent =
-      await createAndConfirmPaymentIntentForBillingRun({
-        amount: totalAmountToCharge,
-        currency: invoice.currency,
-        stripeCustomerId: customer.stripeCustomerId,
-        stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
-        billingPeriodId: billingRun.billingPeriodId,
-        billingRunId: billingRun.id,
-        feeCalculation,
-        organization,
-        livemode: billingRun.livemode,
-      })
+    // Step 1: Create payment intent
+    const paymentIntent = await createPaymentIntentForBillingRun({
+      amount: totalAmountToCharge,
+      currency: invoice.currency,
+      stripeCustomerId: customer.stripeCustomerId,
+      stripePaymentMethodId: paymentMethod.stripePaymentMethodId,
+      billingPeriodId: billingRun.billingPeriodId,
+      billingRunId: billingRun.id,
+      feeCalculation,
+      organization,
+      livemode: billingRun.livemode,
+    })
 
-    return adminTransaction(
+    // Step 2: Associate with payment record (close transaction)
+    await adminTransaction(
       async ({ transaction }) => {
         await updatePayment(
           {
             id: payment.id,
             stripePaymentIntentId: paymentIntent.id,
-            stripeChargeId: paymentIntent.latest_charge
-              ? stripeIdFromObjectOrId(paymentIntent.latest_charge)
-              : null,
           },
           transaction
         )
@@ -846,10 +824,6 @@ export const executeBillingRun = async (billingRunId: string) => {
             billingPeriodId: invoice.billingPeriodId,
             type: invoice.type,
             subscriptionId: invoice.subscriptionId,
-            /**
-             * We need to update the billing run id to the new billing run id.
-             * So that future ledger commands will map to the correct billing run.
-             */
             billingRunId: billingRun.id,
           } as Invoice.Update,
           transaction
@@ -867,23 +841,51 @@ export const executeBillingRun = async (billingRunId: string) => {
           },
           transaction
         )
-        return {
-          invoice,
-          payment,
-          feeCalculation,
-          customer,
-          billingPeriod,
-          paymentMethod,
-          totalDueAmount,
-          totalAmountPaid,
-          organization,
-          payments,
-        }
       },
       {
         livemode: billingRun.livemode,
       }
     )
+
+    // Step 3: Confirm payment intent (outside transaction)
+    const confirmationResult =
+      await confirmPaymentIntentForBillingRun(
+        paymentIntent.id,
+        billingRun.livemode
+      )
+
+    // Step 4: Update payment record with charge ID
+    await adminTransaction(
+      async ({ transaction }) => {
+        await updatePayment(
+          {
+            id: payment.id,
+            stripeChargeId: confirmationResult.latest_charge
+              ? stripeIdFromObjectOrId(
+                  confirmationResult.latest_charge
+                )
+              : null,
+          },
+          transaction
+        )
+      },
+      {
+        livemode: billingRun.livemode,
+      }
+    )
+
+    return {
+      invoice,
+      payment,
+      feeCalculation,
+      customer,
+      billingPeriod,
+      paymentMethod,
+      totalDueAmount,
+      totalAmountPaid,
+      organization,
+      payments,
+    }
   } catch (error) {
     console.error('Error executing billing run', {
       billingRunId,
@@ -922,7 +924,7 @@ export const constructBillingRunRetryInsert = (
   allBillingRunsForBillingPeriod: BillingRun.Record[]
 ): BillingRun.Insert | undefined => {
   /**
-   * TODO: mark the subscription as canceled (?)
+   * FIXME: mark the subscription as canceled (?)
    */
   if (
     allBillingRunsForBillingPeriod.length >=

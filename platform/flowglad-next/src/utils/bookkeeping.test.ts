@@ -1359,7 +1359,6 @@ describe('createPricingModelBookkeeping', () => {
       expect(defaultProduct.organizationId).toBe(organizationId)
       expect(defaultProduct.livemode).toBe(livemode)
       expect(defaultProduct.active).toBe(true)
-      expect(defaultProduct.displayFeatures).toBeNull()
       expect(defaultProduct.singularQuantityLabel).toBeNull()
       expect(defaultProduct.pluralQuantityLabel).toBeNull()
       expect(defaultProduct.imageURL).toBeNull()

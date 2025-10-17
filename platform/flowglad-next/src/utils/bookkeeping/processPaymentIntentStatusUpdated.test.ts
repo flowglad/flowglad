@@ -530,7 +530,7 @@ const failedCharge = {
   failure_message: 'Insufficient funds',
 } as const
 /**
- * TODO: many test cases in this file are commented out
+ * FIXME: many test cases in this file are commented out
  * because we do not have an easy way to set up payment intents with associated charges
  * in pre-determined states.
  */
@@ -1039,7 +1039,7 @@ describe('Process payment intent status updated', async () => {
           )
         )
       ).rejects.toThrow()
-      // TODO: test that it fails when there's no taxCountry
+      // FIXME: test that it fails when there's no taxCountry
     })
 
     it('handles partially refunded charges', async () => {

@@ -44,7 +44,7 @@ describe('Swagger Configuration', () => {
     }
 
     it('should not have forbidden fields in any input schemas', () => {
-      // TODO: stronger types
+      // FIXME: stronger types
       Object.values(paths || {}).forEach((path: any) => {
         Object.values(path).forEach((method: any) => {
           if (
@@ -412,7 +412,7 @@ describe('Swagger Configuration', () => {
         const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['get', 'post'].sort()
+          ['get'].sort()
         )
       })
 
@@ -420,15 +420,7 @@ describe('Swagger Configuration', () => {
         const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['get', 'put'].sort()
-        )
-      })
-
-      it('should have correct send-reminder route methods', () => {
-        const route = paths?.[`${basePath}/{id}/send-reminder`]
-        expect(route).toBeDefined()
-        expect(Object.keys(route || {}).sort()).toEqual(
-          ['post'].sort()
+          ['get'].sort()
         )
       })
     })
@@ -663,7 +655,7 @@ describe('Swagger Configuration', () => {
         expect(route).toBeDefined()
         // Assuming GET (list) and POST (create)
         expect(Object.keys(route || {}).sort()).toEqual(
-          // TODO: standardize list methods / procedures
+          // FIXME: standardize list methods / procedures
           ['post'].sort()
         )
       })

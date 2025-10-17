@@ -15,6 +15,7 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
+  FeatureFlag,
   PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
@@ -31,6 +32,8 @@ import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import { PaymentStatus } from '@/types'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { hasFeatureFlag } from '@/utils/organizationHelpers'
+import { Organization } from '@/db/schema/organizations'
 
 export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
   adjustmentDate: Date | number,
@@ -218,6 +221,7 @@ export const syncSubscriptionWithActiveItems = async (
  */
 export const adjustSubscription = async (
   params: AdjustSubscriptionParams,
+  organization: Organization.Record,
   transaction: DbTransaction
 ): Promise<{
   subscription: Subscription.StandardRecord
@@ -225,6 +229,18 @@ export const adjustSubscription = async (
 }> => {
   const { adjustment, id } = params
   const { newSubscriptionItems, timing } = adjustment
+
+  if (
+    timing === SubscriptionAdjustmentTiming.Immediately &&
+    !hasFeatureFlag(
+      organization,
+      FeatureFlag.ImmediateSubscriptionAdjustments
+    )
+  ) {
+    throw new Error(
+      'Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616'
+    )
+  }
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
     throw new Error('Subscription is in terminal state')
@@ -415,8 +431,6 @@ export const adjustSubscription = async (
       description: `Adjustment to reach correct net charge. ${message}. Current total: $${(currentTotal / 100).toFixed(2)}, Target: $${(netChargeAmount / 100).toFixed(2)}`,
       livemode: subscription.livemode,
       type: SubscriptionItemType.Static,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
       discountRedemptionId: null,
     })
   }
@@ -430,7 +444,7 @@ export const adjustSubscription = async (
     subscription.backupPaymentMethodId ??
     null
   /**
-   * TODO: create a more helpful message for adjustment subscriptions on trial
+   * FIXME: create a more helpful message for adjustment subscriptions on trial
    */
   if (!paymentMethodId) {
     throw new Error(

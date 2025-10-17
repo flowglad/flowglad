@@ -125,7 +125,7 @@ const processCreditGrantExpiredLedgerCommand = async (
     initiatingSourceId: command.payload.expiredUsageCredit.id,
     subscriptionId: command.subscriptionId!,
   }
-  // TODO: Implement LedgerEntry creation for CreditGrantExpired
+  // FIXME: Implement LedgerEntry creation for CreditGrantExpired
   const insertedLedgerTransaction = await insertLedgerTransaction(
     ledgerTransactionInput,
     transaction
@@ -150,7 +150,7 @@ const processPaymentRefundedLedgerCommand = async (
     initiatingSourceId: command.payload.refund.id,
     subscriptionId: command.subscriptionId!,
   }
-  // TODO: Implement LedgerEntry creation for PaymentRefunded
+  // FIXME: Implement LedgerEntry creation for PaymentRefunded
   const insertedLedgerTransaction = await insertLedgerTransaction(
     ledgerTransactionInput,
     transaction

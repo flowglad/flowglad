@@ -22,6 +22,7 @@ import { createSubscriptionWorkflow } from './workflow'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
+  FeatureFlag,
   IntervalUnit,
   SubscriptionStatus,
   PriceType,
@@ -58,6 +59,7 @@ import {
   selectDiscountRedemptionById,
 } from '@/db/tableMethods/discountRedemptionMethods'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 
 describe('createSubscriptionWorkflow', async () => {
   let organization: Organization.Record
@@ -303,57 +305,126 @@ describe('createSubscriptionWorkflow', async () => {
     // This nested describe can use `organization`, `product` from the outer scope's beforeEach.
     // It will set up its own customer and paymentMethod per test for clarity, or have its own beforeEach.
     // FIXME: Re-enable this once usage prices are fully deprecated
-    // it('throws an error when trying to create a subscription with usage price', async () => {
-    //   const usageCustomer = await setupCustomer({
-    //     organizationId: organization.id,
-    //   })
-    //   const usagePaymentMethod = await setupPaymentMethod({
-    //     organizationId: organization.id,
-    //     customerId: usageCustomer.id,
-    //   })
-    //   const usageMeter = await setupUsageMeter({
-    //     organizationId: organization.id,
-    //     name: 'Usage Meter',
-    //     pricingModelId: product.pricingModelId,
-    //   })
-    //   const usagePrice = await setupPrice({
-    //     productId: product.id,
-    //     type: PriceType.Usage,
-    //     name: 'Usage Price',
-    //     unitPrice: 100,
-    //     livemode: true,
-    //     intervalUnit: IntervalUnit.Month,
-    //     intervalCount: 1,
-    //     isDefault: false,
-    //     currency: CurrencyCode.USD,
-    //     usageMeterId: usageMeter.id,
-    //   })
+    it('throws an error when trying to create a subscription with usage price', async () => {
+      const usageCustomer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const usagePaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: usageCustomer.id,
+      })
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Usage Meter',
+        pricingModelId: product.pricingModelId,
+      })
+      const usagePrice = await setupPrice({
+        productId: product.id,
+        type: PriceType.Usage,
+        name: 'Usage Price',
+        unitPrice: 100,
+        livemode: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
 
-    //   await expect(
-    //     adminTransaction(async ({ transaction }) => {
-    //       const stripeSetupIntentIdUsage = `setupintent_usage_price_${core.nanoid()}`
-    //       return createSubscriptionWorkflow(
-    //         {
-    //           organization,
-    //           product,
-    //           price: usagePrice, // Use the modified price
-    //           quantity: 1,
-    //           livemode: true,
-    //           startDate: new Date(),
-    //           interval: IntervalUnit.Month,
-    //           intervalCount: 1,
-    //           defaultPaymentMethod: usagePaymentMethod,
-    //           customer: usageCustomer,
-    //           stripeSetupIntentId: stripeSetupIntentIdUsage,
-    //           autoStart: true,
-    //         },
-    //         transaction
-    //       )
-    //     })
-    //   ).rejects.toThrow(
-    //     `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for subscription creation.`
-    //   )
-    // })
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          const stripeSetupIntentIdUsage = `setupintent_usage_price_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price: usagePrice, // Use the modified price
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: usagePaymentMethod,
+              customer: usageCustomer,
+              stripeSetupIntentId: stripeSetupIntentIdUsage,
+              autoStart: true,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for subscription creation.`
+      )
+    })
+
+    it('creates a subscription with usage price if the feature flag is enabled', async () => {
+      let orgWithFeatureFlag = organization
+      await adminTransaction(async ({ transaction }) => {
+        orgWithFeatureFlag = await updateOrganization(
+          {
+            id: organization.id,
+            featureFlags: {
+              [FeatureFlag.SubscriptionWithUsage]: true,
+            },
+          },
+          transaction
+        )
+      })
+
+      const usageFeatureCustomer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const usageFeaturePaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: usageFeatureCustomer.id,
+      })
+      const usageFeatureMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Usage Meter',
+        pricingModelId: product.pricingModelId,
+      })
+      const usageFeaturePrice = await setupPrice({
+        productId: product.id,
+        type: PriceType.Usage,
+        name: 'Feature Usage Price',
+        unitPrice: 150,
+        livemode: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageFeatureMeter.id,
+      })
+
+      const {
+        result: { subscription: createdSub },
+      } = await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_usage_feature_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization: orgWithFeatureFlag,
+            product,
+            price: usageFeaturePrice,
+            quantity: 2,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: usageFeaturePaymentMethod,
+            customer: usageFeatureCustomer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      })
+
+      expect(createdSub).toBeDefined()
+      expect(createdSub.priceId).toBe(usageFeaturePrice.id)
+      expect(createdSub.status).toBe(SubscriptionStatus.Active)
+      // runBillingAtPeriodStart should normally be false for usage price
+      expect(createdSub.runBillingAtPeriodStart).toBe(false)
+    })
 
     it('sets runBillingAtPeriodStart to true for subscription price', async () => {
       const subPriceCustomer = await setupCustomer({
@@ -413,7 +484,7 @@ describe('createSubscriptionWorkflow', async () => {
         livemode: true,
         isDefault: false,
         /**
-         * TODO: clean up function signature
+         * FIXME: clean up function signature
          */
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
@@ -1888,7 +1959,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_trial_discount_${core.nanoid()}`
         const discountRedemption = await insertDiscountRedemption(
-          // @ts-expect-error - TODO: fix this
+          // @ts-expect-error - FIXME: fix this
           {
             purchaseId: purchase.id,
             discountId: discount.id,

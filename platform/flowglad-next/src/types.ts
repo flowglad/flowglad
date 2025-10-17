@@ -479,7 +479,7 @@ export interface SupabaseUpdatePayload<T = object> {
  * @see https://docs.stripe.com/payments/payment-intents/verifying-status#checking-status-retrieve
  */
 export enum PaymentStatus {
-  // TODO: remove "canceled"
+  // FIXME: remove "canceled"
   Canceled = 'canceled',
   Failed = 'failed',
   Refunded = 'refunded',
@@ -693,7 +693,10 @@ export enum OfferingType {
 export type ApiEnvironment = 'test' | 'live'
 export type ServiceContext = 'webapp' | 'api'
 export type LogData = Record<string, any>
-export type LoggerData = LogData & { service?: ServiceContext; apiEnvironment?: ApiEnvironment }
+export type LoggerData = LogData & {
+  service?: ServiceContext
+  apiEnvironment?: ApiEnvironment
+}
 
 export enum FlowgladApiKeyType {
   Publishable = 'publishable',
@@ -713,7 +716,7 @@ export enum BillingPeriodStatus {
   Canceled = 'canceled',
   PastDue = 'past_due',
   ScheduledToCancel = 'scheduled_to_cancel',
-  // TODO: Add a status for "CollectionAbandoned" - when a billing period's payment collection has been abandoned
+  // FIXME: Add a status for "CollectionAbandoned" - when a billing period's payment collection has been abandoned
 }
 
 export enum BillingRunStatus {
@@ -777,6 +780,8 @@ export type SetupIntentableCheckoutSessionType = Exclude<
 
 export enum FeatureFlag {
   Usage = 'usage',
+  ImmediateSubscriptionAdjustments = 'immediate_subscription_adjustments',
+  SubscriptionWithUsage = 'subscription_with_usage',
 }
 
 export enum UsageMeterAggregationType {
@@ -810,7 +815,7 @@ export enum UsageCreditSourceReferenceType {
   InvoiceSettlement = 'invoice_settlement',
   ManualAdjustment = 'manual_adjustment',
   BillingPeriodTransition = 'billing_period_transition',
-  // TODO: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
+  // FIXME: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
 }
 
 export enum RefundStatus {
@@ -972,3 +977,16 @@ export type TelemetryEntityType =
   | 'subscription'
   | 'organization'
   | 'webhook'
+
+export type UsageBillingInfo = {
+  usageEventId: string
+  usageMeterId: string
+  ledgerAccountId: string
+  balance: number
+  priceId: string
+  usageEventsPerUnit: number
+  unitPrice: number
+  livemode: boolean
+  name: string | null
+  description: string | null
+}

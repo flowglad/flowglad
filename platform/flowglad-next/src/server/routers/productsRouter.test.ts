@@ -59,7 +59,6 @@ describe('productsRouter - Default Product Constraints', () => {
           default: false,
           description: null,
           imageURL: null,
-          displayFeatures: null,
           singularQuantityLabel: null,
           pluralQuantityLabel: null,
           externalId: null,
@@ -121,7 +120,6 @@ describe('productsRouter - Default Product Constraints', () => {
           active: true,
           description: '',
           imageURL: '',
-          displayFeatures: [],
           singularQuantityLabel: '',
           pluralQuantityLabel: '',
         })
@@ -140,7 +138,6 @@ describe('productsRouter - Default Product Constraints', () => {
             active: true,
             description: '',
             imageURL: '',
-            displayFeatures: [],
             singularQuantityLabel: '',
             pluralQuantityLabel: '',
           })
@@ -153,7 +150,6 @@ describe('productsRouter - Default Product Constraints', () => {
               default: false,
               description: null,
               imageURL: null,
-              displayFeatures: null,
               singularQuantityLabel: null,
               pluralQuantityLabel: null,
               externalId: null,

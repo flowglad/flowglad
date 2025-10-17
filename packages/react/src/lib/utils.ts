@@ -64,3 +64,15 @@ export function isCurrencyZeroDecimal(currency: CurrencyCode) {
 export function formatDate(date: string) {
   return format(new Date(date), 'MMM d, yyyy')
 }
+
+export function devWarn(message: string) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(`[flowglad]: ${message}`)
+  }
+}
+
+export function devError(message: string) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(`[flowglad]: ${message}`)
+  }
+}

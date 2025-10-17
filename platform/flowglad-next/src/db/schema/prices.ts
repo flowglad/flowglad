@@ -53,7 +53,16 @@ const readOnlyColumns = {
 
 const createOnlyColumns = {
   productId: true,
+  usageMeterId: true,
+  usageEventsPerUnit: true,
+  intervalUnit: true,
+  intervalCount: true,
+  startsWithCreditTrial: true,
+  trialPeriodDays: true,
+  unitPrice: true,
 } as const
+
+export const priceImmutableFields = Object.keys(createOnlyColumns)
 
 const hiddenColumns = {
   externalId: true,
@@ -204,7 +213,7 @@ const subscriptionPriceColumns = {
   usageEventsPerUnit: core.safeZodNullOrUndefined,
   usageMeterId: core.safeZodNullOrUndefined,
   /**
-   * TODO: remove this field
+   * FIXME: remove this field
    */
   startsWithCreditTrial: z
     .boolean()
@@ -336,6 +345,7 @@ export const {
   client: {
     hiddenColumns,
     readOnlyColumns,
+    createOnlyColumns,
   },
   entityName: 'UsagePrice',
 })

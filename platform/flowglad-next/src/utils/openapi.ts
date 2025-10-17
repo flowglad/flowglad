@@ -13,6 +13,7 @@ export type CreateOpenApiMetaParams = {
   resource: string
   summary: string
   tags: string[]
+  description?: string
 }
 
 const constructIdParam = (params: CreateOpenApiMetaParams) => {
@@ -55,6 +56,7 @@ export const createPostOpenApiMeta = ({
   routeSuffix,
   requireIdParam = false,
   idParamOverride,
+  description,
 }: CreateOpenApiMetaParams & {
   requireIdParam?: boolean
   idParamOverride?: string
@@ -66,6 +68,7 @@ export const createPostOpenApiMeta = ({
         requireIdParam ? `/{${idParamOverride ?? 'id'}}` : ''
       }${routeSuffix ? `/${routeSuffix}` : ''}`,
       summary,
+      ...(description ? { description } : {}),
       tags,
       protect: true,
     },

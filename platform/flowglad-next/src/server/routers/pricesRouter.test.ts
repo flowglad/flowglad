@@ -54,7 +54,6 @@ describe('pricesRouter - Default Price Constraints', () => {
           default: false,
           description: null,
           imageURL: null,
-          displayFeatures: null,
           singularQuantityLabel: null,
           pluralQuantityLabel: null,
           externalId: null,
@@ -318,7 +317,6 @@ describe('pricesRouter - Default Price Constraints', () => {
             default: false,
             description: null,
             imageURL: null,
-            displayFeatures: null,
             singularQuantityLabel: null,
             pluralQuantityLabel: null,
             externalId: null,
@@ -525,7 +523,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       )
     })
 
-    // TODO: cleanup the types here
+    // FIXME: cleanup the types here
     it('should allow default prices on non-default products to have non-zero unitPrice', async () => {
       const { apiKey } = await setupUserAndApiKey({
         organizationId,
@@ -564,7 +562,6 @@ describe('pricesRouter - Default Price Constraints', () => {
               default: false,
               description: null,
               imageURL: null,
-              displayFeatures: null,
               singularQuantityLabel: null,
               pluralQuantityLabel: null,
               externalId: null,
@@ -599,39 +596,6 @@ describe('pricesRouter - Default Price Constraints', () => {
       expect(result.price).toBeDefined()
       expect(result.price.unitPrice).toBe(2500)
       expect(result.price.isDefault).toBe(true)
-    })
-
-    it('should forbid default prices on default products to have non-zero unitPrice', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
-      const ctx = {
-        organizationId,
-        apiKey: apiKey.token!,
-        livemode,
-        environment: 'live' as const,
-        isApi: true as any,
-        path: '',
-      } as any
-
-      // Test the validation by trying to update the existing default price on default product
-      await expect(
-        pricesRouter.createCaller(ctx).update({
-          id: defaultPriceId,
-          price: {
-            id: defaultPriceId,
-            unitPrice: 1000, // Non-zero price for default price on default product - should fail
-            type: PriceType.Subscription,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            trialPeriodDays: 0,
-            isDefault: true,
-          },
-        } as any)
-      ).rejects.toThrow(
-        'Default prices for default products must have a unitPrice of 0'
-      )
     })
 
     it('should enforce single default price per product constraint', async () => {

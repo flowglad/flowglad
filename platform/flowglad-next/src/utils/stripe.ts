@@ -1238,6 +1238,8 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
     currency,
     customer: stripeCustomerId,
     payment_method: stripePaymentMethodId,
+    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+    // result in 400 errors). Keep this in mind when changing this code.
     confirm: true,
     off_session: true,
     application_fee_amount: applicationFeeAmount,
@@ -1246,6 +1248,75 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
       enabled: true,
     },
     ...transferData,
+  })
+}
+
+export const createPaymentIntentForBillingRun = async ({
+  amount,
+  currency,
+  stripeCustomerId,
+  stripePaymentMethodId,
+  billingPeriodId,
+  billingRunId,
+  feeCalculation,
+  organization,
+  livemode,
+}: {
+  amount: number
+  currency: CurrencyCode
+  stripeCustomerId: string
+  stripePaymentMethodId: string
+  billingPeriodId: string
+  billingRunId: string
+  feeCalculation: FeeCalculation.Record
+  organization: Organization.Record
+  livemode: boolean
+}) => {
+  if (!organization.stripeAccountId && livemode) {
+    throw new Error(
+      `createPaymentIntentForBillingRun: Organization ${organization.id} does not have a Stripe account ID`
+    )
+  }
+  const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
+  const metadata: BillingRunStripeIntentMetadata = {
+    billingRunId,
+    type: IntentMetadataType.BillingRun,
+    billingPeriodId,
+  }
+  const transferData = stripeConnectTransferDataForOrganization({
+    organization,
+    livemode,
+  })
+
+  const applicationFeeAmount = livemode ? totalFeeAmount : undefined
+
+  // Create payment intent WITHOUT confirming
+  return stripe(livemode).paymentIntents.create({
+    amount,
+    currency,
+    customer: stripeCustomerId,
+    payment_method: stripePaymentMethodId,
+    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+    // result in 400 errors). Keep this in mind when changing this code.
+    confirm: false, // Don't confirm yet
+    application_fee_amount: applicationFeeAmount,
+    metadata,
+    automatic_payment_methods: {
+      enabled: true,
+    },
+    ...transferData,
+  })
+}
+
+export const confirmPaymentIntentForBillingRun = async (
+  paymentIntentId: string,
+  livemode: boolean
+) => {
+  // Confirm the payment intent with Stripe
+  return stripe(livemode).paymentIntents.confirm(paymentIntentId, {
+    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+    // result in 400 errors). Keep this in mind when changing this code.
+    off_session: true
   })
 }
 
