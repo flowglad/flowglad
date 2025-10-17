@@ -1238,6 +1238,8 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
     currency,
     customer: stripeCustomerId,
     payment_method: stripePaymentMethodId,
+    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+    // result in 400 errors). Keep this in mind when changing this code.
     confirm: true,
     off_session: true,
     application_fee_amount: applicationFeeAmount,
@@ -1294,6 +1296,8 @@ export const createPaymentIntentForBillingRun = async ({
     currency,
     customer: stripeCustomerId,
     payment_method: stripePaymentMethodId,
+    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+    // result in 400 errors). Keep this in mind when changing this code.
     confirm: false, // Don't confirm yet
     application_fee_amount: applicationFeeAmount,
     metadata,
@@ -1310,7 +1314,9 @@ export const confirmPaymentIntentForBillingRun = async (
 ) => {
   // Confirm the payment intent with Stripe
   return stripe(livemode).paymentIntents.confirm(paymentIntentId, {
-    off_session: true,
+    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+    // result in 400 errors). Keep this in mind when changing this code.
+    off_session: true
   })
 }
 
