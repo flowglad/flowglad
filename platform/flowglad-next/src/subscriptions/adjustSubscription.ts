@@ -237,7 +237,9 @@ export const adjustSubscription = async (
       FeatureFlag.ImmediateSubscriptionAdjustments
     )
   ) {
-    throw new Error('Immediate adjustments are in private preview.')
+    throw new Error(
+      'Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616'
+    )
   }
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
