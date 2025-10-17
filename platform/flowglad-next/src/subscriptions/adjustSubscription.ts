@@ -359,9 +359,10 @@ export const adjustSubscription = async (
     (sum, item) => sum + item.unitPrice * item.quantity,
     0
   )
-  const newPlanTotalPrice = newSubscriptionItems
-    .filter((item) => !('id' in item))
-    .reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
+  const newPlanTotalPrice = newSubscriptionItems.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0
+  )
 
   // Use the new correct proration calculation
   const { netChargeAmount, message } =
@@ -426,6 +427,7 @@ export const adjustSubscription = async (
     paymentMethodId,
     transaction
   )
+  // TODO: maybe only create billing run if prorationAdjustments.length > 0
   await createBillingRun(
     {
       billingPeriod: currentBillingPeriodForSubscription,
