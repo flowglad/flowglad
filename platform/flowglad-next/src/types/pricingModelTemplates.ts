@@ -2,13 +2,23 @@ import type { LucideIcon } from 'lucide-react'
 import type { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 
 /**
+ * SVG logo with optional text label
+ */
+export interface SvgLogo {
+  /** SVG code as string */
+  svg: string
+  /** Optional text label to display next to the SVG (not part of SVG) */
+  text?: string
+}
+
+/**
  * Company information displayed in template cards
  */
 export interface TemplateCompanyInfo {
   /** Company name (e.g., "Cursor", "ChatGPT") */
   name: string
-  /** Company logo - can be URL string or Lucide icon component */
-  logo: string | LucideIcon
+  /** Company logo - can be URL string, Lucide icon component, or SVG logo object */
+  logo: string | LucideIcon | SvgLogo
 }
 
 /**
