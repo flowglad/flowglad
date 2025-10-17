@@ -45,8 +45,8 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install-packages
-      - name: Run lint
-        run: pnpm lint
+      - name: Run linting and typechecking
+        run: pnpm check
 
   openapi-check:
     runs-on: ubuntu-latest
@@ -187,8 +187,8 @@ jobs:
         run: pnpm install
       - name: Run build (all packages)
         run: pnpm build
-      - name: Run lint (all packages)
-        run: pnpm lint
+      - name: Run linting and typechecking (all packages)
+        run: pnpm check
 
   packages-react-tests:
     runs-on: ubuntu-latest

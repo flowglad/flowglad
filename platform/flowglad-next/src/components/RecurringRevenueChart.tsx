@@ -58,6 +58,9 @@ export const RecurringRevenueChart = ({
     React.useRef<TooltipCallbackProps | null>(null)
 
   // Use useEffect to safely update tooltip state after render
+
+  // FIXME(FG-384): Fix this warning:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     if (pendingTooltipData.current !== null) {
       setTooltipData(pendingTooltipData.current)
