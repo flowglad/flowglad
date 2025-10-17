@@ -116,8 +116,6 @@ export const createStandardSubscriptionAndItems = async (
     externalId: null,
     expiredAt: null,
     type: SubscriptionItemType.Static,
-    usageMeterId: null,
-    usageEventsPerUnit: null,
   }
 
   const subscriptionItems = await bulkInsertSubscriptionItems(
@@ -199,8 +197,6 @@ export const createNonRenewingSubscriptionAndItems = async (
     externalId: null,
     expiredAt: null,
     type: SubscriptionItemType.Static,
-    usageMeterId: null,
-    usageEventsPerUnit: null,
   }
 
   const subscriptionItems = await bulkInsertSubscriptionItems(

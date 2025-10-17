@@ -184,7 +184,6 @@ describe('insertSubscriptionAndItems', () => {
       // - The returned subscription item should have type 'static'
       // as usage meters do not attach to the credit trial subscription items
       expect(subscriptionItems[0].type).toBe('static')
-      expect(subscriptionItems[0].usageMeterId).toBeNull()
     })
 
     it('should route to createStandardSubscriptionAndItems when price is a standard subscription price', async () => {
@@ -500,7 +499,6 @@ describe('insertSubscriptionAndItems', () => {
       // - The subscription item should be of type 'static'
       // as usage meters do not attach to the credit trial subscription items
       expect(subscriptionItems[0].type).toBe('static')
-      expect(subscriptionItems[0].usageMeterId).toBeNull()
     })
   })
 })

@@ -133,8 +133,6 @@ describe('subscriptionItemMethods', async () => {
         externalId: core.nanoid(),
         metadata: {},
         type: SubscriptionItemType.Static,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
       }
       await adminTransaction(async ({ transaction }) => {
         const result = await insertSubscriptionItem(
@@ -182,8 +180,6 @@ describe('subscriptionItemMethods', async () => {
             id: subscriptionItem.id,
             ...updates,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -207,8 +203,6 @@ describe('subscriptionItemMethods', async () => {
               id: core.nanoid(),
               name: 'Non Existent',
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
             transaction
           )
@@ -259,8 +253,6 @@ describe('subscriptionItemMethods', async () => {
           externalId: core.nanoid(),
           metadata: {},
           type: SubscriptionItemType.Static,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
         {
           subscriptionId: subscription.id,
@@ -274,8 +266,6 @@ describe('subscriptionItemMethods', async () => {
           externalId: core.nanoid(),
           metadata: {},
           type: SubscriptionItemType.Static,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
       await adminTransaction(async ({ transaction }) => {
@@ -368,8 +358,6 @@ describe('subscriptionItemMethods', async () => {
           externalId: subscriptionItem.externalId,
           metadata: subscriptionItem.metadata,
           type: SubscriptionItemType.Static,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         }, // Cast to any to bypass strict Insert type checking for id
         {
           // New item to insert
@@ -384,8 +372,6 @@ describe('subscriptionItemMethods', async () => {
           externalId: newItemExternalId,
           metadata: {},
           type: SubscriptionItemType.Static,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
       await adminTransaction(async ({ transaction }) => {
@@ -490,8 +476,6 @@ describe('subscriptionItemMethods', async () => {
             id: expiredSetup.id,
             expiredAt: pastDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -501,8 +485,6 @@ describe('subscriptionItemMethods', async () => {
             id: subscriptionItem.id,
             expiredAt: pastDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         ) // Expire the original item
@@ -531,8 +513,6 @@ describe('subscriptionItemMethods', async () => {
             id: item1.id,
             expiredAt: futureDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -608,8 +588,6 @@ describe('subscriptionItemMethods', async () => {
             id: subscriptionItem.id,
             expiredAt: pastDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -659,8 +637,6 @@ describe('subscriptionItemMethods', async () => {
             id: expiredItem.id,
             expiredAt: pastDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -809,8 +785,6 @@ describe('subscriptionItemMethods', async () => {
             id: subscriptionItem.id,
             expiredAt: 0, // Set to epoch to ensure it's expired
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -859,8 +833,6 @@ describe('subscriptionItemMethods', async () => {
         externalId: itemExternalId1,
         metadata: {},
         type: SubscriptionItemType.Static,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
       },
       {
         name: 'Bulk External ID Item 2',
@@ -872,8 +844,6 @@ describe('subscriptionItemMethods', async () => {
         externalId: itemExternalId2,
         metadata: {},
         type: SubscriptionItemType.Static,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
       },
     ]
 
@@ -887,8 +857,6 @@ describe('subscriptionItemMethods', async () => {
                 subscriptionId: subscription.id,
                 priceId: price.id,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               }
             }),
             transaction
@@ -913,8 +881,6 @@ describe('subscriptionItemMethods', async () => {
               subscriptionId: subscription.id,
               priceId: price.id,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             }
           }),
           transaction
@@ -935,8 +901,6 @@ describe('subscriptionItemMethods', async () => {
                 subscriptionId: subscription.id,
                 priceId: price.id,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               }
             }),
             transaction
@@ -967,8 +931,6 @@ describe('subscriptionItemMethods', async () => {
             id: subscriptionItem.id,
             expiredAt: pastDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -987,8 +949,6 @@ describe('subscriptionItemMethods', async () => {
             id: futureExpiringItem.id,
             expiredAt: futureDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -1008,8 +968,6 @@ describe('subscriptionItemMethods', async () => {
             id: noExpiryItem.id,
             expiredAt: null,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -1041,8 +999,6 @@ describe('subscriptionItemMethods', async () => {
             id: subscriptionItem.id,
             addedDate: pastDate, // Ensure it's added before anchorDate
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )

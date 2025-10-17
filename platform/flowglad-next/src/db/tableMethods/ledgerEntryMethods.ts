@@ -16,9 +16,11 @@ import {
 } from '@/db/schema/ledgerEntries'
 import { DbTransaction } from '../types'
 import {
+  CurrencyCode,
   LedgerEntryDirection,
   LedgerEntryStatus,
   LedgerEntryType,
+  UsageBillingInfo,
 } from '@/types'
 import { and, asc, eq, gt, inArray, lt, not, or } from 'drizzle-orm'
 import { createDateNotPassedFilter } from '../tableUtils'
@@ -31,6 +33,10 @@ import {
   usageMetersClientSelectSchema,
   usageMetersSelectSchema,
 } from '../schema/usageMeters'
+import { usageEvents } from '../schema/usageEvents'
+import { prices } from '../schema/prices'
+import { billingPeriodItems } from '../schema/billingPeriodItems'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerEntries,
@@ -327,14 +333,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
   >,
   anchorDate: Date | number,
   transaction: DbTransaction
-): Promise<
-  {
-    usageEventId: string
-    usageMeterId: string
-    ledgerAccountId: string
-    balance: number
-  }[]
-> => {
+): Promise<UsageBillingInfo[]> => {
   const result = await transaction
     .select()
     .from(ledgerEntries)
@@ -384,13 +383,67 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
    * 2. Expires at will match the usageCreditId
    * 3. LedgerAccountId will match the ledger account implied by the usage credit id
    */
+
+  // Fetch usage events with their associated prices
+  const usageEventIds = Array.from(entriesByUsageEventId.keys())
+  if (usageEventIds.length === 0) {
+    return []
+  }
+  const usageEventsWithPrices = await transaction
+    .select({
+      usageEventId: usageEvents.id,
+      priceId: usageEvents.priceId,
+      usageEventsPerUnit: prices.usageEventsPerUnit,
+      unitPrice: prices.unitPrice,
+      livemode: usageEvents.livemode,
+      usageMeterName: usageMeters.name,
+      currency: prices.currency,
+    })
+    .from(usageEvents)
+    .innerJoin(
+      usageMeters,
+      eq(usageEvents.usageMeterId, usageMeters.id)
+    )
+    .innerJoin(prices, eq(usageEvents.priceId, prices.id))
+    .where(inArray(usageEvents.id, usageEventIds))
+
+  const priceInfoByUsageEventId = new Map(
+    usageEventsWithPrices.map((item) => [
+      item.usageEventId,
+      {
+        priceId: item.priceId,
+        usageEventsPerUnit: item.usageEventsPerUnit!,
+        unitPrice: item.unitPrice,
+        livemode: item.livemode,
+        name:
+          'Usage: ' +
+          item.usageMeterName +
+          ` at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(item.currency as CurrencyCode, item.unitPrice)} per ${item.usageEventsPerUnit}`,
+        description: `usageEventId: ${item.usageEventId}, priceId: ${item.priceId}, usageEventsPerUnit: ${item.usageEventsPerUnit}, unitPrice: ${item.unitPrice}`,
+      },
+    ])
+  )
+
   const balances = Array.from(entriesByUsageEventId.entries()).map(
     ([usageEventId, entries]) => {
+      const priceInfo = priceInfoByUsageEventId.get(usageEventId)
+      if (!priceInfo) {
+        throw new Error(
+          `Price information not found for usage event ${usageEventId}`
+        )
+      }
+
       return {
         usageEventId,
         balance: balanceFromEntries(entries) * -1,
         ledgerAccountId: entries[0].ledgerAccountId,
         usageMeterId: entries[0].usageMeterId!,
+        priceId: priceInfo.priceId,
+        usageEventsPerUnit: priceInfo.usageEventsPerUnit,
+        unitPrice: priceInfo.unitPrice,
+        livemode: priceInfo.livemode,
+        name: priceInfo.name,
+        description: priceInfo.description,
       }
     }
   )
