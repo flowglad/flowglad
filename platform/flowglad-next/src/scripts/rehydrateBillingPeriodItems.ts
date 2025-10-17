@@ -68,20 +68,10 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
           continue
         }
         const price = await selectPriceById(item.priceId, transaction)
-        if (price.type === PriceType.Usage) {
-          // Usage billing period items are no longer used
-          // const insert: BillingPeriodItem.UsageInsert = {
-          //   billingPeriodId: billingPeriod.id,
-          //   name: item.name ?? '',
-          //   description: item.name ?? '',
-          //   livemode: item.livemode,
-          //   unitPrice: item.unitPrice,
-          //   quantity: item.quantity,
-          //   type: SubscriptionItemType.Usage,
-          //   discountRedemptionId: null,
-          // }
-          // billingPeriodItemInserts.push(insert)
-        } else {
+        if (
+          price.type === PriceType.Subscription ||
+          price.type === PriceType.SinglePayment
+        ) {
           const insert: BillingPeriodItem.StaticInsert = {
             billingPeriodId: billingPeriod.id,
             name: item.name ?? '',
