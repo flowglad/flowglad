@@ -51,11 +51,6 @@ export const billingPeriodItems = pgTable(
       'discount_redemption_id',
       discountRedemptions
     ),
-    usageEventsPerUnit: integer('usage_events_per_unit'),
-    usageMeterId: nullableStringForeignKey(
-      'usage_meter_id',
-      usageMeters
-    ),
     type: pgEnumColumn({
       enumName: 'SubscriptionItemType',
       columnName: 'type',
@@ -67,7 +62,6 @@ export const billingPeriodItems = pgTable(
     return [
       constructIndex(TABLE_NAME, [table.billingPeriodId]),
       constructIndex(TABLE_NAME, [table.discountRedemptionId]),
-      constructIndex(TABLE_NAME, [table.usageMeterId]),
       merchantPolicy(
         `Enable read for own organizations (${TABLE_NAME})`,
         {
@@ -83,7 +77,7 @@ export const billingPeriodItems = pgTable(
 
 const baseColumnRefinements = {
   quantity: core.safeZodPositiveInteger,
-  // type refinement is handled by discriminated union literals
+  type: z.literal(SubscriptionItemType.Static), // disallow usage type
 }
 
 const baseBillingPeriodItemSelectSchema = createSelectSchema(
@@ -136,53 +130,19 @@ export const {
   entityName: 'StaticBillingPeriodItem',
 })
 
-export const {
-  select: usageBillingPeriodItemSelectSchema,
-  insert: usageBillingPeriodItemInsertSchema,
-  update: usageBillingPeriodItemUpdateSchema,
-  client: {
-    select: usageBillingPeriodItemClientSelectSchema,
-    insert: usageBillingPeriodItemClientInsertSchema,
-    update: usageBillingPeriodItemClientUpdateSchema,
-  },
-} = buildSchemas(billingPeriodItems, {
-  discriminator: 'type',
-  refine: {
-    type: z.literal(SubscriptionItemType.Usage),
-    usageMeterId: z
-      .string()
-      .describe(
-        'The usage meter associated with this usage-based billing period item.'
-      ), // Overrides base nullable
-    usageEventsPerUnit: core.safeZodPositiveInteger.describe(
-      'The number of usage events that constitute one unit for billing.'
-    ), // Overrides base nullable
-  },
-  entityName: 'UsageBillingPeriodItem',
-})
-
 /*
  * database schemas
  */
 export const billingPeriodItemsInsertSchema = z
-  .discriminatedUnion('type', [
-    staticBillingPeriodItemInsertSchema,
-    usageBillingPeriodItemInsertSchema,
-  ])
+  .discriminatedUnion('type', [staticBillingPeriodItemInsertSchema])
   .describe(BILLING_PERIOD_ITEM_INSERT_SCHEMA_DESCRIPTION)
 
 export const billingPeriodItemsSelectSchema = z
-  .discriminatedUnion('type', [
-    staticBillingPeriodItemSelectSchema,
-    usageBillingPeriodItemSelectSchema,
-  ])
+  .discriminatedUnion('type', [staticBillingPeriodItemSelectSchema])
   .describe(BILLING_PERIOD_ITEM_SELECT_SCHEMA_DESCRIPTION)
 
 export const billingPeriodItemsUpdateSchema = z
-  .discriminatedUnion('type', [
-    staticBillingPeriodItemUpdateSchema,
-    usageBillingPeriodItemUpdateSchema,
-  ])
+  .discriminatedUnion('type', [staticBillingPeriodItemUpdateSchema])
   .describe(BILLING_PERIOD_ITEM_UPDATE_SCHEMA_DESCRIPTION)
 
 /*
@@ -193,21 +153,18 @@ export const billingPeriodItemsUpdateSchema = z
 export const billingPeriodItemClientInsertSchema = z
   .discriminatedUnion('type', [
     staticBillingPeriodItemClientInsertSchema,
-    usageBillingPeriodItemClientInsertSchema,
   ])
   .meta({ id: 'BillingPeriodItemClientInsertSchema' })
 
 export const billingPeriodItemClientUpdateSchema = z
   .discriminatedUnion('type', [
     staticBillingPeriodItemClientUpdateSchema,
-    usageBillingPeriodItemClientUpdateSchema,
   ])
   .meta({ id: 'BillingPeriodItemClientUpdateSchema' })
 
 export const billingPeriodItemClientSelectSchema = z
   .discriminatedUnion('type', [
     staticBillingPeriodItemClientSelectSchema,
-    usageBillingPeriodItemClientSelectSchema,
   ])
   .meta({ id: 'BillingPeriodItemClientSelectSchema' })
 
@@ -224,16 +181,6 @@ export namespace BillingPeriodItem {
   >
   export type StaticRecord = z.infer<
     typeof staticBillingPeriodItemSelectSchema
-  >
-
-  export type UsageInsert = z.infer<
-    typeof usageBillingPeriodItemInsertSchema
-  >
-  export type UsageUpdate = z.infer<
-    typeof usageBillingPeriodItemUpdateSchema
-  >
-  export type UsageRecord = z.infer<
-    typeof usageBillingPeriodItemSelectSchema
   >
 
   export type ClientInsert = z.infer<
@@ -254,16 +201,6 @@ export namespace BillingPeriodItem {
   >
   export type ClientStaticRecord = z.infer<
     typeof staticBillingPeriodItemClientSelectSchema
-  >
-
-  export type ClientUsageInsert = z.infer<
-    typeof usageBillingPeriodItemClientInsertSchema
-  >
-  export type ClientUsageUpdate = z.infer<
-    typeof usageBillingPeriodItemClientUpdateSchema
-  >
-  export type ClientUsageRecord = z.infer<
-    typeof usageBillingPeriodItemClientSelectSchema
   >
 
   export type Where = SelectConditions<typeof billingPeriodItems>

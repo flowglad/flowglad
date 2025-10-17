@@ -46,12 +46,6 @@ const columns = {
   priceId: notNullStringForeignKey('price_id', prices),
   unitPrice: integer('unit_price').notNull(),
   quantity: integer('quantity').notNull(),
-  // FIXME: can remove usageEventsPerUnit, usageMeterId?
-  usageEventsPerUnit: integer('usage_events_per_unit'),
-  usageMeterId: nullableStringForeignKey(
-    'usage_meter_id',
-    usageMeters
-  ),
   metadata: jsonb('metadata'),
   type: pgEnumColumn({
     enumName: 'SubscriptionItemType',
@@ -112,16 +106,6 @@ const baseColumnRefinements = {
 const staticRefineColumns = {
   ...baseColumnRefinements,
   type: z.literal(SubscriptionItemType.Static),
-  usageMeterId: z
-    .null()
-    .describe(
-      'Usage meter ID must be null for static subscription items.'
-    ),
-  usageEventsPerUnit: z
-    .null()
-    .describe(
-      'Usage events per unit must be null for static subscription items.'
-    ),
 } as const
 
 const createOnlyColumns = {
