@@ -181,14 +181,9 @@ export const useCheckoutPageContext =
         500
       ),
       editCheckoutSessionBillingAddress: debounce(async (input) => {
-        console.log('%%%%%% Context editCheckoutSessionBillingAddress - Function called with input:', input)
-        console.log('%%%%%% Context editCheckoutSessionBillingAddress - About to call mutateAsync')
         const result =
           await editCheckoutSessionBillingAddress.mutateAsync(input)
-        console.log('%%%%%% Context editCheckoutSessionBillingAddress - mutateAsync completed, result:', result)
-        console.log('%%%%%% Context editCheckoutSessionBillingAddress - About to call router.refresh()')
         router.refresh()
-        console.log('%%%%%% Context editCheckoutSessionBillingAddress - router.refresh() completed')
         return result
       }, 500),
       editCheckoutSessionCustomerEmail: debounce(async (input) => {

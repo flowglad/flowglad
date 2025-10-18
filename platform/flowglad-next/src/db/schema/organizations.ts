@@ -137,7 +137,7 @@ export const strictBillingAddressSchema = billingAddressSchema
     path: ["name"],
   })
   .refine((data) => data.address.line1 && data.address.line1.length > 0, {
-    message: "Address line 1 is required", 
+    message: "Address is required", 
     path: ["address", "line1"],
   })
   .refine((data) => data.address.city && data.address.city.length > 0, {
