@@ -166,6 +166,9 @@ importers:
       '@sentry/node':
         specifier: ^8.55.0
         version: 8.55.0
+      '@sentry/utils':
+        specifier: ^8.55.0
+        version: 8.55.0
       '@slack/bolt':
         specifier: ^4.0.1
         version: 4.0.1
@@ -4305,6 +4308,10 @@ packages:
 
   '@sentry/utils@8.36.0':
     resolution: {integrity: sha512-oJ3EDPj0I00z+AwC3EWBpSidXYUoKW0Id8MfMQP5Hflniz3gif7UEReblT+FJgPEVo6+6uNzAncY0MuNMxmDKQ==}
+    engines: {node: '>=14.18'}
+
+  '@sentry/utils@8.55.0':
+    resolution: {integrity: sha512-cYcl39+xcOivBpN9d8ZKbALl+DxZKo/8H0nueJZ0PO4JA+MJGhSm6oHakXxLPaiMoNLTX7yor8ndnQIuFg+vmQ==}
     engines: {node: '>=14.18'}
 
   '@sentry/vercel-edge@8.36.0':
@@ -14426,6 +14433,10 @@ snapshots:
   '@sentry/utils@8.36.0':
     dependencies:
       '@sentry/types': 8.36.0
+
+  '@sentry/utils@8.55.0':
+    dependencies:
+      '@sentry/core': 8.55.0
 
   '@sentry/vercel-edge@8.36.0':
     dependencies:
