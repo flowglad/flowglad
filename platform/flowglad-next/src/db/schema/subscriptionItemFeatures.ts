@@ -210,23 +210,26 @@ export const {
 /*
  * Combined discriminated union schemas (internal)
  */
-export const subscriptionItemFeaturesInsertSchema =
-  z.discriminatedUnion('type', [
+export const subscriptionItemFeaturesInsertSchema = z
+  .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureInsertSchema,
     usageCreditGrantSubscriptionItemFeatureInsertSchema,
   ])
+  .meta({ id: 'SubscriptionItemFeaturesInsertSchema' })
 
-export const subscriptionItemFeaturesSelectSchema =
-  z.discriminatedUnion('type', [
+export const subscriptionItemFeaturesSelectSchema = z
+  .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureSelectSchema,
     usageCreditGrantSubscriptionItemFeatureSelectSchema,
   ])
+  .meta({ id: 'SubscriptionItemFeaturesSelectSchema' })
 
-export const subscriptionItemFeaturesUpdateSchema =
-  z.discriminatedUnion('type', [
+export const subscriptionItemFeaturesUpdateSchema = z
+  .discriminatedUnion('type', [
     toggleSubscriptionItemFeatureUpdateSchema,
     usageCreditGrantSubscriptionItemFeatureUpdateSchema,
   ])
+  .meta({ id: 'SubscriptionItemFeaturesUpdateSchema' })
 
 // augment generated client schemas with additional display fields
 const clientSelectWithFeatureFieldRefinements = {
@@ -235,14 +238,14 @@ const clientSelectWithFeatureFieldRefinements = {
 }
 
 export const toggleSubscriptionItemFeatureClientSelectSchema =
-  baseToggleSubscriptionItemFeatureClientSelectSchema.extend(
-    clientSelectWithFeatureFieldRefinements
-  )
+  baseToggleSubscriptionItemFeatureClientSelectSchema
+    .extend(clientSelectWithFeatureFieldRefinements)
+    .meta({ id: 'ToggleSubscriptionItemFeatureRecord' })
 
 export const toggleSubscriptionItemFeatureClientInsertSchema =
-  baseToggleSubscriptionItemFeatureClientInsertSchema.extend(
-    clientSelectWithFeatureFieldRefinements
-  )
+  baseToggleSubscriptionItemFeatureClientInsertSchema
+    .extend(clientSelectWithFeatureFieldRefinements)
+    .meta({ id: 'ToggleSubscriptionItemFeatureInsert' })
 
 /*
  * Combined client-facing discriminated union schemas

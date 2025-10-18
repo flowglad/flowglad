@@ -1716,6 +1716,13 @@
       "when": 1760123342826,
       "tag": "0245_nifty_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 246,
+      "version": "7",
+      "when": 1760763922496,
+      "tag": "0246_soft_shriek",
+      "breakpoints": true
     }
   ]
 }
