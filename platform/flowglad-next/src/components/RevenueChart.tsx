@@ -70,12 +70,17 @@ export function RevenueChart({
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
-
   // Use useRef to store tooltip data during render, then update state after render
+
+  // FIXME(FG-384): Fix this warning:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const pendingTooltipData =
     React.useRef<TooltipCallbackProps | null>(null)
 
   // Use useEffect to safely update tooltip state after render
+
+  // FIXME(FG-384): Fix this warning:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     if (pendingTooltipData.current !== null) {
       setTooltipData(pendingTooltipData.current)

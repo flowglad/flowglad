@@ -23,6 +23,8 @@ const main = () => {
     // Write to .env_user
     writeFileSync(targetFilePath, modifiedContent, 'utf-8');
 
+    // FIXME(FG-384): Fix this warning:
+    // eslint-disable-next-line no-console
     console.log(`✓ Created .env_user with LOCAL_USER=${upperCaseArg}`);
   } catch (error) {
     if (error instanceof Error) {
