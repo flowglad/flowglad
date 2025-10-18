@@ -115,17 +115,6 @@ export const validateDefaultPriceUpdate = (
         'Default prices for default products cannot have a time-based trial',
     })
   }
-  if (
-    update.startsWithCreditTrial !== undefined &&
-    update.startsWithCreditTrial !== null &&
-    update.startsWithCreditTrial !== false
-  ) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Default prices for default products cannot start with a credit trial',
-    })
-  }
 
   // Prevent changing the billing interval for default prices on default products
   if (
