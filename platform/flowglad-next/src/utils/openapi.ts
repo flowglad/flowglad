@@ -1,5 +1,5 @@
 import { camelCase, kebabCase } from 'change-case'
-import { OpenApiMeta, OpenApiMethod } from 'trpc-swagger'
+import { OpenApiMeta, OpenApiMethod } from 'trpc-to-openapi'
 import { titleCase } from './core'
 
 export type CreateOpenApiMetaParams = {
