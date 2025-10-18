@@ -272,9 +272,6 @@ const PaymentForm = () => {
           return
         }
         
-        // Debug: Log the actual billing address structure
-        console.log('Billing address structure:', JSON.stringify(checkoutSession.billingAddress, null, 2))
-        
         const addressValidation = strictBillingAddressSchema.safeParse(checkoutSession.billingAddress)
 
         if (!addressValidation.success) {

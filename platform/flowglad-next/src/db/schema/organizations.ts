@@ -140,7 +140,7 @@ export const strictBillingAddressSchema = z.object({
     postal_code: z.string().min(1, "Postal code is required"),
     country: z.string().min(1, "Country is required"),
   }),
-});
+})
 
 export type BillingAddress = z.infer<typeof billingAddressSchema>
 
