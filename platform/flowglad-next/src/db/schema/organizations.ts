@@ -130,6 +130,33 @@ export const billingAddressSchema = z
     id: 'BillingAddress',
   })
 
+// Strict schema for frontend validation - requires non-empty strings
+export const strictBillingAddressSchema = billingAddressSchema
+  .refine((data) => data.name && data.name.length > 0, {
+    message: "Name is required",
+    path: ["name"],
+  })
+  .refine((data) => data.address.line1 && data.address.line1.length > 0, {
+    message: "Address line 1 is required", 
+    path: ["address", "line1"],
+  })
+  .refine((data) => data.address.city && data.address.city.length > 0, {
+    message: "City is required",
+    path: ["address", "city"],
+  })
+  .refine((data) => data.address.state && data.address.state.length > 0, {
+    message: "State is required",
+    path: ["address", "state"],
+  })
+  .refine((data) => data.address.postal_code && data.address.postal_code.length > 0, {
+    message: "Postal code is required",
+    path: ["address", "postal_code"],
+  })
+  .refine((data) => data.address.country && data.address.country.length > 0, {
+    message: "Country is required",
+    path: ["address", "country"],
+  })
+
 export type BillingAddress = z.infer<typeof billingAddressSchema>
 
 // Column refinements for both SELECT and INSERT schemas

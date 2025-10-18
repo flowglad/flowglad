@@ -258,15 +258,19 @@ export const updateCheckoutSessionBillingAddress = async (
   update: Pick<CheckoutSession.Record, 'id' | 'billingAddress'>,
   transaction: DbTransaction
 ): Promise<CheckoutSession.Record> => {
+  console.log('%%%%%% DB updateCheckoutSessionBillingAddress - Function called with update:', update)
   const checkoutSession = await selectCheckoutSessionById(
     update.id,
     transaction
   )
+  console.log('%%%%%% DB updateCheckoutSessionBillingAddress - Retrieved checkout session:', checkoutSession)
   if (checkoutSession.status !== CheckoutSessionStatus.Open) {
+    console.log('%%%%%% DB updateCheckoutSessionBillingAddress - Checkout session is not open, throwing error')
     throw new Error(
       'Cannot update billing address for a non-open checkout session'
     )
   }
+  console.log('%%%%%% DB updateCheckoutSessionBillingAddress - About to update database with billingAddress:', update.billingAddress)
   const [result] = await transaction
     .update(checkoutSessions)
     .set({
@@ -274,7 +278,10 @@ export const updateCheckoutSessionBillingAddress = async (
     })
     .where(eq(checkoutSessions.id, update.id))
     .returning()
-  return checkoutSessionsSelectSchema.parse(result)
+  console.log('%%%%%% DB updateCheckoutSessionBillingAddress - Database update completed, result:', result)
+  const parsedResult = checkoutSessionsSelectSchema.parse(result)
+  console.log('%%%%%% DB updateCheckoutSessionBillingAddress - Schema parsing completed, returning:', parsedResult)
+  return parsedResult
 }
 
 export const updateCheckoutSessionAutomaticallyUpdateSubscriptions =

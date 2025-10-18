@@ -36,20 +36,7 @@ import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
 import { Switch } from '@/components/ui/switch'
-
-const addressElementSchema = z.object({
-  name: z.string().min(1).optional(),
-  address: z.object({
-    line1: z.string().min(1).optional(),
-    line2: z.string().nullable().optional(),
-    city: z.string().min(1).optional(),
-    state: z.string().min(1).optional(),
-    postal_code: z.string().min(1).optional(),
-    country: z.string().min(1).optional(),
-  }).optional()
-})
-
-type AddressElementValue = z.infer<typeof addressElementSchema>
+import { billingAddressSchema, strictBillingAddressSchema } from '@/db/schema/organizations'
 
 // Utility function to force reflow for Stripe iframes to prevent rendering issues
 const forceStripeElementsReflow = () => {
@@ -181,6 +168,11 @@ const PaymentForm = () => {
     feeCalculation,
     readonlyCustomerEmail,
   } = checkoutPageContext
+
+  // Log checkoutSession changes
+  console.log('%%%%%% PaymentForm Render - checkoutSession updated:', checkoutSession)
+  console.log('%%%%%% PaymentForm Render - checkoutSession.billingAddress:', checkoutSession.billingAddress)
+
   const [emailEmbedReady, setEmailEmbedReady] = useState(true)
   const [paymentEmbedReady, setPaymentEmbedReady] = useState(false)
   const [addressEmbedReady, setAddressEmbedReady] = useState(true)
@@ -193,47 +185,17 @@ const PaymentForm = () => {
   const [emailError, setEmailError] = useState<string | undefined>(
     undefined
   )
+  const [addressError, setAddressError] = useState<string | undefined>(
+    undefined
+  )
   const embedsReady =
     emailEmbedReady && paymentEmbedReady && addressEmbedReady
   const [errorMessage, setErrorMessage] = useState<
     string | undefined
   >(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [addressElementValue, setAddressElementValue] = useState<AddressElementValue | null>(null)
   const confirmCheckoutSession =
     trpc.checkoutSessions.public.confirm.useMutation()
-
-  const validateAddressElement = (value: AddressElementValue | null): string => {
-    if (!value) return 'Please provide your billing information'
-    
-    const result = addressElementSchema.safeParse(value)
-    if (result.success) return ''
-    
-    // Map Zod field names to user-friendly names
-    const fieldNameMap: Record<string, string> = {
-      'name': 'name',
-      'address.line1': 'address',
-      'address.city': 'city',
-      'address.state': 'state',
-      'address.postal_code': 'postal code',
-      'address.country': 'country'
-    }
-    
-    // Extract field names from validation errors
-    const missingFields = result.error.issues.map(issue => {
-      const fieldPath = issue.path.join('.')
-      return fieldNameMap[fieldPath] || fieldPath
-    })
-    
-    // Generate sentence-formatted error message
-    if (missingFields.length === 0) return ''
-    if (missingFields.length === 1) return `Please provide your ${missingFields[0]}`
-    if (missingFields.length === 2) return `Please provide your ${missingFields[0]} and ${missingFields[1]}`
-    
-    // For 3+ items: "Please provide your X, Y, and Z"
-    const lastItem = missingFields.pop()
-    return `Please provide your ${missingFields.join(', ')}, and ${lastItem}`
-  }
 
   const totalDueAmount: number | null = feeCalculation
     ? calculateTotalDueAmount(feeCalculation)
@@ -307,15 +269,31 @@ const PaymentForm = () => {
 
         setIsSubmitting(true)
 
-        // Validate name and address before server call
-        const latest = addressElementValue ?? (await elements?.getElement(AddressElement)?.getValue())?.value ?? null
+        // Validate address before proceeding
+        console.log('%%%%%% Form Submit - Starting address validation')
+        console.log('%%%%%% Form Submit - checkoutSession.billingAddress:', checkoutSession.billingAddress)
         
-        const errorMessage = validateAddressElement(latest)
-        if (errorMessage) {
-          setErrorMessage(errorMessage)
+        if (!checkoutSession.billingAddress) {
+          console.log('%%%%%% Form Submit - No billing address found, setting error')
+          setAddressError('Please fill in all required address fields')
           setIsSubmitting(false)
           return
         }
+        
+        console.log('%%%%%% Form Submit - Running strictBillingAddressSchema.safeParse')
+        const addressValidation = strictBillingAddressSchema.safeParse(checkoutSession.billingAddress)
+        console.log('%%%%%% Form Submit - addressValidation result:', addressValidation)
+
+        if (!addressValidation.success) {
+          console.log('%%%%%% Form Submit - Address validation failed, setting error')
+          setAddressError('Please fill in all required address fields')
+          setIsSubmitting(false)
+          return
+        }
+
+        console.log('%%%%%% Form Submit - Address validation passed, clearing errors')
+        // Clear any previous address errors
+        setAddressError(undefined)
 
         try {
           await confirmCheckoutSession.mutateAsync({
@@ -338,20 +316,23 @@ const PaymentForm = () => {
           return
         }
         // Trigger form validation and wallet collection
+        console.log('%%%%%% Stripe Elements - About to call elements.submit()')
         const submitResult = await elements.submit()
+        console.log('%%%%%% Stripe Elements - elements.submit() completed, result:', submitResult)
         const { error: submitError } = submitResult
         if (submitError) {
+          console.log('%%%%%% Stripe Elements - Submit error occurred:', submitError)
           setErrorMessage(submitError.message)
           setIsSubmitting(false)
           return
         }
+        console.log('%%%%%% Stripe Elements - Submit successful, continuing with payment processing')
         // Create the ConfirmationToken using the details collected by the Payment Element
         // and additional shipping information
         const useConfirmSetup =
           flowType === CheckoutFlowType.Subscription ||
           flowType === CheckoutFlowType.AddPaymentMethod
         let error: StripeError | undefined
-        
         if (useConfirmSetup) {
           try {
             const { error: confirmationError } =
@@ -363,6 +344,7 @@ const PaymentForm = () => {
                     ? {
                         billing_details: {
                           email: readonlyCustomerEmail,
+                          // Name will be collected from AddressElement
                           name: checkoutSession.billingAddress?.name,
                         },
                       }
@@ -389,7 +371,7 @@ const PaymentForm = () => {
                   ? {
                       billing_details: {
                         email: readonlyCustomerEmail,
-                        // Use server state as primary source to avoid race conditions
+                        // Name will be collected from AddressElement
                         name: checkoutSession.billingAddress?.name,
                       },
                     }
@@ -531,24 +513,33 @@ const PaymentForm = () => {
               setTimeout(forceStripeElementsReflow, 100)
             }}
             onChange={async (event) => {
-              setAddressElementValue(event.value as AddressElementValue)
-
-              if (
-                event.complete &&
-                checkoutSession.status === CheckoutSessionStatus.Open
-              ) {
+              console.log('%%%%%% AddressElement onChange - Event fired')
+              console.log('%%%%%% AddressElement onChange - event.complete:', event.complete)
+              console.log('%%%%%% AddressElement onChange - event.value:', event.value)
+              console.log('%%%%%% AddressElement onChange - checkoutSession.status:', checkoutSession.status)
+              
+              if (checkoutSession.status === CheckoutSessionStatus.Open) {
+                console.log('%%%%%% AddressElement onChange - Conditions met, calling editCheckoutSessionBillingAddress')
                 try {
+                  console.log('%%%%%% AddressElement onChange - About to call editCheckoutSessionBillingAddress with:', {
+                    id: checkoutSession.id,
+                    billingAddress: event.value,
+                  })
                   await editCheckoutSessionBillingAddress({
                     id: checkoutSession.id,
                     billingAddress: event.value,
                   })
+                  console.log('%%%%%% AddressElement onChange - editCheckoutSessionBillingAddress completed successfully')
                 } catch (error) {
                   // Silently handle errors for non-open sessions
                   console.warn(
-                    'Failed to update billing address:',
+                    '%%%%%% AddressElement onChange - Failed to update billing address:',
                     error
                   )
                 }
+              } else {
+                console.log('%%%%%% AddressElement onChange - Conditions not met, skipping update')
+                console.log('%%%%%% AddressElement onChange - checkoutSession.status:', checkoutSession.status)
               }
             }}
             className={!embedsReady ? 'opacity-0' : ''}
@@ -627,6 +618,9 @@ const PaymentForm = () => {
             </Button>
             {errorMessage && (
               <ErrorLabel error={errorMessage} className="mt-3" />
+            )}
+            {addressError && (
+              <ErrorLabel error={addressError} className="mt-3" />
             )}
             {!checkoutSession.livemode &&
               flowType !== CheckoutFlowType.AddPaymentMethod && (

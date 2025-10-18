@@ -228,9 +228,12 @@ export const setBillingAddressProcedure = publicProcedure
     z.object({ id: z.string(), billingAddress: billingAddressSchema })
   )
   .mutation(async ({ input, ctx }) => {
+    console.log('%%%%%% Backend setBillingAddressProcedure - Mutation called with input:', input)
     return adminTransaction(async ({ transaction }) => {
+      console.log('%%%%%% Backend setBillingAddressProcedure - About to call updateCheckoutSessionBillingAddress')
       const checkoutSession =
         await updateCheckoutSessionBillingAddress(input, transaction)
+      console.log('%%%%%% Backend setBillingAddressProcedure - updateCheckoutSessionBillingAddress completed, result:', checkoutSession)
       return {
         checkoutSession,
       }
