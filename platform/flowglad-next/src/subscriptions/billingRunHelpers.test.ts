@@ -2218,7 +2218,7 @@ describe('billingRunHelpers', async () => {
     })
   })
 
-  describe('billingPeriodItemsToInvoiceLineItemInserts', () => {
+  describe('billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts', () => {
     let invoice: Invoice.Record
     beforeEach(async () => {
       invoice = await setupInvoice({
