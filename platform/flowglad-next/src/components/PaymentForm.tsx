@@ -277,7 +277,6 @@ const PaymentForm = () => {
         if (!addressValidation.success) {
           // Get the first error message from the validation result
           const firstError = addressValidation.error.issues[0]?.message || 'Please fill in all required address fields'
-          console.log('Address validation errors:', addressValidation.error.issues)
           setAddressError(firstError)
           setIsSubmitting(false)
           return
