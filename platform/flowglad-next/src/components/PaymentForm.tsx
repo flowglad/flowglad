@@ -36,7 +36,7 @@ import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
 import { Switch } from '@/components/ui/switch'
-import { billingAddressSchema, strictBillingAddressSchema } from '@/db/schema/organizations'
+import { strictBillingAddressSchema } from '@/db/schema/organizations'
 
 // Utility function to force reflow for Stripe iframes to prevent rendering issues
 const forceStripeElementsReflow = () => {
@@ -272,11 +272,15 @@ const PaymentForm = () => {
           return
         }
         
+        // Debug: Log the actual billing address structure
+        console.log('Billing address structure:', JSON.stringify(checkoutSession.billingAddress, null, 2))
+        
         const addressValidation = strictBillingAddressSchema.safeParse(checkoutSession.billingAddress)
 
         if (!addressValidation.success) {
           // Get the first error message from the validation result
           const firstError = addressValidation.error.issues[0]?.message || 'Please fill in all required address fields'
+          console.log('Address validation errors:', addressValidation.error.issues)
           setAddressError(firstError)
           setIsSubmitting(false)
           return

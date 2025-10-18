@@ -131,31 +131,16 @@ export const billingAddressSchema = z
   })
 
 // Strict schema for frontend validation - requires non-empty strings
-export const strictBillingAddressSchema = billingAddressSchema
-  .refine((data) => data.name && data.name.length > 0, {
-    message: "Name is required",
-    path: ["name"],
-  })
-  .refine((data) => data.address.line1 && data.address.line1.length > 0, {
-    message: "Address is required", 
-    path: ["address", "line1"],
-  })
-  .refine((data) => data.address.city && data.address.city.length > 0, {
-    message: "City is required",
-    path: ["address", "city"],
-  })
-  .refine((data) => data.address.state && data.address.state.length > 0, {
-    message: "State is required",
-    path: ["address", "state"],
-  })
-  .refine((data) => data.address.postal_code && data.address.postal_code.length > 0, {
-    message: "Postal code is required",
-    path: ["address", "postal_code"],
-  })
-  .refine((data) => data.address.country && data.address.country.length > 0, {
-    message: "Country is required",
-    path: ["address", "country"],
-  })
+export const strictBillingAddressSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  address: z.object({
+    line1: z.string().min(1, "Address is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    postal_code: z.string().min(1, "Postal code is required"),
+    country: z.string().min(1, "Country is required"),
+  }),
+});
 
 export type BillingAddress = z.infer<typeof billingAddressSchema>
 
