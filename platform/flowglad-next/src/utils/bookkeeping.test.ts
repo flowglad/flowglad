@@ -1408,7 +1408,6 @@ describe('createPricingModelBookkeeping', () => {
       expect(defaultPrice.usageMeterId).toBeNull()
       expect(defaultPrice.externalId).toBeNull()
       expect(defaultPrice.slug).toBe('free')
-      expect(defaultPrice.startsWithCreditTrial).toBeNull()
     })
 
     it('should inherit livemode from pricing model to product and price', async () => {
@@ -1745,7 +1744,6 @@ describe('createFreePlanPriceInsert', () => {
       expect(result.usageMeterId).toBeNull()
       expect(result.externalId).toBeNull()
       expect(result.slug).toBe('free')
-      expect(result.startsWithCreditTrial).toBeNull()
     })
 
     it('should create a subscription price when interval unit is provided', () => {
@@ -1771,7 +1769,6 @@ describe('createFreePlanPriceInsert', () => {
       expect(result.usageMeterId).toBeNull()
       expect(result.externalId).toBeNull()
       expect(result.slug).toBe('free')
-      expect(result.startsWithCreditTrial).toBeUndefined()
     })
   })
 
@@ -1961,25 +1958,6 @@ describe('createFreePlanPriceInsert', () => {
   })
 
   describe('subscription vs single payment differences', () => {
-    it('should set startsWithCreditTrial to undefined for subscription prices', () => {
-      const result = createFreePlanPriceInsert(
-        defaultProduct,
-        defaultCurrency,
-        IntervalUnit.Month
-      )
-
-      expect(result.startsWithCreditTrial).toBeUndefined()
-    })
-
-    it('should set startsWithCreditTrial to null for single payment prices', () => {
-      const result = createFreePlanPriceInsert(
-        defaultProduct,
-        defaultCurrency
-      )
-
-      expect(result.startsWithCreditTrial).toBeNull()
-    })
-
     it('should set interval fields correctly for subscription prices', () => {
       const result = createFreePlanPriceInsert(
         defaultProduct,

@@ -46,7 +46,6 @@ describe('Price Defaults', () => {
       intervalUnit: null,
       trialPeriodDays: null,
       usageEventsPerUnit: null,
-      startsWithCreditTrial: null,
       usageMeterId: null,
     }
     testStartingPriceToDestinationPrice(
@@ -73,7 +72,6 @@ describe('Price Defaults', () => {
       usageEventsPerUnit: null,
       intervalCount: null,
       intervalUnit: null,
-      startsWithCreditTrial: null,
       usageMeterId: null,
     }
     testStartingPriceToDestinationPrice(

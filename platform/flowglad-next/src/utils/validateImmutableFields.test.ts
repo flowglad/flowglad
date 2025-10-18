@@ -362,43 +362,6 @@ describe('validatePriceImmutableFields', () => {
         )
       }
     })
-
-    it('should throw error when attempting to change startsWithCreditTrial field', () => {
-      // Note: startsWithCreditTrial is a legacy field. Even though it's transformed
-      // to null in the schema, we need to ensure validation catches attempts to change it.
-      // Using type assertion here to test the validation logic itself.
-      const priceWithCreditTrial = {
-        ...subscriptionDummyPrice,
-      }
-
-      // Test that validation catches attempts to modify the field
-      // even if the schema would transform it
-      const update = {
-        id: priceWithCreditTrial.id,
-        type: priceWithCreditTrial.type,
-        startsWithCreditTrial: 'modified' as any, // Different value
-      } as Partial<Price.Update>
-
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: priceWithCreditTrial,
-        })
-      ).toThrow(TRPCError)
-
-      try {
-        validatePriceImmutableFields({
-          update,
-          existing: priceWithCreditTrial,
-        })
-      } catch (error) {
-        expect(error).toBeInstanceOf(TRPCError)
-        expect((error as TRPCError).code).toBe('FORBIDDEN')
-        expect((error as TRPCError).message).toContain(
-          'Cannot change startsWithCreditTrial after price creation'
-        )
-      }
-    })
   })
 
   describe('usage meter fields validation', () => {

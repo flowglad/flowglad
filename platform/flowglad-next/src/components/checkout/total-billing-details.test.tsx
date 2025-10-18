@@ -112,7 +112,6 @@ const mockUsagePrice = {
   updatedByCommit: 'test',
   position: 0,
   slug: '',
-  startsWithCreditTrial: false,
 } as Price.ClientRecord
 
 const mockDiscount = {
