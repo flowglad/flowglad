@@ -87,11 +87,12 @@ const richStandardSubscriptionClientSelectSchema =
     experimental: richSubscriptionExperimentalSchema,
   })
 
-export const richSubscriptionClientSelectSchema =
-  z.discriminatedUnion('renews', [
+export const richSubscriptionClientSelectSchema = z
+  .discriminatedUnion('renews', [
     richNonRenewingSubscriptionClientSelectSchema,
     richStandardSubscriptionClientSelectSchema,
   ])
+  .meta({ id: 'SubscriptionDetails' })
 
 export type RichSubscriptionItem = z.infer<
   typeof richSubscriptionItemClientSelectSchema
