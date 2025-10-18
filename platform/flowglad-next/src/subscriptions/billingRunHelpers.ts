@@ -726,8 +726,12 @@ export const executeBillingRun = async (billingRunId: string) => {
 
           // Handle zero amount case within the transaction
           // Calculate the actual amount to charge after accounting for existing payments
-          const amountToCharge = Math.max(0, resultFromSteps.totalDueAmount - resultFromSteps.totalAmountPaid)
-          
+          const amountToCharge = Math.max(
+            0,
+            resultFromSteps.totalDueAmount -
+              resultFromSteps.totalAmountPaid
+          )
+
           if (amountToCharge <= 0) {
             await updateInvoice(
               {
@@ -760,18 +764,22 @@ export const executeBillingRun = async (billingRunId: string) => {
                   ` Customer: ${resultFromSteps.customer.id}; Billing Period: ${resultFromSteps.billingPeriod.id}`
               )
             }
-            if (!resultFromSteps.paymentMethod.stripePaymentMethodId) {
+            if (
+              !resultFromSteps.paymentMethod.stripePaymentMethodId
+            ) {
               throw new Error(
                 `Cannot run billing for a billing period with a payment method that does not have a stripe payment method id.` +
                   `Payment Method: ${resultFromSteps.paymentMethod.id}; Billing Period: ${resultFromSteps.billingPeriod.id}`
               )
             }
-            
+
             paymentIntent = await createPaymentIntentForBillingRun({
               amount: amountToCharge,
               currency: resultFromSteps.invoice.currency,
-              stripeCustomerId: resultFromSteps.customer.stripeCustomerId,
-              stripePaymentMethodId: resultFromSteps.paymentMethod.stripePaymentMethodId,
+              stripeCustomerId:
+                resultFromSteps.customer.stripeCustomerId,
+              stripePaymentMethodId:
+                resultFromSteps.paymentMethod.stripePaymentMethodId,
               billingPeriodId: billingRun.billingPeriodId,
               billingRunId: billingRun.id,
               feeCalculation: resultFromSteps.feeCalculation,
@@ -792,9 +800,11 @@ export const executeBillingRun = async (billingRunId: string) => {
                 id: resultFromSteps.invoice.id,
                 stripePaymentIntentId: paymentIntent.id,
                 purchaseId: resultFromSteps.invoice.purchaseId,
-                billingPeriodId: resultFromSteps.invoice.billingPeriodId,
+                billingPeriodId:
+                  resultFromSteps.invoice.billingPeriodId,
                 type: resultFromSteps.invoice.type,
-                subscriptionId: resultFromSteps.invoice.subscriptionId,
+                subscriptionId:
+                  resultFromSteps.invoice.subscriptionId,
                 billingRunId: billingRun.id,
               } as Invoice.Update,
               transaction
@@ -827,37 +837,46 @@ export const executeBillingRun = async (billingRunId: string) => {
           livemode: billingRun.livemode,
         }
       )
-      
+
     // Trigger PDF generation as a non-failing side effect
     if (!core.IS_TEST) {
       await generateInvoicePdfTask.trigger({
         invoiceId: invoice.id,
       })
     }
-    
+
     // Only proceed with payment confirmation if there is a payment intent
     if (!paymentIntent) {
       return
     }
 
     // Confirm payment intent (outside transaction)
-    const confirmationResult = await confirmPaymentIntentForBillingRun(
-      paymentIntent.id, 
-      billingRun.livemode
-    );
+    const confirmationResult =
+      await confirmPaymentIntentForBillingRun(
+        paymentIntent.id,
+        billingRun.livemode
+      )
 
     // Update payment record with charge ID
     if (payment) {
-      await adminTransaction(async ({ transaction }) => {
-        await updatePayment({
-          id: payment.id,
-          stripeChargeId: confirmationResult.latest_charge
-            ? stripeIdFromObjectOrId(confirmationResult.latest_charge)
-            : null,
-        }, transaction);
-      }, {
-        livemode: billingRun.livemode,
-      });
+      await adminTransaction(
+        async ({ transaction }) => {
+          await updatePayment(
+            {
+              id: payment.id,
+              stripeChargeId: confirmationResult.latest_charge
+                ? stripeIdFromObjectOrId(
+                    confirmationResult.latest_charge
+                  )
+                : null,
+            },
+            transaction
+          )
+        },
+        {
+          livemode: billingRun.livemode,
+        }
+      )
     }
 
     return {

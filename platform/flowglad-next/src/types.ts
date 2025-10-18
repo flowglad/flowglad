@@ -980,7 +980,6 @@ export type TelemetryEntityType =
 
 export type UsageBillingInfo = {
   usageMeterIdPriceId: string // key of form `${usageMeterId}-${priceId}`
-  // usageEventId: string
   usageMeterId: string
   ledgerAccountId: string
   balance: number

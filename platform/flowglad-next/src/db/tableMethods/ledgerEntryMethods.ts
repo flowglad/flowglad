@@ -389,7 +389,6 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
   if (usageEventIds.length === 0) {
     return []
   }
-  // TODO: group by usagemeterid, priceid, and sum up balances (be careful about direction)
   const usageEventsWithPrices = await transaction
     .select({
       usageEventId: usageEvents.id,
@@ -411,7 +410,6 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
 
   // To avoid downstream type issue with usageEventsPerUnit
   // Validate that all prices are usage prices (usageEventsPerUnit must be non-null)
-  // This should be true since usage events can only be created for usage prices
   type ValidatedUsageEventWithPrice = Omit<
     (typeof usageEventsWithPrices)[number],
     'usageEventsPerUnit'
@@ -450,14 +448,12 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     ])
   )
 
-  // entriesByUsageMeterIdAndPriceId
-  // iterate thru entriesByUsageEventId
-  // get the usage meter id and price id from the usage event from priceInfoByUsageEventId
+  // Group by usage meter id and price id for invoice
   const entriesByUsageMeterIdAndPriceId = new Map<
     string,
     LedgerEntry.Record[]
   >()
-  Object.entries(entriesByUsageEventId).forEach(
+  Array.from(entriesByUsageEventId.entries()).forEach(
     ([usageEventId, entries]) => {
       const priceInfo = priceInfoByUsageEventId.get(usageEventId)
       if (!priceInfo) {
@@ -477,7 +473,6 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       )
     }
   )
-
   const priceInfoByUsageMeterIdAndPriceId = new Map<
     string,
     {
@@ -527,7 +522,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       if (existingItem) {
         if (normalize(existingItem) !== normalize(item)) {
           throw new Error(
-            `Existing and current item for ${key} have different values (excluding usageEventIds): \nexisting: ${JSON.stringify(existingItem)} vs \ncurrent: ${JSON.stringify(item)}`
+            `Existing and current item for ${key} have different values (excluding usageEventIds and description): \nexisting: ${JSON.stringify(existingItem)} vs \ncurrent: ${JSON.stringify(item)}`
           )
         }
         existingItem.usageEventIds.push(event.usageEventId)
@@ -536,11 +531,9 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     }
   })
 
-  // const balances = Array.from(entriesByUsageEventId.entries()).map(
   const balances: UsageBillingInfo[] = Array.from(
     entriesByUsageMeterIdAndPriceId.entries()
   ).map(([usageMeterIdPriceId, entries]) => {
-    // try use priceInfoByUsageMeterIdAndPriceId
     const priceInfo = priceInfoByUsageMeterIdAndPriceId.get(
       usageMeterIdPriceId
     )
@@ -551,7 +544,6 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     }
     return {
       usageMeterIdPriceId,
-      // usageEventId: usageEventIdAndPriceId,
       balance: balanceFromEntries(entries) * -1,
       ledgerAccountId: entries[0].ledgerAccountId,
       usageMeterId: entries[0].usageMeterId!,
