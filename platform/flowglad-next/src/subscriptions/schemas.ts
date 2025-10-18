@@ -23,7 +23,9 @@ import { zodEpochMs } from '@/db/timestampMs'
 export const adjustSubscriptionImmediatelySchema = z.object({
   timing: z
     .literal(SubscriptionAdjustmentTiming.Immediately)
-    .describe('Note: Immediate adjustments are in private preview.'),
+    .describe(
+      'Note: Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616.'
+    ),
   newSubscriptionItems: z.array(
     z.union([
       subscriptionItemClientInsertSchema,

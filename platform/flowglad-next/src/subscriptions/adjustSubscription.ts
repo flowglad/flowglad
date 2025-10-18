@@ -237,7 +237,9 @@ export const adjustSubscription = async (
       FeatureFlag.ImmediateSubscriptionAdjustments
     )
   ) {
-    throw new Error('Immediate adjustments are in private preview.')
+    throw new Error(
+      'Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616'
+    )
   }
   const subscription = await selectSubscriptionById(id, transaction)
   if (isSubscriptionInTerminalState(subscription.status)) {
@@ -429,8 +431,6 @@ export const adjustSubscription = async (
       description: `Adjustment to reach correct net charge. ${message}. Current total: $${(currentTotal / 100).toFixed(2)}, Target: $${(netChargeAmount / 100).toFixed(2)}`,
       livemode: subscription.livemode,
       type: SubscriptionItemType.Static,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
       discountRedemptionId: null,
     })
   }
