@@ -118,12 +118,13 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
     billingRun: BillingRun.Record
     usageOverages: Pick<
       UsageBillingInfo,
-      | 'usageEventId'
+      // | 'usageEventId'
       | 'usageMeterId'
       | 'balance'
       | 'priceId'
       | 'usageEventsPerUnit'
       | 'unitPrice'
+      | 'usageEventIds'
     >[]
   },
   transaction: DbTransaction
@@ -143,7 +144,9 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
     transaction
   )
   await claimLedgerEntriesWithOutstandingBalances(
-    usageOverages.map((usageOverage) => usageOverage.usageEventId),
+    usageOverages.flatMap(
+      (usageOverage) => usageOverage.usageEventIds
+    ),
     billingRun,
     transaction
   )
@@ -282,7 +285,10 @@ export const billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts =
     billingRunId: string
     invoiceId: string
     billingPeriodItems: BillingPeriodItem.Record[]
-    usageOverages: Omit<UsageBillingInfo, 'usageEventId'>[]
+    usageOverages: Omit<
+      UsageBillingInfo,
+      'usageEventIds' | 'usageMeterIdPriceId'
+    >[]
   }): InvoiceLineItem.Insert[] => {
     const invoiceLineItemInserts: (
       | InvoiceLineItem.Insert
