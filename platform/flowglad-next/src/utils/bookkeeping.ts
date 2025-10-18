@@ -321,7 +321,6 @@ export const createFreePlanPriceInsert = (
       usageMeterId: null,
       externalId: null,
       slug: config.slug,
-      startsWithCreditTrial: null,
     }
   }
 }
