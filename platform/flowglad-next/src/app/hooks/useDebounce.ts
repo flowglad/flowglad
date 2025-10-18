@@ -70,6 +70,8 @@ export function useDebounce<T extends (...args: any[]) => any>(
     }
   }, [delay]) // Only recreate when delay changes
 
+  // FIXME(FG-384): Fix this warning:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useCallback(
     ((...args: Parameters<T>) => {
       debouncedFnRef.current?.(...args)

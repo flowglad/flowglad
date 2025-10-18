@@ -13,7 +13,7 @@
     "dev": "tsup --watch --onSuccess 'yalc push'",
     "yalc:publish": "yalc publish && yalc link",
     "build:declarations": "tsc -p tsconfig.declarations.json",
-    "lint": "eslint && tsc --noEmit",
+    "check": "eslint --max-warnings=0 && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts"
