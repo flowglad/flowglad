@@ -9,11 +9,6 @@ overrides:
   chromium-bidi: 2.1.2
   '@react-email/render': 0.0.17
 
-patchedDependencies:
-  trpc-swagger@1.2.6:
-    hash: xew2ftdoz2o2gk5nfua7y3a4yy
-    path: src/patches/trpc-swagger@1.2.6.patch
-
 importers:
 
   .:
@@ -444,9 +439,6 @@ importers:
       tippy.js:
         specifier: ^6.3.7
         version: 6.3.7
-      trpc-swagger:
-        specifier: 1.2.6
-        version: 1.2.6(patch_hash=xew2ftdoz2o2gk5nfua7y3a4yy)(@trpc/client@11.5.0(@trpc/server@11.5.0(typescript@5.5.4))(typescript@5.5.4))(@trpc/server@11.5.0(typescript@5.5.4))(@types/express@4.17.21)(@types/node@20.17.5)(zod@4.1.5)
       trpc-to-openapi:
         specifier: 3.0.1
         version: 3.0.1(@trpc/server@11.5.0(typescript@5.5.4))(zod-openapi@5.4.0(zod@4.1.5))(zod@4.1.5)
@@ -5678,9 +5670,6 @@ packages:
     resolution: {integrity: sha512-aGtmf24DW6MLHHG5gCx4zaI3uBq3KRtxeVs0DjFH6Z0rDNbsvTxFASFvdj79pxjxZ8/5u3PIiN3IwEIQkiiuPw==}
     engines: {node: '>=12'}
 
-  chalk-scripts@1.2.10:
-    resolution: {integrity: sha512-zR775ajFSwpgLsVTJrDHYHtA0Is8Y1UJdQ7m6DZeWqzT786UuuT75/PSIdiTmZhbzhZC9Iw/DAifAYmfhN9CWA==}
-
   chalk@3.0.0:
     resolution: {integrity: sha512-4D3B6Wf41KOYRFdszmDqMCGq5VV/uMAB273JILmO+3jAlh8X4qDtdtgCR3fxtbLEMzSx22QdhnDcJvu2u1fVwg==}
     engines: {node: '>=8'}
@@ -5837,10 +5826,6 @@ packages:
 
   console-control-strings@1.1.0:
     resolution: {integrity: sha512-ty/fTekppD2fIwRvnZAVdeOiGd1c7YXEixbgJTNzqcxJWKQnjJ/V1bNEEE6hygpM3WjwHFUVK6HTjWSzV4a8sQ==}
-
-  content-disposition@0.5.4:
-    resolution: {integrity: sha512-FveZTNuGw04cxlAiWbzi6zTAL/lhehaWbTtgluJh4/E95DqMwTmha3KZN1aAWA8cFIhHzMZUvLevkw5Rqk+tSQ==}
-    engines: {node: '>= 0.6'}
 
   content-disposition@1.0.0:
     resolution: {integrity: sha512-Au9nRL8VNUut/XSzbQA38+M78dzP4D+eqg3gfJHMIHHYa3bg067xj1KxMUWj+VULbiZMowKngFFbKczUrNJ1mg==}
@@ -6141,10 +6126,6 @@ packages:
 
   delegates@1.0.0:
     resolution: {integrity: sha512-bd2L678uiWATM6m5Z1VzNCErI3jiGzt6HGY8OVICs40JQq/HALfbyNJmp0UDakEY4pMMaN0Ly5om/B1VI/+xfQ==}
-
-  depd@1.1.2:
-    resolution: {integrity: sha512-7emPTl6Dpo6JRXOXjLRxck+FlLRX5847cLKEn00PLAgc3g2hTZZgr+e4c2v6QpSmLeFP3n5yUo7ft6avBK/5jQ==}
-    engines: {node: '>= 0.6'}
 
   depd@2.0.0:
     resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
@@ -7506,9 +7487,6 @@ packages:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
 
-  lodash.clonedeep@4.5.0:
-    resolution: {integrity: sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ==}
-
   lodash.debounce@4.0.8:
     resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}
 
@@ -7653,9 +7631,6 @@ packages:
     resolution: {integrity: sha512-aisnrDP4GNe06UcKFnV5bfMNPBUw4jsLGaWwWfnH3v02GnBuXX2MCVn5RbrWo0j3pczUilYblq7fQ7Nw2t5XKw==}
     engines: {node: '>= 0.8'}
 
-  merge-descriptors@1.0.3:
-    resolution: {integrity: sha512-gaNvAS7TZ897/rVaZ0nMtAyxNyi/pdbjbAwUpFQpN70GqnVfOiXpeUUMKRBmzXaSQ8DdTX4/0ms62r2K+hE6mQ==}
-
   merge-descriptors@2.0.0:
     resolution: {integrity: sha512-Snk314V5ayFLhp3fkUREub6WtjBfPdCPY1Ln8/8munuLuiYhsABgBVWsozAG+MWMbVEvcdcpbi9R7ww22l9Q3g==}
     engines: {node: '>=18'}
@@ -7753,11 +7728,6 @@ packages:
   mime-types@3.0.0:
     resolution: {integrity: sha512-XqoSHeCGjVClAmoGFG3lVFqQFRIrTVw2OH3axRqAcfaw+gHWIfnASS92AV+Rl/mk0MupgZTRHQOjxY6YVnzK5w==}
     engines: {node: '>= 0.6'}
-
-  mime@1.6.0:
-    resolution: {integrity: sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==}
-    engines: {node: '>=4'}
-    hasBin: true
 
   mimic-fn@2.1.0:
     resolution: {integrity: sha512-OqbOk5oEQeAZ8WXWydlu9HJjz9WVdEIvamMCcXmuqUYjTknH/sqsWvhQ3vgwKFRR1HpjvNBKQ37nbJgYzGqGcg==}
@@ -7993,18 +7963,6 @@ packages:
   node-mock-http@1.0.2:
     resolution: {integrity: sha512-zWaamgDUdo9SSLw47we78+zYw/bDr5gH8pH7oRRs8V3KmBtu8GLgGIbV2p/gRPd3LWpEOpjQj7X1FOU3VFMJ8g==}
 
-  node-mocks-http@1.16.2:
-    resolution: {integrity: sha512-2Sh6YItRp1oqewZNlck3LaFp5vbyW2u51HX2p1VLxQ9U/bG90XV8JY9O7Nk+HDd6OOn/oV3nA5Tx5k4Rki0qlg==}
-    engines: {node: '>=14'}
-    peerDependencies:
-      '@types/express': ^4.17.21 || ^5.0.0
-      '@types/node': '*'
-    peerDependenciesMeta:
-      '@types/express':
-        optional: true
-      '@types/node':
-        optional: true
-
   node-releases@2.0.18:
     resolution: {integrity: sha512-d9VeXT4SJ7ZeOqGX6R5EM022wpL+eWPooLI+5UpWn2jCT1aosUQEhQP214x33Wkwx3JQMvIm+tIoVOdodFS40g==}
 
@@ -8111,9 +8069,6 @@ packages:
     peerDependenciesMeta:
       zod:
         optional: true
-
-  openapi-types@12.1.3:
-    resolution: {integrity: sha512-N4YtSYJqghVu4iek2ZUvcN/0aqH1kRDuNqzcycDxhOUpg7GdvLa2F3DgS6yBNhInhv2r/6I0Flkn7CqL8+nIcw==}
 
   openapi3-ts@4.4.0:
     resolution: {integrity: sha512-9asTNB9IkKEzWMcHmVZE7Ts3kC9G7AFHfs8i7caD8HbI76gEjdkId4z/AkP83xdZsH7PLAnnbl47qZkXuxpArw==}
@@ -8254,9 +8209,6 @@ packages:
 
   pend@1.2.0:
     resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
-
-  performance-now@2.1.0:
-    resolution: {integrity: sha512-7EAHlyLHI56VEIdK57uwHdHKIaAGbnXPiw0yWbarQZOKaKpvUIgW0jWRVLiatnM+XXlSwsanIBH/hzGMJulMow==}
 
   pg-int8@1.0.1:
     resolution: {integrity: sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==}
@@ -9409,13 +9361,6 @@ packages:
 
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
-
-  trpc-swagger@1.2.6:
-    resolution: {integrity: sha512-LVh2NicwYZdaUEvshY9IF1oL02z9PWjltY0CwTslHw4mi4DcSAP4bx/FPfp5+371oj75vujjNbOjGG9grNl3Xg==}
-    peerDependencies:
-      '@trpc/client': ^10.45.2
-      '@trpc/server': ^10.45.2
-      zod: ^3.14.4
 
   trpc-to-openapi@3.0.1:
     resolution: {integrity: sha512-XxQl/DvjrtSUkdkixyv403p+JAi/rKSqjfjQb30gR8hbIR4z2ixD+y3Sl0TJVRrx5dLPNJjt+UU/dfMQeTdfiQ==}
@@ -16256,12 +16201,6 @@ snapshots:
       loupe: 3.1.2
       pathval: 2.0.0
 
-  chalk-scripts@1.2.10:
-    dependencies:
-      chalk: 5.6.2
-      performance-now: 2.1.0
-      uuid: 9.0.1
-
   chalk@3.0.0:
     dependencies:
       ansi-styles: 4.3.0
@@ -16408,10 +16347,6 @@ snapshots:
       proto-list: 1.2.4
 
   console-control-strings@1.1.0: {}
-
-  content-disposition@0.5.4:
-    dependencies:
-      safe-buffer: 5.2.1
 
   content-disposition@1.0.0:
     dependencies:
@@ -16651,8 +16586,6 @@ snapshots:
   delayed-stream@1.0.0: {}
 
   delegates@1.0.0: {}
-
-  depd@1.1.2: {}
 
   depd@2.0.0: {}
 
@@ -18184,8 +18117,6 @@ snapshots:
     dependencies:
       p-locate: 5.0.0
 
-  lodash.clonedeep@4.5.0: {}
-
   lodash.debounce@4.0.8: {}
 
   lodash.includes@4.3.0: {}
@@ -18375,8 +18306,6 @@ snapshots:
 
   media-typer@1.1.0: {}
 
-  merge-descriptors@1.0.3: {}
-
   merge-descriptors@2.0.0: {}
 
   merge-stream@2.0.0: {}
@@ -18534,8 +18463,6 @@ snapshots:
   mime-types@3.0.0:
     dependencies:
       mime-db: 1.53.0
-
-  mime@1.6.0: {}
 
   mimic-fn@2.1.0: {}
 
@@ -18768,22 +18695,6 @@ snapshots:
 
   node-mock-http@1.0.2: {}
 
-  node-mocks-http@1.16.2(@types/express@4.17.21)(@types/node@20.17.5):
-    dependencies:
-      accepts: 1.3.8
-      content-disposition: 0.5.4
-      depd: 1.1.2
-      fresh: 0.5.2
-      merge-descriptors: 1.0.3
-      methods: 1.1.2
-      mime: 1.6.0
-      parseurl: 1.3.3
-      range-parser: 1.2.1
-      type-is: 1.6.18
-    optionalDependencies:
-      '@types/express': 4.17.21
-      '@types/node': 20.17.5
-
   node-releases@2.0.18: {}
 
   node-releases@2.0.19: {}
@@ -18901,8 +18812,6 @@ snapshots:
       zod: 4.1.5
     transitivePeerDependencies:
       - encoding
-
-  openapi-types@12.1.3: {}
 
   openapi3-ts@4.4.0:
     dependencies:
@@ -19060,8 +18969,6 @@ snapshots:
   peek-readable@5.3.1: {}
 
   pend@1.2.0: {}
-
-  performance-now@2.1.0: {}
 
   pg-int8@1.0.1: {}
 
@@ -20517,21 +20424,6 @@ snapshots:
   trim-lines@3.0.1: {}
 
   trough@2.2.0: {}
-
-  trpc-swagger@1.2.6(patch_hash=xew2ftdoz2o2gk5nfua7y3a4yy)(@trpc/client@11.5.0(@trpc/server@11.5.0(typescript@5.5.4))(typescript@5.5.4))(@trpc/server@11.5.0(typescript@5.5.4))(@types/express@4.17.21)(@types/node@20.17.5)(zod@4.1.5):
-    dependencies:
-      '@trpc/client': 11.5.0(@trpc/server@11.5.0(typescript@5.5.4))(typescript@5.5.4)
-      '@trpc/server': 11.5.0(typescript@5.5.4)
-      chalk-scripts: 1.2.10
-      co-body: 6.2.0
-      lodash.clonedeep: 4.5.0
-      node-mocks-http: 1.16.2(@types/express@4.17.21)(@types/node@20.17.5)
-      openapi-types: 12.1.3
-      zod: 4.1.5
-      zod-to-json-schema: 3.24.1(zod@4.1.5)
-    transitivePeerDependencies:
-      - '@types/express'
-      - '@types/node'
 
   trpc-to-openapi@3.0.1(@trpc/server@11.5.0(typescript@5.5.4))(zod-openapi@5.4.0(zod@4.1.5))(zod@4.1.5):
     dependencies:
