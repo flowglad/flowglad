@@ -105,17 +105,6 @@ export const createSubscriptionWorkflow = async (
       transaction
     )
 
-  if (price.startsWithCreditTrial) {
-    await setupLedgerAccounts(
-      {
-        subscription,
-        subscriptionItems,
-        price,
-      },
-      transaction
-    )
-  }
-
   const {
     subscription: updatedSubscription,
     billingPeriod,

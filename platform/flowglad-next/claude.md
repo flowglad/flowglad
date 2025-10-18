@@ -5,14 +5,14 @@ Examples:
 - Install dependencies: `pnpm install-packages` (N.B. - this project is in a monorepo but installs its own packages, hence the custom install script)
 - Add a package: `pnpm install-packages <package-name>` 
 - Build: `pnpm build`
-- Lint: `pnpm lint`
+- Lint and typecheck: `pnpm check`
 
 ## Installing Dependencies 
 
 ## On Every Change
-Whenever you complete a task, confirm that everything lints as expected:
+Whenever you complete a task, confirm that everything lints and typechecks as expected:
 ```bash
-pnpm lint
+pnpm check
 ```
 
 ## Running Tests

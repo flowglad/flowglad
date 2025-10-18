@@ -66,128 +66,14 @@ import {
 } from '../stripe'
 import core from '../core'
 import { vi } from 'vitest'
-import Stripe from 'stripe'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
 import {
   selectUsageCreditById,
   selectUsageCredits,
 } from '@/db/tableMethods/usageCreditMethods'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
-
-// Mock helper functions
-const createMockStripeCharge = (
-  overrides: Partial<Stripe.Charge> = {}
-): Stripe.Charge => {
-  return {
-    id: 'ch_test',
-    object: 'charge',
-    amount: 10000,
-    amount_captured: 10000,
-    amount_refunded: 0,
-    application: null,
-    application_fee: null,
-    application_fee_amount: null,
-    balance_transaction: 'txn_test',
-    billing_details: {
-      address: null,
-      email: null,
-      name: null,
-      phone: null,
-    },
-    calculated_statement_descriptor: null,
-    captured: true,
-    created: 1234567890,
-    currency: 'usd',
-    customer: null,
-    description: null,
-    destination: null,
-    dispute: null,
-    disputed: false,
-    failure_balance_transaction: null,
-    failure_code: null,
-    failure_message: null,
-    fraud_details: null,
-    invoice: null,
-    livemode: false,
-    metadata: {},
-    on_behalf_of: null,
-    outcome: null,
-    paid: true,
-    payment_intent: 'pi_test',
-    payment_method: 'pm_test',
-    payment_method_details: null,
-    receipt_email: null,
-    receipt_number: null,
-    receipt_url: null,
-    refunded: false,
-    refunds: {
-      object: 'list',
-      data: [],
-      has_more: false,
-      url: '/v1/charges/ch_test/refunds',
-    },
-    review: null,
-    shipping: null,
-    source: null,
-    source_transfer: null,
-    statement_descriptor: null,
-    statement_descriptor_suffix: null,
-    status: 'succeeded',
-    transfer_data: null,
-    transfer_group: null,
-    ...overrides,
-  } as Stripe.Charge
-}
-
-const createMockPaymentIntent = (
-  overrides: Partial<Stripe.PaymentIntent> = {}
-): Stripe.PaymentIntent => {
-  return {
-    id: 'pi_test',
-    object: 'payment_intent',
-    amount: 10000,
-    amount_capturable: 0,
-    amount_details: {
-      tip: {},
-    },
-    amount_received: 10000,
-    application: null,
-    application_fee_amount: null,
-    automatic_payment_methods: null,
-    canceled_at: null,
-    cancellation_reason: null,
-    capture_method: 'automatic',
-    client_secret: 'pi_test_secret',
-    confirmation_method: 'automatic',
-    created: 1234567890,
-    currency: 'usd',
-    customer: null,
-    description: null,
-    invoice: null,
-    last_payment_error: null,
-    latest_charge: null,
-    livemode: false,
-    metadata: {},
-    next_action: null,
-    on_behalf_of: null,
-    payment_method: null,
-    payment_method_configuration_details: null,
-    payment_method_options: null,
-    payment_method_types: ['card'],
-    processing: null,
-    receipt_email: null,
-    review: null,
-    setup_future_usage: null,
-    shipping: null,
-    source: null,
-    statement_descriptor: null,
-    statement_descriptor_suffix: null,
-    status: 'succeeded',
-    transfer_data: null,
-    transfer_group: null,
-    ...overrides,
-  } as Stripe.PaymentIntent
-}
+import { createMockStripeCharge, createMockPaymentIntent } from '@/test/helpers/stripeMocks'
+ 
 
 // Mock getStripeCharge
 vi.mock('../stripe', async () => {
