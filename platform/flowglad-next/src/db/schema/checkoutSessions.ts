@@ -396,7 +396,7 @@ export const createCheckoutSessionInputSchema = z
     checkoutSession: checkoutSessionsInsertSchema,
   })
   .meta({
-    id: 'CreateCheckoutSessionInput',
+    id: 'CreateCheckoutSessionInputParams',
   })
 
 // Client UPDATE schemas with metadata ids applied
@@ -693,60 +693,67 @@ const coreCheckoutSessionSchema = z.object({
 })
 
 export const identifiedProductCheckoutSessionSchema =
-  coreCheckoutSessionSchema.extend({
-    type: z.literal(CheckoutSessionType.Product),
-    priceId: z
-      .string()
-      .describe('The ID of the price the customer shall purchase'),
-    quantity: z
-      .number()
-      .optional()
-      .describe(
-        'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
-      ),
-    anonymous: z.literal(false).optional(),
-    preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
-  })
+  coreCheckoutSessionSchema
+    .extend({
+      type: z.literal(CheckoutSessionType.Product),
+      priceId: z
+        .string()
+        .describe('The ID of the price the customer shall purchase'),
+      quantity: z
+        .number()
+        .optional()
+        .describe(
+          'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+        ),
+      anonymous: z.literal(false).optional(),
+      preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
+    })
+    .meta({ id: 'IdentifiedProductCheckoutSessionInput' })
 
 export const anonymousProductCheckoutSessionSchema =
-  identifiedProductCheckoutSessionSchema.extend({
-    anonymous: z.literal(true),
-    customerExternalId: z.null().optional(),
-  })
+  identifiedProductCheckoutSessionSchema
+    .extend({
+      anonymous: z.literal(true),
+      customerExternalId: z.null().optional(),
+    })
+    .meta({ id: 'AnonymousProductCheckoutSessionInput' })
 
-export const productCheckoutSessionSchema = z.discriminatedUnion(
-  'anonymous',
-  [
+export const productCheckoutSessionSchema = z
+  .discriminatedUnion('anonymous', [
     identifiedProductCheckoutSessionSchema,
     anonymousProductCheckoutSessionSchema,
-  ]
-)
+  ])
+  .meta({ id: 'ProductCheckoutSessionInput' })
 
 export const addPaymentMethodCheckoutSessionSchema =
-  coreCheckoutSessionSchema.extend({
-    type: z.literal(CheckoutSessionType.AddPaymentMethod),
-    targetSubscriptionId: z
-      .string()
-      .optional()
-      .describe(
-        'The id of the subscription that the payment method will be added to as the default payment method.'
-      ),
-    automaticallyUpdateSubscriptions: z
-      .boolean()
-      .nullable()
-      .optional()
-      .describe(
-        'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'
-      ),
-  })
+  coreCheckoutSessionSchema
+    .extend({
+      type: z.literal(CheckoutSessionType.AddPaymentMethod),
+      targetSubscriptionId: z
+        .string()
+        .optional()
+        .describe(
+          'The id of the subscription that the payment method will be added to as the default payment method.'
+        ),
+      automaticallyUpdateSubscriptions: z
+        .boolean()
+        .nullable()
+        .optional()
+        .describe(
+          'Whether to automatically update all current subscriptions to the new payment method. Defaults to false.'
+        ),
+    })
+    .meta({ id: 'AddPaymentMethodCheckoutSessionInput' })
 
 export const activateSubscriptionCheckoutSessionSchema =
-  coreCheckoutSessionSchema.extend({
-    type: z.literal(CheckoutSessionType.ActivateSubscription),
-    priceId: z.string(),
-    targetSubscriptionId: z.string(),
-    preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
-  })
+  coreCheckoutSessionSchema
+    .extend({
+      type: z.literal(CheckoutSessionType.ActivateSubscription),
+      priceId: z.string(),
+      targetSubscriptionId: z.string(),
+      preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
+    })
+    .meta({ id: 'ActivateSubscriptionCheckoutSessionInput' })
 
 // Customer-billing variants (omit successUrl and cancelUrl)
 
@@ -758,11 +765,12 @@ export const customerBillingIdentifiedProductCheckoutSessionSchema =
 export const customerBillingAnonymousProductCheckoutSessionSchema =
   anonymousProductCheckoutSessionSchema.omit(urlFields)
 
-export const customerBillingProductCheckoutSessionSchema =
-  z.discriminatedUnion('anonymous', [
+export const customerBillingProductCheckoutSessionSchema = z
+  .discriminatedUnion('anonymous', [
     customerBillingIdentifiedProductCheckoutSessionSchema,
     customerBillingAnonymousProductCheckoutSessionSchema,
   ])
+  .meta({ id: 'CustomerBillingProductCheckoutSession' })
 
 export const customerBillingActivateSubscriptionCheckoutSessionSchema =
   activateSubscriptionCheckoutSessionSchema.omit(urlFields)
@@ -773,11 +781,13 @@ export const customerBillingCreatePricedCheckoutSessionSchema =
     customerBillingActivateSubscriptionCheckoutSessionSchema,
   ])
 
-const createCheckoutSessionObject = z.discriminatedUnion('type', [
-  productCheckoutSessionSchema,
-  activateSubscriptionCheckoutSessionSchema,
-  addPaymentMethodCheckoutSessionSchema,
-])
+const createCheckoutSessionObject = z
+  .discriminatedUnion('type', [
+    productCheckoutSessionSchema,
+    activateSubscriptionCheckoutSessionSchema,
+    addPaymentMethodCheckoutSessionSchema,
+  ])
+  .meta({ id: 'CreateCheckoutSessionInput' })
 
 export type CreateCheckoutSessionObject = z.infer<
   typeof createCheckoutSessionObject

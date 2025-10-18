@@ -25,12 +25,12 @@ if [ -s "$STAGED_TS_FILES_NUL" ]; then
 fi
 rm -f "$STAGED_TS_FILES_NUL"
 
-# Run lint in parallel for all packages
+# Run linting and typechecking in parallel for all packages
 pnpm --parallel --filter "./packages/**" lint &
 PID1=$!
 
-# Run lint for platform/flowglad-next
-cd "$ROOT_DIR/platform/flowglad-next" && pnpm lint &
+# Run linting and typechecking for platform/flowglad-next
+cd "$ROOT_DIR/platform/flowglad-next" && pnpm check &
 PID2=$!
 
 # Wait for each process and capture exit status
@@ -40,10 +40,10 @@ STATUS1=$?
 wait $PID2
 STATUS2=$?
 
-# Check if any lint task failed
+# Check if any lint or typechecking task failed
 if [ $STATUS1 -ne 0 ] || [ $STATUS2 -ne 0 ]; then
-  echo "❌ Lint checks failed. Please fix errors before committing."
+  echo "❌ Lint or typechecking checks failed. Please fix errors before committing."
   exit 1
 fi
 
-echo "✅ All lint checks passed!"
+echo "✅ All lint and typechecking checks passed!"

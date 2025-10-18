@@ -31,24 +31,18 @@ const TrialFields = ({
     setValue,
   } = usePriceFormContext()
   const trialPeriodDays = watch('price.trialPeriodDays')
-  const startsWithCreditTrial = watch('price.startsWithCreditTrial')
   const [offerTrial, setOfferTrial] = useState(
     Boolean(trialPeriodDays && trialPeriodDays > 0)
   )
   useEffect(() => {
-    if (startsWithCreditTrial) {
-      setOfferTrial(true)
-    } else {
-      setOfferTrial(Boolean(trialPeriodDays && trialPeriodDays > 0))
-    }
-  }, [trialPeriodDays, startsWithCreditTrial, setOfferTrial])
+    setOfferTrial(Boolean(trialPeriodDays && trialPeriodDays > 0))
+  }, [trialPeriodDays, setOfferTrial])
 
   // When disabled, force trials off in the form and local UI state
   useEffect(() => {
     if (disabled) {
       setOfferTrial(false)
       setValue('price.trialPeriodDays', 0)
-      setValue('price.startsWithCreditTrial', null)
     }
   }, [disabled, setValue])
   return (
@@ -64,7 +58,6 @@ const TrialFields = ({
             setOfferTrial(checked)
             if (!checked) {
               setValue('price.trialPeriodDays', 0)
-              setValue('price.startsWithCreditTrial', null)
             }
           }}
         />
