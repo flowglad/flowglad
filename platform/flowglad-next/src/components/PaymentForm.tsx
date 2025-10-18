@@ -36,6 +36,7 @@ import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
 import { Switch } from '@/components/ui/switch'
+import { billingAddressSchema, strictBillingAddressSchema } from '@/db/schema/organizations'
 
 // Utility function to force reflow for Stripe iframes to prevent rendering issues
 const forceStripeElementsReflow = () => {
@@ -167,6 +168,7 @@ const PaymentForm = () => {
     feeCalculation,
     readonlyCustomerEmail,
   } = checkoutPageContext
+
   const [emailEmbedReady, setEmailEmbedReady] = useState(true)
   const [paymentEmbedReady, setPaymentEmbedReady] = useState(false)
   const [addressEmbedReady, setAddressEmbedReady] = useState(true)
@@ -177,6 +179,9 @@ const PaymentForm = () => {
     Boolean(readonlyCustomerEmail)
   )
   const [emailError, setEmailError] = useState<string | undefined>(
+    undefined
+  )
+  const [addressError, setAddressError] = useState<string | undefined>(
     undefined
   )
   const embedsReady =
@@ -259,6 +264,26 @@ const PaymentForm = () => {
         }
 
         setIsSubmitting(true)
+
+        // Validate address before proceeding
+        if (!checkoutSession.billingAddress) {
+          setAddressError('Please fill in all required address fields')
+          setIsSubmitting(false)
+          return
+        }
+        
+        const addressValidation = strictBillingAddressSchema.safeParse(checkoutSession.billingAddress)
+
+        if (!addressValidation.success) {
+          // Get the first error message from the validation result
+          const firstError = addressValidation.error.issues[0]?.message || 'Please fill in all required address fields'
+          setAddressError(firstError)
+          setIsSubmitting(false)
+          return
+        }
+
+        // Clear any previous address errors
+        setAddressError(undefined)
 
         try {
           await confirmCheckoutSession.mutateAsync({
@@ -474,10 +499,7 @@ const PaymentForm = () => {
               setTimeout(forceStripeElementsReflow, 100)
             }}
             onChange={async (event) => {
-              if (
-                event.complete &&
-                checkoutSession.status === CheckoutSessionStatus.Open
-              ) {
+              if (checkoutSession.status === CheckoutSessionStatus.Open) {
                 try {
                   await editCheckoutSessionBillingAddress({
                     id: checkoutSession.id,
@@ -568,6 +590,9 @@ const PaymentForm = () => {
             </Button>
             {errorMessage && (
               <ErrorLabel error={errorMessage} className="mt-3" />
+            )}
+            {addressError && (
+              <ErrorLabel error={addressError} className="mt-3" />
             )}
             {!checkoutSession.livemode &&
               flowType !== CheckoutFlowType.AddPaymentMethod && (
