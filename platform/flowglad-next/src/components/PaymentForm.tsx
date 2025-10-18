@@ -169,10 +169,6 @@ const PaymentForm = () => {
     readonlyCustomerEmail,
   } = checkoutPageContext
 
-  // Log checkoutSession changes
-  console.log('%%%%%% PaymentForm Render - checkoutSession updated:', checkoutSession)
-  console.log('%%%%%% PaymentForm Render - checkoutSession.billingAddress:', checkoutSession.billingAddress)
-
   const [emailEmbedReady, setEmailEmbedReady] = useState(true)
   const [paymentEmbedReady, setPaymentEmbedReady] = useState(false)
   const [addressEmbedReady, setAddressEmbedReady] = useState(true)
@@ -270,28 +266,22 @@ const PaymentForm = () => {
         setIsSubmitting(true)
 
         // Validate address before proceeding
-        console.log('%%%%%% Form Submit - Starting address validation')
-        console.log('%%%%%% Form Submit - checkoutSession.billingAddress:', checkoutSession.billingAddress)
-        
         if (!checkoutSession.billingAddress) {
-          console.log('%%%%%% Form Submit - No billing address found, setting error')
           setAddressError('Please fill in all required address fields')
           setIsSubmitting(false)
           return
         }
         
-        console.log('%%%%%% Form Submit - Running strictBillingAddressSchema.safeParse')
         const addressValidation = strictBillingAddressSchema.safeParse(checkoutSession.billingAddress)
-        console.log('%%%%%% Form Submit - addressValidation result:', addressValidation)
 
         if (!addressValidation.success) {
-          console.log('%%%%%% Form Submit - Address validation failed, setting error')
-          setAddressError('Please fill in all required address fields')
+          // Get the first error message from the validation result
+          const firstError = addressValidation.error.issues[0]?.message || 'Please fill in all required address fields'
+          setAddressError(firstError)
           setIsSubmitting(false)
           return
         }
 
-        console.log('%%%%%% Form Submit - Address validation passed, clearing errors')
         // Clear any previous address errors
         setAddressError(undefined)
 
@@ -316,17 +306,13 @@ const PaymentForm = () => {
           return
         }
         // Trigger form validation and wallet collection
-        console.log('%%%%%% Stripe Elements - About to call elements.submit()')
         const submitResult = await elements.submit()
-        console.log('%%%%%% Stripe Elements - elements.submit() completed, result:', submitResult)
         const { error: submitError } = submitResult
         if (submitError) {
-          console.log('%%%%%% Stripe Elements - Submit error occurred:', submitError)
           setErrorMessage(submitError.message)
           setIsSubmitting(false)
           return
         }
-        console.log('%%%%%% Stripe Elements - Submit successful, continuing with payment processing')
         // Create the ConfirmationToken using the details collected by the Payment Element
         // and additional shipping information
         const useConfirmSetup =
@@ -513,33 +499,19 @@ const PaymentForm = () => {
               setTimeout(forceStripeElementsReflow, 100)
             }}
             onChange={async (event) => {
-              console.log('%%%%%% AddressElement onChange - Event fired')
-              console.log('%%%%%% AddressElement onChange - event.complete:', event.complete)
-              console.log('%%%%%% AddressElement onChange - event.value:', event.value)
-              console.log('%%%%%% AddressElement onChange - checkoutSession.status:', checkoutSession.status)
-              
               if (checkoutSession.status === CheckoutSessionStatus.Open) {
-                console.log('%%%%%% AddressElement onChange - Conditions met, calling editCheckoutSessionBillingAddress')
                 try {
-                  console.log('%%%%%% AddressElement onChange - About to call editCheckoutSessionBillingAddress with:', {
-                    id: checkoutSession.id,
-                    billingAddress: event.value,
-                  })
                   await editCheckoutSessionBillingAddress({
                     id: checkoutSession.id,
                     billingAddress: event.value,
                   })
-                  console.log('%%%%%% AddressElement onChange - editCheckoutSessionBillingAddress completed successfully')
                 } catch (error) {
                   // Silently handle errors for non-open sessions
                   console.warn(
-                    '%%%%%% AddressElement onChange - Failed to update billing address:',
+                    'Failed to update billing address:',
                     error
                   )
                 }
-              } else {
-                console.log('%%%%%% AddressElement onChange - Conditions not met, skipping update')
-                console.log('%%%%%% AddressElement onChange - checkoutSession.status:', checkoutSession.status)
               }
             }}
             className={!embedsReady ? 'opacity-0' : ''}
