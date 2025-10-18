@@ -1205,7 +1205,6 @@ describe('Customer Role RLS Policies', () => {
             name: 'Product in Model A',
             description: 'Product in pricing model A',
             imageURL: '',
-            displayFeatures: [],
             singularQuantityLabel: 'unit',
             pluralQuantityLabel: 'units',
             externalId: `prod_${core.nanoid()}`,
@@ -1224,7 +1223,6 @@ describe('Customer Role RLS Policies', () => {
             name: 'Product in Model B',
             description: 'Product in pricing model B',
             imageURL: '',
-            displayFeatures: [],
             singularQuantityLabel: 'unit',
             pluralQuantityLabel: 'units',
             externalId: `prod_${core.nanoid()}`,
@@ -1287,7 +1285,6 @@ describe('Customer Role RLS Policies', () => {
             name: 'Active Product',
             description: 'Active product for testing',
             imageURL: '',
-            displayFeatures: [],
             singularQuantityLabel: 'unit',
             pluralQuantityLabel: 'units',
             externalId: `prod_${core.nanoid()}`,
@@ -1306,7 +1303,6 @@ describe('Customer Role RLS Policies', () => {
             name: 'Inactive Product',
             description: 'Inactive product for testing',
             imageURL: '',
-            displayFeatures: [],
             singularQuantityLabel: 'unit',
             pluralQuantityLabel: 'units',
             externalId: `prod_${core.nanoid()}`,
@@ -1334,7 +1330,6 @@ describe('Customer Role RLS Policies', () => {
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: null,
             usageMeterId: null,
           },
           transaction
@@ -1356,7 +1351,6 @@ describe('Customer Role RLS Policies', () => {
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: null,
             usageMeterId: null,
           },
           transaction
@@ -1768,7 +1762,6 @@ describe('Customer Role RLS Policies', () => {
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
                 usageEventsPerUnit: null,
-                startsWithCreditTrial: null,
                 usageMeterId: null,
               },
               transaction
@@ -1869,7 +1862,6 @@ describe('Customer Role RLS Policies', () => {
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
                 usageEventsPerUnit: null,
-                startsWithCreditTrial: null,
                 usageMeterId: null,
               },
               transaction

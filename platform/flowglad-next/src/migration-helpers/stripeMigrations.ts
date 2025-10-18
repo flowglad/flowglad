@@ -67,12 +67,6 @@ export const stripeProductToProductInsert = (
     externalId: stripeProduct.id,
     active: stripeProduct.active,
     imageURL: stripeProduct.images?.[0] ?? '',
-    displayFeatures:
-      stripeProduct.marketing_features?.map((feature) => ({
-        enabled: true,
-        label: feature.name ?? '',
-        details: '',
-      })) ?? [],
     singularQuantityLabel: stripeProduct.unit_label ?? '',
     pluralQuantityLabel: stripeProduct.unit_label
       ? `${stripeProduct.unit_label}s`
@@ -394,7 +388,5 @@ export const stripeSubscriptionItemToSubscriptionItemInsert = (
     externalId: stripeSubscriptionItem.id,
     expiredAt: null,
     type: SubscriptionItemType.Static,
-    usageMeterId: null,
-    usageEventsPerUnit: null,
   }
 }

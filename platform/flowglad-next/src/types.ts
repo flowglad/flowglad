@@ -780,6 +780,7 @@ export type SetupIntentableCheckoutSessionType = Exclude<
 
 export enum FeatureFlag {
   Usage = 'usage',
+  ImmediateSubscriptionAdjustments = 'immediate_subscription_adjustments',
   SubscriptionWithUsage = 'subscription_with_usage',
 }
 
@@ -976,3 +977,16 @@ export type TelemetryEntityType =
   | 'subscription'
   | 'organization'
   | 'webhook'
+
+export type UsageBillingInfo = {
+  usageEventId: string
+  usageMeterId: string
+  ledgerAccountId: string
+  balance: number
+  priceId: string
+  usageEventsPerUnit: number
+  unitPrice: number
+  livemode: boolean
+  name: string | null
+  description: string | null
+}

@@ -93,7 +93,6 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               description: 'Test',
               imageURL: 'https://flowglad.com/logo.png',
               active: true,
-              displayFeatures: [],
               singularQuantityLabel: 'unit',
               pluralQuantityLabel: 'units',
               pricingModelId: pricingModel.id,

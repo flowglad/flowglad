@@ -107,7 +107,8 @@ export const expireProductFeature = protectedProcedure
       resource: 'productFeature',
       routeSuffix: 'expire',
       requireIdParam: true,
-      summary:
+      summary: 'Expire Product Feature',
+      description:
         'Expire a product feature, making it no longer available for subscription items',
       tags: ['Product Features'],
     })

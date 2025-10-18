@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   BillingPeriodStatus,
+  FeatureFlag,
   PaymentStatus,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
@@ -38,6 +39,7 @@ import { updateSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethod
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import core from '@/utils/core'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 
 describe('Proration Logic - Payment Status Scenarios', () => {
   // Global test state - will be reset before each test
@@ -55,6 +57,19 @@ describe('Proration Logic - Payment Status Scenarios', () => {
     const orgData = await setupOrg()
     organization = orgData.organization
     price = orgData.price
+
+    // Enable feature flag for immediate adjustments
+    await adminTransaction(async ({ transaction }) => {
+      organization = await updateOrganization(
+        {
+          id: organization.id,
+          featureFlags: {
+            [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
+          },
+        },
+        transaction
+      )
+    })
 
     // Set up customer
     customer = await setupCustomer({
@@ -104,8 +119,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       unitPrice: 999, // $9.99
       addedDate: billingPeriodStart,
       type: SubscriptionItemType.Static,
-      usageMeterId: undefined,
-      usageEventsPerUnit: undefined,
     })
 
     // Set up invoice for payments to reference
@@ -147,8 +160,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -162,6 +173,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -247,8 +259,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -262,6 +272,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -340,8 +351,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -355,6 +364,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -437,8 +447,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
         {
           // Add new item (no ID = new item)
@@ -456,8 +464,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -471,6 +477,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -534,6 +541,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -629,8 +637,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -644,6 +650,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -728,8 +735,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -743,6 +748,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -836,8 +842,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -851,6 +855,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -950,8 +955,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -965,6 +968,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -1054,8 +1058,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -1069,6 +1071,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 
@@ -1162,8 +1165,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -1177,6 +1178,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
             prorateCurrentBillingPeriod: true,
           },
         },
+        organization,
         transaction
       )
 

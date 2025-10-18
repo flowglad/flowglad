@@ -305,9 +305,6 @@ describe('clonePricingModelTransaction', () => {
         sourceProduct.description
       )
       expect(clonedProduct.active).toBe(sourceProduct.active)
-      expect(clonedProduct.displayFeatures).toEqual(
-        sourceProduct.displayFeatures
-      )
       expect(clonedProduct.singularQuantityLabel).toBe(
         sourceProduct.singularQuantityLabel
       )
@@ -2074,7 +2071,6 @@ describe('createProductTransaction', () => {
               description: 'Test Description',
               active: true,
               imageURL: null,
-              displayFeatures: [],
               singularQuantityLabel: 'singular',
               pluralQuantityLabel: 'plural',
               pricingModelId: sourcePricingModel.id,
@@ -2093,7 +2089,6 @@ describe('createProductTransaction', () => {
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
-                startsWithCreditTrial: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
@@ -2116,7 +2111,6 @@ describe('createProductTransaction', () => {
     expect(product.description).toBe('Test Description')
     expect(product.active).toBe(true)
     expect(product.imageURL).toBe(null)
-    expect(product.displayFeatures).toEqual([])
     expect(product.singularQuantityLabel).toBe('singular')
     expect(product.pluralQuantityLabel).toBe('plural')
     expect(product.pricingModelId).toBe(sourcePricingModel.id)
@@ -2146,7 +2140,6 @@ describe('createProductTransaction', () => {
               description: 'Test Description',
               active: true,
               imageURL: null,
-              displayFeatures: [],
               singularQuantityLabel: 'singular',
               pluralQuantityLabel: 'plural',
               pricingModelId: sourcePricingModel.id,
@@ -2165,7 +2158,6 @@ describe('createProductTransaction', () => {
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
-                startsWithCreditTrial: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
@@ -2210,7 +2202,6 @@ describe('createProductTransaction', () => {
               description: 'Test Description',
               active: true,
               imageURL: null,
-              displayFeatures: [],
               singularQuantityLabel: 'singular',
               pluralQuantityLabel: 'plural',
               pricingModelId: sourcePricingModel.id,
@@ -2229,7 +2220,6 @@ describe('createProductTransaction', () => {
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
-                startsWithCreditTrial: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],

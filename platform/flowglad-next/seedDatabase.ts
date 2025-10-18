@@ -220,7 +220,6 @@ export const setupOrg = async (params?: {
         description: 'Default product for organization',
         imageURL: 'https://flowglad.com/logo.png',
         active: true,
-        displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
         pricingModelId: livePricingModel.id,
@@ -284,7 +283,6 @@ export const setupProduct = async ({
         description: 'Flowglad Live Product',
         imageURL: 'https://flowglad.com/logo.png',
         active,
-        displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
         pricingModelId,
@@ -638,6 +636,11 @@ export const setupBillingPeriodItem = async ({
           'Discount redemption ID is not allowed for usage items'
         )
       }
+      if (type === SubscriptionItemType.Usage) {
+        throw new Error(
+          'Usage type is not allowed for billing period items'
+        )
+      }
       const insert: BillingPeriodItem.Insert = {
         billingPeriodId,
         quantity,
@@ -645,8 +648,6 @@ export const setupBillingPeriodItem = async ({
         name,
         description,
         type,
-        usageMeterId,
-        usageEventsPerUnit,
         discountRedemptionId: null,
         livemode,
       }
@@ -675,9 +676,7 @@ export const setupBillingPeriodItem = async ({
         description,
         type,
         livemode,
-        usageMeterId: null,
         discountRedemptionId: null,
-        usageEventsPerUnit: null,
       }
       return insertBillingPeriodItem(insert, transaction)
     }
@@ -900,7 +899,6 @@ export const setupPrice = async ({
         intervalCount,
         trialPeriodDays: trialPeriodDays ?? null,
         usageEventsPerUnit: null,
-        startsWithCreditTrial: null,
       },
     }
     if (type === PriceType.Usage && !usageMeterId) {
@@ -1096,8 +1094,6 @@ export const setupSubscriptionItem = async ({
       metadata: metadata ?? {},
       externalId: null,
       type: SubscriptionItemType.Static,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
     }
     return insertSubscriptionItem(insert, transaction)
   })
