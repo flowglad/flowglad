@@ -48,12 +48,15 @@ export const ProductFormFields = ({
     if (!editProduct && priceType === PriceType.Usage) {
       form.setValue('featureIds', [])
     }
+  // FIXME(FG-384): Fix this warning:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceType, form])
 
   if (
     !core.IS_PROD &&
     Object.keys(form.formState.errors).length > 0
   ) {
+    // FIXME(FG-384): Fix this warning:
     // eslint-disable-next-line no-console
     console.log('errors', form.formState.errors)
   }
