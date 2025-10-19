@@ -77,10 +77,22 @@ jobs:
         run: pnpm vitest run --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       - name: Debug vitest reports after test
         run: |
+          echo "Current working directory:"
+          pwd
           echo "Checking .vitest-reports directory after test:"
           ls -la .vitest-reports/ || echo "Directory does not exist"
           echo "Looking for blob files:"
           find .vitest-reports -name "blob-*.json" 2>/dev/null || echo "No blob files found"
+          echo "Looking for any files in .vitest-reports:"
+          find .vitest-reports -type f 2>/dev/null || echo "No files found"
+          echo "Checking if specific file exists:"
+          ls -la .vitest-reports/blob-${{ matrix.shardIndex }}.json || echo "Specific blob file does not exist"
+      - name: Debug before upload
+        run: |
+          echo "Current working directory before upload:"
+          pwd
+          echo "Checking if file exists before upload:"
+          ls -la .vitest-reports/blob-${{ matrix.shardIndex }}.json || echo "File does not exist"
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
