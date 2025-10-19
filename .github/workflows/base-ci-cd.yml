@@ -1,9 +1,11 @@
 name: Base CI
 
 on:
-  workflow_call:
   pull_request:
-    branches: [main]
+  merge_group:
+  workflow_call:
+
+permissions: read-all
 
 jobs:
   flowglad-next-lint:
