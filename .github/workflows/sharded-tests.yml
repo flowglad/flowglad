@@ -74,7 +74,7 @@ jobs:
       - name: Create vitest reports directory
         run: mkdir -p .vitest-reports
       - name: Run sharded tests
-        run: pnpm vitest run --reporter=blob --reporter-options=output=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: pnpm vitest run --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
