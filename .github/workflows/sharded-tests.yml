@@ -152,24 +152,22 @@ jobs:
       - name: Download blob reports from GitHub Actions Artifacts
         uses: actions/download-artifact@v4
         with:
-          path: .
+          path: .vitest-reports
           pattern: blob-report-*
           merge-multiple: true
       - name: Debug downloaded artifacts
         run: |
           echo "Current working directory:"
           pwd
-          echo "Looking for downloaded blob files in repo root:"
-          find ../ -name "blob-*.json" 2>/dev/null || echo "No blob files found in repo root"
-          echo "Looking for downloaded blob files in current directory:"
-          find . -name "blob-*.json" 2>/dev/null || echo "No blob files found in current directory"
-      - name: Create .vitest-reports directory
-        run: mkdir -p .vitest-reports
-      - name: Move blob files to .vitest-reports
+          echo "Looking for downloaded blob files in .vitest-reports:"
+          find .vitest-reports -name "blob-*.json" 2>/dev/null || echo "No blob files found in .vitest-reports"
+          echo "Contents of .vitest-reports directory:"
+          ls -la .vitest-reports/ || echo ".vitest-reports directory does not exist"
+      - name: Verify blob files are ready for merge
         run: |
-          # Move files from repo root to .vitest-reports directory
-          find ../ -name "blob-*.json" -exec mv {} .vitest-reports/ \;
           echo "Blob files in .vitest-reports:"
           ls -la .vitest-reports/
+          echo "Count of blob files:"
+          find .vitest-reports -name "blob-*.json" | wc -l
       - name: Merge reports
         run: pnpm vitest run --merge-reports
