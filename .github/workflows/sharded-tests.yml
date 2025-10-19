@@ -139,9 +139,24 @@ jobs:
           merge-multiple: true
       - name: Debug downloaded artifacts
         run: |
+          echo "Current working directory:"
+          pwd
+          echo "Listing current directory:"
+          ls -la
           echo "Listing .vitest-reports directory:"
           ls -la .vitest-reports/ || echo "Directory does not exist"
           echo "Listing .vitest-reports contents:"
           find .vitest-reports -type f 2>/dev/null || echo "No files found"
+          echo "Checking if any blob files exist:"
+          find . -name "blob-*.json" 2>/dev/null || echo "No blob files found"
+      - name: Ensure .vitest-reports directory exists
+        run: |
+          mkdir -p .vitest-reports
+          echo "Created .vitest-reports directory"
+      - name: Copy blob files to .vitest-reports
+        run: |
+          find .vitest-reports -name "blob-*.json" -exec cp {} .vitest-reports/ \; 2>/dev/null || echo "No blob files to copy"
+          echo "Blob files in .vitest-reports:"
+          ls -la .vitest-reports/
       - name: Merge reports
         run: pnpm vitest run --merge-reports
