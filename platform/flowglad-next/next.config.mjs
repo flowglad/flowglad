@@ -3,6 +3,9 @@ import { withLogtail } from '@logtail/next'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // NOTE: Required by `Dockerfile` so that it can copy the `standalone` output
+  // directory in order to run the server.
+  output: 'standalone',
   outputFileTracingIncludes: {
     registry: ['./src/registry/**/*'],
   },

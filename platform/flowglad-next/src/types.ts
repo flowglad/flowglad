@@ -979,7 +979,10 @@ export type TelemetryEntityType =
   | 'webhook'
 
 export type UsageBillingInfo = {
-  usageEventId: string
+  /**
+   * Key of form `${usageMeterId}-${priceId}`
+   */
+  usageMeterIdPriceId: string
   usageMeterId: string
   ledgerAccountId: string
   balance: number
@@ -989,4 +992,5 @@ export type UsageBillingInfo = {
   livemode: boolean
   name: string | null
   description: string | null
+  usageEventIds: string[]
 }
