@@ -159,13 +159,16 @@ jobs:
         run: |
           echo "Current working directory:"
           pwd
-          echo "Looking for downloaded blob files:"
-          find . -name "blob-*.json" 2>/dev/null || echo "No blob files found"
+          echo "Looking for downloaded blob files in repo root:"
+          find ../ -name "blob-*.json" 2>/dev/null || echo "No blob files found in repo root"
+          echo "Looking for downloaded blob files in current directory:"
+          find . -name "blob-*.json" 2>/dev/null || echo "No blob files found in current directory"
       - name: Create .vitest-reports directory
         run: mkdir -p .vitest-reports
       - name: Move blob files to .vitest-reports
         run: |
-          find . -name "blob-*.json" -exec mv {} .vitest-reports/ \;
+          # Move files from repo root to .vitest-reports directory
+          find ../ -name "blob-*.json" -exec mv {} .vitest-reports/ \;
           echo "Blob files in .vitest-reports:"
           ls -la .vitest-reports/
       - name: Merge reports
