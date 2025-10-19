@@ -22,7 +22,7 @@ import {
   LedgerEntryType,
   UsageBillingInfo,
 } from '@/types'
-import { and, asc, eq, gt, inArray, lt, not, or } from 'drizzle-orm'
+import { and, asc, eq, inArray, lt, not, or } from 'drizzle-orm'
 import { createDateNotPassedFilter } from '../tableUtils'
 import { selectUsageCredits } from './usageCreditMethods'
 import { BillingRun } from '../schema/billingRuns'
@@ -34,8 +34,7 @@ import {
   usageMetersSelectSchema,
 } from '../schema/usageMeters'
 import { usageEvents } from '../schema/usageEvents'
-import { Price, prices } from '../schema/prices'
-import { billingPeriodItems } from '../schema/billingPeriodItems'
+import { prices } from '../schema/prices'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 const config: ORMMethodCreatorConfig<
