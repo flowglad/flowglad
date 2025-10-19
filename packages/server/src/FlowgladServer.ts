@@ -341,9 +341,10 @@ export class FlowgladServer {
     })
   }
 
-  public getCatalog =
-    async (): Promise<FlowgladNode.Catalogs.CatalogRetrieveResponse> => {
-      const billing = await this.getBilling()
-      return { catalog: billing.catalog }
-    }
+  public getCatalog = async (): Promise<{
+    catalog: FlowgladNode.PricingModels.PricingModelRetrieveResponse['pricingModel']
+  }> => {
+    const billing = await this.getBilling()
+    return { catalog: billing.pricingModel }
+  }
 }

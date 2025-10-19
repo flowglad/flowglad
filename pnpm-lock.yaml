@@ -245,6 +245,9 @@ importers:
       '@flowglad/shared':
         specifier: workspace:*
         version: link:../shared
+      '@flowglad/types':
+        specifier: workspace:*
+        version: link:../types
       zod:
         specifier: 4.1.5
         version: 4.1.5
@@ -270,6 +273,9 @@ importers:
       '@flowglad/node':
         specifier: 0.22.0
         version: 0.22.0
+      '@flowglad/types':
+        specifier: workspace:*
+        version: link:../types
       date-fns:
         specifier: 4.1.0
         version: 4.1.0
