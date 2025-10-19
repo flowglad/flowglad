@@ -118,7 +118,6 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
     billingRun: BillingRun.Record
     usageOverages: Pick<
       UsageBillingInfo,
-      // | 'usageEventId'
       | 'usageMeterId'
       | 'balance'
       | 'priceId'

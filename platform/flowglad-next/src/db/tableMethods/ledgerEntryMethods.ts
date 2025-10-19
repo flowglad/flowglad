@@ -34,7 +34,7 @@ import {
   usageMetersSelectSchema,
 } from '../schema/usageMeters'
 import { usageEvents } from '../schema/usageEvents'
-import { prices } from '../schema/prices'
+import { Price, prices } from '../schema/prices'
 import { billingPeriodItems } from '../schema/billingPeriodItems'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
@@ -511,12 +511,15 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
         }
         return clone
       }
+      // we omit ['usageEventIds', 'description'] first before comparison
+      // because those fields get appended to the priceInfoByUsageMeterIdAndPriceId item
+      // as we encounter more usage event entries with the same (usage meter id, price id).
+      // so we have a list of usageEventIds for each (usage meter id, price id) for auditability
       const omitFields = ['usageEventIds', 'description']
-      const normalize = (obj: any) =>
-        JSON.stringify(
-          shallowOmit(obj, omitFields),
-          Object.keys(shallowOmit(obj, omitFields)).sort()
-        )
+      const normalize = (obj: any) => {
+        const omitted = core.omit(omitFields, obj)
+        return JSON.stringify(omitted, Object.keys(omitted).sort())
+      }
 
       const existingItem = priceInfoByUsageMeterIdAndPriceId.get(key)
       if (existingItem) {
