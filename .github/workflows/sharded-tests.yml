@@ -19,6 +19,7 @@ jobs:
       matrix:
         shardIndex: [1, 2, 3, 4]
         shardTotal: [4]
+      fail-fast: false
     defaults:
       run:
         working-directory: platform/flowglad-next
@@ -134,5 +135,11 @@ jobs:
           path: .vitest-reports
           pattern: blob-report-*
           merge-multiple: true
+      - name: Debug downloaded artifacts
+        run: |
+          echo "Listing .vitest-reports directory:"
+          ls -la .vitest-reports/ || echo "Directory does not exist"
+          echo "Listing .vitest-reports contents:"
+          find .vitest-reports -type f 2>/dev/null || echo "No files found"
       - name: Merge reports
         run: pnpm vitest run --merge-reports
