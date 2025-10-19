@@ -71,14 +71,16 @@ jobs:
           docker-compose -f docker-compose.test.yml ps
       - name: Run test setup
         run: pnpm test:setup
+      - name: Create vitest reports directory
+        run: mkdir -p .vitest-reports
       - name: Run sharded tests
-        run: pnpm vitest run --reporter=blob --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: pnpm vitest run --reporter=blob --reporter-options=output=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: blob-report-${{ matrix.shardIndex }}
-          path: .vitest-reports/*
+          path: .vitest-reports/blob-${{ matrix.shardIndex }}.json
           include-hidden-files: true
           retention-days: 1
       - name: Run test teardown
