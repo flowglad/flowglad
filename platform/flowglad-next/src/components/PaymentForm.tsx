@@ -168,7 +168,6 @@ const PaymentForm = () => {
     feeCalculation,
     readonlyCustomerEmail,
   } = checkoutPageContext
-
   const [emailEmbedReady, setEmailEmbedReady] = useState(true)
   const [paymentEmbedReady, setPaymentEmbedReady] = useState(false)
   const [addressEmbedReady, setAddressEmbedReady] = useState(true)

@@ -274,8 +274,7 @@ export const updateCheckoutSessionBillingAddress = async (
     })
     .where(eq(checkoutSessions.id, update.id))
     .returning()
-  const parsedResult = checkoutSessionsSelectSchema.parse(result)
-  return parsedResult
+  return checkoutSessionsSelectSchema.parse(result)
 }
 
 export const updateCheckoutSessionAutomaticallyUpdateSubscriptions =
