@@ -152,7 +152,7 @@ jobs:
       - name: Download blob reports from GitHub Actions Artifacts
         uses: actions/download-artifact@v4
         with:
-          path: .vitest-reports
+          path: platform/flowglad-next/.vitest-reports
           pattern: blob-report-*
           merge-multiple: true
       - name: Debug downloaded artifacts
