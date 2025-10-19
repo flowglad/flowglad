@@ -71,7 +71,7 @@ jobs:
       - name: Run test setup
         run: pnpm test:setup
       - name: Run sharded tests
-        run: pnpm test --reporter=blob --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: pnpm vitest run --reporter=blob --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
@@ -135,4 +135,4 @@ jobs:
           pattern: blob-report-*
           merge-multiple: true
       - name: Merge reports
-        run: pnpm vitest --merge-reports
+        run: pnpm vitest run --merge-reports
