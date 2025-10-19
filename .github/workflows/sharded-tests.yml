@@ -75,6 +75,12 @@ jobs:
         run: mkdir -p .vitest-reports
       - name: Run sharded tests
         run: pnpm vitest run --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+      - name: Debug vitest reports after test
+        run: |
+          echo "Checking .vitest-reports directory after test:"
+          ls -la .vitest-reports/ || echo "Directory does not exist"
+          echo "Looking for blob files:"
+          find .vitest-reports -name "blob-*.json" 2>/dev/null || echo "No blob files found"
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
