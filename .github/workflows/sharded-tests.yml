@@ -98,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: blob-report-${{ matrix.shardIndex }}
-          path: .vitest-reports/blob-${{ matrix.shardIndex }}.json
+          path: platform/flowglad-next/.vitest-reports/blob-${{ matrix.shardIndex }}.json
           include-hidden-files: true
           retention-days: 1
       - name: Run test teardown
