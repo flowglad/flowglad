@@ -130,18 +130,6 @@ export const billingAddressSchema = z
     id: 'BillingAddress',
   })
 
-// Strict schema for frontend validation - requires non-empty strings
-export const strictBillingAddressSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  address: z.object({
-    line1: z.string().min(1, "Address is required"),
-    city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "State is required"),
-    postal_code: z.string().min(1, "Postal code is required"),
-    country: z.string().min(1, "Country is required"),
-  }),
-})
-
 export type BillingAddress = z.infer<typeof billingAddressSchema>
 
 // Column refinements for both SELECT and INSERT schemas
