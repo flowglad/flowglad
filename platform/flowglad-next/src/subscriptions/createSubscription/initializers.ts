@@ -237,13 +237,6 @@ export const insertSubscriptionAndItems = async (
       transaction
     )
   }
-  if (price.startsWithCreditTrial) {
-    return await createNonRenewingSubscriptionAndItems(
-      params,
-      transaction
-    )
-  }
-
   const derivedInterval = interval ?? price.intervalUnit
   const derivedIntervalCount = intervalCount ?? price.intervalCount
   if (!derivedInterval) {

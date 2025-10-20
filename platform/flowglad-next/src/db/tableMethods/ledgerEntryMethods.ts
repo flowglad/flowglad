@@ -22,7 +22,7 @@ import {
   LedgerEntryType,
   UsageBillingInfo,
 } from '@/types'
-import { and, asc, eq, gt, inArray, lt, not, or } from 'drizzle-orm'
+import { and, asc, eq, inArray, lt, not, or } from 'drizzle-orm'
 import { createDateNotPassedFilter } from '../tableUtils'
 import { selectUsageCredits } from './usageCreditMethods'
 import { BillingRun } from '../schema/billingRuns'
@@ -35,7 +35,6 @@ import {
 } from '../schema/usageMeters'
 import { usageEvents } from '../schema/usageEvents'
 import { prices } from '../schema/prices'
-import { billingPeriodItems } from '../schema/billingPeriodItems'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 const config: ORMMethodCreatorConfig<
@@ -398,6 +397,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       livemode: usageEvents.livemode,
       usageMeterName: usageMeters.name,
       currency: prices.currency,
+      usageMeterId: usageMeters.id,
     })
     .from(usageEvents)
     .innerJoin(
@@ -407,12 +407,35 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     .innerJoin(prices, eq(usageEvents.priceId, prices.id))
     .where(inArray(usageEvents.id, usageEventIds))
 
+  // To avoid downstream type issue with usageEventsPerUnit
+  // Validate that all prices are usage prices (usageEventsPerUnit must be non-null)
+  type ValidatedUsageEventWithPrice = Omit<
+    (typeof usageEventsWithPrices)[number],
+    'usageEventsPerUnit'
+  > & {
+    usageEventsPerUnit: number
+  }
+
+  const validatedUsageEventsWithPrices: ValidatedUsageEventWithPrice[] =
+    usageEventsWithPrices.map((event) => {
+      if (event.usageEventsPerUnit === null) {
+        throw new Error(
+          `Usage event ${event.usageEventId} is associated with price ${event.priceId} which has null usageEventsPerUnit. Usage events must be associated with usage prices.`
+        )
+      }
+      return {
+        ...event,
+        usageEventsPerUnit: event.usageEventsPerUnit,
+      }
+    })
+
   const priceInfoByUsageEventId = new Map(
-    usageEventsWithPrices.map((item) => [
+    validatedUsageEventsWithPrices.map((item) => [
       item.usageEventId,
       {
+        usageMeterId: item.usageMeterId,
         priceId: item.priceId,
-        usageEventsPerUnit: item.usageEventsPerUnit!,
+        usageEventsPerUnit: item.usageEventsPerUnit,
         unitPrice: item.unitPrice,
         livemode: item.livemode,
         name:
@@ -424,7 +447,12 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     ])
   )
 
-  const balances = Array.from(entriesByUsageEventId.entries()).map(
+  // Group by usage meter id and price id for invoice
+  const entriesByUsageMeterIdAndPriceId = new Map<
+    string,
+    LedgerEntry.Record[]
+  >()
+  Array.from(entriesByUsageEventId.entries()).forEach(
     ([usageEventId, entries]) => {
       const priceInfo = priceInfoByUsageEventId.get(usageEventId)
       if (!priceInfo) {
@@ -432,21 +460,104 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
           `Price information not found for usage event ${usageEventId}`
         )
       }
+      const key = `${priceInfo.usageMeterId}-${priceInfo.priceId}`
 
-      return {
-        usageEventId,
-        balance: balanceFromEntries(entries) * -1,
-        ledgerAccountId: entries[0].ledgerAccountId,
-        usageMeterId: entries[0].usageMeterId!,
-        priceId: priceInfo.priceId,
-        usageEventsPerUnit: priceInfo.usageEventsPerUnit,
-        unitPrice: priceInfo.unitPrice,
-        livemode: priceInfo.livemode,
-        name: priceInfo.name,
-        description: priceInfo.description,
+      if (!entriesByUsageMeterIdAndPriceId.has(key)) {
+        entriesByUsageMeterIdAndPriceId.set(key, [])
       }
+      ;(entries as LedgerEntry.Record[]).forEach(
+        (item: LedgerEntry.Record) => {
+          entriesByUsageMeterIdAndPriceId.get(key)?.push(item)
+        }
+      )
     }
   )
+  const priceInfoByUsageMeterIdAndPriceId = new Map<
+    string,
+    {
+      usageMeterId: string
+      priceId: string
+      usageEventsPerUnit: number
+      unitPrice: number
+      livemode: boolean
+      name: string
+      description: string
+      usageEventIds: string[]
+    }
+  >()
+  validatedUsageEventsWithPrices.forEach((event) => {
+    const key = `${event.usageMeterId}-${event.priceId}`
+    const item = {
+      usageMeterId: event.usageMeterId,
+      priceId: event.priceId,
+      usageEventsPerUnit: event.usageEventsPerUnit,
+      unitPrice: event.unitPrice,
+      livemode: event.livemode,
+      name:
+        'Usage: ' +
+        event.usageMeterName +
+        ` at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(event.currency as CurrencyCode, event.unitPrice)} per ${event.usageEventsPerUnit}`,
+      description: `priceId: ${event.priceId}, usageMeterId: ${event.usageMeterId}, usageEventsPerUnit: ${event.usageEventsPerUnit}, unitPrice: ${event.unitPrice}, usageEventIds: ${event.usageEventId}`,
+      usageEventIds: [event.usageEventId],
+    }
+    if (!priceInfoByUsageMeterIdAndPriceId.has(key)) {
+      priceInfoByUsageMeterIdAndPriceId.set(key, item)
+    } else {
+      const shallowOmit = (obj: any, fields: string[]) => {
+        const clone = { ...obj }
+        for (const field of fields) {
+          delete clone[field]
+        }
+        return clone
+      }
+      // we omit ['usageEventIds', 'description'] first before comparison
+      // because those fields get appended to the priceInfoByUsageMeterIdAndPriceId item
+      // as we encounter more usage event entries with the same (usage meter id, price id).
+      // so we have a list of usageEventIds for each (usage meter id, price id) for auditability
+      const omitFields = ['usageEventIds', 'description']
+      const normalize = (obj: any) => {
+        const omitted = core.omit(omitFields, obj)
+        return JSON.stringify(omitted, Object.keys(omitted).sort())
+      }
+
+      const existingItem = priceInfoByUsageMeterIdAndPriceId.get(key)
+      if (existingItem) {
+        if (normalize(existingItem) !== normalize(item)) {
+          throw new Error(
+            `Existing and current item for ${key} have different values (excluding usageEventIds and description): \nexisting: ${JSON.stringify(existingItem)} vs \ncurrent: ${JSON.stringify(item)}`
+          )
+        }
+        existingItem.usageEventIds.push(event.usageEventId)
+        existingItem.description += `, ${event.usageEventId}`
+      }
+    }
+  })
+
+  const balances: UsageBillingInfo[] = Array.from(
+    entriesByUsageMeterIdAndPriceId.entries()
+  ).map(([usageMeterIdPriceId, entries]) => {
+    const priceInfo = priceInfoByUsageMeterIdAndPriceId.get(
+      usageMeterIdPriceId
+    )
+    if (!priceInfo) {
+      throw new Error(
+        `Price information not found for usageMeterIdAndPriceId ${usageMeterIdPriceId}`
+      )
+    }
+    return {
+      usageMeterIdPriceId,
+      balance: balanceFromEntries(entries) * -1,
+      ledgerAccountId: entries[0].ledgerAccountId,
+      usageMeterId: entries[0].usageMeterId!,
+      priceId: priceInfo.priceId,
+      usageEventsPerUnit: priceInfo.usageEventsPerUnit,
+      unitPrice: priceInfo.unitPrice,
+      livemode: priceInfo.livemode,
+      name: priceInfo.name,
+      description: priceInfo.description,
+      usageEventIds: priceInfo.usageEventIds,
+    }
+  })
   return balances
 }
 

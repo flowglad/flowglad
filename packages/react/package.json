@@ -11,7 +11,7 @@
     "build": "pnpm build:css && tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch --onSuccess 'yalc push'",
-    "lint": "eslint && tsc --noEmit",
+    "check": "eslint --max-warnings=0 && tsc --noEmit",
     "yalc:publish": "yalc publish && yalc link",
     "build:declarations": "tsc -p tsconfig.declarations.json",
     "build:css": "tsx scripts/build-css.ts",
