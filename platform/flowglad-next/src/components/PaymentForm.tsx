@@ -306,7 +306,11 @@ const PaymentForm = () => {
         const submitResult = await elements.submit()
         const { error: submitError } = submitResult
         if (submitError) {
-          setErrorMessage(submitError.message)
+          if (submitError.message === 'This field is incomplete.') {
+            setErrorMessage('Please complete all required fields')
+          } else {
+            setErrorMessage(submitError.message)
+          }
           setIsSubmitting(false)
           return
         }
