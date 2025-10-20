@@ -25,6 +25,8 @@ export default defineConfig(({ mode }) => {
       clearMocks: true,
       // Configure reporters for CI - verbose output to terminal, blob for merging
       reporter: process.env.CI ? ['verbose', 'blob'] : ['verbose'],
+      // Ensure verbose output is shown even in CI
+      silent: false,
     },
     resolve: {
       alias: {
