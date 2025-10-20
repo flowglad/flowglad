@@ -307,7 +307,7 @@ const PaymentForm = () => {
         const { error: submitError } = submitResult
         if (submitError) {
           if (submitError.message === 'This field is incomplete.') {
-            setErrorMessage('Please complete all required fields')
+            setErrorMessage('Please complete all required fields.')
           } else {
             setErrorMessage(submitError.message)
           }
