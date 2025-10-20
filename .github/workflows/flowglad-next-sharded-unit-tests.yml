@@ -1,4 +1,4 @@
-name: Sharded Tests
+name: Flowglad Next Unit Tests
 
 on:
   workflow_call:
