@@ -5,6 +5,8 @@ import {
   PaymentMethodType,
   PurchaseStatus,
   FlowgladEventType,
+  PriceType,
+  IntervalUnit,
 } from '@/types'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import { Customer } from '@/db/schema/customers'
@@ -14,6 +16,7 @@ import {
   setupPaymentMethod,
   setupPurchase,
   setupCheckoutSession,
+  setupPrice,
 } from '@/../seedDatabase'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
@@ -38,10 +41,8 @@ import { createMockCustomer } from '@/test/helpers/stripeMocks'
 import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
 import { adminTransaction } from '@/db/adminTransaction'
 import { PricingModel } from '@/db/schema/pricingModels'
-
-type StripeCustomer = Stripe.Customer
-type SetupIntent = Stripe.SetupIntent
-
+import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
+import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
 
 // Mock Stripe functions
 vi.mock('@/utils/stripe', () => ({
@@ -91,13 +92,16 @@ describe('confirmCheckoutSessionTransaction', () => {
       livemode: true,
     })
 
-    purchase = await setupPurchase({
-      customerId: customer.id,
-      organizationId: organization.id,
-      priceId: price.id,
-      status: PurchaseStatus.Pending,
-      livemode: true,
-    })
+    // Only create a purchase if the price is not free
+    if (price.unitPrice > 0) {
+      purchase = await setupPurchase({
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: price.id,
+        status: PurchaseStatus.Pending,
+        livemode: true,
+      })
+    }
 
     feeCalculation = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
@@ -376,6 +380,29 @@ describe('confirmCheckoutSessionTransaction', () => {
     })
 
     it('should create free subscription when default product exists', async () => {
+      // Ensure there is a free default price for this pricing model by creating one on the default product
+      const defaultProductId = await adminTransaction(async ({ transaction }) => {
+        const results = await selectPricesProductsAndPricingModelsForOrganization(
+          { isDefault: true, livemode: true },
+          organization.id,
+          transaction
+        )
+        const match = results.find((r) => r.pricingModel.id === pricingModel.id)
+        if (!match) throw new Error('No default price found for pricing model')
+        return match.product.id
+      })
+      const freeDefaultPrice = await setupPrice({
+        productId: defaultProductId,
+        name: 'Free Plan',
+        type: PriceType.Subscription,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+      const defaultPriceId = freeDefaultPrice.id
+      
       // Update checkout session to have no customerId or purchaseId but have customerEmail
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         await updateCheckoutSession(
@@ -424,21 +451,27 @@ describe('confirmCheckoutSessionTransaction', () => {
       // Verify CustomerCreated event was created
       const customerCreatedEvent = dbEvents.find(e => e.type === FlowgladEventType.CustomerCreated)
       expect(customerCreatedEvent).toBeDefined()
-      expect(customerCreatedEvent?.payload.object).toEqual('customer')
-      expect(customerCreatedEvent?.payload.customer).toBeDefined()
+      expect(customerCreatedEvent!.payload.object).toEqual('customer')
+      expect(customerCreatedEvent!.payload.customer).toBeDefined()
       
-      // Type guard to ensure customer exists
-      if (customerCreatedEvent?.payload.customer) {
-        expect(customerCreatedEvent.payload.customer.id).toEqual(result.customer.id)
-        expect(customerCreatedEvent.payload.customer.externalId).toEqual(result.customer.externalId)
-      }
+      // Assert customer payload details
+      const customerPayload = customerCreatedEvent!.payload.customer!
+      expect(customerPayload.id).toEqual(result.customer.id)
+      expect(customerPayload.externalId).toEqual(result.customer.externalId)
       
       // Check for subscription-related events (if default product exists)
       const subscriptionCreatedEvent = dbEvents.find(e => e.type === FlowgladEventType.SubscriptionCreated)
-      if (subscriptionCreatedEvent) {
-        expect(subscriptionCreatedEvent.payload.object).toEqual('subscription')
-        expect(subscriptionCreatedEvent.payload.customer?.id).toEqual(result.customer.id)
-      }
+      expect(subscriptionCreatedEvent).toBeDefined()
+      expect(subscriptionCreatedEvent?.payload.object).toEqual('subscription')
+      expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(result.customer.id)
+
+      // Verify a subscription record exists and is a free plan linked to the free default price
+      const subscriptions = await adminTransaction(async ({ transaction }) => {
+        return selectSubscriptions({ customerId: result.customer.id }, transaction)
+      })
+      expect(subscriptions).toHaveLength(1)
+      expect(subscriptions[0].isFreePlan).toBe(true)
+      expect(subscriptions[0].priceId).toEqual(defaultPriceId)
     })
 
     it('should create Stripe customer when customer is created', async () => {
@@ -713,7 +746,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           id: 'pm_123',
           parent: 'pm_123',
         },
-      } as SetupIntent
+      } as Stripe.SetupIntent
       vi.mocked(getSetupIntent).mockResolvedValue(mockSetupIntent)
 
       const result = await comprehensiveAdminTransaction(
@@ -784,7 +817,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           id: 'pm_123',
           parent: 'pm_123',
         },
-      } as SetupIntent
+      } as Stripe.SetupIntent
       vi.mocked(getSetupIntent).mockResolvedValue(mockSetupIntent)
 
       const result = await comprehensiveAdminTransaction(
