@@ -480,7 +480,7 @@ describe('priceMethods.ts', () => {
 
   // Slug uniqueness RLS policy tests
   describe('Slug uniqueness policies', () => {
-    it('throws an error when inserting a price with duplicate slug in same pricing model across products', async () => {
+    it('throws an error when inserting a price with duplicate slug in same pricing model across products (both active)', async () => {
       const slug = 'duplicate-slug'
       await expect(
         adminTransaction(async ({ transaction }) => {
@@ -490,7 +490,7 @@ describe('priceMethods.ts', () => {
             name: 'Second Product',
             pricingModelId: product.pricingModelId,
           })
-          // Insert first price with slug on the original product
+          // Insert first ACTIVE price with slug on the original product
           await insertPrice(
             {
               ...nulledPriceColumns,
@@ -510,7 +510,7 @@ describe('priceMethods.ts', () => {
             },
             transaction
           )
-          // Attempt to insert another price with the same slug on the second product
+          // Attempt to insert another ACTIVE price with the same slug on the second product
           await insertPrice(
             {
               ...nulledPriceColumns,
@@ -534,7 +534,7 @@ describe('priceMethods.ts', () => {
       ).rejects.toThrow(/Failed query: /)
     })
 
-    it('throws an error when updating a price slug to one that already exists in the same pricing model', async () => {
+    it('throws an error when updating a price slug to one that already exists on an active price in the same pricing model', async () => {
       const slug1 = 'slug-one'
       const slug2 = 'slug-two'
       await expect(
@@ -545,7 +545,7 @@ describe('priceMethods.ts', () => {
             name: 'Second Product',
             pricingModelId: product.pricingModelId,
           })
-          // Insert first price with slug1 on the original product
+          // Insert first ACTIVE price with slug1 on the original product
           const firstPrice = await insertPrice(
             {
               ...nulledPriceColumns,
@@ -565,7 +565,7 @@ describe('priceMethods.ts', () => {
             },
             transaction
           )
-          // Insert second price with slug2 on the second product
+          // Insert second ACTIVE price with slug2 on the second product
           const secondPrice = await insertPrice(
             {
               ...nulledPriceColumns,
@@ -585,7 +585,7 @@ describe('priceMethods.ts', () => {
             },
             transaction
           )
-          // Attempt to update the second price to have slug1
+          // Attempt to update the second price to have slug1 (both are active)
           await updatePrice(
             {
               id: secondPrice.id,
@@ -596,6 +596,485 @@ describe('priceMethods.ts', () => {
           )
         })
       ).rejects.toThrow(/Failed query: /)
+    })
+
+    it('allows inserting active price with slug different from existing active prices slugs', async () => {
+      const slug1 = 'active-slug-1'
+      const slug2 = 'active-slug-2'
+      await adminTransaction(async ({ transaction }) => {
+        // Create a second product in the same pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          pricingModelId: product.pricingModelId,
+        })
+        // Insert first ACTIVE price with slug1
+        await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'First Active Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug: slug1,
+          },
+          transaction
+        )
+        // Insert second ACTIVE price with a different slug (slug2) - should succeed
+        const insertedPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: secondProduct.id,
+            name: 'Second Active Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug: slug2,
+          },
+          transaction
+        )
+        expect(insertedPrice).toBeDefined()
+        expect(insertedPrice.slug).toBe(slug2)
+        expect(insertedPrice.active).toBe(true)
+      })
+    })
+
+    it('allows updating the slug on an active price to a value different from existing active prices slugs', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create a second product in the same pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          pricingModelId: product.pricingModelId,
+        })
+
+        // Insert two ACTIVE prices with unique slugs
+        const price1 = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Active Price 1',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug: 'slug-original',
+          },
+          transaction
+        )
+
+        const price2 = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: secondProduct.id,
+            name: 'Active Price 2',
+            type: PriceType.Subscription,
+            unitPrice: 1200,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug: 'slug-other',
+          },
+          transaction
+        )
+
+        // Now update price1's slug to a different, not-taken slug
+        const updatedSlug = 'slug-updated'
+        const updateResult = await updatePrice(
+          {
+            id: price1.id,
+            slug: updatedSlug,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+
+        expect(updateResult).toBeDefined()
+        expect(updateResult.slug).toBe(updatedSlug)
+        // Ensure no collision or constraint thrown, and price2 untouched
+        expect(updateResult.id).toBe(price1.id)
+        expect(price2.slug).toBe('slug-other')
+      })
+    })
+
+    it('allows inserting inactive price with slug that exists on active price in same pricing model', async () => {
+      const slug = 'shared-slug'
+      await adminTransaction(async ({ transaction }) => {
+        // Create a second product in the same pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          pricingModelId: product.pricingModelId,
+        })
+        // Insert first ACTIVE price with slug
+        await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Active Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug,
+          },
+          transaction
+        )
+        // Insert INACTIVE price with same slug - should succeed
+        const inactivePrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: secondProduct.id,
+            name: 'Inactive Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: false,
+            slug,
+          },
+          transaction
+        )
+        expect(inactivePrice.slug).toBe(slug)
+        expect(inactivePrice.active).toBe(false)
+      })
+    })
+
+    it('allows inserting active price with slug that exists on inactive price in same pricing model', async () => {
+      const slug = 'reusable-slug'
+      await adminTransaction(async ({ transaction }) => {
+        // Create a second product in the same pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          pricingModelId: product.pricingModelId,
+        })
+        // Insert first INACTIVE price with slug
+        await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'Inactive Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: false,
+            slug,
+          },
+          transaction
+        )
+        // Insert ACTIVE price with same slug - should succeed
+        const activePrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: secondProduct.id,
+            name: 'Active Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug,
+          },
+          transaction
+        )
+        expect(activePrice.slug).toBe(slug)
+        expect(activePrice.active).toBe(true)
+      })
+    })
+
+    it('allows updating price from active to inactive even when another active price has same slug', async () => {
+      const slug = 'shared-slug'
+      await adminTransaction(async ({ transaction }) => {
+        // Create a second product in the same pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          pricingModelId: product.pricingModelId,
+        })
+        // Insert first ACTIVE price with slug
+        const firstPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'First Active Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug,
+          },
+          transaction
+        )
+        // Insert second ACTIVE price with DIFFERENT slug
+        const secondPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: secondProduct.id,
+            name: 'Second Active Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: true,
+            slug: 'different-slug-initially',
+          },
+          transaction
+        )
+        // Update second price slug to match first AND set to inactive - should succeed
+        const updatedPrice = await updatePrice(
+          {
+            id: secondPrice.id,
+            active: false,
+            slug,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+        expect(updatedPrice.active).toBe(false)
+        expect(updatedPrice.slug).toBe(slug)
+      })
+    })
+
+    it('throws an error when updating inactive price to active when another active price has the same slug', async () => {
+      const slug = 'conflicting-slug'
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          // Create a second product in the same pricing model
+          const secondProduct = await setupProduct({
+            organizationId: organization.id,
+            name: 'Second Product',
+            pricingModelId: product.pricingModelId,
+          })
+          // Insert first ACTIVE price with slug
+          await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: product.id,
+              name: 'Active Price',
+              type: PriceType.Subscription,
+              unitPrice: 1000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              externalId: null,
+              active: true,
+              slug,
+            },
+            transaction
+          )
+          // Insert INACTIVE price with same slug
+          const inactivePrice = await insertPrice(
+            {
+              ...nulledPriceColumns,
+              productId: secondProduct.id,
+              name: 'Inactive Price',
+              type: PriceType.Subscription,
+              unitPrice: 1500,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              livemode: true,
+              isDefault: false,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              externalId: null,
+              active: false,
+              slug,
+            },
+            transaction
+          )
+          // Attempt to update inactive price to active - should fail
+          await updatePrice(
+            {
+              id: inactivePrice.id,
+              active: true,
+              type: PriceType.Subscription,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(/Failed query: /)
+    })
+
+    it('allows multiple inactive prices with the same slug in same pricing model', async () => {
+      const slug = 'inactive-slug'
+      await adminTransaction(async ({ transaction }) => {
+        // Create a second product in the same pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          pricingModelId: product.pricingModelId,
+        })
+        // Insert first INACTIVE price with slug
+        const firstPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'First Inactive Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: false,
+            slug,
+          },
+          transaction
+        )
+        // Insert second INACTIVE price with same slug - should succeed
+        const secondPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: secondProduct.id,
+            name: 'Second Inactive Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: false,
+            slug,
+          },
+          transaction
+        )
+        expect(firstPrice.slug).toBe(slug)
+        expect(firstPrice.active).toBe(false)
+        expect(secondPrice.slug).toBe(slug)
+        expect(secondPrice.active).toBe(false)
+      })
+    })
+
+    it('allows updating inactive price slug to match another inactive price slug', async () => {
+      const slug = 'shared-inactive-slug'
+      await adminTransaction(async ({ transaction }) => {
+        // Create a second product in the same pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          pricingModelId: product.pricingModelId,
+        })
+        // Insert first INACTIVE price with the target slug
+        await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: product.id,
+            name: 'First Inactive Price',
+            type: PriceType.Subscription,
+            unitPrice: 1000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: false,
+            slug,
+          },
+          transaction
+        )
+        // Insert second INACTIVE price with different slug
+        const secondPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: secondProduct.id,
+            name: 'Second Inactive Price',
+            type: PriceType.Subscription,
+            unitPrice: 1500,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            externalId: null,
+            active: false,
+            slug: 'different-slug',
+          },
+          transaction
+        )
+        // Update second price to have same slug as first - should succeed since both inactive
+        const updatedPrice = await updatePrice(
+          {
+            id: secondPrice.id,
+            slug,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+        expect(updatedPrice.slug).toBe(slug)
+        expect(updatedPrice.active).toBe(false)
+      })
     })
   })
 })
