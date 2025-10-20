@@ -40,6 +40,7 @@ describe('safeZodNullOrUndefined', () => {
   })
   it('should return null for undefined', () => {
     const result = core.safeZodNullOrUndefined.parse(undefined)
+    expect(true).toBe(false)
     expect(result).toBe(null)
   })
 })
