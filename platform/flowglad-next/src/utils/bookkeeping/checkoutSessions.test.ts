@@ -54,7 +54,7 @@ import { DbTransaction } from '@/db/types'
 import { eq } from 'drizzle-orm'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
-import { selectEvents } from '@/db/tableMethods/eventMethods'
+import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
 import {
   BillingAddress,
   Organization,
@@ -1281,19 +1281,6 @@ async function deleteFeeCalculation(
     .where(eq(feeCalculations.id, id))
 }
 
-// Helper function to query events by customer
-async function selectEventsByCustomer(
-  customerId: string,
-  organizationId: string,
-  transaction: DbTransaction
-) {
-  const allEvents = await selectEvents({ organizationId }, transaction)
-  
-  // Filter events for this specific customer by checking the payload
-  return allEvents.filter(event => 
-    event.payload.customer?.id === customerId
-  )
-}
 
 // Helper function to update an organization
 async function updateOrg(
