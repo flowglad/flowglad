@@ -4,24 +4,32 @@
 # and then merges the reports together.
 name: Flowglad Next Unit Tests
 
+# This workflow is designed to be called by other workflows
+# rather than triggered directly by events
 on:
   workflow_call:
 
 jobs:
+  # Main job that runs tests across multiple shards in parallel
+  # Each shard runs a subset of tests to improve performance
   flowglad-next-sharded-tests:
     runs-on: ubuntu-latest
+    # Matrix strategy creates 4 parallel jobs (shards)
+    # Each shard gets a different shardIndex (1-4) but same shardTotal (4)
     strategy:
       matrix:
-        shardIndex: [1, 2, 3, 4]
-        shardTotal: [4]
-      fail-fast: false
+        shardIndex: [1, 2, 3, 4]  # Individual shard identifier
+        shardTotal: [4]           # Total number of shards
+      fail-fast: false           # Don't stop other shards if one fails
     defaults:
       run:
         working-directory: platform/flowglad-next
     steps:
+      # Standard setup steps for each shard
       - name: Checkout repository
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
+          # Use branch from input if provided, otherwise use current ref
           ref: ${{ github.event.inputs.branch || github.ref }}
       - name: Setup Node.js
         uses: actions/setup-node@9ced9a43a244f3ac94f13bfd896db8c8f30da67a # v3
@@ -44,39 +52,28 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install-packages
+      # Docker setup for test dependencies (databases, etc.)
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@dc7b9719a96d48369863986a06765841d7ea23f6 # v2
       - name: Set up Docker Compose
         uses: ndeloof/install-compose-action@v0.0.1
       - name: Setup Docker for tests
         run: |
+          # Clean up any existing containers and volumes
           docker-compose -f docker-compose.test.yml down --volumes || true
+          # Start test services in detached mode
           docker-compose -f docker-compose.test.yml up --build -d
+          # Verify services are running
           docker-compose -f docker-compose.test.yml ps
       - name: Run test setup
         run: pnpm test:setup
       - name: Create vitest reports directory
         run: mkdir -p .vitest-reports
+      # Run tests for this specific shard
+      # Each shard runs a subset of tests based on shardIndex/shardTotal
       - name: Run sharded tests
         run: pnpm vitest run --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-      - name: Debug vitest reports after test
-        run: |
-          echo "Current working directory:"
-          pwd
-          echo "Checking .vitest-reports directory after test:"
-          ls -la .vitest-reports/ || echo "Directory does not exist"
-          echo "Looking for blob files:"
-          find .vitest-reports -name "blob-*.json" 2>/dev/null || echo "No blob files found"
-          echo "Looking for any files in .vitest-reports:"
-          find .vitest-reports -type f 2>/dev/null || echo "No files found"
-          echo "Checking if specific file exists:"
-          ls -la .vitest-reports/blob-${{ matrix.shardIndex }}.json || echo "Specific blob file does not exist"
-      - name: Debug before upload
-        run: |
-          echo "Current working directory before upload:"
-          pwd
-          echo "Checking if file exists before upload:"
-          ls -la .vitest-reports/blob-${{ matrix.shardIndex }}.json || echo "File does not exist"
+      # Upload test results as artifacts for later merging
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
@@ -84,19 +81,23 @@ jobs:
           name: blob-report-${{ matrix.shardIndex }}
           path: platform/flowglad-next/.vitest-reports/blob-${{ matrix.shardIndex }}.json
           include-hidden-files: true
-          retention-days: 1
+          retention-days: 1  # Short retention since we merge immediately
+      # Clean up Docker containers after tests complete
       - name: Run test teardown
-        if: always()
+        if: always()  # Run even if tests fail
         run: pnpm test:teardown
-
+  
+  # Merges the reports from the sharded tests into a single report.
+  # This job runs after all shards complete and combines their results
   merge-reports:
-    if: ${{ !cancelled() }}
-    needs: [flowglad-next-sharded-tests]
+    if: ${{ !cancelled() }}  # Only run if workflow wasn't cancelled
+    needs: [flowglad-next-sharded-tests]  # Wait for all shards to finish
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: platform/flowglad-next
     steps:
+      # Setup steps for merge job (similar to shard setup)
       - name: Checkout repository
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
@@ -122,25 +123,20 @@ jobs:
             ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
         run: pnpm install-packages
+      # Download all shard reports from artifacts
       - name: Download blob reports from GitHub Actions Artifacts
         uses: actions/download-artifact@v4
         with:
           path: platform/flowglad-next/.vitest-reports
-          pattern: blob-report-*
-          merge-multiple: true
-      - name: Debug downloaded artifacts
-        run: |
-          echo "Current working directory:"
-          pwd
-          echo "Looking for downloaded blob files in .vitest-reports:"
-          find .vitest-reports -name "blob-*.json" 2>/dev/null || echo "No blob files found in .vitest-reports"
-          echo "Contents of .vitest-reports directory:"
-          ls -la .vitest-reports/ || echo ".vitest-reports directory does not exist"
+          pattern: blob-report-*  # Download all shard reports
+          merge-multiple: true     # Merge into single directory
+      # Debug step to verify all reports were downloaded
       - name: Verify blob files are ready for merge
         run: |
           echo "Blob files in .vitest-reports:"
           ls -la .vitest-reports/
           echo "Count of blob files:"
           find .vitest-reports -name "blob-*.json" | wc -l
+      # Combine all shard reports into a single comprehensive report
       - name: Merge reports
         run: pnpm vitest run --merge-reports

@@ -16,7 +16,7 @@ jobs=$(for i in $(find .github -iname '*.yaml' -or -iname '*.yml')
     if yq -e '.on | has("pull_request")' "$i" 2>/dev/null >/dev/null
     then
       # Skip reusable workflows (those with workflow_call) as their jobs
-      # are not direct dependencies of all-jobs-succeed
+      # don't need to be direct dependencies of all-jobs-succeed
       if yq -e '.on | has("workflow_call")' "$i" 2>/dev/null >/dev/null
       then
         continue
