@@ -71,7 +71,8 @@ jobs:
         run: mkdir -p .vitest-reports
       # Run tests for this specific shard
       # Each shard runs a subset of tests based on shardIndex/shardTotal
-      - name: Run sharded tests
+      # Verbose output will show detailed test results in the CI logs
+      - name: Run sharded tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: pnpm vitest run --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       # Upload test results as artifacts for later merging
       - name: Upload blob report to GitHub Actions Artifacts
