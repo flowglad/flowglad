@@ -20,7 +20,7 @@ jobs:
       matrix:
         shardIndex: [1, 2, 3, 4]  # Individual shard identifier
         shardTotal: [4]           # Total number of shards
-      fail-fast: false           # Don't stop other shards if one fails
+      fail-fast: false            # Don't stop other shards if one fails
     defaults:
       run:
         working-directory: platform/flowglad-next
