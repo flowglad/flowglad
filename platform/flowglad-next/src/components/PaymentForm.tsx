@@ -180,6 +180,9 @@ const PaymentForm = () => {
   const [emailError, setEmailError] = useState<string | undefined>(
     undefined
   )
+  const [addressError, setAddressError] = useState<string | undefined>(
+    undefined
+  )
   const embedsReady =
     emailEmbedReady && paymentEmbedReady && addressEmbedReady
   const [errorMessage, setErrorMessage] = useState<
@@ -263,16 +266,21 @@ const PaymentForm = () => {
 
         // Validate address before proceeding
         if (!checkoutSession.billingAddress) {
+          setAddressError('Please fill in your billing address')
           setIsSubmitting(false)
           return
         }
         
         const addressValidation = billingAddressSchema.safeParse(checkoutSession.billingAddress)
-
+        
         if (!addressValidation.success) {
+          setAddressError('Please fill in all required address fields')
           setIsSubmitting(false)
           return
         }
+
+        // Clear any previous address errors
+        setAddressError(undefined)
 
         try {
           await confirmCheckoutSession.mutateAsync({
@@ -494,6 +502,8 @@ const PaymentForm = () => {
                     id: checkoutSession.id,
                     billingAddress: event.value,
                   })
+                  // Clear any previous address errors when user starts typing
+                  setAddressError(undefined)
                 } catch (error) {
                   // Silently handle errors for non-open sessions
                   console.warn(
@@ -505,6 +515,9 @@ const PaymentForm = () => {
             }}
             className={!embedsReady ? 'opacity-0' : ''}
           />
+          {addressError && (
+            <ErrorLabel error={addressError} className="mt-2" />
+          )}
         </div>
       </div>
       {/* Form Footer - Order Summary & Actions */}
