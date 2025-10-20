@@ -1,0 +1,136 @@
+# This workflow runs the unit tests 
+# for flowglad-next in a sharded manner.
+# It runs the pnpm test command across 4 shards,
+# and then merges the reports together.
+name: Flowglad Next Unit Tests
+
+# This workflow is designed to be called by other workflows
+# rather than triggered directly by events
+on:
+  workflow_call:
+
+jobs:
+  # Main job that runs tests across multiple shards in parallel
+  # Each shard runs a subset of tests to improve performance
+  flowglad-next-sharded-tests:
+    runs-on: ubuntu-latest
+    # Matrix strategy creates 4 parallel jobs (shards)
+    # Each shard gets a different shardIndex (1-4) but same shardTotal (4)
+    strategy:
+      matrix:
+        shardIndex: [1, 2, 3, 4]  # Individual shard identifier
+        shardTotal: [4]           # Total number of shards
+      fail-fast: false            # Don't stop other shards if one fails
+    defaults:
+      run:
+        working-directory: platform/flowglad-next
+    steps:
+      # Standard setup steps for each shard
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        with:
+          # Use branch from input if provided, otherwise use current ref
+          ref: ${{ github.event.inputs.branch || github.ref }}
+      - name: Setup Node.js
+        uses: actions/setup-node@9ced9a43a244f3ac94f13bfd896db8c8f30da67a # v3
+        with:
+          node-version: '18'
+      - name: Install pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+        with:
+          version: 8
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - name: Setup pnpm cache
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Install dependencies
+        run: pnpm install-packages
+      # Docker setup for test dependencies (databases, etc.)
+      - name: Set up Docker Build
+        uses: docker/setup-buildx-action@dc7b9719a96d48369863986a06765841d7ea23f6 # v2
+      - name: Set up Docker Compose
+        uses: ndeloof/install-compose-action@v0.0.1
+      - name: Setup Docker for tests
+        run: |
+          # Clean up any existing containers and volumes
+          docker-compose -f docker-compose.test.yml down --volumes || true
+          # Start test services in detached mode
+          docker-compose -f docker-compose.test.yml up --build -d
+          # Verify services are running
+          docker-compose -f docker-compose.test.yml ps
+      - name: Run test setup
+        run: pnpm test:setup
+      - name: Create vitest reports directory
+        run: mkdir -p .vitest-reports
+      # Run tests for this specific shard
+      # Each shard runs a subset of tests based on shardIndex/shardTotal
+      # Verbose output will show detailed test results in the CI logs
+      - name: Run sharded tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        run: pnpm vitest run --reporter=verbose --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --no-silent
+      # Upload test results as artifacts for later merging
+      - name: Upload blob report to GitHub Actions Artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shardIndex }}
+          path: platform/flowglad-next/.vitest-reports/blob-${{ matrix.shardIndex }}.json
+          include-hidden-files: true
+          retention-days: 1  # Short retention since we merge immediately
+      # Clean up Docker containers after tests complete
+      - name: Run test teardown
+        if: always()  # Run even if tests fail
+        run: pnpm test:teardown
+  
+  # Merges the reports from the sharded tests into a single report.
+  # This job runs after all shards complete and combines their results
+  merge-reports:
+    if: ${{ !cancelled() }}  # Only run if workflow wasn't cancelled
+    needs: [flowglad-next-sharded-tests]  # Wait for all shards to finish
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/flowglad-next
+    steps:
+      # Setup steps for merge job (similar to shard setup)
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+      - name: Setup Node.js
+        uses: actions/setup-node@9ced9a43a244f3ac94f13bfd896db8c8f30da67a # v3
+        with:
+          node-version: '18'
+      - name: Install pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+        with:
+          version: 8
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - name: Setup pnpm cache
+        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      - name: Install dependencies
+        run: pnpm install-packages
+      # Download all shard reports from artifacts
+      - name: Download blob reports from GitHub Actions Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: platform/flowglad-next/.vitest-reports
+          pattern: blob-report-*  # Download all shard reports
+          merge-multiple: true    # Merge into single directory
+      # Combine all shard reports into a single comprehensive report
+      - name: Merge reports
+        run: pnpm vitest run --merge-reports
