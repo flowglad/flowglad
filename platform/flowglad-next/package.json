@@ -82,6 +82,7 @@
     "@react-email/components": "0.0.36",
     "@remixicon/react": "^4.5.0",
     "@sentry/nextjs": "^8",
+    "@sentry/utils": "^8.55.0",
     "@sentry/node": "^8.55.0",
     "@slack/bolt": "^4.0.1",
     "@slack/web-api": "^7.7.0",
