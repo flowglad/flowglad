@@ -129,14 +129,7 @@ jobs:
         with:
           path: platform/flowglad-next/.vitest-reports
           pattern: blob-report-*  # Download all shard reports
-          merge-multiple: true     # Merge into single directory
-      # Debug step to verify all reports were downloaded
-      - name: Verify blob files are ready for merge
-        run: |
-          echo "Blob files in .vitest-reports:"
-          ls -la .vitest-reports/
-          echo "Count of blob files:"
-          find .vitest-reports -name "blob-*.json" | wc -l
+          merge-multiple: true    # Merge into single directory
       # Combine all shard reports into a single comprehensive report
       - name: Merge reports
         run: pnpm vitest run --merge-reports
