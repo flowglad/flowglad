@@ -429,22 +429,34 @@ const setPricesForProductToNonDefault = async (
     .where(eq(prices.productId, productId))
 }
 
+const setPricesForProductToNonDefaultNonActive = async (
+  productId: string,
+  transaction: DbTransaction
+) => {
+  await transaction
+    .update(prices)
+    .set({ isDefault: false, active: false })
+    .where(eq(prices.productId, productId))
+}
+
 export const dangerouslyInsertPrice = createInsertFunction(
   prices,
   config
 )
 
 export const safelyInsertPrice = async (
-  price: Price.Insert,
+  price: Omit<Price.Insert, 'isDefault' | 'active'>,
   transaction: DbTransaction
 ) => {
-  if (price.isDefault) {
-    await setPricesForProductToNonDefault(
-      price.productId,
-      transaction
-    )
-  }
-  return dangerouslyInsertPrice(price, transaction)
+  // for now, only allow one active and default price per product
+  await setPricesForProductToNonDefaultNonActive(
+    price.productId,
+    transaction
+  )
+  return dangerouslyInsertPrice(
+    { ...price, isDefault: true, active: true } as Price.Insert,
+    transaction
+  )
 }
 
 export const safelyUpdatePrice = async (

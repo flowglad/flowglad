@@ -128,9 +128,7 @@ export const createPrice = protectedProcedure
         const newPrice = await safelyInsertPrice(
           {
             ...price,
-            isDefault:
-              existingProductHasNoDefaultPrice ||
-              input.price.isDefault,
+            // for now, created prices have default = true and active = true
             livemode: ctx.livemode,
             currency: organization.defaultCurrency,
             externalId: null,
