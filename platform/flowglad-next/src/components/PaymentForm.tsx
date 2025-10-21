@@ -264,6 +264,13 @@ const PaymentForm = () => {
 
         setIsSubmitting(true)
 
+        // Validate payment method before proceeding
+        if (!checkoutSession.paymentMethodType) {
+          setErrorMessage('Please select a payment method')
+          setIsSubmitting(false)
+          return
+        }
+
         // Validate address before proceeding
         if (!checkoutSession.billingAddress) {
           setAddressError('Please fill in your billing address')
