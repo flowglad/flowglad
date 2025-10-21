@@ -5,6 +5,7 @@ import {
   pricesSelectSchema,
   pricesUpdateSchema,
   ProductWithPrices,
+  pricesTableRowDataSchema,
   pricesClientSelectSchema,
 } from '@/db/schema/prices'
 import {
@@ -86,7 +87,6 @@ export const selectPricesAndProductsForOrganization = async (
 
   const whereClauses: SQLWrapper[] = [
     eq(products.organizationId, organizationId),
-    eq(prices.active, true),
   ]
   if (Object.keys(whereConditions).length > 0) {
     const whereClause = whereClauseFromObject(prices, whereConditions)
@@ -227,12 +227,7 @@ export const selectPricesAndProductsByProductWhere = async (
       eq(products.id, productFeatures.productId)
     )
     .leftJoin(features, eq(productFeatures.featureId, features.id))
-    .where(
-      and(
-        whereClauseFromObject(products, whereConditions),
-        eq(prices.active, true)
-      )
-    )
+    .where(whereClauseFromObject(products, whereConditions))
     .orderBy(asc(products.createdAt))
 
   const parsedResults: PriceProductFeature[] =

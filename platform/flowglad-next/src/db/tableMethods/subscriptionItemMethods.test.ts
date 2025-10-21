@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
   selectSubscriptionItemById,
   insertSubscriptionItem,
@@ -21,11 +21,11 @@ import {
   setupSubscriptionItem,
   setupTestFeaturesAndProductFeatures,
   setupUsageMeter,
+  setupCreditLedgerEntry,
   setupUsageEvent,
   setupDebitLedgerEntry,
   setupLedgerTransaction,
   setupLedgerAccount,
-  setupPrice,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -44,11 +44,8 @@ import {
   LedgerTransactionType,
   SubscriptionItemType,
   SubscriptionStatus,
-  PriceType,
-  IntervalUnit,
-  CurrencyCode,
 } from '@/types'
-import { updateSubscription, selectSubscriptionById } from './subscriptionMethods'
+import { updateSubscription } from './subscriptionMethods'
 import {
   SubscriptionItemFeature,
   subscriptionItemFeatures,
@@ -58,6 +55,7 @@ import { eq, and } from 'drizzle-orm'
 import { subscriptionItemFeatureInsertFromSubscriptionItemAndFeature } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import { setupUsageLedgerScenario } from '@/../seedDatabase'
 import { ledgerEntries } from '@/db/schema/ledgerEntries'
+import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
 
 describe('subscriptionItemMethods', async () => {
   let organization: Organization.Record
@@ -814,112 +812,6 @@ describe('subscriptionItemMethods', async () => {
         expect(emptySub?.subscriptionItems).toEqual([])
         expect(emptySub?.experimental?.featureItems).toEqual([])
         expect(emptySub?.experimental?.usageMeterBalances).toEqual([])
-      })
-    })
-
-    it('should filter out inactive prices from subscription items', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Get the subscription to check its livemode
-        const currentSubscription = await selectSubscriptionById(
-          subscription.id,
-          transaction
-        )
-
-        // Create an active price
-        const activePrice = await setupPrice({
-          productId: price.productId,
-          name: 'Active Price',
-          type: PriceType.Subscription,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          unitPrice: 1000,
-          currency: CurrencyCode.USD,
-          active: true,
-          livemode: currentSubscription.livemode,
-          isDefault: false,
-        })
-
-        // Create an inactive price
-        const inactivePrice = await setupPrice({
-          productId: price.productId,
-          name: 'Inactive Price',
-          type: PriceType.Subscription,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          unitPrice: 2000,
-          currency: CurrencyCode.USD,
-          active: false,
-          livemode: currentSubscription.livemode,
-          isDefault: false,
-        })
-
-        // Create subscription items with both active and inactive prices
-        const activeItem = await insertSubscriptionItem(
-          {
-            subscriptionId: subscription.id,
-            name: 'Item with Active Price',
-            quantity: 1,
-            unitPrice: activePrice.unitPrice,
-            priceId: activePrice.id,
-            livemode: currentSubscription.livemode,
-            addedDate: Date.now(),
-            expiredAt: null,
-            metadata: {},
-            externalId: null,
-            type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
-
-        const inactiveItem = await insertSubscriptionItem(
-          {
-            subscriptionId: subscription.id,
-            name: 'Item with Inactive Price',
-            quantity: 1,
-            unitPrice: inactivePrice.unitPrice,
-            priceId: inactivePrice.id,
-            livemode: currentSubscription.livemode,
-            addedDate: Date.now(),
-            expiredAt: null,
-            metadata: {},
-            externalId: null,
-            type: SubscriptionItemType.Static,
-          },
-          transaction
-        )
-
-        const richSubscriptions =
-          await selectRichSubscriptionsAndActiveItems(
-            { organizationId: organization.id },
-            transaction
-          )
-
-        expect(richSubscriptions.length).toBe(1)
-        const subWithItems = richSubscriptions[0]
-        expect(subWithItems.id).toBe(subscription.id)
-
-        // Find our test items
-        const testActiveItem = subWithItems.subscriptionItems.find(
-          (item) => item.id === activeItem.id
-        )
-        const testInactiveItem = subWithItems.subscriptionItems.find(
-          (item) => item.id === inactiveItem.id
-        )
-
-        // Active item should exist and have price data
-        expect(testActiveItem).toBeDefined()
-        expect(testActiveItem!.price).toBeDefined()
-        expect(testActiveItem!.price!.id).toBe(activePrice.id)
-        expect(testActiveItem!.price!.active).toBe(true)
-
-        // Inactive item should be completely filtered out (not in results)
-        expect(testInactiveItem).toBeUndefined()
-
-        // Verify that all returned items have active prices
-        const allPricesAreActive = subWithItems.subscriptionItems.every(
-          (item) => item.price?.active === true
-        )
-        expect(allPricesAreActive).toBe(true)
       })
     })
   })

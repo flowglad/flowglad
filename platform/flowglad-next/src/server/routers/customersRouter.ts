@@ -36,6 +36,7 @@ import {
 import {
   createGetOpenApiMeta,
   generateOpenApiMetas,
+  trpcToRest,
   RouteConfig,
 } from '@/utils/openapi'
 import { externalIdInputSchema } from '@/db/tableUtils'
