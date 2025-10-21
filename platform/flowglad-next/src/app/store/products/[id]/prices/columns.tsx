@@ -1,36 +1,41 @@
 'use client'
 
+// Note:
+// for now since we have one default & active price per product,
+// we hide action buttons for now in the price history table
+// can be re-added later when multiple prices per product are supported
+
 import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import {
   ChartColumnIncreasing,
-  Pencil,
-  Copy,
-  Archive,
-  ArchiveRestore,
-  Star,
-  Trash2,
+  // Pencil,
+  // Copy,
+  // Archive,
+  // ArchiveRestore,
+  // Star,
+  // Trash2,
   RotateCw,
 } from 'lucide-react'
 // UI components last
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
-import {
-  EnhancedDataTableActionsMenu,
-  ActionMenuItem,
-} from '@/components/ui/enhanced-data-table-actions-menu'
+// import {
+//   EnhancedDataTableActionsMenu,
+//   ActionMenuItem,
+// } from '@/components/ui/enhanced-data-table-actions-menu'
 // Other imports
 import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import { PriceType } from '@/types'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+// import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import core from '@/utils/core'
 import StatusBadge from '@/components/StatusBadge'
 import PricingCellView from '@/components/PricingCellView'
-import EditPriceModal from '@/components/forms/EditPriceModal'
-import ArchivePriceModal from '@/components/forms/ArchivePriceModal'
-import SetPriceAsDefaultModal from '@/components/forms/SetPriceAsDefaultModal'
+// import EditPriceModal from '@/components/forms/EditPriceModal'
+// import ArchivePriceModal from '@/components/forms/ArchivePriceModal'
+// import SetPriceAsDefaultModal from '@/components/forms/SetPriceAsDefaultModal'
 
 export type PriceTableRowData = {
   price: Price.ClientRecord
@@ -70,103 +75,103 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
   }
 }
 
-function PriceActionsMenu({
-  price,
-  otherPrices,
-}: {
-  price: Price.ClientRecord
-  otherPrices: Price.ClientRecord[]
-}) {
-  const [isEditOpen, setIsEditOpen] = React.useState(false)
-  const [isArchiveOpen, setIsArchiveOpen] = React.useState(false)
-  const [isSetDefaultOpen, setIsSetDefaultOpen] =
-    React.useState(false)
+// function PriceActionsMenu({
+//   price,
+//   otherPrices,
+// }: {
+//   price: Price.ClientRecord
+//   otherPrices: Price.ClientRecord[]
+// }) {
+//   const [isEditOpen, setIsEditOpen] = React.useState(false)
+//   const [isArchiveOpen, setIsArchiveOpen] = React.useState(false)
+//   const [isSetDefaultOpen, setIsSetDefaultOpen] =
+//     React.useState(false)
 
-  const copyTextHandler = useCopyTextHandler({
-    text: `${core.NEXT_PUBLIC_APP_URL}/price/${price.id}/purchase`,
-  })
+//   const copyTextHandler = useCopyTextHandler({
+//     text: `${core.NEXT_PUBLIC_APP_URL}/price/${price.id}/purchase`,
+//   })
 
-  const items: ActionMenuItem[] = [
-    {
-      label: 'Edit price',
-      icon: <Pencil className="h-4 w-4" />,
-      handler: () => setIsEditOpen(true),
-    },
-    {
-      label: 'Copy purchase link',
-      icon: <Copy className="h-4 w-4" />,
-      handler: copyTextHandler,
-    },
-  ]
+//   const items: ActionMenuItem[] = [
+//     {
+//       label: 'Edit price',
+//       icon: <Pencil className="h-4 w-4" />,
+//       handler: () => setIsEditOpen(true),
+//     },
+//     {
+//       label: 'Copy purchase link',
+//       icon: <Copy className="h-4 w-4" />,
+//       handler: copyTextHandler,
+//     },
+//   ]
 
-  // Case 1: Price is archived - show unarchive option
-  if (!price.active) {
-    items.push({
-      label: 'Unarchive price',
-      icon: <ArchiveRestore className="h-4 w-4" />,
-      handler: () => setIsArchiveOpen(true),
-    })
-  }
+//   // Case 1: Price is archived - show unarchive option
+//   if (!price.active) {
+//     items.push({
+//       label: 'Unarchive price',
+//       icon: <ArchiveRestore className="h-4 w-4" />,
+//       handler: () => setIsArchiveOpen(true),
+//     })
+//   }
 
-  // Case 2: Price is not default AND it's active - show make default option
-  if (!price.isDefault && otherPrices.some((p) => p.isDefault)) {
-    items.push({
-      label: 'Make default',
-      icon: <Star className="h-4 w-4" />,
-      handler: () => setIsSetDefaultOpen(true),
-    })
-  }
+//   // Case 2: Price is not default AND it's active - show make default option
+//   if (!price.isDefault && otherPrices.some((p) => p.isDefault)) {
+//     items.push({
+//       label: 'Make default',
+//       icon: <Star className="h-4 w-4" />,
+//       handler: () => setIsSetDefaultOpen(true),
+//     })
+//   }
 
-  const canDelist = !price.isDefault && otherPrices.length > 0
+//   const canDelist = !price.isDefault && otherPrices.length > 0
 
-  // Only show archive option if price is active, but only have it enabled if there are other prices
-  if (price.active) {
-    let helperText: string | undefined = undefined
-    if (price.isDefault) {
-      helperText = 'Make another price default to archive this.'
-    } else if (otherPrices.length === 0) {
-      helperText =
-        'Every product must have at least one active price.'
-    }
-    items.push({
-      label: 'Archive price',
-      icon: <Archive className="h-4 w-4" />,
-      handler: () => setIsArchiveOpen(true),
-      disabled: !canDelist,
-      helperText,
-    })
-  }
+//   // Only show archive option if price is active, but only have it enabled if there are other prices
+//   if (price.active) {
+//     let helperText: string | undefined = undefined
+//     if (price.isDefault) {
+//       helperText = 'Make another price default to archive this.'
+//     } else if (otherPrices.length === 0) {
+//       helperText =
+//         'Every product must have at least one active price.'
+//     }
+//     items.push({
+//       label: 'Archive price',
+//       icon: <Archive className="h-4 w-4" />,
+//       handler: () => setIsArchiveOpen(true),
+//       disabled: !canDelist,
+//       helperText,
+//     })
+//   }
 
-  items.push({
-    label: 'Delete price',
-    icon: <Trash2 className="h-4 w-4" />,
-    destructive: true,
-    disabled: !canDelist,
-    handler: () => {
-      // FIXME: Implement delete price functionality
-    },
-  })
+//   items.push({
+//     label: 'Delete price',
+//     icon: <Trash2 className="h-4 w-4" />,
+//     destructive: true,
+//     disabled: !canDelist,
+//     handler: () => {
+//       // FIXME: Implement delete price functionality
+//     },
+//   })
 
-  return (
-    <EnhancedDataTableActionsMenu items={items}>
-      <EditPriceModal
-        isOpen={isEditOpen}
-        setIsOpen={setIsEditOpen}
-        price={price}
-      />
-      <ArchivePriceModal
-        isOpen={isArchiveOpen}
-        setIsOpen={setIsArchiveOpen}
-        price={price}
-      />
-      <SetPriceAsDefaultModal
-        isOpen={isSetDefaultOpen}
-        setIsOpen={setIsSetDefaultOpen}
-        price={price}
-      />
-    </EnhancedDataTableActionsMenu>
-  )
-}
+//   return (
+//     <EnhancedDataTableActionsMenu items={items}>
+//       <EditPriceModal
+//         isOpen={isEditOpen}
+//         setIsOpen={setIsEditOpen}
+//         price={price}
+//       />
+//       <ArchivePriceModal
+//         isOpen={isArchiveOpen}
+//         setIsOpen={setIsArchiveOpen}
+//         price={price}
+//       />
+//       <SetPriceAsDefaultModal
+//         isOpen={isSetDefaultOpen}
+//         setIsOpen={setIsSetDefaultOpen}
+//         price={price}
+//       />
+//     </EnhancedDataTableActionsMenu>
+//   )
+// }
 
 export const columns: ColumnDef<PriceTableRowData>[] = [
   {
@@ -296,28 +301,28 @@ export const columns: ColumnDef<PriceTableRowData>[] = [
     minSize: 125,
     maxSize: 250,
   },
-  {
-    id: 'actions',
-    enableHiding: false,
-    enableResizing: false,
-    cell: ({ row, table }) => {
-      const price = row.original.price
-      const allRows = table.getCoreRowModel().rows
-      const otherPrices = allRows
-        .filter((r) => r.original.price.id !== price.id)
-        .map((r) => r.original.price)
+  // {
+  //   id: 'actions',
+  //   enableHiding: false,
+  //   enableResizing: false,
+  //   cell: ({ row, table }) => {
+  //     const price = row.original.price
+  //     const allRows = table.getCoreRowModel().rows
+  //     const otherPrices = allRows
+  //       .filter((r) => r.original.price.id !== price.id)
+  //       .map((r) => r.original.price)
 
-      return (
-        <div
-          className="w-8 flex justify-center"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <PriceActionsMenu price={price} otherPrices={otherPrices} />
-        </div>
-      )
-    },
-    size: 1,
-    minSize: 56,
-    maxSize: 56,
-  },
+  //     return (
+  //       <div
+  //         className="w-8 flex justify-center"
+  //         onClick={(e) => e.stopPropagation()}
+  //       >
+  //         <PriceActionsMenu price={price} otherPrices={otherPrices} />
+  //       </div>
+  //     )
+  //   },
+  //   size: 1,
+  //   minSize: 56,
+  //   maxSize: 56,
+  // },
 ]

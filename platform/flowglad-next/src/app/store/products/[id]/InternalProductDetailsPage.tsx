@@ -5,6 +5,7 @@ import { Price } from '@/db/schema/prices'
 import { Clipboard, Ellipsis, Eye, Pencil } from 'lucide-react'
 import { Product } from '@/db/schema/products'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import EditPriceModal from '@/components/forms/EditPriceModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
@@ -118,7 +119,7 @@ function InternalProductDetailsPage(
           </div>
         </div>
         <PricesDataTable
-          title="Prices"
+          title="Price History"
           productId={product.id}
           filters={{
             productId: product.id,
@@ -129,10 +130,15 @@ function InternalProductDetailsPage(
               : () => setIsCreatePriceOpen(true)
           }
         />
-        <CreatePriceModal
+        {/* for now, only one active & default price per product, so we use editpricemodal instead */}
+        <EditPriceModal
           isOpen={isCreatePriceOpen}
           setIsOpen={setIsCreatePriceOpen}
-          productId={product.id}
+          price={
+            prices.find(
+              (p) => p.isDefault === true && p.active === true
+            )!
+          }
         />
       </div>
       <EditProductModal
