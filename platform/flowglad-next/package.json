@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "xmcp dev & next dev --turbopack",
+    "dev": "next dev --turbopack",
     "prebuild": "dotenvx run -f .env.local -- pnpm tsx src/scripts/removeDevRoutes.ts && pnpm build:preview-css",
-    "build": "xmcp build && pnpm check && next build",
+    "build": "pnpm check && next build",
     "build:preview-css": "tsx src/scripts/build-preview-css.ts",
     "checkout-fork": "chmod +x ./src/scripts/checkout-fork.sh && ./src/scripts/checkout-fork.sh",
     "user": "tsx src/scripts/setup-env-user.ts",
