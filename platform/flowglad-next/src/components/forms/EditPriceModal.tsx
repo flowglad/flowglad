@@ -31,13 +31,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
   // all other prices will be made non-default and not active
   const editPrice = trpc.prices.create.useMutation({
     onSuccess: (data) => {
-      // eslint-disable-next-line no-console
-      console.log('Price created successfully:', data)
-      setIsOpen(false) // Close modal on success
-    },
-    onError: (error) => {
-      // eslint-disable-next-line no-console
-      console.error('Price creation failed:', error)
+      setIsOpen(false)
     },
   })
   const __rawPriceString = countableCurrencyAmountToRawStringAmount(
@@ -81,29 +75,16 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
       formSchema={createPriceFormSchema}
       defaultValues={defaultValues as any}
       onSubmit={async (input) => {
-        try {
-          // eslint-disable-next-line no-console
-          console.log(
-            'EditPriceModal onSubmit called with input:',
-            input
-          )
-          await editPrice.mutateAsync({
-            ...input,
-            price: {
-              ...input.price,
-              unitPrice: rawStringAmountToCountableCurrencyAmount(
-                organization!.defaultCurrency,
-                input.__rawPriceString!
-              ),
-            },
-          })
-          // eslint-disable-next-line no-console
-          console.log('Mutation successful')
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('EditPriceModal submit error:', error)
-          throw error
-        }
+        await editPrice.mutateAsync({
+          ...input,
+          price: {
+            ...input.price,
+            unitPrice: rawStringAmountToCountableCurrencyAmount(
+              organization!.defaultCurrency,
+              input.__rawPriceString!
+            ),
+          },
+        })
       }}
     >
       <PriceFormFields
