@@ -1,14 +1,21 @@
 import { type Flowglad } from '@flowglad/node'
 
 export type PurchaseInvoice =
-  Flowglad.Invoices.InvoiceRetrieveResponse.PurchaseInvoice
+  Flowglad.PurchaseInvoiceClientSelectSchema
 
 export type SubscriptionInvoice =
-  Flowglad.Invoices.InvoiceRetrieveResponse.SubscriptionInvoice
+  Flowglad.SubscriptionInvoiceClientSelectSchema
 
-export type Invoice = SubscriptionInvoice | PurchaseInvoice
+export type StandaloneInvoice =
+  Flowglad.StandaloneInvoiceClientSelectSchema
+export type Invoice =
+  | SubscriptionInvoice
+  | PurchaseInvoice
+  | StandaloneInvoice
 
-export type InvoiceLineItem = Flowglad.InvoiceLineItemRetrieveResponse
+export type InvoiceLineItem =
+  | Flowglad.StaticInvoiceLineItemClientSelectSchema
+  | Flowglad.UsageInvoiceLineItemClientSelectSchema
 
 export type InvoiceStatus = Invoice['status']
 

@@ -343,6 +343,8 @@ export const FlowgladContextProvider = (
           paymentMethods: billingData.paymentMethods,
           currentSubscriptions: billingData.currentSubscriptions,
           catalog: billingData.catalog,
+          billingPortalUrl: billingData.billingPortalUrl,
+          pricingModel: billingData.pricingModel,
         }}
       >
         {props.children}
@@ -434,6 +436,8 @@ export const FlowgladContextProvider = (
         invoices: billingData.invoices,
         paymentMethods: billingData.paymentMethods,
         currentSubscriptions: billingData.currentSubscriptions,
+        billingPortalUrl: billingData.billingPortalUrl,
+        pricingModel: billingData.pricingModel,
       }
     } else {
       value = {
