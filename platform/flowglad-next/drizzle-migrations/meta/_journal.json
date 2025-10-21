@@ -1723,6 +1723,13 @@
       "when": 1760763922496,
       "tag": "0246_soft_shriek",
       "breakpoints": true
+    },
+    {
+      "idx": 247,
+      "version": "7",
+      "when": 1760925281638,
+      "tag": "0247_thankful_gladiator",
+      "breakpoints": true
     }
   ]
 }

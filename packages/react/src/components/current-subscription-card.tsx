@@ -72,12 +72,15 @@ export function UsageCurrentSubscriptionCard({
                 {subscription.cancelScheduledAt && (
                   <div className="flowglad-text-destructive">
                     Cancels on{' '}
-                    {formatDate(subscription.cancelScheduledAt)}
+                    {formatDate(
+                      new Date(subscription.cancelScheduledAt)
+                    )}
                   </div>
                 )}
                 {showTrialEnd && (
                   <div>
-                    Trial ends on {formatDate(subscription.trialEnd!)}
+                    Trial ends on{' '}
+                    {formatDate(new Date(subscription.trialEnd!))}
                   </div>
                 )}
                 {isPastDue && (
@@ -91,7 +94,7 @@ export function UsageCurrentSubscriptionCard({
                     <div>
                       Renews on{' '}
                       {formatDate(
-                        subscription.currentBillingPeriodEnd
+                        new Date(subscription.currentBillingPeriodEnd)
                       )}
                     </div>
                   )}
@@ -145,12 +148,15 @@ export function StandardCurrentSubscriptionCard({
                 {subscription.cancelScheduledAt && (
                   <div className="flowglad-text-destructive">
                     Cancels on{' '}
-                    {formatDate(subscription.cancelScheduledAt)}
+                    {formatDate(
+                      new Date(subscription.cancelScheduledAt)
+                    )}
                   </div>
                 )}
-                {showTrialEnd && (
+                {showTrialEnd && subscription.trialEnd && (
                   <div>
-                    Trial ends on {formatDate(subscription.trialEnd!)}
+                    Trial ends on{' '}
+                    {formatDate(new Date(subscription.trialEnd))}
                   </div>
                 )}
                 {isPastDue && (
@@ -164,7 +170,7 @@ export function StandardCurrentSubscriptionCard({
                     <div>
                       Renews on{' '}
                       {formatDate(
-                        subscription.currentBillingPeriodEnd
+                        new Date(subscription.currentBillingPeriodEnd)
                       )}
                     </div>
                   )}
@@ -210,8 +216,9 @@ export const CurrentSubscriptionCard = ({
 }: CurrentSubscriptionCardProps) => {
   // note : a KNOWN hack - we're using the first subscriptionItem.price to infer the subscription type
   const subscriptionType = subscriptionItems[0].price.type
-  const showTrialEnd =
-    subscription.trialEnd && isInFuture(subscription.trialEnd)
+  const showTrialEnd = subscription.trialEnd
+    ? isInFuture(new Date(subscription.trialEnd))
+    : false
   const isPastDue = subscription.status === 'past_due'
   const billing = useBilling()
   const shouldShowBillingPeriodEnd =

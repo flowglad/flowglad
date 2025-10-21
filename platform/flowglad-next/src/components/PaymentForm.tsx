@@ -36,6 +36,7 @@ import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
 import { Switch } from '@/components/ui/switch'
+import { billingAddressSchema } from '@/db/schema/organizations'
 
 // Utility function to force reflow for Stripe iframes to prevent rendering issues
 const forceStripeElementsReflow = () => {
@@ -179,6 +180,9 @@ const PaymentForm = () => {
   const [emailError, setEmailError] = useState<string | undefined>(
     undefined
   )
+  const [addressError, setAddressError] = useState<string | undefined>(
+    undefined
+  )
   const embedsReady =
     emailEmbedReady && paymentEmbedReady && addressEmbedReady
   const [errorMessage, setErrorMessage] = useState<
@@ -260,6 +264,31 @@ const PaymentForm = () => {
 
         setIsSubmitting(true)
 
+        // Validate payment method before proceeding
+        if (!checkoutSession.paymentMethodType) {
+          setErrorMessage('Please select a payment method')
+          setIsSubmitting(false)
+          return
+        }
+
+        // Validate address before proceeding
+        if (!checkoutSession.billingAddress) {
+          setAddressError('Please fill in your billing address')
+          setIsSubmitting(false)
+          return
+        }
+        
+        const addressValidation = billingAddressSchema.safeParse(checkoutSession.billingAddress)
+        
+        if (!addressValidation.success) {
+          setAddressError('Please fill in all required address fields')
+          setIsSubmitting(false)
+          return
+        }
+
+        // Clear any previous address errors
+        setAddressError(undefined)
+
         try {
           await confirmCheckoutSession.mutateAsync({
             id: checkoutSession.id,
@@ -284,7 +313,11 @@ const PaymentForm = () => {
         const submitResult = await elements.submit()
         const { error: submitError } = submitResult
         if (submitError) {
-          setErrorMessage(submitError.message)
+          if (submitError.message === 'This field is incomplete.') {
+            setErrorMessage('Please complete all required fields.')
+          } else {
+            setErrorMessage(submitError.message)
+          }
           setIsSubmitting(false)
           return
         }
@@ -474,15 +507,14 @@ const PaymentForm = () => {
               setTimeout(forceStripeElementsReflow, 100)
             }}
             onChange={async (event) => {
-              if (
-                event.complete &&
-                checkoutSession.status === CheckoutSessionStatus.Open
-              ) {
+              if (checkoutSession.status === CheckoutSessionStatus.Open) {
                 try {
                   await editCheckoutSessionBillingAddress({
                     id: checkoutSession.id,
                     billingAddress: event.value,
                   })
+                  // Clear any previous address errors when user starts typing
+                  setAddressError(undefined)
                 } catch (error) {
                   // Silently handle errors for non-open sessions
                   console.warn(
@@ -494,6 +526,9 @@ const PaymentForm = () => {
             }}
             className={!embedsReady ? 'opacity-0' : ''}
           />
+          {addressError && (
+            <ErrorLabel error={addressError} className="mt-2" />
+          )}
         </div>
       </div>
       {/* Form Footer - Order Summary & Actions */}

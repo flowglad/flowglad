@@ -53,7 +53,7 @@ describe('StandardCurrentSubscriptionCard', () => {
       cancelScheduledAt: null,
       trialEnd: null,
       status: 'active' as const,
-      currentBillingPeriodEnd: '2023-12-31',
+      currentBillingPeriodEnd: new Date('2023-12-31').getTime(),
       interval: 'month' as const,
       intervalCount: 1,
       canceledAt: null,
@@ -117,7 +117,7 @@ describe('StandardCurrentSubscriptionCard', () => {
       ...defaultProps,
       subscription: {
         ...defaultProps.subscription,
-        cancelScheduledAt: cancelDate,
+        cancelScheduledAt: new Date(cancelDate).getTime(),
       },
     }
     render(
@@ -136,7 +136,7 @@ describe('StandardCurrentSubscriptionCard', () => {
       ...defaultProps,
       subscription: {
         ...defaultProps.subscription,
-        trialEnd: trialEndDate,
+        trialEnd: new Date(trialEndDate).getTime(),
       },
       showTrialEnd: true,
     }
@@ -172,7 +172,7 @@ describe('StandardCurrentSubscriptionCard', () => {
       ...defaultProps,
       subscription: {
         ...defaultProps.subscription,
-        cancelScheduledAt: cancelDate,
+        cancelScheduledAt: new Date(cancelDate).getTime(),
       },
     }
     render(
@@ -213,7 +213,7 @@ describe('StandardCurrentSubscriptionCard', () => {
       ...defaultProps,
       subscription: {
         ...defaultProps.subscription,
-        cancelScheduledAt: cancelDate,
+        cancelScheduledAt: new Date(cancelDate).getTime(),
       },
     }
     render(
@@ -244,7 +244,7 @@ describe('UsageCurrentSubscriptionCard', () => {
       cancelScheduledAt: null,
       trialEnd: null,
       status: 'active' as const,
-      currentBillingPeriodEnd: '2023-12-31',
+      currentBillingPeriodEnd: new Date('2023-12-31').getTime(),
       interval: 'month' as const,
       intervalCount: 1,
       canceledAt: null,
@@ -306,7 +306,7 @@ describe('UsageCurrentSubscriptionCard', () => {
       ...defaultProps,
       subscription: {
         ...defaultProps.subscription,
-        cancelScheduledAt: cancelDate,
+        cancelScheduledAt: new Date(cancelDate).getTime(),
       },
     }
     render(
@@ -325,7 +325,7 @@ describe('UsageCurrentSubscriptionCard', () => {
       ...defaultProps,
       subscription: {
         ...defaultProps.subscription,
-        trialEnd: trialEndDate,
+        trialEnd: new Date(trialEndDate).getTime(),
       },
       showTrialEnd: true,
     }
@@ -361,7 +361,7 @@ describe('UsageCurrentSubscriptionCard', () => {
       ...defaultProps,
       subscription: {
         ...defaultProps.subscription,
-        cancelScheduledAt: cancelDate,
+        cancelScheduledAt: new Date(cancelDate).getTime(),
       },
     }
     render(
@@ -400,7 +400,7 @@ describe('UsageCurrentSubscriptionCard', () => {
       ...defaultProps,
       subscription: {
         ...defaultProps.subscription,
-        cancelScheduledAt: cancelDate,
+        cancelScheduledAt: new Date(cancelDate).getTime(),
       },
     }
     render(

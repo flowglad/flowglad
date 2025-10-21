@@ -1,15 +1,18 @@
 import { useFlowgladTheme } from '../FlowgladTheme'
+import { type Flowglad } from '@flowglad/node'
 
 interface CustomerBillingDetailsProps {
   name: string
   email: string
   billingAddress?: {
-    line1: string
-    line2?: string | null
-    city: string
-    state?: string | null
-    postalCode: string
-    country: string
+    line1: Flowglad.BillingAddress['address']['line1'] | null
+    line2?: Flowglad.BillingAddress['address']['line2'] | null
+    city: Flowglad.BillingAddress['address']['city'] | null
+    state?: Flowglad.BillingAddress['address']['state'] | null
+    postalCode:
+      | Flowglad.BillingAddress['address']['postal_code']
+      | null
+    country: Flowglad.BillingAddress['address']['country']
   }
 }
 

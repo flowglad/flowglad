@@ -1,20 +1,23 @@
 import { type Flowglad } from '@flowglad/node'
 
 export type Subscription =
-  Flowglad.Subscriptions.SubscriptionRetrieveResponse['subscription']
+  | Flowglad.StandardSubscriptionRecord
+  | Flowglad.NonRenewingSubscriptionRecord
 
 export type SubscriptionItem =
-  | Flowglad.CustomerRetrieveBillingResponse.SubscriptionItem.StaticSubscriptionItem
-  | Flowglad.CustomerRetrieveBillingResponse.SubscriptionItem.UsageSubscriptionItem
+  | Flowglad.CustomerRetrieveBillingResponse.NonRenewingSubscriptionDetails.SubscriptionItem
+  | Flowglad.CustomerRetrieveBillingResponse.StandardSubscriptionDetails.SubscriptionItem
 
 export type SubscriptionStatus =
-  Flowglad.Subscriptions.SubscriptionRetrieveResponse.Subscription['status']
+  | Flowglad.StandardSubscriptionRecord['status']
+  | Flowglad.NonRenewingSubscriptionRecord['status']
 
 export type SubscriptionIntervalUnit =
-  Flowglad.Subscriptions.SubscriptionRetrieveResponse.Subscription['interval']
+  Flowglad.StandardSubscriptionRecord['interval']
 
 export type SubscriptionDetails =
   Flowglad.CustomerRetrieveBillingResponse['subscriptions'][number]
 
 export type SubscriptionExperimentalFields =
-  Flowglad.CustomerRetrieveBillingResponse.SubscriptionItem.Experimental
+  | Flowglad.CustomerRetrieveBillingResponse.NonRenewingSubscriptionDetails.Experimental
+  | Flowglad.CustomerRetrieveBillingResponse.StandardSubscriptionDetails.Experimental
