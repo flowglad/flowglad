@@ -283,7 +283,6 @@ const UsageFields = ({
                       field.onChange(numValue)
                     }
                   }}
-                  // disabled={edit}
                 />
               </FormControl>
               <FormMessage />
@@ -294,7 +293,7 @@ const UsageFields = ({
       <UsageMetersSelect
         name="price.usageMeterId"
         control={control}
-        // disabled={edit}
+        disabled={edit}
       />
     </div>
   )
@@ -405,30 +404,34 @@ const PriceFormFields = ({
           )}
         />
       )}
-      <FormField
-        control={control}
-        name="price.slug"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Price Slug</FormLabel>
-            <FormControl>
-              <AutoSlugInput
-                {...field}
-                name="price.slug"
-                sourceName={priceOnly ? 'price.name' : 'product.name'}
-                placeholder="price_slug"
-                disabledAuto={edit || isDefaultLocked}
-                disabled={edit || isDefaultLocked}
-              />
-            </FormControl>
-            <FormDescription>
-              The slug is used to identify the price in the API. Must
-              be unique per-pricing model.
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {!edit && (
+        <FormField
+          control={control}
+          name="price.slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Price Slug</FormLabel>
+              <FormControl>
+                <AutoSlugInput
+                  {...field}
+                  name="price.slug"
+                  sourceName={
+                    priceOnly ? 'price.name' : 'product.name'
+                  }
+                  placeholder="price_slug"
+                  disabledAuto={edit || isDefaultLocked}
+                  disabled={edit || isDefaultLocked}
+                />
+              </FormControl>
+              <FormDescription>
+                The slug is used to identify the price in the API.
+                Must be unique per-pricing model.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
       <FormField
         control={control}
         name="price.type"
@@ -492,7 +495,7 @@ const PriceFormFields = ({
         )}
       />
       {typeFields}
-      {priceOnly && (
+      {priceOnly && !edit && (
         <FormField
           control={control}
           name="price.isDefault"
@@ -500,10 +503,11 @@ const PriceFormFields = ({
             <FormItem>
               <FormLabel>Default</FormLabel>
               <FormControl>
+                {/* for now, newly created price becomes the default */}
                 <Switch
-                  checked={field.value}
+                  checked={true}
                   onCheckedChange={field.onChange}
-                  disabled={edit || isDefaultLocked}
+                  disabled={true}
                 />
               </FormControl>
               <FormMessage />
