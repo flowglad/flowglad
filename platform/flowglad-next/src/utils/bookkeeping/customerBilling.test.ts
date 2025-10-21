@@ -13,10 +13,13 @@ import {
   setupPaymentMethod,
   setupSubscription,
   setupUserAndCustomer,
+  setupProduct,
+  setupPrice,
 } from '@/../seedDatabase'
 import {
   setDefaultPaymentMethodForCustomer,
   customerBillingCreatePricedCheckoutSession,
+  customerBillingTransaction,
 } from './customerBilling'
 import { Organization } from '@/db/schema/organizations'
 import { Customer } from '@/db/schema/customers'
@@ -580,6 +583,408 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         transaction
       )
       expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
+    })
+  })
+
+  describe('customerBillingTransaction - inactive price filtering', () => {
+    let customer: Customer.Record
+    let productWithMixedPrices: any
+    let activePrice: any
+    let inactivePrice: any
+    let subscriptionWithActivePrice: any
+    let subscriptionWithInactivePrice: any
+
+    beforeEach(async () => {
+      // Create a customer for testing
+      customer = await setupCustomer({
+        organizationId: organization.id,
+        email: 'billing-price-filtering@example.com',
+      })
+
+      // Create a product with both active and inactive prices
+      productWithMixedPrices = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Mixed Prices',
+        active: true,
+      })
+
+      // Create an active price
+      activePrice = await setupPrice({
+        productId: productWithMixedPrices.id,
+        name: 'Active Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 1000, //TODO isDefault means that unitPrice must be 0
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        active: true, // Explicitly active
+      })
+
+      // Create an inactive price
+      inactivePrice = await setupPrice({
+        productId: productWithMixedPrices.id,
+        name: 'Inactive Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 2000,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: false,
+        trialPeriodDays: 0,
+        active: false, // Explicitly inactive
+      })
+
+      // Create subscription with active price
+      subscriptionWithActivePrice = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: activePrice.id,
+        status: SubscriptionStatus.Active,
+        livemode: true,
+      })
+
+      // Create subscription with inactive price (grandfathered state)
+      subscriptionWithInactivePrice = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: inactivePrice.id,
+        status: SubscriptionStatus.Active,
+        livemode: true,
+      })
+    })
+
+    it('should filter out inactive prices from pricingModel in customerBillingTransaction', async () => {
+      // Action: Call customerBillingTransaction
+      const billingState = await adminTransaction(async (params) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          params.transaction
+        )
+      })
+
+      // Assert: pricingModel.products[].prices[] should contain only active prices
+      expect(billingState.pricingModel).toBeDefined()
+      expect(billingState.pricingModel.products).toHaveLength(2) // setupOrg + our test product
+      
+      // Find our test product
+      const testProduct = billingState.pricingModel.products.find(p => p.id === productWithMixedPrices.id)
+      expect(testProduct).toBeDefined()
+      expect(testProduct!.prices).toHaveLength(1) // Only active price should be returned
+      
+      const returnedPrice = testProduct!.prices[0]
+      expect(returnedPrice.id).toBe(activePrice.id)
+      expect(returnedPrice.active).toBe(true)
+      
+      // Verify inactive price is filtered out
+      const inactivePriceInResult = testProduct!.prices.find(p => p.id === inactivePrice.id)
+      expect(inactivePriceInResult).toBeUndefined()
+    })
+
+    it('should preserve subscription items with inactive prices (grandfathered state)', async () => {
+      // Action: Call customerBillingTransaction
+      const billingState = await adminTransaction(async (params) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          params.transaction
+        )
+      })
+
+      // Assert: Subscription items with inactive prices should still be visible
+      expect(billingState.subscriptions).toBeDefined()
+      expect(billingState.subscriptions.length).toBeGreaterThanOrEqual(2)
+      
+      // Find subscription with active price
+      const subscriptionWithActivePrice = billingState.subscriptions.find(
+        sub => sub.priceId === activePrice.id
+      )
+      expect(subscriptionWithActivePrice).toBeDefined()
+      expect(subscriptionWithActivePrice?.priceId).toBe(activePrice.id)
+      
+      // Find subscription with inactive price (grandfathered state)
+      const subscriptionWithInactivePrice = billingState.subscriptions.find(
+        sub => sub.priceId === inactivePrice.id
+      )
+      expect(subscriptionWithInactivePrice).toBeDefined()
+      expect(subscriptionWithInactivePrice?.priceId).toBe(inactivePrice.id)
+      
+      // Both subscription items should be visible regardless of price active status
+      // This tests the grandfathered state where subscription items remain visible
+      // even if their associated price becomes inactive
+    })
+
+    it('should maintain all other billing data while filtering prices', async () => {
+      // Action: Call customerBillingTransaction
+      const billingState = await adminTransaction(async (params) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          params.transaction
+        )
+      })
+
+      // Assert: All expected properties should be present
+      expect(billingState.customer).toBeDefined()
+      expect(billingState.customer.id).toBe(customer.id)
+      
+      expect(billingState.purchases).toBeDefined()
+      expect(billingState.invoices).toBeDefined()
+      expect(billingState.paymentMethods).toBeDefined()
+      expect(billingState.subscriptions).toBeDefined()
+      expect(billingState.currentSubscriptions).toBeDefined()
+      
+      // Only pricingModel.products[].prices[] should be filtered
+      expect(billingState.pricingModel).toBeDefined()
+      expect(billingState.pricingModel.products).toHaveLength(2) // setupOrg + our test product
+      
+      // Find our test product
+      const testProduct = billingState.pricingModel.products.find(p => p.id === productWithMixedPrices.id)
+      expect(testProduct).toBeDefined()
+      expect(testProduct!.prices).toHaveLength(1) // Only active price
+      expect(testProduct!.prices[0].active).toBe(true)
+      
+      // All other data should remain unchanged
+      expect(billingState.subscriptions.length).toBeGreaterThanOrEqual(2) // Both subscriptions should be visible
+      expect(billingState.paymentMethods.length).toBeGreaterThanOrEqual(0)
+    })
+
+    it('should filter out products with only inactive prices', async () => {
+      // Setup: Create a product with only inactive prices
+      const productWithOnlyInactivePrices = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Only Inactive Prices',
+        active: true,
+      })
+
+      const inactivePrice2 = await setupPrice({
+        productId: productWithOnlyInactivePrices.id,
+        name: 'Inactive Price 2',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 3000,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        active: false,
+      })
+
+      // Action: Call customerBillingTransaction
+      const billingState = await adminTransaction(async (params) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          params.transaction
+        )
+      })
+
+      // Assert: Product should be filtered out entirely (setupOrg + productWithMixedPrices remain)
+      expect(billingState.pricingModel.products).toHaveLength(2) // setupOrg + productWithMixedPrices
+      
+      // Verify the product with only inactive prices is not in the results
+      const productWithOnlyInactiveInResult = billingState.pricingModel.products.find(
+        p => p.id === productWithOnlyInactivePrices.id
+      )
+      expect(productWithOnlyInactiveInResult).toBeUndefined()
+      
+      // The original product with mixed prices should still be there
+      const originalProduct = billingState.pricingModel.products.find(
+        p => p.id === productWithMixedPrices.id
+      )
+      expect(originalProduct).toBeDefined()
+      expect(originalProduct?.prices).toHaveLength(1) // Only active price
+    })
+
+    it('should handle products with only active prices', async () => {
+      // Setup: Create a product with only active prices
+      const productWithOnlyActivePrices = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Only Active Prices',
+        active: true,
+      })
+
+      const activePrice2 = await setupPrice({
+        productId: productWithOnlyActivePrices.id,
+        name: 'Active Price 2',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Year,
+        intervalCount: 1,
+        unitPrice: 10000,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        active: true,
+      })
+
+      const activePrice3 = await setupPrice({
+        productId: productWithOnlyActivePrices.id,
+        name: 'Active Price 3',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 3,
+        unitPrice: 5000,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: false,
+        trialPeriodDays: 0,
+        active: true,
+      })
+
+      // Action: Call customerBillingTransaction
+      const billingState = await adminTransaction(async (params) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          params.transaction
+        )
+      })
+
+      // Assert: All active prices should be returned
+      expect(billingState.pricingModel.products).toHaveLength(3) // setupOrg + 2 test products
+      
+      // Find the product with only active prices
+      const productWithOnlyActive = billingState.pricingModel.products.find(
+        p => p.id === productWithOnlyActivePrices.id
+      )
+      expect(productWithOnlyActive).toBeDefined()
+      expect(productWithOnlyActive?.prices).toHaveLength(2) // Both active prices
+      
+      // Verify all returned prices are active
+      productWithOnlyActive?.prices.forEach(price => {
+        expect(price.active).toBe(true)
+      })
+      
+      // Verify the original product with mixed prices still has only active prices
+      const originalProduct = billingState.pricingModel.products.find(
+        p => p.id === productWithMixedPrices.id
+      )
+      expect(originalProduct).toBeDefined()
+      expect(originalProduct?.prices).toHaveLength(1) // Only active price
+      expect(originalProduct?.prices[0].active).toBe(true)
+    })
+
+    it('should return pricingModel with only active prices and products', async () => {
+      // Setup: Create additional products with mixed and inactive prices
+      const productWithMixedPrices2 = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Mixed Prices 2',
+        active: true,
+      })
+
+      const activePrice2 = await setupPrice({
+        productId: productWithMixedPrices2.id,
+        name: 'Active Price 2',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 1500,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        active: true,
+      })
+
+      const inactivePrice2 = await setupPrice({
+        productId: productWithMixedPrices2.id,
+        name: 'Inactive Price 2',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 2500,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: false,
+        trialPeriodDays: 0,
+        active: false,
+      })
+
+      const productWithOnlyInactivePrices = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Only Inactive Prices',
+        active: true,
+      })
+
+      const inactivePrice3 = await setupPrice({
+        productId: productWithOnlyInactivePrices.id,
+        name: 'Inactive Price 3',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 3000,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        active: false,
+      })
+
+      // Action: Call customerBillingTransaction
+      const billingState = await adminTransaction(async (params) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          params.transaction
+        )
+      })
+
+      // Assert: Only products with active prices should be returned
+      expect(billingState.pricingModel.products).toHaveLength(3) // setupOrg + 2 test products with active prices
+      
+      // Verify all returned products have active: true
+      billingState.pricingModel.products.forEach(product => {
+        expect(product.active).toBe(true)
+        
+        // Verify all returned prices have active: true
+        product.prices.forEach(price => {
+          expect(price.active).toBe(true)
+        })
+      })
+      
+      // Verify products with only inactive prices are filtered out entirely
+      const productWithOnlyInactiveInResult = billingState.pricingModel.products.find(
+        p => p.id === productWithOnlyInactivePrices.id
+      )
+      expect(productWithOnlyInactiveInResult).toBeUndefined()
+      
+      // Verify products with mixed prices only show active prices
+      const productWithMixed1 = billingState.pricingModel.products.find(
+        p => p.id === productWithMixedPrices.id
+      )
+      expect(productWithMixed1).toBeDefined()
+      expect(productWithMixed1?.prices).toHaveLength(1) // Only active price
+      expect(productWithMixed1?.prices[0].id).toBe(activePrice.id)
+      
+      const productWithMixed2 = billingState.pricingModel.products.find(
+        p => p.id === productWithMixedPrices2.id
+      )
+      expect(productWithMixed2).toBeDefined()
+      expect(productWithMixed2?.prices).toHaveLength(1) // Only active price
+      expect(productWithMixed2?.prices[0].id).toBe(activePrice2.id)
     })
   })
 })
