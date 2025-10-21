@@ -1,5 +1,5 @@
 import { publicProcedure } from '@/server/trpc'
-import { adminTransaction } from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { idInputSchema } from '@/db/tableUtils'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 
@@ -10,7 +10,7 @@ import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCh
 export const confirmCheckoutSession = publicProcedure
   .input(idInputSchema)
   .mutation(async ({ input }) => {
-    return adminTransaction(async ({ transaction }) => {
-      return confirmCheckoutSessionTransaction(input, transaction)
+    return comprehensiveAdminTransaction(async ({ transaction }) => {
+      return await confirmCheckoutSessionTransaction(input, transaction)
     })
   })
