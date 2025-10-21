@@ -433,10 +433,18 @@ const setPricesForProductToNonDefaultNonActive = async (
   productId: string,
   transaction: DbTransaction
 ) => {
-  await transaction
+  const result = await transaction
     .update(prices)
     .set({ isDefault: false, active: false })
     .where(eq(prices.productId, productId))
+    .returning({
+      id: prices.id,
+      slug: prices.slug,
+      active: prices.active,
+      isDefault: prices.isDefault,
+    })
+  // eslint-disable-next-line no-console
+  console.log('Updated prices:', result)
 }
 
 export const dangerouslyInsertPrice = createInsertFunction(

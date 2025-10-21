@@ -76,7 +76,7 @@ const SubscriptionFields = ({
                       field.onChange(value)
                     }}
                     allowDecimals={!zeroDecimal}
-                    disabled={edit || defaultPriceLocked}
+                    disabled={defaultPriceLocked}
                   />
                 </FormControl>
               </div>
@@ -95,7 +95,7 @@ const SubscriptionFields = ({
                 <Select
                   value={field.value ?? ''}
                   onValueChange={field.onChange}
-                  disabled={edit || defaultPriceLocked}
+                  disabled={defaultPriceLocked}
                 >
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select interval" />
@@ -122,7 +122,7 @@ const SubscriptionFields = ({
         />
       </div>
       {!omitTrialFields && (
-        <TrialFields disabled={edit || defaultPriceLocked} />
+        <TrialFields disabled={defaultPriceLocked} />
       )}
     </>
   )
@@ -199,7 +199,7 @@ const SinglePaymentFields = ({
                     field.onChange(value)
                   }}
                   allowDecimals={!zeroDecimal}
-                  disabled={edit || defaultPriceLocked}
+                  disabled={defaultPriceLocked}
                 />
               </FormControl>
             </div>
@@ -254,7 +254,7 @@ const UsageFields = ({
                       field.onChange(value)
                     }}
                     allowDecimals={!zeroDecimal}
-                    disabled={edit || defaultPriceLocked}
+                    disabled={defaultPriceLocked}
                   />
                 </FormControl>
               </div>
@@ -283,7 +283,7 @@ const UsageFields = ({
                       field.onChange(numValue)
                     }
                   }}
-                  disabled={edit}
+                  // disabled={edit}
                 />
               </FormControl>
               <FormMessage />
@@ -294,7 +294,7 @@ const UsageFields = ({
       <UsageMetersSelect
         name="price.usageMeterId"
         control={control}
-        disabled={edit}
+        // disabled={edit}
       />
     </div>
   )
@@ -418,7 +418,7 @@ const PriceFormFields = ({
                 sourceName={priceOnly ? 'price.name' : 'product.name'}
                 placeholder="price_slug"
                 disabledAuto={edit || isDefaultLocked}
-                disabled={isDefaultLocked}
+                disabled={edit || isDefaultLocked}
               />
             </FormControl>
             <FormDescription>
@@ -503,7 +503,7 @@ const PriceFormFields = ({
                 <Switch
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  disabled={isDefaultLocked}
+                  disabled={edit || isDefaultLocked}
                 />
               </FormControl>
               <FormMessage />
