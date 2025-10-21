@@ -111,8 +111,6 @@ export const createPrice = protectedProcedure
           ctx.organizationId!,
           transaction
         )
-        const existingProductHasNoDefaultPrice =
-          existingPrices.length === 0
         const newPrice = await safelyInsertPrice(
           {
             ...price,
