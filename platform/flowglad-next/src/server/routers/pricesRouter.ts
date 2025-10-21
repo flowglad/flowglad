@@ -95,18 +95,6 @@ export const createPrice = protectedProcedure
           })
         }
 
-        // // If we're setting this price as default, ensure no other prices are default
-        // const defaultPrices = [...existingPrices, price].filter(
-        //   (v) => v.isDefault
-        // )
-        // if (defaultPrices.length > 1) {
-        //   throw new TRPCError({
-        //     code: 'BAD_REQUEST',
-        //     message:
-        //       'There must be exactly one default price per product',
-        //   })
-        // }
-
         // Validate that default prices on default products must have unitPrice = 0
         if (
           price.isDefault &&

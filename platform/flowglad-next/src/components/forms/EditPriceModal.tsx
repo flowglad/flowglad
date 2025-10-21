@@ -3,7 +3,7 @@
 import FormModal from '@/components/forms/FormModal'
 import {
   createPriceFormSchema,
-  CreatePriceInput,
+  pricesClientInsertSchema,
   Price,
 } from '@/db/schema/prices'
 import { IntervalUnit, PriceType } from '@/types'
@@ -21,6 +21,37 @@ interface EditPriceModalProps {
   price: Price.ClientRecord
 }
 
+export const parseEditPriceDefaultValues = (
+  price: Price.ClientRecord
+): { price: Price.ClientInsert; __rawPriceString: string } => {
+  const processedPrice = {
+    ...price,
+    productId: price.productId,
+    // Ensure all required fields are present based on price type
+    unitPrice: price.unitPrice ?? 0,
+    // For SinglePayment, these should be null/undefined
+    intervalCount:
+      price.type === PriceType.SinglePayment
+        ? null
+        : (price.intervalCount ?? 1),
+    intervalUnit:
+      price.type === PriceType.SinglePayment
+        ? null
+        : (price.intervalUnit ?? IntervalUnit.Month),
+    trialPeriodDays: price.trialPeriodDays ?? null,
+    usageEventsPerUnit: price.usageEventsPerUnit ?? null,
+    usageMeterId: price.usageMeterId ?? null,
+  }
+  const parsedPrice = pricesClientInsertSchema.parse(processedPrice)
+  return {
+    price: parsedPrice,
+    __rawPriceString: countableCurrencyAmountToRawStringAmount(
+      price.currency,
+      price.unitPrice!
+    ),
+  }
+}
+
 const EditPriceModal: React.FC<EditPriceModalProps> = ({
   isOpen,
   setIsOpen,
@@ -34,32 +65,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
       setIsOpen(false)
     },
   })
-  const __rawPriceString = countableCurrencyAmountToRawStringAmount(
-    price.currency,
-    price.unitPrice!
-  )
-
-  const defaultValues = {
-    price: {
-      ...price,
-      productId: price.productId,
-      // Ensure all required fields are present based on price type
-      unitPrice: price.unitPrice ?? 0,
-      // For SinglePayment, these should be null/undefined
-      intervalCount:
-        price.type === PriceType.SinglePayment
-          ? null
-          : (price.intervalCount ?? 1),
-      intervalUnit:
-        price.type === PriceType.SinglePayment
-          ? null
-          : (price.intervalUnit ?? IntervalUnit.Month),
-      trialPeriodDays: price.trialPeriodDays ?? null,
-      usageEventsPerUnit: price.usageEventsPerUnit ?? null,
-      usageMeterId: price.usageMeterId ?? null,
-    },
-    __rawPriceString,
-  }
+  const defaultValues = parseEditPriceDefaultValues(price)
 
   const { organization } = useAuthenticatedContext()
   const productQuery = trpc.products.get.useQuery({
@@ -73,10 +79,9 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Price"
       formSchema={createPriceFormSchema}
-      defaultValues={defaultValues as any}
+      defaultValues={defaultValues}
       onSubmit={async (input) => {
         await editPrice.mutateAsync({
-          ...input,
           price: {
             ...input.price,
             unitPrice: rawStringAmountToCountableCurrencyAmount(

@@ -404,34 +404,6 @@ const PriceFormFields = ({
           )}
         />
       )}
-      {!edit && (
-        <FormField
-          control={control}
-          name="price.slug"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Price Slug</FormLabel>
-              <FormControl>
-                <AutoSlugInput
-                  {...field}
-                  name="price.slug"
-                  sourceName={
-                    priceOnly ? 'price.name' : 'product.name'
-                  }
-                  placeholder="price_slug"
-                  disabledAuto={edit || isDefaultLocked}
-                  disabled={edit || isDefaultLocked}
-                />
-              </FormControl>
-              <FormDescription>
-                The slug is used to identify the price in the API.
-                Must be unique per-pricing model.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
       <FormField
         control={control}
         name="price.type"
@@ -495,26 +467,6 @@ const PriceFormFields = ({
         )}
       />
       {typeFields}
-      {priceOnly && !edit && (
-        <FormField
-          control={control}
-          name="price.isDefault"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Default</FormLabel>
-              <FormControl>
-                {/* for now, newly created price becomes the default */}
-                <Switch
-                  checked={true}
-                  onCheckedChange={field.onChange}
-                  disabled={true}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
     </div>
   )
 }

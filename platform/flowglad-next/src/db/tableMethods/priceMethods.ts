@@ -459,10 +459,12 @@ export const safelyInsertPrice = async (
     price.productId,
     transaction
   )
-  return dangerouslyInsertPrice(
-    { ...price, isDefault: true, active: true } as Price.Insert,
-    transaction
-  )
+  const priceInsert: Price.Insert = pricesInsertSchema.parse({
+    ...price,
+    isDefault: true,
+    active: true,
+  })
+  return dangerouslyInsertPrice(priceInsert, transaction)
 }
 
 export const safelyUpdatePrice = async (
