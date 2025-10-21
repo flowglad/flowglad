@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Check, ChevronDown, Loader2 } from 'lucide-react'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
@@ -14,6 +14,12 @@ interface TemplatePreviewContentProps {
   isCreating: boolean
 }
 
+interface ProductGroup {
+  groupKey: string
+  displayName: string
+  products: Array<PricingModelTemplate['input']['products'][0]>
+}
+
 export function TemplatePreviewContent({
   template,
   onBack,
@@ -24,15 +30,45 @@ export function TemplatePreviewContent({
     Set<string>
   >(new Set())
 
-  const toggleProduct = (slug: string) => {
+  const toggleProduct = (groupKey: string) => {
     const newExpanded = new Set(expandedProducts)
-    if (newExpanded.has(slug)) {
-      newExpanded.delete(slug)
+    if (newExpanded.has(groupKey)) {
+      newExpanded.delete(groupKey)
     } else {
-      newExpanded.add(slug)
+      newExpanded.add(groupKey)
     }
     setExpandedProducts(newExpanded)
   }
+
+  // Group products by displayGroup (or slug if no displayGroup)
+  const productGroups = useMemo((): ProductGroup[] => {
+    const groupMap = new Map<string, ProductGroup>()
+
+    template.input.products.forEach((product) => {
+      const groupKey = product.displayGroup || product.product.slug
+
+      if (!groupMap.has(groupKey)) {
+        groupMap.set(groupKey, {
+          groupKey,
+          displayName: product.product.name,
+          products: [],
+        })
+      }
+
+      groupMap.get(groupKey)!.products.push(product)
+    })
+
+    // Sort products within each group by displayOrder
+    groupMap.forEach((group) => {
+      group.products.sort((a, b) => {
+        const orderA = a.displayOrder ?? 999
+        const orderB = b.displayOrder ?? 999
+        return orderA - orderB
+      })
+    })
+
+    return Array.from(groupMap.values())
+  }, [template.input.products])
 
   // Get the default price for each product (monthly if available)
   const getDefaultPrice = (
@@ -90,16 +126,16 @@ export function TemplatePreviewContent({
         {/* Products Section */}
         <div className="flex flex-col gap-2 items-start w-full">
           <div className="flex flex-col gap-2 items-start w-full">
-            {template.input.products.map((product) => {
-              const defaultPrice = getDefaultPrice(product)
-              const isExpanded = expandedProducts.has(
-                product.product.slug
-              )
+            {productGroups.map((group) => {
+              // Get the first product's default price for display
+              const firstProduct = group.products[0]
+              const defaultPrice = getDefaultPrice(firstProduct)
+              const isExpanded = expandedProducts.has(group.groupKey)
 
               return (
                 <button
-                  key={product.product.slug}
-                  onClick={() => toggleProduct(product.product.slug)}
+                  key={group.groupKey}
+                  onClick={() => toggleProduct(group.groupKey)}
                   className="group bg-accent text-secondary-foreground hover:bg-[hsl(0_0%_0%/10%)] dark:bg-accent dark:hover:bg-[hsl(0_0%_100%/15%)] rounded-2xl transition-colors w-full cursor-pointer text-left"
                 >
                   {/* Product Card Header */}
@@ -109,7 +145,7 @@ export function TemplatePreviewContent({
                       {/* Product Name */}
                       <div className="flex gap-2 items-center px-2 py-0">
                         <h3 className="text-md font-semibold whitespace-nowrap">
-                          {product.product.name}
+                          {group.displayName}
                         </h3>
                       </div>
 
@@ -123,7 +159,10 @@ export function TemplatePreviewContent({
                               ).replace('.00', '')}
                             </span>
                             <span className="text-base font-medium text-muted-foreground">
-                              {getPriceSuffix(defaultPrice, product)}
+                              {getPriceSuffix(
+                                defaultPrice,
+                                firstProduct
+                              )}
                             </span>
                           </div>
                         </div>
@@ -146,79 +185,86 @@ export function TemplatePreviewContent({
                   {/* Expanded Details */}
                   {isExpanded && (
                     <div className="px-6 pb-3 flex flex-col gap-2.5">
-                      {/* Prices List */}
-                      {product.prices.map((price) => (
-                        <div
-                          key={price.slug}
-                          className="flex gap-2.5 items-start w-full"
-                        >
-                          <div className="flex gap-2.5 items-center py-0.5 px-0">
-                            <Check className="h-3.5 w-3.5 text-accent-foreground flex-shrink-0" />
-                          </div>
-                          <span className="flex-1 min-w-0 text-sm text-accent-foreground">
-                            {formatCurrency(price.unitPrice).replace(
-                              '.00',
-                              ''
-                            )}
-                            {getPriceSuffix(price, product)}
-                          </span>
-                        </div>
-                      ))}
-
-                      {/* Features List */}
-                      {product.features.map((featureSlug) => {
-                        const feature = template.input.features.find(
-                          (f) => f.slug === featureSlug
-                        )
-
-                        // Format feature name with amount if it's a usage credit grant
-                        let displayName = feature?.name || featureSlug
-
-                        // Only prepend amount if the name doesn't already start with a number
-                        const startsWithNumber = /^\d/.test(
-                          feature?.name || ''
-                        )
-
-                        if (
-                          feature &&
-                          'amount' in feature &&
-                          feature.amount &&
-                          !startsWithNumber
-                        ) {
-                          // Remove plan-specific suffix (e.g., " - Hobby", " - Pro")
-                          const baseName = feature.name.replace(
-                            /\s*-\s*\w+\+?$/,
-                            ''
-                          )
-                          // Format amount with K notation for thousands
-                          let formattedAmount
-                          if (feature.amount >= 1000) {
-                            const thousands = feature.amount / 1000
-                            formattedAmount =
-                              thousands % 1 === 0
-                                ? `${thousands}K`
-                                : `${thousands.toFixed(1)}K`
-                          } else {
-                            formattedAmount =
-                              feature.amount.toString()
-                          }
-                          displayName = `${formattedAmount} ${baseName}`
-                        }
-
-                        return (
-                          <div
-                            key={featureSlug}
-                            className="flex gap-2.5 items-start w-full"
-                          >
-                            <div className="flex gap-2.5 items-center py-0.5 px-0">
-                              <Check className="h-3.5 w-3.5 text-accent-foreground flex-shrink-0" />
+                      {/* Prices List - Show all prices from all products in the group */}
+                      {group.products.flatMap((product) =>
+                        product.prices.map(
+                          (price: (typeof product.prices)[0]) => (
+                            <div
+                              key={price.slug}
+                              className="flex gap-2.5 items-start w-full"
+                            >
+                              <div className="flex gap-2.5 items-center py-0.5 px-0">
+                                <Check className="h-3.5 w-3.5 text-accent-foreground flex-shrink-0" />
+                              </div>
+                              <span className="flex-1 min-w-0 text-sm text-accent-foreground">
+                                {formatCurrency(
+                                  price.unitPrice
+                                ).replace('.00', '')}
+                                {getPriceSuffix(price, product)}
+                              </span>
                             </div>
-                            <span className="flex-1 min-w-0 text-sm text-accent-foreground">
-                              {displayName}
-                            </span>
-                          </div>
+                          )
                         )
-                      })}
+                      )}
+
+                      {/* Features List - Use features from first product (all products in group should have same features) */}
+                      {firstProduct.features.map(
+                        (featureSlug: string) => {
+                          const feature =
+                            template.input.features.find(
+                              (f) => f.slug === featureSlug
+                            )
+
+                          // Format feature name with amount if it's a usage credit grant
+                          let displayName =
+                            feature?.name || featureSlug
+
+                          // Only prepend amount if the name doesn't already start with a number
+                          const startsWithNumber = /^\d/.test(
+                            feature?.name || ''
+                          )
+
+                          if (
+                            feature &&
+                            'amount' in feature &&
+                            feature.amount &&
+                            !startsWithNumber
+                          ) {
+                            // Remove plan-specific suffix (e.g., " - Hobby", " - Pro")
+                            const baseName = feature.name.replace(
+                              /\s*-\s*\w+\+?$/,
+                              ''
+                            )
+                            // Format amount with K notation for thousands
+                            let formattedAmount
+                            if (feature.amount >= 1000) {
+                              const thousands = feature.amount / 1000
+                              formattedAmount =
+                                thousands % 1 === 0
+                                  ? `${thousands}K`
+                                  : `${thousands.toFixed(1)}K`
+                            } else {
+                              formattedAmount =
+                                feature.amount.toString()
+                            }
+                            displayName = `${formattedAmount} ${baseName}`
+                          }
+
+                          return (
+                            <div
+                              key={featureSlug}
+                              className="flex gap-2.5 items-start w-full"
+                            >
+                              <div className="flex gap-2.5 items-center py-0.5 px-0">
+                                <Check className="h-3.5 w-3.5 text-accent-foreground flex-shrink-0" />
+                              </div>
+                              <span className="flex-1 min-w-0 text-sm text-accent-foreground">
+                                {displayName}
+                              </span>
+                            </div>
+                          )
+                        }
+                      )}
                     </div>
                   )}
                 </button>

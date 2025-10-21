@@ -1,5 +1,8 @@
 import type { LucideIcon } from 'lucide-react'
-import type { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
+import type {
+  SetupPricingModelInput,
+  SetupPricingModelProductInput,
+} from '@/utils/pricingModels/setupSchemas'
 
 /**
  * SVG logo with optional text label
@@ -9,6 +12,26 @@ export interface SvgLogo {
   svg: string
   /** Optional text label to display next to the SVG (not part of SVG) */
   text?: string
+}
+
+/**
+ * Template-specific product with display grouping metadata.
+ * These display fields are frontend-only and not persisted to the database.
+ */
+export interface TemplateProductInput
+  extends SetupPricingModelProductInput {
+  /** Optional display group ID to group related products together in UI (e.g., "pro" groups "Pro Monthly" and "Pro Yearly") */
+  displayGroup?: string
+  /** Optional order within the display group (lower numbers appear first) */
+  displayOrder?: number
+}
+
+/**
+ * Template-specific input that uses TemplateProductInput instead of SetupPricingModelProductInput
+ */
+export interface TemplateSetupInput
+  extends Omit<SetupPricingModelInput, 'products'> {
+  products: TemplateProductInput[]
 }
 
 /**
@@ -59,8 +82,8 @@ export interface PricingModelTemplateMetadata {
 export interface PricingModelTemplate {
   /** Display metadata for template card and preview */
   metadata: PricingModelTemplateMetadata
-  /** Setup input passed to setupPricingModelTransaction */
-  input: SetupPricingModelInput
+  /** Setup input passed to setupPricingModelTransaction (with optional display fields for templates) */
+  input: TemplateSetupInput
 }
 
 /**

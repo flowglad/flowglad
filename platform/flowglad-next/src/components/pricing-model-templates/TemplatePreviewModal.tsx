@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,12 @@ interface TemplatePreviewModalProps {
   isCreating: boolean
 }
 
+interface ProductGroup {
+  groupKey: string
+  displayName: string
+  products: Array<PricingModelTemplate['input']['products'][0]>
+}
+
 export function TemplatePreviewModal({
   isOpen,
   setIsOpen,
@@ -31,14 +37,46 @@ export function TemplatePreviewModal({
     Set<string>
   >(new Set())
 
+  // Group products by displayGroup (or slug if no displayGroup)
+  const productGroups = useMemo((): ProductGroup[] => {
+    if (!template) return []
+
+    const groupMap = new Map<string, ProductGroup>()
+
+    template.input.products.forEach((product) => {
+      const groupKey = product.displayGroup || product.product.slug
+
+      if (!groupMap.has(groupKey)) {
+        groupMap.set(groupKey, {
+          groupKey,
+          displayName: product.product.name,
+          products: [],
+        })
+      }
+
+      groupMap.get(groupKey)!.products.push(product)
+    })
+
+    // Sort products within each group by displayOrder
+    groupMap.forEach((group) => {
+      group.products.sort((a, b) => {
+        const orderA = a.displayOrder ?? 999
+        const orderB = b.displayOrder ?? 999
+        return orderA - orderB
+      })
+    })
+
+    return Array.from(groupMap.values())
+  }, [template])
+
   if (!template) return null
 
-  const toggleProduct = (slug: string) => {
+  const toggleProduct = (groupKey: string) => {
     const newExpanded = new Set(expandedProducts)
-    if (newExpanded.has(slug)) {
-      newExpanded.delete(slug)
+    if (newExpanded.has(groupKey)) {
+      newExpanded.delete(groupKey)
     } else {
-      newExpanded.add(slug)
+      newExpanded.add(groupKey)
     }
     setExpandedProducts(newExpanded)
   }
@@ -83,15 +121,16 @@ export function TemplatePreviewModal({
             {/* Products Section */}
             <div className="flex flex-col gap-2 items-start w-full">
               <div className="flex flex-col gap-2 items-start w-full">
-                {template.input.products.map((product) => {
-                  const defaultPrice = getDefaultPrice(product)
+                {productGroups.map((group) => {
+                  const firstProduct = group.products[0]
+                  const defaultPrice = getDefaultPrice(firstProduct)
                   const isExpanded = expandedProducts.has(
-                    product.product.slug
+                    group.groupKey
                   )
 
                   return (
                     <div
-                      key={product.product.slug}
+                      key={group.groupKey}
                       className="flex flex-col gap-2 w-full"
                     >
                       {/* Product Card */}
@@ -99,7 +138,7 @@ export function TemplatePreviewModal({
                         {/* Product Name */}
                         <div className="flex-1 min-w-0 flex gap-2 items-center px-2 py-0">
                           <h3 className="text-md font-semibold whitespace-nowrap">
-                            {product.product.name}
+                            {group.displayName}
                           </h3>
                         </div>
 
@@ -123,7 +162,7 @@ export function TemplatePreviewModal({
                         <div className="flex-1 min-w-0 flex gap-1 items-end justify-end px-2 py-0">
                           <button
                             onClick={() =>
-                              toggleProduct(product.product.slug)
+                              toggleProduct(group.groupKey)
                             }
                             className="flex items-center gap-1 text-base text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap overflow-ellipsis overflow-hidden"
                           >
@@ -140,41 +179,49 @@ export function TemplatePreviewModal({
                       {/* Expanded Details */}
                       {isExpanded && (
                         <div className="px-3 pb-2 flex flex-col gap-2">
-                          {/* All Prices */}
+                          {/* All Prices - Show all prices from all products in group */}
                           <div className="flex flex-col gap-1">
                             <h4 className="text-sm font-semibold">
                               Prices
                             </h4>
-                            {product.prices.map((price) => (
-                              <div
-                                key={price.slug}
-                                className="text-sm text-muted-foreground flex justify-between"
-                              >
-                                <span>
-                                  {price.intervalUnit ===
-                                  IntervalUnit.Month
-                                    ? 'Monthly'
-                                    : price.intervalUnit ===
-                                        IntervalUnit.Year
-                                      ? 'Yearly'
-                                      : price.name}
-                                </span>
-                                <span>
-                                  {formatCurrency(price.unitPrice)}
-                                </span>
-                              </div>
-                            ))}
+                            {group.products.flatMap((product) =>
+                              product.prices.map(
+                                (
+                                  price: (typeof product.prices)[0]
+                                ) => (
+                                  <div
+                                    key={price.slug}
+                                    className="text-sm text-muted-foreground flex justify-between"
+                                  >
+                                    <span>
+                                      {price.intervalUnit ===
+                                      IntervalUnit.Month
+                                        ? 'Monthly'
+                                        : price.intervalUnit ===
+                                            IntervalUnit.Year
+                                          ? 'Yearly'
+                                          : price.name}
+                                    </span>
+                                    <span>
+                                      {formatCurrency(
+                                        price.unitPrice
+                                      )}
+                                    </span>
+                                  </div>
+                                )
+                              )
+                            )}
                           </div>
 
-                          {/* Features */}
-                          {product.features.length > 0 && (
+                          {/* Features - Use features from first product */}
+                          {firstProduct.features.length > 0 && (
                             <div className="flex flex-col gap-1">
                               <h4 className="text-sm font-semibold">
                                 Features
                               </h4>
                               <div className="flex flex-wrap gap-1">
-                                {product.features.map(
-                                  (featureSlug) => {
+                                {firstProduct.features.map(
+                                  (featureSlug: string) => {
                                     const feature =
                                       template.input.features.find(
                                         (f) => f.slug === featureSlug
