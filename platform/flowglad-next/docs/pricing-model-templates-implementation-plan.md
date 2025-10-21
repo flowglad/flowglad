@@ -45,7 +45,7 @@ interface PricingModelTemplate {
     description: string
     icon: LucideIcon
     features: Array<{ icon: LucideIcon; text: string }>
-    usedBy: { name: string; logo: string | LucideIcon }
+    usedBy: { name: string; logo: string | LucideIcon | SvgLogo }
   }
   
   // Backend: Data creation (reuses existing types)

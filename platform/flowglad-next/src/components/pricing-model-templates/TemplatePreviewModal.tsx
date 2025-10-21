@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,11 @@ export function TemplatePreviewModal({
   const [expandedProducts, setExpandedProducts] = useState<
     Set<string>
   >(new Set())
+
+  // Reset expanded products when template changes or modal opens
+  useEffect(() => {
+    setExpandedProducts(new Set())
+  }, [template, isOpen])
 
   // Group products by displayGroup (or slug if no displayGroup)
   const productGroups = useMemo((): ProductGroup[] => {

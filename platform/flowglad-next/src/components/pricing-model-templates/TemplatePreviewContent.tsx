@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Check, ChevronDown, Loader2 } from 'lucide-react'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
@@ -29,6 +29,11 @@ export function TemplatePreviewContent({
   const [expandedProducts, setExpandedProducts] = useState<
     Set<string>
   >(new Set())
+
+  // Reset expanded products when template changes
+  useEffect(() => {
+    setExpandedProducts(new Set())
+  }, [template])
 
   const toggleProduct = (groupKey: string) => {
     const newExpanded = new Set(expandedProducts)
