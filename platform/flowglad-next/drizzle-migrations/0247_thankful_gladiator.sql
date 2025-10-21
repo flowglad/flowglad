@@ -33,3 +33,10 @@ BEGIN
     RETURN NEW;
 END;
 $$;--> statement-breakpoint
+
+-- Drop and recreate trigger to ensure it's consistently BEFORE in all environments
+DROP TRIGGER IF EXISTS price_slug_unique_trigger ON prices;--> statement-breakpoint
+
+CREATE TRIGGER price_slug_unique_trigger
+    BEFORE INSERT OR UPDATE ON prices
+    FOR EACH ROW EXECUTE FUNCTION enforce_price_slug_unique();
