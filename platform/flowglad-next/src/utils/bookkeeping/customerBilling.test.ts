@@ -13,10 +13,13 @@ import {
   setupPaymentMethod,
   setupSubscription,
   setupUserAndCustomer,
+  setupPrice,
+  setupSubscriptionItem,
 } from '@/../seedDatabase'
 import {
   setDefaultPaymentMethodForCustomer,
   customerBillingCreatePricedCheckoutSession,
+  customerBillingTransaction,
 } from './customerBilling'
 import { Organization } from '@/db/schema/organizations'
 import { Customer } from '@/db/schema/customers'
@@ -33,11 +36,11 @@ import {
   PriceType,
   IntervalUnit,
   CurrencyCode,
+  InvoiceStatus,
 } from '@/types'
 import core from '@/utils/core'
 import {
   selectPaymentMethodById,
-  selectPaymentMethods,
   updatePaymentMethod,
 } from '@/db/tableMethods/paymentMethodMethods'
 import {
@@ -965,5 +968,259 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         customer: customerWithoutPricingModel,
       })
     ).rejects.toThrow()
+  })
+})
+
+describe('customerBillingTransaction', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let user: User.Record
+  let subscription: Subscription.Record
+
+  beforeEach(async () => {
+    // Reset all mocks
+    vi.clearAllMocks()
+
+    // Set up organization with pricing model and product
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+    price = orgData.price
+
+    // Set up user and customer
+    const userAndCustomerSetup = await setupUserAndCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    user = userAndCustomerSetup.user
+    customer = userAndCustomerSetup.customer
+
+    // Update customer to have the pricing model
+    await adminTransaction(async ({ transaction }) => {
+      await updateCustomer(
+        {
+          id: customer.id,
+          pricingModelId: pricingModel.id,
+        },
+        transaction
+      )
+    })
+
+    // Create a subscription for the customer
+    subscription = await setupSubscription({
+      customerId: customer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+      organizationId: organization.id,
+    })
+  })
+
+  it('should return complete billing state for customer', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await customerBillingTransaction(
+        {
+          externalId: customer.externalId,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+
+      // Verify all expected properties are present
+      expect(result.customer).toBeDefined()
+      expect(result.customer.id).toBe(customer.id)
+      expect(result.subscriptions).toBeDefined()
+      expect(result.currentSubscriptions).toBeDefined()
+      expect(result.invoices).toBeDefined()
+      expect(result.paymentMethods).toBeDefined()
+      expect(result.purchases).toBeDefined()
+      expect(result.pricingModel).toBeDefined()
+      expect(result.pricingModel.id).toBe(pricingModel.id)
+    })
+  })
+
+  it('should filter out inactive prices from subscriptions', async () => {
+    // Create an active price
+    const activePrice = await setupPrice({
+      productId: product.id,
+      name: 'Active Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      active: true,
+      livemode: true,
+      isDefault: false,
+    })
+
+    // Create an inactive price
+    const inactivePrice = await setupPrice({
+      productId: product.id,
+      name: 'Inactive Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 2000,
+      currency: CurrencyCode.USD,
+      active: false,
+      livemode: true,
+      isDefault: false,
+    })
+
+    // Create subscription items with both active and inactive prices
+    const activeItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Item with Active Price',
+      quantity: 1,
+      unitPrice: activePrice.unitPrice,
+      priceId: activePrice.id,
+    })
+
+    const inactiveItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Item with Inactive Price',
+      quantity: 1,
+      unitPrice: inactivePrice.unitPrice,
+      priceId: inactivePrice.id,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await customerBillingTransaction(
+        {
+          externalId: customer.externalId,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+
+      // Find our test subscription
+      const testSubscription = result.subscriptions.find(
+        (sub) => sub.id === subscription.id
+      )
+      expect(testSubscription).toBeDefined()
+
+      // Find our test items
+      const testActiveItem = testSubscription!.subscriptionItems.find(
+        (item) => item.id === activeItem.id
+      )
+      const testInactiveItem = testSubscription!.subscriptionItems.find(
+        (item) => item.id === inactiveItem.id
+      )
+
+      // Active item should exist and have price data
+      expect(testActiveItem).toBeDefined()
+      expect(testActiveItem!.price).toBeDefined()
+      expect(testActiveItem!.price!.id).toBe(activePrice.id)
+      expect(testActiveItem!.price!.active).toBe(true)
+
+      // Inactive item should be completely filtered out
+      expect(testInactiveItem).toBeUndefined()
+
+      // Verify that all returned items have active prices
+      const allPricesAreActive = testSubscription!.subscriptionItems.every(
+        (item) => item.price?.active === true
+      )
+      expect(allPricesAreActive).toBe(true)
+    })
+  })
+
+
+  it('should filter current vs all subscriptions correctly', async () => {
+    // Create a canceled subscription
+    const canceledSubscription = await setupSubscription({
+      customerId: customer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Canceled,
+      livemode: true,
+      organizationId: organization.id,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await customerBillingTransaction(
+        {
+          externalId: customer.externalId,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+
+      // Should have 2 total subscriptions (active + canceled)
+      expect(result.subscriptions).toHaveLength(2)
+      
+      // Verify both subscriptions are in the full list
+      const activeSub = result.subscriptions.find(sub => sub.id === subscription.id)
+      const canceledSub = result.subscriptions.find(sub => sub.id === canceledSubscription.id)
+      
+      expect(activeSub).toBeDefined()
+      expect(activeSub!.status).toBe(SubscriptionStatus.Active)
+      
+      expect(canceledSub).toBeDefined()
+      expect(canceledSub!.status).toBe(SubscriptionStatus.Canceled)
+      
+      // Should have 1 current subscription (only active)
+      expect(result.currentSubscriptions).toHaveLength(1)
+      expect(result.currentSubscriptions[0].id).toBe(subscription.id)
+      expect(result.currentSubscriptions[0].status).toBe(SubscriptionStatus.Active)
+    })
+  })
+
+  it('should throw error for non-existent customer', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      await expect(
+        customerBillingTransaction(
+          {
+            externalId: 'non-existent-customer',
+            organizationId: organization.id,
+          },
+          transaction
+        )
+      ).rejects.toThrow()
+    })
+  })
+
+  it('should throw error for non-existent organization', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      await expect(
+        customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: 'non-existent-org',
+          },
+          transaction
+        )
+      ).rejects.toThrow()
+    })
+  })
+
+  it('should include only customer-facing invoice statuses', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await customerBillingTransaction(
+        {
+          externalId: customer.externalId,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+
+      // Verify that only customer-facing invoice statuses are included
+      const invoiceStatuses = result.invoices.map(invoiceWithLineItems => invoiceWithLineItems.invoice.status)
+      const expectedStatuses = [
+        InvoiceStatus.AwaitingPaymentConfirmation,
+        InvoiceStatus.Paid,
+        InvoiceStatus.PartiallyRefunded,
+        InvoiceStatus.Open,
+        InvoiceStatus.FullyRefunded,
+      ]
+      
+      // All returned invoices should have customer-facing statuses
+      invoiceStatuses.forEach(status => {
+        expect(expectedStatuses).toContain(status)
+      })
+    })
   })
 })

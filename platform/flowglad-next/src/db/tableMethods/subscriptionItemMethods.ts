@@ -30,7 +30,7 @@ import {
 import { pricesClientSelectSchema } from '../schema/prices'
 import { prices } from '../schema/prices'
 import { isSubscriptionCurrent } from './subscriptionMethods'
-import { SubscriptionItemType, SubscriptionStatus } from '@/types'
+import { SubscriptionStatus } from '@/types'
 import {
   expireSubscriptionItemFeaturesForSubscriptionItem,
   selectSubscriptionItemFeaturesWithFeatureSlug,
@@ -258,6 +258,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
 ): Promise<RichSubscription[]> => {
   // Step 1: Fetch subscriptions with their items and prices
   // Uses LEFT JOIN to include subscriptions even if they have no items
+  // Filter out inactive prices
   const rows = await transaction
     .select({
       subscriptionItems,
@@ -269,7 +270,13 @@ export const selectRichSubscriptionsAndActiveItems = async (
       subscriptionItems,
       eq(subscriptionItems.subscriptionId, subscriptions.id)
     )
-    .leftJoin(prices, eq(subscriptionItems.priceId, prices.id))
+    .leftJoin(
+      prices,
+      and(
+        eq(subscriptionItems.priceId, prices.id),
+        eq(prices.active, true)
+      )
+    )
     .where(whereClauseFromObject(subscriptions, whereConditions))
 
   // Step 2: Process subscriptions and their items
