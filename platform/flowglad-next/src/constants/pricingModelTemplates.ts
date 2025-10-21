@@ -905,7 +905,7 @@ export const CREDITS_SUBSCRIPTION_TEMPLATE: PricingModelTemplate = {
     },
   },
   input: {
-    name: 'Credits-Based Subscription',
+    name: 'Credit rollover subscription',
     isDefault: false,
 
     // Usage Meters
