@@ -170,3 +170,41 @@ export const createMockStripeCharge = (
     ...overrides,
   } as Stripe.Charge
 }
+
+export const createMockCustomer = (
+  overrides: Partial<Stripe.Customer> = {}
+): Stripe.Response<Stripe.Customer> => {
+  const id = `cus_test_${core.nanoid()}`
+  return {
+    id,
+    object: 'customer',
+    balance: 0,
+    created: Date.now(),
+    default_source: null,
+    delinquent: false,
+    description: null,
+    email: 'test@example.com',
+    invoice_prefix: null,
+    livemode: false,
+    metadata: {},
+    name: 'Test Customer',
+    phone: null,
+    preferred_locales: [],
+    shipping: null,
+    tax_exempt: 'none',
+    test_clock: null,
+    lastResponse: {
+      headers: {},
+      requestId: 'req_test_123',
+      statusCode: 200,
+    },
+    invoice_settings: {
+      default_payment_method: null,
+      footer: null,
+      rendering_options: null,
+      custom_fields: [],
+    },
+    ...overrides,
+  } as Stripe.Response<Stripe.Customer>
+}
+
