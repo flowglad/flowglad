@@ -171,7 +171,7 @@ export function TemplatePreviewContent({
 
                     {/* Features Dropdown */}
                     <div className="flex-1 min-w-0 flex gap-1 items-end justify-end px-2 py-0">
-                      <div className="flex items-center gap-1 text-base text-muted-foreground group-hover:text-foreground transition-colors whitespace-nowrap overflow-ellipsis overflow-hidden">
+                      <div className="flex items-center gap-1 text-base text-muted-foreground group-hover:text-foreground transition-colors truncate">
                         <span>Features</span>
                         <ChevronDown
                           className={`h-4 w-4 transition-transform ${
