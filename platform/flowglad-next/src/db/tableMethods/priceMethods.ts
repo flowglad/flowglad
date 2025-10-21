@@ -443,8 +443,6 @@ const setPricesForProductToNonDefaultNonActive = async (
       active: prices.active,
       isDefault: prices.isDefault,
     })
-  // eslint-disable-next-line no-console
-  console.log('Updated prices:', result)
 }
 
 export const dangerouslyInsertPrice = createInsertFunction(
