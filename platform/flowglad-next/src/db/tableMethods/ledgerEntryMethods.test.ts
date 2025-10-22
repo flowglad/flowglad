@@ -1956,7 +1956,7 @@ describe('ledgerEntryMethods', () => {
     })
   })
 
-  describe('aggregateAvailableBalanceForUsageCredit', () => {
+  describe('aggregateAvailableBalanceForUsageCreditt', () => {
     let testLedgerTransaction: LedgerTransaction.Record
     let usageCreditId1: string
     // We can add more usageCreditIds here if needed for other tests

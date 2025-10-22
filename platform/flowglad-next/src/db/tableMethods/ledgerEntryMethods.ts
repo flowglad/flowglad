@@ -22,9 +22,20 @@ import {
   LedgerEntryType,
   UsageBillingInfo,
 } from '@/types'
-import { and, asc, eq, inArray, lt, not, or } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  eq,
+  inArray,
+  lt,
+  not,
+  or,
+  sql,
+  sum,
+} from 'drizzle-orm'
 import { createDateNotPassedFilter } from '../tableUtils'
 import { selectUsageCredits } from './usageCreditMethods'
+import { usageCredits } from '../schema/usageCredits'
 import { BillingRun } from '../schema/billingRuns'
 import core from '@/utils/core'
 import {
@@ -219,6 +230,18 @@ export const selectUsageMeterBalancesForSubscriptions = async (
   })
 }
 
+/**
+ * Optimized version of aggregateAvailableBalanceForUsageCredit that performs
+ * aggregation in SQL rather than in memory.
+ *
+ * This version significantly reduces database egress costs by:
+ * 1. Grouping and summing ledger entries directly in the database
+ * 2. Joining with usage_credits to get expiresAt in a single query
+ * 3. Only transferring aggregated results instead of all individual entries
+ *
+ * Use this version when dealing with large numbers of ledger entries to minimize
+ * data transfer costs.
+ */
 export const aggregateAvailableBalanceForUsageCredit = async (
   scopedWhere: Pick<
     LedgerEntry.Where,
@@ -234,11 +257,31 @@ export const aggregateAvailableBalanceForUsageCredit = async (
     expiresAt: number | null
   }[]
 > => {
-  // First, fetch all ledger entries that match the scopedWhere criteria (e.g., ledgerAccountId)
-  // and are relevant for an "available" balance calculation (posted, or pending debits, and not discarded).
-  const ledgerEntryRecords = await transaction
-    .select()
+  // Build the conditional sum expression for calculating balance
+  // Credit entries add to balance, debit entries subtract from balance
+  const balanceExpression = sql<number>`
+    SUM(
+      CASE 
+        WHEN ${ledgerEntries.direction} = ${LedgerEntryDirection.Credit} 
+        THEN ${ledgerEntries.amount}
+        ELSE -${ledgerEntries.amount}
+      END
+    )
+  `
+
+  // Perform the aggregation directly in SQL with a single query
+  const results = await transaction
+    .select({
+      usageCreditId: ledgerEntries.sourceUsageCreditId,
+      ledgerAccountId: ledgerEntries.ledgerAccountId,
+      balance: balanceExpression,
+      expiresAt: usageCredits.expiresAt,
+    })
     .from(ledgerEntries)
+    .innerJoin(
+      usageCredits,
+      eq(ledgerEntries.sourceUsageCreditId, usageCredits.id)
+    )
     .where(
       and(
         whereClauseFromObject(ledgerEntries, scopedWhere),
@@ -247,9 +290,8 @@ export const aggregateAvailableBalanceForUsageCredit = async (
           ledgerEntries.discardedAt,
           calculationDate
         ),
-        // This entry type is a credit, but it doesn't credit the *usage credit balance*.
-        // It credits the usage cost that is being offset by the credit application.
-        // Therefore, we must exclude it from the balance calculation for the usage credit itself.
+        // Exclude credit applications that credit usage costs
+        // (these don't affect the usage credit balance itself)
         not(
           eq(
             ledgerEntries.entryType,
@@ -258,71 +300,26 @@ export const aggregateAvailableBalanceForUsageCredit = async (
         )
       )
     )
-    .orderBy(asc(ledgerEntries.position))
-
-  // Group the fetched ledger entries by their sourceUsageCreditId.
-  // Ledger entries without a sourceUsageCreditId are ignored.
-  const entriesByUsageCreditId = new Map<
-    string,
-    LedgerEntry.Record[]
-  >()
-  ledgerEntryRecords.forEach((rawEntry) => {
-    // Ensure raw database records are parsed into the correct TypeScript type.
-    const entry = ledgerEntriesSelectSchema.parse(rawEntry)
-    const usageCreditId = entry.sourceUsageCreditId
-    if (!usageCreditId) {
-      return
-    }
-    if (!entriesByUsageCreditId.has(usageCreditId)) {
-      entriesByUsageCreditId.set(usageCreditId, [])
-    }
-    entriesByUsageCreditId.get(usageCreditId)?.push(entry)
-  })
-
-  // If no ledger entries were found that are associated with any usage credit, return an empty array.
-  if (entriesByUsageCreditId.size === 0) {
-    return []
-  }
-
-  // Collect all unique sourceUsageCreditIds from the ledger entries found.
-  // This is necessary to fetch the corresponding UsageCredit records, including their expiresAt dates.
-  const allFoundSourceUsageCreditIds = Array.from(
-    entriesByUsageCreditId.keys()
-  )
-
-  // Fetch the UsageCredit records for all the unique sourceUsageCreditIds identified from the ledger entries.
-  const relevantUsageCredits = await selectUsageCredits(
-    {
-      id: allFoundSourceUsageCreditIds,
-    },
-    transaction
-  )
-
-  // Create a map from usageCreditId to its expiresAt date (which can be null).
-  // This allows efficient lookup of expiry dates when calculating the final balances.
-  const expiresAtByUsageCreditId = new Map<string, number | null>()
-  relevantUsageCredits.forEach((usageCredit) => {
-    expiresAtByUsageCreditId.set(
-      usageCredit.id,
-      usageCredit.expiresAt
+    .groupBy(
+      ledgerEntries.sourceUsageCreditId,
+      ledgerEntries.ledgerAccountId,
+      usageCredits.expiresAt
     )
-  })
 
-  // Calculate the balance for each usageCreditId and combine it with its expiry date.
-  const balances = Array.from(entriesByUsageCreditId.entries()).map(
-    ([usageCreditId, entriesForThisCredit]) => {
-      return {
-        usageCreditId,
-        balance: balanceFromEntries(entriesForThisCredit),
-        // All entries for a given usage credit should belong to the same ledger account.
-        ledgerAccountId: entriesForThisCredit[0].ledgerAccountId,
-        // Retrieve the expiresAt date from the map, defaulting to null if not found (though it should always be found here).
-        expiresAt:
-          expiresAtByUsageCreditId.get(usageCreditId) ?? null,
-      }
-    }
-  )
-  return balances
+  // Transform results to match the expected return type
+  return results
+    .filter((result) => result.usageCreditId !== null)
+    .map((result) => ({
+      usageCreditId: result.usageCreditId!,
+      ledgerAccountId: result.ledgerAccountId,
+      /**
+       * raw SQL result is a string, so we need to parse it to a number
+       */
+      balance: parseInt(`${result.balance ?? 0}`, 10),
+      expiresAt: result.expiresAt
+        ? new Date(result.expiresAt).getTime()
+        : null,
+    }))
 }
 
 export const aggregateOutstandingBalanceForUsageCosts = async (
