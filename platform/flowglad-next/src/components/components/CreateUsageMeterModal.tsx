@@ -18,6 +18,7 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
   defaultPricingModelId,
 }) => {
   const createUsageMeter = trpc.usageMeters.create.useMutation()
+  const trpcContext = trpc.useContext()
   return (
     <FormModal
       isOpen={isOpen}
@@ -33,6 +34,9 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
         },
       }}
       onSubmit={createUsageMeter.mutateAsync}
+      onSuccess={() => {
+        trpcContext.usageMeters.list.invalidate()
+      }}
     >
       <UsageMeterFormFields />
     </FormModal>
