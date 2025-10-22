@@ -60,6 +60,15 @@ export async function getPricingModelSetupData(
       transaction
     )
 
+  // Check each prpduct has a non-null and non-empty slug
+  for (const product of productsWithPrices) {
+    if (!product.slug) {
+      throw new Error(
+        `Product ${product.name} (ID: ${product.id}) has no slug`
+      )
+    }
+  }
+
   // Fetch all product-feature relationships
   const productIds = productsWithPrices.map((p) => p.id)
   const productFeaturesWithFeatures =
@@ -189,7 +198,7 @@ export async function getPricingModelSetupData(
       return {
         product: {
           name: product.name,
-          slug: product.slug ?? '',
+          slug: product.slug as string,
           description: product.description ?? undefined,
           imageURL: product.imageURL ?? undefined,
           default: product.default,
