@@ -13,7 +13,6 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  insertPricingModel,
   selectPricingModelsPaginated,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
   selectPricingModelsTableRows,

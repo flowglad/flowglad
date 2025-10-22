@@ -370,9 +370,13 @@ export const selectPricingModelForCustomer = async (
     if (pricingModel) {
       return {
         ...pricingModel,
-        products: pricingModel.products.filter(
-          (product) => product.active
-        ),
+        products: pricingModel.products
+          .filter((product) => product.active)
+          .map((product) => ({
+            ...product,
+            prices: product.prices.filter((price) => price.active),
+          }))
+          .filter((product) => product.prices.length > 0), // Filter out products with no active prices
       }
     }
   }
@@ -394,8 +398,12 @@ export const selectPricingModelForCustomer = async (
 
   return {
     ...pricingModel,
-    products: pricingModel.products.filter(
-      (product) => product.active
-    ),
+    products: pricingModel.products
+      .filter((product) => product.active)
+      .map((product) => ({
+        ...product,
+        prices: product.prices.filter((price) => price.active),
+      }))
+      .filter((product) => product.prices.length > 0), // Filter out products with no active prices
   }
 }

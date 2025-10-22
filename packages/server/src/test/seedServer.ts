@@ -7,14 +7,14 @@ export const setupProduct = async (params: {
   active?: boolean
 }) => {
   const admin = createTestFlowgladServerAdmin()
-  const product = await admin.createProduct({
-    // @ts-expect-error - displayFeatures is not in the product schema
+  const { pricingModel } = await admin.getDefaultPricingModel()
+  const { product } = await admin.createProduct({
     product: {
       name: params.name,
       description: params.description,
       active:
         typeof params.active === 'boolean' ? params.active : false,
-      catalogId: params.catalogId,
+      pricingModelId: pricingModel.id,
       imageURL: null,
       pluralQuantityLabel: 'items',
       singularQuantityLabel: 'item',
@@ -28,12 +28,12 @@ export const setupProduct = async (params: {
       active: true,
       isDefault: false,
       name: 'Test Product',
-      setupFeeAmount: 0,
       type: 'subscription',
-      usageMeterId: null,
-      trialPeriodDays: null,
       slug: 'test-product',
+      trialPeriodDays: null,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
     },
   })
-  return product
+  return { product, pricingModel }
 }

@@ -15,6 +15,6 @@ export type SubscriptionCardSubscription = Pick<
 >
 
 export type SubscriptionCardSubscriptionItem = Pick<
-  Flowglad.CustomerRetrieveBillingResponse.SubscriptionItem.StaticSubscriptionItem,
+  Flowglad.CustomerRetrieveBillingResponse.StandardSubscriptionDetails.SubscriptionItem,
   'id' | 'unitPrice' | 'quantity' | 'price'
 >
