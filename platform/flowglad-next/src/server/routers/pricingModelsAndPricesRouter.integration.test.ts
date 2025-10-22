@@ -217,7 +217,7 @@ describe('pricesRouter.create', () => {
     expect(result.price.isDefault).toBe(true)
   })
 
-  it('enforces single default per product when creating a second default', async () => {
+  it('allows creating a second default price and deactivates the first', async () => {
     const orgData = await setupOrg()
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
@@ -259,7 +259,7 @@ describe('pricesRouter.create', () => {
     )
 
     // Create the first default price
-    await pricesRouter.createCaller(ctx).create({
+    const firstPrice = await pricesRouter.createCaller(ctx).create({
       price: {
         productId: product.id,
         unitPrice: 0,
@@ -274,29 +274,34 @@ describe('pricesRouter.create', () => {
       },
     })
 
-    // Attempt to create a second default price for the same product
-    try {
-      await pricesRouter.createCaller(ctx).create({
-        price: {
-          productId: product.id,
-          unitPrice: 1000,
-          isDefault: true,
-          type: PriceType.Subscription,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          name: 'Duplicate Default',
-          trialPeriodDays: 0,
-          slug: 'duplicate-default',
-          active: true,
-        },
-      })
-      throw new Error(
-        'Expected TRPCError BAD_REQUEST for multiple default prices'
-      )
-    } catch (err: any) {
-      expect(err).toBeInstanceOf(TRPCError)
-      expect(err.code).toBe('BAD_REQUEST')
-    }
+    // Create a second default price for the same product (should succeed)
+    const secondPrice = await pricesRouter.createCaller(ctx).create({
+      price: {
+        productId: product.id,
+        unitPrice: 1000,
+        isDefault: true,
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        name: 'New Default',
+        trialPeriodDays: 0,
+        slug: 'new-default',
+        active: true,
+      },
+    })
+
+    // Verify the second price is created as default and active
+    expect(secondPrice.price.isDefault).toBe(true)
+    expect(secondPrice.price.active).toBe(true)
+
+    // Verify the first price is now non-default and inactive
+    const [updatedFirstPrice] = await adminTransaction(
+      async ({ transaction }) => {
+        return selectPrices({ id: firstPrice.price.id }, transaction)
+      }
+    )
+    expect(updatedFirstPrice.isDefault).toBe(false)
+    expect(updatedFirstPrice.active).toBe(false)
   })
 
   it('allows creating the first price for a default product', async () => {

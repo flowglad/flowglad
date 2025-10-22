@@ -76,7 +76,7 @@ const SubscriptionFields = ({
                       field.onChange(value)
                     }}
                     allowDecimals={!zeroDecimal}
-                    disabled={edit || defaultPriceLocked}
+                    disabled={defaultPriceLocked}
                   />
                 </FormControl>
               </div>
@@ -95,7 +95,7 @@ const SubscriptionFields = ({
                 <Select
                   value={field.value ?? ''}
                   onValueChange={field.onChange}
-                  disabled={edit || defaultPriceLocked}
+                  disabled={defaultPriceLocked}
                 >
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select interval" />
@@ -122,7 +122,7 @@ const SubscriptionFields = ({
         />
       </div>
       {!omitTrialFields && (
-        <TrialFields disabled={edit || defaultPriceLocked} />
+        <TrialFields disabled={defaultPriceLocked} />
       )}
     </>
   )
@@ -199,7 +199,7 @@ const SinglePaymentFields = ({
                     field.onChange(value)
                   }}
                   allowDecimals={!zeroDecimal}
-                  disabled={edit || defaultPriceLocked}
+                  disabled={defaultPriceLocked}
                 />
               </FormControl>
             </div>
@@ -254,7 +254,7 @@ const UsageFields = ({
                       field.onChange(value)
                     }}
                     allowDecimals={!zeroDecimal}
-                    disabled={edit || defaultPriceLocked}
+                    disabled={defaultPriceLocked}
                   />
                 </FormControl>
               </div>
@@ -283,7 +283,6 @@ const UsageFields = ({
                       field.onChange(numValue)
                     }
                   }}
-                  disabled={edit}
                 />
               </FormControl>
               <FormMessage />
@@ -407,30 +406,6 @@ const PriceFormFields = ({
       )}
       <FormField
         control={control}
-        name="price.slug"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Price Slug</FormLabel>
-            <FormControl>
-              <AutoSlugInput
-                {...field}
-                name="price.slug"
-                sourceName={priceOnly ? 'price.name' : 'product.name'}
-                placeholder="price_slug"
-                disabledAuto={edit || isDefaultLocked}
-                disabled={isDefaultLocked}
-              />
-            </FormControl>
-            <FormDescription>
-              The slug is used to identify the price in the API. Must
-              be unique per-pricing model.
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={control}
         name="price.type"
         render={({ field }) => (
           <FormItem>
@@ -492,25 +467,6 @@ const PriceFormFields = ({
         )}
       />
       {typeFields}
-      {priceOnly && (
-        <FormField
-          control={control}
-          name="price.isDefault"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Default</FormLabel>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  disabled={isDefaultLocked}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
     </div>
   )
 }
