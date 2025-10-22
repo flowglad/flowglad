@@ -11,7 +11,7 @@ import {
   setupPayment,
   setupPrice,
 } from '@/../seedDatabase'
-import { insertPricingModel } from './tableMethods/pricingModelMethods'
+import { insertPricingModel, selectPricingModelForCustomer } from './tableMethods/pricingModelMethods'
 import { insertProduct } from './tableMethods/productMethods'
 import { insertPrice } from './tableMethods/priceMethods'
 import { sql } from 'drizzle-orm'
@@ -2128,9 +2128,6 @@ describe('Customer Role RLS Policies', () => {
       expect(customerWithNullPricingModel.pricingModelId).toBeNull()
 
       // Test as a customer (not merchant) to reproduce the RLS issue
-      const { selectPricingModelForCustomer } = await import(
-        './tableMethods/pricingModelMethods'
-      )
 
       // Use the helper function to simulate customer accessing billing portal with proper RLS context
       const result = await authenticatedCustomerTransaction(

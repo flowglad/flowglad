@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { Organization } from '@/db/schema/organizations'
+import { Product } from '@/db/schema/products'
 import {
   setupPricingModel,
   setupOrg,
@@ -540,8 +541,8 @@ describe('selectPricingModelForCustomer', () => {
   let organization: Organization.Record
   let defaultPricingModel: PricingModel.Record
   let specificPricingModel: PricingModel.Record
-  let activeProduct: any
-  let inactiveProduct: any
+  let activeProduct: Product.Record
+  let inactiveProduct: Product.Record
 
   beforeEach(async () => {
     // Set up organization and pricing models
@@ -1017,4 +1018,233 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     expect(product2Result?.features).toHaveLength(1) // Only future-expired feature
     expect(product2Result?.features[0].id).toBe(feature3.id)
   })
+})
+
+describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+  })
+
+  it('should filter out inactive prices while preserving all active prices', async () => {
+    const product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Product with Mixed Prices',
+      active: true,
+    })
+
+    const activePrice1 = await setupPrice({
+      productId: product.id,
+      name: 'Active Price 1',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+      active: true,
+    })
+
+    const activePrice2 = await setupPrice({
+      productId: product.id,
+      name: 'Active Price 2',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Year,
+      intervalCount: 1,
+      unitPrice: 10000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      trialPeriodDays: 0,
+      active: true,
+    })
+
+    const inactivePrice1 = await setupPrice({
+      productId: product.id,
+      name: 'Inactive Price 1',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 2000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      trialPeriodDays: 0,
+      active: false,
+    })
+
+    const inactivePrice2 = await setupPrice({
+      productId: product.id,
+      name: 'Inactive Price 2',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Week,
+      intervalCount: 1,
+      unitPrice: 500,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      trialPeriodDays: 0,
+      active: false,
+    })
+
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test-customer@example.com',
+      pricingModelId: pricingModel.id,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return await selectPricingModelForCustomer(customer, transaction)
+    })
+
+    expect(result.products).toHaveLength(2) // setupOrg + our test product
+    
+    // Find our test product
+    const testProduct = result.products.find(p => p.id === product.id)
+    expect(testProduct).toBeDefined()
+    expect(testProduct!.prices).toHaveLength(2) // Only active prices should remain
+    
+    const returnedPrices = testProduct!.prices
+    
+    // Verify all active prices are preserved
+    expect(returnedPrices.find(p => p.id === activePrice1.id)).toBeDefined()
+    expect(returnedPrices.find(p => p.id === activePrice2.id)).toBeDefined()
+    
+    // Verify all inactive prices are filtered out
+    expect(returnedPrices.find(p => p.id === inactivePrice1.id)).toBeUndefined()
+    expect(returnedPrices.find(p => p.id === inactivePrice2.id)).toBeUndefined()
+    
+    // Verify all returned prices are active
+    returnedPrices.forEach(price => {
+      expect(price.active).toBe(true)
+    })
+    
+    // Verify default price relationship is preserved
+    const defaultPrice = returnedPrices.find(p => p.isDefault)
+    expect(defaultPrice).toBeDefined()
+    expect(defaultPrice?.id).toBe(activePrice1.id)
+  })
+
+  it('should filter out products with only inactive prices', async () => {
+    const product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Product with Only Inactive Prices',
+      active: true,
+    })
+
+    const inactivePrice1 = await setupPrice({
+      productId: product.id,
+      name: 'Inactive Price 1',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+      active: false,
+    })
+
+    const inactivePrice2 = await setupPrice({
+      productId: product.id,
+      name: 'Inactive Price 2',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Year,
+      intervalCount: 1,
+      unitPrice: 10000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      trialPeriodDays: 0,
+      active: false,
+    })
+
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test-customer@example.com',
+      pricingModelId: pricingModel.id,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return await selectPricingModelForCustomer(customer, transaction)
+    })
+
+    expect(result.products).toHaveLength(1) // Only setupOrg product
+    
+    const productInResult = result.products.find(p => p.id === product.id)
+    expect(productInResult).toBeUndefined()
+  })
+
+  it('should return all prices when product has no inactive prices', async () => {
+    const product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Product with Only Active Prices',
+      active: true,
+    })
+
+    const activePrice1 = await setupPrice({
+      productId: product.id,
+      name: 'Active Price 1',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+      active: true,
+    })
+
+    const activePrice2 = await setupPrice({
+      productId: product.id,
+      name: 'Active Price 2',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Year,
+      intervalCount: 1,
+      unitPrice: 10000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      trialPeriodDays: 0,
+      active: true,
+    })
+
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test-customer@example.com',
+      pricingModelId: pricingModel.id,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return await selectPricingModelForCustomer(customer, transaction)
+    })
+
+    expect(result.products).toHaveLength(2)
+    
+    // Find our test product
+    const testProduct = result.products.find(p => p.id === product.id)
+    expect(testProduct).toBeDefined()
+    expect(testProduct!.prices).toHaveLength(2)
+    
+    const returnedPrices = testProduct!.prices
+    expect(returnedPrices.find(p => p.id === activePrice1.id)).toBeDefined()
+    expect(returnedPrices.find(p => p.id === activePrice2.id)).toBeDefined()
+    
+    // Verify all returned prices are active
+    returnedPrices.forEach(price => {
+      expect(price.active).toBe(true)
+    })
+  })
+
 })
