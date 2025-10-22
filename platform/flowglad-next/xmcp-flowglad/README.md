@@ -197,5 +197,5 @@ pnpm start-stdio
 3. If your Authorization header is set to Bearer 12345, the call will succeed.
 4. Optional(Test in terminal)
 ```
-curl -X POST -H "Content-Type: application/json" -H "Accept: application/json" -H "Authorization: Bearer 12345" -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"hello-world","arguments":{}},"id":1}' http://localhost:3001/mcp
+curl -X POST -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -H "Authorization: Bearer 12345" -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"hello-world","arguments":{}},"id":1}' http://localhost:3000/mcp
 ```
