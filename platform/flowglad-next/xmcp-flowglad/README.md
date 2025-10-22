@@ -185,11 +185,13 @@ pnpm start-stdio
    {
      "mcpServers": {
        "flowglad-mcp": {
-         "url": "http://localhost:3001/mcp",
-         "headers": {
-           "Authorization": "Bearer 12345"
-         }
-       }
+          "url": "http://localhost:3000/mcp",
+          "headers": {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": "Bearer 12345"
+          }
+        }
      }
    }
    ```
