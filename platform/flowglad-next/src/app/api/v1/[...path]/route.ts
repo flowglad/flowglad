@@ -1,1725 +1,872 @@
-import * as R from 'ramda'
 import {
-  and,
-  asc,
-  desc,
-  eq,
-  gt,
-  inArray,
-  InferInsertModel,
-  InferSelectModel,
-  lt,
-  sql,
-  count,
-  SQL,
-  ilike,
-  or,
-  isNull,
-  Table,
-} from 'drizzle-orm'
-import { PgTimestampColumn } from './types'
-import { timestamptzMs } from './timestampMs'
-import core, { gitCommitId, IS_TEST } from '@/utils/core'
+  FetchCreateContextFn,
+  fetchRequestHandler,
+} from '@trpc/server/adapters/fetch'
+import { appRouter } from '@/server'
+import { createApiContext } from '@/server/trpcContext'
+import { NextRequestWithUnkeyContext } from '@unkey/nextjs'
+import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
+import { NextResponse } from 'next/server'
+import { trpcToRest, RouteConfig } from '@/utils/openapi'
+import * as Sentry from '@sentry/nextjs'
 import {
-  boolean,
-  integer,
-  pgEnum,
-  text,
-  IndexBuilderOn,
-  uniqueIndex,
-  index,
-  IndexColumn,
-  PgUpdateSetSource,
-  PgColumn,
-  pgPolicy,
-  bigserial,
-  pgRole,
-} from 'drizzle-orm/pg-core'
+  customerBillingRouteConfig,
+  customersRouteConfigs,
+} from '@/server/routers/customersRouter'
+import { productsRouteConfigs } from '@/server/routers/productsRouter'
+import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
+import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
+import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
+import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
+import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
+import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
+import { purchasesRouteConfigs } from '@/server/routers/purchasesRouter'
+import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
+import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
+import { webhooksRouteConfigs } from '@/server/routers/webhooksRouter'
 import {
-  type DbTransaction,
-  type PgTableWithId,
-  type PgStringColumn,
-  type PgTableWithCreatedAtAndId,
-  PgTableWithPosition,
-} from '@/db/types'
-import { CountryCode, TaxType, SupabasePayloadType } from '@/types'
-import { z } from 'zod'
+  trace,
+  SpanStatusCode,
+  context,
+  SpanKind,
+} from '@opentelemetry/api'
+import { logger } from '@/utils/logger'
 import {
-  BuildRefine,
-  BuildSchema,
-  createSelectSchema,
-  NoUnknownKeys,
-} from 'drizzle-zod'
-import { noCase, snakeCase } from 'change-case'
-import { countryCodeSchema } from './commonZodSchema'
+  pricingModelsRouteConfigs,
+  getDefaultPricingModelRouteConfig,
+  setupPricingModelRouteConfig,
+} from '@/server/routers/pricingModelsRouter'
+import {
+  paymentsRouteConfigs,
+  refundPaymentRouteConfig,
+} from '@/server/routers/paymentsRouter'
+import core from '@/utils/core'
+import { parseUnkeyMeta, verifyApiKey } from '@/utils/unkey'
+import { featuresRouteConfigs } from '@/server/routers/featuresRouter'
+import { productFeaturesRouteConfigs } from '@/server/routers/productFeaturesRouter'
+import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
+import { headers } from 'next/headers'
+import {
+  trackSecurityEvent,
+  trackFailedAuth,
+  checkForExpiredKeyUsage,
+} from '@/utils/securityTelemetry'
+import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
 
-export const merchantRole = pgRole('merchant', {
-  createRole: false,
-  createDb: false,
-  inherit: true,
-})
-
-export const customerRole = pgRole('customer', {
-  createRole: false,
-  createDb: false,
-  inherit: true,
-})
-
-export const merchantPolicy = (
-  name: string,
-  Params: Omit<Parameters<typeof pgPolicy>[1], 'to'>
-) => {
-  return pgPolicy(name, {
-    ...Params,
-    to: merchantRole,
-  })
+interface FlowgladRESTRouteContext {
+  params: Promise<{ path: string[] }>
 }
 
-export const customerPolicy = (
-  name: string,
-  Params: Omit<Parameters<typeof pgPolicy>[1], 'to'>
-) => {
-  return pgPolicy(name, {
-    ...Params,
-    to: customerRole,
-  })
-}
-
-export const enableCustomerReadPolicy = (
-  name: string,
-  params: Omit<Parameters<typeof pgPolicy>[1], 'to' | 'for' | 'as'>
-) => {
-  return pgPolicy(name, {
-    ...params,
-    as: 'permissive',
-    to: customerRole,
-    for: 'select',
-  })
-}
-
-type ZodTableUnionOrType<
-  T extends
-    | InferSelectModel<PgTableWithId>
-    | InferInsertModel<PgTableWithId>,
-> =
-  | z.ZodType<T, any, any>
-  | z.ZodUnion<[z.ZodType<T, any, any>, ...z.ZodType<T, any, any>[]]>
-  | z.ZodDiscriminatedUnion
-
-export interface ORMMethodCreatorConfig<
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
-> {
-  selectSchema: S
-  insertSchema: I
-  updateSchema: U
-  tableName: string
-}
-
-export const createSelectById = <
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  const selectSchema = config.selectSchema
-
-  return async function selectById(
-    id: InferSelectModel<T>['id'] extends string ? string : number,
-    transaction: DbTransaction
-  ): Promise<z.infer<S>> {
-    /**
-     * NOTE we don't simply use selectByIds here
-     * because a simple equality check is generally more performant
-     */
-    try {
-      const results = await transaction
-        .select()
-        .from(table as SelectTable)
-        .where(eq(table.id, id))
-      if (results.length === 0) {
-        throw Error(
-          `No ${noCase(config.tableName)} found with id: ${id}`
-        )
-      }
-      const result = results[0]
-      return selectSchema.parse(result)
-    } catch (error) {
-      if (!IS_TEST) {
-        console.error(
-          `[selectById] Error selecting ${config.tableName} with id ${id}:`,
-          error
-        )
-      }
-      throw new Error(
-        `Failed to select ${config.tableName} by id ${id}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
-export const createInsertManyFunction = <
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  const insertSchema = config.insertSchema
-  const selectSchema = config.selectSchema
-
-  return async (
-    insert: z.infer<I>[],
-    transaction: DbTransaction
-  ): Promise<z.infer<S>[]> => {
-    try {
-      const parsedInsert = insert.map((insert) =>
-        insertSchema.parse(insert)
-      ) as InferInsertModel<T>[]
-      const result = await transaction
-        .insert(table)
-        .values(parsedInsert)
-        .returning()
-      return result.map((item) => {
-        const parsed = selectSchema.safeParse(item)
-        if (!parsed.success) {
-          if (!IS_TEST) {
-            console.error(
-              '[createInsertManyFunction] Zod parsing error:',
-              parsed.error.issues
-            )
-            console.error(
-              '[createInsertManyFunction] Failed item:',
-              item
-            )
-          }
-          throw Error(
-            `createInsertManyFunction: Error parsing result: ${JSON.stringify(
-              item
-            )}. Issues: ${JSON.stringify(parsed.error.issues)}`
-          )
-        }
-        return parsed.data
-      })
-    } catch (error) {
-      if (IS_TEST) {
-        // Log info to help debug Zod errors in test mode
-        if (error instanceof z.ZodError) {
-          for (const issue of error.issues) {
-            const { path, message } = issue
-            // Try to extract the problematic value and its type from the input
-            let value: unknown = undefined
-            let valueType: string = 'unknown'
-            if (Array.isArray(insert)) {
-              for (const item of insert) {
-                let current: any = item
-                for (const key of path) {
-                  if (
-                    current &&
-                    typeof current === 'object' &&
-                    key in current
-                  ) {
-                    current = current[key]
-                  } else {
-                    current = undefined
-                    break
-                  }
-                }
-                if (current !== undefined) {
-                  value = current
-                  valueType = Object.prototype.toString.call(current)
-                  break
-                }
-              }
-            }
-            // Print debug info
-
-            // FIXME(FG-384): Fix this warning:
-            // eslint-disable-next-line no-console
-            console.info(
-              '[createInsertManyFunction][TEST] ZodError at path:',
-              path.join('.'),
-              '| value:',
-              value,
-              '| type:',
-              valueType,
-              '| message:',
-              message
-            )
-          }
-        }
-      }
-      if (!IS_TEST) {
-        console.error(
-          `[createInsertManyFunction] Error inserting into ${config.tableName}:`,
-          error
-        )
-      }
-      if (
-        error instanceof Error &&
-        error.message.includes('duplicate key')
-      ) {
-        throw new Error(
-          `Duplicate key error when inserting into ${config.tableName}: ${error.message}`,
-          { cause: error }
-        )
-      }
-
-      throw new Error(
-        `Failed to insert items into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
-export const createInsertFunction = <
-  T extends PgTableWithId,
-  S extends z.ZodType<InferSelectModel<T>, any, any>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  const insertMany = createInsertManyFunction(table, config)
-  return async (
-    insert: z.infer<I>,
-    transaction: DbTransaction
-  ): Promise<z.infer<S>> => {
-    try {
-      const [result] = await insertMany([insert], transaction)
-      return result
-    } catch (error) {
-      if (!IS_TEST) {
-        console.error(
-          `[createInsertFunction] Error inserting single item into ${config.tableName}:`,
-          error
-        )
-      }
-      throw new Error(
-        `Failed to insert item into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
-type SelectTable = Parameters<
-  ReturnType<DbTransaction['select']>['from']
->[0]
-
-export const createUpdateFunction = <
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  const updateSchema = config.updateSchema
-  const selectSchema = config.selectSchema
-
-  return async (
-    update: z.infer<typeof updateSchema> & { id: string },
-    transaction: DbTransaction
-  ): Promise<z.infer<S>> => {
-    try {
-      const parsedUpdate = updateSchema.parse(
-        update
-      ) as InferInsertModel<T>
-      const [result] = await transaction
-        .update(table)
-        .set({
-          ...parsedUpdate,
-          updatedAt: new Date(),
-        })
-        .where(eq(table.id, update.id))
-        .returning()
-      if (!result) {
-        const [latestItem] = await transaction
-          .select()
-          .from(table as SelectTable)
-          .where(eq(table.id, update.id))
-          .limit(1)
-        if (!latestItem) {
-          throw Error(
-            `No ${noCase(config.tableName)} found with id: ${update.id}`
-          )
-        }
-        return selectSchema.parse(latestItem)
-      }
-
-      const parsed = selectSchema.safeParse(result)
-      if (!parsed.success) {
-        if (!IS_TEST) {
-          console.error(
-            '[createUpdateFunction] Zod parsing error:',
-            parsed.error.issues
-          )
-          console.error(
-            '[createUpdateFunction] Failed result:',
-            result
-          )
-        }
-        throw Error(
-          `createUpdateFunction: Error parsing result: ${JSON.stringify(result)}. Issues: ${JSON.stringify(parsed.error.issues)}`
-        )
-      }
-      return parsed.data
-    } catch (error) {
-      if (!IS_TEST) {
-        console.error(
-          `[createUpdateFunction] Error updating ${config.tableName} with id ${update.id}:`,
-          error
-        )
-      }
-      if (error instanceof Error && error.message.includes('No ')) {
-        throw error
-      }
-      throw new Error(
-        `Failed to update ${config.tableName} with id ${update.id}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
-export const whereClauseFromObject = <T extends PgTableWithId>(
-  table: T,
-  selectConditions: SelectConditions<T>
-) => {
-  const keys = Object.keys(selectConditions).filter((key) => {
-    const value = selectConditions[key]
-    // Filter out undefined and empty strings to prevent invalid SQL parameters
-    // null values are kept and handled separately by isNull() condition
-    // Arrays (including empty arrays) are kept for inArray() processing
-    return value !== undefined && value !== ''
-  })
-  if (keys.length === 0) {
-    return undefined
-  }
-  const conditions = keys.map((key) => {
-    if (Array.isArray(selectConditions[key])) {
-      // Filter out undefined and empty strings from arrays to prevent SQL parameter issues
-      const cleanArray = selectConditions[key].filter(
-        (item: any) => item !== undefined && item !== ''
-      )
-      return inArray(
-        table[key as keyof typeof table] as PgColumn,
-        cleanArray
-      )
-    }
-    if (selectConditions[key] === null) {
-      return isNull(table[key as keyof typeof table] as PgColumn)
-    }
-    return eq(
-      table[key as keyof typeof table] as PgColumn,
-      selectConditions[key as keyof typeof selectConditions]
-    )
-  })
-
-  const whereClause =
-    conditions.length > 1 ? and(...conditions) : conditions[0]
-  return whereClause
-}
-
-export type DBMethodReturn<
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-> = z.infer<S>[]
-
-export type SelectConditions<T extends PgTableWithId> = {
-  [K in keyof Partial<InferSelectModel<T>>]:
-    | InferSelectModel<T>[K]
-    | InferSelectModel<T>[K][]
-}
-
-export const createSelectFunction = <
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  const selectSchema = config.selectSchema
-
-  return async (
-    selectConditions: SelectConditions<T>,
-    transaction: DbTransaction
-  ): Promise<DBMethodReturn<T, S>> => {
-    try {
-      let query = transaction
-        .select()
-        .from(table as SelectTable)
-        .$dynamic()
-      if (!R.isEmpty(selectConditions)) {
-        query = query.where(
-          whereClauseFromObject(table, selectConditions)
-        )
-      }
-      const result = await query
-      return result.map((item) => {
-        const parsed = selectSchema.safeParse(item)
-        if (!parsed.success) {
-          console.error(
-            '[createSelectFunction] Zod parsing error:',
-            parsed.error.issues
-          )
-          console.error('[createSelectFunction] Failed item:', item)
-          throw Error(
-            `createSelectFunction: Error parsing result: ${JSON.stringify(
-              item
-            )}. Issues: ${JSON.stringify(parsed.error.issues)}`
-          )
-        }
-        return parsed.data
-      }) as DBMethodReturn<T, S>
-    } catch (error) {
-      console.error(
-        `[createSelectFunction] Error selecting from ${config.tableName}:`,
-        error
-      )
-      console.error(
-        '[createSelectFunction] Select conditions:',
-        selectConditions
-      )
-      throw new Error(
-        `Failed to select from ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
-export const selectByIds = async <TTable extends PgTableWithId>(
-  table: TTable,
-  ids: number[],
-  transaction: DbTransaction
-) => {
+const parseErrorMessage = (rawMessage: string) => {
+  let parsedMessage = rawMessage
   try {
-    return await transaction
-      .select()
-      .from(table as SelectTable)
-      .where(inArray(table.id, ids))
+    parsedMessage = JSON.parse(rawMessage)
   } catch (error) {
-    console.error('[selectByIds] Error selecting by ids:', error)
-    console.error('[selectByIds] Table:', table)
-    console.error('[selectByIds] IDs:', ids)
-    throw new Error(
-      `Failed to select by ids: ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error }
-    )
+    return rawMessage
   }
+  return parsedMessage
 }
 
-export const activeColumn = () =>
-  boolean('active').notNull().default(true)
+const routeConfigs = [
+  ...customersRouteConfigs,
+  ...subscriptionsRouteConfigs,
+  ...checkoutSessionsRouteConfigs,
+  ...pricesRouteConfigs,
+  ...invoicesRouteConfigs,
+  ...paymentMethodsRouteConfigs,
+  ...paymentsRouteConfigs,
+  ...purchasesRouteConfigs,
+  ...pricingModelsRouteConfigs,
+  ...usageMetersRouteConfigs,
+  ...usageEventsRouteConfigs,
+  ...webhooksRouteConfigs,
+  ...featuresRouteConfigs,
+  ...productFeaturesRouteConfigs,
+]
 
-export const descriptionColumn = () => text('description')
-
-export const timestampWithTimezoneColumn = timestamptzMs
-
-export const createdAtColumn = () =>
-  timestampWithTimezoneColumn('created_at').notNull().defaultNow()
-
-export const sequenceNumberColumn = () => integer('sequence_number')
-
-export const tableBase = (idPrefix?: string) => ({
-  id: text('id')
-    .primaryKey()
-    .unique()
-    .$defaultFn(
-      () => `${idPrefix ? `${idPrefix}_` : ''}${core.nanoid()}`
-    )
-    .notNull(),
-  createdAt: createdAtColumn(),
-  updatedAt: timestampWithTimezoneColumn('updated_at')
-    .defaultNow()
-    .$onUpdate(() => Date.now()),
-  createdByCommit: text('created_by_commit').$defaultFn(gitCommitId),
-  updatedByCommit: text('updated_by_commit').$defaultFn(gitCommitId),
-  livemode: boolean('livemode').notNull(),
-  /**
-   * Used for ranking in pagination
-   */
-  position: bigserial({ mode: 'number' }),
-})
-
-export const taxColumns = () => ({
-  taxAmount: integer('tax_amount'),
-  subtotal: integer('subtotal'),
-  stripeTaxCalculationId: text('stripe_tax_calculation_id'),
-  stripeTaxTransactionId: text('stripe_tax_transaction_id'),
-  taxType: pgEnumColumn({
-    enumName: 'TaxType',
-    columnName: 'tax_type',
-    enumBase: TaxType,
-  }),
-  /**
-   * Tax columns
-   */
-  taxCountry: pgEnumColumn({
-    enumName: 'CountryCode',
-    columnName: 'tax_country',
-    enumBase: CountryCode,
-  }),
-  taxState: text('tax_state'),
-  taxRatePercentage: text('tax_rate_percentage'),
-  /**
-   * The Flowglad processing fee
-   */
-  applicationFee: integer('application_fee'),
-})
-
-export const taxSchemaColumns = {
-  taxCountry: countryCodeSchema,
-  taxType: core.createSafeZodEnum(TaxType).nullable(),
-}
-
-export const livemodePolicy = (tableName: string) =>
-  pgPolicy(`Check mode (${tableName})`, {
-    as: 'restrictive',
-    to: merchantRole,
-    for: 'all',
-    using: sql`current_setting('app.livemode')::boolean = livemode`,
-  })
-
-/**
- * Ensure that the organization id for this record is consistent with the organization id for its parent table,
- * in the case where there's a foreign key
- * @param parentTableName
- * @param parentIdColumn
- * @returns
- */
-interface ParentTableIdIntegrityCheckParams {
-  parentTableName: string
-  parentIdColumnInCurrentTable: string // FK in the current table pointing to parent's PK
-  parentTablePrimaryKeyColumn?: string // PK in parent table, defaults to 'id'
-  currentTableName: string
-  policyName?: string // Optional custom policy name
-}
-
-export const parentForeignKeyIntegrityCheckPolicy = ({
-  parentTableName,
-  parentIdColumnInCurrentTable,
-}: ParentTableIdIntegrityCheckParams) => {
-  return pgPolicy(
-    `Ensure organization integrity with ${parentTableName} parent table`,
-    {
-      as: 'permissive',
-      to: merchantRole,
-      for: 'all',
-      using: sql`${sql.identifier(parentIdColumnInCurrentTable)} in (select ${sql.identifier('id')} from ${sql.identifier(parentTableName)})`,
-    }
-  )
-}
-
-export const membershipOrganizationIdIntegrityCheckPolicy = () => {
-  return pgPolicy('Enable read for own organizations', {
-    as: 'permissive',
-    to: merchantRole,
-    for: 'all',
-    using: sql`"organization_id" in (select "organization_id" from "memberships")`,
-  })
-}
-
-/**
- * Generates a pgEnum column declaration from a TypeScript enum,
- * giving the enum the name of the column
- */
-export const pgEnumColumn = <
-  T extends Record<string, string | number>,
->(params: {
-  enumName: string
-  columnName: string
-  enumBase: T
-}) => {
-  const columnType = pgEnum(
-    params.enumName,
-    Object.values(params.enumBase).map((value) =>
-      value.toString()
-    ) as [string, ...string[]]
-  )
-  return columnType(params.columnName)
-}
-
-/**
- * Generates a set of values for an onConflictDoUpdate statement,
- * using the column names of the table
- */
-export const onConflictDoUpdateSetValues = <
-  TTable extends PgTableWithId,
->(
-  table: TTable,
-  excludeColumns: string[] = []
-): PgUpdateSetSource<TTable> => {
-  const keys = Object.keys(table)
-    .filter(
-      (key) =>
-        !Object.keys(tableBase()).includes(key) &&
-        !excludeColumns.includes(key)
-    )
-    .map((key) => key as keyof TTable['$inferInsert'])
-
-  return keys.reduce((acc, key) => {
-    return {
-      ...acc,
-      [key]: sql`excluded.${sql.identifier(
-        /**
-         * While it should never happen,
-         * technically, table columns as per $inferInsert
-         * can be symbols - this strips the symbol wrapper,
-         * which is included in the stringified key
-         */
-        snakeCase(key.toString().replace(/^Symbol\((.*)\)$/, '$1'))
-      )}`,
-    }
-  }, {})
-}
-
-export const createIndexName = (
-  tableName: string,
-  columns: Parameters<IndexBuilderOn['on']>,
-  isUnique: boolean = false
-) => {
-  /**
-   * In types columns will show up as strings, but at runtime they're
-   * actually objects with a name property
-   */
-  const columnObjects = columns as unknown as { name: string }[]
-  return (
-    tableName +
-    '_' +
-    columnObjects.map((column) => column.name).join('_') +
-    (isUnique ? '_unique' : '') +
-    '_idx'
-  )
-}
-
-export const constructUniqueIndex = (
-  tableName: string,
-  columns: Parameters<IndexBuilderOn['on']>
-) => {
-  const indexName = createIndexName(tableName, columns, true)
-  return uniqueIndex(indexName).on(...columns)
-}
-
-/**
- * Can only support single column indexes
- * at this time because of the way we need to construct gin
- * indexes in Drizzle:
- * @see https://orm.drizzle.team/docs/guides/postgresql-full-text-search
- * @param tableName
- * @param column
- * @returns
- */
-export const constructGinIndex = (
-  tableName: string,
-  column: Parameters<IndexBuilderOn['on']>[0]
-) => {
-  const indexName = createIndexName(tableName, [column], false)
-  return index(indexName).using(
-    'gin',
-    sql`to_tsvector('english', ${column})`
-  )
-}
-
-export const constructIndex = (
-  tableName: string,
-  columns: Parameters<IndexBuilderOn['on']>
-) => {
-  const indexName = createIndexName(tableName, columns)
-  return index(indexName).on(...columns)
-}
-
-export const newBaseZodSelectSchemaColumns = {
-  position: z.number(),
-} as const
-
-/**
- * Truthfully this is a "createFindOrCreateFunction"
- * - it doesn't do the "up" part of "upsert"
- * @param table
- * @param target
- * @param config
- * @returns
- */
-export const createUpsertFunction = <
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  target: IndexColumn | IndexColumn[],
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  const selectSchema = config.selectSchema
-  const insertSchema = config.insertSchema
-
-  const upsertFunction = async (
-    data: z.infer<I> | z.infer<I>[],
-    transaction: DbTransaction
-  ): Promise<z.infer<S>[]> => {
-    try {
-      const dataArray = Array.isArray(data) ? data : [data]
-      const insertData = dataArray.map(
-        (data) => insertSchema.parse(data) as InferInsertModel<T>
-      )
-      const result = await transaction
-        .insert(table)
-        .values(insertData)
-        .onConflictDoNothing({
-          target,
-        })
-        .returning()
-      return result.map((data) =>
-        selectSchema.parse(data)
-      ) as z.infer<typeof selectSchema>[]
-    } catch (error) {
-      console.error(
-        `[createUpsertFunction] Error upserting into ${config.tableName}:`,
-        error
-      )
-      throw new Error(
-        `Failed to upsert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-
-  return upsertFunction
-}
-
-export const notNullStringForeignKey = (
-  column: string,
-  refTable: PgTableWithId
-) => {
-  return text(column)
-    .notNull()
-    .references(() => refTable.id as PgStringColumn)
-}
-
-export const nullableStringForeignKey = (
-  column: string,
-  refTable: PgTableWithId
-) => {
-  return text(column).references(() => refTable.id as PgStringColumn)
-}
-
-export const ommittedColumnsForInsertSchema = {
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  createdByCommit: true,
-  updatedByCommit: true,
-  position: true,
-} as const
-
-export const hiddenColumnsForClientSchema = {
-  position: true,
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
-
-export const createPaginatedSelectSchema = <T extends {}>(
-  parameters: ZodTableUnionOrType<T>
-) => {
-  return z.object({
-    cursor: z.string().optional(),
-    limit: z.coerce
-      .string()
-      .transform((str) => Number(str))
-      .refine((num) => num >= 1 && num <= 100, {
-        message: 'Limit must be between 1 and 100',
-      })
-      .optional(),
-  })
-}
-
-export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
-  table,
-  tableName,
-  refine,
-}: {
-  table: T
-  tableName: string
-  refine: {
-    [K in keyof T['$inferSelect']]?: z.ZodType<T['$inferSelect'][K]>
-  }
-}) => {
-  const selectSchema = refine
-    ? createSelectSchema(table).extend(refine)
-    : createSelectSchema(table)
-
-  const supabaseInsertPayloadSchema = z.object({
-    type: z.literal(SupabasePayloadType.INSERT),
-    table: z.literal(tableName),
-    schema: z.string(),
-    record: selectSchema,
-  })
-
-  const supabaseUpdatePayloadSchema = z.object({
-    type: z.literal(SupabasePayloadType.UPDATE),
-    table: z.literal(tableName),
-    schema: z.string(),
-    record: selectSchema,
-    old_record: selectSchema,
-  })
-  return {
-    supabaseInsertPayloadSchema,
-    supabaseUpdatePayloadSchema,
-  }
-}
-
-export const createBulkInsertFunction = <
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  const insertSchema = config.insertSchema
-  return async (
-    data: z.infer<I>[],
-    transaction: DbTransaction
-  ): Promise<z.infer<S>[]> => {
-    try {
-      const dataArray = Array.isArray(data) ? data : [data]
-      const parsedData = dataArray.map((data) =>
-        insertSchema.parse(data)
-      ) as InferInsertModel<T>[]
-      if (dataArray.length === 0) {
-        return []
-      }
-      const result = await transaction
-        .insert(table)
-        .values(parsedData)
-        .returning()
-      return result.map((data) => config.selectSchema.parse(data))
-    } catch (error) {
-      console.error(
-        `[createBulkInsertFunction] Error bulk inserting into ${config.tableName}:`,
-        error
-      )
-      console.error(
-        '[createBulkInsertFunction] Data count:',
-        data.length
-      )
-      throw new Error(
-        `Failed to bulk insert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
-export const createBulkInsertOrDoNothingFunction = <
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  return async (
-    data: z.infer<I>[],
-    target: IndexColumn | IndexColumn[],
-    transaction: DbTransaction
-  ): Promise<z.infer<S>[]> => {
-    try {
-      const dataArray = Array.isArray(data) ? data : [data]
-      const parsedData = dataArray.map((data) =>
-        config.insertSchema.parse(data)
-      ) as InferInsertModel<T>[]
-      if (parsedData.length === 0) {
-        return []
-      }
-      const result = await transaction
-        .insert(table)
-        .values(parsedData)
-        .onConflictDoNothing({
-          target,
-        })
-        .returning()
-      return result.map((data) => config.selectSchema.parse(data))
-    } catch (error) {
-      if (!IS_TEST) {
-        console.error(
-          `[createBulkInsertOrDoNothingFunction] Error bulk inserting with conflict handling into ${config.tableName}:`,
-          error
-        )
-        console.error(
-          '[createBulkInsertOrDoNothingFunction] Data count:',
-          data.length
-        )
-        console.error(
-          '[createBulkInsertOrDoNothingFunction] Target:',
-          target
-        )
-      }
-      throw new Error(
-        `Failed to bulk insert with conflict handling into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
-export const createBulkUpsertFunction = <
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  return async (
-    data: z.infer<I>[],
-    target: IndexColumn | IndexColumn[],
-    transaction: DbTransaction
-  ): Promise<z.infer<S>[]> => {
-    try {
-      const dataArray = Array.isArray(data) ? data : [data]
-      const parsedData = dataArray.map((data) =>
-        config.insertSchema.parse(data)
-      ) as InferInsertModel<T>[]
-      const result = await transaction
-        .insert(table)
-        .values(parsedData)
-        .onConflictDoUpdate({
-          target,
-          set: onConflictDoUpdateSetValues(table, [
-            'id',
-            'created_at',
-          ]),
-        })
-        .returning()
-      return result.map((data) => config.selectSchema.parse(data))
-    } catch (error) {
-      if (!IS_TEST) {
-        console.error(
-          `[createBulkUpsertFunction] Error bulk upserting into ${config.tableName}:`,
-          error
-        )
-        console.error(
-          '[createBulkUpsertFunction] Data count:',
-          data.length
-        )
-        console.error('[createBulkUpsertFunction] Target:', target)
-      }
-      throw new Error(
-        `Failed to bulk upsert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
-export const makeSchemaPropNull = <T extends z.ZodType<any, any>>(
-  schema: T
-) => {
-  return schema
-    .transform(() => null)
-    .nullish()
-    .optional()
-    .meta({
-      description: 'Null or undefined',
-    })
-}
-
-export const createDeleteFunction = <T extends PgTableWithId>(
-  table: T
-) => {
-  return async (
-    id: number | string,
-    transaction: DbTransaction
-  ): Promise<void> => {
-    try {
-      await transaction.delete(table).where(eq(table.id, id))
-    } catch (error) {
-      console.error(
-        `[createDeleteFunction] Error deleting from table with id ${id}:`,
-        error
-      )
-      console.error('[createDeleteFunction] Table:', table)
-      throw new Error(
-        `Failed to delete record with id ${id}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
-export const idInputSchema = z.object({
-  id: z.string(),
-})
-
-export const externalIdInputSchema = z.object({
-  externalId: z
-    .string()
-    .describe(
-      'The ID of the customer, as defined in your application'
-    ),
-})
-
-type PaginationDirection = 'forward' | 'backward'
-
-export const encodeCursor = <T extends PgTableWithId>({
-  parameters,
-  createdAt = new Date(0),
-  direction = 'forward',
-}: {
-  parameters: SelectConditions<T>
-  createdAt?: Date
-  direction?: PaginationDirection
-}) => {
-  return Buffer.from(
-    `${JSON.stringify({ parameters, createdAt, direction })}`
-  ).toString('base64')
-}
-
-/**
- *
- * @param cursor a string of the form `{"parameters": {...}, "createdAt": "2024-01-01T00:00:00.000Z"}`
- */
-export const decodeCursor = (cursor: string) => {
-  const decoded = JSON.parse(Buffer.from(cursor, 'base64').toString())
-  return {
-    parameters: decoded.parameters,
-    createdAt: new Date(decoded.createdAt),
-    direction: decoded.direction,
-  }
-}
-
-export const createPaginatedSelectFunction = <
-  T extends PgTableWithCreatedAtAndId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  const selectSchema = config.selectSchema
-  return async (
-    {
-      cursor,
-      limit = 10,
-    }: {
-      cursor?: string
-      limit?: number
-    },
-    transaction: DbTransaction
-  ): Promise<{
-    data: z.infer<S>[]
-    currentCursor?: string
-    nextCursor?: string
-    hasMore: boolean
-    total: number
-  }> => {
-    try {
-      if (limit > 100) {
-        throw new Error(
-          'Paginated Select Function limit must be less than or equal to 100. Received: ' +
-            limit
-        )
-      }
-      const { parameters, createdAt, direction } = cursor
-        ? decodeCursor(cursor)
-        : {
-            parameters: {},
-            createdAt: new Date(),
-            direction: 'forward',
-          }
-      let query = transaction
-        .select()
-        .from(table as SelectTable)
-        .$dynamic()
-      if (Object.keys(parameters).length > 0) {
-        query = query.where(
-          and(
-            whereClauseFromObject(table, parameters),
-            direction === 'forward'
-              ? gt(table.createdAt, createdAt)
-              : lt(table.createdAt, createdAt)
-          )
-        )
-      }
-      const queryLimit = limit + 1
-      query = query
-        .orderBy(
-          direction === 'forward'
-            ? asc(table.createdAt)
-            : desc(table.createdAt)
-        )
-        .limit(queryLimit)
-      const result = await query
-
-      // Check if we got an extra item
-      const hasMore = result.length > limit
-      // Remove the extra item if it exists
-      const data = result.slice(0, limit) as InferSelectModel<T>[]
-      let totalQuery = transaction
-        .select({ count: count() })
-        .from(table as SelectTable)
-        .$dynamic()
-      if (Object.keys(parameters).length > 0) {
-        totalQuery = totalQuery.where(
-          whereClauseFromObject(table, parameters)
-        )
-      }
-      const total = await totalQuery
-      return {
-        data: data.map((item) => selectSchema.parse(item)),
-        currentCursor: cursor,
-        nextCursor: hasMore
-          ? encodeCursor({
-              parameters,
-              createdAt: data[data.length - 1].createdAt as Date,
-              direction,
-            })
-          : undefined,
-        hasMore,
-        total: total[0].count,
-      }
-    } catch (error) {
-      console.error(
-        `[createPaginatedSelectFunction] Error in paginated select for ${config.tableName}:`,
-        error
-      )
-      console.error('[createPaginatedSelectFunction] Cursor:', cursor)
-      console.error('[createPaginatedSelectFunction] Limit:', limit)
-      throw new Error(
-        `Failed to paginate ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
-export const createPaginatedListQuerySchema = <T extends z.ZodType>(
-  schema: T
-) => {
-  return z.object({
-    data: z.array(schema),
-    currentCursor: z.string().optional(),
-    nextCursor: z.string().optional(),
-    hasMore: z.boolean(),
-    total: z.number(),
-  }) as z.ZodType<{
-    data: z.infer<T>[]
-    currentCursor?: string
-    nextCursor?: string
-    total: number
-    hasMore: boolean
-  }>
-}
-
-const metadataValueSchema = z.union([
-  z.string().max(500),
-  z.number(),
-  z.boolean(),
-])
-
-export const metadataSchema = z
-  .record(z.string(), metadataValueSchema)
-  .meta({
-    description: 'JSON object',
-    id: 'Metadata',
-  })
-
-export const createPaginatedTableRowOutputSchema = <
-  T extends z.ZodType,
->(
-  schema: T
-) => {
-  return z.object({
-    items: z.array(schema),
-    startCursor: z.string().nullable(),
-    endCursor: z.string().nullable(),
-    hasNextPage: z.boolean(),
-    hasPreviousPage: z.boolean(),
-    total: z.number(),
-  })
-}
-
-export const createPaginatedTableRowInputSchema = <
-  T extends z.ZodType,
->(
-  filterSchema: T
-) => {
-  return z.object({
-    pageAfter: z.string().optional(),
-    pageBefore: z.string().optional(),
-    pageSize: z.number().min(1).max(100).optional(),
-    filters: filterSchema.optional(),
-    searchQuery: z.string().optional(),
-  })
-}
-
-/**
- * A simple tester function to verify that our typescript column mappings map to the
- * enum values in the database.
- * @param table
- * @param column
- * @param enumValues
- * @param transaction
- * @returns
- */
-export const testEnumColumn = async <T extends PgTableWithId>(
-  table: T,
-  column: PgColumn,
-  enumValues: Record<string, string>,
-  transaction: DbTransaction
-) => {
-  try {
-    const result = await transaction
-      .select()
-      .from(table as SelectTable)
-      .where(inArray(column, Object.values(enumValues)))
-      .limit(1)
-    return result
-  } catch (error) {
-    console.error(
-      '[testEnumColumn] Error testing enum column:',
-      error
-    )
-    console.error('[testEnumColumn] Table:', table)
-    console.error('[testEnumColumn] Column:', column)
-    console.error('[testEnumColumn] Enum values:', enumValues)
-    throw new Error(
-      `Failed to test enum column: ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error }
-    )
-  }
-}
-
-interface TableSearchParams<T extends PgTableWithId> {
-  searchQuery?: string
-  searchableColumns: T['_']['columns'][string][]
-}
-
-interface CursorPaginatedSelectFunctionParams<
-  T extends PgTableWithPosition,
-> {
-  input: {
-    pageAfter?: string
-    pageBefore?: string
-    pageSize?: number
-    filters?: SelectConditions<T>
-    sortDirection?: 'asc' | 'desc'
-    searchQuery?: string
-    goToFirst?: boolean
-    goToLast?: boolean
-  }
-  transaction: DbTransaction
-}
-
-const cursorComparison = async <T extends PgTableWithPosition>(
-  table: T,
-  {
-    isForward,
-    pageAfter,
-    pageBefore,
-  }: {
-    isForward: boolean
-    pageAfter?: string
-    pageBefore?: string
+const arrayRoutes: Record<string, RouteConfig> = routeConfigs.reduce(
+  (acc, route) => {
+    return { ...acc, ...route }
   },
-  transaction: DbTransaction
-) => {
-  try {
-    const cursor = pageAfter || pageBefore
-    if (!cursor) {
-      return undefined
-    }
-    const results = await transaction
-      .select()
-      .from(table as SelectTable)
-      .where(eq(table.id, cursor))
-    if (results.length === 0) {
-      return undefined
-    }
-    const result = results[0] as InferSelectModel<T>
-    const comparisonOperator = isForward ? lt : gt
-    /**
-     * When we're paginating forward, we want to include the item at the cursor
-     * in the results. When we're paginating backward, we don't want to include
-     * the item at the cursor in the results.
-     *
-     * Postgres records time in microseconds (1/1,000,000th) while JS stores
-     * in milliseconds. So we need to adjust the time by 1 millisecond,
-     * otherwise we get "last item in next" behavior because the cursor
-     * isn't the same across languages. Eventually we will want to track each table
-     * on an iterator
-     */
-    return comparisonOperator(table.position, result.position)
-  } catch (error) {
-    console.error(
-      '[cursorComparison] Error fetching cursor position:',
-      error
-    )
-    console.error(
-      '[cursorComparison] Cursor:',
-      pageAfter || pageBefore
-    )
-    throw new Error(
-      `Failed to fetch cursor position: ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error }
-    )
-  }
-}
+  {} as Record<string, RouteConfig>
+)
 
-const constructSearchQueryClause = <T extends PgTableWithId>(
-  table: T,
-  searchQuery: string,
-  searchableColumns: T['_']['columns'][string][]
-) => {
-  return or(
-    ...searchableColumns.map((column) =>
-      ilike(column, `%${searchQuery}%`)
-    )
-  )
-}
+const routes: Record<string, RouteConfig> = {
+  ...getDefaultPricingModelRouteConfig,
+  ...setupPricingModelRouteConfig,
+  ...refundPaymentRouteConfig,
+  ...customerBillingRouteConfig,
+  ...discountsRouteConfigs,
+  ...productsRouteConfigs,
+  ...subscriptionItemFeaturesRouteConfigs,
+  ...trpcToRest('utils.ping'),
+  // note it's important to add the array routes last
+  // because the more specific patterns above will match first,
+  // so e.g. /pricing-models/default will not attempt to match to /pricing-models/:id => id="default"
+  ...arrayRoutes,
+} as const
 
-export const createCursorPaginatedSelectFunction = <
-  T extends PgTableWithPosition,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
-  D extends z.ZodType,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>,
-  dataSchema: D,
-  enrichmentFunction?: (
-    data: z.infer<S>[],
-    transaction: DbTransaction
-  ) => Promise<z.infer<D>[]>,
-  searchableColumns?: T['_']['columns'][string][]
-) => {
-  const selectSchema = config.selectSchema
-  return async function cursorPaginatedSelectFunction(
-    params: CursorPaginatedSelectFunctionParams<T>
-  ): Promise<{
-    items: z.infer<D>[]
-    startCursor: string | null
-    endCursor: string | null
-    hasNextPage: boolean
-    hasPreviousPage: boolean
-    total: number
-  }> {
-    try {
-      const {
-        pageAfter,
-        pageBefore,
-        pageSize = 10,
-        goToFirst,
-        goToLast,
-      } = params.input
-      const transaction = params.transaction
-
-      // Handle special navigation cases
-      if (goToFirst) {
-        // Clear cursors and start from beginning
-        const orderBy = [desc(table.createdAt), desc(table.position)]
-        const filterClause = params.input.filters
-          ? whereClauseFromObject(table, params.input.filters)
-          : undefined
-        const searchQuery = params.input.searchQuery
-        const searchQueryClause =
-          searchQuery && searchableColumns
-            ? constructSearchQueryClause(
-                table,
-                searchQuery,
-                searchableColumns
-              )
-            : undefined
-        const whereClauses = and(filterClause, searchQueryClause)
-
-        const queryResult = await transaction
-          .select()
-          .from(table as SelectTable)
-          .where(whereClauses)
-          .orderBy(...orderBy)
-          .limit(pageSize + 1)
-
-        const total = await transaction
-          .select({ count: count() })
-          .from(table as SelectTable)
-          .$dynamic()
-          .where(and(filterClause, searchQueryClause))
-
-        const data: z.infer<S>[] = queryResult
-          .map((item) => selectSchema.parse(item))
-          .slice(0, pageSize)
-        const enrichedData: z.infer<D>[] = await (enrichmentFunction
-          ? enrichmentFunction(data, transaction)
-          : Promise.resolve(data as unknown as z.infer<D>[]))
-
-        const items: z.infer<D>[] = enrichedData.map((item) =>
-          dataSchema.parse(item)
-        )
-        const startCursor = data.length > 0 ? data[0].id : null
-        const endCursor =
-          data.length > 0 ? data[data.length - 1].id : null
-        const totalCount = total[0].count
-        const hasMore = queryResult.length > pageSize
-
-        return {
-          items,
-          startCursor,
-          endCursor,
-          hasNextPage: hasMore,
-          hasPreviousPage: false,
-          total: totalCount,
+type TRPCResponse =
+  | {
+      error: {
+        json: {
+          message: string
+          code: number
+          data: {
+            code: string
+            httpStatus: number
+            stack: string
+          }
         }
       }
-
-      if (goToLast) {
-        // Fetch the last page by ordering desc and taking the first pageSize items
-        const orderBy = [desc(table.createdAt), desc(table.position)]
-        const filterClause = params.input.filters
-          ? whereClauseFromObject(table, params.input.filters)
-          : undefined
-        const searchQuery = params.input.searchQuery
-        const searchQueryClause =
-          searchQuery && searchableColumns
-            ? constructSearchQueryClause(
-                table,
-                searchQuery,
-                searchableColumns
-              )
-            : undefined
-        const whereClauses = and(filterClause, searchQueryClause)
-
-        // Get total count first to calculate if we need a partial last page
-        const total = await transaction
-          .select({ count: count() })
-          .from(table as SelectTable)
-          .$dynamic()
-          .where(and(filterClause, searchQueryClause))
-
-        const totalCount = total[0].count
-        const lastPageSize = totalCount % pageSize || pageSize
-
-        // For goToLast, we need to:
-        // 1. Get the last N items in descending order (newest first)
-        // 2. Calculate the correct offset to get the last page
-        const offset = Math.max(0, totalCount - lastPageSize)
-
-        const queryResult = await transaction
-          .select()
-          .from(table as SelectTable)
-          .where(whereClauses)
-          .orderBy(...orderBy) // Already in desc order
-          .offset(offset)
-          .limit(lastPageSize + 1)
-
-        const data: z.infer<S>[] = queryResult
-          .map((item) => selectSchema.parse(item))
-          .slice(0, lastPageSize)
-        const enrichedData: z.infer<D>[] = await (enrichmentFunction
-          ? enrichmentFunction(data, transaction)
-          : Promise.resolve(data as unknown as z.infer<D>[]))
-
-        const items: z.infer<D>[] = enrichedData.map((item) =>
-          dataSchema.parse(item)
-        )
-        const startCursor = data.length > 0 ? data[0].id : null
-        const endCursor =
-          data.length > 0 ? data[data.length - 1].id : null
-
-        return {
-          items,
-          startCursor,
-          endCursor,
-          hasNextPage: false,
-          hasPreviousPage: totalCount > pageSize,
-          total: totalCount,
+      result: undefined
+    }
+  | {
+      result: {
+        data: {
+          json: JSON
         }
       }
+    }
 
-      // Determine pagination direction and cursor
-      const isForward = !!pageAfter || (!pageBefore && !pageAfter)
-      const orderBy = isForward
-        ? [desc(table.createdAt), desc(table.position)]
-        : [asc(table.createdAt), asc(table.position)]
-      const filterClause = params.input.filters
-        ? whereClauseFromObject(table, params.input.filters)
-        : undefined
-      const searchQuery = params.input.searchQuery
-      const searchQueryClause =
-        searchQuery && searchableColumns
-          ? constructSearchQueryClause(
-              table,
-              searchQuery,
-              searchableColumns
+const innerHandler = async (
+  req: NextRequestWithUnkeyContext,
+  { params }: FlowgladRESTRouteContext
+) => {
+  const tracer = trace.getTracer('rest-api')
+  const requestId = crypto.randomUUID().slice(0, 8)
+  const requestStartTime = Date.now()
+
+  return tracer.startActiveSpan(
+    `REST ${req.method}`,
+    { kind: SpanKind.SERVER },
+    async (parentSpan) => {
+      // Extract SDK version from headers
+      const sdkVersion = req.headers.get('X-Stainless-Package-Version') || undefined
+      
+      try {
+        // Track request body size for POST/PUT
+        let requestBodySize = 0
+        if (req.method === 'POST' || req.method === 'PUT') {
+          const contentLength = req.headers.get('content-length')
+          if (contentLength) {
+            requestBodySize = parseInt(contentLength, 10)
+          }
+        }
+
+        if (!req.unkey) {
+          parentSpan.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: 'Unauthorized',
+          })
+          parentSpan.setAttributes({
+            'error.type': 'AUTH_ERROR',
+            'error.category': 'AUTH_ERROR',
+            'http.status_code': 401,
+            'request.id': requestId,
+          })
+          logger.error('REST API Unauthorized: No unkey context', {
+            service: 'api',
+            request_id: requestId,
+            method: req.method,
+            url: req.url,
+          })
+          return new Response('Unauthorized', { status: 401 })
+        }
+
+        const path = (await params).path.join('/')
+
+        // Extract organization context
+        const unkeyMeta = parseUnkeyMeta(req.unkey?.meta)
+        const organizationId =
+          unkeyMeta.organizationId || req.unkey?.ownerId!
+        const organizationIdSource = unkeyMeta.organizationId
+          ? 'metadata'
+          : 'owner_id'
+        const userId =
+          unkeyMeta.type === FlowgladApiKeyType.Secret
+            ? unkeyMeta.userId
+            : undefined
+        const apiKeyType = unkeyMeta.type || 'unknown'
+
+        parentSpan.setAttributes({
+          'http.method': req.method,
+          'http.path': path,
+          'http.url': req.url,
+          'http.target': path,
+          'http.scheme': 'https',
+          'request.id': requestId,
+          'request.body_size_bytes': requestBodySize,
+          'organization.id': organizationId,
+          'organization.id_source': organizationIdSource,
+          'user.id': userId,
+          'api.environment': req.unkey?.environment || 'unknown',
+          'api.key_type': apiKeyType,
+          'rest_sdk_version': sdkVersion,
+        })
+
+        logger.info(`[${requestId}] REST API Request Started`, {
+          service: 'api',
+          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          request_id: requestId,
+          method: req.method,
+          path,
+          organization_id: organizationId,
+          organization_id_source: organizationIdSource,
+          user_id: userId,
+          environment: req.unkey?.environment,
+          api_key_type: apiKeyType,
+          body_size_bytes: requestBodySize,
+          rest_sdk_version: sdkVersion,
+        })
+
+        // Create a new context with our parent span
+        const ctx = trace.setSpan(context.active(), parentSpan)
+
+        // Find matching route with telemetry
+        const routeMatchingStartTime = Date.now()
+        const matchingRoute = Object.entries(routes).find(
+          ([key, config]) => {
+            const [routeMethod, routePath] = key.split(' ')
+            return (
+              req.method === routeMethod && config.pattern.test(path)
             )
-          : undefined
-      const whereClauses = and(
-        await cursorComparison(
-          table,
-          {
-            isForward,
-            pageAfter,
-            pageBefore,
-          },
-          transaction
-        ),
-        filterClause,
-        searchQueryClause
-      )
+          }
+        )
+        const routeMatchingDuration =
+          Date.now() - routeMatchingStartTime
 
-      // Query for items
-      let queryResult = await transaction
-        .select()
-        .from(table as SelectTable)
-        .where(whereClauses)
-        .orderBy(...orderBy)
-        .limit(pageSize + 1)
+        if (!matchingRoute) {
+          parentSpan.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: 'Not Found',
+          })
+          parentSpan.setAttributes({
+            'error.type': 'NOT_FOUND',
+            'error.category': 'NOT_FOUND',
+            'http.status_code': 404,
+            'route.matching_duration_ms': routeMatchingDuration,
+            'route.found': false,
+          })
 
-      // For backward pagination, we need to:
-      // 1. Get the items in ascending order
-      // 2. Reverse them to get back to descending order
-      if (!isForward) {
-        queryResult = queryResult.reverse()
+          logger.warn(`[${requestId}] REST API Route Not Found`, {
+            service: 'api',
+            apiEnvironment: req.unkey?.environment as ApiEnvironment,
+            request_id: requestId,
+            method: req.method,
+            path,
+            route_matching_duration_ms: routeMatchingDuration,
+            available_routes: Object.keys(routes).length,
+          })
+
+          return new Response('Not Found', { status: 404 })
+        }
+
+        const [routeKey, route] = matchingRoute
+
+        // Track route matching success
+        parentSpan.setAttributes({
+          'route.found': true,
+          'route.pattern': routeKey,
+          'route.procedure': route.procedure,
+          'route.matching_duration_ms': routeMatchingDuration,
+        })
+
+        logger.info(`[${requestId}] Route matched`, {
+          service: 'api',
+          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          request_id: requestId,
+          route_pattern: routeKey,
+          procedure: route.procedure,
+          matching_duration_ms: routeMatchingDuration,
+        })
+
+        // Extract parameters from URL with telemetry
+        const paramExtractionStartTime = Date.now()
+        const matches = path.match(route.pattern)?.slice(1) || []
+        const paramCount = matches.length
+
+        // Get body for POST/PUT requests with parsing telemetry
+        let body = undefined
+        let inputParsingDuration = 0
+
+        if (req.method === 'POST' || req.method === 'PUT') {
+          const bodyParsingStartTime = Date.now()
+          try {
+            body = await req.json()
+            inputParsingDuration = Date.now() - bodyParsingStartTime
+
+            parentSpan.setAttributes({
+              'input.parsing_duration_ms': inputParsingDuration,
+              'input.body_parsed': true,
+            })
+          } catch (error) {
+            inputParsingDuration = Date.now() - bodyParsingStartTime
+            parentSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Invalid JSON in request body',
+            })
+            parentSpan.setAttributes({
+              'error.type': 'VALIDATION_ERROR',
+              'error.category': 'VALIDATION_ERROR',
+              'error.message': 'Invalid JSON in request body',
+              'http.status_code': 400,
+              'input.parsing_duration_ms': inputParsingDuration,
+              'input.body_parsed': false,
+            })
+
+            logger.error(
+              `[${requestId}] Invalid JSON in request body`,
+              {
+                service: 'api',
+                apiEnvironment: req.unkey
+                  ?.environment as ApiEnvironment,
+                request_id: requestId,
+                error: error as Error,
+                parsing_duration_ms: inputParsingDuration,
+              }
+            )
+
+            return NextResponse.json(
+              { error: 'Invalid JSON in request body' },
+              { status: 400 }
+            )
+          }
+        }
+
+        // Map URL parameters and body to tRPC input
+        const input = route.mapParams(matches, body)
+        const paramExtractionDuration =
+          Date.now() - paramExtractionStartTime
+
+        parentSpan.setAttributes({
+          'route.params_count': paramCount,
+          'route.param_extraction_duration_ms':
+            paramExtractionDuration,
+        })
+        // Create modified request with the correct tRPC procedure path
+        const newUrl = new URL(req.url)
+        newUrl.pathname = `/api/v1/trpc/${route.procedure}`
+
+        let newReq: Request
+        // If we have input, add it as a query parameter
+        if (input && req.method === 'GET') {
+          newUrl.searchParams.set(
+            'input',
+            JSON.stringify({ json: input })
+          )
+        } else if (req.method === 'GET') {
+          newUrl.searchParams.set(
+            'input',
+            JSON.stringify({ json: {} })
+          )
+        }
+        /**
+         * TRPC expects a POST requests for all mutations.
+         * So even if we have a PUT in the OpenAPI spec, we need to convert it to a POST
+         * when mapping to TRPC.
+         */
+        if (
+          (input && req.method === 'POST') ||
+          req.method === 'PUT'
+        ) {
+          newReq = new Request(newUrl, {
+            headers: req.headers,
+            method: 'POST',
+            body: JSON.stringify({
+              json: input,
+            }),
+          })
+        } else {
+          newReq = new Request(newUrl, {
+            headers: req.headers,
+            method: req.method,
+          })
+        }
+        // Execute the TRPC handler within our trace context with telemetry
+        const trpcStartTime = Date.now()
+        const response = await context.with(ctx, () =>
+          fetchRequestHandler({
+            endpoint: '/api/v1/trpc',
+            req: newReq,
+            router: appRouter,
+            createContext: createApiContext({
+              organizationId,
+              environment: req.unkey?.environment as ApiEnvironment,
+            }) as unknown as FetchCreateContextFn<typeof appRouter>,
+          })
+        )
+        const trpcDuration = Date.now() - trpcStartTime
+
+        parentSpan.setAttributes({
+          'trpc.execution_duration_ms': trpcDuration,
+        })
+
+        // Parse response and track telemetry
+        const responseSerializationStartTime = Date.now()
+        const responseJson: TRPCResponse = await response.json()
+        const responseSerializationDuration =
+          Date.now() - responseSerializationStartTime
+
+        if (!responseJson.result) {
+          const errorMessage = parseErrorMessage(
+            responseJson.error.json.message
+          )
+          const errorCode = responseJson.error.json.data.code
+          const httpStatus =
+            responseJson.error.json.data.httpStatus || 400
+
+          // Categorize the error
+          let errorCategory = 'INTERNAL_ERROR'
+          if (errorCode === 'UNAUTHORIZED') {
+            errorCategory = 'AUTH_ERROR'
+          } else if (errorCode === 'NOT_FOUND') {
+            errorCategory = 'NOT_FOUND'
+          } else if (
+            errorCode === 'BAD_REQUEST' ||
+            errorCode === 'PARSE_ERROR' ||
+            errorCode === 'VALIDATION_ERROR'
+          ) {
+            errorCategory = 'VALIDATION_ERROR'
+          }
+
+          const totalDuration = Date.now() - requestStartTime
+
+          parentSpan.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: errorMessage as string,
+          })
+          parentSpan.setAttributes({
+            'error.type': errorCode,
+            'error.category': errorCategory,
+            'error.message': errorMessage as string,
+            'error.endpoint': route.procedure,
+            'http.status_code': httpStatus,
+            'perf.total_duration_ms': totalDuration,
+            'perf.response_serialization_duration_ms':
+              responseSerializationDuration,
+          })
+
+          logger.error(`[${requestId}] REST API Error`, {
+            service: 'api',
+            apiEnvironment: req.unkey?.environment as ApiEnvironment,
+            request_id: requestId,
+            method: req.method,
+            path,
+            procedure: route.procedure,
+            error_message: JSON.stringify(errorMessage),
+            error_code: errorCode,
+            error_category: errorCategory,
+            http_status: httpStatus,
+            organization_id: organizationId,
+            total_duration_ms: totalDuration,
+            stack: responseJson.error.json.data.stack,
+          })
+
+          return NextResponse.json(
+            {
+              error: errorMessage,
+              code: errorCode,
+            },
+            {
+              status: httpStatus,
+            }
+          )
+        }
+
+        // Success response
+        const responseData = responseJson.result.data.json
+        const responseSize = JSON.stringify(responseData).length
+        const totalDuration = Date.now() - requestStartTime
+
+        parentSpan.setStatus({ code: SpanStatusCode.OK })
+        parentSpan.setAttributes({
+          'http.status_code': 200,
+          'response.body_size_bytes': responseSize,
+          'perf.total_duration_ms': totalDuration,
+          'perf.route_matching_duration_ms': routeMatchingDuration,
+          'perf.param_extraction_duration_ms':
+            paramExtractionDuration,
+          'perf.input_parsing_duration_ms': inputParsingDuration,
+          'perf.trpc_execution_duration_ms': trpcDuration,
+          'perf.response_serialization_duration_ms':
+            responseSerializationDuration,
+        })
+
+        // Business metrics
+        const endpointCategory = route.procedure.split('.')[0] // e.g., 'products', 'customers'
+        const operationType =
+          req.method === 'GET'
+            ? 'read'
+            : req.method === 'DELETE'
+              ? 'delete'
+              : 'write'
+
+        parentSpan.setAttributes({
+          'business.endpoint_category': endpointCategory,
+          'business.operation_type': operationType,
+          'business.feature_name': route.procedure,
+        })
+
+        logger.info(`[${requestId}] REST API Success`, {
+          service: 'api',
+          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          request_id: requestId,
+          method: req.method,
+          path,
+          procedure: route.procedure,
+          organization_id: organizationId,
+          environment: req.unkey?.environment,
+          total_duration_ms: totalDuration,
+          response_size_bytes: responseSize,
+          endpoint_category: endpointCategory,
+          operation_type: operationType,
+          rest_sdk_version: sdkVersion,
+        })
+
+        return NextResponse.json(responseData)
+      } catch (error) {
+        // Catch any unexpected errors
+        const totalDuration = Date.now() - requestStartTime
+
+        parentSpan.recordException(error as Error)
+        parentSpan.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        })
+        parentSpan.setAttributes({
+          'error.type': 'INTERNAL_ERROR',
+          'error.category': 'INTERNAL_ERROR',
+          'error.message': (error as Error).message,
+          'http.status_code': 500,
+          'perf.total_duration_ms': totalDuration,
+        })
+
+        logger.error(`[${requestId}] REST API Unexpected Error`, {
+          service: 'api',
+          apiEnvironment: req.unkey?.environment as ApiEnvironment,
+          request_id: requestId,
+          error: error as Error,
+          method: req.method,
+          url: req.url,
+          total_duration_ms: totalDuration,
+          rest_sdk_version: sdkVersion,
+        })
+
+        return NextResponse.json(
+          { error: 'Internal server error' },
+          { status: 500 }
+        )
+      } finally {
+        parentSpan.end()
       }
-
-      const total = await transaction
-        .select({ count: count() })
-        .from(table as SelectTable)
-        .$dynamic()
-        .where(and(filterClause, searchQueryClause))
-
-      const data: z.infer<S>[] = queryResult
-        .map((item) => selectSchema.parse(item))
-        .slice(0, pageSize)
-      const enrichedData: z.infer<D>[] = await (enrichmentFunction
-        ? enrichmentFunction(data, transaction)
-        : Promise.resolve(data as unknown as z.infer<D>[]))
-
-      // Slice to pageSize and get cursors
-      const items: z.infer<D>[] = enrichedData.map((item) =>
-        dataSchema.parse(item)
-      )
-      const startCursor = data.length > 0 ? data[0].id : null
-      const endCursor =
-        data.length > 0 ? data[data.length - 1].id : null
-      const totalCount = total[0].count
-      const moreThanOnePage = totalCount > pageSize
-      // Check for next/previous pages
-      const hasMore = queryResult.length > pageSize
-      const hasNextPage = isForward ? hasMore : moreThanOnePage // If paginating backward, we can't determine hasNextPage
-      const hasPreviousPage = isForward ? moreThanOnePage : hasMore // If paginating forward, we can't determine hasPreviousPage
-      return {
-        items,
-        startCursor,
-        endCursor,
-        hasNextPage,
-        hasPreviousPage,
-        total: totalCount,
-      }
-    } catch (error) {
-      console.error(
-        `[createCursorPaginatedSelectFunction] Error in cursor paginated select for ${config.tableName}:`,
-        error
-      )
-      console.error(
-        '[createCursorPaginatedSelectFunction] Params:',
-        params.input
-      )
-      throw new Error(
-        `Failed to cursor paginate ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
     }
-  }
-}
-
-export interface CreateSelectSchema<
-  TCoerce extends
-    | Partial<
-        Record<
-          'bigint' | 'boolean' | 'date' | 'number' | 'string',
-          true
-        >
-      >
-    | true
-    | undefined,
-> {
-  <
-    TTable extends Table,
-    TRefine extends BuildRefine<TTable['_']['columns'], TCoerce>,
-  >(
-    table: TTable,
-    refine?: NoUnknownKeys<TRefine, TTable['$inferSelect']>
-  ): BuildSchema<'select', TTable['_']['columns'], TRefine, TCoerce>
-}
-
-export const TIMESTAMPTZ_MS = Symbol('timestamptzMs')
-
-export const clientWriteOmitsConstructor = <
-  T extends Record<string, true>,
->(
-  params: T
-) => {
-  return R.omit(
-    ['position', 'createdByCommit', 'updatedByCommit'],
-    params
   )
 }
 
-/**
- * Creates a SQL condition that filters out expired records.
- *
- * This function consolidates the common pattern of filtering out records
- * where `expiredAt` is not null and is in the past, while keeping records
- * that are either not expired (expiredAt is null) or expire in the future.
- *
- * @param expiredAtColumn - The column reference for the expiredAt field
- * @param anchorDate - The date to compare against (defaults to current time)
- * @returns SQL condition for filtering expired records
- *
- * @example
- * ```typescript
- * // Filter out expired product features
- * const notExpiredCondition = createDateNotPassedFilter(productFeatures.expiredAt)
- *
- * // Filter out expired subscription items as of a specific date
- * const notExpiredAsOfDate = createDateNotPassedFilter(
- *   subscriptionItems.expiredAt,
- *   '2024-01-01'
- * )
- * ```
- */
-export const createDateNotPassedFilter = (
-  expiredAtColumn: PgTimestampColumn,
-  anchorDate: string | number | Date = Date.now()
-): SQL | undefined => {
-  const anchorTime =
-    typeof anchorDate === 'string' || typeof anchorDate === 'number'
-      ? new Date(anchorDate).getTime()
-      : anchorDate.getTime()
+const SDK_API_KEY_MESSAGE = `Please check that you are providing a valid API key. If requesting via SDK, ensure the FLOWGLAD_SECRET_KEY is set in your server's environment variables.`
 
-  // Create the condition that records are not expired
-  // This means: expiredAt IS NULL OR expiredAt > anchorTime
-  return or(isNull(expiredAtColumn), gt(expiredAtColumn, anchorTime))
+const withVerification = (
+  handler: (
+    req: NextRequestWithUnkeyContext,
+    context: FlowgladRESTRouteContext
+  ) => Promise<Response>
+): ((
+  req: NextRequestWithUnkeyContext,
+  context: FlowgladRESTRouteContext
+) => Promise<Response>) => {
+  return async (
+    req: NextRequestWithUnkeyContext,
+    context: FlowgladRESTRouteContext
+  ) => {
+    const tracer = trace.getTracer('rest-api-auth')
+
+    return tracer.startActiveSpan(
+      'API Key Verification',
+      { kind: SpanKind.INTERNAL },
+      async (authSpan) => {
+        const authStartTime = Date.now()
+        try {
+          const headerSet = await headers()
+          const authorizationHeader = headerSet.get('Authorization')
+
+          if (!authorizationHeader) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Missing authorization header',
+            })
+            authSpan.setAttributes({
+              'auth.error': 'missing_header',
+              'auth.failure_reason': 'missing_authorization',
+            })
+
+            // Track security event
+            trackSecurityEvent({
+              type: 'failed_auth',
+              details: { reason: 'missing_authorization_header' },
+            })
+
+            logger.warn(
+              'REST API Auth Failed: Missing authorization header',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+              }
+            )
+            return new Response(
+              'Unauthorized. Authorization header is required, and must include api key in format Authorization: "Bearer <key>", or Authorization: "<key>"',
+              { status: 401 }
+            )
+          }
+
+          const apiKey = getApiKeyHeader(authorizationHeader)
+          if (!apiKey) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Invalid authorization format',
+            })
+            authSpan.setAttributes({
+              'auth.error': 'invalid_format',
+              'auth.failure_reason': 'malformed_header',
+            })
+
+            // Track security event
+            trackSecurityEvent({
+              type: 'failed_auth',
+              details: { reason: 'malformed_authorization_header' },
+            })
+
+            logger.warn(
+              'REST API Auth Failed: Invalid authorization format',
+              {
+                service: 'api',
+                method: req.method,
+                url: req.url,
+              }
+            )
+            return new Response(
+              'Either the API key was missing, or it was in an invalid format. Authorization header is required, and must include api key in format Authorization: "Bearer <key>", or Authorization: "<key>"',
+              { status: 401 }
+            )
+          }
+
+          // Track API key prefix for debugging (first 8 chars)
+          const keyPrefix = apiKey.substring(0, 8)
+          authSpan.setAttributes({
+            'auth.key_prefix': keyPrefix,
+          })
+
+          // Verify API key with telemetry - single verification call
+          const verificationStartTime = Date.now()
+          const { result, error } = await verifyApiKey(apiKey)
+          const verificationDuration =
+            Date.now() - verificationStartTime
+
+          authSpan.setAttributes({
+            'auth.verification_duration_ms': verificationDuration,
+          })
+
+          if (error) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: `API key verification error: ${error.message || error}`,
+            })
+            authSpan.setAttributes({
+              'auth.error': 'verification_error',
+              'auth.failure_reason': 'unkey_error',
+              'auth.error_message': String(error),
+            })
+
+            logger.error('REST API Auth Error: Unkey error', {
+              service: 'api',
+              error,
+              method: req.method,
+              url: req.url,
+              key_prefix: keyPrefix,
+              verification_duration_ms: verificationDuration,
+            })
+            return new Response(
+              'API key verification failed. ' + SDK_API_KEY_MESSAGE,
+              { status: 401 }
+            )
+          }
+
+          if (!result) {
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message:
+                'API key verification returned no result. ' +
+                SDK_API_KEY_MESSAGE,
+            })
+            authSpan.setAttributes({
+              'auth.error': 'verification_failed',
+              'auth.failure_reason': 'no_result',
+            })
+
+            // Track failed auth and check for suspicious patterns
+            const isSuspicious = trackFailedAuth(keyPrefix)
+            authSpan.setAttributes({
+              'security.suspicious_activity': isSuspicious,
+            })
+
+            trackSecurityEvent({
+              type: 'failed_auth',
+              apiKeyPrefix: keyPrefix,
+              details: { reason: 'verification_failed' },
+            })
+
+            logger.warn('REST API Auth Failed: Verification failed', {
+              service: 'api',
+              method: req.method,
+              url: req.url,
+              key_prefix: keyPrefix,
+              verification_duration_ms: verificationDuration,
+              suspicious_activity: isSuspicious,
+            })
+            return new Response('Unauthorized', { status: 401 })
+          }
+
+          if (!result?.valid) {
+            const failureReason =
+              result.code === 'EXPIRED'
+                ? 'expired'
+                : result.code === 'RATE_LIMITED'
+                  ? 'rate_limited'
+                  : 'invalid'
+
+            authSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: `API key invalid: ${failureReason}`,
+            })
+            authSpan.setAttributes({
+              'auth.error': 'invalid_key',
+              'auth.failure_reason': failureReason,
+              'auth.error_code': result.code || 'UNKNOWN',
+            })
+
+            // Track security events
+            if (failureReason === 'expired') {
+              trackSecurityEvent({
+                type: 'expired_key',
+                apiKeyPrefix: keyPrefix,
+                organizationId: result.ownerId,
+                details: {
+                  expired_at: result.expires
+                    ? new Date(result.expires).toISOString()
+                    : undefined,
+                },
+              })
+            } else if (failureReason === 'rate_limited') {
+              trackSecurityEvent({
+                type: 'rate_limit',
+                apiKeyPrefix: keyPrefix,
+                organizationId: result.ownerId,
+                details: {
+                  remaining: result.remaining,
+                  limit: result.ratelimit?.limit,
+                },
+              })
+            } else {
+              const isSuspicious = trackFailedAuth(keyPrefix)
+              authSpan.setAttributes({
+                'security.suspicious_activity': isSuspicious,
+              })
+
+              trackSecurityEvent({
+                type: 'failed_auth',
+                apiKeyPrefix: keyPrefix,
+                details: {
+                  reason: failureReason,
+                  code: result.code,
+                },
+              })
+            }
+
+            logger.warn('REST API Auth Failed: Invalid key', {
+              service: 'api',
+              method: req.method,
+              url: req.url,
+              key_prefix: keyPrefix,
+              failure_reason: failureReason,
+              error_code: result.code,
+              verification_duration_ms: verificationDuration,
+            })
+            return new Response(
+              'API key invalid. ' + SDK_API_KEY_MESSAGE,
+              { status: 401 }
+            )
+          }
+
+          // Check if using expired key (shouldn't happen if valid=true, but double-check)
+          if (result.expires) {
+            checkForExpiredKeyUsage(result.expires)
+          }
+
+          // Success - add telemetry
+          const authDuration = Date.now() - authStartTime
+          authSpan.setStatus({ code: SpanStatusCode.OK })
+          authSpan.setAttributes({
+            'auth.success': true,
+            'auth.duration_ms': authDuration,
+            'auth.environment': result.environment || 'unknown',
+            'auth.expires_at': result.expires
+              ? new Date(result.expires).toISOString()
+              : undefined,
+            'auth.remaining_requests': result.remaining || undefined,
+            'security.auth_attempts': 1,
+            'security.failed_auth_count': 0,
+          })
+
+          // Set user context in Sentry for API key requests
+          if (result.ownerId) {
+            Sentry.setUser({
+              id: result.ownerId,
+            })
+          } else {
+            Sentry.setUser(null)
+          }
+
+          logger.info('REST API Auth Success', {
+            service: 'api',
+            apiEnvironment: result.environment as ApiEnvironment,
+            method: req.method,
+            url: req.url,
+            key_prefix: keyPrefix,
+            environment: result.environment,
+            auth_duration_ms: authDuration,
+            verification_duration_ms: verificationDuration,
+          })
+
+          const reqWithUnkey = Object.assign(req, {
+            unkey: result,
+          })
+
+          return handler(reqWithUnkey, context)
+        } finally {
+          authSpan.end()
+        }
+      }
+    )
+  }
 }
+
+const handlerWrapper = core.IS_TEST
+  ? innerHandler
+  : withVerification(innerHandler)
+
+const handler = handlerWrapper
+
+export {
+  handler as GET,
+  handler as POST,
+  handler as PUT,
+  handler as DELETE,
+}
+
+// Example Usage:
+// GET /api/v1/products - lists products
+// POST /api/v1/products - creates product
+// PUT /api/v1/products/123 - updates product 123
+// GET /api/v1/payment-methods - lists payment methods
+// GET /api/v1/payment-methods/123 - gets payment method 123
