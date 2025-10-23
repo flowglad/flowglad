@@ -26,7 +26,7 @@ function verifyBearerToken(req: Request): boolean {
   // const isValid = result?.valid ?? false
 
   // For now, hardcoded for testing
-  const isValid = token === '12345'
+  const isValid = token === process.env.MCP_BEARER_TOKEN
 
   if (!isValid) {
     console.warn('Invalid token provided')
