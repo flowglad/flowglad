@@ -3,7 +3,7 @@
 import LogoCloud from '@/components/ui/LogoCloud';
 import { User } from '@supabase/supabase-js';
 import { useBilling } from '@flowglad/nextjs';
-import { SubscriptionDemoCard } from '../SubscriptionCardDemo';
+import { SubscriptionDemoCard, SubscribeButton } from '../SubscriptionCardDemo';
 import { PricingTable } from '@flowglad/react';
 
 interface Props {
@@ -46,7 +46,7 @@ export default function Pricing({ user }: Props) {
     <section className="bg-black">
       <div className="max-w-6xl px-4 py-8 mx-auto sm:py-24 sm:px-6 lg:px-8">
         <div className="sm:flex sm:flex-col sm:align-center"></div>
-        <PricingTable products={[products, products, products].flat()} />
+        <SubscribeButton />
       </div>
       <SubscriptionDemoCard />
       <LogoCloud />

@@ -118,7 +118,7 @@ const getSessionFromParams = async (
 
   const customerSchema = z.object({
     externalId: z.string().min(1),
-    name: z.string().min(1),
+    name: z.string(),
     email: z.email(),
   })
   const parsedCustomer = customerSchema.safeParse(coreCustomerUser)
