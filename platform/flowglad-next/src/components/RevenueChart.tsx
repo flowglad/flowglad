@@ -222,7 +222,7 @@ export function RevenueChart({
         </Button> */}
       </div>
 
-      <div className="">
+      <div>
         {isLoading ? (
           <Skeleton className="w-36 h-12" />
         ) : (
