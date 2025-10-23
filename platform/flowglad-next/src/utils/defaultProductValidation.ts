@@ -193,11 +193,4 @@ export const validateDefaultProductSchema = (product: {
   if (price.trialDays && price.trialDays > 0) {
     throw new Error('Default products cannot have trials')
   }
-
-  // Check reserved slug usage
-  if (product.slug === 'free') {
-    throw new Error(
-      "Slug 'free' is reserved for auto-generated default plans"
-    )
-  }
 }

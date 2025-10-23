@@ -75,6 +75,7 @@ const CreatePricingModelModal: React.FC<
   const resetState = () => {
     setCurrentView('selector')
     setSelectedTemplate(null)
+    setParsedYamlData(null)
   }
 
   const handleTemplateSelect = (template: PricingModelTemplate) => {
