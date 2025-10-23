@@ -3,7 +3,7 @@ import { createTestFlowgladServerAdmin } from './helpers'
 export const setupProduct = async (params: {
   name: string
   description: string
-  catalogId: string
+  pricingModelId: string
   active?: boolean
 }) => {
   const admin = createTestFlowgladServerAdmin()

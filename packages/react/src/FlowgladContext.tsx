@@ -6,7 +6,6 @@ import {
   FlowgladActionKey,
   flowgladActionValidators,
   type CancelSubscriptionParams,
-  type CreateCheckoutSessionParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
   constructCheckFeatureAccess,
@@ -17,17 +16,21 @@ import {
 } from '@flowglad/shared'
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
-import { CustomerBillingDetails } from '@flowglad/types'
+import type {
+  CreateProductCheckoutSessionParams,
+  CheckoutSessionType,
+  CustomerBillingDetails,
+} from '@flowglad/types'
 import { devError } from './lib/utils'
 
-export type FrontendCreateCheckoutSessionParams =
-  CreateCheckoutSessionParams & {
+export type FrontendProductCreateCheckoutSessionParams =
+  CreateProductCheckoutSessionParams & {
     autoRedirect?: boolean
     /**
      * the type of checkout session to create. If not provided, defaults to 'product'.
      * One of 'product', 'add_payment_method', 'subscription', 'subscription_cancellation'
      */
-    type?: CreateCheckoutSessionParams['type']
+    type?: CheckoutSessionType
   }
 
 export type FrontendCreateAddPaymentMethodCheckoutSessionParams =
@@ -55,7 +58,7 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
     subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
   }>
   createCheckoutSession: (
-    params: FrontendCreateCheckoutSessionParams
+    params: FrontendProductCreateCheckoutSessionParams
   ) => Promise<CreateCheckoutSessionResponse>
   createAddPaymentMethodCheckoutSession: (
     params: FrontendCreateAddPaymentMethodCheckoutSessionParams
@@ -137,7 +140,7 @@ const FlowgladContext = createContext<FlowgladContextValues>({
 interface ConstructCreateCheckoutSessionParams {
   flowgladRoute: string
   requestConfig?: RequestConfig
-  typeOverride?: CreateCheckoutSessionParams['type']
+  typeOverride?: CheckoutSessionType
 }
 
 const makeCreateCheckoutSession =
@@ -150,7 +153,7 @@ const makeCreateCheckoutSession =
   >(
     flowgladRoute: string,
     requestConfig?: RequestConfig,
-    typeOverride?: CreateCheckoutSessionParams['type']
+    typeOverride?: CheckoutSessionType
   ) =>
   async (params: TParams): Promise<CreateCheckoutSessionResponse> => {
     validateUrl(params.successUrl, 'successUrl')
@@ -360,7 +363,7 @@ export const FlowgladContextProvider = (
   const serverRoute = serverRouteProp ?? '/api/flowglad'
   const loadBilling = loadBillingProp ?? false
   const createCheckoutSession =
-    makeCreateCheckoutSession<FrontendCreateCheckoutSessionParams>(
+    makeCreateCheckoutSession<FrontendProductCreateCheckoutSessionParams>(
       serverRoute,
       requestConfig
     )
