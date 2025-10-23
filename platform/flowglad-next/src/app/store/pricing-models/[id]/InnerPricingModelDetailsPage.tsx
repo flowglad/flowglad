@@ -48,10 +48,18 @@ function InnerPricingModelDetailsPage({
   ] = useState(false)
   const [activeProductFilter, setActiveProductFilter] =
     useState<string>('all')
-  const { data: exportPricingModelData } =
-    trpc.pricingModels.export.useQuery({
+  const {
+    data: exportPricingModelData,
+    refetch,
+    isFetching,
+  } = trpc.pricingModels.export.useQuery(
+    {
       id: pricingModel.id,
-    })
+    },
+    {
+      enabled: false, // Only fetch when user clicks export
+    }
+  )
 
   // Filter options for the button group
   const productFilterOptions = [
@@ -74,7 +82,9 @@ function InnerPricingModelDetailsPage({
   }
 
   const exportPricingModelHandler = async () => {
-    const pricingModelYAML = exportPricingModelData?.pricingModelYAML
+    const result = await refetch()
+    const pricingModelYAML = result.data?.pricingModelYAML
+
     if (pricingModelYAML) {
       const blob = new Blob([pricingModelYAML], { type: 'text/yaml' })
       const url = URL.createObjectURL(blob)
@@ -82,6 +92,8 @@ function InnerPricingModelDetailsPage({
       a.href = url
       a.download = `pricing-${pricingModel.id}.yaml`
       a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Pricing model exported successfully')
     } else {
       toast.error('Failed to export pricing model')
     }
