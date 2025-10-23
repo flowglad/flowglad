@@ -1,4 +1,5 @@
 import { protectedProcedure, router } from '../trpc'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   selectProductsPaginated,
   selectProductById,
@@ -37,6 +38,7 @@ import {
   productsPaginatedSelectSchema,
 } from '@/db/schema/products'
 import {
+  safelyInsertPrice,
   safelyUpdatePrice,
   selectPrices,
   selectPriceById,
@@ -116,7 +118,7 @@ export const updateProduct = protectedProcedure
   .output(singleProductOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ transaction, input }) => {
+      async ({ transaction, input, ctx }) => {
         try {
           const { product, featureIds } = input
 
@@ -153,51 +155,28 @@ export const updateProduct = protectedProcedure
           }
 
           if (input.price) {
-            const existingPrice = await selectPriceById(
-              input.price.id,
+            // Forbid creating additional prices for default products
+            const existingPrices = await selectPrices(
+              { productId: product.id },
               transaction
             )
-            if (!existingPrice) {
-              throw new TRPCError({
-                code: 'NOT_FOUND',
-                message: 'Price not found',
-              })
-            }
-            // Ensure the price being edited belongs to the product being edited
-            if (existingPrice.productId !== existingProduct.id) {
-              throw new TRPCError({
-                code: 'BAD_REQUEST',
-                message:
-                  'The specified price does not belong to the product being edited',
-              })
-            }
-            validateDefaultPriceUpdate(
-              input.price,
-              existingPrice,
-              existingProduct
-            )
-            // Validate immutable fields for ALL prices
-            validatePriceImmutableFields({
-              update: input.price,
-              existing: existingPrice,
-            })
-            // Disallow slug changes for the default price of a default product (parity with pricesRouter.update)
-            if (
-              existingProduct.default &&
-              existingPrice.isDefault &&
-              input.price.slug !== undefined &&
-              input.price.slug !== existingPrice.slug
-            ) {
+            if (product.default && existingPrices.length > 0) {
               throw new TRPCError({
                 code: 'FORBIDDEN',
                 message:
-                  'Cannot change the slug of the default price for a default product',
+                  'Cannot create additional prices for the default plan',
               })
             }
-            await safelyUpdatePrice(
+            const organization = await selectOrganizationById(
+              ctx.organizationId!,
+              transaction
+            )
+            await safelyInsertPrice(
               {
                 ...input.price,
-                type: existingPrice.type,
+                livemode: ctx.livemode,
+                currency: organization.defaultCurrency,
+                externalId: null,
               },
               transaction
             )

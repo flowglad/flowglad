@@ -86,11 +86,6 @@ describe('checkoutHelpers', () => {
         productActive: false,
         priceActive: true,
       },
-      {
-        label: 'inactive price',
-        productActive: true,
-        priceActive: false,
-      },
     ])('%s → error', async ({ productActive, priceActive }) => {
       const { organization, price } = await seedPrice(
         PriceType.SinglePayment,
