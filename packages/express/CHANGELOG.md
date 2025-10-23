@@ -1,5 +1,18 @@
 # @flowglad/express
 
+## 0.11.0
+
+### Minor Changes
+
+- bump @flowglad/node dependency to v0.22, cleanup FlowgladServer methods
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/react@0.11.0
+  - @flowglad/server@0.11.0
+  - @flowglad/shared@0.11.0
+
 ## 0.10.18
 
 ### Patch Changes

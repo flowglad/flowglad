@@ -42,6 +42,7 @@ jobs:
       - name: Get pnpm store directory
         shell: bash
         run: |
+          set -euo pipefail
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
       - name: Setup pnpm cache
         uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -59,6 +60,7 @@ jobs:
         uses: ndeloof/install-compose-action@v0.0.1
       - name: Setup Docker for tests
         run: |
+          set -euo pipefail
           # Clean up any existing containers and volumes
           docker-compose -f docker-compose.test.yml down --volumes || true
           # Start test services in detached mode
@@ -114,6 +116,7 @@ jobs:
       - name: Get pnpm store directory
         shell: bash
         run: |
+          set -euo pipefail
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
       - name: Setup pnpm cache
         uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3

@@ -159,7 +159,7 @@ export function PricesDataTable({
           {onCreatePrice && (
             <Button onClick={onCreatePrice} variant={buttonVariant}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Price
+              Edit Price
             </Button>
           )}
         </div>
