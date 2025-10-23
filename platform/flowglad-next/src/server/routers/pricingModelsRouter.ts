@@ -315,20 +315,17 @@ const exportPricingModelProcedure = protectedProcedure
         .describe('YAML representation of the pricing model'),
     })
   )
-  .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
         const data = await getPricingModelSetupData(
           input.id,
           transaction
         )
         return { pricingModelYAML: yaml.stringify(data) }
-      },
-      {
-        apiKey: ctx.apiKey,
       }
     )
-  })
+  )
 
 export const pricingModelsRouter = router({
   list: listPricingModelsProcedure,
