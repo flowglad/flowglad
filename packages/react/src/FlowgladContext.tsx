@@ -26,11 +26,6 @@ import { devError } from './lib/utils'
 export type FrontendProductCreateCheckoutSessionParams =
   CreateProductCheckoutSessionParams & {
     autoRedirect?: boolean
-    /**
-     * the type of checkout session to create. If not provided, defaults to 'product'.
-     * One of 'product', 'add_payment_method', 'subscription', 'subscription_cancellation'
-     */
-    type?: CheckoutSessionType
   }
 
 export type FrontendCreateAddPaymentMethodCheckoutSessionParams =
