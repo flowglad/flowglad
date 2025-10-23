@@ -103,7 +103,6 @@ function InnerPricingModelDetailsPage({
     {
       label: 'Export',
       handler: () => exportPricingModelHandler(),
-      // TODO icon:
       helperText: 'Export pricing model as YAML file',
     },
   ]
