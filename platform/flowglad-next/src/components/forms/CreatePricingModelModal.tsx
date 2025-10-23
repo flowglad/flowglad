@@ -16,8 +16,12 @@ import PricingModelFormFields from '@/components/forms/PricingModelFormFields'
 import { createPricingModelSchema } from '@/db/schema/pricingModels'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import { generateTemplateName } from '@/utils/pricingModelTemplates'
+import { ImportPricingModel } from './ImportPricingModel'
+import { DialogFooter, DialogHeader } from '../ui/dialog'
+import { Button } from '../ui/button'
+import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 
-type ModalView = 'selector' | 'preview' | 'blank'
+type ModalView = 'selector' | 'preview' | 'blank' | 'import'
 
 interface CreatePricingModelModalProps {
   isOpen: boolean
@@ -34,6 +38,8 @@ const CreatePricingModelModal: React.FC<
     useState<ModalView>('selector')
   const [selectedTemplate, setSelectedTemplate] =
     useState<PricingModelTemplate | null>(null)
+  const [parsedYamlData, setParsedYamlData] =
+    useState<SetupPricingModelInput | null>(null)
 
   // TRPC mutations
   const createPricingModelMutation =
@@ -80,6 +86,10 @@ const CreatePricingModelModal: React.FC<
     setCurrentView('blank')
   }
 
+  const handleImportPricingModel = () => {
+    setCurrentView('import')
+  }
+
   const handleBackToSelector = () => {
     setCurrentView('selector')
     setSelectedTemplate(null)
@@ -122,6 +132,44 @@ const CreatePricingModelModal: React.FC<
     )
   }
 
+  if (currentView === 'import') {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleCloseModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Import Pricing Model</DialogTitle>
+          </DialogHeader>
+          <ImportPricingModel
+            onParsedData={(data) => setParsedYamlData(data)}
+          />
+          <DialogFooter>
+            <Button variant="secondary" onClick={handleCloseModal}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (parsedYamlData) {
+                  await setupPricingModelMutation.mutateAsync(
+                    parsedYamlData
+                  )
+                } else {
+                  toast.error('Please upload a valid YAML file')
+                }
+              }}
+              disabled={
+                !parsedYamlData || setupPricingModelMutation.isPending
+              }
+            >
+              {setupPricingModelMutation.isPending
+                ? 'Importing...'
+                : 'Import'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
   // Single Dialog with one DialogContent that changes styling based on view
   return (
     <Dialog open={isOpen} onOpenChange={handleCloseModal}>
@@ -148,6 +196,7 @@ const CreatePricingModelModal: React.FC<
           <TemplateSelectorContent
             onTemplateSelect={handleTemplateSelect}
             onCreateBlank={handleCreateBlank}
+            onImportPricingModel={handleImportPricingModel}
           />
         ) : (
           selectedTemplate && (
