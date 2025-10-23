@@ -6,6 +6,7 @@ import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
 import { FeatureType, PriceType } from '@/types'
+import { validateSetupPricingModelInput } from './setupSchemas'
 
 /**
  * Fetches a pricing model and all its related records (usage meters, features, products, prices)
@@ -214,11 +215,11 @@ export async function getPricingModelSetupData(
     }
   )
 
-  return {
+  return validateSetupPricingModelInput({
     name: pricingModel.name,
     isDefault: pricingModel.isDefault,
     features: transformedFeatures,
     products: transformedProducts,
     usageMeters: transformedUsageMeters,
-  }
+  })
 }
