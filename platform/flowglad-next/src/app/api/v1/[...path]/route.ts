@@ -53,26 +53,6 @@ import {
 } from '@/utils/securityTelemetry'
 import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
 
-//searchParamsToObject converts a URLSearchParams object (like the kind you get from a query string such as ?limit=10&tag=a&tag=b)
-//into a plain JavaScript object { limit: "10", tag: ["a", "b"] }.
-
-const searchParamsToObject = (
-  searchParams: URLSearchParams
-): Record<string, string | string[]> => {
-  const result: Record<string, string | string[]> = {}
-  for (const [key, value] of searchParams.entries()) {
-    const existing = result[key]
-    if (existing === undefined) {
-      result[key] = value
-    } else if (Array.isArray(existing)) {
-      existing.push(value)
-    } else {
-      result[key] = [existing, value]
-    }
-  }
-  return result
-}
-
 interface FlowgladRESTRouteContext {
   params: Promise<{ path: string[] }>
 }
@@ -162,9 +142,8 @@ const innerHandler = async (
     { kind: SpanKind.SERVER },
     async (parentSpan) => {
       // Extract SDK version from headers
-      const sdkVersion =
-        req.headers.get('X-Stainless-Package-Version') || undefined
-
+      const sdkVersion = req.headers.get('X-Stainless-Package-Version') || undefined
+      
       try {
         // Track request body size for POST/PUT
         let requestBodySize = 0
@@ -223,7 +202,7 @@ const innerHandler = async (
           'user.id': userId,
           'api.environment': req.unkey?.environment || 'unknown',
           'api.key_type': apiKeyType,
-          rest_sdk_version: sdkVersion,
+          'rest_sdk_version': sdkVersion,
         })
 
         logger.info(`[${requestId}] REST API Request Started`, {
@@ -355,22 +334,8 @@ const innerHandler = async (
           }
         }
 
-        //
-
         // Map URL parameters and body to tRPC input
-        const mappedInput = route.mapParams(matches, body)
-
-        //Creates a parameter objects because in the parameters weren't being sent to tableUtils for pagination
-        const queryParamsObject = searchParamsToObject(
-          new URL(req.url).searchParams
-        )
-        const mergedInput =
-          Object.keys(queryParamsObject).length > 0
-            ? {
-                ...queryParamsObject,
-                ...(mappedInput ?? {}),
-              }
-            : mappedInput
+        const input = route.mapParams(matches, body)
         const paramExtractionDuration =
           Date.now() - paramExtractionStartTime
 
@@ -385,10 +350,10 @@ const innerHandler = async (
 
         let newReq: Request
         // If we have input, add it as a query parameter
-        if (mergedInput && req.method === 'GET') {
+        if (input && req.method === 'GET') {
           newUrl.searchParams.set(
             'input',
-            JSON.stringify({ json: mergedInput })
+            JSON.stringify({ json: input })
           )
         } else if (req.method === 'GET') {
           newUrl.searchParams.set(
@@ -402,14 +367,14 @@ const innerHandler = async (
          * when mapping to TRPC.
          */
         if (
-          (mergedInput && req.method === 'POST') ||
+          (input && req.method === 'POST') ||
           req.method === 'PUT'
         ) {
           newReq = new Request(newUrl, {
             headers: req.headers,
             method: 'POST',
             body: JSON.stringify({
-              json: mergedInput,
+              json: input,
             }),
           })
         } else {
@@ -893,10 +858,10 @@ const handlerWrapper = core.IS_TEST
 const handler = handlerWrapper
 
 export {
-  handler as DELETE,
   handler as GET,
   handler as POST,
   handler as PUT,
+  handler as DELETE,
 }
 
 // Example Usage:
