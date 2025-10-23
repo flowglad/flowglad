@@ -8,7 +8,7 @@
 # This file may not be copied, modified, or distributed except according to
 # those terms.
 
-set -eo pipefail
+set -euo pipefail
 which yq > /dev/null
 jobs=$(for i in $(find .github -iname '*.yaml' -or -iname '*.yml')
   do

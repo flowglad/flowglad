@@ -32,3 +32,10 @@ At project root:
 - When you're working on this codebase, you almost always will need platform/flowglad-next running on localhost:3000. So always start by booting up flowglad-next
 - Other projects usually run on localhost:3001 or 3XXX, and will consume flowglad-next via an env variable that tells them where to make Flowglad API calls - to localhost:3000
 - For each project, refer to its root README to get a sense of how the pieces fit together
+
+# Code Review Guardrails
+
+- **Shell scripts**: Ensure every tracked `.sh` file starts with either `#!/bin/bash` or `#!/usr/bin/env bash`, and that the first non-comment, non-empty line is exactly `set -euo pipefail`.
+- **GitHub Actions `run` steps**:
+  - Reject single-line `run:` commands that contain a pipe (`|`).
+  - Require multi-line `run:` blocks to include `set -euo pipefail` as their first executable statement (ignoring comments and blank lines).
