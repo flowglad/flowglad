@@ -1152,16 +1152,18 @@ export const createPaginatedSelectFunction = <
         .select()
         .from(table as SelectTable)
         .$dynamic()
-      if (Object.keys(parameters).length > 0) {
-        query = query.where(
-          and(
-            whereClauseFromObject(table, parameters),
-            direction === 'forward'
-              ? gt(table.createdAt, createdAt)
-              : lt(table.createdAt, createdAt)
-          )
+      //This if statements check if there are parameter THEN run the pagination
+      //which is bad we want the pagination to run regardless of the parameters.
+      //Removing the if statement fixes this problem
+      // if (Object.keys(parameters).length > 0)
+      query = query.where(
+        and(
+          direction === 'forward'
+            ? gt(table.createdAt, createdAt)
+            : lt(table.createdAt, createdAt)
         )
-      }
+      )
+      //  }
       const queryLimit = limit + 1
       query = query
         .orderBy(
