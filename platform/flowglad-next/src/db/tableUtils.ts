@@ -1141,19 +1141,11 @@ export const createPaginatedSelectFunction = <
             limit
         )
       }
-      const {
-        parameters,
-        createdAt,
-        direction,
-      }: {
-        parameters: SelectConditions<T>
-        createdAt: Date | undefined
-        direction: PaginationDirection
-      } = cursor
+      const { parameters, createdAt, direction } = cursor
         ? decodeCursor(cursor)
         : {
-            parameters: {} as SelectConditions<T>,
-            createdAt: undefined,
+            parameters: {},
+            createdAt: new Date(),
             direction: 'forward',
           }
       let query = transaction
@@ -1161,14 +1153,13 @@ export const createPaginatedSelectFunction = <
         .from(table as SelectTable)
         .$dynamic()
       if (Object.keys(parameters).length > 0) {
-        query = query.where(whereClauseFromObject(table, parameters))
-      }
-
-      if (createdAt) {
         query = query.where(
-          direction === 'forward'
-            ? gt(table.createdAt, createdAt)
-            : lt(table.createdAt, createdAt)
+          and(
+            whereClauseFromObject(table, parameters),
+            direction === 'forward'
+              ? gt(table.createdAt, createdAt)
+              : lt(table.createdAt, createdAt)
+          )
         )
       }
       const queryLimit = limit + 1
