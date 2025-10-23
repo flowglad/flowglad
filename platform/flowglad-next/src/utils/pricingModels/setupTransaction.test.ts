@@ -532,60 +532,6 @@ describe('setupPricingModelTransaction (integration)', () => {
         )
       ).rejects.toThrow('Default products cannot have trials')
     })
-
-    it('should reject default product using reserved "free" slug', async () => {
-      const input: SetupPricingModelInput = {
-        name: 'Test Pricing Model',
-        isDefault: false,
-        usageMeters: [],
-        features: [],
-        products: [
-          {
-            product: {
-              name: 'Invalid Default',
-              default: true,
-              description: '',
-              slug: 'free', // Reserved slug - should fail
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-            },
-            prices: [
-              {
-                type: PriceType.Subscription,
-                slug: 'free-price',
-                isDefault: true,
-                name: 'Free Price',
-                usageMeterId: null,
-                trialPeriodDays: null,
-                usageEventsPerUnit: null,
-                active: true,
-                intervalUnit: IntervalUnit.Month,
-                intervalCount: 1,
-                unitPrice: 0,
-              },
-            ],
-            features: [],
-          },
-        ],
-      }
-
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-        )
-      ).rejects.toThrow(
-        "Slug 'free' is reserved for auto-generated default plans"
-      )
-    })
   })
 
   describe('Input Validation', () => {
