@@ -29,7 +29,6 @@ import { trpc } from '@/app/_trpc/client'
 import { Subscription } from '@/db/schema/subscriptions'
 import { SubscriptionStatus } from '@/types'
 import { useRouter } from 'next/navigation'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -37,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 
 export interface SubscriptionsTableFilters {
   status?: SubscriptionStatus
@@ -223,13 +223,12 @@ export function SubscriptionsDataTable({
 
         {/* View options and local filters */}
         <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
-          <Input
-            placeholder="Search customers..."
+          <CollapsibleSearch
             value={customerSearch}
-            onChange={(event) =>
-              handleCustomerSearchChange(event.target.value)
-            }
-            className="h-9 w-56"
+            onChange={handleCustomerSearchChange}
+            placeholder="Search customers..."
+            disabled={isLoading}
+            isLoading={isFetching}
           />
           <Select
             value={selectedProduct}
