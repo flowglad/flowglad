@@ -1,5 +1,12 @@
 {
   "compilerOptions": {
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "module": "commonjs",
+    "target": "ES2020",
+    "moduleResolution": "node",
+    "types": ["node"],
     "lib": [
       "dom",
       "dom.iterable",

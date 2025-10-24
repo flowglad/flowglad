@@ -27,6 +27,7 @@ export interface OrganizationSubscriptionCreatedNotificationEmailProps {
   customerId: string
   customerName: string
   customerEmail: string
+  livemode: boolean
 }
 
 export interface OrganizationSubscriptionCanceledNotificationEmailProps {
