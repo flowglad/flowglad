@@ -137,6 +137,8 @@ type CheckoutSessionParamsBase = {
   autoRedirect?: boolean
 } & Record<string, unknown>
 
+// Builds a context-facing helper that hits a specific checkout session subroute,
+// while reusing shared validation, axios plumbing, and optional payload shaping.
 const constructCheckoutSessionCreator =
   <TParams extends CheckoutSessionParamsBase>(
     actionKey: FlowgladActionKey,
@@ -154,6 +156,8 @@ const constructCheckoutSessionCreator =
 
     const headers = requestConfig?.headers
     const { autoRedirect, ...basePayload } = params
+    // The mapPayload hook lets each caller tweak the server payload without
+    // duplicating the core request logic.
     const payload =
       mapPayload?.(params, basePayload) ??
       (basePayload as Record<string, unknown>)
@@ -357,6 +361,8 @@ export const FlowgladContextProvider = (
   } = props as CoreFlowgladContextProviderProps
   const serverRoute = serverRouteProp ?? '/api/flowglad'
   const loadBilling = loadBillingProp ?? false
+  // Each handler below gets its own Flowglad subroute, but still funnels through
+  // the shared creator for validation and redirect behavior.
   const createCheckoutSession =
     constructCheckoutSessionCreator<FrontendProductCreateCheckoutSessionParams>(
       FlowgladActionKey.CreateCheckoutSession,
