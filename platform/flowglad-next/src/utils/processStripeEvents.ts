@@ -16,6 +16,7 @@ import { stripePaymentIntentCanceledTask } from '@/trigger/stripe/payment-intent
 import { setupIntentSucceededTask } from '@/trigger/stripe/setup-intent-succeeded'
 import { stripeChargeFailedTask } from '@/trigger/stripe/charge-failed'
 import { createTriggerIdempotencyKey } from './backendCore'
+import { idempotentSendPayoutNotification } from '@/trigger/notifications/send-payout-notification'
 
 export const handleStripePrimaryWebhookEvent = async (
   event: Stripe.Event
@@ -119,21 +120,36 @@ export const updateOrganizationOnboardingStatus = async (
       let newOnboardingStatus: BusinessOnboardingStatus =
         onboardingStatus.onboardingStatus
       /**
-       * If there are any discounts or products, we consider the organization
-       * partially onboarded.
+       * If Stripe says the account is fully onboarded, respect that status.
+       * Only override to partially onboarded if Stripe says it's not fully onboarded.
        */
-      if (discounts.length > 0 || products.length > 0) {
+      if (onboardingStatus.onboardingStatus !== BusinessOnboardingStatus.FullyOnboarded && 
+          (discounts.length > 0 || products.length > 0)) {
         newOnboardingStatus =
           BusinessOnboardingStatus.PartiallyOnboarded
       }
 
+      /**
+       * NOTE: Intentionally not setting payoutsEnabled here to manually vet organizations
+       * before enabling payouts. The onboardingStatus.payoutsEnabled value is available
+       * but we keep it false by default for manual review.
+       */
       organization = await updateOrganization(
         {
           id: organization.id,
           onboardingStatus: newOnboardingStatus,
+          //payoutsEnabled: onboardingStatus.payoutsEnabled, <-- We don't want to set this here because we want to manually vet organizations before enabling payouts
         },
         transaction
       )
+
+      if (
+        newOnboardingStatus === BusinessOnboardingStatus.FullyOnboarded &&
+        !organization.payoutsEnabled
+      ) {
+        await idempotentSendPayoutNotification(organization.id)
+      }
+
       return organization
     }
   )
