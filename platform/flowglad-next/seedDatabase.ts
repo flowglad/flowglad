@@ -59,6 +59,7 @@ import {
   StripeConnectContractType,
   BusinessOnboardingStatus,
   NormalBalanceType,
+  UsageMeterAggregationType,
 } from '@/types'
 import { core, isNil } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -1426,12 +1427,14 @@ export const setupUsageMeter = async ({
   livemode = true,
   pricingModelId,
   slug,
+  aggregationType,
 }: {
   organizationId: string
   name: string
   livemode?: boolean
   pricingModelId?: string
   slug?: string
+  aggregationType?: UsageMeterAggregationType
 }) => {
   return adminTransaction(async ({ transaction }) => {
     let pricingModelToUseId: string | null = null
@@ -1464,6 +1467,7 @@ export const setupUsageMeter = async ({
         livemode,
         pricingModelId: pricingModelToUseId,
         slug: slug ?? `${snakeCase(name)}-${core.nanoid()}`,
+        ...(aggregationType && { aggregationType }),
       },
       transaction
     )
