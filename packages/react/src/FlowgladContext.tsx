@@ -18,7 +18,6 @@ import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
 import type {
   CreateProductCheckoutSessionParams,
-  CheckoutSessionType,
   CustomerBillingDetails,
 } from '@flowglad/types'
 import { devError } from './lib/utils'
@@ -132,35 +131,36 @@ const FlowgladContext = createContext<FlowgladContextValues>({
   ...notPresentContextValues,
 })
 
-interface ConstructCreateCheckoutSessionParams {
-  flowgladRoute: string
-  requestConfig?: RequestConfig
-  typeOverride?: CheckoutSessionType
-}
+type CheckoutSessionParamsBase = {
+  successUrl: string
+  cancelUrl: string
+  autoRedirect?: boolean
+} & Record<string, unknown>
 
-const makeCreateCheckoutSession =
-  <
-    TParams extends {
-      successUrl: string
-      cancelUrl: string
-      autoRedirect?: boolean
-    },
-  >(
+const constructCheckoutSessionCreator =
+  <TParams extends CheckoutSessionParamsBase>(
+    actionKey: FlowgladActionKey,
     flowgladRoute: string,
     requestConfig?: RequestConfig,
-    typeOverride?: CheckoutSessionType
+    mapPayload?: (
+      params: TParams,
+      basePayload: Omit<TParams, 'autoRedirect'>
+    ) => Record<string, unknown>
   ) =>
   async (params: TParams): Promise<CreateCheckoutSessionResponse> => {
     validateUrl(params.successUrl, 'successUrl')
     validateUrl(params.cancelUrl, 'cancelUrl')
     validateUrl(flowgladRoute, 'flowgladRoute', true)
+
     const headers = requestConfig?.headers
+    const { autoRedirect, ...basePayload } = params
+    const payload =
+      mapPayload?.(params, basePayload) ??
+      (basePayload as Record<string, unknown>)
+
     const response = await axios.post(
-      `${flowgladRoute}/${FlowgladActionKey.CreateCheckoutSession}`,
-      {
-        ...params,
-        type: typeOverride ?? (params as any).type ?? 'product',
-      },
+      `${flowgladRoute}/${actionKey}`,
+      payload,
       { headers }
     )
     const json: {
@@ -173,9 +173,9 @@ const makeCreateCheckoutSession =
         'FlowgladContext: Checkout session creation failed',
         json
       )
-      return { error: json.error! }
+      return { error: json.error }
     }
-    if (params.autoRedirect) {
+    if (autoRedirect) {
       window.location.href = data.url
     }
     return { id: data.checkoutSession.id, url: data.url }
@@ -358,23 +358,28 @@ export const FlowgladContextProvider = (
   const serverRoute = serverRouteProp ?? '/api/flowglad'
   const loadBilling = loadBillingProp ?? false
   const createCheckoutSession =
-    makeCreateCheckoutSession<FrontendProductCreateCheckoutSessionParams>(
+    constructCheckoutSessionCreator<FrontendProductCreateCheckoutSessionParams>(
+      FlowgladActionKey.CreateCheckoutSession,
+      serverRoute,
+      requestConfig,
+      (_, basePayload) => ({
+        ...basePayload,
+        type: 'product',
+      })
+    )
+
+  const createAddPaymentMethodCheckoutSession =
+    constructCheckoutSessionCreator<FrontendCreateAddPaymentMethodCheckoutSessionParams>(
+      FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
       serverRoute,
       requestConfig
     )
 
-  const createAddPaymentMethodCheckoutSession =
-    makeCreateCheckoutSession<FrontendCreateAddPaymentMethodCheckoutSessionParams>(
-      serverRoute,
-      requestConfig,
-      'add_payment_method'
-    )
-
   const createActivateSubscriptionCheckoutSession =
-    makeCreateCheckoutSession<FrontendCreateActivateSubscriptionCheckoutSessionParams>(
+    constructCheckoutSessionCreator<FrontendCreateActivateSubscriptionCheckoutSessionParams>(
+      FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
       serverRoute,
-      requestConfig,
-      'activate_subscription'
+      requestConfig
     )
 
   const cancelSubscription = constructCancelSubscription({
