@@ -177,11 +177,11 @@ const CONSTRAINT_MESSAGES: Record<
   // ============================================
   // USAGE METERS CONSTRAINTS
   // ============================================
-  usage_meters_pricing_model_id_slug_unique_idx:
+  usage_meters_organization_id_slug_pricing_model_id_unique_idx:
     'A usage meter with this slug already exists in this pricing model.',
-  usage_meters_pricing_model_id_fkey:
+  usage_meters_pricing_model_id_pricing_models_id_fkey:
     'The specified pricing model does not exist or is not active.',
-  usage_meters_organization_id_fkey:
+  usage_meters_organization_id_organizations_id_fkey:
     "The specified organization does not exist or you don't have access to it.",
 
   // ============================================
