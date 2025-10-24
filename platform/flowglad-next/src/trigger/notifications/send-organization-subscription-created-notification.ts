@@ -71,7 +71,7 @@ export const sendOrganizationSubscriptionCreatedNotificationTask =
           customerId: customer.id,
           customerName: customer.name,
           customerEmail: customer.email,
-          livemode: boolean
+          livemode: subscription.livemode
         }),
       })
 
