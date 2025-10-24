@@ -29,6 +29,14 @@ import { trpc } from '@/app/_trpc/client'
 import { Subscription } from '@/db/schema/subscriptions'
 import { SubscriptionStatus } from '@/types'
 import { useRouter } from 'next/navigation'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export interface SubscriptionsTableFilters {
   status?: SubscriptionStatus
@@ -44,6 +52,8 @@ interface SubscriptionsDataTableProps {
   onFilterChange?: (value: string) => void
 }
 
+const ALL_PRODUCTS_FILTER = 'all'
+
 export function SubscriptionsDataTable({
   filters = {},
   title,
@@ -53,10 +63,11 @@ export function SubscriptionsDataTable({
 }: SubscriptionsDataTableProps) {
   const router = useRouter()
 
-  // ⚠️ NO search - backend doesn't support it for subscriptions
-
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
+  const [customerSearch, setCustomerSearch] = React.useState('')
+  const [selectedProduct, setSelectedProduct] =
+    React.useState<string>(ALL_PRODUCTS_FILTER)
 
   const {
     pageIndex,
@@ -76,6 +87,19 @@ export function SubscriptionsDataTable({
     // ⚠️ NO searchQuery - backend doesn't support it
     useQuery: trpc.subscriptions.getTableRows.useQuery,
   })
+
+  const productOptions = React.useMemo(() => {
+    const uniqueProducts = new Set<string>()
+    data?.items?.forEach((item) => {
+      const name = item.product.name?.trim()
+      if (name) {
+        uniqueProducts.add(name)
+      }
+    })
+    return Array.from(uniqueProducts).sort((a, b) =>
+      a.localeCompare(b)
+    )
+  }, [data?.items])
 
   // Reset to first page when filters change
   // Use JSON.stringify to get stable comparison of filter object
@@ -140,10 +164,47 @@ export function SubscriptionsDataTable({
     },
   })
 
+  const handleCustomerSearchChange = React.useCallback(
+    (value: string) => {
+      setCustomerSearch(value)
+      const column = table.getColumn('customerName')
+      column?.setFilterValue(value)
+    },
+    [table]
+  )
+
+  React.useEffect(() => {
+    const productColumn = table.getColumn('productName')
+    if (selectedProduct === ALL_PRODUCTS_FILTER) {
+      productColumn?.setFilterValue(undefined)
+    } else {
+      productColumn?.setFilterValue(selectedProduct)
+    }
+  }, [selectedProduct, table])
+
+  React.useEffect(() => {
+    if (
+      selectedProduct !== ALL_PRODUCTS_FILTER &&
+      !productOptions.includes(selectedProduct)
+    ) {
+      setSelectedProduct(ALL_PRODUCTS_FILTER)
+    }
+  }, [productOptions, selectedProduct])
+
+  React.useEffect(() => {
+    setCustomerSearch('')
+    setSelectedProduct(ALL_PRODUCTS_FILTER)
+    const customerColumn = table.getColumn('customerName')
+    const productColumn = table.getColumn('productName')
+    customerColumn?.setFilterValue(undefined)
+    productColumn?.setFilterValue(undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
+
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+      <div className="flex flex-wrap items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         {/* Title and/or Filter buttons on the left */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && (
@@ -160,8 +221,34 @@ export function SubscriptionsDataTable({
           )}
         </div>
 
-        {/* View options on the right (NO search for subscriptions) */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* View options and local filters */}
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
+          <Input
+            placeholder="Search customers..."
+            value={customerSearch}
+            onChange={(event) =>
+              handleCustomerSearchChange(event.target.value)
+            }
+            className="h-9 w-56"
+          />
+          <Select
+            value={selectedProduct}
+            onValueChange={setSelectedProduct}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter product" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_PRODUCTS_FILTER}>
+                All products
+              </SelectItem>
+              {productOptions.map((product) => (
+                <SelectItem key={product} value={product}>
+                  {product}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <DataTableViewOptions table={table} />
         </div>
       </div>

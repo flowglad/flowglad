@@ -15,6 +15,7 @@ import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import { Subscription } from '@/db/schema/subscriptions'
 import { SubscriptionStatus } from '@/types'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 
 const subscriptionStatusColors: Record<SubscriptionStatus, string> = {
   [SubscriptionStatus.Active]: 'bg-green-100 text-green-800',
@@ -80,12 +81,43 @@ function SubscriptionActionsMenu({
 export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'customerName',
-    accessorFn: (row) => row.customer.name || row.customer.email,
-    header: 'Customer',
+    accessorFn: (row) => {
+      const customer = row.customer
+      const name = customer.name?.trim() ?? ''
+      const email = customer.email?.trim() ?? ''
+      const combined = [name, email]
+        .filter((value) => value.length > 0)
+        .join(' ')
+
+      return combined.toLowerCase()
+    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Customer" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const valueA = rowA.getValue<string>(columnId) ?? ''
+      const valueB = rowB.getValue<string>(columnId) ?? ''
+      return valueA.localeCompare(valueB)
+    },
+    filterFn: (row, columnId, filterValue) => {
+      if (!filterValue || typeof filterValue !== 'string') {
+        return true
+      }
+      const value = (
+        row.getValue<string>(columnId) ?? ''
+      ).toLowerCase()
+      const search = filterValue.toLowerCase().trim()
+      if (search.length === 0) {
+        return true
+      }
+      return value.includes(search)
+    },
     cell: ({ row }) => {
       const customer = row.original.customer
-      const displayName =
-        customer.name.length === 0 ? customer.email : customer.name
+      const hasName =
+        typeof customer.name === 'string' &&
+        customer.name.trim().length > 0
+      const displayName = hasName ? customer.name : customer.email
       return (
         <div>
           <DataTableLinkableCell href={`/customers/${customer.id}`}>
@@ -101,7 +133,27 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'status',
     accessorFn: (row) => row.subscription.status,
-    header: 'Status',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const statusA = rowA.getValue<string>(columnId) ?? ''
+      const statusB = rowB.getValue<string>(columnId) ?? ''
+      return statusA.localeCompare(statusB)
+    },
+    filterFn: (row, columnId, filterValue) => {
+      if (!filterValue) {
+        return true
+      }
+      const value = row.getValue<string>(columnId)
+      if (Array.isArray(filterValue)) {
+        if (filterValue.length === 0) {
+          return true
+        }
+        return filterValue.includes(value)
+      }
+      return value === filterValue
+    },
     cell: ({ row }) => {
       const status = row.getValue('status') as SubscriptionStatus
       return <SubscriptionStatusBadge status={status} />
@@ -113,7 +165,27 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'productName',
     accessorFn: (row) => row.product.name,
-    header: 'Product',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Product" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const productA = rowA.getValue<string>(columnId) ?? ''
+      const productB = rowB.getValue<string>(columnId) ?? ''
+      return productA.localeCompare(productB)
+    },
+    filterFn: (row, columnId, filterValue) => {
+      if (!filterValue) {
+        return true
+      }
+      const value = row.getValue<string>(columnId) ?? ''
+      if (Array.isArray(filterValue)) {
+        if (filterValue.length === 0) {
+          return true
+        }
+        return filterValue.includes(value)
+      }
+      return value === filterValue
+    },
     cell: ({ row }) => {
       const product = row.original.product
       return (
@@ -133,7 +205,16 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'createdAt',
     accessorFn: (row) => row.subscription.createdAt,
-    header: 'Created',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const dateA = rowA.getValue<Date>(columnId)
+      const dateB = rowB.getValue<Date>(columnId)
+      const timeA = dateA ? new Date(dateA).getTime() : 0
+      const timeB = dateB ? new Date(dateB).getTime() : 0
+      return timeA - timeB
+    },
     cell: ({ row }) => {
       const date = row.getValue('createdAt') as Date
       return (
@@ -149,7 +230,16 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'canceledAt',
     accessorFn: (row) => row.subscription.canceledAt,
-    header: 'Canceled',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Canceled" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const dateA = rowA.getValue<Date | null>(columnId)
+      const dateB = rowB.getValue<Date | null>(columnId)
+      const timeA = dateA ? new Date(dateA).getTime() : -Infinity
+      const timeB = dateB ? new Date(dateB).getTime() : -Infinity
+      return timeA - timeB
+    },
     cell: ({ row }) => {
       const date = row.getValue('canceledAt') as Date | null
       return (
@@ -165,7 +255,14 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'subscriptionId',
     accessorFn: (row) => row.subscription.id,
-    header: 'ID',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const idA = rowA.getValue<string>(columnId) ?? ''
+      const idB = rowB.getValue<string>(columnId) ?? ''
+      return idA.localeCompare(idB)
+    },
     cell: ({ row }) => {
       const id = row.getValue('subscriptionId') as string
       return (
