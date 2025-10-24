@@ -98,6 +98,7 @@ export async function getPricingModelSetupData(
   const transformedUsageMeters = usageMeters.map((meter) => ({
     slug: meter.slug,
     name: meter.name,
+    aggregationType: meter.aggregationType,
   }))
 
   // Transform features (omit pricingModelId, replace usageMeterId with usageMeterSlug)

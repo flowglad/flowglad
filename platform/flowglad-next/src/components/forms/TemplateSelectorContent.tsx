@@ -9,11 +9,13 @@ import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 interface TemplateSelectorContentProps {
   onTemplateSelect: (template: PricingModelTemplate) => void
   onCreateBlank: () => void
+  onImportPricingModel: () => void
 }
 
 export function TemplateSelectorContent({
   onTemplateSelect,
   onCreateBlank,
+  onImportPricingModel,
 }: TemplateSelectorContentProps) {
   return (
     <>
@@ -26,6 +28,10 @@ export function TemplateSelectorContent({
           <Button onClick={onCreateBlank} size="sm">
             <Plus className="w-4 h-4 mr-2" />
             New
+          </Button>
+          <Button onClick={onImportPricingModel} size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Import
           </Button>
         </div>
       </div>
