@@ -104,30 +104,8 @@ export const updateOrganizationOnboardingStatus = async (
         },
         transaction
       )
-      const discounts = await selectDiscounts(
-        {
-          organizationId: organization.id,
-        },
-        transaction
-      )
-      const products = await selectProducts(
-        {
-          organizationId: organization.id,
-        },
-        transaction
-      )
 
-      let newOnboardingStatus: BusinessOnboardingStatus =
-        onboardingStatus.onboardingStatus
-      /**
-       * If Stripe says the account is fully onboarded, respect that status.
-       * Only override to partially onboarded if Stripe says it's not fully onboarded.
-       */
-      if (onboardingStatus.onboardingStatus !== BusinessOnboardingStatus.FullyOnboarded && 
-          (discounts.length > 0 || products.length > 0)) {
-        newOnboardingStatus =
-          BusinessOnboardingStatus.PartiallyOnboarded
-      }
+      const newOnboardingStatus = onboardingStatus.onboardingStatus
 
       /**
        * NOTE: Intentionally not setting payoutsEnabled here to manually vet organizations

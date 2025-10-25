@@ -42,7 +42,7 @@ export const sendPayoutNotificationTask = task({
 
     const recipients = usersAndMemberships
       .map(({ user }) => user.email)
-      .filter((email) => !isNil(email)) as string[]
+      .filter((email) => !isNil(email))
 
     if (recipients.length === 0) {
       throw new Error('No recipient emails found for organization')
