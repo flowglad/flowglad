@@ -1,23 +1,26 @@
 import { useBilling } from '@flowglad/nextjs';
 
-const SubscribeButton = () => {
+export const SubscribeButton = () => {
   const billing = useBilling();
-  if (!billing.loaded) {
-    return <div>Loading...</div>;
-  } else if (billing.errors) {
+  const { createCheckoutSession, catalog } = billing;
+  if (billing.errors && billing.errors.length > 0) {
     return (
       <div>
         Error: {billing.errors.map((error) => error.message).join(', ')}
       </div>
     );
   }
-  const { createCheckoutSession, catalog } = billing;
+  if (!billing.loaded || !createCheckoutSession || !catalog) {
+    return <div>Loading...</div>;
+  }
   return (
     <button
       onClick={() =>
         createCheckoutSession({
           autoRedirect: true,
-          priceId: catalog.products[0].variants[0].id,
+          priceSlug:
+            catalog.products.find((product) => !product.default)?.defaultPrice
+              .slug || '',
           successUrl: `${window.location.origin}/success`,
           cancelUrl: `${window.location.origin}/cancel`
         })

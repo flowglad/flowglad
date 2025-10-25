@@ -4,7 +4,11 @@ import {
   getCustomerBilling,
   updateCustomer,
 } from './customerHandlers'
-import { createCheckoutSession } from './checkoutSessionHandlers'
+import {
+  createCheckoutSession,
+  createAddPaymentMethodCheckoutSession,
+  createActivateSubscriptionCheckoutSession,
+} from './checkoutSessionHandlers'
 import { SubRouteHandler } from './types'
 import { cancelSubscription } from './subscriptionHandlers'
 
@@ -15,6 +19,10 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.FindOrCreateCustomer]: findOrCreateCustomer,
   [FlowgladActionKey.UpdateCustomer]: updateCustomer,
   [FlowgladActionKey.CreateCheckoutSession]: createCheckoutSession,
+  [FlowgladActionKey.CreateAddPaymentMethodCheckoutSession]:
+    createAddPaymentMethodCheckoutSession,
+  [FlowgladActionKey.CreateActivateSubscriptionCheckoutSession]:
+    createActivateSubscriptionCheckoutSession,
   [FlowgladActionKey.CancelSubscription]: cancelSubscription,
   [FlowgladActionKey.CreateSubscription]: async () => {
     return {

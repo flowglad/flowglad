@@ -8,7 +8,7 @@ import { CustomerBillingDetails } from './customer-billing-details'
 import { CurrentSubscriptionCard } from './current-subscription-card'
 import { PricingTable } from './pricing-table'
 import {
-  FrontendCreateCheckoutSessionParams,
+  FrontendProductCreateCheckoutSessionParams,
   useBilling,
 } from '../FlowgladContext'
 import { useCallback } from 'react'
@@ -49,7 +49,7 @@ const CurrentSubscriptionOrPricingTable = ({
 }) => {
   const billing = useBilling()
   const createCheckoutSession = useCallback(
-    (params: FrontendCreateCheckoutSessionParams) => {
+    (params: FrontendProductCreateCheckoutSessionParams) => {
       const { createCheckoutSession } = billing
       if (!createCheckoutSession) {
         return
@@ -92,9 +92,7 @@ const CurrentSubscriptionOrPricingTable = ({
             priceId: product.defaultPrice.id,
             successUrl: window.location.href,
             cancelUrl: window.location.href,
-            quantity: 1,
             autoRedirect: true,
-            type: 'product',
           })
         },
         prices: product.prices.map((price) => ({
