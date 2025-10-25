@@ -7,6 +7,7 @@ import {
   CircleDollarSign,
   BookOpen,
   Loader2,
+  ChevronsUpDown,
   LogOut,
   TriangleRight,
   type LucideIcon,
@@ -241,9 +242,23 @@ export const SideNavigation = () => {
         >
           <div className="flex items-center gap-3 rounded-md">
             {maybeLogo}
-            <div className="flex flex-col justify-center gap-0.5 whitespace-nowrap">
+            <div className="flex justify-center gap-0.5 whitespace-nowrap items-center">
               <div className="text-sm font-semibold text-foreground truncate">
                 {organization?.name}
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Toggle order"
+                  onClick={() => {
+                    // navigate to organization selector
+                    router.push('/select-organization')
+                  }}
+                  className="p-1"
+                >
+                  <ChevronsUpDown className="h-4 w-4" />
+                </Button>
               </div>
               <div className="text-xs font-medium text-muted-foreground truncate">
                 {organization?.tagline}
