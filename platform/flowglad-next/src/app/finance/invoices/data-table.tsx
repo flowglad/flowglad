@@ -26,9 +26,11 @@ import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 import { columns, InvoiceTableRowData } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { trpc } from '@/app/_trpc/client'
 import { Plus } from 'lucide-react'
 import { InvoiceStatus } from '@/types'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 
 export interface InvoicesTableFilters {
   status?: InvoiceStatus
@@ -53,6 +55,9 @@ export function InvoicesDataTable({
   activeFilter,
   onFilterChange,
 }: InvoicesDataTableProps) {
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(500)
+
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
@@ -71,6 +76,7 @@ export function InvoicesDataTable({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
+    searchQuery,
     useQuery: trpc.invoices.getTableRows.useQuery,
   })
 
@@ -80,6 +86,11 @@ export function InvoicesDataTable({
     goToFirstPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
+
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
 
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -157,7 +168,14 @@ export function InvoicesDataTable({
         </div>
 
         {/* Controls on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
+          <CollapsibleSearch
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder="Search invoices..."
+            disabled={isLoading}
+            isLoading={isFetching}
+          />
           <DataTableViewOptions table={table} />
           {onCreateInvoice && (
             <Button onClick={onCreateInvoice}>

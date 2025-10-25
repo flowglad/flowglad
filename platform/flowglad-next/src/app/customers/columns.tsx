@@ -6,6 +6,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Pencil, ExternalLink, Copy } from 'lucide-react'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
@@ -77,40 +78,114 @@ function CustomerActionsMenu({
 export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'name',
-    accessorFn: (row) => row.customer.name,
-    header: 'Name',
-    cell: ({ row }) => (
-      <div className="truncate" title={row.getValue('name')}>
-        {row.getValue('name')}
-      </div>
+    accessorFn: (row) => row.customer.name?.trim() ?? '',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Name" />
     ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const nameA = rowA.getValue<string>(columnId) ?? ''
+      const nameB = rowB.getValue<string>(columnId) ?? ''
+      return nameA.localeCompare(nameB)
+    },
+    filterFn: (row, columnId, filterValue) => {
+      if (!filterValue || typeof filterValue !== 'string') {
+        return true
+      }
+      const value = (
+        row.getValue<string>(columnId) ?? ''
+      ).toLowerCase()
+      const search = filterValue.toLowerCase().trim()
+      if (search.length === 0) {
+        return true
+      }
+      return value.includes(search)
+    },
+    cell: ({ row }) => {
+      const name = row.original.customer.name?.trim()
+      const fallback = row.original.customer.email
+      const display = name && name.length > 0 ? name : fallback
+      return (
+        <div className="truncate" title={display}>
+          {display}
+        </div>
+      )
+    },
     size: 200,
     minSize: 200,
     maxSize: 275,
   },
   {
     id: 'email',
-    accessorFn: (row) => row.customer.email,
-    header: 'Email',
-    cell: ({ row }) => (
-      <div>
-        <DataTableCopyableCell
-          copyText={row.getValue('email')}
-          className="lowercase"
-        >
-          {row.getValue('email')}
-        </DataTableCopyableCell>
-      </div>
+    accessorFn: (row) =>
+      row.customer.email?.trim().toLowerCase() ?? '',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Email" />
     ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const emailA = rowA.getValue<string>(columnId) ?? ''
+      const emailB = rowB.getValue<string>(columnId) ?? ''
+      return emailA.localeCompare(emailB)
+    },
+    filterFn: (row, columnId, filterValue) => {
+      if (!filterValue || typeof filterValue !== 'string') {
+        return true
+      }
+      const value = row.getValue<string>(columnId) ?? ''
+      const search = filterValue.toLowerCase().trim()
+      if (search.length === 0) {
+        return true
+      }
+      return value.includes(search)
+    },
+    cell: ({ row }) => {
+      const email = row.original.customer.email
+      return (
+        <div>
+          <DataTableCopyableCell
+            copyText={email}
+            className="lowercase"
+          >
+            {email}
+          </DataTableCopyableCell>
+        </div>
+      )
+    },
     size: 220,
     minSize: 120,
     maxSize: 250,
   },
   {
     accessorKey: 'totalSpend',
-    header: 'Total Spend',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Total Spend" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const amountA =
+        typeof rowA.getValue<number | string | undefined>(
+          columnId
+        ) === 'number'
+          ? (rowA.getValue<number>(columnId) as number)
+          : parseFloat(
+              (rowA.getValue<string | undefined>(columnId) ??
+                '0') as string
+            )
+      const amountB =
+        typeof rowB.getValue<number | string | undefined>(
+          columnId
+        ) === 'number'
+          ? (rowB.getValue<number>(columnId) as number)
+          : parseFloat(
+              (rowB.getValue<string | undefined>(columnId) ??
+                '0') as string
+            )
+      return amountA - amountB
+    },
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('totalSpend') || '0')
+      const rawValue = row.getValue<number | string>('totalSpend')
+      const amount =
+        typeof rawValue === 'number'
+          ? rawValue
+          : parseFloat((rawValue as string) || '0')
       const formatted =
         stripeCurrencyAmountToHumanReadableCurrencyAmount(
           CurrencyCode.USD,
@@ -124,7 +199,14 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   },
   {
     accessorKey: 'payments',
-    header: 'Payments',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Payments" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const paymentsA = Number(rowA.getValue(columnId) || 0)
+      const paymentsB = Number(rowB.getValue(columnId) || 0)
+      return paymentsA - paymentsB
+    },
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {row.getValue('payments') || 0}
@@ -137,7 +219,16 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'createdAt',
     accessorFn: (row) => row.customer.createdAt,
-    header: 'Created',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const dateA = rowA.getValue<Date | string | null>(columnId)
+      const dateB = rowB.getValue<Date | string | null>(columnId)
+      const timeA = dateA ? new Date(dateA).getTime() : 0
+      const timeB = dateB ? new Date(dateB).getTime() : 0
+      return timeA - timeB
+    },
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {core.formatDate(row.getValue('createdAt'))}
@@ -150,7 +241,14 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'customerId',
     accessorFn: (row) => row.customer.id,
-    header: 'ID',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const idA = rowA.getValue<string>(columnId) ?? ''
+      const idB = rowB.getValue<string>(columnId) ?? ''
+      return idA.localeCompare(idB)
+    },
     cell: ({ row }) => (
       <div>
         <DataTableCopyableCell copyText={row.getValue('customerId')}>

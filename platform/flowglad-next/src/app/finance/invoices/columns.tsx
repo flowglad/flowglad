@@ -12,6 +12,7 @@ import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 // Other imports
 import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
@@ -132,14 +133,38 @@ function InvoiceActionsMenu({
 export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'customerName',
-    accessorFn: (row) => row.customer.name,
-    header: 'Customer',
+    accessorFn: (row) => row.customer.name?.trim() ?? '',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Customer" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const nameA = rowA.getValue<string>(columnId) ?? ''
+      const nameB = rowB.getValue<string>(columnId) ?? ''
+      return nameA.localeCompare(nameB)
+    },
+    filterFn: (row, columnId, filterValue) => {
+      if (!filterValue || typeof filterValue !== 'string') {
+        return true
+      }
+      const value = (
+        row.getValue<string>(columnId) ?? ''
+      ).toLowerCase()
+      const search = filterValue.toLowerCase().trim()
+      if (search.length === 0) {
+        return true
+      }
+      return value.includes(search)
+    },
     cell: ({ row }) => {
       const customer = row.original.customer
+      const displayName =
+        typeof customer.name === 'string' && customer.name.length > 0
+          ? customer.name
+          : customer.id
       return (
         <div>
           <DataTableLinkableCell href={`/customers/${customer.id}`}>
-            {customer.name}
+            {displayName}
           </DataTableLinkableCell>
         </div>
       )
@@ -151,7 +176,14 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'invoiceNumber',
     accessorFn: (row) => row.invoice.invoiceNumber,
-    header: 'Number',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Number" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const numberA = rowA.getValue<string>(columnId) ?? ''
+      const numberB = rowB.getValue<string>(columnId) ?? ''
+      return numberA.localeCompare(numberB)
+    },
     cell: ({ row }) => (
       <div>
         <DataTableCopyableCell
@@ -170,7 +202,27 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'status',
     accessorFn: (row) => row.invoice.status,
-    header: 'Status',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const statusA = rowA.getValue<string>(columnId) ?? ''
+      const statusB = rowB.getValue<string>(columnId) ?? ''
+      return statusA.localeCompare(statusB)
+    },
+    filterFn: (row, columnId, filterValue) => {
+      if (!filterValue) {
+        return true
+      }
+      const value = row.getValue<string>(columnId)
+      if (Array.isArray(filterValue)) {
+        if (filterValue.length === 0) {
+          return true
+        }
+        return filterValue.includes(value)
+      }
+      return value === filterValue
+    },
     cell: ({ row }) => {
       const invoice = row.original.invoice
       return <InvoiceStatusBadge invoice={invoice} />
@@ -187,7 +239,14 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
         return sum + item.price * item.quantity
       }, 0)
     },
-    header: 'Total',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Total" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const totalA = Number(rowA.getValue(columnId) ?? 0)
+      const totalB = Number(rowB.getValue(columnId) ?? 0)
+      return totalA - totalB
+    },
     cell: ({ row }) => {
       const total = row.getValue('total') as number
       const formatted =
@@ -208,7 +267,16 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'dueDate',
     accessorFn: (row) => row.invoice.dueDate,
-    header: 'Due Date',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Due Date" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const dateA = rowA.getValue<Date | string | null>(columnId)
+      const dateB = rowB.getValue<Date | string | null>(columnId)
+      const timeA = dateA ? new Date(dateA).getTime() : 0
+      const timeB = dateB ? new Date(dateB).getTime() : 0
+      return timeA - timeB
+    },
     cell: ({ row }) => {
       const dueDate = row.getValue('dueDate') as Date | null
       return (
@@ -224,7 +292,16 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'createdAt',
     accessorFn: (row) => row.invoice.createdAt,
-    header: 'Created',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const dateA = rowA.getValue<Date | string | null>(columnId)
+      const dateB = rowB.getValue<Date | string | null>(columnId)
+      const timeA = dateA ? new Date(dateA).getTime() : 0
+      const timeB = dateB ? new Date(dateB).getTime() : 0
+      return timeA - timeB
+    },
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {core.formatDate(row.getValue('createdAt'))}
@@ -237,7 +314,14 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'invoiceId',
     accessorFn: (row) => row.invoice.id,
-    header: 'ID',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
+    sortingFn: (rowA, rowB, columnId) => {
+      const idA = rowA.getValue<string>(columnId) ?? ''
+      const idB = rowB.getValue<string>(columnId) ?? ''
+      return idA.localeCompare(idB)
+    },
     cell: ({ row }) => (
       <div>
         <DataTableCopyableCell copyText={row.getValue('invoiceId')}>
