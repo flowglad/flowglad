@@ -8,7 +8,7 @@ interface PayoutNotificationEmailProps {
 }
 
 export const PayoutNotificationEmail = ({ organizationName }: PayoutNotificationEmailProps) => {
-  const contactEmail = `mailto:hello@flowglad.com?subject=Payout Enablement Request&body=Hi Flowglad team,%0A%0AI would like to request payout enablement for my organization: ${organizationName}%0A%0AThank you!`
+  const contactEmail = `mailto:hello@flowglad.com?subject=Payout Enablement Request&body=Hi Flowglad team,%0A%0AI would like to request payout enablement for my organization: ${encodeURIComponent(organizationName)}%0A%0AThank you!`
   
   return (
     <EmailLayout
