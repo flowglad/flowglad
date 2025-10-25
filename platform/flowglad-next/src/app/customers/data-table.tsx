@@ -101,6 +101,7 @@ export function CustomersDataTable({
     React.useState<VisibilityState>({})
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
+  const [isExporting, setIsExporting] = React.useState(false)
 
   const table = useReactTable({
     data: data?.items || [],
@@ -147,6 +148,67 @@ export function CustomersDataTable({
       pagination: { pageIndex, pageSize: currentPageSize },
     },
   })
+
+  const hasResults = (data?.total ?? 0) > 0
+
+  const handleExport = React.useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const params = new URLSearchParams()
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value === undefined || value === null) {
+          return
+        }
+        params.set(key, String(value))
+      })
+      const trimmedSearch = searchQuery.trim()
+      if (trimmedSearch) {
+        params.set('searchQuery', trimmedSearch)
+      }
+      const query = params.toString()
+      const response = await fetch(
+        query
+          ? `/api/customers/export?${query}`
+          : '/api/customers/export'
+      )
+      if (!response.ok) {
+        throw new Error('Failed to export customers')
+      }
+
+      const blob = await response.blob()
+      const contentDisposition = response.headers.get(
+        'Content-Disposition'
+      )
+
+      let filename = 'customers.csv'
+      if (contentDisposition) {
+        const utf8Match = contentDisposition.match(
+          /filename\*=UTF-8''([^;]+)/i
+        )
+        const simpleMatch = contentDisposition.match(
+          /filename="?([^\";]+)"?/i
+        )
+        if (utf8Match?.[1]) {
+          filename = decodeURIComponent(utf8Match[1])
+        } else if (simpleMatch?.[1]) {
+          filename = simpleMatch[1]
+        }
+      }
+
+      const fileURL = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = fileURL
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(fileURL)
+    } catch (error) {
+      console.error('Failed to export customers', error)
+    } finally {
+      setIsExporting(false)
+    }
+  }, [filters, searchQuery])
 
   return (
     <div className="w-full">
@@ -272,6 +334,9 @@ export function CustomersDataTable({
             !!searchQuery || Object.keys(filters).length > 0
           }
           filteredCount={data?.total}
+          onExport={handleExport}
+          exportDisabled={!hasResults || isLoading || isFetching}
+          exportLoading={isExporting}
         />
       </div>
     </div>
