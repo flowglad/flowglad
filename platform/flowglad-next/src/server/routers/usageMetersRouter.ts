@@ -24,6 +24,7 @@ import {
 } from '@/db/tableUtils'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
+import { errorHandlers } from '../trpcErrorHandler'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageMeter',
@@ -39,23 +40,30 @@ export const createUsageMeter = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction, userId, livemode }) => {
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
+        try {
+          const [{ organization }] =
+            await selectMembershipAndOrganizations(
+              {
+                userId,
+                focused: true,
+              },
+              transaction
+            )
+          const usageMeter = await insertUsageMeter(
             {
-              userId,
-              focused: true,
+              ...input.usageMeter,
+              organizationId: organization.id,
+              livemode,
             },
             transaction
           )
-        const usageMeter = await insertUsageMeter(
-          {
-            ...input.usageMeter,
-            organizationId: organization.id,
-            livemode,
-          },
-          transaction
-        )
-        return { usageMeter }
+          return { usageMeter }
+        } catch (error) {
+          errorHandlers.usageMeter.handle(error, {
+            operation: 'create',
+          })
+          throw error
+        }
       }
     )
   )
@@ -79,14 +87,22 @@ const updateUsageMeter = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const usageMeter = await updateUsageMeterDB(
-          {
-            ...input.usageMeter,
+        try {
+          const usageMeter = await updateUsageMeterDB(
+            {
+              ...input.usageMeter,
+              id: input.id,
+            },
+            transaction
+          )
+          return { usageMeter }
+        } catch (error) {
+          errorHandlers.usageMeter.handle(error, {
+            operation: 'update',
             id: input.id,
-          },
-          transaction
-        )
-        return { usageMeter }
+          })
+          throw error
+        }
       }
     )
   )
