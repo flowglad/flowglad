@@ -14,6 +14,7 @@ import {
   TotalSection,
 } from './components/themed'
 import { EmailButton } from './components/EmailButton'
+import TestModeBanner from './components/TestBanner'
 
 export const PaymentFailedEmail = ({
   invoiceNumber,
@@ -55,6 +56,7 @@ export const PaymentFailedEmail = ({
 
   return (
     <EmailLayout previewText="Payment Failed for Your Order">
+      <TestModeBanner><TestModeBanner/>
       <Header
         title="Payment Unsuccessful"
         organizationLogoUrl={organizationLogoUrl}

@@ -2,6 +2,7 @@ import { Img, Section } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
 import { EmailLayout, Header, Paragraph } from './components/themed'
+import TestModeBanner from './components/TestBanner'
 
 export interface CustomerBillingPortalMagicLinkEmailProps {
   customerName?: string
@@ -23,6 +24,7 @@ export const CustomerBillingPortalMagicLinkEmail = ({
       previewText={`Sign in to your billing portal${organizationName ? ` for ${organizationName}` : ''}`}
       variant="customer"
     >
+      <TestModeBanner><TestModeBanner/>
       <Img
         src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
         width="540"

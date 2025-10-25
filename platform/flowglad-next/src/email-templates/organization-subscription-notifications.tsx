@@ -19,6 +19,7 @@ import {
   DetailSection,
   DetailItem,
 } from './components/themed'
+import TestModeBanner from './components/TestBanner'
 
 export interface OrganizationSubscriptionCreatedNotificationEmailProps {
   organizationName: string
@@ -26,6 +27,7 @@ export interface OrganizationSubscriptionCreatedNotificationEmailProps {
   customerId: string
   customerName: string
   customerEmail: string
+  livemode: boolean
 }
 
 export interface OrganizationSubscriptionCanceledNotificationEmailProps {
@@ -56,6 +58,7 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
       previewText={`New Subscription: ${customerName} subscribed to ${subscriptionName}`}
       variant="organization"
     >
+      <TestModeBanner><TestModeBanner/>
       <Img
         src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
         width="540"

@@ -13,6 +13,7 @@ import {
   TotalSection,
 } from './components/themed'
 import { emailBaseUrl } from '@/utils/core'
+import TestModeBanner from './components/TestBanner'
 
 export const InvoiceNotificationEmail = ({
   invoice,
@@ -49,6 +50,7 @@ export const InvoiceNotificationEmail = ({
 
   return (
     <EmailLayout previewText={`New Invoice from ${organizationName}`}>
+      <TestModeBanner><TestModeBanner/>
       <Header
         title="New Invoice"
         organizationLogoUrl={organizationLogoUrl}
