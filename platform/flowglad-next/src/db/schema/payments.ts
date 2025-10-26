@@ -25,6 +25,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { invoices } from './invoices'
 import { organizations } from './organizations'
@@ -42,6 +43,8 @@ import { paymentMethods } from './paymentMethods'
 import { billingPeriods } from './billingPeriods'
 import { subscriptions } from './subscriptions'
 import { currencyCodeSchema } from '@/db/commonZodSchema'
+import { buildSchemas } from '../createZodSchemas'
+import { zodEpochMs } from '../timestampMs'
 
 export const TABLE_NAME = 'payments'
 
@@ -66,8 +69,8 @@ export const payments = pgTable(
       columnName: 'status',
       enumBase: PaymentStatus,
     }).notNull(),
-    chargeDate: timestamp('charge_date').notNull(),
-    settlementDate: timestamp('settlement_date'),
+    chargeDate: timestampWithTimezoneColumn('charge_date').notNull(),
+    settlementDate: timestampWithTimezoneColumn('settlement_date'),
     description: text('description'),
     receiptNumber: text('receipt_number'),
     receiptURL: text('receipt_url'),
@@ -97,7 +100,7 @@ export const payments = pgTable(
      */
     refunded: boolean('refunded').notNull().default(false),
     refundedAmount: integer('refunded_amount'),
-    refundedAt: timestamp('refunded_at'),
+    refundedAt: timestampWithTimezoneColumn('refunded_at'),
     failureMessage: text('failure_message'),
     failureCode: text('failure_code'),
   },
@@ -139,9 +142,6 @@ const columnEnhancements = {
   amount: core.safeZodPositiveIntegerOrZero,
   status: core.createSafeZodEnum(PaymentStatus),
   currency: currencyCodeSchema,
-  chargeDate: core.safeZodDate,
-  settlementDate: core.safeZodDate.nullable().optional(),
-  refundedAt: core.safeZodDate.nullable().optional(),
   paymentMethod: core.createSafeZodEnum(PaymentMethodType),
   receiptNumber: zodOptionalNullableString,
   receiptURL: z.url().nullable().optional(),
@@ -150,19 +150,7 @@ const columnEnhancements = {
   taxCountry: taxSchemaColumns.taxCountry.nullable().optional(),
 }
 
-export const paymentsSelectSchema = createSelectSchema(
-  payments
-).extend(columnEnhancements)
-
-export const paymentsInsertSchema = createInsertSchema(payments)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnEnhancements)
-
-export const paymentsUpdateSchema = paymentsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-const readonlyColumns = {
+const readOnlyColumns = {
   organizationId: true,
   livemode: true,
 } as const
@@ -175,12 +163,19 @@ const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
 } as const
 
-export const paymentsClientSelectSchema = paymentsSelectSchema
-  .omit(hiddenColumns)
-  .omit(readonlyColumns)
-  .meta({
-    id: 'PaymentRecord',
-  })
+export const {
+  select: paymentsSelectSchema,
+  insert: paymentsInsertSchema,
+  update: paymentsUpdateSchema,
+  client: { select: paymentsClientSelectSchema },
+} = buildSchemas(payments, {
+  refine: columnEnhancements,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'Payment',
+})
 
 export const paymentsTableRowDataSchema = z.object({
   payment: paymentsClientSelectSchema,
@@ -217,8 +212,8 @@ export const getRevenueDataInputSchema = z.object({
     RevenueChartIntervalUnit
   ),
   productId: z.string().nullish(),
-  fromDate: core.safeZodDate,
-  toDate: core.safeZodDate,
+  fromDate: zodEpochMs,
+  toDate: zodEpochMs,
 })
 
 export type GetRevenueDataInput = z.infer<

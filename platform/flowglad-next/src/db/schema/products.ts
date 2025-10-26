@@ -27,6 +27,7 @@ import { organizations } from '@/db/schema/organizations'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import { pricingModels } from './pricingModels'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'products'
 
@@ -39,7 +40,6 @@ const columns = {
     'organization_id',
     organizations
   ),
-  displayFeatures: jsonb('display_features'),
   active: boolean('active').notNull().default(true),
   /**
    * The label to display for the unit of the product in singular form.
@@ -104,76 +104,49 @@ export const products = pgTable(TABLE_NAME, columns, (table) => {
   ]
 }).enableRLS()
 
-const displayFeatureSchema = z.object({
-  enabled: z.boolean(),
-  label: z.string(),
-  details: z.string().nullish(),
-})
-
 const refinement = {
-  ...newBaseZodSelectSchemaColumns,
   name: z.string(),
   active: z.boolean(),
-  displayFeatures: z.array(displayFeatureSchema).nullable(),
 }
 
-export const rawProductsSelectSchema = createSelectSchema(
-  products,
-  refinement
-)
+export const {
+  select: productsSelectSchema,
+  insert: productsInsertSchema,
+  update: productsUpdateSchema,
+  client: {
+    select: productsClientSelectSchema,
+    insert: baseClientInsertSchema,
+    update: productsClientUpdateSchema,
+  },
+} = buildSchemas(products, {
+  refine: refinement,
+  client: {
+    hiddenColumns: {
+      externalId: true,
+    },
+    createOnlyColumns: {
+      pricingModelId: true,
+    },
+  },
+  entityName: 'Product',
+})
 
-export const productsSelectSchema =
-  rawProductsSelectSchema.extend(refinement)
-
-export const productsInsertSchema = productsSelectSchema.omit(
-  ommittedColumnsForInsertSchema
-)
-
-export const productsUpdateSchema = productsInsertSchema
-  .partial()
-  .extend({
-    id: z.string(),
-  })
-
-const createOnlyColumns = {
-  pricingModelId: true,
-} as const
-
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
-
-const hiddenColumns = {
-  externalId: true,
-} as const
-
-const nonClientEditableColumns = {
-  ...readOnlyColumns,
-  ...hiddenColumns,
-} as const
-
-export const productsClientSelectSchema = productsSelectSchema
-  .omit(hiddenColumns)
-  .omit(hiddenColumnsForClientSchema)
-  .meta({
-    id: 'ProductRecord',
-  })
-
-export const productsClientInsertSchema = productsInsertSchema
-  .omit(nonClientEditableColumns)
-  .meta({
-    id: 'ProductInsert',
-  })
-
-export const productsClientUpdateSchema = productsUpdateSchema
-  .omit({
-    ...nonClientEditableColumns,
-    ...createOnlyColumns,
-  })
-  .meta({
-    id: 'ProductUpdate',
-  })
+// Preserve the custom client insert refinement on slug
+export const productsClientInsertSchema = baseClientInsertSchema
+  .refine(
+    (data) => {
+      const normalizedSlug = data.slug?.toLowerCase().trim()
+      if (normalizedSlug === 'free' && !data.default) {
+        return false
+      }
+      return true
+    },
+    {
+      message: "Slug 'free' is reserved for default products only",
+      path: ['slug'],
+    }
+  )
+  .meta({ id: 'ProductInsert' })
 
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
   createSupabaseWebhookSchema({

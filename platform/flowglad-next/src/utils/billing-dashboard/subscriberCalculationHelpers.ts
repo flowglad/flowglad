@@ -12,7 +12,8 @@ import {
   getActiveSubscriptionsForPeriod,
 } from '@/db/tableMethods/subscriptionMethods'
 import { subscriptions } from '@/db/schema/subscriptions'
-import { and, eq, gte, gt, lte, or, isNull } from 'drizzle-orm'
+import { and, eq, lte } from 'drizzle-orm'
+import { createDateNotPassedFilter } from '@/db/tableUtils'
 
 export interface MonthlyActiveSubscribers {
   month: Date
@@ -69,10 +70,11 @@ export async function calculateActiveSubscribersByMonth(
         subscription.status
       )
       const hadStarted =
-        subscription.startDate && subscription.startDate <= monthEnd
+        subscription.startDate &&
+        subscription.startDate <= monthEnd.getTime()
       const hadNotEnded =
         !subscription.canceledAt ||
-        subscription.canceledAt >= monthStart
+        subscription.canceledAt >= monthStart.getTime()
 
       return wasActive && hadStarted && hadNotEnded
     }).length
@@ -91,16 +93,16 @@ export async function calculateActiveSubscribersByMonth(
  */
 export async function calculateSubscriberBreakdown(
   organizationId: string,
-  currentMonth: Date,
-  previousMonth: Date,
+  currentMonth: Date | number,
+  previousMonth: Date | number,
   transaction: DbTransaction
 ): Promise<SubscriberBreakdown> {
   // Use UTC dates to avoid timezone issues
   // Get the year and month from the input dates and create UTC start/end of month
-  const currentYear = currentMonth.getUTCFullYear()
-  const currentMonthNum = currentMonth.getUTCMonth()
-  const previousYear = previousMonth.getUTCFullYear()
-  const previousMonthNum = previousMonth.getUTCMonth()
+  const currentYear = new Date(currentMonth).getUTCFullYear()
+  const currentMonthNum = new Date(currentMonth).getUTCMonth()
+  const previousYear = new Date(previousMonth).getUTCFullYear()
+  const previousMonthNum = new Date(previousMonth).getUTCMonth()
 
   // Create UTC start of month (first day at 00:00:00.000 UTC)
   const currentMonthStart = new Date(
@@ -135,11 +137,11 @@ export async function calculateSubscriberBreakdown(
       and(
         eq(subscriptions.organizationId, organizationId),
         // Started before previous month ended
-        lte(subscriptions.startDate, previousMonthEnd),
+        lte(subscriptions.startDate, previousMonthEnd.getTime()),
         // Not canceled before previous month started
-        or(
-          isNull(subscriptions.canceledAt),
-          gt(subscriptions.canceledAt, previousMonthStart)
+        createDateNotPassedFilter(
+          subscriptions.canceledAt,
+          previousMonthStart.getTime()
         )
       )
     )
@@ -147,16 +149,16 @@ export async function calculateSubscriberBreakdown(
   // Calculate new subscribers
   const newSubscribers = currentSubscriptions.filter(
     (sub) =>
-      sub.startDate >= currentMonthStart &&
-      sub.startDate <= currentMonthEnd
+      sub.startDate >= currentMonthStart.getTime() &&
+      sub.startDate <= currentMonthEnd.getTime()
   ).length
 
   // Calculate churned subscribers (excluding upgrades)
   const churned = allPreviousSubscriptionsRaw.filter(
     (sub) =>
       sub.canceledAt !== null &&
-      sub.canceledAt >= currentMonthStart &&
-      sub.canceledAt <= currentMonthEnd &&
+      sub.canceledAt >= currentMonthStart.getTime() &&
+      sub.canceledAt <= currentMonthEnd.getTime() &&
       sub.cancellationReason !== CancellationReason.UpgradedToPaid
   ).length
 

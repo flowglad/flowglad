@@ -15,8 +15,8 @@ import { Country } from '@/db/schema/countries'
 import Markdown from 'react-markdown'
 import Link from 'next/link'
 import Image from 'next/image'
-import core, { cn } from '@/utils/core'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
+import core from '@/utils/core'
 
 interface OnboardingStatusRowProps extends OnboardingChecklistItem {
   onClick?: () => void
@@ -30,7 +30,7 @@ const OnboardingItemDescriptionLabel = ({
   children: React.ReactNode
 }) => {
   return typeof children === 'string' ? (
-    <p className="text-sm text-subtle">{children}</p>
+    <p className="text-sm text-muted-foreground">{children}</p>
   ) : (
     children
   )
@@ -47,23 +47,40 @@ const OnboardingStatusRow = ({
 }: OnboardingStatusRowProps) => {
   return (
     <>
-      <div className="flex flex-row items-center justify-between border border-stroke-subtle rounded-lg bg-background-input py-4 px-4">
-        <div className="flex flex-col justify-start w-full">
-          <p className="font-medium text-foreground pb-1">{title}</p>
-          <OnboardingItemDescriptionLabel>
-            {description}
-          </OnboardingItemDescriptionLabel>
+      <div className="flex flex-col gap-6 border border-border rounded-[28px] bg-card p-6 shadow-medium">
+        <div className="flex flex-col justify-start w-full gap-3">
+          <div className="flex flex-col gap-1">
+            <div className="w-6 h-6 bg-secondary rounded-full flex items-center justify-center">
+              <p className="text-sm text-secondary-foreground">
+                {title.match(/^\d+/)?.[0] || ''}
+              </p>
+            </div>
+            <p className="text-foreground">
+              {title.replace(/^\d+\.\s*/, '')}
+            </p>
+            <OnboardingItemDescriptionLabel>
+              {description}
+            </OnboardingItemDescriptionLabel>
+          </div>
           {children}
         </div>
         {actionNode || action ? (
-          <div className="flex flex-row items-start justify-end">
+          <div className="flex flex-col">
             {completed ? (
-              <div className="rounded-full bg-green-500  p-2 justify-end items-end">
-                <Check size={20} strokeWidth={2} />
+              <div className="flex justify-center">
+                <div className="rounded-full bg-green-600 text-white p-2">
+                  <Check size={20} strokeWidth={2} />
+                </div>
               </div>
             ) : (
               actionNode || (
-                <Button onClick={onClick}>{action}</Button>
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={onClick}
+                >
+                  {action}
+                </Button>
               )
             )}
           </div>
@@ -79,19 +96,21 @@ const OnboardingCodeblock = ({
   markdownText: string
 }) => {
   return (
-    <div className="flex flex-col gap-2 py-2 bg-background-input rounded-b-lg w-full">
-      <div className="flex flex-row items-center gap-2 text-sm font-mono bg-background p-4 rounded-md w-full justify-between">
-        <Markdown className={'max-w-[500px] overflow-x-scroll'}>
+    <div className="flex flex-col gap-2 w-full">
+      <div className="flex flex-row items-center gap-1 text-sm font-mono bg-card border border-border h-10 pl-4 pr-[1px] rounded-full w-full justify-between">
+        <Markdown className={'flex-1 overflow-x-auto'}>
           {markdownText}
         </Markdown>
         <Button
-          size="sm"
+          variant="ghost"
+          size="icon"
+          className="flex-shrink-0"
           onClick={() => {
             toast.success('Copied to clipboard')
             navigator.clipboard.writeText(markdownText)
           }}
         >
-          <Copy size={20} />
+          <Copy className="w-4 h-4" />
         </Button>
       </div>
     </div>
@@ -111,24 +130,24 @@ const CodeblockGroup = ({
   )
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-row gap-2">
-        <Tabs
-          value={selectedSection}
-          onValueChange={setSelectedSection}
-          className="w-full flex border-b border-stroke-subtle font-semibold"
-        >
-          <TabsList className="gap-8">
-            {sections.map((section) => (
-              <TabsTrigger
-                key={section.title}
-                value={section.title}
-                className="h-full first:pl-0 last:pr-0 first:ml-0 last:mr-0 text-sm"
-              >
-                {section.title}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+      <div className="flex flex-row gap-0">
+        {sections.map((section) => (
+          <Button
+            key={section.title}
+            variant="ghost"
+            onClick={() => setSelectedSection(section.title)}
+            className={cn(
+              // Base styling
+              'px-3 py-1 text-sm transition-all duration-200 rounded-full',
+              // Active/inactive styling
+              selectedSection === section.title
+                ? 'bg-accent text-foreground' // Active state
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground' // Inactive state
+            )}
+          >
+            {section.title}
+          </Button>
+        ))}
       </div>
       {sections.map((section) => (
         <div
@@ -172,7 +191,7 @@ const OnboardingStatusTable = ({
   ] = useState(false)
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
   const mcpServerConfig = {
-    url: core.safeUrl('/mcp', process.env.NEXT_PUBLIC_APP_URL!),
+    url: core.safeUrl('/mcp', core.NEXT_PUBLIC_APP_URL),
     headers: {
       Authorization: `Bearer ${secretApiKey}`,
     },
@@ -197,11 +216,11 @@ const OnboardingStatusTable = ({
         <CodeblockGroup
           sections={[
             {
-              title: 'Next.js projects',
+              title: 'Next.js',
               code: NEXT_INSTALL_COMMAND,
             },
             {
-              title: 'All other React projects',
+              title: 'Other React',
               code: REACT_INSTALL_COMMAND,
             },
           ]}
@@ -210,11 +229,13 @@ const OnboardingStatusTable = ({
       <OnboardingStatusRow
         key={'integrate-flowglad'}
         completed={false}
-        title={'3. Integrate Flowglad'}
-        description={'Get set up in localhost in a few minutes'}
+        title={'3. Choose Integration Method'}
+        description={''}
         actionNode={
-          <div className="flex flex-row items-end justify-center gap-2">
+          <div className="flex flex-row gap-2">
             <Button
+              variant="secondary"
+              className="w-full"
               onClick={() => {
                 window.open(
                   'https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration',
@@ -222,19 +243,19 @@ const OnboardingStatusTable = ({
                 )
               }}
             >
-              Setup by Prompt
+              Prompt
             </Button>
             <Button
+              variant="secondary"
+              className="w-full"
               onClick={() => {
                 window.open(
                   'https://docs.flowglad.com/quickstart#4-server-setup',
                   '_blank'
                 )
               }}
-              className="border-white bg-transparent hover:bg-white/10"
-              variant="outline"
             >
-              Setup Manually
+              Manually
             </Button>
           </div>
         }
@@ -266,6 +287,7 @@ const OnboardingStatusTable = ({
           }}
         />
       ))}
+      {/* Temporarily disabled MCP Server setup
       <OnboardingStatusRow
         key={'setup-flowglad-mcp-server'}
         completed={false}
@@ -276,7 +298,7 @@ const OnboardingStatusTable = ({
             href={`https://cursor.com/install-mcp?name=flowglad&config=${encodeURIComponent(JSON.stringify(mcpServerConfig))}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+      {/* <img
               src="https://cursor.com/deeplink/mcp-install-light.svg"
               alt="Add flowglad MCP server to Cursor"
               height="40"
@@ -285,6 +307,7 @@ const OnboardingStatusTable = ({
           </a>
         }
       />
+      */}
       <NounVerbModal
         isOpen={isNounVerbModalOpen}
         setIsOpen={setIsNounVerbModalOpen}

@@ -120,8 +120,8 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       paymentMethodId: paymentMethod.id,
       priceId: price.id,
       status: SubscriptionStatus.Active,
-      currentBillingPeriodStart: currentPeriodStartDate,
-      currentBillingPeriodEnd: currentPeriodEndDate,
+      currentBillingPeriodStart: currentPeriodStartDate.getTime(),
+      currentBillingPeriodEnd: currentPeriodEndDate.getTime(),
       interval: IntervalUnit.Month,
       intervalCount: 1,
     })
@@ -381,9 +381,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             issuedAmount,
             creditType: UsageCreditType.Grant,
             livemode: true,
-            expiresAt: new Date(
-              previousBillingPeriod.endDate.getTime() - 1
-            ),
+            expiresAt: previousBillingPeriod.endDate - 1,
           })
 
           await setupLedgerEntries({
@@ -455,9 +453,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             issuedAmount,
             creditType: UsageCreditType.Grant,
             livemode: true,
-            expiresAt: new Date(
-              previousBillingPeriod.endDate.getTime() - 1
-            ),
+            expiresAt: previousBillingPeriod.endDate - 1,
           })
 
           const usageEvent = await setupUsageEvent({
@@ -577,7 +573,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             subscriptionId: subscription.id,
             usageMeterId: usageMeter.id,
             issuedAmount: 500,
-            expiresAt: futureExpiresAt, // The critical part of this test
+            expiresAt: futureExpiresAt.getTime(), // The critical part of this test
             creditType: UsageCreditType.Grant,
             livemode: true,
           })
@@ -656,7 +652,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         customerId: nonRenewingCustomer.id,
         paymentMethodId: null as any, // Credit trial doesn't need payment method
         priceId: price.id,
-        status: SubscriptionStatus.CreditTrial,
+        status: SubscriptionStatus.Active,
         renews: false,
       })
 
@@ -1181,7 +1177,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             issuedAmount: 200,
             creditType: UsageCreditType.Grant,
             livemode: true,
-            expiresAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Expired 7 days ago
+            expiresAt: Date.now() - 7 * 24 * 60 * 60 * 1000, // Expired 7 days ago
           })
 
           const futureExpiringCredit = await setupUsageCredit({
@@ -1191,9 +1187,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             issuedAmount: 300,
             creditType: UsageCreditType.Grant,
             livemode: true,
-            expiresAt: new Date(
-              Date.now() + 30 * 24 * 60 * 60 * 1000
-            ), // Expires in 30 days
+            expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // Expires in 30 days
           })
 
           const neverExpiringCredit = await setupUsageCredit({
@@ -1277,7 +1271,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             issuedAmount: 1000,
             creditType: UsageCreditType.Grant,
             livemode: true,
-            expiresAt: new Date(Date.now() - 1000), // Already expired
+            expiresAt: Date.now() - 1000, // Already expired
             status: UsageCreditStatus.Posted,
           })
 
@@ -1620,13 +1614,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               renews: true,
               status: SubscriptionStatus.Active,
               defaultPaymentMethodId: paymentMethod.id,
-              currentBillingPeriodStart: new Date(),
-              currentBillingPeriodEnd: new Date(
-                Date.now() + 30 * 24 * 60 * 60 * 1000
-              ),
+              currentBillingPeriodStart: Date.now(),
+              currentBillingPeriodEnd:
+                Date.now() + 30 * 24 * 60 * 60 * 1000,
               interval: IntervalUnit.Month,
               intervalCount: 1,
-              billingCycleAnchorDate: new Date(),
+              billingCycleAnchorDate: Date.now(),
             },
             transaction
           )
@@ -1718,13 +1711,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
               renews: true,
               status: SubscriptionStatus.Active,
               defaultPaymentMethodId: paymentMethod.id,
-              currentBillingPeriodStart: new Date(),
-              currentBillingPeriodEnd: new Date(
-                Date.now() + 30 * 24 * 60 * 60 * 1000
-              ),
+              currentBillingPeriodStart: Date.now(),
+              currentBillingPeriodEnd:
+                Date.now() + 30 * 24 * 60 * 60 * 1000,
               interval: IntervalUnit.Month,
               intervalCount: 1,
-              billingCycleAnchorDate: new Date(),
+              billingCycleAnchorDate: Date.now(),
             },
             transaction
           )

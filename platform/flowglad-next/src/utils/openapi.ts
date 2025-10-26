@@ -1,5 +1,5 @@
 import { camelCase, kebabCase } from 'change-case'
-import { OpenApiMeta, OpenApiMethod } from 'trpc-swagger'
+import { OpenApiMeta, OpenApiMethod } from 'trpc-to-openapi'
 import { titleCase } from './core'
 
 export type CreateOpenApiMetaParams = {
@@ -13,6 +13,7 @@ export type CreateOpenApiMetaParams = {
   resource: string
   summary: string
   tags: string[]
+  description?: string
 }
 
 const constructIdParam = (params: CreateOpenApiMetaParams) => {
@@ -55,6 +56,7 @@ export const createPostOpenApiMeta = ({
   routeSuffix,
   requireIdParam = false,
   idParamOverride,
+  description,
 }: CreateOpenApiMetaParams & {
   requireIdParam?: boolean
   idParamOverride?: string
@@ -66,6 +68,7 @@ export const createPostOpenApiMeta = ({
         requireIdParam ? `/{${idParamOverride ?? 'id'}}` : ''
       }${routeSuffix ? `/${routeSuffix}` : ''}`,
       summary,
+      ...(description ? { description } : {}),
       tags,
       protect: true,
     },
@@ -273,8 +276,8 @@ export const trpcToRest = (
           procedure: procedureName,
           pattern: new RegExp(`^${entity}\/([^\\/]+)$`),
           mapParams: (matches, body) => ({
-            [updateIdKey]: matches[1],
             ...body,
+            [updateIdKey]: matches[0],
           }),
         },
       }
@@ -285,8 +288,8 @@ export const trpcToRest = (
           procedure: procedureName,
           pattern: new RegExp(`^${entity}\/([^\\/]+)$`),
           mapParams: (matches, body) => ({
-            [editIdKey]: matches[1],
             ...body,
+            [editIdKey]: matches[0],
           }),
         },
       }
@@ -298,7 +301,7 @@ export const trpcToRest = (
           procedure: procedureName,
           pattern: new RegExp(`^${entity}\/([^\\/]+)$`),
           mapParams: (matches) => ({
-            [deleteIdKey]: matches[1],
+            [deleteIdKey]: matches[0],
           }),
         },
       }
@@ -339,8 +342,8 @@ export const trpcToRest = (
           procedure: procedureName,
           pattern: new RegExp(`^${entity}\/([^\\/]+)\/${action}$`),
           mapParams: (matches, body) => ({
-            id: matches[0],
             ...body,
+            id: matches[0],
           }),
         },
       }

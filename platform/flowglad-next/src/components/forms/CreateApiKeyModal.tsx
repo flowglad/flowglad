@@ -60,13 +60,15 @@ const CreateApiKeyModal = ({
             className="flex flex-row gap-4 items-center cursor-pointer w-full"
             onClick={copyTextHandler}
           >
-            <div className="flex-1">
+            <div className="flex-1 relative">
               <Input
                 value={rawApiKey}
                 readOnly
-                className="w-full cursor-pointer"
-                iconTrailing={<Copy size={16} />}
+                className="w-full cursor-pointer pr-10"
               />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <Copy size={16} />
+              </div>
             </div>
           </div>
           {livemode ? (

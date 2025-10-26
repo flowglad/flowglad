@@ -81,7 +81,6 @@ describe('Analytics Upgrade Tracking', () => {
       intervalCount: 1,
       livemode: true,
       isDefault: true,
-      setupFeeAmount: 0,
       currency: organization.defaultCurrency,
     })
 
@@ -131,8 +130,8 @@ describe('Analytics Upgrade Tracking', () => {
     describe('calculateSubscriberBreakdown', () => {
       it('should exclude upgraded subscriptions from churn count', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const previousMonth = subMonths(new Date(), 1)
-          const currentMonth = new Date()
+          const previousMonth = subMonths(new Date(), 1).getTime()
+          const currentMonth = Date.now()
 
           // Create 3 free subscriptions in previous month
           const freeSub1 = await setupSubscription({
@@ -219,7 +218,9 @@ describe('Analytics Upgrade Tracking', () => {
       it('should correctly count new subscribers regardless of upgrade status', async () => {
         await adminTransaction(async ({ transaction }) => {
           const currentMonth = new Date()
+          const currentMonthTime = currentMonth.getTime()
           const previousMonth = subMonths(new Date(), 1)
+          const previousMonthTime = previousMonth.getTime()
 
           // Create additional customers for testing
           const customer4 = await setupCustomer({
@@ -255,7 +256,10 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(startOfMonth(currentMonth), 5),
+            startDate: addDays(
+              startOfMonth(currentMonthTime),
+              5
+            ).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -266,7 +270,10 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(startOfMonth(currentMonth), 10),
+            startDate: addDays(
+              startOfMonth(currentMonthTime),
+              10
+            ).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -278,15 +285,18 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(startOfMonth(currentMonth), 15),
+            startDate: addDays(
+              startOfMonth(currentMonthTime),
+              15
+            ).getTime(),
             livemode: true,
           })
 
           // Calculate subscriber breakdown
           const breakdown = await calculateSubscriberBreakdown(
             organization.id,
-            currentMonth,
-            previousMonth,
+            currentMonthTime,
+            previousMonthTime,
             transaction
           )
 
@@ -298,7 +308,9 @@ describe('Analytics Upgrade Tracking', () => {
       it('should handle mixed cancellation reasons correctly', async () => {
         await adminTransaction(async ({ transaction }) => {
           const previousMonth = subMonths(new Date(), 1)
+          const previousMonthTime = previousMonth.getTime()
           const currentMonth = new Date()
+          const currentMonthTime = currentMonth.getTime()
 
           // Create additional customers for testing
           const customer4 = await setupCustomer({
@@ -321,7 +333,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             livemode: true,
           })
 
@@ -331,7 +343,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             livemode: true,
           })
 
@@ -341,7 +353,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             livemode: true,
           })
 
@@ -351,7 +363,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod4.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             livemode: true,
           })
 
@@ -360,7 +372,10 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: sub1.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(startOfMonth(currentMonth), 5),
+              canceledAt: addDays(
+                startOfMonth(currentMonthTime),
+                5
+              ).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: sub1.renews,
             },
@@ -371,7 +386,10 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: sub2.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(startOfMonth(currentMonth), 10),
+              canceledAt: addDays(
+                startOfMonth(currentMonthTime),
+                10
+              ).getTime(),
               cancellationReason: CancellationReason.CustomerRequest,
               renews: sub2.renews,
             },
@@ -382,7 +400,10 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: sub3.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(startOfMonth(currentMonth), 15),
+              canceledAt: addDays(
+                startOfMonth(currentMonthTime),
+                15
+              ).getTime(),
               cancellationReason: CancellationReason.NonPayment,
               renews: sub3.renews,
             },
@@ -393,7 +414,10 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: sub4.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(startOfMonth(currentMonth), 20),
+              canceledAt: addDays(
+                startOfMonth(currentMonthTime),
+                20
+              ).getTime(),
               cancellationReason: CancellationReason.Other,
               renews: sub4.renews,
             },
@@ -403,8 +427,8 @@ describe('Analytics Upgrade Tracking', () => {
           // Calculate subscriber breakdown
           const breakdown = await calculateSubscriberBreakdown(
             organization.id,
-            currentMonth,
-            previousMonth,
+            currentMonthTime,
+            previousMonthTime,
             transaction
           )
 
@@ -420,7 +444,9 @@ describe('Analytics Upgrade Tracking', () => {
       it('should track upgrade MRR separately from new MRR', async () => {
         await adminTransaction(async ({ transaction }) => {
           const previousMonth = subMonths(new Date(), 1)
+          const previousMonthTime = previousMonth.getTime()
           const currentMonth = new Date()
+          const currentMonthTime = currentMonth.getTime()
 
           // Create higher price tier for testing
           const paidPrice = await setupPrice({
@@ -431,7 +457,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -445,7 +470,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -458,7 +482,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             isFreePlan: true,
             livemode: true,
           })
@@ -469,7 +493,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             isFreePlan: true,
             livemode: true,
           })
@@ -477,15 +501,15 @@ describe('Analytics Upgrade Tracking', () => {
           // Set up billing periods for previous month
           await setupBillingPeriod({
             subscriptionId: freeSub1.id,
-            startDate: startOfMonth(previousMonth),
-            endDate: endOfMonth(previousMonth),
+            startDate: startOfMonth(previousMonth).getTime(),
+            endDate: endOfMonth(previousMonth).getTime(),
             livemode: true,
           })
 
           await setupBillingPeriod({
             subscriptionId: freeSub2.id,
-            startDate: startOfMonth(previousMonth),
-            endDate: endOfMonth(previousMonth),
+            startDate: startOfMonth(previousMonth).getTime(),
+            endDate: endOfMonth(previousMonth).getTime(),
             livemode: true,
           })
 
@@ -494,7 +518,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub1.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: currentMonth,
+              canceledAt: currentMonthTime,
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: freeSub1.renews,
             },
@@ -507,7 +531,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: paidPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: currentMonth,
+            startDate: currentMonthTime,
             livemode: true,
           })
 
@@ -528,7 +552,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: basicPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: currentMonth,
+            startDate: currentMonthTime,
             livemode: true,
           })
 
@@ -537,20 +561,20 @@ describe('Analytics Upgrade Tracking', () => {
             await Promise.all([
               setupBillingPeriod({
                 subscriptionId: upgradedSub.id,
-                startDate: startOfMonth(currentMonth),
-                endDate: endOfMonth(currentMonth),
+                startDate: startOfMonth(currentMonthTime).getTime(),
+                endDate: endOfMonth(currentMonthTime).getTime(),
                 livemode: true,
               }),
               setupBillingPeriod({
                 subscriptionId: newPaidSub.id,
-                startDate: startOfMonth(currentMonth),
-                endDate: endOfMonth(currentMonth),
+                startDate: startOfMonth(currentMonthTime).getTime(),
+                endDate: endOfMonth(currentMonthTime).getTime(),
                 livemode: true,
               }),
               setupBillingPeriod({
                 subscriptionId: freeSub2.id,
-                startDate: startOfMonth(currentMonth),
-                endDate: endOfMonth(currentMonth),
+                startDate: startOfMonth(currentMonthTime).getTime(),
+                endDate: endOfMonth(currentMonthTime).getTime(),
                 livemode: true,
               }),
             ])
@@ -599,8 +623,9 @@ describe('Analytics Upgrade Tracking', () => {
       it('should not count upgraded subscriptions in churn MRR', async () => {
         await adminTransaction(async ({ transaction }) => {
           const previousMonth = subMonths(new Date(), 1)
+          const previousMonthTime = previousMonth.getTime()
           const currentMonth = new Date()
-
+          const currentMonthTime = currentMonth.getTime()
           // Create higher price tier for upgrade
           const premiumPrice = await setupPrice({
             productId: product.id,
@@ -622,7 +647,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: price.id, // Default price is $100/month
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             livemode: true,
           })
 
@@ -632,7 +657,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             livemode: true,
           })
 
@@ -642,7 +667,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             livemode: true,
           })
 
@@ -650,20 +675,20 @@ describe('Analytics Upgrade Tracking', () => {
           const [bp1Prev, bp2Prev, bp3Prev] = await Promise.all([
             setupBillingPeriod({
               subscriptionId: sub1.id,
-              startDate: startOfMonth(previousMonth),
-              endDate: endOfMonth(previousMonth),
+              startDate: startOfMonth(previousMonth).getTime(),
+              endDate: endOfMonth(previousMonth).getTime(),
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: sub2.id,
-              startDate: startOfMonth(previousMonth),
-              endDate: endOfMonth(previousMonth),
+              startDate: startOfMonth(previousMonth).getTime(),
+              endDate: endOfMonth(previousMonth).getTime(),
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: sub3.id,
-              startDate: startOfMonth(previousMonth),
-              endDate: endOfMonth(previousMonth),
+              startDate: startOfMonth(previousMonth).getTime(),
+              endDate: endOfMonth(previousMonth).getTime(),
               livemode: true,
             }),
           ])
@@ -698,7 +723,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: sub1.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: currentMonth,
+              canceledAt: currentMonth.getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: sub1.renews,
             },
@@ -711,7 +736,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: premiumPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: currentMonth,
+            startDate: currentMonth.getTime(),
             livemode: true,
           })
 
@@ -730,25 +755,28 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: sub2.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: currentMonth,
+              canceledAt: currentMonthTime,
               cancellationReason: CancellationReason.CustomerRequest,
               renews: sub2.renews,
             },
             transaction
           )
-
+          const startOfCurrentMonthTime =
+            startOfMonth(currentMonthTime).getTime()
+          const endOfCurrentMonthTime =
+            endOfMonth(currentMonthTime).getTime()
           // Keep sub3 active - create billing period for current month
           const [upgradedBp, sub3Bp] = await Promise.all([
             setupBillingPeriod({
               subscriptionId: upgradedSub.id,
-              startDate: startOfMonth(currentMonth),
-              endDate: endOfMonth(currentMonth),
+              startDate: startOfCurrentMonthTime,
+              endDate: endOfCurrentMonthTime,
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: sub3.id,
-              startDate: startOfMonth(currentMonth),
-              endDate: endOfMonth(currentMonth),
+              startDate: startOfCurrentMonthTime,
+              endDate: endOfCurrentMonthTime,
               livemode: true,
             }),
           ])
@@ -789,8 +817,9 @@ describe('Analytics Upgrade Tracking', () => {
       it('should correctly calculate net MRR with all components', async () => {
         await adminTransaction(async ({ transaction }) => {
           const previousMonth = subMonths(new Date(), 1)
+          const previousMonthTime = previousMonth.getTime()
           const currentMonth = new Date()
-
+          const currentMonthTime = currentMonth.getTime()
           // Create additional customers
           const extraCustomers = await Promise.all(
             Array.from({ length: 4 }, async (_, i) => {
@@ -857,7 +886,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             isFreePlan: true,
             livemode: true,
           })
@@ -869,7 +898,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: basicPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             livemode: true,
           })
 
@@ -880,7 +909,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: premiumPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             livemode: true,
           })
 
@@ -891,34 +920,38 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: extraCustomers[0].paymentMethod.id,
             priceId: standardPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: previousMonth,
+            startDate: previousMonthTime,
             livemode: true,
           })
 
           // Set up billing periods for previous month
+          const startOfPreviousMonthTime =
+            startOfMonth(previousMonth).getTime()
+          const endOfPreviousMonthTime =
+            endOfMonth(previousMonth).getTime()
           const prevBillingPeriods = await Promise.all([
             setupBillingPeriod({
               subscriptionId: freeSub.id,
-              startDate: startOfMonth(previousMonth),
-              endDate: endOfMonth(previousMonth),
+              startDate: startOfPreviousMonthTime,
+              endDate: endOfPreviousMonthTime,
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: basicSub.id,
-              startDate: startOfMonth(previousMonth),
-              endDate: endOfMonth(previousMonth),
+              startDate: startOfPreviousMonthTime,
+              endDate: endOfPreviousMonthTime,
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: premiumSub.id,
-              startDate: startOfMonth(previousMonth),
-              endDate: endOfMonth(previousMonth),
+              startDate: startOfPreviousMonthTime,
+              endDate: endOfPreviousMonthTime,
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: churnSub.id,
-              startDate: startOfMonth(previousMonth),
-              endDate: endOfMonth(previousMonth),
+              startDate: startOfPreviousMonthTime,
+              endDate: endOfPreviousMonthTime,
               livemode: true,
             }),
           ])
@@ -961,7 +994,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: currentMonth,
+              canceledAt: currentMonthTime,
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: freeSub.renews,
             },
@@ -974,7 +1007,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: basicPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: currentMonth,
+            startDate: currentMonthTime,
             livemode: true,
           })
 
@@ -1012,7 +1045,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: churnSub.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: currentMonth,
+              canceledAt: currentMonthTime,
               cancellationReason: CancellationReason.CustomerRequest,
               renews: churnSub.renews,
             },
@@ -1026,34 +1059,37 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: extraCustomers[1].paymentMethod.id,
             priceId: premiumPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: currentMonth,
+            startDate: currentMonthTime,
             livemode: true,
           })
-
+          const startOfCurrentMonthTime =
+            startOfMonth(currentMonth).getTime()
+          const endOfCurrentMonthTime =
+            endOfMonth(currentMonth).getTime()
           // Set up billing periods for current month
           const currBillingPeriods = await Promise.all([
             setupBillingPeriod({
               subscriptionId: upgradedSub.id,
-              startDate: startOfMonth(currentMonth),
-              endDate: endOfMonth(currentMonth),
+              startDate: startOfCurrentMonthTime,
+              endDate: endOfCurrentMonthTime,
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: basicSub.id,
-              startDate: startOfMonth(currentMonth),
-              endDate: endOfMonth(currentMonth),
+              startDate: startOfCurrentMonthTime,
+              endDate: endOfCurrentMonthTime,
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: premiumSub.id,
-              startDate: startOfMonth(currentMonth),
-              endDate: endOfMonth(currentMonth),
+              startDate: startOfCurrentMonthTime,
+              endDate: endOfCurrentMonthTime,
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: newSub.id,
-              startDate: startOfMonth(currentMonth),
-              endDate: endOfMonth(currentMonth),
+              startDate: startOfCurrentMonthTime,
+              endDate: endOfCurrentMonthTime,
               livemode: true,
             }),
           ])
@@ -1120,8 +1156,11 @@ describe('Analytics Upgrade Tracking', () => {
       it('should handle upgrade chains correctly', async () => {
         await adminTransaction(async ({ transaction }) => {
           const month1 = subMonths(new Date(), 2)
+          const month1Time = month1.getTime()
           const month2 = subMonths(new Date(), 1)
+          const month2Time = month2.getTime()
           const month3 = new Date()
+          const month3Time = month3.getTime()
 
           // Create price tiers
           const basicPrice = await setupPrice({
@@ -1145,7 +1184,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -1158,7 +1196,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: month1,
+            startDate: month1Time,
             isFreePlan: true,
             livemode: true,
           })
@@ -1166,8 +1204,8 @@ describe('Analytics Upgrade Tracking', () => {
           // Set up billing period for month 1
           const bp1 = await setupBillingPeriod({
             subscriptionId: freeSub.id,
-            startDate: startOfMonth(month1),
-            endDate: endOfMonth(month1),
+            startDate: startOfMonth(month1Time).getTime(),
+            endDate: endOfMonth(month1Time).getTime(),
             livemode: true,
           })
 
@@ -1184,7 +1222,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: month2,
+              canceledAt: month2Time,
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: freeSub.renews,
             },
@@ -1197,7 +1235,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: basicPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: month2,
+            startDate: month2Time,
             livemode: true,
           })
 
@@ -1214,8 +1252,8 @@ describe('Analytics Upgrade Tracking', () => {
           // Set up billing period for month 2
           const bp2 = await setupBillingPeriod({
             subscriptionId: basicSub.id,
-            startDate: startOfMonth(month2),
-            endDate: endOfMonth(month2),
+            startDate: startOfMonth(month2Time).getTime(),
+            endDate: endOfMonth(month2Time).getTime(),
             livemode: true,
           })
 
@@ -1232,7 +1270,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: basicSub.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: month3,
+              canceledAt: month3Time,
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: basicSub.renews,
             },
@@ -1245,7 +1283,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: premiumPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: month3,
+            startDate: month3Time,
             livemode: true,
           })
 
@@ -1262,8 +1300,8 @@ describe('Analytics Upgrade Tracking', () => {
           // Set up billing period for month 3
           const bp3 = await setupBillingPeriod({
             subscriptionId: premiumSub.id,
-            startDate: startOfMonth(month3),
-            endDate: endOfMonth(month3),
+            startDate: startOfMonth(month3Time).getTime(),
+            endDate: endOfMonth(month3Time).getTime(),
             livemode: true,
           })
 
@@ -1302,8 +1340,12 @@ describe('Analytics Upgrade Tracking', () => {
         await adminTransaction(async ({ transaction }) => {
           const testStartDate = startOfMonth(new Date())
           const testEndDate = endOfMonth(new Date())
+          const testStartDateTime = testStartDate.getTime()
+          const testEndDateTime = testEndDate.getTime()
           const beforeRange = subMonths(testStartDate, 2)
+          const beforeRangeTime = beforeRange.getTime()
           const afterRange = addDays(testEndDate, 10)
+          const afterRangeTime = afterRange.getTime()
 
           // Create 5 free subscriptions
           const subs = await Promise.all([
@@ -1313,8 +1355,8 @@ describe('Analytics Upgrade Tracking', () => {
               paymentMethodId: paymentMethod1.id,
               priceId: freePrice.id,
               status: SubscriptionStatus.Canceled,
-              startDate: subMonths(new Date(), 3),
-              canceledAt: addDays(testStartDate, 5), // Within range
+              startDate: subMonths(new Date(), 3).getTime(),
+              canceledAt: addDays(testStartDate, 5).getTime(), // Within range
               cancellationReason: CancellationReason.UpgradedToPaid,
               isFreePlan: true,
               livemode: true,
@@ -1325,8 +1367,8 @@ describe('Analytics Upgrade Tracking', () => {
               paymentMethodId: paymentMethod2.id,
               priceId: freePrice.id,
               status: SubscriptionStatus.Canceled,
-              startDate: subMonths(new Date(), 3),
-              canceledAt: addDays(testStartDate, 10), // Within range
+              startDate: subMonths(new Date(), 3).getTime(),
+              canceledAt: addDays(testStartDate, 10).getTime(), // Within range
               cancellationReason: CancellationReason.UpgradedToPaid,
               isFreePlan: true,
               livemode: true,
@@ -1337,8 +1379,8 @@ describe('Analytics Upgrade Tracking', () => {
               paymentMethodId: paymentMethod3.id,
               priceId: freePrice.id,
               status: SubscriptionStatus.Canceled,
-              startDate: subMonths(new Date(), 3),
-              canceledAt: addDays(testStartDate, 15), // Within range
+              startDate: subMonths(new Date(), 3).getTime(),
+              canceledAt: addDays(testStartDate, 15).getTime(), // Within range
               cancellationReason: CancellationReason.UpgradedToPaid,
               isFreePlan: true,
               livemode: true,
@@ -1349,8 +1391,8 @@ describe('Analytics Upgrade Tracking', () => {
               paymentMethodId: paymentMethod1.id,
               priceId: freePrice.id,
               status: SubscriptionStatus.Canceled,
-              startDate: subMonths(new Date(), 4),
-              canceledAt: beforeRange, // Before range
+              startDate: subMonths(new Date(), 4).getTime(),
+              canceledAt: beforeRangeTime, // Before range
               cancellationReason: CancellationReason.UpgradedToPaid,
               isFreePlan: true,
               livemode: true,
@@ -1361,8 +1403,8 @@ describe('Analytics Upgrade Tracking', () => {
               paymentMethodId: paymentMethod2.id,
               priceId: freePrice.id,
               status: SubscriptionStatus.Canceled,
-              startDate: subMonths(new Date(), 2),
-              canceledAt: afterRange, // After range
+              startDate: subMonths(new Date(), 2).getTime(),
+              canceledAt: afterRangeTime, // After range
               cancellationReason: CancellationReason.UpgradedToPaid,
               isFreePlan: true,
               livemode: true,
@@ -1386,7 +1428,9 @@ describe('Analytics Upgrade Tracking', () => {
       it('should calculate average time to upgrade correctly', async () => {
         await adminTransaction(async ({ transaction }) => {
           const baseDate = subMonths(new Date(), 2)
+          const baseDateTime = baseDate.getTime()
           const testEndDate = new Date()
+          const testEndDateTime = testEndDate.getTime()
 
           // Create 3 free subscriptions at different times
           const freeSub1 = await setupSubscription({
@@ -1395,7 +1439,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: baseDate,
+            startDate: baseDateTime,
             isFreePlan: true,
             livemode: true,
           })
@@ -1406,7 +1450,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: baseDate,
+            startDate: baseDateTime,
             isFreePlan: true,
             livemode: true,
           })
@@ -1417,7 +1461,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: baseDate,
+            startDate: baseDateTime,
             isFreePlan: true,
             livemode: true,
           })
@@ -1428,7 +1472,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub1.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(baseDate, 10),
+              canceledAt: addDays(baseDate, 10).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: freeSub1.renews,
             },
@@ -1441,7 +1485,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(baseDate, 10),
+            startDate: addDays(baseDate, 10).getTime(),
             livemode: true,
           })
 
@@ -1459,7 +1503,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub2.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(baseDate, 20),
+              canceledAt: addDays(baseDate, 20).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: freeSub2.renews,
             },
@@ -1472,7 +1516,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(baseDate, 20),
+            startDate: addDays(baseDate, 20).getTime(),
             livemode: true,
           })
 
@@ -1490,7 +1534,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub3.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(baseDate, 30),
+              canceledAt: addDays(baseDate, 30).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: freeSub3.renews,
             },
@@ -1503,7 +1547,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(baseDate, 30),
+            startDate: addDays(baseDate, 30).getTime(),
             livemode: true,
           })
 
@@ -1542,7 +1586,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 5),
+            startDate: addDays(testStartDate, 5).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -1553,7 +1597,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 10),
+            startDate: addDays(testStartDate, 10).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -1564,7 +1608,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 15),
+            startDate: addDays(testStartDate, 15).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -1599,7 +1643,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -1613,7 +1656,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -1627,7 +1669,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -1640,7 +1681,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: subMonths(testStartDate, 1),
+            startDate: subMonths(testStartDate, 1).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -1651,7 +1692,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: subMonths(testStartDate, 1),
+            startDate: subMonths(testStartDate, 1).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -1662,7 +1703,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: subMonths(testStartDate, 1),
+            startDate: subMonths(testStartDate, 1).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -1673,7 +1714,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub1.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(testStartDate, 5),
+              canceledAt: addDays(testStartDate, 5).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: freeSub1.renews,
             },
@@ -1686,7 +1727,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: basicPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 5),
+            startDate: addDays(testStartDate, 5).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -1705,7 +1746,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub2.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(testStartDate, 10),
+              canceledAt: addDays(testStartDate, 10).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: freeSub2.renews,
             },
@@ -1718,7 +1759,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: standardPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 10),
+            startDate: addDays(testStartDate, 10).getTime(),
             livemode: true,
           })
 
@@ -1736,7 +1777,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub3.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(testStartDate, 15),
+              canceledAt: addDays(testStartDate, 15).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: freeSub3.renews,
             },
@@ -1749,7 +1790,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: premiumPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 15),
+            startDate: addDays(testStartDate, 15).getTime(),
             livemode: true,
           })
 
@@ -1761,25 +1802,27 @@ describe('Analytics Upgrade Tracking', () => {
             },
             transaction
           )
+          const testStartDateTime = testStartDate.getTime()
+          const testEndDateTime = testEndDate.getTime()
 
           // Set up billing periods for the upgraded subscriptions
           const [basicBp, standardBp, premiumBp] = await Promise.all([
             setupBillingPeriod({
               subscriptionId: basicSub.id,
-              startDate: testStartDate,
-              endDate: testEndDate,
+              startDate: testStartDateTime,
+              endDate: testEndDateTime,
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: standardSub.id,
-              startDate: testStartDate,
-              endDate: testEndDate,
+              startDate: testStartDateTime,
+              endDate: testEndDateTime,
               livemode: true,
             }),
             setupBillingPeriod({
               subscriptionId: premiumSub.id,
-              startDate: testStartDate,
-              endDate: testEndDate,
+              startDate: testStartDateTime,
+              endDate: testEndDateTime,
               livemode: true,
             }),
           ])
@@ -1871,7 +1914,7 @@ describe('Analytics Upgrade Tracking', () => {
               paymentMethodId: paymentMethod.id,
               priceId: freePrice.id,
               status: SubscriptionStatus.Active,
-              startDate: addDays(testStartDate, i),
+              startDate: addDays(testStartDate, i).getTime(),
               isFreePlan: true,
               livemode: true,
             })
@@ -1886,7 +1929,7 @@ describe('Analytics Upgrade Tracking', () => {
                 {
                   id: sub.id,
                   status: SubscriptionStatus.Canceled,
-                  canceledAt: addDays(testStartDate, 15),
+                  canceledAt: addDays(testStartDate, 15).getTime(),
                   cancellationReason:
                     CancellationReason.UpgradedToPaid,
                   renews: sub.renews,
@@ -1921,7 +1964,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: price.id, // Paid price
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 5),
+            startDate: addDays(testStartDate, 5).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -1932,7 +1975,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: price.id, // Paid price
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 10),
+            startDate: addDays(testStartDate, 10).getTime(),
             livemode: true,
           })
 
@@ -1953,7 +1996,10 @@ describe('Analytics Upgrade Tracking', () => {
         await adminTransaction(async ({ transaction }) => {
           const testStartDate = startOfMonth(new Date())
           const testEndDate = endOfMonth(new Date())
+          const testStartDateTime = testStartDate.getTime()
+          const testEndDateTime = testEndDate.getTime()
           const beforeRange = subMonths(testStartDate, 2)
+          const beforeRangeTime = beforeRange.getTime()
 
           // Create additional customers
           const customers = await Promise.all(
@@ -1982,7 +2028,7 @@ describe('Analytics Upgrade Tracking', () => {
                 paymentMethodId: c.paymentMethod.id,
                 priceId: freePrice.id,
                 status: SubscriptionStatus.Active,
-                startDate: addDays(beforeRange, i),
+                startDate: addDays(beforeRange, i).getTime(),
                 isFreePlan: true,
                 livemode: true,
               })
@@ -1998,7 +2044,7 @@ describe('Analytics Upgrade Tracking', () => {
                 paymentMethodId: c.paymentMethod.id,
                 priceId: freePrice.id,
                 status: SubscriptionStatus.Active,
-                startDate: addDays(testStartDate, i + 5),
+                startDate: addDays(testStartDate, i + 5).getTime(),
                 isFreePlan: true,
                 livemode: true,
               })
@@ -2012,7 +2058,7 @@ describe('Analytics Upgrade Tracking', () => {
                 {
                   id: sub.id,
                   status: SubscriptionStatus.Canceled,
-                  canceledAt: addDays(testStartDate, 15),
+                  canceledAt: addDays(testStartDate, 15).getTime(),
                   cancellationReason:
                     CancellationReason.UpgradedToPaid,
                   renews: sub.renews,
@@ -2025,7 +2071,7 @@ describe('Analytics Upgrade Tracking', () => {
                 {
                   id: sub.id,
                   status: SubscriptionStatus.Canceled,
-                  canceledAt: addDays(testStartDate, 20),
+                  canceledAt: addDays(testStartDate, 20).getTime(),
                   cancellationReason:
                     CancellationReason.UpgradedToPaid,
                   renews: sub.renews,
@@ -2063,7 +2109,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: subMonths(testStartDate, 1),
+            startDate: subMonths(testStartDate, 1).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -2073,7 +2119,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(testStartDate, 10),
+              canceledAt: addDays(testStartDate, 10).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: freeSub.renews,
             },
@@ -2086,7 +2132,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 10),
+            startDate: addDays(testStartDate, 10).getTime(),
             livemode: true,
           })
 
@@ -2122,7 +2168,8 @@ describe('Analytics Upgrade Tracking', () => {
         await adminTransaction(async ({ transaction }) => {
           const testStartDate = startOfMonth(new Date())
           const testEndDate = endOfMonth(new Date())
-
+          const testStartDateTime = testStartDate.getTime()
+          const testEndDateTime = testEndDate.getTime()
           // Create free subscription
           const freeSub = await setupSubscription({
             organizationId: organization.id,
@@ -2130,7 +2177,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: subMonths(testStartDate, 1),
+            startDate: subMonths(testStartDate, 1).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -2140,7 +2187,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: freeSub.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(testStartDate, 10),
+              canceledAt: addDays(testStartDate, 10).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               replacedBySubscriptionId: 'non-existent-id', // Invalid ID
               renews: freeSub.renews,
@@ -2151,8 +2198,8 @@ describe('Analytics Upgrade Tracking', () => {
           // Get upgrade paths - should not throw an error
           const paths = await getUpgradePaths(
             organization.id,
-            testStartDate,
-            testEndDate,
+            testStartDateTime,
+            testEndDateTime,
             transaction
           )
 
@@ -2180,7 +2227,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -2194,7 +2240,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -2207,7 +2252,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: subMonths(testStartDate, 2),
+            startDate: subMonths(testStartDate, 2).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -2216,7 +2261,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: free1.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(testStartDate, 5),
+              canceledAt: addDays(testStartDate, 5).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: free1.renews,
             },
@@ -2229,7 +2274,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: basicPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 5),
+            startDate: addDays(testStartDate, 5).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -2250,7 +2295,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: subMonths(testStartDate, 2),
+            startDate: subMonths(testStartDate, 2).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -2259,7 +2304,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: free2.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(testStartDate, 10),
+              canceledAt: addDays(testStartDate, 10).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: free2.renews,
             },
@@ -2272,7 +2317,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: premiumPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 10),
+            startDate: addDays(testStartDate, 10).getTime(),
             livemode: true,
           })
 
@@ -2292,7 +2337,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: subMonths(testStartDate, 3),
+            startDate: subMonths(testStartDate, 3).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -2302,7 +2347,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: free3.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: subMonths(testStartDate, 1),
+              canceledAt: subMonths(testStartDate, 1).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: free3.renews,
             },
@@ -2315,7 +2360,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: basicPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: subMonths(testStartDate, 1),
+            startDate: subMonths(testStartDate, 1).getTime(),
             livemode: true,
           })
 
@@ -2333,7 +2378,7 @@ describe('Analytics Upgrade Tracking', () => {
             {
               id: basic2.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: addDays(testStartDate, 15),
+              canceledAt: addDays(testStartDate, 15).getTime(),
               cancellationReason: CancellationReason.UpgradedToPaid,
               renews: basic2.renews,
             },
@@ -2346,7 +2391,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod3.id,
             priceId: premiumPrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 15),
+            startDate: addDays(testStartDate, 15).getTime(),
             livemode: true,
           })
 
@@ -2399,7 +2444,9 @@ describe('Analytics Upgrade Tracking', () => {
     it('should handle full upgrade flow with all analytics updated', async () => {
       await adminTransaction(async ({ transaction }) => {
         const previousMonth = subMonths(new Date(), 1)
+        const previousMonthTime = previousMonth.getTime()
         const currentMonth = new Date()
+        const currentMonthTime = currentMonth.getTime()
 
         // Create a paid price tier
         const paidPrice = await setupPrice({
@@ -2411,7 +2458,6 @@ describe('Analytics Upgrade Tracking', () => {
           intervalCount: 1,
           livemode: true,
           isDefault: false,
-          setupFeeAmount: 0,
           currency: organization.defaultCurrency,
         })
 
@@ -2422,7 +2468,7 @@ describe('Analytics Upgrade Tracking', () => {
           paymentMethodId: paymentMethod1.id,
           priceId: freePrice.id,
           status: SubscriptionStatus.Active,
-          startDate: previousMonth,
+          startDate: previousMonthTime,
           isFreePlan: true,
           livemode: true,
         })
@@ -2432,7 +2478,7 @@ describe('Analytics Upgrade Tracking', () => {
           {
             id: freeSub.id,
             status: SubscriptionStatus.Canceled,
-            canceledAt: currentMonth,
+            canceledAt: currentMonthTime,
             cancellationReason: CancellationReason.UpgradedToPaid,
             renews: freeSub.renews,
           },
@@ -2446,7 +2492,7 @@ describe('Analytics Upgrade Tracking', () => {
           paymentMethodId: paymentMethod1.id,
           priceId: paidPrice.id,
           status: SubscriptionStatus.Active,
-          startDate: currentMonth,
+          startDate: currentMonthTime,
           livemode: true,
         })
 
@@ -2463,15 +2509,15 @@ describe('Analytics Upgrade Tracking', () => {
         // Set up billing periods with items
         const freeBp = await setupBillingPeriod({
           subscriptionId: freeSub.id,
-          startDate: startOfMonth(previousMonth),
-          endDate: endOfMonth(previousMonth),
+          startDate: startOfMonth(previousMonthTime).getTime(),
+          endDate: endOfMonth(previousMonthTime).getTime(),
           livemode: true,
         })
 
         const paidBp = await setupBillingPeriod({
           subscriptionId: paidSub.id,
-          startDate: startOfMonth(currentMonth),
-          endDate: endOfMonth(currentMonth),
+          startDate: startOfMonth(currentMonthTime).getTime(),
+          endDate: endOfMonth(currentMonthTime).getTime(),
           livemode: true,
         })
 
@@ -2509,8 +2555,8 @@ describe('Analytics Upgrade Tracking', () => {
         const subscriberBreakdown =
           await calculateSubscriberBreakdown(
             organization.id,
-            currentMonth,
-            previousMonth,
+            currentMonthTime,
+            previousMonthTime,
             transaction
           )
         expect(subscriberBreakdown.churned).toBe(0) // Upgrade not counted as churn
@@ -2518,8 +2564,8 @@ describe('Analytics Upgrade Tracking', () => {
         // Verify upgrade metrics include the upgrade
         const upgradeMetrics = await getUpgradeMetrics(
           organization.id,
-          startOfMonth(currentMonth),
-          endOfMonth(currentMonth),
+          startOfMonth(currentMonthTime),
+          endOfMonth(currentMonthTime),
           transaction
         )
         expect(upgradeMetrics.totalUpgrades).toBe(1)
@@ -2556,7 +2602,6 @@ describe('Analytics Upgrade Tracking', () => {
           intervalCount: 1,
           livemode: true,
           isDefault: true,
-          setupFeeAmount: 0,
           currency: organization.defaultCurrency,
         })
 
@@ -2567,7 +2612,7 @@ describe('Analytics Upgrade Tracking', () => {
           paymentMethodId: paymentMethod1.id,
           priceId: freePrice.id,
           status: SubscriptionStatus.Active,
-          startDate: new Date(),
+          startDate: Date.now(),
           isFreePlan: true,
           livemode: true,
         })
@@ -2582,7 +2627,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice2.id,
             status: SubscriptionStatus.Active,
-            startDate: new Date(),
+            startDate: Date.now(),
             isFreePlan: true,
             livemode: true,
           })
@@ -2630,7 +2675,7 @@ describe('Analytics Upgrade Tracking', () => {
           paymentMethodId: paymentMethod1.id,
           priceId: freePrice.id,
           status: SubscriptionStatus.Active,
-          startDate: subMonths(new Date(), 1),
+          startDate: subMonths(new Date(), 1).getTime(),
           isFreePlan: true,
           livemode: true,
         })
@@ -2638,13 +2683,14 @@ describe('Analytics Upgrade Tracking', () => {
         // Simulate concurrent upgrade attempts
         // In a real scenario, these would be running in parallel transactions
         const upgradeDate = new Date()
+        const upgradeDateTime = upgradeDate.getTime()
 
         // First upgrade attempt
         await updateSubscription(
           {
             id: freeSub.id,
             status: SubscriptionStatus.Canceled,
-            canceledAt: upgradeDate,
+            canceledAt: upgradeDateTime,
             cancellationReason: CancellationReason.UpgradedToPaid,
             renews: freeSub.renews,
           },
@@ -2657,7 +2703,7 @@ describe('Analytics Upgrade Tracking', () => {
           paymentMethodId: paymentMethod1.id,
           priceId: price.id,
           status: SubscriptionStatus.Active,
-          startDate: upgradeDate,
+          startDate: upgradeDateTime,
           livemode: true,
         })
 
@@ -2680,7 +2726,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: price.id,
             status: SubscriptionStatus.Active,
-            startDate: upgradeDate,
+            startDate: upgradeDateTime,
             livemode: true,
           })
 
@@ -2763,7 +2809,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -2776,7 +2821,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -2789,8 +2833,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Canceled,
-            startDate: subDays(testStartDate, 5),
-            canceledAt: testStartDate, // Exactly on boundary
+            startDate: subDays(testStartDate, 5).getTime(),
+            canceledAt: testStartDate.getTime(), // Exactly on boundary
             cancellationReason: CancellationReason.UpgradedToPaid,
             isFreePlan: true,
             livemode: true,
@@ -2803,8 +2847,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Canceled,
-            startDate: subDays(testEndDate, 5),
-            canceledAt: testEndDate, // Exactly on boundary
+            startDate: subDays(testEndDate, 5).getTime(),
+            canceledAt: testEndDate.getTime(), // Exactly on boundary
             cancellationReason: CancellationReason.UpgradedToPaid,
             isFreePlan: true,
             livemode: true,
@@ -2847,7 +2891,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -2860,8 +2903,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Canceled,
-            startDate: subDays(testStartDate, 10),
-            canceledAt: addDays(testStartDate, 5),
+            startDate: subDays(testStartDate, 10).getTime(),
+            canceledAt: addDays(testStartDate, 5).getTime(),
             cancellationReason: CancellationReason.UpgradedToPaid,
             replacedBySubscriptionId: null,
             isFreePlan: true,
@@ -2875,8 +2918,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Canceled,
-            startDate: subDays(testStartDate, 15),
-            canceledAt: addDays(testStartDate, 10),
+            startDate: subDays(testStartDate, 15).getTime(),
+            canceledAt: addDays(testStartDate, 10).getTime(),
             cancellationReason: CancellationReason.UpgradedToPaid,
             replacedBySubscriptionId: 'non-existent-id',
             isFreePlan: true,
@@ -2921,7 +2964,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -2934,7 +2976,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -2946,8 +2987,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod.id,
             priceId: freePrice1.id,
             status: SubscriptionStatus.Canceled,
-            startDate: testStartDate,
-            canceledAt: addDays(testStartDate, 5),
+            startDate: testStartDate.getTime(),
+            canceledAt: addDays(testStartDate, 5).getTime(),
             cancellationReason: CancellationReason.UpgradedToPaid,
             livemode: true,
           })
@@ -2958,7 +2999,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod.id,
             priceId: freePrice2.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 5),
+            startDate: addDays(testStartDate, 5).getTime(),
             isFreePlan: true,
             livemode: true,
           })
@@ -3021,7 +3062,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: org1.defaultCurrency,
@@ -3034,7 +3074,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: org1.defaultCurrency,
@@ -3048,7 +3087,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: org2.defaultCurrency,
@@ -3061,7 +3099,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: org2.defaultCurrency,
@@ -3074,8 +3111,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: freePrice1.id,
             status: SubscriptionStatus.Canceled,
-            startDate: testStartDate,
-            canceledAt: addDays(testStartDate, 5),
+            startDate: testStartDate.getTime(),
+            canceledAt: addDays(testStartDate, 5).getTime(),
             cancellationReason: CancellationReason.UpgradedToPaid,
             isFreePlan: true,
             livemode: true,
@@ -3087,7 +3124,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod1.id,
             priceId: paidPrice1.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 5),
+            startDate: addDays(testStartDate, 5).getTime(),
             livemode: true,
           })
 
@@ -3107,8 +3144,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: freePrice2.id,
             status: SubscriptionStatus.Canceled,
-            startDate: testStartDate,
-            canceledAt: addDays(testStartDate, 3),
+            startDate: testStartDate.getTime(),
+            canceledAt: addDays(testStartDate, 3).getTime(),
             cancellationReason: CancellationReason.UpgradedToPaid,
             isFreePlan: true,
             livemode: true,
@@ -3120,7 +3157,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: paidPrice2.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 3),
+            startDate: addDays(testStartDate, 3).getTime(),
             livemode: true,
           })
 
@@ -3139,8 +3176,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod2.id,
             priceId: freePrice2.id,
             status: SubscriptionStatus.Canceled,
-            startDate: testStartDate,
-            canceledAt: addDays(testStartDate, 7),
+            startDate: testStartDate.getTime(),
+            canceledAt: addDays(testStartDate, 7).getTime(),
             cancellationReason: CancellationReason.UpgradedToPaid,
             isFreePlan: true,
             livemode: true,
@@ -3215,7 +3252,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -3228,8 +3264,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Canceled,
-            startDate: addDays(testStartDate, 5), // Created within window
-            canceledAt: addDays(testEndDate, 10), // Upgraded AFTER window
+            startDate: addDays(testStartDate, 5).getTime(), // Created within window
+            canceledAt: addDays(testEndDate, 10).getTime(), // Upgraded AFTER window
             cancellationReason: CancellationReason.UpgradedToPaid,
             isFreePlan: true,
             livemode: true,
@@ -3242,8 +3278,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Canceled,
-            startDate: subDays(testStartDate, 10), // Created BEFORE window
-            canceledAt: addDays(testStartDate, 5), // Upgraded within window
+            startDate: subDays(testStartDate, 10).getTime(), // Created BEFORE window
+            canceledAt: addDays(testStartDate, 5).getTime(), // Upgraded within window
             cancellationReason: CancellationReason.UpgradedToPaid,
             isFreePlan: true,
             livemode: true,
@@ -3256,7 +3292,7 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Active,
-            startDate: addDays(testStartDate, 10), // Created within window
+            startDate: addDays(testStartDate, 10).getTime(), // Created within window
             isFreePlan: true,
             livemode: true,
           })
@@ -3311,7 +3347,6 @@ describe('Analytics Upgrade Tracking', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             trialPeriodDays: 0,
-            setupFeeAmount: 0,
             livemode: true,
             isDefault: false,
             currency: organization.defaultCurrency,
@@ -3324,8 +3359,8 @@ describe('Analytics Upgrade Tracking', () => {
             paymentMethodId: paymentMethod.id,
             priceId: freePrice.id,
             status: SubscriptionStatus.Canceled,
-            startDate: addDays(testStartDate, 10),
-            canceledAt: addDays(testStartDate, 5), // Before startDate!
+            startDate: addDays(testStartDate, 10).getTime(),
+            canceledAt: addDays(testStartDate, 5).getTime(), // Before startDate!
             cancellationReason: CancellationReason.UpgradedToPaid,
             isFreePlan: true,
             livemode: true,

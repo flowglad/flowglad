@@ -1,5 +1,3 @@
-// Generated with Ion on 10/11/2024, 4:13:18 AM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=770:28007
 'use client'
 import { GripVertical, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -12,8 +10,7 @@ import {
 } from '@/components/ui/form'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import clsx from 'clsx'
-import NumberInput from '../ion/NumberInput'
+import { cn } from '@/lib/utils'
 import { CreateInvoiceInput } from '@/db/schema/invoiceLineItems'
 import { useFormContext, Controller } from 'react-hook-form'
 import {
@@ -26,7 +23,6 @@ import {
   currencyCharacter,
   isCurrencyZeroDecimal,
 } from '@/registry/lib/currency'
-import { cn } from '@/utils/core'
 
 interface InvoiceFormLineItemProps {
   id: string
@@ -71,9 +67,9 @@ const InvoiceFormLineItem = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={clsx(
+      className={cn(
         'w-full flex items-center gap-8 bg-background pb-2 border border-transparent z-0',
-        isDragging && 'z-20  border-stroke-subtle rounded-radius-sm'
+        isDragging && 'z-20  border-muted rounded-md'
       )}
     >
       <div className="flex flex-row gap-2 min-w-80">
@@ -97,29 +93,37 @@ const InvoiceFormLineItem = ({
           )}
         />
       </div>
-      <Controller
+      <FormField
         name={`invoiceLineItems.${index}.quantity`}
         control={form.control}
         render={({ field }) => {
           return (
-            <NumberInput
-              placeholder="1"
-              {...field}
-              onChange={(e) => {
-                field.onChange(Number(e.target.value))
-              }}
-              max={1000}
-              min={0}
-              className="w-20"
-              inputClassName="h-9"
-              showControls={false}
-            />
+            <FormItem className="w-20">
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="1"
+                  min={0}
+                  max={1000}
+                  step={1}
+                  className="h-9 text-center"
+                  value={field.value?.toString() ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    const numValue = Number(value)
+                    if (!isNaN(numValue)) {
+                      field.onChange(numValue)
+                    }
+                  }}
+                />
+              </FormControl>
+            </FormItem>
           )
         }}
       />
-      <Controller
-        control={form.control}
+      <FormField
         name={`invoiceLineItems.${index}.price`}
+        control={form.control}
         render={({ field }) => (
           <FormItem className="flex-1">
             <FormLabel>Price</FormLabel>
@@ -149,7 +153,6 @@ const InvoiceFormLineItem = ({
           </FormItem>
         )}
       />
-
       <div className="w-20 flex items-center">
         <p className="text-md">
           {stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -163,20 +166,17 @@ const InvoiceFormLineItem = ({
         {...listeners}
         variant="ghost"
         size="default"
-        className={clsx(
-          'cursor-grab',
-          isDragging && 'cursor-grabbing'
-        )}
+        className={cn('cursor-grab', isDragging && 'cursor-grabbing')}
       >
-        <GripVertical size={16} />
+        <GripVertical className="w-4 h-4" />
       </Button>
       <Button
         variant="ghost"
         size="default"
-        onClick={xOnClickHandler}
+        onClick={() => onRemove(id)}
         disabled={disableRemove}
       >
-        <X size={16} />
+        <X className="w-4 h-4" />
       </Button>
     </div>
   )

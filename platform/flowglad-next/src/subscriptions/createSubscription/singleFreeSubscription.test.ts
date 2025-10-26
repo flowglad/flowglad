@@ -11,8 +11,7 @@ import {
   PriceType,
   CancellationReason,
 } from '@/types'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { core } from '@/utils/core'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -158,9 +157,6 @@ describe('Single Free Subscription Constraint', () => {
 
       await adminTransaction(async ({ transaction }) => {
         // Update organization to allow multiple subscriptions
-        const { updateOrganization } = await import(
-          '@/db/tableMethods/organizationMethods'
-        )
         await updateOrganization(
           {
             id: organization.id,
@@ -185,7 +181,7 @@ describe('Single Free Subscription Constraint', () => {
         status: SubscriptionStatus.Canceled,
         livemode: true,
         isFreePlan: true,
-        canceledAt: new Date(),
+        canceledAt: Date.now(),
         cancellationReason: CancellationReason.CustomerRequest,
       })
 
@@ -217,9 +213,6 @@ describe('Single Free Subscription Constraint', () => {
     it('should allow multiple paid subscriptions when organization allows it', async () => {
       // Update organization to allow multiple subscriptions
       await adminTransaction(async ({ transaction }) => {
-        const { updateOrganization } = await import(
-          '@/db/tableMethods/organizationMethods'
-        )
         await updateOrganization(
           {
             id: organization.id,

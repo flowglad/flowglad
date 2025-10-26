@@ -1,13 +1,15 @@
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { TRPCError } from '@trpc/server'
+import * as R from 'ramda'
+import { PriceType } from '@/types'
+import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
 
 /**
  * Fields that can be updated on default products
  */
 export const DEFAULT_PRODUCT_ALLOWED_FIELDS = [
   'name',
-  'slug',
   'displayFeatures',
   'description',
   'imageURL',
@@ -35,17 +37,48 @@ export const validateDefaultProductUpdate = (
   // If not a default product, no further validation needed
   if (!existingProduct.default) return
 
+  // Force default products to remain active
+  if ('active' in update && update.active === false) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Default products must remain active',
+    })
+  }
+
   const attemptedFields = Object.keys(update).filter(
-    (k) => k !== 'id'
+    (k) => k !== 'id' && k !== 'default'
   )
-  const disallowedFields = attemptedFields.filter(
+  // Only consider fields that are actually changing
+  const changedFields = attemptedFields.filter((fieldName) => {
+    const nextVal = (update as any)[fieldName]
+    const prevVal = (existingProduct as any)[fieldName]
+    // Treat null and undefined as equivalent to avoid false positives
+    const bothNullish = nextVal == null && prevVal == null
+    if (bothNullish) return false
+    return !R.equals(nextVal, prevVal)
+  })
+
+  const disallowedChangedFields = changedFields.filter(
     (f) => !DEFAULT_PRODUCT_ALLOWED_FIELDS.includes(f as any)
   )
 
-  if (disallowedFields.length > 0) {
+  if (disallowedChangedFields.length > 0) {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: `Cannot update the following fields on default products: ${disallowedFields.join(', ')}. Only ${DEFAULT_PRODUCT_ALLOWED_FIELDS.join(', ')} can be modified.`,
+      message: `Cannot update the following fields on default products: ${disallowedChangedFields.join(', ')}. Only ${DEFAULT_PRODUCT_ALLOWED_FIELDS.join(', ')} can be modified.`,
+    })
+  }
+
+  // Additionally, prevent slug change on default products
+  if (
+    'slug' in update &&
+    update.slug !== undefined &&
+    update.slug !== existingProduct.slug &&
+    existingProduct.default
+  ) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Cannot change the slug of a default product',
     })
   }
 }
@@ -67,6 +100,31 @@ export const validateDefaultPriceUpdate = (
       code: 'FORBIDDEN',
       message:
         'Default prices for default products must have a unitPrice of 0',
+    })
+  }
+
+  // Disallow trials on default product's default price
+  if (
+    update.trialPeriodDays !== undefined &&
+    update.trialPeriodDays !== null &&
+    update.trialPeriodDays !== 0
+  ) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'Default prices for default products cannot have a time-based trial',
+    })
+  }
+
+  // Prevent changing the billing interval for default prices on default products
+  if (
+    update.intervalUnit !== undefined &&
+    update.intervalUnit !== existingPrice.intervalUnit
+  ) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'Cannot change the billing interval of the default price for a default product',
     })
   }
 
@@ -97,7 +155,6 @@ export const validateProductCreation = (
     })
   }
 }
-
 /**
  * Checks if a field update on a default product is allowed
  */
@@ -105,4 +162,35 @@ export const isDefaultProductFieldUpdateAllowed = (
   fieldName: string
 ): boolean => {
   return DEFAULT_PRODUCT_ALLOWED_FIELDS.includes(fieldName as any)
+}
+
+/**
+ * Validates that a product is a valid default product
+ * Default products must have exactly one price with amount 0
+ */
+export const validateDefaultProductSchema = (product: {
+  name: string
+  slug?: string
+  prices: Array<{
+    amount: number
+    type: PriceType
+    slug?: string
+    trialDays?: number
+  }>
+}) => {
+  // Exactly one price and it must be the default price
+  if (!product.prices || product.prices.length !== 1) {
+    throw new Error('Default products must have exactly one price')
+  }
+  const price = product.prices[0]
+
+  // Check price is zero
+  if (price.amount !== 0) {
+    throw new Error('Default products must have zero price')
+  }
+
+  // Check no trials
+  if (price.trialDays && price.trialDays > 0) {
+    throw new Error('Default products cannot have trials')
+  }
 }

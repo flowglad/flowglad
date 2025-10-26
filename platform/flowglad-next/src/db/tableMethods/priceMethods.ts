@@ -39,6 +39,12 @@ import {
 import { PriceType } from '@/types'
 import { selectProducts } from './productMethods'
 import { z } from 'zod'
+import {
+  Feature,
+  features,
+  featuresSelectSchema,
+} from '../schema/features'
+import { productFeatures } from '../schema/productFeatures'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -145,58 +151,64 @@ const priceProductJoinResultToProductAndPrices = (
   result: {
     price: Price.Record
     product: Product.Record
+    feature?: Feature.Record
   }[]
 ): ProductWithPrices[] => {
   const productMap = new Map<string, Product.Record>()
   const pricesMap = new Map<string, Price.Record>()
+  const productFeaturesMap = new Map<string, Set<string>>()
+  const featureMap = new Map<string, Feature.Record>()
 
   result.forEach((item) => {
     productMap.set(item.product.id, item.product)
     pricesMap.set(item.price.id, item.price)
+    if (item.feature) {
+      featureMap.set(item.feature.id, item.feature)
+      // Track which features belong to which product
+      if (!productFeaturesMap.has(item.product.id)) {
+        productFeaturesMap.set(item.product.id, new Set())
+      }
+      productFeaturesMap.get(item.product.id)!.add(item.feature.id)
+    }
   })
 
   const products = Array.from(productMap.values())
   const prices = Array.from(pricesMap.values())
   const sortedPrices = prices.sort(
-    (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+    (a, b) => a.createdAt - b.createdAt
   )
+
   return products.map((product): ProductWithPrices => {
+    const productFeatureIds =
+      productFeaturesMap.get(product.id) || new Set()
+    const productFeatures = Array.from(productFeatureIds)
+      .map((featureId) => featureMap.get(featureId))
+      .filter(
+        (feature): feature is Feature.Record => feature !== undefined
+      )
+
+    const productPrices = sortedPrices.filter(
+      (price) => price.productId === product.id
+    )
+
     return {
       ...product,
-      prices: sortedPrices.filter(
-        (price) => price.productId === product.id
-      ),
+      prices: productPrices,
       defaultPrice:
-        sortedPrices.find((price) => price.isDefault) ?? prices[0],
+        productPrices.find((price) => price.isDefault) ??
+        productPrices[0],
+      features: productFeatures,
     }
   })
 }
 
-export const selectPricesAndProductByProductId = async (
-  productId: string,
-  transaction: DbTransaction
-): Promise<ProductWithPrices> => {
-  const results = await transaction
-    .select({
-      price: prices,
-      product: products,
-    })
-    .from(prices)
-    .innerJoin(products, eq(products.id, prices.productId))
-    .where(eq(products.id, productId))
+const priceProductFeatureSchema = z.object({
+  price: pricesSelectSchema,
+  product: productsSelectSchema,
+  feature: featuresSelectSchema.optional(),
+})
 
-  const parsedResults: {
-    product: Product.Record
-    price: Price.Record
-  }[] = results.map((result) => ({
-    product: productsSelectSchema.parse(result.product),
-    price: pricesSelectSchema.parse(result.price),
-  }))
-
-  const [normalizedResult] =
-    priceProductJoinResultToProductAndPrices(parsedResults)
-  return normalizedResult
-}
+type PriceProductFeature = z.infer<typeof priceProductFeatureSchema>
 
 export const selectPricesAndProductsByProductWhere = async (
   whereConditions: SelectConditions<typeof products>,
@@ -206,21 +218,49 @@ export const selectPricesAndProductsByProductWhere = async (
     .select({
       price: prices,
       product: products,
+      feature: features,
     })
     .from(prices)
     .innerJoin(products, eq(products.id, prices.productId))
+    .leftJoin(
+      productFeatures,
+      eq(products.id, productFeatures.productId)
+    )
+    .leftJoin(features, eq(productFeatures.featureId, features.id))
     .where(whereClauseFromObject(products, whereConditions))
     .orderBy(asc(products.createdAt))
 
-  const parsedResults: {
-    product: Product.Record
-    price: Price.Record
-  }[] = results.map((result) => ({
-    product: productsSelectSchema.parse(result.product),
-    price: pricesSelectSchema.parse(result.price),
-  }))
+  const parsedResults: PriceProductFeature[] =
+    priceProductFeatureSchema.array().parse(
+      results.map((item) => {
+        return {
+          ...item,
+          /**
+           * Returns null if feature is not found,
+           * undefined makes this pass the .optional() check
+           */
+          feature: item.feature ?? undefined,
+        }
+      })
+    )
 
   return priceProductJoinResultToProductAndPrices(parsedResults)
+}
+
+export const selectPricesAndProductByProductId = async (
+  productId: string,
+  transaction: DbTransaction
+): Promise<ProductWithPrices> => {
+  const results = await selectPricesAndProductsByProductWhere(
+    { id: productId },
+    transaction
+  )
+  if (!results.length) {
+    throw new Error(
+      `selectPricesAndProductByProductId: No product found with id ${productId}`
+    )
+  }
+  return results[0]
 }
 
 export const selectDefaultPriceAndProductByProductId = async (
@@ -389,22 +429,42 @@ const setPricesForProductToNonDefault = async (
     .where(eq(prices.productId, productId))
 }
 
+const setPricesForProductToNonDefaultNonActive = async (
+  productId: string,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .update(prices)
+    .set({ isDefault: false, active: false })
+    .where(eq(prices.productId, productId))
+    .returning({
+      id: prices.id,
+      slug: prices.slug,
+      active: prices.active,
+      isDefault: prices.isDefault,
+    })
+}
+
 export const dangerouslyInsertPrice = createInsertFunction(
   prices,
   config
 )
 
 export const safelyInsertPrice = async (
-  price: Price.Insert,
+  price: Omit<Price.Insert, 'isDefault' | 'active'>,
   transaction: DbTransaction
 ) => {
-  if (price.isDefault) {
-    await setPricesForProductToNonDefault(
-      price.productId,
-      transaction
-    )
-  }
-  return dangerouslyInsertPrice(price, transaction)
+  // for now, only allow one active and default price per product
+  await setPricesForProductToNonDefaultNonActive(
+    price.productId,
+    transaction
+  )
+  const priceInsert: Price.Insert = pricesInsertSchema.parse({
+    ...price,
+    isDefault: true,
+    active: true,
+  })
+  return dangerouslyInsertPrice(priceInsert, transaction)
 }
 
 export const safelyUpdatePrice = async (

@@ -6,8 +6,7 @@ import {
   ORMMethodCreatorConfig,
   createPaginatedSelectFunction,
   createCursorPaginatedSelectFunction,
-  createBulkInsertOrDoNothingFunction,
-  whereClauseFromObject,
+  createDateNotPassedFilter,
 } from '@/db/tableUtils'
 import {
   nonRenewingStatusSchema,
@@ -24,8 +23,6 @@ import {
   lte,
   gte,
   eq,
-  desc,
-  gt,
   isNull,
   or,
   sql,
@@ -35,10 +32,15 @@ import {
 } from 'drizzle-orm'
 import { SubscriptionStatus, CancellationReason } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { customers, customersSelectSchema } from '../schema/customers'
-import { prices, pricesSelectSchema } from '../schema/prices'
-import { products, productsSelectSchema } from '../schema/products'
-import { z } from 'zod'
+import {
+  customers,
+  customerClientSelectSchema,
+} from '../schema/customers'
+import { prices, pricesClientSelectSchema } from '../schema/prices'
+import {
+  products,
+  productsClientSelectSchema,
+} from '../schema/products'
 import { PaymentMethod } from '../schema/paymentMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -147,8 +149,14 @@ export const selectSubscriptionsToBeCancelled = async (
     .from(subscriptions)
     .where(
       and(
-        gte(subscriptions.cancelScheduledAt, rangeStart),
-        lte(subscriptions.cancelScheduledAt, rangeEnd),
+        gte(
+          subscriptions.cancelScheduledAt,
+          new Date(rangeStart).getTime()
+        ),
+        lte(
+          subscriptions.cancelScheduledAt,
+          new Date(rangeEnd).getTime()
+        ),
         eq(subscriptions.livemode, livemode)
       )
     )
@@ -233,9 +241,9 @@ export const selectSubscriptionsTableRowData =
               subscription.cancellationReason
             ),
           },
-          price: pricesSelectSchema.parse(price),
-          product: productsSelectSchema.parse(product),
-          customer: customersSelectSchema.parse(customer),
+          price: pricesClientSelectSchema.parse(price),
+          product: productsClientSelectSchema.parse(product),
+          customer: customerClientSelectSchema.parse(customer),
         }
       })
     }
@@ -315,11 +323,11 @@ export const getActiveSubscriptionsForPeriod = async (
       and(
         eq(subscriptions.organizationId, organizationId),
         // Subscription started before the period ended
-        lte(subscriptions.startDate, endDate),
+        lte(subscriptions.startDate, new Date(endDate).getTime()),
         // Subscription was not canceled before the period started
-        or(
-          isNull(subscriptions.canceledAt),
-          gt(subscriptions.canceledAt, startDate)
+        createDateNotPassedFilter(
+          subscriptions.canceledAt,
+          new Date(startDate).getTime()
         ),
         // Exclude subscriptions that were upgraded away
         or(

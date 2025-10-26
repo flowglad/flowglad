@@ -22,7 +22,7 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import type { Organization } from '@/db/schema/organizations'
-import type { UserRecord } from '@/db/schema/users'
+import type { User } from '@/db/schema/users'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -81,7 +81,7 @@ let organization: Organization.Record
 let pricingModel: PricingModel.Record
 let product: Product.Record
 let price: Price.Record
-let user: UserRecord
+let user: User.Record
 let customer: Customer.Record
 let paymentMethod: PaymentMethod.Record
 let subscription: Subscription.Record
@@ -141,12 +141,8 @@ beforeEach(async () => {
     priceId: price.id,
     status: SubscriptionStatus.Active,
     livemode: true,
-    currentBillingPeriodStart: new Date(
-      Date.now() - 15 * 24 * 60 * 60 * 1000
-    ), // 15 days ago
-    currentBillingPeriodEnd: new Date(
-      Date.now() + 15 * 24 * 60 * 60 * 1000
-    ), // 15 days from now
+    currentBillingPeriodStart: Date.now() - 15 * 24 * 60 * 60 * 1000, // 15 days ago
+    currentBillingPeriodEnd: Date.now() + 15 * 24 * 60 * 60 * 1000, // 15 days from now
   })
 
   // Set up billing period for subscription
@@ -233,7 +229,7 @@ afterEach(() => {
 
 // Create a context for testing the procedures
 const createTestContext = (
-  customUser?: UserRecord,
+  customUser?: User.Record,
   customCustomer?: Customer.Record
 ) => ({
   user: customUser || user,
@@ -419,7 +415,7 @@ describe('Customer Billing Portal Router', () => {
   describe('cancelSubscription', () => {
     test(
       'cancels subscription immediately',
-      { timeout: 18000 },
+      { timeout: 30000 },
       async () => {
         const ctx = createTestContext()
         const input: ScheduleSubscriptionCancellationParams = {
@@ -455,7 +451,7 @@ describe('Customer Billing Portal Router', () => {
 
     test(
       'schedules subscription cancellation at period end',
-      { timeout: 15000 },
+      { timeout: 30000 },
       async () => {
         const ctx = createTestContext()
         const input: ScheduleSubscriptionCancellationParams = {

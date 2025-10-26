@@ -1,8 +1,6 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
 import { CurrencyInput } from '@/components/ui/currency-input'
-import { FeatureFlag, IntervalUnit, PriceType } from '@/types'
-import { snakeCase } from 'change-case'
+import { IntervalUnit, PriceType } from '@/types'
 import { Switch } from '@/components/ui/switch'
 import {
   Select,
@@ -16,7 +14,6 @@ import {
   subscriptionPriceDefaultColumns,
   usagePriceDefaultColumns,
 } from '@/db/schema/prices'
-import { Controller, FieldError } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import {
   FormField,
@@ -26,30 +23,30 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form'
-import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import UsageMetersSelect from './UsageMetersSelect'
-import { cn, core } from '@/utils/core'
+import { getPriceConstraints } from '@/utils/priceConstraints'
+import core from '@/utils/core'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
-import { RecurringUsageCreditsOveragePriceSelect } from './OveragePriceSelect'
 import TrialFields from './PriceFormTrialFields'
 import { isCurrencyZeroDecimal } from '@/utils/stripe'
 import { currencyCharacter } from '@/registry/lib/currency'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
 const SubscriptionFields = ({
-  omitTrialFields = false,
+  defaultPriceLocked,
+  omitTrialFields,
   productId,
+  edit,
 }: {
-  omitTrialFields?: boolean
+  defaultPriceLocked: boolean
+  omitTrialFields: boolean
   productId?: string
+  edit?: boolean
 }) => {
-  const {
-    formState: { errors },
-    control,
-    watch,
-  } = usePriceFormContext()
+  const { control } = usePriceFormContext()
   const { organization } = useAuthenticatedContext()
   const zeroDecimal = isCurrencyZeroDecimal(
     organization!.defaultCurrency
@@ -79,9 +76,11 @@ const SubscriptionFields = ({
                       field.onChange(value)
                     }}
                     allowDecimals={!zeroDecimal}
+                    disabled={defaultPriceLocked}
                   />
                 </FormControl>
               </div>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -96,6 +95,7 @@ const SubscriptionFields = ({
                 <Select
                   value={field.value ?? ''}
                   onValueChange={field.onChange}
+                  disabled={defaultPriceLocked}
                 >
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select interval" />
@@ -121,12 +121,9 @@ const SubscriptionFields = ({
           )}
         />
       </div>
-      {productId && (
-        <RecurringUsageCreditsOveragePriceSelect
-          productId={productId}
-        />
+      {!omitTrialFields && (
+        <TrialFields disabled={defaultPriceLocked} />
       )}
-      {!omitTrialFields && <TrialFields />}
     </>
   )
 }
@@ -166,11 +163,14 @@ const SubscriptionFields = ({
 //   )
 // }
 
-const SinglePaymentFields = () => {
-  const {
-    formState: { errors },
-    control,
-  } = usePriceFormContext()
+const SinglePaymentFields = ({
+  defaultPriceLocked,
+  edit,
+}: {
+  defaultPriceLocked: boolean
+  edit?: boolean
+}) => {
+  const { control } = usePriceFormContext()
   const { organization } = useAuthenticatedContext()
   const zeroDecimal = isCurrencyZeroDecimal(
     organization!.defaultCurrency
@@ -199,11 +199,104 @@ const SinglePaymentFields = () => {
                     field.onChange(value)
                   }}
                   allowDecimals={!zeroDecimal}
+                  disabled={defaultPriceLocked}
                 />
               </FormControl>
             </div>
+            <FormMessage />
           </FormItem>
         )}
+      />
+    </div>
+  )
+}
+
+const UsageFields = ({
+  defaultPriceLocked,
+  edit,
+  pricingModelId,
+}: {
+  defaultPriceLocked: boolean
+  edit?: boolean
+  pricingModelId?: string
+}) => {
+  const {
+    control,
+    watch,
+    setValue,
+    formState: { errors },
+  } = usePriceFormContext()
+  const { organization } = useAuthenticatedContext()
+  const zeroDecimal = isCurrencyZeroDecimal(
+    organization!.defaultCurrency
+  )
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-end gap-2.5">
+        <FormField
+          control={control}
+          name="__rawPriceString"
+          render={({ field }) => (
+            <FormItem className="flex-1">
+              <FormLabel>Amount</FormLabel>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {currencyCharacter(organization!.defaultCurrency)}
+                </span>
+                <FormControl>
+                  <CurrencyInput
+                    value={field.value?.toString() ?? ''}
+                    onValueChange={(value) => {
+                      if (!value) {
+                        const zeroValue = zeroDecimal ? '0' : '0.00'
+                        field.onChange(zeroValue)
+                        return
+                      }
+                      field.onChange(value)
+                    }}
+                    allowDecimals={!zeroDecimal}
+                    disabled={defaultPriceLocked}
+                  />
+                </FormControl>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          name="price.usageEventsPerUnit"
+          control={control}
+          render={({ field, fieldState }) => (
+            <FormItem className="flex-1">
+              <FormLabel>Usage Events Per Unit</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={1}
+                  max={2147483647}
+                  step={1}
+                  placeholder="e.g. 100"
+                  value={field.value?.toString() ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    const numValue = Number(value)
+                    if (!isNaN(numValue)) {
+                      field.onChange(numValue)
+                    }
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+      <UsageMetersSelect
+        name="price.usageMeterId"
+        control={control}
+        disabled={edit}
+        pricingModelId={pricingModelId}
       />
     </div>
   )
@@ -213,10 +306,16 @@ const PriceFormFields = ({
   priceOnly,
   edit,
   productId,
+  isDefaultProductOverride,
+  isDefaultPriceOverride,
+  pricingModelId,
 }: {
   priceOnly?: boolean
   edit?: boolean
   productId?: string
+  isDefaultProductOverride?: boolean
+  isDefaultPriceOverride?: boolean
+  pricingModelId?: string
 }) => {
   const {
     control,
@@ -226,49 +325,46 @@ const PriceFormFields = ({
   } = usePriceFormContext()
   const fullForm = useFormContext<CreateProductSchema>()
   const type = watch('price.type')
-  const productName = fullForm.watch('product.name')
-  const isPriceSlugDirty = useRef(false)
-
-  // Auto-generate price slug from product name when creating new products
-  useEffect(() => {
-    if (edit) return // Don't auto-generate for edit mode
-
-    // Only auto-generate if the price slug field is not dirty
-    if (!isPriceSlugDirty.current && productName?.trim()) {
-      const newSlug = snakeCase(productName)
-      setValue('price.slug', newSlug)
-    } else if (!isPriceSlugDirty.current && !productName?.trim()) {
-      // If product name is empty, also clear the price slug
-      setValue('price.slug', '')
-    }
-  }, [productName, edit, setValue])
+  const isDefaultProduct =
+    isDefaultProductOverride ??
+    fullForm.watch('product')?.default === true
+  const isDefaultPrice =
+    isDefaultPriceOverride ?? watch('price.isDefault') === true
+  const { omitTrialFields, defaultPriceLocked, isDefaultLocked } =
+    getPriceConstraints({
+      type,
+      isDefaultProduct,
+      isDefaultPrice,
+    })
 
   let typeFields = <></>
-  const { organization } = useAuthenticatedContext()
-  const hasUsage = hasFeatureFlag(organization, FeatureFlag.Usage)
-  if (!core.IS_PROD) {
-    const price = watch('price')
-    console.log('===price', price)
-    // eslint-disable-next-line no-console
-    console.log('===errors', errors)
-  }
 
   switch (type) {
     case PriceType.Subscription:
-      typeFields = <SubscriptionFields productId={productId} />
+      typeFields = (
+        <SubscriptionFields
+          productId={productId}
+          defaultPriceLocked={defaultPriceLocked}
+          omitTrialFields={omitTrialFields}
+          edit={edit}
+        />
+      )
       break
     case PriceType.SinglePayment:
-      typeFields = <SinglePaymentFields />
+      typeFields = (
+        <SinglePaymentFields
+          defaultPriceLocked={defaultPriceLocked}
+          edit={edit}
+        />
+      )
       break
     case PriceType.Usage:
       typeFields = (
-        <div className="flex flex-col gap-2.5">
-          <SubscriptionFields omitTrialFields />
-          <UsageMetersSelect
-            name="price.usageMeterId"
-            control={control}
-          />
-        </div>
+        <UsageFields
+          defaultPriceLocked={defaultPriceLocked}
+          edit={edit}
+          pricingModelId={pricingModelId}
+        />
       )
       break
   }
@@ -281,6 +377,19 @@ const PriceFormFields = ({
 
   return (
     <div className="flex-1 w-full relative flex flex-col justify-center gap-6">
+      {priceOnly && isDefaultLocked && (
+        <p className="text-xs text-muted-foreground">
+          Amount, trial settings, name, slug, type, and default status
+          are locked for the default price of a default plan.
+        </p>
+      )}
+      {priceOnly && edit && !isDefaultLocked && (
+        <p className="text-xs text-muted-foreground">
+          Price type, amount, interval, trial settings, usage events
+          per unit, and usage meter cannot be edited after creation to
+          maintain billing consistency.
+        </p>
+      )}
       {priceOnly && (
         <FormField
           control={control}
@@ -289,7 +398,12 @@ const PriceFormFields = ({
             <FormItem>
               <FormLabel>Price Name</FormLabel>
               <FormControl>
-                <Input {...field} value={field.value ?? ''} />
+                <Input
+                  placeholder="Price"
+                  {...field}
+                  value={field.value ?? ''}
+                  disabled={isDefaultProduct && isDefaultPrice}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -298,41 +412,17 @@ const PriceFormFields = ({
       )}
       <FormField
         control={control}
-        name="price.slug"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Price Slug</FormLabel>
-            <FormControl>
-              <Input
-                {...field}
-                value={field.value ?? ''}
-                onFocus={() => {
-                  isPriceSlugDirty.current = true
-                }}
-                placeholder="price_slug"
-                onChange={(e) => {
-                  isPriceSlugDirty.current = true
-                  field.onChange(e)
-                }}
-              />
-            </FormControl>
-            <FormDescription>
-              The slug is used to identify the price in the API. Must
-              be unique per-pricing model.
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={control}
         name="price.type"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Price Type</FormLabel>
             <FormControl>
               <Select
-                value={field.value}
+                value={
+                  isDefaultProduct
+                    ? (field.value ?? PriceType.Subscription)
+                    : field.value
+                }
                 onValueChange={(value) => {
                   /**
                    * When price type changes,
@@ -356,7 +446,7 @@ const PriceFormFields = ({
                   }
                   field.onChange(value)
                 }}
-                disabled={edit}
+                disabled={edit || isDefaultLocked}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -368,11 +458,9 @@ const PriceFormFields = ({
                   <SelectItem value={PriceType.Subscription}>
                     Subscription
                   </SelectItem>
-                  {hasUsage && (
-                    <SelectItem value={PriceType.Usage}>
-                      Usage
-                    </SelectItem>
-                  )}
+                  <SelectItem value={PriceType.Usage}>
+                    Usage
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </FormControl>
@@ -385,25 +473,8 @@ const PriceFormFields = ({
         )}
       />
       {typeFields}
-      {priceOnly && (
-        <FormField
-          control={control}
-          name="price.isDefault"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Default</FormLabel>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
     </div>
   )
 }
+
 export default PriceFormFields

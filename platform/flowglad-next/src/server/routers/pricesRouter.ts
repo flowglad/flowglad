@@ -5,6 +5,7 @@ import {
   authenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
+import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
 import {
   editPriceSchema,
   pricesClientSelectSchema,
@@ -30,6 +31,7 @@ import { z } from 'zod'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
+  idInputSchema,
 } from '@/db/tableUtils'
 import { PriceType } from '@/types'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -72,35 +74,47 @@ export const createPrice = protectedProcedure
       async ({ transaction }) => {
         const { price } = input
 
-        // Get all prices for this product to validate default price constraint
+        // Get product to check if it's a default product
+        const product = await selectProductById(
+          price.productId,
+          transaction
+        )
+
+        // Get all prices for this product to validate constraints
         const existingPrices = await selectPrices(
           { productId: price.productId },
           transaction
         )
 
-        // If we're setting this price as default, ensure no other prices are default
-        const defaultPrices = [...existingPrices, price].filter(
-          (v) => v.isDefault
-        )
-        if (defaultPrices.length > 1) {
+        // Forbid creating additional prices for default products
+        if (product.default && existingPrices.length > 0) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'Cannot create additional prices for the default plan',
+          })
+        }
+
+        // Validate that default prices on default products must have unitPrice = 0
+        if (
+          price.isDefault &&
+          product.default &&
+          price.unitPrice !== 0
+        ) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message:
-              'There must be exactly one default price per product',
+              'Default prices on default products must have unitPrice = 0',
           })
         }
         const organization = await selectOrganizationById(
           ctx.organizationId!,
           transaction
         )
-        const existingProductHasNoDefaultPrice =
-          existingPrices.length === 0
         const newPrice = await safelyInsertPrice(
           {
             ...price,
-            isDefault:
-              existingProductHasNoDefaultPrice ||
-              input.price.isDefault,
+            // for now, created prices have default = true and active = true
             livemode: ctx.livemode,
             currency: organization.defaultCurrency,
             externalId: null,
@@ -117,7 +131,7 @@ export const createPrice = protectedProcedure
     )
   })
 
-export const editPrice = protectedProcedure
+export const updatePrice = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editPriceSchema)
   .output(singlePriceOutputSchema)
@@ -152,8 +166,31 @@ export const editPrice = protectedProcedure
         // Validate that default prices on default products maintain their constraints
         validateDefaultPriceUpdate(price, existingPrice, product)
 
+        // Validate immutable fields for ALL prices
+        validatePriceImmutableFields({
+          update: price,
+          existing: existingPrice,
+        })
+
+        // Disallow slug changes for the default price of a default product
+        if (
+          product.default &&
+          existingPrice.isDefault &&
+          price.slug !== undefined &&
+          price.slug !== existingPrice.slug
+        ) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'Cannot change the slug of the default price for a default product',
+          })
+        }
+
         const updatedPrice = await safelyUpdatePrice(
-          price,
+          {
+            ...price,
+            type: existingPrice.type,
+          },
           transaction
         )
         return {
@@ -202,10 +239,44 @@ export const listUsagePricesForProduct = protectedProcedure
     )
   )
 
+export const setPriceAsDefault = protectedProcedure
+  .input(idInputSchema)
+  .output(z.object({ price: pricesClientSelectSchema }))
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const oldPrice = await selectPriceById(input.id, transaction)
+        const price = await safelyUpdatePrice(
+          { id: input.id, isDefault: true, type: oldPrice.type },
+          transaction
+        )
+        return { price }
+      }
+    )
+  )
+
+export const archivePrice = protectedProcedure
+  .input(idInputSchema)
+  .output(z.object({ price: pricesClientSelectSchema }))
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const oldPrice = await selectPriceById(input.id, transaction)
+        const price = await safelyUpdatePrice(
+          { id: input.id, active: false, type: oldPrice.type },
+          transaction
+        )
+        return { price }
+      }
+    )
+  )
+
 export const pricesRouter = router({
   list: listPrices,
   create: createPrice,
-  edit: editPrice,
+  update: updatePrice,
   getTableRows,
   listUsagePricesForProduct,
+  setAsDefault: setPriceAsDefault,
+  archive: archivePrice,
 })

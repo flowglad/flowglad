@@ -4,13 +4,13 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 
 import Providers from './Providers'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { User } from '@/db/schema/users'
 import {
   insertUser,
   selectUsers,
-  UserRecord,
 } from '@/db/tableMethods/userMethods'
 import {
   Organization,
@@ -19,7 +19,7 @@ import {
 import { auth, getSession } from '@/utils/auth'
 import { headers } from 'next/headers'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
-import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
+import * as Sentry from '@sentry/nextjs'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -37,16 +37,17 @@ export default async function RootLayout({
   // The preview routes will handle their own complete HTML structure
   const headersList = await headers()
   const pathname = headersList.get('x-pathname') || ''
+  const isPublicRoute =
+    headersList.get('x-is-public-route') === 'true'
 
   // For preview routes, skip the root layout entirely
   if (pathname.includes('/preview-ui')) {
     return children
   }
-
   const session = await getSession()
   let organization: Organization.ClientRecord | undefined = undefined
   let livemode: boolean = true
-  let user: UserRecord | undefined = undefined
+  let user: User.Record | undefined = undefined
   if (session) {
     user = await betterAuthUserToApplicationUser(session.user)
     const [membershipData] = await adminTransaction(
@@ -71,21 +72,31 @@ export default async function RootLayout({
       )
     }
   }
+
+  // Set user context in Sentry for client-side error tracking
+  if (user) {
+    Sentry.setUser({
+      id: user.id,
+    })
+  } else {
+    Sentry.setUser(null)
+  }
   const currentPath = headersList.get('x-pathname') || ''
   const role = currentPath.startsWith('/billing-portal/')
     ? 'customer'
     : 'merchant'
-
   return (
-    <html lang="en" className="dark h-full" data-mode="dark">
-      <body className={cn(inter.className, 'dark', 'h-full')}>
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body className={cn(inter.className, 'h-full')}>
         <Providers
           authContext={{
             organization,
             livemode,
             user,
             role,
+            authenticated: !!user,
           }}
+          isPublicRoute={isPublicRoute}
         >
           {/* {!livemode && (
             <div className="h-12 w-full bg-orange-primary-500"></div>

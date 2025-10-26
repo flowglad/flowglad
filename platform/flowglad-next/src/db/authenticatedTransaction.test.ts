@@ -29,7 +29,7 @@ import {
   setupMemberships,
 } from '@/../seedDatabase'
 import { Organization } from './schema/organizations'
-import { UserRecord } from './schema/users'
+import { User } from './schema/users'
 import { ApiKey } from './schema/apiKeys'
 import { insertApiKey } from './tableMethods/apiKeyMethods'
 import { Membership } from './schema/memberships'
@@ -46,8 +46,8 @@ describe('authenticatedTransaction', () => {
   // Global test state variables
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
-  let userA: UserRecord
-  let userB: UserRecord
+  let userA: User.Record
+  let userB: User.Record
   let apiKeyA: ApiKey.Record
   let apiKeyB: ApiKey.Record
   let membershipA1: Membership.Record // userA in testOrg1
@@ -202,7 +202,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
   // Reuse the same global test state
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
-  let userA: UserRecord
+  let userA: User.Record
   let apiKeyA: ApiKey.Record
 
   beforeEach(async () => {
@@ -259,10 +259,10 @@ describe('comprehensiveAuthenticatedTransaction', () => {
   })
 
   describe('Transaction Output Processing', () => {
-    it('should process events when eventsToLog is provided', async () => {
+    it('should process events when eventsToInsert is provided', async () => {
       // setup:
       // - use valid API key
-      // - create transaction function that returns TransactionOutput with eventsToLog array
+      // - create transaction function that returns TransactionOutput with eventsToInsert array
 
       // expects:
       // - bulkInsertOrDoNothingEventsByHash should be called with the events array
@@ -275,12 +275,16 @@ describe('comprehensiveAuthenticatedTransaction', () => {
           payload: {
             object: EventNoun.Payment,
             id: 'test_event_1',
+            customer: {
+              id: 'test_customer_id',
+              externalId: 'test_external_id',
+            },
           },
           organizationId: testOrg1.id,
           metadata: {},
           hash: hashData(testOrg1.id),
-          occurredAt: new Date(),
-          submittedAt: new Date(),
+          occurredAt: Date.now(),
+          submittedAt: Date.now(),
           processedAt: null,
         },
       ]
@@ -288,7 +292,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       const result = await comprehensiveAuthenticatedTransaction(
         async () => ({
           result: 'events_processed',
-          eventsToLog: mockEvents,
+          eventsToInsert: mockEvents,
         }),
         { apiKey: apiKeyA.token }
       )
@@ -318,8 +322,8 @@ describe('RLS Access Control with selectOrganizations', () => {
   // Global test state variables
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
-  let userA: UserRecord
-  let userB: UserRecord
+  let userA: User.Record
+  let userB: User.Record
   let apiKeyA: ApiKey.Record
   let apiKeyB: ApiKey.Record
 
@@ -451,8 +455,8 @@ describe('RLS Access Control with selectMemberships', () => {
   // Global test state variables
   let testOrg1: Organization.Record
   let testOrg2: Organization.Record
-  let userA: UserRecord
-  let userB: UserRecord
+  let userA: User.Record
+  let userB: User.Record
   let apiKeyA: ApiKey.Record
   let membershipA1: Membership.Record
   let membershipA2: Membership.Record
@@ -615,7 +619,7 @@ describe('RLS Access Control with selectMemberships', () => {
 
 describe('Authentication Method Tests', () => {
   let testOrg1: Organization.Record
-  let userA: UserRecord
+  let userA: User.Record
   let apiKeyA: ApiKey.Record
 
   beforeEach(async () => {
@@ -906,8 +910,8 @@ describe('RLS for selectProducts', () => {
   let prodPricingModel2: any
   let product1: any
   let product2: any
-  let prodUserA: UserRecord
-  let prodUserB: UserRecord
+  let prodUserA: User.Record
+  let prodUserB: User.Record
   let apiKeyAForOrg1: ApiKey.Record
   let apiKeyAForOrg2: ApiKey.Record
 
@@ -1056,7 +1060,6 @@ describe('RLS for selectProducts', () => {
               externalId: null,
               slug: null,
               imageURL: null,
-              displayFeatures: null,
               singularQuantityLabel: null,
               pluralQuantityLabel: null,
               active: true,
@@ -1083,7 +1086,6 @@ describe('RLS for selectProducts', () => {
             externalId: null,
             slug: null,
             imageURL: null,
-            displayFeatures: null,
             singularQuantityLabel: null,
             pluralQuantityLabel: null,
             active: true,
@@ -1188,8 +1190,8 @@ describe('RLS for selectPricingModels', () => {
   let catOrg2: Organization.Record
   let pricingModel1: PricingModel.Record
   let pricingModel2: PricingModel.Record
-  let catUserA: UserRecord
-  let catUserB: UserRecord
+  let catUserA: User.Record
+  let catUserB: User.Record
   let apiKeyCatAOrg1: ApiKey.Record
   let apiKeyCatAOrg2: ApiKey.Record
 
@@ -1571,7 +1573,6 @@ describe('Second-order RLS defense in depth', () => {
               description: null,
               imageURL: null,
               organizationId: o1.id,
-              displayFeatures: null,
               active: true,
               singularQuantityLabel: null,
               pluralQuantityLabel: null,

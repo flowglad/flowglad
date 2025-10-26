@@ -1,7 +1,6 @@
 import { protectedProcedure, router } from '../trpc'
 import {
-  EventNoun,
-  FlowgladEventType,
+  BillingPeriodStatus,
   IntervalUnit,
   PriceType,
   SubscriptionCancellationArrangement,
@@ -11,20 +10,23 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
-  eventfulAuthenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
+  retryBillingRunInputSchema,
   subscriptionClientSelectSchema,
   subscriptionsPaginatedListSchema,
   subscriptionsPaginatedSelectSchema,
   subscriptionsTableRowDataSchema,
+  updateSubscriptionPaymentMethodSchema,
 } from '@/db/schema/subscriptions'
+import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import {
   isSubscriptionCurrent,
   selectSubscriptionById,
   selectSubscriptionsPaginated,
   selectSubscriptionsTableRowData,
+  updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
   createPaginatedTableRowInputSchema,
@@ -47,9 +49,16 @@ import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/w
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import {
+  selectPaymentMethodById,
+  selectPaymentMethods,
+} from '@/db/tableMethods/paymentMethodMethods'
 import { selectSubscriptionCountsByStatus } from '@/db/tableMethods/subscriptionMethods'
-import { Event } from '@/db/schema/events'
+import {
+  createBillingRunInsert,
+  executeBillingRun,
+} from '@/subscriptions/billingRunHelpers'
+import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',
@@ -72,6 +81,8 @@ const adjustSubscriptionProcedure = protectedProcedure
       method: 'POST',
       path: '/api/v1/subscriptions/{id}/adjust',
       summary: 'Adjust a Subscription',
+      description:
+        'Note: Immediate adjustments are in private preview (Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616). Adjustments at the end of the current billing period are generally available.',
       tags: ['Subscriptions'],
       protect: true,
     },
@@ -83,27 +94,36 @@ const adjustSubscriptionProcedure = protectedProcedure
       subscriptionItems: subscriptionItemClientSelectSchema.array(),
     })
   )
-  .mutation(async ({ input, ctx }) => {
-    const { subscription, subscriptionItems } =
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          return adjustSubscription(input, transaction)
-        },
-        {
-          apiKey: ctx.apiKey,
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, transaction, ctx }) => {
+        if (!ctx.organization) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Organization not found',
+          })
         }
-      )
-    return {
-      subscription: {
-        ...subscription,
-        current: isSubscriptionCurrent(
-          subscription.status,
-          subscription.cancellationReason
-        ),
-      },
-      subscriptionItems,
-    }
-  })
+        const { subscription, subscriptionItems } =
+          await adjustSubscription(
+            input,
+            ctx.organization,
+            transaction
+          )
+        return {
+          result: {
+            subscription: {
+              ...subscription,
+              current: isSubscriptionCurrent(
+                subscription.status,
+                subscription.cancellationReason
+              ),
+            },
+            subscriptionItems,
+          },
+        }
+      }
+    )
+  )
 
 const cancelSubscriptionProcedure = protectedProcedure
   .meta({
@@ -422,6 +442,133 @@ const getTableRows = protectedProcedure
     authenticatedProcedureTransaction(selectSubscriptionsTableRowData)
   )
 
+// TRPC-only procedure, not exposed as REST API
+const updatePaymentMethodProcedure = protectedProcedure
+  .input(updateSubscriptionPaymentMethodSchema)
+  .output(
+    z.object({
+      subscription: subscriptionClientSelectSchema,
+    })
+  )
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const subscription = await selectSubscriptionById(
+          input.id,
+          transaction
+        )
+
+        // Verify the payment method exists and belongs to the same customer
+        const paymentMethod = await selectPaymentMethodById(
+          input.paymentMethodId,
+          transaction
+        )
+
+        if (paymentMethod.customerId !== subscription.customerId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Payment method does not belong to the subscription customer',
+          })
+        }
+
+        // Update the subscription with the new payment method
+        const updatedSubscription = await updateSubscription(
+          {
+            id: subscription.id,
+            defaultPaymentMethodId: input.paymentMethodId,
+            renews: subscription.renews,
+          },
+          transaction
+        )
+
+        return {
+          subscription: {
+            ...updatedSubscription,
+            current: isSubscriptionCurrent(
+              updatedSubscription.status,
+              updatedSubscription.cancellationReason
+            ),
+          },
+        }
+      }
+    )
+  )
+const retryBillingRunProcedure = protectedProcedure
+  .input(retryBillingRunInputSchema)
+  .output(z.object({ message: z.string() }))
+  .mutation(async ({ input, ctx }) => {
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        const billingPeriod = await selectBillingPeriodById(
+          input.billingPeriodId,
+          transaction
+        )
+        if (billingPeriod.status === BillingPeriodStatus.Completed) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Billing period is already completed',
+          })
+        }
+        if (billingPeriod.status === BillingPeriodStatus.Canceled) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Billing period is already canceled',
+          })
+        }
+        if (billingPeriod.status === BillingPeriodStatus.Upcoming) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Billing period is already upcoming',
+          })
+        }
+        const subscription = await selectSubscriptionById(
+          billingPeriod.subscriptionId,
+          transaction
+        )
+        const paymentMethod = subscription.defaultPaymentMethodId
+          ? await selectPaymentMethodById(
+              subscription.defaultPaymentMethodId,
+              transaction
+            )
+          : (
+              await selectPaymentMethods(
+                {
+                  customerId: subscription.customerId,
+                  default: true,
+                },
+                transaction
+              )
+            )[0]
+
+        if (!paymentMethod) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'No payment method found for subscription',
+          })
+        }
+
+        const billingRunInsert = createBillingRunInsert({
+          billingPeriod,
+          scheduledFor: new Date(),
+          paymentMethod,
+        })
+        return safelyInsertBillingRun(billingRunInsert, transaction)
+      },
+      { apiKey: ctx.apiKey }
+    )
+    const billingRun = await executeBillingRun(result.id)
+    if (!billingRun) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Failed to execute billing run',
+      })
+    }
+    return {
+      message: 'Billing run executed',
+    }
+  })
+
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
   cancel: cancelSubscriptionProcedure,
@@ -429,5 +576,7 @@ export const subscriptionsRouter = router({
   get: getSubscriptionProcedure,
   create: createSubscriptionProcedure,
   getCountsByStatus: getCountsByStatusProcedure,
+  retryBillingRunProcedure,
   getTableRows,
+  updatePaymentMethod: updatePaymentMethodProcedure,
 })

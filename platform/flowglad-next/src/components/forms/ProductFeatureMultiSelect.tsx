@@ -2,7 +2,9 @@ import { trpc } from '@/app/_trpc/client'
 import MultipleSelector from '@/components/forms/MultiSelect'
 import { Controller, useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
-import { Skeleton } from '@/components/ion/Skeleton'
+import { cn } from '@/lib/utils'
+import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect } from 'react'
 import { encodeCursor } from '@/db/tableUtils'
 
@@ -69,6 +71,8 @@ export const ProductFeatureMultiSelect = ({
       'featureIds',
       activeProductFeatures.map((pf) => pf.featureId)
     )
+    // FIXME(FG-384): Fix this warning:
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productFeaturesHash])
 
   const loading = productFeaturesLoading || featuresLoading

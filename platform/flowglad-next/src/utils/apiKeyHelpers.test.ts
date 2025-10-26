@@ -4,35 +4,20 @@ import {
   setupCustomer,
   setupMemberships,
   setupOrg,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import {
   createSecretApiKeyTransaction,
-  createBillingPortalApiKeyTransaction,
-  verifyBillingPortalApiKeyTransaction,
+  getApiKeyHeader,
 } from './apiKeyHelpers'
 import { FlowgladApiKeyType } from '@/types'
 import { CreateApiKeyInput } from '@/db/schema/apiKeys'
 import { Organization } from '@/db/schema/organizations'
-import { User } from '@stackframe/stack'
-import {
-  insertCustomer,
-  updateCustomer,
-} from '@/db/tableMethods/customerMethods'
-import { insertApiKey } from '@/db/tableMethods/apiKeyMethods'
-import {
-  insertOrganization,
-  updateOrganization,
-} from '@/db/tableMethods/organizationMethods'
-import {
-  insertMembership,
-  updateMembership,
-} from '@/db/tableMethods/membershipMethods'
-import { nanoid } from './core'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { updateMembership } from '@/db/tableMethods/membershipMethods'
 
 describe('apiKeyHelpers', () => {
   let organization: Organization.Record
   let userId: string
-  let customerId: string
   let membershipId: string
 
   beforeEach(async () => {
@@ -44,7 +29,6 @@ describe('apiKeyHelpers', () => {
     const customer = await setupCustomer({
       organizationId: organization.id,
     })
-    customerId = customer.id
 
     // Create a test membership
     const membership = await setupMemberships({
@@ -216,91 +200,77 @@ describe('apiKeyHelpers', () => {
     })
   })
 
-  describe('createBillingPortalApiKeyTransaction', () => {
-    it('should successfully create a billing portal API key', async () => {
-      const params = {
-        organization,
-        stackAuthHostedBillingUserId: userId,
-        livemode: false,
-        name: 'Billing Portal Key',
-      }
+  // it('should return null if no customer is found', async () => {
+  //   // Delete the customer
+  //   await adminTransaction(async ({ transaction }) => {
+  //     await deleteCustomer(
+  //       {
+  //         id: customerId,
+  //       },
+  //       transaction
+  //     )
+  //   })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return createBillingPortalApiKeyTransaction(
-            params,
-            transaction
-          )
-        }
-      )
+  //   const params = {
+  //     organizationId: organization.id,
+  //     livemode: false,
+  //     user: { id: userId } as Pick<User, 'id'>,
+  //   }
 
-      expect(result).toBeDefined()
-      expect(result.apiKey).toBeDefined()
-      expect(result.apiKey.name).toBe('Billing Portal Key')
-      expect(result.shownOnlyOnceKey).toBeDefined()
-    })
+  //   const result = await adminTransaction(
+  //     async ({ transaction }) => {
+  //       return verifyBillingPortalApiKeyTransaction(
+  //         params,
+  //         transaction
+  //       )
+  //     }
+  //   )
+
+  //   expect(result).toBeNull()
+  // })
+})
+
+describe('getApiKeyHeader', () => {
+  it('returns the key when header is "Bearer <key>"', () => {
+    const authorizationHeader = 'Bearer 1234567890'
+    const apiKey = getApiKeyHeader(authorizationHeader)
+    expect(apiKey).toBe('1234567890')
   })
 
-  describe('verifyBillingPortalApiKeyTransaction', () => {
-    it('should successfully verify and create a billing portal API key', async () => {
-      const newId = nanoid()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const params = {
-        organizationId: organization.id,
-        livemode: customer.livemode,
-        user: { id: newId } as Pick<User, 'id'>,
-      }
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          await updateCustomer(
-            {
-              id: customer.id,
-              stackAuthHostedBillingUserId: newId,
-            },
-            transaction
-          )
-          return verifyBillingPortalApiKeyTransaction(
-            params,
-            transaction
-          )
-        }
-      )
+  it('accepts a raw key when there is no space', () => {
+    const authorizationHeader = '1234567890'
+    const apiKey = getApiKeyHeader(authorizationHeader)
+    expect(apiKey).toBe('1234567890')
+  })
 
-      expect(result).toBeDefined()
-      expect(result?.apiKey).toBeDefined()
-      expect(result?.apiKey.name).toContain('Billing Portal Key')
-      expect(result?.shownOnlyOnceKey).toBeDefined()
-    })
+  it('trims surrounding whitespace before processing', () => {
+    expect(getApiKeyHeader('   1234567890   ')).toBe('1234567890')
+    expect(getApiKeyHeader('   Bearer 1234567890   ')).toBe(
+      '1234567890'
+    )
+  })
 
-    // it('should return null if no customer is found', async () => {
-    //   // Delete the customer
-    //   await adminTransaction(async ({ transaction }) => {
-    //     await deleteCustomer(
-    //       {
-    //         id: customerId,
-    //       },
-    //       transaction
-    //     )
-    //   })
+  it('rejects non-Bearer authorization schemes that contain spaces', () => {
+    expect(getApiKeyHeader('Basic abcdef')).toBeNull()
+    expect(getApiKeyHeader('Token 123')).toBeNull()
+    expect(getApiKeyHeader('ApiKey 123')).toBeNull()
+  })
 
-    //   const params = {
-    //     organizationId: organization.id,
-    //     livemode: false,
-    //     user: { id: userId } as Pick<User, 'id'>,
-    //   }
+  it('rejects multi-word headers that do not start with "Bearer "', () => {
+    expect(getApiKeyHeader('Foo Bar Baz')).toBeNull()
+    expect(getApiKeyHeader('Bearer: 123')).toBeNull()
+  })
 
-    //   const result = await adminTransaction(
-    //     async ({ transaction }) => {
-    //       return verifyBillingPortalApiKeyTransaction(
-    //         params,
-    //         transaction
-    //       )
-    //     }
-    //   )
+  it('returns "Bearer" when header is exactly "Bearer" (no space)', () => {
+    expect(getApiKeyHeader('Bearer')).toBe('Bearer')
+  })
 
-    //   expect(result).toBeNull()
-    // })
+  it('returns the entire string when there is no space and not Bearer prefix', () => {
+    expect(getApiKeyHeader('Bearer123')).toBe('Bearer123')
+  })
+
+  it('does not trim the extracted key beyond the single Bearer space', () => {
+    // Current logic slices right after 'Bearer ' and does not trim the remainder
+    expect(getApiKeyHeader('Bearer    123')).toBe('   123')
   })
 })

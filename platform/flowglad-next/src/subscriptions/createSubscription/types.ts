@@ -17,14 +17,14 @@ export interface CreateSubscriptionParams {
     Customer.Record,
     'id' | 'stripeCustomerId' | 'livemode' | 'organizationId'
   >
-  product: Product.Record
-  price: Price.Record
+  product: Product.ClientRecord
+  price: Price.ClientRecord
   quantity: number
   livemode: boolean
-  startDate: Date
-  interval: IntervalUnit
-  intervalCount: number
-  trialEnd?: Date
+  startDate: Date | number
+  interval?: IntervalUnit | null
+  intervalCount?: number | null
+  trialEnd?: Date | number
   stripeSetupIntentId?: string
   metadata?: Subscription.ClientRecord['metadata']
   name?: string
@@ -33,9 +33,9 @@ export interface CreateSubscriptionParams {
   autoStart?: boolean
   discountRedemption?: DiscountRedemption.Record | null
   previousSubscriptionId?: string // ID of canceled free subscription when upgrading
-  billingCycleAnchorDate?: Date
-  preservedBillingPeriodEnd?: Date
-  preservedBillingPeriodStart?: Date
+  billingCycleAnchorDate?: Date | number
+  preservedBillingPeriodEnd?: Date | number
+  preservedBillingPeriodStart?: Date | number
   prorateFirstPeriod?: boolean
 }
 

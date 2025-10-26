@@ -13,11 +13,19 @@ import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMeth
 import { createInitialInvoiceForPurchase } from '@/utils/bookkeeping'
 import { isNil } from '../core'
 import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { Purchase } from '@/db/schema/purchases'
+import { Invoice } from '@/db/schema/invoices'
 
 export const processNonPaymentCheckoutSession = async (
   checkoutSession: CheckoutSession.Record,
   transaction: DbTransaction
-) => {
+): Promise<
+  TransactionOutput<{
+    purchase: Purchase.Record
+    invoice: Invoice.Record
+  }>
+> => {
   checkoutSession = await updateCheckoutSession(
     {
       ...checkoutSession,
@@ -85,12 +93,16 @@ export const processNonPaymentCheckoutSession = async (
       { checkoutSession, stripeCustomerId: null },
       transaction
     )
-  purchase = upsertPurchaseResult.purchase
+  purchase = upsertPurchaseResult.result.purchase
   const invoiceForPurchase = await createInitialInvoiceForPurchase(
     {
       purchase,
     },
     transaction
   )
-  return { purchase, invoice: invoiceForPurchase.invoice }
+  return {
+    result: { purchase, invoice: invoiceForPurchase.invoice },
+    eventsToInsert: upsertPurchaseResult.eventsToInsert || [],
+    ledgerCommand: upsertPurchaseResult.ledgerCommand,
+  }
 }

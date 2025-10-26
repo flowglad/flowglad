@@ -2,9 +2,9 @@ import { router } from './trpc'
 import { pong } from '@/server/mutations/pong'
 import { generateDescription } from '@/server/mutations/generateDescription'
 import { getPresignedURL } from '@/server/mutations/getPresignedURL'
-import { editFile } from '@/server/mutations/editFile'
+import { updateFile } from '@/server/mutations/editFile'
 import { createLink } from '@/server/mutations/createLink'
-import { editLink } from '@/server/mutations/editLink'
+import { updateLink } from '@/server/mutations/editLink'
 import { deleteLinkProcedure } from '@/server/mutations/deleteLink'
 import { deleteFileProcedure } from '@/server/mutations/deleteFile'
 import { getProperNouns } from '@/server/queries/getProperNouns'
@@ -31,23 +31,23 @@ import { usageEventsRouter } from './routers/usageEventsRouter'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
 import { apiKeysRouter } from './routers/apiKeysRouter'
 import { purchasesRouter } from './routers/purchasesRouter'
-import { requestBillingPortalLink } from './mutations/requestBillingPortalLink'
 import { webhooksRouter } from './routers/webhooksRouter'
 import { featuresRouter } from './routers/featuresRouter'
 import { productFeaturesRouter } from './routers/productFeaturesRouter'
 import { subscriptionItemFeaturesRouter } from './routers/subscriptionItemFeaturesRouter'
 import { customerBillingPortalRouter } from './routers/customerBillingPortalRouter'
 import { logout } from './mutations/logout'
+import { setReferralSelection } from './mutations/setReferralSelection'
 
 const filesRouter = router({
   create: createFile,
-  update: editFile,
+  update: updateFile,
   delete: deleteFileProcedure,
 })
 
 const linksRouter = router({
   create: createLink,
-  update: editLink,
+  update: updateLink,
   delete: deleteLinkProcedure,
 })
 
@@ -76,8 +76,8 @@ export const appRouter = router({
     getPresignedURL,
     toggleTestMode,
     inviteUserToOrganization,
-    requestBillingPortalLink,
     logout,
+    setReferralSelection,
   }),
   apiKeys: apiKeysRouter,
   subscriptions: subscriptionsRouter,

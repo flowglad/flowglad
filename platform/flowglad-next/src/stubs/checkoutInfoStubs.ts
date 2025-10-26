@@ -15,8 +15,8 @@ import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 const checkoutSession: CheckoutSession.Record = {
   id: '1',
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
   outputName: null,
   outputMetadata: null,
   priceId: '1',
@@ -26,7 +26,7 @@ const checkoutSession: CheckoutSession.Record = {
   stripeSetupIntentId: null,
   stripePaymentIntentId: null,
   status: CheckoutSessionStatus.Pending,
-  expires: new Date(Date.now() + 1000 * 60 * 60 * 24),
+  expires: Date.now() + 1000 * 60 * 60 * 24,
   purchaseId: null,
   billingAddress: null,
   discountId: null,

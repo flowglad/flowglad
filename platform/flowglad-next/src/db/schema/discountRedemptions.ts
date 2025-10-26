@@ -21,6 +21,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { discounts } from '@/db/schema/discounts'
 import { purchases } from '@/db/schema/purchases'
@@ -28,6 +29,7 @@ import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import core from '@/utils/core'
 import { subscriptions } from '@/db/schema/subscriptions'
+import { buildSchemas } from '../createZodSchemas'
 const TABLE_NAME = 'discount_redemptions'
 
 // Schema descriptions
@@ -118,28 +120,66 @@ const readOnlyColumns = {
   livemode: true,
 } as const
 
-// Duration-specific select schemas
-export const defaultDiscountRedemptionsSelectSchema = baseSelectSchema
-  .extend({
+export const {
+  select: defaultDiscountRedemptionsSelectSchema,
+  insert: defaultDiscountRedemptionsInsertSchema,
+  update: defaultDiscountRedemptionsUpdateSchema,
+  client: {
+    select: defaultDiscountRedemptionsClientSelectSchema,
+    insert: defaultDiscountRedemptionsClientInsertSchema,
+    update: defaultDiscountRedemptionsClientUpdateSchema,
+  },
+} = buildSchemas(discountRedemptions, {
+  discriminator: 'duration',
+  refine: {
+    ...columnRefinements,
     duration: z.literal(DiscountDuration.Once),
-    numberOfPayments: z.null(),
-  })
-  .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
+    numberOfPayments: z.null().optional(),
+  },
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'DefaultDiscountRedemption',
+})
 
-export const numberOfPaymentsDiscountRedemptionsSelectSchema =
-  baseSelectSchema
-    .extend({
-      duration: z.literal(DiscountDuration.NumberOfPayments),
-      numberOfPayments: core.safeZodPositiveInteger,
-    })
-    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
+export const {
+  select: numberOfPaymentsDiscountRedemptionsSelectSchema,
+  insert: numberOfPaymentsDiscountRedemptionsInsertSchema,
+  update: numberOfPaymentsDiscountRedemptionsUpdateSchema,
+  client: {
+    select: numberOfPaymentsDiscountRedemptionsClientSelectSchema,
+    insert: numberOfPaymentsDiscountRedemptionsClientInsertSchema,
+    update: numberOfPaymentsDiscountRedemptionsClientUpdateSchema,
+  },
+} = buildSchemas(discountRedemptions, {
+  discriminator: 'duration',
+  refine: {
+    ...columnRefinements,
+    duration: z.literal(DiscountDuration.NumberOfPayments),
+    numberOfPayments: core.safeZodPositiveInteger,
+  },
+  entityName: 'NumberOfPaymentsDiscountRedemption',
+})
 
-export const foreverDiscountRedemptionsSelectSchema = baseSelectSchema
-  .extend({
+export const {
+  select: foreverDiscountRedemptionsSelectSchema,
+  insert: foreverDiscountRedemptionsInsertSchema,
+  update: foreverDiscountRedemptionsUpdateSchema,
+  client: {
+    select: foreverDiscountRedemptionsClientSelectSchema,
+    insert: foreverDiscountRedemptionsClientInsertSchema,
+    update: foreverDiscountRedemptionsClientUpdateSchema,
+  },
+} = buildSchemas(discountRedemptions, {
+  discriminator: 'duration',
+  refine: {
+    ...columnRefinements,
     duration: z.literal(DiscountDuration.Forever),
-    numberOfPayments: z.null(),
-  })
-  .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
+    numberOfPayments: z.null().optional(),
+  },
+  entityName: 'ForeverDiscountRedemption',
+})
 
 // Combined select schema
 export const discountRedemptionsSelectSchema = z
@@ -155,25 +195,6 @@ const baseInsertSchema = createInsertSchema(discountRedemptions)
   .omit(ommittedColumnsForInsertSchema)
   .extend(columnRefinements)
 
-// Duration-specific insert schemas
-export const defaultDiscountRedemptionsInsertSchema =
-  baseInsertSchema.extend({
-    duration: z.literal(DiscountDuration.Once),
-    numberOfPayments: z.null(),
-  })
-
-export const numberOfPaymentsDiscountRedemptionsInsertSchema =
-  baseInsertSchema.extend({
-    duration: z.literal(DiscountDuration.NumberOfPayments),
-    numberOfPayments: core.safeZodPositiveInteger,
-  })
-
-export const foreverDiscountRedemptionsInsertSchema =
-  baseInsertSchema.extend({
-    duration: z.literal(DiscountDuration.Forever),
-    numberOfPayments: z.null(),
-  })
-
 // Combined insert schema
 export const discountRedemptionsInsertSchema = z
   .discriminatedUnion('duration', [
@@ -183,28 +204,6 @@ export const discountRedemptionsInsertSchema = z
   ])
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
 
-// Duration-specific update schemas
-export const defaultDiscountRedemptionsUpdateSchema =
-  defaultDiscountRedemptionsSelectSchema.partial().extend({
-    id: z.string(),
-    duration: z.literal(DiscountDuration.Once),
-    numberOfPayments: z.null(),
-  })
-
-export const numberOfPaymentsDiscountRedemptionsUpdateSchema =
-  numberOfPaymentsDiscountRedemptionsSelectSchema.partial().extend({
-    id: z.string(),
-    duration: z.literal(DiscountDuration.NumberOfPayments),
-    numberOfPayments: core.safeZodPositiveInteger,
-  })
-
-export const foreverDiscountRedemptionsUpdateSchema =
-  foreverDiscountRedemptionsSelectSchema.partial().extend({
-    id: z.string(),
-    duration: z.literal(DiscountDuration.Forever),
-    numberOfPayments: z.null(),
-  })
-
 // Combined update schema
 export const discountRedemptionsUpdateSchema = z
   .discriminatedUnion('duration', [
@@ -213,25 +212,6 @@ export const discountRedemptionsUpdateSchema = z
     foreverDiscountRedemptionsUpdateSchema,
   ])
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
-
-// Client select schemas for each duration type
-export const defaultDiscountRedemptionsClientSelectSchema =
-  defaultDiscountRedemptionsSelectSchema
-    .omit(hiddenColumns)
-    .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
-    .meta({ id: 'DefaultDiscountRedemptionRecord' })
-
-export const numberOfPaymentsDiscountRedemptionsClientSelectSchema =
-  numberOfPaymentsDiscountRedemptionsSelectSchema
-    .omit(hiddenColumns)
-    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
-    .meta({ id: 'NumberOfPaymentsDiscountRedemptionRecord' })
-
-export const foreverDiscountRedemptionsClientSelectSchema =
-  foreverDiscountRedemptionsSelectSchema
-    .omit(hiddenColumns)
-    .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
-    .meta({ id: 'ForeverDiscountRedemptionRecord' })
 
 // Combined client select schema
 export const discountRedemptionsClientSelectSchema = z
@@ -243,30 +223,6 @@ export const discountRedemptionsClientSelectSchema = z
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
   .meta({ id: 'DiscountRedemptionsClientSelectSchema' })
 
-// Client insert schemas for each duration type
-const clientWriteOmits = R.omit(['position'], {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-})
-
-export const defaultDiscountRedemptionsClientInsertSchema =
-  defaultDiscountRedemptionsInsertSchema
-    .omit(clientWriteOmits)
-    .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
-    .meta({ id: 'DefaultDiscountRedemptionInsert' })
-
-export const numberOfPaymentsDiscountRedemptionsClientInsertSchema =
-  numberOfPaymentsDiscountRedemptionsInsertSchema
-    .omit(clientWriteOmits)
-    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
-    .meta({ id: 'NumberOfPaymentsDiscountRedemptionInsert' })
-
-export const foreverDiscountRedemptionsClientInsertSchema =
-  foreverDiscountRedemptionsInsertSchema
-    .omit(clientWriteOmits)
-    .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
-    .meta({ id: 'ForeverDiscountRedemptionInsert' })
-
 // Combined client insert schema
 export const discountRedemptionsClientInsertSchema = z
   .discriminatedUnion('duration', [
@@ -276,28 +232,6 @@ export const discountRedemptionsClientInsertSchema = z
   ])
   .describe(DISCOUNT_REDEMPTIONS_BASE_DESCRIPTION)
   .meta({ id: 'DiscountRedemptionsClientInsertSchema' })
-
-// Client update schemas for each duration type
-export const defaultDiscountRedemptionsClientUpdateSchema =
-  defaultDiscountRedemptionsUpdateSchema
-    .omit(hiddenColumns)
-    .omit(readOnlyColumns)
-    .describe(DEFAULT_DISCOUNT_REDEMPTION_DESCRIPTION)
-    .meta({ id: 'DefaultDiscountRedemptionUpdate' })
-
-export const numberOfPaymentsDiscountRedemptionsClientUpdateSchema =
-  numberOfPaymentsDiscountRedemptionsUpdateSchema
-    .omit(hiddenColumns)
-    .omit(readOnlyColumns)
-    .describe(NUMBER_OF_PAYMENTS_DISCOUNT_REDEMPTION_DESCRIPTION)
-    .meta({ id: 'NumberOfPaymentsDiscountRedemptionUpdate' })
-
-export const foreverDiscountRedemptionsClientUpdateSchema =
-  foreverDiscountRedemptionsUpdateSchema
-    .omit(hiddenColumns)
-    .omit(readOnlyColumns)
-    .describe(FOREVER_DISCOUNT_REDEMPTION_DESCRIPTION)
-    .meta({ id: 'ForeverDiscountRedemptionUpdate' })
 
 // Combined client update schema
 export const discountRedemptionsClientUpdateSchema = z

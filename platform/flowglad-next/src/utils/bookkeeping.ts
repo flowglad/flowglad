@@ -1,33 +1,27 @@
 import * as R from 'ramda'
+import { createDefaultPriceConfig } from '@/constants/defaultPlanConfig'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   insertCustomer,
   selectCustomerById,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
-import {
-  deleteOpenInvoicesForPurchase,
-  safelyUpdateInvoiceStatus,
-} from '@/db/tableMethods/invoiceMethods'
+import { safelyUpdateInvoiceStatus } from '@/db/tableMethods/invoiceMethods'
 import {
   AuthenticatedTransactionParams,
   DbTransaction,
 } from '@/db/types'
 import {
-  CountryCode,
   InvoiceStatus,
-  InvoiceType,
   PaymentStatus,
   PriceType,
   PurchaseStatus,
-  SubscriptionItemType,
   IntervalUnit,
   CurrencyCode,
 } from '@/types'
 import { createStripeCustomer } from './stripe'
 import { Purchase } from '@/db/schema/purchases'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import core from './core'
 import {
   insertPurchase,
   selectPurchaseById,
@@ -35,27 +29,17 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Customer } from '@/db/schema/customers'
-import { billingAddressSchema } from '@/db/schema/organizations'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { Payment } from '@/db/schema/payments'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
-  selectOpenNonExpiredCheckoutSessions,
-  updateCheckoutSessionsForOpenPurchase,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import {
   selectDefaultPricingModel,
-  insertPricingModel,
+  safelyInsertPricingModel,
+  selectPricingModelById,
 } from '@/db/tableMethods/pricingModelMethods'
-import {
-  selectProducts,
-  insertProduct,
-} from '@/db/tableMethods/productMethods'
-import {
-  selectPrices,
-  insertPrice,
-} from '@/db/tableMethods/priceMethods'
+import { insertProduct } from '@/db/tableMethods/productMethods'
+import { insertPrice } from '@/db/tableMethods/priceMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { Event } from '@/db/schema/events'
@@ -271,7 +255,6 @@ export const createFreePlanProductInsert = (
     organizationId: pricingModel.organizationId,
     livemode: pricingModel.livemode,
     active: true,
-    displayFeatures: null,
     singularQuantityLabel: null,
     pluralQuantityLabel: null,
     imageURL: null,
@@ -281,27 +264,48 @@ export const createFreePlanProductInsert = (
 
 export const createFreePlanPriceInsert = (
   defaultProduct: Product.Record,
-  defaultCurrency: CurrencyCode
+  defaultCurrency: CurrencyCode,
+  defaultPlanIntervalUnit?: IntervalUnit
 ): Price.Insert => {
-  return {
-    productId: defaultProduct.id,
-    unitPrice: 0,
-    isDefault: true,
-    type: PriceType.Subscription,
-    intervalUnit: IntervalUnit.Month,
-    intervalCount: 1,
-    currency: defaultCurrency,
-    livemode: defaultProduct.livemode,
-    active: true,
-    name: 'Free Plan',
-    trialPeriodDays: null,
-    setupFeeAmount: null,
-    usageEventsPerUnit: null,
-    usageMeterId: null,
-    externalId: null,
-    slug: null,
-    startsWithCreditTrial: false,
-    overagePriceId: null,
+  const config = createDefaultPriceConfig()
+  if (defaultPlanIntervalUnit) {
+    // Return subscription price when interval unit is provided
+    return {
+      productId: defaultProduct.id,
+      unitPrice: config.unitPrice,
+      isDefault: config.isDefault,
+      type: PriceType.Subscription,
+      intervalUnit: defaultPlanIntervalUnit,
+      intervalCount: config.intervalCount,
+      currency: defaultCurrency,
+      livemode: defaultProduct.livemode,
+      active: true,
+      name: config.name,
+      trialPeriodDays: null,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      externalId: null,
+      slug: config.slug,
+    }
+  } else {
+    // Return single payment price when no interval unit is provided
+    return {
+      productId: defaultProduct.id,
+      unitPrice: config.unitPrice,
+      isDefault: config.isDefault,
+      type: PriceType.SinglePayment,
+      intervalUnit: null,
+      intervalCount: null,
+      currency: defaultCurrency,
+      livemode: defaultProduct.livemode,
+      active: true,
+      name: config.name,
+      trialPeriodDays: null,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      externalId: null,
+      slug: config.slug,
+    }
   }
 }
 export const createCustomerBookkeeping = async (
@@ -312,7 +316,7 @@ export const createCustomerBookkeeping = async (
     transaction,
     organizationId,
     livemode,
-  }: AuthenticatedTransactionParams
+  }: Omit<AuthenticatedTransactionParams, 'userId'>
 ): Promise<
   TransactionOutput<{
     customer: Customer.Record
@@ -329,9 +333,21 @@ export const createCustomerBookkeeping = async (
       'Customer organizationId must match authenticated organizationId'
     )
   }
-
+  const pricingModel = payload.customer.pricingModelId
+    ? await selectPricingModelById(
+        payload.customer.pricingModelId,
+        transaction
+      )
+    : await selectDefaultPricingModel(
+        { organizationId: payload.customer.organizationId, livemode },
+        transaction
+      )
   let customer = await insertCustomer(
-    { ...payload.customer, livemode },
+    {
+      ...payload.customer,
+      livemode,
+      pricingModelId: pricingModel?.id ?? null,
+    },
     transaction
   )
   if (!customer.stripeCustomerId) {
@@ -345,11 +361,11 @@ export const createCustomerBookkeeping = async (
     )
   }
 
-  const timestamp = new Date()
-  const eventsToLog: Event.Insert[] = []
+  const timestamp = Date.now()
+  const eventsToInsert: Event.Insert[] = []
 
   // Create customer created event
-  eventsToLog.push({
+  eventsToInsert.push({
     type: FlowgladEventType.CustomerCreated,
     occurredAt: timestamp,
     organizationId: customer.organizationId,
@@ -357,6 +373,10 @@ export const createCustomerBookkeeping = async (
     payload: {
       object: EventNoun.Customer,
       id: customer.id,
+      customer: {
+        id: customer.id,
+        externalId: customer.externalId,
+      },
     },
     submittedAt: timestamp,
     hash: constructCustomerCreatedEventHash(customer),
@@ -364,127 +384,99 @@ export const createCustomerBookkeeping = async (
     processedAt: null,
   })
 
+  const pricingModelToUse =
+    pricingModel ??
+    (await selectDefaultPricingModel(
+      {
+        organizationId: customer.organizationId,
+        livemode: customer.livemode,
+      },
+      transaction
+    ))
+
   // Create default subscription for the customer
   // Use customer's organizationId to ensure consistency
-  if (customer.organizationId) {
-    try {
-      // Determine which pricing model to use
-      let pricingModelId = customer.pricingModelId
-
-      // If no pricing model specified, use the default one
-      if (!pricingModelId) {
-        const defaultPricingModel = await selectDefaultPricingModel(
-          {
-            organizationId: customer.organizationId,
-            livemode: customer.livemode,
-          },
-          transaction
-        )
-        if (defaultPricingModel) {
-          pricingModelId = defaultPricingModel.id
-        }
-      }
-
-      if (pricingModelId) {
-        // Get the default product for this pricing model
-        const products = await selectProducts(
-          {
-            pricingModelId,
-            default: true,
-            active: true,
-          },
+  try {
+    // Determine which pricing model to use
+    let pricingModelId = pricingModelToUse!.id
+    // Get the default product for this pricing model
+    const [product] = await selectPricesAndProductsByProductWhere(
+      {
+        pricingModelId,
+        default: true,
+        active: true,
+      },
+      transaction
+    )
+    if (product) {
+      const defaultProduct = product
+      const defaultPrice = product.defaultPrice
+      if (defaultPrice) {
+        // Get the organization details - use customer's organizationId for consistency
+        const organization = await selectOrganizationById(
+          customer.organizationId,
           transaction
         )
 
-        if (products.length > 0) {
-          const defaultProduct = products[0]
-
-          // Get the default price for this product
-          const prices = await selectPrices(
-            {
-              productId: defaultProduct.id,
-              isDefault: true,
-              active: true,
+        // Create the subscription
+        const subscriptionResult = await createSubscriptionWorkflow(
+          {
+            organization,
+            customer: {
+              id: customer.id,
+              stripeCustomerId: customer.stripeCustomerId,
+              livemode: customer.livemode,
+              organizationId: customer.organizationId,
             },
-            transaction
-          )
+            product: defaultProduct,
+            price: defaultPrice,
+            quantity: 1,
+            livemode: customer.livemode,
+            startDate: new Date(),
+            interval: defaultPrice.intervalUnit,
+            intervalCount: defaultPrice.intervalCount,
+            trialEnd: defaultPrice.trialPeriodDays
+              ? new Date(
+                  Date.now() +
+                    defaultPrice.trialPeriodDays * 24 * 60 * 60 * 1000
+                )
+              : undefined,
+            autoStart: true,
+            name: `${defaultProduct.name} Subscription`,
+          },
+          transaction
+        )
 
-          if (prices.length > 0) {
-            const defaultPrice = prices[0]
+        // Merge events from subscription creation
+        if (subscriptionResult.eventsToInsert) {
+          eventsToInsert.push(...subscriptionResult.eventsToInsert)
+        }
 
-            // Get the organization details - use customer's organizationId for consistency
-            const organization = await selectOrganizationById(
-              customer.organizationId,
-              transaction
-            )
-
-            // Create the subscription
-            const subscriptionResult =
-              await createSubscriptionWorkflow(
-                {
-                  organization,
-                  customer: {
-                    id: customer.id,
-                    stripeCustomerId: customer.stripeCustomerId,
-                    livemode: customer.livemode,
-                    organizationId: customer.organizationId,
-                  },
-                  product: defaultProduct,
-                  price: defaultPrice,
-                  quantity: 1,
-                  livemode: customer.livemode,
-                  startDate: new Date(),
-                  interval:
-                    defaultPrice.intervalUnit || IntervalUnit.Month,
-                  intervalCount: defaultPrice.intervalCount || 1,
-                  trialEnd: defaultPrice.trialPeriodDays
-                    ? new Date(
-                        Date.now() +
-                          defaultPrice.trialPeriodDays *
-                            24 *
-                            60 *
-                            60 *
-                            1000
-                      )
-                    : undefined,
-                  autoStart: true,
-                  name: `${defaultProduct.name} Subscription`,
-                },
-                transaction
-              )
-
-            // Merge events from subscription creation
-            if (subscriptionResult.eventsToLog) {
-              eventsToLog.push(...subscriptionResult.eventsToLog)
-            }
-
-            // Return combined result with all events and ledger commands
-            return {
-              result: {
-                customer,
-                subscription: subscriptionResult.result.subscription,
-                subscriptionItems:
-                  subscriptionResult.result.subscriptionItems,
-              },
-              eventsToLog,
-              ledgerCommand: subscriptionResult.ledgerCommand,
-            }
-          }
+        // Return combined result with all events and ledger commands
+        return {
+          result: {
+            customer,
+            subscription: subscriptionResult.result.subscription,
+            subscriptionItems:
+              subscriptionResult.result.subscriptionItems,
+          },
+          eventsToInsert,
+          ledgerCommand: subscriptionResult.ledgerCommand,
         }
       }
-    } catch (error) {
-      // Log the error but don't fail customer creation
-      console.error(
-        'Failed to create default subscription for customer:',
-        error
-      )
     }
+  } catch (error) {
+    // Log the error but don't fail customer creation
+    console.error(
+      'Failed to create default subscription for customer:',
+      error
+    )
   }
 
   // Return just the customer with events
   return {
     result: { customer },
-    eventsToLog,
+    eventsToInsert,
   }
 }
 
@@ -497,6 +489,7 @@ export const createPricingModelBookkeeping = async (
       PricingModel.Insert,
       'livemode' | 'organizationId'
     >
+    defaultPlanIntervalUnit?: IntervalUnit
   },
   {
     transaction,
@@ -511,7 +504,7 @@ export const createPricingModelBookkeeping = async (
   }>
 > => {
   // 1. Create the pricing model
-  const pricingModel = await insertPricingModel(
+  const pricingModel = await safelyInsertPricingModel(
     {
       ...payload.pricingModel,
       organizationId,
@@ -536,14 +529,15 @@ export const createPricingModelBookkeeping = async (
   const defaultPrice = await insertPrice(
     createFreePlanPriceInsert(
       defaultProduct,
-      organization.defaultCurrency
+      organization.defaultCurrency,
+      payload.defaultPlanIntervalUnit
     ),
     transaction
   )
 
   // 5. Create events
   const timestamp = new Date()
-  const eventsToLog: Event.Insert[] = []
+  const eventsToInsert: Event.Insert[] = []
 
   return {
     result: {
@@ -551,6 +545,6 @@ export const createPricingModelBookkeeping = async (
       defaultProduct,
       defaultPrice,
     },
-    eventsToLog,
+    eventsToInsert,
   }
 }

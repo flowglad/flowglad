@@ -72,6 +72,24 @@ export const updateCustomer = createUpdateFunction(
   config
 )
 
+export const selectCustomerByExternalIdAndOrganizationId = async (
+  params: { externalId: string; organizationId: string },
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select()
+    .from(customersTable)
+    .where(
+      and(
+        eq(customersTable.externalId, params.externalId),
+        eq(customersTable.organizationId, params.organizationId)
+      )
+    )
+    .limit(1)
+  const [row] = result
+  return row ? customersSelectSchema.parse(row) : null
+}
+
 export const selectCustomerAndCustomerTableRows = async (
   whereConditions: Partial<Customer.Record>,
   transaction: DbTransaction
@@ -126,8 +144,8 @@ export const selectCustomerAndCustomerTableRows = async (
     } else if (!data?.earliestPurchase) {
       status = InferredCustomerStatus.Pending
     }
-    // TODO: else / if for customers with purchases that have ended
-    // TODO: else / if for customers with unpaid invoices
+    // FIXME: else / if for customers with purchases that have ended
+    // FIXME: else / if for customers with unpaid invoices
     return {
       customer: customersSelectSchema.parse(row.customer),
       totalSpend: dataByCustomerId.get(`${row.customer.id}`)
@@ -262,8 +280,8 @@ export const selectCustomersTableRowData = async (
     } else if (!data?.earliestPurchase) {
       status = InferredCustomerStatus.Pending
     }
-    // TODO: else / if for customers with purchases that have ended
-    // TODO: else / if for customers with unpaid invoices
+    // FIXME: else / if for customers with purchases that have ended
+    // FIXME: else / if for customers with unpaid invoices
     return {
       customer: customersSelectSchema.parse(row.customer),
       totalSpend: Number(
@@ -381,8 +399,8 @@ export const selectCustomersCursorPaginatedWithTableRowData =
         } else if (!data?.earliestPurchase) {
           status = InferredCustomerStatus.Pending
         }
-        // TODO: else / if for customers with purchases that have ended
-        // TODO: else / if for customers with unpaid invoices
+        // FIXME: else / if for customers with purchases that have ended
+        // FIXME: else / if for customers with unpaid invoices
         return {
           customer: customersSelectSchema.parse(row),
           totalSpend: Number(
@@ -433,5 +451,18 @@ export const setUserIdForCustomerRecords = async (
   await transaction
     .update(customersTable)
     .set({ userId })
-    .where(eq(customersTable.email, customerEmail))
+    .where(
+      and(
+        eq(customersTable.email, customerEmail),
+        /*
+         * For now, only support setting user id for livemode customers,
+         * so we can avoid unintentionally setting user id for test mode customers
+         * for the merchant.
+         *
+         * FIXME: support setting user id for test mode customers specifically.
+         * This will require more sophisticated auth business logic.
+         */
+        eq(customersTable.livemode, true)
+      )
+    )
 }

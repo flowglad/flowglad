@@ -49,6 +49,7 @@ import {
   selectOrganizationById,
   selectOrganizationAndFirstMemberByOrganizationId,
 } from '@/db/tableMethods/organizationMethods'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
 import { InvoiceStatus, SubscriptionItemType } from '@/types'
 
@@ -95,7 +96,6 @@ const getInvoiceProcedure = protectedProcedure
   })
 
 const createInvoiceProcedure = protectedProcedure
-  .meta(openApiMetas.POST)
   .input(createInvoiceSchema)
   .output(
     z.object({
@@ -121,7 +121,7 @@ const createInvoiceProcedure = protectedProcedure
           {
             ...invoiceInsert,
             livemode: ctx.livemode,
-            dueDate: invoiceInsert.dueDate ?? new Date(),
+            dueDate: invoiceInsert.dueDate ?? Date.now(),
             organizationId: ctx.organizationId!,
           },
           transaction
@@ -165,6 +165,10 @@ const createInvoiceProcedure = protectedProcedure
               organization.id,
               transaction
             )
+
+          const discountInfo =
+            await fetchDiscountInfoForInvoice(invoice)
+
           await sendInvoiceNotificationEmail({
             to: [customer.email],
             invoice,
@@ -172,6 +176,7 @@ const createInvoiceProcedure = protectedProcedure
             organizationName: organization.name,
             organizationLogoUrl: organization.logoURL ?? undefined,
             replyTo: orgAndFirstMember?.user.email,
+            discountInfo,
           })
         }
 
@@ -184,7 +189,6 @@ const createInvoiceProcedure = protectedProcedure
   })
 
 const updateInvoiceProcedure = protectedProcedure
-  .meta(openApiMetas.PUT)
   .input(editInvoiceSchema)
   .output(
     z.object({
@@ -210,15 +214,6 @@ const updateInvoiceProcedure = protectedProcedure
   })
 
 const sendInvoiceReminderProcedure = protectedProcedure
-  .meta(
-    createPostOpenApiMeta({
-      resource: 'invoices',
-      routeSuffix: 'send-reminder',
-      summary: 'Send Reminder Email for an Invoice',
-      tags: ['Invoices', 'Invoice', 'Invoice Reminder'],
-      requireIdParam: true,
-    })
-  )
   .input(sendInvoiceReminderSchema)
   .output(z.object({ success: z.boolean() }))
   .mutation(async ({ ctx, input }) => {

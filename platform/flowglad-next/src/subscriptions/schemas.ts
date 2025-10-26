@@ -3,7 +3,6 @@ import {
   subscriptionItemsSelectSchema,
   subscriptionItemClientSelectSchema,
   subscriptionItemClientInsertSchema,
-  usageSubscriptionItemClientSelectSchema,
   staticSubscriptionItemClientSelectSchema,
 } from '@/db/schema/subscriptionItems'
 import {
@@ -11,7 +10,7 @@ import {
   standardSubscriptionClientSelectSchema,
   subscriptionClientSelectSchema,
 } from '@/db/schema/subscriptions'
-import { subscribablePriceClientSelectSchema } from '@/db/schema/prices'
+import { pricesClientSelectSchema } from '@/db/schema/prices'
 import {
   SubscriptionAdjustmentTiming,
   SubscriptionCancellationArrangement,
@@ -19,20 +18,27 @@ import {
 import { z } from 'zod'
 import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
 import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
+import { zodEpochMs } from '@/db/timestampMs'
 
-export const adjustSubscriptionImmediatelySchema = z.object({
-  timing: z.literal(SubscriptionAdjustmentTiming.Immediately),
-  newSubscriptionItems: z.array(
-    z.union([
-      subscriptionItemClientInsertSchema,
-      subscriptionItemClientSelectSchema,
-    ])
-  ),
-  prorateCurrentBillingPeriod: z.boolean(),
-})
+export const adjustSubscriptionImmediatelySchema = z
+  .object({
+    timing: z
+      .literal(SubscriptionAdjustmentTiming.Immediately)
+      .describe(
+        'Note: Immediate adjustments are in private preview. Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616.'
+      ),
+    newSubscriptionItems: z.array(
+      z.union([
+        subscriptionItemClientInsertSchema,
+        subscriptionItemClientSelectSchema,
+      ])
+    ),
+    prorateCurrentBillingPeriod: z.boolean(),
+  })
+  .meta({ id: 'AdjustSubscriptionImmediatelyInput' })
 
-export const adjustSubscriptionAtEndOfCurrentBillingPeriodSchema =
-  z.object({
+export const adjustSubscriptionAtEndOfCurrentBillingPeriodSchema = z
+  .object({
     timing: z.literal(
       SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
     ),
@@ -43,6 +49,7 @@ export const adjustSubscriptionAtEndOfCurrentBillingPeriodSchema =
       ])
     ),
   })
+  .meta({ id: 'AdjustSubscriptionAtEndOfCurrentBillingPeriodInput' })
 
 export const adjustSubscriptionInputSchema = z.object({
   adjustment: z.discriminatedUnion('timing', [
@@ -57,14 +64,9 @@ export type AdjustSubscriptionParams = z.infer<
 >
 
 export const richSubscriptionItemClientSelectSchema =
-  z.discriminatedUnion('type', [
-    usageSubscriptionItemClientSelectSchema.extend({
-      price: subscribablePriceClientSelectSchema,
-    }),
-    staticSubscriptionItemClientSelectSchema.extend({
-      price: subscribablePriceClientSelectSchema,
-    }),
-  ])
+  staticSubscriptionItemClientSelectSchema.extend({
+    price: pricesClientSelectSchema,
+  })
 
 const richSubscriptionExperimentalSchema = z
   .object({
@@ -75,24 +77,31 @@ const richSubscriptionExperimentalSchema = z
   .describe('Experimental fields. May change without notice.')
 
 const richNonRenewingSubscriptionClientSelectSchema =
-  nonRenewingSubscriptionClientSelectSchema.extend({
-    subscriptionItems: richSubscriptionItemClientSelectSchema.array(),
-    current: z.boolean(),
-    experimental: richSubscriptionExperimentalSchema,
-  })
+  nonRenewingSubscriptionClientSelectSchema
+    .extend({
+      subscriptionItems:
+        richSubscriptionItemClientSelectSchema.array(),
+      current: z.boolean(),
+      experimental: richSubscriptionExperimentalSchema,
+    })
+    .meta({ id: 'NonRenewingSubscriptionDetails' })
 
 const richStandardSubscriptionClientSelectSchema =
-  standardSubscriptionClientSelectSchema.extend({
-    subscriptionItems: richSubscriptionItemClientSelectSchema.array(),
-    current: z.boolean(),
-    experimental: richSubscriptionExperimentalSchema,
-  })
+  standardSubscriptionClientSelectSchema
+    .extend({
+      subscriptionItems:
+        richSubscriptionItemClientSelectSchema.array(),
+      current: z.boolean(),
+      experimental: richSubscriptionExperimentalSchema,
+    })
+    .meta({ id: 'StandardSubscriptionDetails' })
 
-export const richSubscriptionClientSelectSchema =
-  z.discriminatedUnion('renews', [
+export const richSubscriptionClientSelectSchema = z
+  .discriminatedUnion('renews', [
     richNonRenewingSubscriptionClientSelectSchema,
     richStandardSubscriptionClientSelectSchema,
   ])
+  .meta({ id: 'SubscriptionDetails' })
 
 export type RichSubscriptionItem = z.infer<
   typeof richSubscriptionItemClientSelectSchema
@@ -104,22 +113,28 @@ export type RichSubscription = z.infer<
 
 export const subscriptionCancellationParametersSchema =
   z.discriminatedUnion('timing', [
-    z.object({
-      timing: z.literal(
-        SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod
-      ),
-    }),
-    z.object({
-      timing: z.literal(
-        SubscriptionCancellationArrangement.AtFutureDate
-      ),
-      endDate: z.date(),
-    }),
-    z.object({
-      timing: z.literal(
-        SubscriptionCancellationArrangement.Immediately
-      ),
-    }),
+    z
+      .object({
+        timing: z.literal(
+          SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod
+        ),
+      })
+      .meta({ id: 'CancelSubscriptionAtEndOfBillingPeriodInput' }),
+    z
+      .object({
+        timing: z.literal(
+          SubscriptionCancellationArrangement.AtFutureDate
+        ),
+        endDate: zodEpochMs,
+      })
+      .meta({ id: 'CancelSubscriptionAtFutureDateInput' }),
+    z
+      .object({
+        timing: z.literal(
+          SubscriptionCancellationArrangement.Immediately
+        ),
+      })
+      .meta({ id: 'CancelSubscriptionImmediatelyInput' }),
   ])
 
 export const scheduleSubscriptionCancellationSchema = z.object({

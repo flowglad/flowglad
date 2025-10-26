@@ -26,7 +26,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   setIsOpen,
   product,
 }) => {
-  const editProduct = trpc.products.edit.useMutation()
+  const editProduct = trpc.products.update.useMutation()
 
   const { data: pricesData, isLoading: pricesLoading } =
     trpc.prices.list.useQuery({
@@ -39,37 +39,43 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       }),
     })
   const prices = pricesData?.data
+  const defaultActivePrice = prices?.find(
+    (p) => p.isDefault === true && p.active === true
+  )
   const { organization } = useAuthenticatedContext()
+
+  // Don't render modal if organization is not loaded yet
+  if (!organization) {
+    return null
+  }
+
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
-      title="Edit Product"
+      title={product.default ? 'Edit Default Plan' : 'Edit Product'}
       formSchema={editProductFormSchema}
       defaultValues={{
         product,
-        price: prices?.[0],
+        price: defaultActivePrice ?? prices?.[0],
         id: product.id,
         __rawPriceString: countableCurrencyAmountToRawStringAmount(
-          organization!.defaultCurrency,
-          prices?.[0]?.unitPrice!
+          organization.defaultCurrency,
+          defaultActivePrice?.unitPrice! ?? prices?.[0]?.unitPrice!
         ),
       }}
       onSubmit={async (input) => {
-        let price = input.price
-        if (input.price) {
-          const unitPrice = rawStringAmountToCountableCurrencyAmount(
-            organization!.defaultCurrency,
-            input.__rawPriceString!
-          )
-          price = {
-            ...input.price,
-            unitPrice,
-          }
-        }
         await editProduct.mutateAsync({
           ...input,
-          price,
+          price: input.price
+            ? {
+                ...input.price,
+                unitPrice: rawStringAmountToCountableCurrencyAmount(
+                  organization.defaultCurrency,
+                  input.__rawPriceString
+                ),
+              }
+            : undefined,
         })
       }}
       key={`${product.id}-${pricesLoading}`}

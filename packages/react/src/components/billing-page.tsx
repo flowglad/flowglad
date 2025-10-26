@@ -82,9 +82,12 @@ const CurrentSubscriptionOrPricingTable = ({
       products={catalog.products.map((product) => ({
         name: product.name,
         description: product.description,
-        displayFeatures: product.displayFeatures,
         primaryButtonText: 'Subscribe',
+        disabled: product.default,
         onClickPrimaryButton: () => {
+          if (product.default) {
+            return // Do nothing for default products
+          }
           return createCheckoutSession({
             priceId: product.defaultPrice.id,
             successUrl: window.location.href,

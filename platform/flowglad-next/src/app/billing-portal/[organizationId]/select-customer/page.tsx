@@ -99,13 +99,13 @@ export default function SelectCustomerPage() {
 
   // Transform customer data to match CustomerProfile interface
   const customerProfiles = customersData.customers.map(
-    (customer: any) => ({
+    (customer) => ({
       id: customer.id,
       name: customer.name || customer.email,
       email: customer.email,
       organizationId: customer.organizationId,
       organizationName: undefined, // Will be populated if needed
-      createdAt: customer.createdAt,
+      createdAt: new Date(customer.createdAt),
       avatarUrl: customer.iconURL || undefined,
       metadata: undefined, // Customer schema doesn't have metadata field
     })

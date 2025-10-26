@@ -13,15 +13,17 @@ import {
   TooltipCallbackProps,
 } from '@/components/charts/AreaChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import {
+  stripeCurrencyAmountToHumanReadableCurrencyAmount,
+  stripeCurrencyAmountToShortReadableCurrencyAmount,
+} from '@/utils/stripe'
 import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { RevenueChartIntervalUnit } from '@/types'
 import { trpc } from '@/app/_trpc/client'
-import { FallbackSkeleton, Skeleton } from './ui/skeleton'
+import { Skeleton } from './ui/skeleton'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { LineChart } from './charts/LineChart'
-import { Button } from '@/components/ui/button'
 
 /**
  * Two dots make a graph principle: this is the minimum range duration required
@@ -68,6 +70,23 @@ export function RevenueChart({
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
+  // Use useRef to store tooltip data during render, then update state after render
+
+  // FIXME(FG-384): Fix this warning:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const pendingTooltipData =
+    React.useRef<TooltipCallbackProps | null>(null)
+
+  // Use useEffect to safely update tooltip state after render
+
+  // FIXME(FG-384): Fix this warning:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    if (pendingTooltipData.current !== null) {
+      setTooltipData(pendingTooltipData.current)
+      pendingTooltipData.current = null
+    }
+  })
 
   const chartData = React.useMemo(() => {
     if (!revenueData) return []
@@ -188,51 +207,56 @@ export function RevenueChart({
   }
   return (
     <div className="w-full h-full">
-      <div className="flex flex-row gap-2 justify-between">
-        <div className="text-sm text-gray-700 dark:text-gray-300 w-fit flex items-center flex-row">
-          <p className="whitespace-nowrap">Revenue by</p>
-          <Select
-            value={interval}
-            onValueChange={(value) =>
-              setInterval(value as RevenueChartIntervalUnit)
-            }
-          >
-            <SelectTrigger className="border-none bg-transparent">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {intervalOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {/* <Button
+      <div className="flex gap-2 justify-between">
+        <div className="text-sm text-muted-foreground w-fit flex items-center"></div>
+        {/*         <Button
           variant="ghost"
           size="sm"
           onClick={exportOnClickHandler}
         >
-          <Export size={16} weight={'regular'} />
+          <Export className="w-4 h-4 mr-2" weight={'regular'} />
+          Export
+        </Button>
+        >
           Export
         </Button> */}
       </div>
 
-      <div className="mt-2">
-        <FallbackSkeleton
-          showSkeleton={isLoading}
-          className="w-36 h-12"
-        >
-          <p className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-            {formattedRevenueValue}
-          </p>
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            {isTooltipLabelDate
-              ? core.formatDate(new Date(tooltipLabel as string))
-              : core.formatDateRange({ fromDate, toDate })}
-          </p>
-        </FallbackSkeleton>
+      <div>
+        {isLoading ? (
+          <Skeleton className="w-36 h-12" />
+        ) : (
+          <div className="flex flex-col">
+            <p className="text-xl font-semibold text-foreground">
+              {formattedRevenueValue}
+            </p>
+            <div className="flex items-center flex-row w-fit">
+              <p className="whitespace-nowrap text-sm text-muted-foreground">
+                Revenue by
+              </p>
+              <Select
+                value={interval}
+                onValueChange={(value) =>
+                  setInterval(value as RevenueChartIntervalUnit)
+                }
+              >
+                <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {intervalOptions.map((option) => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </div>
       {isLoading ? (
         <div className="-mb-2 mt-8 flex items-center">
@@ -245,7 +269,7 @@ export function RevenueChart({
           categories={['revenue']}
           // startEndOnly={true}
           className="-mb-2 mt-8"
-          colors={['amber']}
+          colors={['foreground']}
           customTooltip={RevenueTooltip}
           maxValue={maxValue}
           autoMinValue={false}
@@ -259,19 +283,20 @@ export function RevenueChart({
             )
           }
           yAxisValueFormatter={(value: number) =>
-            stripeCurrencyAmountToHumanReadableCurrencyAmount(
+            stripeCurrencyAmountToShortReadableCurrencyAmount(
               organization?.defaultCurrency!,
               value
             )
           }
           tooltipCallback={(props: any) => {
+            // Store tooltip data in ref during render, useEffect will update state safely
             if (props.active) {
-              setTooltipData((prev) => {
-                if (prev?.label === props.label) return prev
-                return props
-              })
+              // Only update if the data is different to prevent unnecessary re-renders
+              if (tooltipData?.label !== props.label) {
+                pendingTooltipData.current = props
+              }
             } else {
-              setTooltipData(null)
+              pendingTooltipData.current = null
             }
           }}
         />

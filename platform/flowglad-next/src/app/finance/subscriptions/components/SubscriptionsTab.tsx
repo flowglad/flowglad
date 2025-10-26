@@ -1,7 +1,6 @@
 import { TabsTrigger } from '@/components/ui/tabs'
 import { SubscriptionStatus } from '@/types'
 import { useSubscriptionCountsByStatusMap } from '../hooks/useSubscriptionCountsByStatusMap'
-import { FallbackSkeleton } from '@/components/ui/skeleton'
 import { sentenceCase } from 'change-case'
 
 interface SubscriptionsTabProps {

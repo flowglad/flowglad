@@ -35,7 +35,7 @@ const EditPricingModelModal: React.FC<EditPricingModelModalProps> = ({
       }}
       onSubmit={editPricingModel.mutateAsync}
     >
-      <PricingModelFormFields />
+      <PricingModelFormFields edit />
     </FormModal>
   )
 }

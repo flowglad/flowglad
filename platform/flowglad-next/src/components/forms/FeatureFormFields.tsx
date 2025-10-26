@@ -23,16 +23,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
-import NumberInput from '@/components/ion/NumberInput'
 import UsageMetersSelect from './UsageMetersSelect'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
 import core, { titleCase } from '@/utils/core'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
-const FeatureFormFields = () => {
+const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
   const form = useFormContext<CreateFeatureInput>()
 
   const featureType = form.watch('feature.type')
+  const pricingModelId = form.watch('feature.pricingModelId')
   if (!core.IS_PROD) {
     // eslint-disable-next-line no-console
     console.log('errors', form.formState.errors)
@@ -64,13 +66,15 @@ const FeatureFormFields = () => {
       <FormField
         control={form.control}
         name="feature.slug"
-        render={({ field }) => (
+        render={() => (
           <FormItem>
             <FormLabel>Slug</FormLabel>
             <FormControl>
-              <Input
-                placeholder="e.g. my-awesome-feature"
-                {...field}
+              <AutoSlugInput
+                name="feature.slug"
+                sourceName="feature.name"
+                placeholder="feature_slug"
+                disabledAuto={edit}
               />
             </FormControl>
             <FormDescription>
@@ -155,15 +159,23 @@ const FeatureFormFields = () => {
               <FormItem>
                 <FormLabel>Amount</FormLabel>
                 <FormControl>
-                  <NumberInput
-                    {...field}
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
                     placeholder="e.g. 100"
-                    value={field.value ?? undefined} // Ensure undefined for empty to avoid "0" display issues
-                    onChange={(e) =>
-                      field.onChange(
-                        parseInt(e.target.value, 10) || null
-                      )
-                    }
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (value) {
+                        const intValue = parseInt(value, 10)
+                        if (!isNaN(intValue)) {
+                          field.onChange(intValue)
+                        }
+                      } else {
+                        field.onChange(null)
+                      }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -173,6 +185,7 @@ const FeatureFormFields = () => {
           <UsageMetersSelect
             name="feature.usageMeterId"
             control={form.control}
+            pricingModelId={pricingModelId}
           />
           <FormField
             control={form.control}
@@ -209,11 +222,19 @@ const FeatureFormFields = () => {
         control={form.control}
         name="feature.active"
         render={({ field }) => (
-          <Switch
-            label="Active"
-            checked={field.value}
-            onCheckedChange={field.onChange}
-          />
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="feature-active"
+              checked={field.value}
+              onCheckedChange={field.onChange}
+            />
+            <Label
+              htmlFor="feature-active"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Active
+            </Label>
+          </div>
         )}
       />
     </div>

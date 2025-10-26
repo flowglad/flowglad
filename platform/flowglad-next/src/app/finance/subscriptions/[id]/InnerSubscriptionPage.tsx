@@ -1,20 +1,24 @@
 'use client'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import { RichSubscription } from '@/subscriptions/schemas'
-import TableTitle from '@/components/ion/TableTitle'
-import PaymentsTable from '../../payments/PaymentsTable'
+import { TableHeader } from '@/components/ui/table-header'
+import { PaymentsDataTable } from '../../payments/data-table'
 import { useAuthContext } from '@/contexts/authContext'
-import SubscriptionItemsTable from './SubscriptionItemsTable'
+import { SubscriptionItemsDataTable } from './subscription-items/data-table'
 import SubscriptionStatusBadge from '../SubscriptionStatusBadge'
 import core from '@/utils/core'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { CardPaymentMethodLabel } from '@/components/PaymentMethodLabel'
 import { PaymentMethodType } from '@/types'
 import { Label } from '@/components/ui/label'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Pencil } from 'lucide-react'
+import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
-import InvoicesTable from '@/components/InvoicesTable'
+import { InvoicesDataTable } from '../../invoices/data-table'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -24,6 +28,8 @@ const InnerSubscriptionPage = ({
   defaultPaymentMethod: PaymentMethod.ClientRecord | null
 }) => {
   const { organization } = useAuthContext()
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+
   if (!organization) {
     return <div>Loading...</div>
   }
@@ -34,14 +40,17 @@ const InnerSubscriptionPage = ({
           <Breadcrumb />
           <div className="flex flex-col">
             <div className="flex flex-row justify-between items-center mb-6 gap-8">
-              <PageTitle className="flex flex-row items-center gap-2">
-                {subscription.name ?? 'Subscription'}
-              </PageTitle>
+              <PageHeader
+                title={subscription.name ?? 'Subscription'}
+                className="flex flex-row items-center gap-2"
+              />
             </div>
-            <SubscriptionStatusBadge status={subscription.status} />
+            <div className="w-fit">
+              <SubscriptionStatusBadge status={subscription.status} />
+            </div>
           </div>
         </div>
-        <TableTitle title="Details" noButtons />
+        <TableHeader title="Details" noButtons />
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <Label>Dates</Label>
@@ -52,7 +61,17 @@ const InnerSubscriptionPage = ({
                 : ' -'}
             </div>
             <div className="flex w-full flex-col gap-2">
-              <Label>Payment Method</Label>
+              <div className="flex items-center justify-between">
+                <Label>Payment Method</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditDialogOpen(true)}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              </div>
               {defaultPaymentMethod &&
                 defaultPaymentMethod.type ===
                   PaymentMethodType.Card && (
@@ -67,22 +86,36 @@ const InnerSubscriptionPage = ({
                     }
                   />
                 )}
+              {!defaultPaymentMethod && (
+                <p className="text-sm text-muted-foreground">
+                  No payment method set
+                </p>
+              )}
             </div>
           </div>
         </div>
-        <TableTitle title="Items" noButtons />
-        <SubscriptionItemsTable
+        <SubscriptionItemsDataTable
+          title="Items"
           subscriptionItems={subscription.subscriptionItems}
+          currencyCode={organization.defaultCurrency}
         />
-        <TableTitle title="Invoices" noButtons />
-        <InvoicesTable
+        <InvoicesDataTable
+          title="Invoices"
           filters={{ subscriptionId: subscription.id }}
         />
-        <TableTitle title="Payments" noButtons />
-        <PaymentsTable
+        <PaymentsDataTable
+          title="Payments"
           filters={{ subscriptionId: subscription.id }}
         />
       </div>
+
+      <EditSubscriptionPaymentMethodModal
+        isOpen={isEditDialogOpen}
+        setIsOpen={setIsEditDialogOpen}
+        subscriptionId={subscription.id}
+        customerId={subscription.customerId}
+        currentPaymentMethodId={defaultPaymentMethod?.id}
+      />
     </InternalPageContainer>
   )
 }

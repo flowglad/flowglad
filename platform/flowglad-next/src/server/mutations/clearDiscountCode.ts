@@ -11,7 +11,7 @@ export const clearDiscountCode = publicProcedure
   .input(productIdOrPurchaseIdSchema)
   .mutation(async ({ input }) => {
     return adminTransaction(async ({ transaction }) => {
-      // TODO: find a more elegant way to model this.
+      // FIXME: find a more elegant way to model this.
       const checkoutSession =
         'productId' in input
           ? await findProductCheckoutSession(

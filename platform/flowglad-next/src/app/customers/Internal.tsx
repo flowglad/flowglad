@@ -1,7 +1,4 @@
-// Generated with Ion on 9/20/2024, 10:31:46 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=372:12322
 'use client'
-import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import {
   Tabs,
@@ -9,12 +6,11 @@ import {
   TabsContent,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import CustomersTable from './CustomersTable'
-import PageTitle from '@/components/ion/PageTitle'
+import { CustomersDataTable } from './data-table'
+import { PageHeader } from '@/components/ui/page-header'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 interface CustomerTabProps {
@@ -57,15 +53,12 @@ function Internal() {
       <InternalPageContainer>
         <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
           <Breadcrumb />
-          <div className="flex flex-row justify-between">
-            <PageTitle>Customers</PageTitle>
-            <Button onClick={() => setIsCreateCustomerOpen(true)}>
-              <Plus size={16} />
-              Create Customer
-            </Button>
-          </div>
+          <PageHeader title="Customers" />
           <div>
-            <CustomersTable filters={getFiltersForTab(activeTab)} />
+            <CustomersDataTable
+              filters={getFiltersForTab(activeTab)}
+              onCreateCustomer={() => setIsCreateCustomerOpen(true)}
+            />
           </div>
         </div>
       </InternalPageContainer>

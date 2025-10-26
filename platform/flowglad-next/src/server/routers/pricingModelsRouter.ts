@@ -13,7 +13,6 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  insertPricingModel,
   selectPricingModelsPaginated,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
   selectPricingModelsTableRows,
@@ -34,6 +33,8 @@ import {
 import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { TRPCError } from '@trpc/server'
 import { adminTransaction } from '@/db/adminTransaction'
+import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
+import yaml from 'json-to-pretty-yaml'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'pricingModel',
@@ -51,6 +52,17 @@ export const getDefaultPricingModelRouteConfig: Record<
     mapParams: (matches) => ({
       externalId: matches[0],
     }),
+  },
+}
+
+export const setupPricingModelRouteConfig: Record<
+  string,
+  RouteConfig
+> = {
+  'POST /pricing-models/setup': {
+    procedure: 'pricingModels.setup',
+    pattern: new RegExp(`^pricing-models\/setup$`),
+    mapParams: (matches, body) => body,
   },
 }
 
@@ -110,6 +122,7 @@ const createPricingModelProcedure = protectedProcedure
         return createPricingModelBookkeeping(
           {
             pricingModel: input.pricingModel,
+            defaultPlanIntervalUnit: input.defaultPlanIntervalUnit,
           },
           { transaction, organizationId, livemode }
         )
@@ -125,7 +138,7 @@ const createPricingModelProcedure = protectedProcedure
     }
   })
 
-const editPricingModelProcedure = protectedProcedure
+const updatePricingModelProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editPricingModelSchema)
   .output(
@@ -194,7 +207,7 @@ const clonePricingModelProcedure = protectedProcedure
       method: 'POST',
       path: '/api/v1/pricing-models/{id}/clone',
       summary: 'Clone a PricingModel',
-      tags: ['PricingModels'],
+      tags: ['Pricing Models'],
       protect: true,
     },
   })
@@ -213,6 +226,7 @@ const clonePricingModelProcedure = protectedProcedure
         apiKey: ctx.apiKey,
       }
     )
+
     if (!pricingModel) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -220,11 +234,13 @@ const clonePricingModelProcedure = protectedProcedure
           'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
       })
     }
+
     const clonedPricingModel = await adminTransaction(
       async ({ transaction }) => {
         return await clonePricingModelTransaction(input, transaction)
       }
     )
+
     return { pricingModel: clonedPricingModel }
   })
 
@@ -255,7 +271,7 @@ const setupPricingModelProcedure = protectedProcedure
       method: 'POST',
       path: '/api/v1/pricing-models/setup',
       summary: 'Setup a PricingModel',
-      tags: ['PricingModels'],
+      tags: ['Pricing Models'],
       protect: true,
     },
   })
@@ -290,13 +306,35 @@ const setupPricingModelProcedure = protectedProcedure
     )
   )
 
+const exportPricingModelProcedure = protectedProcedure
+  .input(idInputSchema)
+  .output(
+    z.object({
+      pricingModelYAML: z
+        .string()
+        .describe('YAML representation of the pricing model'),
+    })
+  )
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const data = await getPricingModelSetupData(
+          input.id,
+          transaction
+        )
+        return { pricingModelYAML: yaml.stringify(data) }
+      }
+    )
+  )
+
 export const pricingModelsRouter = router({
   list: listPricingModelsProcedure,
   setup: setupPricingModelProcedure,
   get: getPricingModelProcedure,
   getDefault: getDefaultPricingModelProcedure,
   create: createPricingModelProcedure,
-  update: editPricingModelProcedure,
+  update: updatePricingModelProcedure,
   clone: clonePricingModelProcedure,
   getTableRows: getTableRowsProcedure,
+  export: exportPricingModelProcedure,
 })

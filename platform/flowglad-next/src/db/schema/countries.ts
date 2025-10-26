@@ -15,6 +15,8 @@ import { z } from 'zod'
 import { CountryCode } from '@/types'
 import core from '@/utils/core'
 import { sql } from 'drizzle-orm'
+import { countryCodeSchema } from '../commonZodSchema'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'countries'
 
@@ -49,7 +51,7 @@ export const countries = pgTable(
 
 // Common refinements for both SELECT and INSERT schemas
 const commonColumnRefinements = {
-  code: core.createSafeZodEnum(CountryCode),
+  code: countryCodeSchema,
 }
 
 // Column refinements for SELECT schemas only
@@ -58,23 +60,15 @@ const selectColumnRefinements = {
   ...commonColumnRefinements,
 }
 
-// Column refinements for INSERT schemas (without auto-generated columns)
-const insertColumnRefinements = {
-  ...commonColumnRefinements,
-}
-
-export const countriesSelectSchema = createSelectSchema(
-  countries,
-  selectColumnRefinements
-)
-
-export const countriesInsertSchema = createInsertSchema(countries)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(insertColumnRefinements)
-
-export const countriesUpdateSchema = countriesInsertSchema
-  .partial()
-  .extend({ id: z.string() })
+export const {
+  select: countriesSelectSchema,
+  insert: countriesInsertSchema,
+  update: countriesUpdateSchema,
+} = buildSchemas(countries, {
+  refine: commonColumnRefinements,
+  selectRefine: selectColumnRefinements,
+  entityName: 'Country',
+})
 
 export namespace Country {
   export type Insert = z.infer<typeof countriesInsertSchema>

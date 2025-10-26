@@ -13,6 +13,7 @@ import {
   teardownOrg,
   setupPrice,
   setupUsageMeter,
+  setupProduct,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { Organization } from '@/db/schema/organizations'
@@ -31,16 +32,9 @@ describe('createCheckoutSessionTransaction', () => {
   let subscriptionPrice: Price.Record
   let usagePrice: Price.Record
   let usageMeter: UsageMeter.Record
-  beforeAll(() => {
-    process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'
-  })
 
   beforeEach(async () => {
-    const {
-      organization: org,
-      product,
-      pricingModel,
-    } = await setupOrg()
+    const { organization: org, pricingModel } = await setupOrg()
     organization = org
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -51,8 +45,19 @@ describe('createCheckoutSessionTransaction', () => {
       name: 'Usage Meter',
       pricingModelId: pricingModel.id,
     })
+
+    // Create a non-default product for testing
+    const nonDefaultProduct = await setupProduct({
+      organizationId: organization.id,
+      name: 'Test Product',
+      livemode: true,
+      pricingModelId: pricingModel.id,
+      active: true,
+      default: false,
+    })
+
     singlePaymentPrice = await setupPrice({
-      productId: product.id,
+      productId: nonDefaultProduct.id,
       type: PriceType.SinglePayment,
       name: 'Single Payment Price',
       unitPrice: 1000,
@@ -62,7 +67,7 @@ describe('createCheckoutSessionTransaction', () => {
       isDefault: false,
     })
     subscriptionPrice = await setupPrice({
-      productId: product.id,
+      productId: nonDefaultProduct.id,
       type: PriceType.Subscription,
       name: 'Subscription Price',
       unitPrice: 500,
@@ -72,7 +77,7 @@ describe('createCheckoutSessionTransaction', () => {
       isDefault: false,
     })
     usagePrice = await setupPrice({
-      productId: product.id,
+      productId: nonDefaultProduct.id,
       type: PriceType.Usage,
       name: 'Usage Price',
       unitPrice: 100,
@@ -98,18 +103,18 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     await expect(
-      adminTransaction(async (tx) =>
+      adminTransaction(async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
       )
     ).rejects.toThrow(
-      'Customer not found for externalId: non-existent-customer'
+      `Required customer not found for Product checkout (anonymous=false). externalId='non-existent-customer', organization='${organization.id}'.`
     )
   })
 
@@ -123,21 +128,21 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = await adminTransaction(
-      async (tx) =>
+      async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
     )
 
     expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
     expect(checkoutSession.stripeSetupIntentId).toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
   })
 
@@ -151,46 +156,49 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = await adminTransaction(
-      async (tx) =>
+      async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
     )
 
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
     expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
   })
 
-  it('should create a checkout session for a Usage-based product', async () => {
-    const checkoutSessionInput: CreateCheckoutSessionObject = {
-      customerExternalId: customer.externalId,
-      type: CheckoutSessionType.Product,
-      successUrl: 'http://success.url',
-      cancelUrl: 'http://cancel.url',
-      priceId: usagePrice.id,
-    }
+  // FIXME: Re-enable this once usage price checkouts are fully deprecated
+  // it('should throw an error when trying to create a checkout session for a Usage-based product', async () => {
+  //   const checkoutSessionInput: CreateCheckoutSessionObject = {
+  //     customerExternalId: customer.externalId,
+  //     type: CheckoutSessionType.Product,
+  //     successUrl: 'http://success.url',
+  //     cancelUrl: 'http://cancel.url',
+  //     priceId: usagePrice.id,
+  //   }
 
-    const { checkoutSession } = await adminTransaction(async (tx) =>
-      createCheckoutSessionTransaction(
-        {
-          checkoutSessionInput,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        tx.transaction
-      )
-    )
-
-    expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
-  })
+  //   await expect(
+  //     adminTransaction(async ({ transaction }) =>
+  //       createCheckoutSessionTransaction(
+  //         {
+  //           checkoutSessionInput,
+  //           organizationId: organization.id,
+  //           livemode: false,
+  //         },
+  //         transaction
+  //       )
+  //     )
+  //   ).rejects.toThrow(
+  //     `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for checkout sessions.`
+  //   )
+  // })
 
   it('should create a checkout session for AddPaymentMethod', async () => {
     const checkoutSessionInput: CreateCheckoutSessionObject = {
@@ -201,20 +209,20 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = await adminTransaction(
-      async (tx) =>
+      async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
     )
 
     expect(checkoutSession.stripeSetupIntentId).not.toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
     )
   })
 
@@ -229,21 +237,21 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     const { checkoutSession, url } = await adminTransaction(
-      async (tx) =>
+      async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
     )
 
     expect(checkoutSession.stripeSetupIntentId).toBeDefined()
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
     expect(url).toBe(
-      `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
   })
 
@@ -256,7 +264,7 @@ describe('createCheckoutSessionTransaction', () => {
     }
 
     await expect(
-      adminTransaction(async (tx) =>
+      adminTransaction(async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             // @ts-expect-error - testing invalid type
@@ -264,9 +272,225 @@ describe('createCheckoutSessionTransaction', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          tx.transaction
+          transaction
         )
       )
     ).rejects.toThrow('Invalid checkout session, type: InvalidType')
+  })
+
+  describe('Default product validation', () => {
+    it('should throw an error when trying to create a checkout session for a default product', async () => {
+      // Create a default product and price
+      const { organization: defaultOrg, product: defaultProduct } =
+        await setupOrg()
+      try {
+        const defaultPrice = await setupPrice({
+          productId: defaultProduct.id,
+          type: PriceType.SinglePayment,
+          name: 'Default Product Price',
+          unitPrice: 0,
+          intervalUnit: IntervalUnit.Day,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+        })
+
+        // Create a customer for the default organization
+        const defaultCustomer = await setupCustomer({
+          organizationId: defaultOrg.id,
+          stripeCustomerId: `cus_${core.nanoid()}`,
+        })
+
+        const checkoutSessionInput: CreateCheckoutSessionObject = {
+          customerExternalId: defaultCustomer.externalId,
+          type: CheckoutSessionType.Product,
+          successUrl: 'http://success.url',
+          cancelUrl: 'http://cancel.url',
+          priceId: defaultPrice.id,
+        }
+
+        await expect(
+          adminTransaction(async ({ transaction }) =>
+            createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: defaultOrg.id,
+                livemode: false,
+              },
+              transaction
+            )
+          )
+        ).rejects.toThrow(
+          'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+        )
+      } finally {
+        await teardownOrg({ organizationId: defaultOrg.id })
+      }
+    })
+
+    it('should allow creating checkout sessions for non-default products', async () => {
+      // This test verifies that the existing functionality still works for non-default products
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        customerExternalId: customer.externalId,
+        type: CheckoutSessionType.Product,
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+        priceId: singlePaymentPrice.id,
+      }
+
+      const { checkoutSession } = await adminTransaction(
+        async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+      )
+
+      expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
+      expect(checkoutSession.stripeSetupIntentId).toBeNull()
+    })
+  })
+
+  describe('Anonymous checkout sessions', () => {
+    it('should create an anonymous product checkout session without a customer', async () => {
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        type: CheckoutSessionType.Product,
+        anonymous: true,
+        customerExternalId: null,
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+        priceId: singlePaymentPrice.id,
+      }
+
+      const { checkoutSession, url } = await adminTransaction(
+        async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+      )
+
+      expect(checkoutSession.customerId).toBeNull()
+      expect(checkoutSession.customerEmail).toBeNull()
+      expect(checkoutSession.customerName).toBeNull()
+      expect(checkoutSession.stripePaymentIntentId).not.toBeNull()
+      expect(url).toBe(
+        `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      )
+    })
+
+    it('should throw error when non-anonymous product checkout has missing customerExternalId', async () => {
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        type: CheckoutSessionType.Product,
+        anonymous: false,
+        customerExternalId: 'non-existent-customers',
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+        priceId: singlePaymentPrice.id,
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow(
+        `Required customer not found for Product checkout (anonymous=false). externalId='non-existent-customers', organization='${organization.id}'.`
+      )
+    })
+
+    it('should populate customer fields correctly for non-anonymous checkout with valid customer', async () => {
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        type: CheckoutSessionType.Product,
+        customerExternalId: customer.externalId,
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+        priceId: singlePaymentPrice.id,
+      }
+
+      const { checkoutSession } = await adminTransaction(
+        async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+      )
+
+      expect(checkoutSession.customerId).toBe(customer.id)
+      expect(checkoutSession.customerEmail).toBe(customer.email)
+      expect(checkoutSession.customerName).toBe(customer.name)
+    })
+
+    it('should require customer for AddPaymentMethod checkout even with anonymous flag', async () => {
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        type: CheckoutSessionType.AddPaymentMethod,
+        // @ts-expect-error - testing that anonymous is ignored
+        anonymous: true,
+        customerExternalId: 'non-existent-customer',
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow(
+        'Customer is required for add payment method checkout sessions'
+      )
+    })
+
+    it('should require customer for ActivateSubscription checkout even with anonymous flag', async () => {
+      const checkoutSessionInput: CreateCheckoutSessionObject = {
+        type: CheckoutSessionType.ActivateSubscription,
+        // @ts-expect-error - testing that anonymous is ignored
+        anonymous: true,
+        customerExternalId: 'non-existent-customer',
+        priceId: subscriptionPrice.id,
+        targetSubscriptionId: 'sub_123',
+        successUrl: 'http://success.url',
+        cancelUrl: 'http://cancel.url',
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow(
+        'Customer is required for activate subscription checkout sessions'
+      )
+    })
   })
 })

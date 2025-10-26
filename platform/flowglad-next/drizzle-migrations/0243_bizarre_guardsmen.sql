@@ -1,0 +1,1 @@
+ALTER POLICY "Enable read for customers (pricing_models)" ON "pricing_models" TO customer USING ("id" in (select "pricing_model_id" from "customers") OR ("is_default" = true AND "organization_id" = current_organization_id()));

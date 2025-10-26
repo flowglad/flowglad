@@ -28,6 +28,9 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { Customer } from '@/db/schema/customers'
+import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
+import { Feature } from '@/db/schema/features'
+import { Discount } from '@/db/schema/discounts'
 
 interface CheckoutInfoSuccess {
   checkoutInfo: CheckoutInfoCore
@@ -53,11 +56,12 @@ export async function checkoutInfoForPriceWhere(
         transaction
       )
     if (!product.active || !price.active) {
-      // TODO: ERROR PAGE UI
+      // FIXME: ERROR PAGE UI
       return {
         product,
         price,
         organization,
+        features: [],
       }
     }
     /**
@@ -86,6 +90,10 @@ export async function checkoutInfoForPriceWhere(
       },
       transaction
     )
+    const features = await selectFeaturesByProductFeatureWhere(
+      { productId: product.id, expiredAt: null },
+      transaction
+    )
     const maybeCustomer = checkoutSession.customerId
       ? await selectCustomerById(
           checkoutSession.customerId,
@@ -95,6 +103,7 @@ export async function checkoutInfoForPriceWhere(
     return {
       product,
       price,
+      features: features.map((f) => f.feature),
       organization,
       checkoutSession,
       discount,
@@ -102,9 +111,9 @@ export async function checkoutInfoForPriceWhere(
       maybeCustomer,
     }
   })
-  const { checkoutSession, organization } = result
+  const { checkoutSession, organization, features } = result
   if (!checkoutSession) {
-    // TODO: ERROR PAGE UI
+    // FIXME: ERROR PAGE UI
     return {
       checkoutInfo: null,
       success: false,
@@ -135,11 +144,13 @@ export async function checkoutInfoForPriceWhere(
       flowType: CheckoutFlowType.SinglePayment,
       redirectUrl: core.safeUrl(
         `/purchase/post-payment`,
-        core.envVariable('NEXT_PUBLIC_APP_URL')
+        core.NEXT_PUBLIC_APP_URL
       ),
       clientSecret,
       checkoutSession,
       feeCalculation,
+      discount,
+      features,
     }
     return {
       checkoutInfo: checkoutInfoSchema.parse(rawCheckoutInfo),
@@ -159,12 +170,13 @@ export async function checkoutInfoForPriceWhere(
       flowType: CheckoutFlowType.Subscription,
       redirectUrl: core.safeUrl(
         `/purchase/post-payment`,
-        core.envVariable('NEXT_PUBLIC_APP_URL')
+        core.NEXT_PUBLIC_APP_URL
       ),
       clientSecret,
       readonlyCustomerEmail: maybeCustomer?.email,
       discount,
       feeCalculation,
+      features,
     }
     return {
       checkoutInfo: checkoutInfoSchema.parse(rawCheckoutInfo),
@@ -186,6 +198,8 @@ export async function checkoutInfoForCheckoutSession(
   feeCalculation: FeeCalculation.Record | null
   maybeCustomer: Customer.Record | null
   maybeCurrentSubscriptions: Subscription.Record[] | null
+  features: Feature.Record[] | null
+  discount: Discount.Record | null
 }> {
   const checkoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
@@ -211,6 +225,16 @@ export async function checkoutInfoForCheckoutSession(
     { checkoutSessionId: checkoutSession.id },
     transaction
   )
+  const featuresResult = await selectFeaturesByProductFeatureWhere(
+    { productId: product.id, expiredAt: null },
+    transaction
+  )
+  const discount = checkoutSession.discountId
+    ? await selectDiscountById(
+        checkoutSession.discountId,
+        transaction
+      )
+    : null
   const maybeCustomer = checkoutSession.customerId
     ? await selectCustomerById(
         checkoutSession.customerId,
@@ -232,9 +256,11 @@ export async function checkoutInfoForCheckoutSession(
     checkoutSession,
     product,
     price,
+    discount,
     sellerOrganization: organization,
     feeCalculation,
     maybeCustomer,
     maybeCurrentSubscriptions,
+    features: featuresResult.map((f) => f.feature),
   }
 }

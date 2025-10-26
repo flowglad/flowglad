@@ -4,7 +4,6 @@ import {
   subscriptionDummyPrice,
   usageDummyPrice,
 } from '@/stubs/priceStubs'
-import { z } from 'zod'
 import {
   Price,
   pricesSelectSchema,
@@ -43,6 +42,11 @@ describe('Price Defaults', () => {
     const transformedToSinglePaymentPrice = {
       ...subscriptionDummyPrice,
       ...singlePaymentPriceDefaultColumns,
+      intervalCount: null,
+      intervalUnit: null,
+      trialPeriodDays: null,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
     }
     testStartingPriceToDestinationPrice(
       transformedToSinglePaymentPrice,
@@ -66,6 +70,9 @@ describe('Price Defaults', () => {
       ...usageDummyPrice,
       ...singlePaymentPriceDefaultColumns,
       usageEventsPerUnit: null,
+      intervalCount: null,
+      intervalUnit: null,
+      usageMeterId: null,
     }
     testStartingPriceToDestinationPrice(
       transformedToSinglePaymentPrice,
@@ -98,7 +105,6 @@ describe('Price Defaults', () => {
   it('allow subscriptions to have no overage / usage fields', () => {
     const transformedToUsagePrice = {
       ...subscriptionDummyPrice,
-      overagePriceId: undefined,
       usageEventsPerUnit: undefined,
     }
     testStartingPriceToDestinationPrice(

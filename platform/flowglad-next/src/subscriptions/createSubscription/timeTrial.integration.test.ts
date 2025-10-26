@@ -21,7 +21,7 @@ import {
   CheckoutSessionStatus,
 } from '@/types'
 import { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
-import { adminTransaction } from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { PaymentMethodType } from '@/types'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import core from '@/utils/core'
@@ -85,15 +85,14 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     })
     // 1. Create product and price via createProductTransaction
     const { product: createdProduct, prices } =
-      await adminTransaction(async ({ transaction }) =>
-        createProductTransaction(
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        const result = await createProductTransaction(
           {
             product: {
               name: 'Test API Product',
               description: 'Test',
               imageURL: 'https://flowglad.com/logo.png',
               active: true,
-              displayFeatures: [],
               singularQuantityLabel: 'unit',
               pluralQuantityLabel: 'units',
               pricingModelId: pricingModel.id,
@@ -109,12 +108,9 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
                 intervalCount: 1,
                 isDefault: true,
                 active: true,
-                setupFeeAmount: 0,
                 trialPeriodDays,
-                startsWithCreditTrial: false,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
@@ -126,7 +122,8 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
             organizationId: organization.id,
           }
         )
-      )
+        return { result }
+      })
     // 2. Associate the toggle feature with the created product
     await setupProductFeature({
       organizationId: organization.id,
@@ -164,7 +161,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     expect(ci2.product.id).toBe(product.id)
     expect(ci2.price.id).toBe(price.id)
 
-    const checkoutSession = await adminTransaction(
+    const checkoutSession = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
         // 1. Create checkout session
         const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
@@ -222,12 +219,12 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
           transaction
         )
         expect(feeCalculations).toHaveLength(1)
-        return checkoutSession
+        return { result: checkoutSession }
       }
     )
 
     // Intermediary: check checkout info by checkout session ID
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
       const sessionInfo = await checkoutInfoForCheckoutSession(
         checkoutSession.id,
         transaction
@@ -236,9 +233,10 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       expect(sessionInfo.product.id).toBe(product.id)
       expect(sessionInfo.price.id).toBe(price.id)
       expect(sessionInfo.feeCalculation).not.toBeNull()
+      return { result: null }
     })
 
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
       // 5. Process setup intent
       const setupIntent: CoreSripeSetupIntent = {
         id: `si_${core.nanoid()}`,
@@ -262,8 +260,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       const sub = billingState.subscriptions[0]
       expect(sub.status).toBe(SubscriptionStatus.Trialing)
       expect(sub.trialEnd).toBeDefined()
-      const diff =
-        new Date(sub.trialEnd!).getTime() - new Date().getTime()
+      const diff = sub.trialEnd! - Date.now()
       expect(diff).toBeGreaterThanOrEqual(
         trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
       )
@@ -285,6 +282,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       expect(finalSession.status).toBe(
         CheckoutSessionStatus.Succeeded
       )
+      return { result: null }
     })
   })
 })

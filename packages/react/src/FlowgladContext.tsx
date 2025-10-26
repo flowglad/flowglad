@@ -18,6 +18,7 @@ import {
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
 import { CustomerBillingDetails } from '@flowglad/types'
+import { devError } from './lib/utils'
 
 export type FrontendCreateCheckoutSessionParams =
   CreateCheckoutSessionParams & {
@@ -342,6 +343,8 @@ export const FlowgladContextProvider = (
           paymentMethods: billingData.paymentMethods,
           currentSubscriptions: billingData.currentSubscriptions,
           catalog: billingData.catalog,
+          billingPortalUrl: billingData.billingPortalUrl,
+          pricingModel: billingData.pricingModel,
         }}
       >
         {props.children}
@@ -392,38 +395,57 @@ export const FlowgladContextProvider = (
       ...notPresentContextValues,
     }
   } else if (billing) {
-    const billingData: CustomerBillingDetails = billing.data
-    const reload = async () => {
-      await queryClient.invalidateQueries({
-        queryKey: [FlowgladActionKey.GetCustomerBilling],
-      })
+    const billingError = billing.error
+    const errors: Error[] = []
+    if (billingError) {
+      devError(
+        `Flowglad route handler error: ${billingError.message}`
+      )
+      errors.push(new Error(billingError.message))
     }
-    const getProduct = constructGetProduct(billingData.catalog)
-    const getPrice = constructGetPrice(billingData.catalog)
-    value = {
-      loaded: true,
-      loadBilling,
-      customer: billingData.customer,
-      createCheckoutSession,
-      createAddPaymentMethodCheckoutSession,
-      cancelSubscription,
-      createActivateSubscriptionCheckoutSession,
-      getProduct,
-      getPrice,
-      checkFeatureAccess: constructCheckFeatureAccess(
-        billingData.currentSubscriptions ?? []
-      ),
-      checkUsageBalance: constructCheckUsageBalance(
-        billingData.currentSubscriptions ?? []
-      ),
-      catalog: billingData.catalog,
-      subscriptions: billingData.subscriptions,
-      purchases: billingData.purchases,
-      errors: null,
-      reload,
-      invoices: billingData.invoices,
-      paymentMethods: billingData.paymentMethods,
-      currentSubscriptions: billingData.currentSubscriptions,
+    if (billing.data) {
+      const billingData: CustomerBillingDetails = billing.data
+      const reload = async () => {
+        await queryClient.invalidateQueries({
+          queryKey: [FlowgladActionKey.GetCustomerBilling],
+        })
+      }
+      const getProduct = constructGetProduct(billingData.catalog)
+      const getPrice = constructGetPrice(billingData.catalog)
+      value = {
+        loaded: true,
+        loadBilling,
+        customer: billingData.customer,
+        createCheckoutSession,
+        createAddPaymentMethodCheckoutSession,
+        cancelSubscription,
+        createActivateSubscriptionCheckoutSession,
+        getProduct,
+        getPrice,
+        checkFeatureAccess: constructCheckFeatureAccess(
+          billingData.currentSubscriptions ?? []
+        ),
+        checkUsageBalance: constructCheckUsageBalance(
+          billingData.currentSubscriptions ?? []
+        ),
+        catalog: billingData.catalog,
+        subscriptions: billingData.subscriptions,
+        purchases: billingData.purchases,
+        errors: null,
+        reload,
+        invoices: billingData.invoices,
+        paymentMethods: billingData.paymentMethods,
+        currentSubscriptions: billingData.currentSubscriptions,
+        billingPortalUrl: billingData.billingPortalUrl,
+        pricingModel: billingData.pricingModel,
+      }
+    } else {
+      value = {
+        loaded: true,
+        loadBilling,
+        errors,
+        ...notPresentContextValues,
+      }
     }
   } else if (isPendingBilling) {
     value = {

@@ -40,6 +40,7 @@ import { sql } from 'drizzle-orm'
 import { prices } from './prices'
 import { billingPeriods } from './billingPeriods'
 import { currencyCodeSchema } from '@/db/commonZodSchema'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'fee_calculations'
 
@@ -139,75 +140,9 @@ export const coreFeeCalculationsSelectSchema =
 
 const subscriptionFeeCalculationExtension = {
   type: z.literal(FeeCalculationType.SubscriptionPayment),
-  checkoutSessionId: z.null(),
-  priceId: z.null(),
+  checkoutSessionId: z.null().optional(),
+  priceId: z.null().optional(),
 }
-
-const checkoutSessionFeeCalculationExtension = {
-  type: z.literal(FeeCalculationType.CheckoutSessionPayment),
-  billingPeriodId: z.null(),
-}
-
-const SUBSCRIPTION_FEE_CALCULATION_DESCRIPTION =
-  'A fee calculation for a subscription, which should always have an associated billingPeriodId.'
-
-const CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION =
-  'A fee calculation for a checkoutSession, which should always have a checkoutSessionId.'
-
-export const subscriptionPaymentFeeCalculationInsertSchema =
-  coreFeeCalculationsInsertSchema
-    .extend(subscriptionFeeCalculationExtension)
-    .describe(SUBSCRIPTION_FEE_CALCULATION_DESCRIPTION)
-
-export const checkoutSessionPaymentFeeCalculationInsertSchema =
-  coreFeeCalculationsInsertSchema
-    .extend(checkoutSessionFeeCalculationExtension)
-    .describe(CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION)
-
-export const feeCalculationsInsertSchema = z
-  .discriminatedUnion('type', [
-    subscriptionPaymentFeeCalculationInsertSchema,
-    checkoutSessionPaymentFeeCalculationInsertSchema,
-  ])
-  .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
-
-export const subscriptionPaymentFeeCalculationSelectSchema =
-  coreFeeCalculationsSelectSchema
-    .extend(subscriptionFeeCalculationExtension)
-    .describe(SUBSCRIPTION_FEE_CALCULATION_DESCRIPTION)
-
-export const checkoutSessionPaymentFeeCalculationSelectSchema =
-  coreFeeCalculationsSelectSchema
-    .extend(checkoutSessionFeeCalculationExtension)
-    .describe(CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION)
-
-export const feeCalculationsSelectSchema = z
-  .discriminatedUnion('type', [
-    subscriptionPaymentFeeCalculationSelectSchema,
-    checkoutSessionPaymentFeeCalculationSelectSchema,
-  ])
-  .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
-
-export const subscriptionPaymentFeeCalculationUpdateSchema =
-  subscriptionPaymentFeeCalculationInsertSchema
-    .partial()
-    .extend(idInputSchema.shape)
-    .extend(subscriptionFeeCalculationExtension)
-    .describe(SUBSCRIPTION_FEE_CALCULATION_DESCRIPTION)
-
-export const checkoutSessionPaymentFeeCalculationUpdateSchema =
-  checkoutSessionPaymentFeeCalculationInsertSchema
-    .partial()
-    .extend(checkoutSessionFeeCalculationExtension)
-    .extend(idInputSchema.shape)
-    .describe(CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION)
-
-export const feeCalculationsUpdateSchema = z
-  .discriminatedUnion('type', [
-    subscriptionPaymentFeeCalculationUpdateSchema,
-    checkoutSessionPaymentFeeCalculationUpdateSchema,
-  ])
-  .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
 
 const readOnlyColumns = {
   organizationId: true,
@@ -220,29 +155,91 @@ const hiddenColumns = {
   stripeTaxCalculationId: true,
   stripeTaxTransactionId: true,
   internalNotes: true,
-  createdByCommit: true,
-  updatedByCommit: true,
   ...hiddenColumnsForClientSchema,
 } as const
 
-export const subscriptionFeeCalculationClientSelectSchema =
-  subscriptionPaymentFeeCalculationSelectSchema
-    .omit(hiddenColumns)
-    .meta({
-      id: 'SubscriptionFeeCalculationRecord',
-    })
+export const {
+  select: subscriptionPaymentFeeCalculationSelectSchema,
+  insert: subscriptionPaymentFeeCalculationInsertSchema,
+  update: subscriptionPaymentFeeCalculationUpdateSchema,
+  client: {
+    select: subscriptionPaymentFeeCalculationClientSelectSchema,
+    insert: subscriptionPaymentFeeCalculationClientInsertSchema,
+    update: subscriptionPaymentFeeCalculationClientUpdateSchema,
+  },
+} = buildSchemas(feeCalculations, {
+  discriminator: 'type',
+  refine: {
+    ...columnRefinements,
+    ...subscriptionFeeCalculationExtension,
+    type: z.literal(FeeCalculationType.SubscriptionPayment),
+  },
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'SubscriptionFeeCalculation',
+})
 
-export const checkoutSessionFeeCalculationClientSelectSchema =
-  checkoutSessionPaymentFeeCalculationSelectSchema
-    .omit(hiddenColumns)
-    .meta({
-      id: 'CheckoutSessionFeeCalculationRecord',
-    })
+const checkoutSessionFeeCalculationExtension = {
+  type: z.literal(FeeCalculationType.CheckoutSessionPayment),
+  billingPeriodId: z.null().optional(),
+}
+
+export const {
+  select: checkoutSessionPaymentFeeCalculationSelectSchema,
+  insert: checkoutSessionPaymentFeeCalculationInsertSchema,
+  update: checkoutSessionPaymentFeeCalculationUpdateSchema,
+  client: {
+    select: checkoutSessionPaymentFeeCalculationClientSelectSchema,
+    insert: checkoutSessionPaymentFeeCalculationClientInsertSchema,
+    update: checkoutSessionPaymentFeeCalculationClientUpdateSchema,
+  },
+} = buildSchemas(feeCalculations, {
+  discriminator: 'type',
+  refine: {
+    ...columnRefinements,
+    ...checkoutSessionFeeCalculationExtension,
+    type: z.literal(FeeCalculationType.CheckoutSessionPayment),
+  },
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'CheckoutSessionFeeCalculation',
+})
+
+const SUBSCRIPTION_FEE_CALCULATION_DESCRIPTION =
+  'A fee calculation for a subscription, which should always have an associated billingPeriodId.'
+
+const CHECKOUT_SESSION_FEE_CALCULATION_DESCRIPTION =
+  'A fee calculation for a checkoutSession, which should always have a checkoutSessionId.'
+
+export const feeCalculationsInsertSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPaymentFeeCalculationInsertSchema,
+    checkoutSessionPaymentFeeCalculationInsertSchema,
+  ])
+  .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
+
+export const feeCalculationsSelectSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPaymentFeeCalculationSelectSchema,
+    checkoutSessionPaymentFeeCalculationSelectSchema,
+  ])
+  .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
+
+export const feeCalculationsUpdateSchema = z
+  .discriminatedUnion('type', [
+    subscriptionPaymentFeeCalculationUpdateSchema,
+    checkoutSessionPaymentFeeCalculationUpdateSchema,
+  ])
+  .describe(FEE_CALCULATIONS_BASE_DESCRIPTION)
 
 export const feeCalculationClientSelectSchema = z
   .discriminatedUnion('type', [
-    subscriptionFeeCalculationClientSelectSchema,
-    checkoutSessionFeeCalculationClientSelectSchema,
+    subscriptionPaymentFeeCalculationClientSelectSchema,
+    checkoutSessionPaymentFeeCalculationClientSelectSchema,
   ])
   .meta({
     id: 'FeeCalculationRecord',
@@ -255,14 +252,14 @@ const customerHiddenColumns = {
 } as const
 
 export const customerFacingCheckoutSessionFeeCalculationSelectSchema =
-  checkoutSessionFeeCalculationClientSelectSchema
+  checkoutSessionPaymentFeeCalculationClientSelectSchema
     .omit(customerHiddenColumns)
     .meta({
       id: 'CustomerCheckoutSessionFeeCalculationRecord',
     })
 
 export const customerFacingSubscriptionFeeCalculationSelectSchema =
-  subscriptionFeeCalculationClientSelectSchema
+  subscriptionPaymentFeeCalculationClientSelectSchema
     .omit(customerHiddenColumns)
     .meta({
       id: 'CustomerSubscriptionFeeCalculationRecord',
@@ -316,10 +313,10 @@ export namespace FeeCalculation {
 
   /** ClientRecord types omitting hidden fields */
   export type SubscriptionClientRecord = z.infer<
-    typeof subscriptionFeeCalculationClientSelectSchema
+    typeof subscriptionPaymentFeeCalculationClientSelectSchema
   >
   export type CheckoutSessionClientRecord = z.infer<
-    typeof checkoutSessionFeeCalculationClientSelectSchema
+    typeof checkoutSessionPaymentFeeCalculationClientSelectSchema
   >
 
   /** Customer-facing records with sensitive fields omitted */

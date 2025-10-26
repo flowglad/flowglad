@@ -18,7 +18,7 @@ import {
   pricingModelsUpdateSchema,
 } from '@/db/schema/pricingModels'
 import { DbTransaction } from '@/db/types'
-import { count, eq, and } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { products } from '../schema/products'
 import {
   selectPricesAndProductsByProductWhere,
@@ -33,6 +33,16 @@ import {
 } from '../schema/usageMeters'
 import { selectProducts } from './productMethods'
 import { z } from 'zod'
+import {
+  ProductFeature,
+  productFeatures,
+} from '../schema/productFeatures'
+import {
+  Feature,
+  features,
+  featuresSelectSchema,
+} from '../schema/features'
+import { selectFeaturesByProductFeatureWhere } from './productFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof pricingModels,
@@ -118,13 +128,21 @@ export const makePricingModelDefault = async (
 }
 
 const setPricingModelsForOrganizationToNonDefault = async (
-  organizationId: string,
+  {
+    organizationId,
+    livemode,
+  }: { organizationId: string; livemode: boolean },
   transaction: DbTransaction
 ) => {
   await transaction
     .update(pricingModels)
     .set({ isDefault: false })
-    .where(eq(pricingModels.organizationId, organizationId))
+    .where(
+      and(
+        eq(pricingModels.organizationId, organizationId),
+        eq(pricingModels.livemode, livemode)
+      )
+    )
   return true
 }
 
@@ -141,7 +159,10 @@ export const safelyUpdatePricingModel = async (
       transaction
     )
     await setPricingModelsForOrganizationToNonDefault(
-      existingPricingModel.organizationId,
+      {
+        organizationId: existingPricingModel.organizationId,
+        livemode: existingPricingModel.livemode,
+      },
       transaction
     )
   }
@@ -154,7 +175,10 @@ export const safelyInsertPricingModel = async (
 ) => {
   if (pricingModel.isDefault) {
     await setPricingModelsForOrganizationToNonDefault(
-      pricingModel.organizationId,
+      {
+        organizationId: pricingModel.organizationId,
+        livemode: pricingModel.livemode,
+      },
       transaction
     )
   }
@@ -211,7 +235,7 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
      * Implementation note:
      * it is actually fairly important to do this in two steps,
      * because pricingModels are one-to-many with products, so we couldn't
-     * easily describe our desired "limit" result easily.
+     * easily describe our desired "limit" result.
      * But in two steps, we can limit the pricingModels, and then get the
      * products for each pricingModel.
      * This COULD create a performance issue if there are a lot of products
@@ -259,10 +283,40 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         { pricingModelId: Array.from(uniquePricingModelsMap.keys()) },
         transaction
       )
+    const productFeaturesAndFeatures =
+      await selectFeaturesByProductFeatureWhere(
+        { productId: productResults.map((product) => product.id) },
+        transaction
+      )
+
+    const productFeaturesAndFeaturesByProductId = new Map<
+      string,
+      {
+        productFeature: ProductFeature.Record
+        feature: Feature.Record
+      }[]
+    >()
+    productFeaturesAndFeatures.forEach(
+      ({ productFeature, feature }) => {
+        productFeaturesAndFeaturesByProductId.set(
+          productFeature.productId,
+          [
+            ...(productFeaturesAndFeaturesByProductId.get(
+              productFeature.productId
+            ) || []),
+            {
+              productFeature,
+              feature,
+            },
+          ]
+        )
+      }
+    )
     const productsByPricingModelId = new Map<
       string,
       PricingModelWithProductsAndUsageMeters['products']
     >()
+
     productResults.forEach(({ prices, ...product }) => {
       productsByPricingModelId.set(product.pricingModelId, [
         ...(productsByPricingModelId.get(product.pricingModelId) ||
@@ -270,6 +324,10 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         {
           ...product,
           prices,
+          features:
+            productFeaturesAndFeaturesByProductId
+              .get(product.id)
+              ?.map((p) => p.feature) ?? [],
           defaultPrice:
             prices.find((price) => price.isDefault) ?? prices[0],
         },
@@ -308,20 +366,44 @@ export const selectPricingModelForCustomer = async (
         { id: customer.pricingModelId },
         transaction
       )
+
     if (pricingModel) {
-      return pricingModel
+      return {
+        ...pricingModel,
+        products: pricingModel.products
+          .filter((product) => product.active)
+          .map((product) => ({
+            ...product,
+            prices: product.prices.filter((price) => price.active),
+          }))
+          .filter((product) => product.prices.length > 0), // Filter out products with no active prices
+      }
     }
   }
   const [pricingModel] =
     await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-      { isDefault: true, organizationId: customer.organizationId },
+      {
+        isDefault: true,
+        organizationId: customer.organizationId,
+        livemode: customer.livemode,
+      },
       transaction
     )
 
+  if (!pricingModel) {
+    throw new Error(
+      `No default pricing model found for organization ${customer.organizationId}`
+    )
+  }
+
   return {
     ...pricingModel,
-    products: pricingModel.products.filter(
-      (product) => product.active
-    ),
+    products: pricingModel.products
+      .filter((product) => product.active)
+      .map((product) => ({
+        ...product,
+        prices: product.prices.filter((price) => price.active),
+      }))
+      .filter((product) => product.prices.length > 0), // Filter out products with no active prices
   }
 }

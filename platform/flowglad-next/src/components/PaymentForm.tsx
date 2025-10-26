@@ -7,22 +7,24 @@ import {
   AddressElement,
   LinkAuthenticationElementProps,
 } from '@stripe/react-stripe-js'
-import { FormEvent, useState } from 'react'
-import core, { cn } from '@/utils/core'
+import { FormEvent, useState, useEffect } from 'react'
+import { cn } from '@/lib/utils'
+import core from '@/utils/core'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { trpc } from '@/app/_trpc/client'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
 import {
   CheckoutFlowType,
+  CheckoutSessionStatus,
   CurrencyCode,
   PaymentMethodType,
   PriceType,
 } from '@/types'
 import { LoaderCircle } from 'lucide-react'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import TotalBillingDetails from './ion/TotalBillingDetails'
-import PoweredByFlowgladText from './ion/PoweredByFlowgladText'
+import { TotalBillingDetails } from './checkout/total-billing-details'
+import { PoweredByFlowglad } from './powered-by-flowglad'
 import DiscountCodeInput from './DiscountCodeInput'
 import {
   SubscriptionCheckoutDetails,
@@ -34,78 +36,38 @@ import ErrorLabel from './ErrorLabel'
 import { StripeError } from '@stripe/stripe-js'
 import { z } from 'zod'
 import { Switch } from '@/components/ui/switch'
+import { billingAddressSchema } from '@/db/schema/organizations'
 
-export const PaymentLoadingForm = ({
-  disableAnimation,
-}: {
-  disableAnimation?: boolean
-}) => {
-  return (
-    <>
-      <div className="flex flex-col gap-4">
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <div className="flex gap-4">
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
-        </div>
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <div className="flex gap-4">
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
-          <Skeleton
-            className="h-10 w-1/2"
-            disableAnimation={disableAnimation}
-          />
-        </div>
-      </div>
-      <div className="flex flex-col gap-4 py-3">
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-      </div>
-      <div className="flex flex-col gap-4 py-3">
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-        <Skeleton
-          className="h-10 w-full"
-          disableAnimation={disableAnimation}
-        />
-      </div>
-    </>
+// Utility function to force reflow for Stripe iframes to prevent rendering issues
+const forceStripeElementsReflow = () => {
+  // Force reflow on all Stripe Elements containers
+  const stripeElements = document.querySelectorAll(
+    '.StripeElement, [data-testid*="stripe"], iframe[name*="__privateStripe"]'
   )
+  stripeElements.forEach((element) => {
+    if (element instanceof HTMLElement) {
+      const initialDisplay = element.style.display
+      element.style.display = 'none'
+      element.offsetHeight // Trigger reflow
+      element.style.display = initialDisplay || ''
+    }
+  })
+
+  // Simple reflow for iframe containers - let Appearance API handle styling
+  setTimeout(() => {
+    const iframes = document.querySelectorAll(
+      'iframe[name*="__privateStripe"], iframe[title*="Google autocomplete"]'
+    )
+    iframes.forEach((iframe) => {
+      if (iframe instanceof HTMLElement && iframe.parentElement) {
+        const parent = iframe.parentElement
+        const initialDisplay = parent.style.display
+        parent.style.display = 'none'
+        parent.offsetHeight // Trigger reflow
+        parent.style.display = initialDisplay || ''
+      }
+    })
+  }, 100)
 }
 
 const AuthenticationElement = ({
@@ -119,39 +81,21 @@ const AuthenticationElement = ({
   className: string
   onReady: LinkAuthenticationElementProps['onReady']
 }) => {
-  const preventInteraction = readonlyCustomerEmail
-    ? (
-        e:
-          | React.MouseEvent<HTMLDivElement>
-          | React.KeyboardEvent<HTMLDivElement>
-      ) => {
-        e.preventDefault()
-        e.stopPropagation()
-      }
-    : undefined
-
+  // Simplified: Always editable since users only see checkout pages with Open sessions
+  // readonlyCustomerEmail is only used for pre-filling, never for readonly state
   return (
-    <div
-      className="relative"
-      onMouseDown={preventInteraction}
-      onKeyDown={preventInteraction}
-    >
-      <LinkAuthenticationElement
-        options={
-          readonlyCustomerEmail
-            ? {
-                defaultValues: { email: readonlyCustomerEmail },
-              }
-            : {}
-        }
-        onChange={onChange}
-        onReady={onReady}
-        className={cn(
-          className,
-          readonlyCustomerEmail && 'opacity-50'
-        )}
-      />
-    </div>
+    <LinkAuthenticationElement
+      options={
+        readonlyCustomerEmail
+          ? {
+              defaultValues: { email: readonlyCustomerEmail },
+            }
+          : {}
+      }
+      onChange={onChange}
+      onReady={onReady}
+      className={className}
+    />
   )
 }
 
@@ -193,6 +137,15 @@ const paymentFormButtonLabel = ({
   } else if (flowType === CheckoutFlowType.Subscription) {
     return `Start Subscription`
   }
+
+  // Fallback case - include amount if available
+  if (totalDueAmount && !core.isNil(totalDueAmount)) {
+    return `Pay ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      currency,
+      totalDueAmount
+    )}`
+  }
+
   return 'Pay'
 }
 
@@ -205,10 +158,8 @@ const PaymentForm = () => {
     redirectUrl,
     currency,
     checkoutSession,
-    product,
     flowType,
     subscriptionDetails,
-    customer,
     editCheckoutSessionCustomerEmail,
     editCheckoutSessionPaymentMethodType,
     editCheckoutSessionBillingAddress,
@@ -223,11 +174,15 @@ const PaymentForm = () => {
   const [paymentInfoComplete, setPaymentInfoComplete] =
     useState(false)
   const [emailComplete, setEmailComplete] = useState(
+    // Start as complete if there's a pre-filled email
     Boolean(readonlyCustomerEmail)
   )
   const [emailError, setEmailError] = useState<string | undefined>(
     undefined
   )
+  const [addressError, setAddressError] = useState<
+    string | undefined
+  >(undefined)
   const embedsReady =
     emailEmbedReady && paymentEmbedReady && addressEmbedReady
   const [errorMessage, setErrorMessage] = useState<
@@ -235,7 +190,7 @@ const PaymentForm = () => {
   >(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const confirmCheckoutSession =
-    trpc.purchases.confirmSession.useMutation()
+    trpc.checkoutSessions.public.confirm.useMutation()
 
   const totalDueAmount: number | null = feeCalculation
     ? calculateTotalDueAmount(feeCalculation)
@@ -254,9 +209,48 @@ const PaymentForm = () => {
     flowType !== CheckoutFlowType.AddPaymentMethod
   const showAutomaticallyUpdateCurrentSubscriptions =
     flowType === CheckoutFlowType.AddPaymentMethod
+
+  // Force reflow when all embeds are ready to prevent iframe transparency issues
+  useEffect(() => {
+    if (embedsReady) {
+      // Delay to ensure all Stripe iframes are fully rendered
+      const timeoutId = setTimeout(() => {
+        forceStripeElementsReflow()
+      }, 200)
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [embedsReady])
+
+  // Simplified reflow trigger when address field gains focus - let Appearance API handle styling
+  useEffect(() => {
+    const handleFocus = () => {
+      // Small delay to allow iframe to be created before forcing reflow
+      setTimeout(forceStripeElementsReflow, 50)
+    }
+
+    // Listen for focus events on address field containers
+    const addressContainers = document.querySelectorAll(
+      '[data-testid*="address"], .StripeElement'
+    )
+    addressContainers.forEach((container) => {
+      container.addEventListener('focus', handleFocus, true)
+    })
+
+    return () => {
+      addressContainers.forEach((container) => {
+        container.removeEventListener('focus', handleFocus, true)
+      })
+    }
+  }, [embedsReady])
+
   return (
     <form
-      className="w-[380px] relative"
+      className={cn(
+        'w-full relative', // Remove fixed width
+        'flex flex-col gap-2', // Reduced gap pattern
+        'sm:max-w-[496px]' // LS form max-width from 640px+
+      )}
       onSubmit={async (event: FormEvent<HTMLFormElement>) => {
         // We don't want to let default form submission happen here,
         // which would refresh the page.
@@ -269,6 +263,35 @@ const PaymentForm = () => {
         }
 
         setIsSubmitting(true)
+
+        // Validate payment method before proceeding
+        if (!checkoutSession.paymentMethodType) {
+          setErrorMessage('Please select a payment method')
+          setIsSubmitting(false)
+          return
+        }
+
+        // Validate address before proceeding
+        if (!checkoutSession.billingAddress) {
+          setAddressError('Please fill in your billing address')
+          setIsSubmitting(false)
+          return
+        }
+
+        const addressValidation = billingAddressSchema.safeParse(
+          checkoutSession.billingAddress
+        )
+
+        if (!addressValidation.success) {
+          setAddressError(
+            'Please fill in all required address fields'
+          )
+          setIsSubmitting(false)
+          return
+        }
+
+        // Clear any previous address errors
+        setAddressError(undefined)
 
         try {
           await confirmCheckoutSession.mutateAsync({
@@ -294,7 +317,11 @@ const PaymentForm = () => {
         const submitResult = await elements.submit()
         const { error: submitError } = submitResult
         if (submitError) {
-          setErrorMessage(submitError.message)
+          if (submitError.message === 'This field is incomplete.') {
+            setErrorMessage('Please complete all required fields.')
+          } else {
+            setErrorMessage(submitError.message)
+          }
           setIsSubmitting(false)
           return
         }
@@ -315,6 +342,8 @@ const PaymentForm = () => {
                     ? {
                         billing_details: {
                           email: readonlyCustomerEmail,
+                          // Name will be collected from AddressElement
+                          name: checkoutSession.billingAddress?.name,
                         },
                       }
                     : undefined,
@@ -336,11 +365,15 @@ const PaymentForm = () => {
                  * If we have a customer we want to use the customer email.
                  * Otherwise, we want to use the email collected from the email element.
                  */
-                payment_method_data: {
-                  billing_details: {
-                    email: readonlyCustomerEmail,
-                  },
-                },
+                payment_method_data: readonlyCustomerEmail
+                  ? {
+                      billing_details: {
+                        email: readonlyCustomerEmail,
+                        // Name will be collected from AddressElement
+                        name: checkoutSession.billingAddress?.name,
+                      },
+                    }
+                  : undefined,
               },
             })
           error = confirmationError
@@ -358,131 +391,207 @@ const PaymentForm = () => {
         setIsSubmitting(false)
       }}
     >
-      {
-        <div
-          className={core.cn(
-            'absolute inset-0 z-10 transition-opacity duration-300',
-            embedsReady
-              ? 'opacity-0 pointer-events-none'
-              : 'opacity-100'
-          )}
-        >
-          <PaymentLoadingForm />
-        </div>
-      }
-      <div
-        className={core.cn(
-          'transition-opacity duration-300',
-          !embedsReady && 'opacity-0'
-        )}
-      >
-        <AuthenticationElement
-          readonlyCustomerEmail={readonlyCustomerEmail}
-          onChange={async (event) => {
-            if (readonlyCustomerEmail) {
-              return
-            }
-            if (event.complete) {
-              const parseResult = z
-                .string()
-                .email()
-                .safeParse(event.value.email)
-              if (parseResult.success) {
-                await editCheckoutSessionCustomerEmail({
-                  id: checkoutSession.id,
-                  customerEmail: parseResult.data,
-                })
-                setEmailComplete(true)
-                setEmailError(undefined)
-                router.refresh()
-              } else {
-                setEmailError(
-                  JSON.parse(parseResult.error.message)[0].message
-                )
-              }
-            }
-          }}
-          onReady={() => {
-            setEmailEmbedReady(true)
-          }}
-          className={core.cn('pb-3', !embedsReady && 'opacity-0')}
-        />
-        {emailError && (
-          <ErrorLabel error={emailError} className="pb-4" />
-        )}
-        <PaymentElement
-          onReady={() => {
-            // setTimeout(() => {
-            setPaymentEmbedReady(true)
-            // }, 300)
-          }}
-          options={{
-            fields: {
-              billingDetails: {
-                email: readonlyCustomerEmail ? 'never' : undefined,
-                address: 'never',
-              },
-            },
-          }}
-          onChange={async (e) => {
-            if (e.complete) {
-              await editCheckoutSessionPaymentMethodType({
-                id: checkoutSession.id,
-                paymentMethodType: e.value.type as PaymentMethodType,
-              })
-              setPaymentInfoComplete(true)
-            }
-          }}
-          className={!embedsReady ? 'opacity-0' : ''}
-        />
-        <AddressElement
-          options={{
-            mode: 'billing',
-            defaultValues:
-              checkoutSession?.billingAddress ?? undefined,
-          }}
-          onReady={() => {
-            // setTimeout(() => {
-            setAddressEmbedReady(true)
-            // }, 300)
-          }}
-          onChange={async (event) => {
-            if (event.complete) {
-              await editCheckoutSessionBillingAddress({
-                id: checkoutSession.id,
-                billingAddress: event.value,
-              })
-            }
-          }}
-          className={!embedsReady ? 'py-3 opacity-0' : 'py-3'}
-        />
-      </div>
-      {embedsReady && (
-        <>
-          {showDiscountCodeInput && <DiscountCodeInput />}
-          <TotalBillingDetails />
-          {showAutomaticallyUpdateCurrentSubscriptions && (
-            <div className="py-4">
-              <Switch
-                label="Set as default method for existing subscriptions"
-                checked={
-                  checkoutSession.automaticallyUpdateSubscriptions ??
-                  false
-                }
-                onCheckedChange={async (checked) => {
-                  await editCheckoutSessionAutomaticallyUpdateSubscriptions(
-                    {
+      {/* Main form content */}
+      <div className="space-y-3">
+        {/* Email Section */}
+        <div className="space-y-3">
+          <AuthenticationElement
+            readonlyCustomerEmail={readonlyCustomerEmail}
+            onChange={async (event) => {
+              // Simplified: Always allow editing since we only show checkout pages for Open sessions
+              if (
+                event.complete &&
+                checkoutSession.status === CheckoutSessionStatus.Open
+              ) {
+                const parseResult = z
+                  .email()
+                  .safeParse(event.value.email)
+                if (parseResult.success) {
+                  try {
+                    await editCheckoutSessionCustomerEmail({
                       id: checkoutSession.id,
-                      automaticallyUpdateSubscriptions: checked,
-                    }
+                      customerEmail: parseResult.data,
+                    })
+                    setEmailComplete(true)
+                    setEmailError(undefined)
+                    router.refresh()
+                  } catch (error) {
+                    console.warn(
+                      'Failed to update customer email:',
+                      error
+                    )
+                  }
+                } else {
+                  setEmailError(
+                    JSON.parse(parseResult.error.message)[0].message
                   )
-                }}
-              />
+                }
+              }
+            }}
+            onReady={() => {
+              setEmailEmbedReady(true)
+            }}
+            className={cn('w-full', !embedsReady && 'opacity-0')}
+          />
+          {emailError && (
+            <ErrorLabel error={emailError} className="mt-2" />
+          )}
+        </div>
+
+        {/* Payment Method Section */}
+        <div className="space-y-3">
+          <div className="pb-0">
+            <PaymentElement
+              onReady={() => {
+                setPaymentEmbedReady(true)
+              }}
+              options={{
+                fields: {
+                  billingDetails: {
+                    // Always hide email - use AuthenticationElement instead
+                    email: 'never',
+                    // Always hide name - use AddressElement instead
+                    name: 'never',
+                    address: 'never',
+                  },
+                },
+                terms: {
+                  wallets: 'never',
+                  auBankAccount: 'never',
+                  bancontact: 'never',
+                  card: 'never',
+                  ideal: 'never',
+                  p24: 'never',
+                  sepaDebit: 'never',
+                  sofort: 'never',
+                  usBankAccount: 'never',
+                } as any,
+              }}
+              onChange={async (e) => {
+                if (
+                  e.complete &&
+                  checkoutSession.status ===
+                    CheckoutSessionStatus.Open
+                ) {
+                  try {
+                    await editCheckoutSessionPaymentMethodType({
+                      id: checkoutSession.id,
+                      paymentMethodType: e.value
+                        .type as PaymentMethodType,
+                    })
+                    setPaymentInfoComplete(true)
+                  } catch (error) {
+                    console.warn(
+                      'Failed to update payment method type:',
+                      error
+                    )
+                  }
+                }
+              }}
+              className={!embedsReady ? 'opacity-0' : ''}
+            />
+          </div>
+        </div>
+
+        {/* Billing Address Section */}
+        <div className="space-y-3">
+          <AddressElement
+            options={{
+              mode: 'billing',
+              defaultValues:
+                checkoutSession?.billingAddress ?? undefined,
+              // Re-enabling autocomplete now that Appearance API is fixed
+              autocomplete: {
+                mode: 'automatic',
+              },
+            }}
+            onReady={() => {
+              setAddressEmbedReady(true)
+              // Simple reflow to ensure proper rendering
+              setTimeout(forceStripeElementsReflow, 100)
+            }}
+            onChange={async (event) => {
+              if (
+                checkoutSession.status === CheckoutSessionStatus.Open
+              ) {
+                try {
+                  await editCheckoutSessionBillingAddress({
+                    id: checkoutSession.id,
+                    billingAddress: event.value,
+                  })
+                  // Clear any previous address errors when user starts typing
+                  setAddressError(undefined)
+                } catch (error) {
+                  // Silently handle errors for non-open sessions
+                  console.warn(
+                    'Failed to update billing address:',
+                    error
+                  )
+                }
+              }
+            }}
+            className={!embedsReady ? 'opacity-0' : ''}
+          />
+          {addressError && (
+            <ErrorLabel error={addressError} className="mt-2" />
+          )}
+        </div>
+      </div>
+      {/* Form Footer - Order Summary & Actions */}
+      {embedsReady && (
+        <div className="space-y-6 pt-1">
+          {showDiscountCodeInput && (
+            <div className="space-y-3">
+              <DiscountCodeInput />
             </div>
           )}
-          <div className="py-8">
+          {/* Order Summary */}
+          <div className="space-y-4">
+            <TotalBillingDetails />
+          </div>
+          {/* Auto Update Subscriptions */}
+          {showAutomaticallyUpdateCurrentSubscriptions && (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="auto-update-subscriptions"
+                  checked={
+                    checkoutSession.automaticallyUpdateSubscriptions ??
+                    false
+                  }
+                  onCheckedChange={async (checked) => {
+                    await editCheckoutSessionAutomaticallyUpdateSubscriptions(
+                      {
+                        id: checkoutSession.id,
+                        automaticallyUpdateSubscriptions: checked,
+                      }
+                    )
+                  }}
+                />
+                <Label
+                  htmlFor="auto-update-subscriptions"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Set as default method for existing subscriptions
+                </Label>
+              </div>
+            </div>
+          )}
+          {/* Primary Action Button */}
+          <div className="pt-2">
             <Button
-              className="justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 w-full h-[45px]"
+              className={cn(
+                'w-full h-[52px]', // LS button height
+                'bg-gray-950 hover:bg-gray-950/90', // LS button color (darker, closer to black)
+                'text-slate-50 font-normal', // LS button text (fixed light mode foreground)
+                'rounded-[8px]', // LS border radius
+                'text-[16px] leading-[28px]', // LS typography
+                'transition-all duration-200', // Smooth transitions
+                'disabled:!pointer-events-auto disabled:cursor-not-allowed disabled:opacity-50',
+                // Hover states
+                'hover:cursor-pointer',
+                'disabled:hover:cursor-not-allowed' // Override hover cursor when disabled
+              )}
               disabled={
                 !paymentInfoComplete ||
                 !emailComplete ||
@@ -492,24 +601,69 @@ const PaymentForm = () => {
             >
               {isSubmitting && (
                 <LoaderCircle
-                  className="animate-spin-slow"
+                  className="animate-spin-slow w-4 h-4 mr-2"
                   size={16}
                 />
               )}
               {buttonLabel}
             </Button>
-            {errorMessage && <ErrorLabel error={errorMessage} />}
-            {!checkoutSession.livemode && (
-              <div className="p-2 bg-orange-600 justify-center items-center text-center w-full flex mt-4 rounded-md">
-                <div className="text-white text-sm">
-                  <p>This is a test mode checkout.</p>
-                  <p>No payments will be processed.</p>
-                </div>
-              </div>
+            {errorMessage && (
+              <ErrorLabel error={errorMessage} className="mt-3" />
             )}
-            <PoweredByFlowgladText />
+            {!checkoutSession.livemode &&
+              flowType !== CheckoutFlowType.AddPaymentMethod && (
+                <div className="p-4 bg-gray-50 border border-gray-200 justify-center items-center text-center w-full flex mt-6 rounded-[8px]">
+                  <div className="text-gray-600 text-sm">
+                    <p>This is a test mode checkout.</p>
+                    <p>No payments will be processed.</p>
+                  </div>
+                </div>
+              )}
           </div>
-        </>
+          {/* Security Notice */}
+          {flowType !== CheckoutFlowType.AddPaymentMethod && (
+            <div
+              className={cn(
+                'bg-gray-50 border border-gray-200', // Light background for white theme
+                'rounded-[8px] p-4',
+                'flex items-center justify-center gap-1.5'
+              )}
+            >
+              <div className="w-6 h-6 text-gray-500">
+                {/* Security icon - filled */}
+                <svg
+                  className="w-full h-full"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2ZM9 6a3 3 0 0 1 6 0v2H9V6Zm3 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z" />
+                </svg>
+              </div>
+              <span className="text-[13px] text-gray-600 leading-[24px]">
+                Payments are secure and encrypted
+              </span>
+            </div>
+          )}
+          {/* Footer Links */}
+          <div className="flex flex-col items-center gap-1 pt-4">
+            <PoweredByFlowglad />
+            <div className="flex items-center gap-2.5 text-[13px] text-gray-600">
+              <a
+                href="https://www.flowglad.com/terms-of-service"
+                className="hover:text-gray-800 transition-colors"
+              >
+                Terms
+              </a>
+              <span>·</span>
+              <a
+                href="https://www.flowglad.com/privacy-policy"
+                className="hover:text-gray-800 transition-colors"
+              >
+                Privacy
+              </a>
+            </div>
+          </div>
+        </div>
       )}
     </form>
   )

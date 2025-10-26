@@ -1,29 +1,25 @@
 import { useState } from 'react'
-import { DateRangePicker } from './ion/Datepicker'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { RevenueChart } from './RevenueChart'
 
 const DateRangeRevenueChart = ({
   organizationCreatedAt,
   alignDatePicker = 'left',
   productId,
-  fromDate,
-  toDate,
 }: {
   organizationCreatedAt: Date
   alignDatePicker?: 'left' | 'right'
   productId?: string
-  fromDate?: Date
-  toDate?: Date
 }) => {
   const defaultFromDate = new Date(organizationCreatedAt)
   const [range, setRange] = useState<{
     from: Date
     to: Date
   }>({
-    from: fromDate ?? new Date(organizationCreatedAt),
-    to: toDate ?? new Date(),
+    from: new Date(organizationCreatedAt),
+    to: new Date(),
   })
-  const showDateRangePicker = !fromDate || !toDate
+
   return (
     <>
       <div
@@ -31,21 +27,18 @@ const DateRangeRevenueChart = ({
           alignDatePicker === 'right' ? 'justify-end' : ''
         }`}
       >
-        {showDateRangePicker && (
-          <DateRangePicker
-            fromDate={range.from}
-            toDate={range.to}
-            minDate={new Date(organizationCreatedAt)}
-            maxDate={new Date()}
-            onSelect={(range) => {
-              setRange({
-                from: range?.from ?? defaultFromDate,
-                to: range?.to ?? new Date(),
-              })
-            }}
-            mode="range"
-          />
-        )}
+        <DateRangePicker
+          fromDate={range.from}
+          toDate={range.to}
+          minDate={new Date(organizationCreatedAt)}
+          maxDate={new Date()}
+          onSelect={(range) => {
+            setRange({
+              from: range?.from ?? defaultFromDate,
+              to: range?.to ?? new Date(),
+            })
+          }}
+        />
       </div>
       <RevenueChart
         fromDate={range.from}

@@ -1,5 +1,3 @@
-// Generated with Ion on 9/24/2024, 3:10:31 AM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=373:16122
 'use client'
 import { PriceType } from '@/types'
 import { ProductFormFields } from '@/components/forms/ProductFormFields'
@@ -26,7 +24,6 @@ const defaultProduct: Product.ClientInsert = {
   active: true,
   description: '',
   imageURL: '',
-  displayFeatures: [],
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
   pricingModelId: 'pricing_model_111____',
@@ -87,6 +84,8 @@ export const CreateProductModal = ({
           price: {
             ...input.price,
             unitPrice,
+            // default to using product slug for price slug
+            slug: input.product.slug,
           },
         })
         navigator.clipboard.writeText(

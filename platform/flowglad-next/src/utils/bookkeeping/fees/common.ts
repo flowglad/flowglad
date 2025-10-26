@@ -104,14 +104,18 @@ export const calculateDiscountAmount = (
   basePrice: number,
   discount?: Discount.ClientRecord | null
 ): number => {
-  if (!discount) return 0
-  if (discount.amountType === DiscountAmountType.Fixed)
+  if (!discount) {
+    return 0
+  }
+  if (discount.amountType === DiscountAmountType.Fixed) {
     return discount.amount
-  if (discount.amountType === DiscountAmountType.Percent)
+  }
+  if (discount.amountType === DiscountAmountType.Percent) {
     return calculatePercentageFee(
       basePrice,
       Math.min(discount.amount, 100)
     )
+  }
   return 0
 }
 

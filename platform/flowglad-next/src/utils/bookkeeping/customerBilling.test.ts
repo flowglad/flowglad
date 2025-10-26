@@ -13,10 +13,13 @@ import {
   setupPaymentMethod,
   setupSubscription,
   setupUserAndCustomer,
+  setupProduct,
+  setupPrice,
 } from '@/../seedDatabase'
 import {
   setDefaultPaymentMethodForCustomer,
   customerBillingCreatePricedCheckoutSession,
+  customerBillingTransaction,
 } from './customerBilling'
 import { Organization } from '@/db/schema/organizations'
 import { Customer } from '@/db/schema/customers'
@@ -25,11 +28,14 @@ import { Subscription } from '@/db/schema/subscriptions'
 import { Price } from '@/db/schema/prices'
 import { Product } from '@/db/schema/products'
 import { PricingModel } from '@/db/schema/pricingModels'
-import { UserRecord } from '@/db/schema/users'
+import { User } from '@/db/schema/users'
 import {
   PaymentMethodType,
   SubscriptionStatus,
   CheckoutSessionType,
+  PriceType,
+  IntervalUnit,
+  CurrencyCode,
 } from '@/types'
 import core from '@/utils/core'
 import {
@@ -45,10 +51,14 @@ import {
   updateCustomer,
   selectCustomerById,
 } from '@/db/tableMethods/customerMethods'
+import { insertProduct } from '@/db/tableMethods/productMethods'
+import { insertPrice } from '@/db/tableMethods/priceMethods'
+import { nulledPriceColumns } from '@/db/schema/prices'
 import { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
 import * as databaseAuthentication from '@/db/databaseAuthentication'
 import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
 import * as betterAuthSchemaMethods from '@/db/tableMethods/betterAuthSchemaMethods'
+import { safelyUpdatePrice } from '@/db/tableMethods/priceMethods'
 
 // Mock next/headers to avoid Next.js context errors
 vi.mock('next/headers', () => ({
@@ -576,6 +586,340 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
     })
   })
+
+  describe('customerBillingTransaction - inactive price filtering', () => {
+    let customer: Customer.Record
+    let productWithMixedPrices: Product.Record
+    let activePrice: Price.Record
+    let inactivePrice: Price.Record
+    let subscriptionWithActivePrice: Subscription.Record
+    let subscriptionWithInactivePrice: Subscription.Record
+
+    beforeEach(async () => {
+      // Create a customer for testing
+      customer = await setupCustomer({
+        organizationId: organization.id,
+        email: 'billing-price-filtering@example.com',
+      })
+
+      // Create a product with both active and inactive prices
+      productWithMixedPrices = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Mixed Prices',
+        active: true,
+      })
+
+      // Create an inactive price
+      inactivePrice = await setupPrice({
+        productId: productWithMixedPrices.id,
+        name: 'Inactive Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 2000,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: false,
+        trialPeriodDays: 0,
+        active: false, // Explicitly inactive
+      })
+      // setupPrice makes active=true and isDefault=true via safelyInsertPrice,
+      // so we update price to be inactive and non-default
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdatePrice(
+          {
+            id: inactivePrice.id,
+            type: PriceType.Subscription,
+            active: false,
+            isDefault: false,
+          },
+          transaction
+        )
+      })
+
+      // Create an active price
+      activePrice = await setupPrice({
+        productId: productWithMixedPrices.id,
+        name: 'Active Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 0,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        active: true, // Explicitly active
+      })
+
+      // Create subscription with active price
+      subscriptionWithActivePrice = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: activePrice.id,
+        status: SubscriptionStatus.Active,
+        livemode: true,
+      })
+
+      // Create subscription with inactive price (grandfathered state)
+      subscriptionWithInactivePrice = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: inactivePrice.id,
+        status: SubscriptionStatus.Active,
+        livemode: true,
+      })
+    })
+
+    it('should filter out inactive prices from pricingModel in customerBillingTransaction', async () => {
+      const billingState = await adminTransaction(
+        async ({ transaction }) => {
+          return await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(billingState.pricingModel).toBeDefined()
+      expect(billingState.pricingModel.products).toHaveLength(2) // setupOrg + our test product
+
+      // Find our test product
+      const testProduct = billingState.pricingModel.products.find(
+        (p) => p.id === productWithMixedPrices.id
+      )
+      expect(testProduct).toBeDefined()
+      expect(testProduct!.prices).toHaveLength(1) // Only active price should be returned
+
+      const returnedPrice = testProduct!.prices[0]
+      expect(returnedPrice.id).toBe(activePrice.id)
+      expect(returnedPrice.active).toBe(true)
+
+      // Verify inactive price is filtered out
+      const inactivePriceInResult = testProduct!.prices.find(
+        (p) => p.id === inactivePrice.id
+      )
+      expect(inactivePriceInResult).toBeUndefined()
+    })
+
+    it('should preserve subscription items with inactive prices', async () => {
+      const billingState = await adminTransaction(
+        async ({ transaction }) => {
+          return await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(billingState.subscriptions).toBeDefined()
+      expect(
+        billingState.subscriptions.length
+      ).toBeGreaterThanOrEqual(2)
+
+      // Find subscription with active price
+      const subscriptionWithActivePrice =
+        billingState.subscriptions.find(
+          (sub) => sub.priceId === activePrice.id
+        )
+      expect(subscriptionWithActivePrice).toBeDefined()
+      expect(subscriptionWithActivePrice?.priceId).toBe(
+        activePrice.id
+      )
+
+      // Find subscription with inactive price (grandfathered state)
+      const subscriptionWithInactivePrice =
+        billingState.subscriptions.find(
+          (sub) => sub.priceId === inactivePrice.id
+        )
+      expect(subscriptionWithInactivePrice).toBeDefined()
+      expect(subscriptionWithInactivePrice?.priceId).toBe(
+        inactivePrice.id
+      )
+
+      // Both subscription items should be visible regardless of price active status
+      // This tests that subscription items remain visible
+      // even if their associated price becomes inactive
+    })
+
+    it('should maintain all other billing data while filtering prices', async () => {
+      const billingState = await adminTransaction(
+        async ({ transaction }) => {
+          return await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(billingState.customer).toBeDefined()
+      expect(billingState.customer.id).toBe(customer.id)
+
+      expect(billingState.purchases).toBeDefined()
+      expect(billingState.invoices).toBeDefined()
+      expect(billingState.paymentMethods).toBeDefined()
+      expect(billingState.subscriptions).toBeDefined()
+      expect(billingState.currentSubscriptions).toBeDefined()
+
+      // Only pricingModel.products[].prices[] should be filtered
+      expect(billingState.pricingModel).toBeDefined()
+      expect(billingState.pricingModel.products).toHaveLength(2) // setupOrg + our test product
+
+      // Find our test product
+      const testProduct = billingState.pricingModel.products.find(
+        (p) => p.id === productWithMixedPrices.id
+      )
+      expect(testProduct).toBeDefined()
+      expect(testProduct!.prices).toHaveLength(1) // Only active price
+      expect(testProduct!.prices[0].active).toBe(true)
+
+      // All other data should remain unchanged
+      expect(
+        billingState.subscriptions.length
+      ).toBeGreaterThanOrEqual(2) // Both subscriptions should be visible
+      expect(
+        billingState.paymentMethods.length
+      ).toBeGreaterThanOrEqual(0)
+    })
+
+    it('should return pricing model with only active prices and products', async () => {
+      const productWithMixedPrices2 = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Mixed Prices 2',
+        active: true,
+      })
+
+      const inactivePrice2 = await setupPrice({
+        productId: productWithMixedPrices2.id,
+        name: 'Inactive Price 2',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 2500,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: false,
+        trialPeriodDays: 0,
+        active: false,
+      })
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdatePrice(
+          {
+            id: inactivePrice2.id,
+            type: PriceType.Subscription,
+            active: false,
+            isDefault: false,
+          },
+          transaction
+        )
+      })
+
+      const activePrice2 = await setupPrice({
+        productId: productWithMixedPrices2.id,
+        name: 'Active Price 2',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 1500,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        active: true,
+      })
+
+      const productWithOnlyInactivePrices = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Product with Only Inactive Prices',
+        active: true,
+      })
+
+      const inactivePrice3 = await setupPrice({
+        productId: productWithOnlyInactivePrices.id,
+        name: 'Inactive Price 3',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 3000,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        active: false,
+      })
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdatePrice(
+          {
+            id: inactivePrice3.id,
+            type: PriceType.Subscription,
+            active: false,
+            isDefault: false,
+          },
+          transaction
+        )
+      })
+
+      const billingState = await adminTransaction(
+        async ({ transaction }) => {
+          return await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(billingState.pricingModel.products).toHaveLength(3) // setupOrg + 2 test products with active prices
+
+      // Verify all returned products have active: true
+      billingState.pricingModel.products.forEach((product) => {
+        expect(product.active).toBe(true)
+
+        // Verify all returned prices have active: true
+        product.prices.forEach((price) => {
+          expect(price.active).toBe(true)
+        })
+      })
+
+      // Verify products with only inactive prices are filtered out entirely
+      const productWithOnlyInactiveInResult =
+        billingState.pricingModel.products.find(
+          (p) => p.id === productWithOnlyInactivePrices.id
+        )
+      expect(productWithOnlyInactiveInResult).toBeUndefined()
+
+      // Verify products with mixed prices only show active prices
+      const productWithMixed1 =
+        billingState.pricingModel.products.find(
+          (p) => p.id === productWithMixedPrices.id
+        )
+      expect(productWithMixed1).toBeDefined()
+      expect(productWithMixed1?.prices).toHaveLength(1) // Only active price
+      expect(productWithMixed1?.prices[0].id).toBe(activePrice.id)
+
+      const productWithMixed2 =
+        billingState.pricingModel.products.find(
+          (p) => p.id === productWithMixedPrices2.id
+        )
+      expect(productWithMixed2).toBeDefined()
+      expect(productWithMixed2?.prices).toHaveLength(1) // Only active price
+      expect(productWithMixed2?.prices[0].id).toBe(activePrice2.id)
+    })
+  })
 })
 
 describe('customerBillingCreatePricedCheckoutSession', () => {
@@ -588,7 +932,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   let price: Price.Record
   let price2: Price.Record
   let customer: Customer.Record
-  let user: UserRecord
+  let user: User.Record
 
   beforeEach(async () => {
     // Reset all mocks
@@ -722,11 +1066,60 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   })
 
   it('should succeed when price is accessible to customer', async () => {
-    // Use price from same organization that customer has access to
+    // Create a non-default product and price for this test since default products
+    // cannot have checkout sessions created for them
+    const created = await adminTransaction(
+      async ({ transaction }) => {
+        const createdProduct = await insertProduct(
+          {
+            name: 'Non-Default Product',
+            organizationId: organization.id,
+            livemode: true,
+            description:
+              'Non-default product for testing checkout sessions',
+            imageURL: 'https://flowglad.com/logo.png',
+            active: true,
+            singularQuantityLabel: 'seat',
+            pluralQuantityLabel: 'seats',
+            pricingModelId: pricingModel.id,
+            externalId: null,
+            default: false, // This is the key difference - not a default product
+            slug: `non-default-product-${core.nanoid()}`,
+          },
+          transaction
+        )
+
+        const createdPrice = await insertPrice(
+          {
+            ...nulledPriceColumns,
+            productId: createdProduct.id,
+            name: 'Non-Default Product Price',
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            unitPrice: 1000, // $10.00
+            currency: CurrencyCode.USD,
+            active: true,
+            livemode: true,
+            isDefault: false,
+            externalId: null,
+            slug: `non-default-price-${core.nanoid()}`,
+          },
+          transaction
+        )
+
+        return {
+          nonDefaultProduct: createdProduct,
+          nonDefaultPrice: createdPrice,
+        }
+      }
+    )
+
+    // Use the non-default price from same organization that customer has access to
     const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
       {
         customerExternalId: customer.externalId,
-        priceId: price.id, // Price from same organization/pricing model
+        priceId: created.nonDefaultPrice.id, // Price from same organization/pricing model
         type: CheckoutSessionType.Product,
         successUrl: 'http://success.url',
         cancelUrl: 'http://cancel.url',
@@ -739,7 +1132,9 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
 
     expect(result).toBeDefined()
     expect(result.checkoutSession).toBeDefined()
-    expect(result.checkoutSession.priceId).toBe(price.id)
+    expect(result.checkoutSession.priceId).toBe(
+      created.nonDefaultPrice.id
+    )
     expect(result.checkoutSession.customerId).toBe(customer.id)
     expect(result.checkoutSession.organizationId).toBe(
       organization.id

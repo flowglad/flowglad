@@ -20,27 +20,41 @@ import { useEffect } from 'react'
 interface UsageMetersSelectProps {
   name: string
   control: Control<any>
+  disabled?: boolean
+  pricingModelId?: string
 }
 
 const UsageMetersSelect = ({
   name,
   control,
+  disabled,
+  pricingModelId,
 }: UsageMetersSelectProps) => {
   const { data: usageMeters, isLoading: isLoadingUsageMeters } =
-    useListUsageMetersQuery()
+    useListUsageMetersQuery(pricingModelId)
   const form = useFormContext()
   const { watch, setValue } = form
   const usageMeterId = watch(name)
 
-  // Auto-select first usage meter if none is selected when data loads
+  // Validate and reset selection when filtered data changes
   useEffect(() => {
+    // If no usage meters available, clear the selection
     if (!usageMeters?.data?.length) {
+      if (usageMeterId) {
+        setValue(name, '')
+      }
       return
     }
-    if (usageMeterId) {
-      return
+
+    // Check if current selection exists in the filtered list
+    const isCurrentMeterValid = usageMeters.data.some(
+      (meter) => meter.id === usageMeterId
+    )
+
+    if (!isCurrentMeterValid) {
+      // Reset to first meter when current selection is invalid
+      setValue(name, usageMeters.data[0].id)
     }
-    setValue(name, usageMeters.data[0].id)
   }, [name, usageMeterId, usageMeters?.data, setValue])
 
   return (
@@ -58,6 +72,7 @@ const UsageMetersSelect = ({
                 <Select
                   value={field.value}
                   onValueChange={field.onChange}
+                  disabled={disabled}
                 >
                   <SelectTrigger>
                     <SelectValue />

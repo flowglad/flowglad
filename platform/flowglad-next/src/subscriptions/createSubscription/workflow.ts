@@ -15,12 +15,13 @@ import {
 import { insertSubscriptionAndItems } from './initializers'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
-import { PriceType, FeatureType, SubscriptionStatus } from '@/types'
+import { PriceType, SubscriptionStatus } from '@/types'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
 import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
 import { idempotentSendCustomerSubscriptionUpgradedNotification } from '@/trigger/notifications/send-customer-subscription-upgraded-notification'
 import { Event } from '@/db/schema/events'
 import {
+  FeatureFlag,
   FlowgladEventType,
   EventNoun,
   LedgerTransactionType,
@@ -29,6 +30,8 @@ import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { hasFeatureFlag } from '@/utils/organizationHelpers'
 
 /**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
@@ -47,6 +50,19 @@ export const createSubscriptionWorkflow = async (
     | NonRenewingCreateSubscriptionResult
   >
 > => {
+  // FIXME: Re-enable this once usage prices are fully deprecated
+  if (
+    params.price.type === PriceType.Usage &&
+    !hasFeatureFlag(
+      params.organization,
+      FeatureFlag.SubscriptionWithUsage
+    )
+  ) {
+    throw new Error(
+      `Price id: ${params.price.id} has usage price. Usage prices are not supported for subscription creation.`
+    )
+  }
+
   if (params.stripeSetupIntentId) {
     const existingSubscription = await selectSubscriptionAndItems(
       {
@@ -91,25 +107,6 @@ export const createSubscriptionWorkflow = async (
       transaction
     )
 
-  const includesUsageCreditGrants = subscriptionItemFeatures.some(
-    (item) => item.type === FeatureType.UsageCreditGrant
-  )
-
-  if (
-    price.type === PriceType.Usage ||
-    includesUsageCreditGrants ||
-    price.startsWithCreditTrial
-  ) {
-    await setupLedgerAccounts(
-      {
-        subscription,
-        subscriptionItems,
-        price,
-      },
-      transaction
-    )
-  }
-
   const {
     subscription: updatedSubscription,
     billingPeriod,
@@ -124,10 +121,10 @@ export const createSubscriptionWorkflow = async (
       prorateFirstPeriod: params.prorateFirstPeriod,
       preservedBillingPeriodEnd: params.preservedBillingPeriodEnd,
       preservedBillingPeriodStart: params.preservedBillingPeriodStart,
+      isDefaultPlan: params.product.default,
     },
     transaction
   )
-
   // Don't send notifications for free subscriptions
   // A subscription is considered free if unitPrice is 0, not based on slug
   if (price.unitPrice !== 0) {
@@ -155,7 +152,18 @@ export const createSubscriptionWorkflow = async (
     }
   }
 
-  const timestamp = new Date()
+  const timestamp = Date.now()
+  const customer = await selectCustomerById(
+    updatedSubscription.customerId,
+    transaction
+  )
+
+  if (!customer) {
+    throw new Error(
+      `Customer not found for subscription ${updatedSubscription.id}`
+    )
+  }
+
   const eventInserts: Event.Insert[] = [
     {
       type: FlowgladEventType.SubscriptionCreated,
@@ -165,6 +173,10 @@ export const createSubscriptionWorkflow = async (
       payload: {
         object: EventNoun.Subscription,
         id: updatedSubscription.id,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
       submittedAt: timestamp,
       hash: constructSubscriptionCreatedEventHash(
@@ -174,7 +186,6 @@ export const createSubscriptionWorkflow = async (
       processedAt: null,
     },
   ]
-
   const ledgerCommand:
     | BillingPeriodTransitionLedgerCommand
     | undefined =
@@ -216,6 +227,6 @@ export const createSubscriptionWorkflow = async (
   return {
     result: transactionResult,
     ledgerCommand,
-    eventsToLog: eventInserts,
+    eventsToInsert: eventInserts,
   }
 }

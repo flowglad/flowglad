@@ -1,3 +1,4 @@
+import core from '@/utils/core'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -18,7 +19,7 @@ import {
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
 import { Customer } from '@/db/schema/customers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { Organization } from '@/db/schema/organizations'
@@ -32,38 +33,67 @@ const checkoutSessionInsertFromInput = ({
   livemode,
 }: {
   checkoutSessionInput: CreateCheckoutSessionObject
-  customer: Customer.Record
+  customer: Customer.Record | null
   organizationId: string
   livemode: boolean
 }): CheckoutSession.Insert => {
-  const coreFields = {
-    customerId: customer.id,
+  const coreFields: Pick<
+    CheckoutSession.Insert,
+    | 'organizationId'
+    | 'status'
+    | 'livemode'
+    | 'successUrl'
+    | 'cancelUrl'
+    | 'outputMetadata'
+    | 'outputName'
+    | 'automaticallyUpdateSubscriptions'
+  > = {
     organizationId,
-    customerEmail: customer.email,
-    customerName: customer.name,
     status: CheckoutSessionStatus.Open,
     livemode,
     successUrl: checkoutSessionInput.successUrl,
     cancelUrl: checkoutSessionInput.cancelUrl,
-    outputMetadata: checkoutSessionInput.outputMetadata,
+    outputMetadata: checkoutSessionInput.outputMetadata ?? undefined,
     outputName: checkoutSessionInput.outputName,
     automaticallyUpdateSubscriptions: null,
-  }
+  } as const
+
+  const isAnonymous =
+    'anonymous' in checkoutSessionInput &&
+    checkoutSessionInput.anonymous === true
+
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
+    if (!isAnonymous && !customer) {
+      throw new Error(
+        `Required customer not found for Product checkout (anonymous=false). externalId='${checkoutSessionInput.customerExternalId}', organization='${organizationId}'.`
+      )
+    }
     return {
       ...coreFields,
+      automaticallyUpdateSubscriptions: null,
       type: CheckoutSessionType.Product,
       invoiceId: null,
       priceId: checkoutSessionInput.priceId,
       targetSubscriptionId: null,
+      customerId: isAnonymous ? null : customer!.id,
+      customerEmail: isAnonymous ? null : customer!.email,
+      customerName: isAnonymous ? null : customer!.name,
       preserveBillingCycleAnchor:
-        checkoutSessionInput.preserveBillingCycleAnchor,
+        checkoutSessionInput.preserveBillingCycleAnchor ?? false,
     }
   } else if (
     checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod
   ) {
+    if (!customer) {
+      throw new Error(
+        'Customer is required for add payment method checkout sessions'
+      )
+    }
     return {
       ...coreFields,
+      customerId: customer.id,
+      customerEmail: customer.email,
+      customerName: customer.name,
       automaticallyUpdateSubscriptions: false,
       type: CheckoutSessionType.AddPaymentMethod,
       targetSubscriptionId:
@@ -73,6 +103,11 @@ const checkoutSessionInsertFromInput = ({
     checkoutSessionInput.type ===
     CheckoutSessionType.ActivateSubscription
   ) {
+    if (!customer) {
+      throw new Error(
+        'Customer is required for activate subscription checkout sessions'
+      )
+    }
     return {
       ...coreFields,
       priceId: checkoutSessionInput.priceId,
@@ -80,8 +115,11 @@ const checkoutSessionInsertFromInput = ({
       targetSubscriptionId: checkoutSessionInput.targetSubscriptionId,
       purchaseId: null,
       invoiceId: null,
+      customerId: customer.id,
+      customerEmail: customer.email,
+      customerName: customer.name,
       preserveBillingCycleAnchor:
-        checkoutSessionInput.preserveBillingCycleAnchor,
+        checkoutSessionInput.preserveBillingCycleAnchor ?? false,
     }
   }
   throw new Error(
@@ -104,19 +142,50 @@ export const createCheckoutSessionTransaction = async (
   },
   transaction: DbTransaction
 ) => {
-  const [customer] = await selectCustomers(
-    {
-      externalId: checkoutSessionInput.customerExternalId,
-    },
-    transaction
-  )
-  if (!customer) {
-    throw new Error(
-      `Customer not found for externalId: ${checkoutSessionInput.customerExternalId}`
+  // Only query for customer if customerExternalId is provided
+  let customer: Customer.Record | null = null
+  if (checkoutSessionInput.customerExternalId) {
+    customer = await selectCustomerByExternalIdAndOrganizationId(
+      {
+        externalId: checkoutSessionInput.customerExternalId,
+        organizationId,
+      },
+      transaction
     )
   }
-  // NOTE: invoice and purchase checkout sessions
-  // are not supported by API yet.
+  // Anonymous sessions can omit customerExternalId; in that case customer will be null
+  // NOTE: invoice and purchase checkout sessions are not supported by API yet.
+  let price: Price.Record | null = null
+  let product: Product.Record | null = null
+  let organization: Organization.Record | null = null
+  if (checkoutSessionInput.type === CheckoutSessionType.Product) {
+    const [result] =
+      await selectPriceProductAndOrganizationByPriceWhere(
+        { id: checkoutSessionInput.priceId },
+        transaction
+      )
+    price = result.price
+    product = result.product
+    organization = result.organization
+
+    if (product.default) {
+      throw new Error(
+        'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+      )
+    }
+    // FIXME: Re-enable this once usage prices are deprecated
+    // if (price.type === PriceType.Usage) {
+    //   throw new Error(
+    //     `Price id: ${price.id} has usage price. Usage prices are not supported for checkout sessions.`
+    //   )
+    // }
+  } else {
+    organization = await selectOrganizationById(
+      organizationId,
+      transaction
+    )
+  }
+
   const checkoutSession = await insertCheckoutSession(
     checkoutSessionInsertFromInput({
       checkoutSessionInput,
@@ -126,30 +195,13 @@ export const createCheckoutSessionTransaction = async (
     }),
     transaction
   )
-  let price: Price.Record | null = null
-  let product: Product.Record | null = null
-  let organization: Organization.Record | null = null
-  if (checkoutSession.type === CheckoutSessionType.Product) {
-    const [result] =
-      await selectPriceProductAndOrganizationByPriceWhere(
-        { id: checkoutSession.priceId },
-        transaction
-      )
-    price = result.price
-    product = result.product
-    organization = result.organization
-  } else {
-    organization = await selectOrganizationById(
-      checkoutSession.organizationId,
-      transaction
-    )
-  }
 
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null
   if (
-    price?.type === PriceType.Subscription ||
+    // FIXME: Remove this once usage prices are deprecated
     price?.type === PriceType.Usage ||
+    price?.type === PriceType.Subscription ||
     checkoutSession.type === CheckoutSessionType.AddPaymentMethod ||
     checkoutSession.type === CheckoutSessionType.ActivateSubscription
   ) {
@@ -157,7 +209,7 @@ export const createCheckoutSessionTransaction = async (
       await createSetupIntentForCheckoutSession({
         organization,
         checkoutSession,
-        customer,
+        ...(customer ? { customer } : {}),
       })
     stripeSetupIntentId = stripeSetupIntent.id
   } else if (price?.type === PriceType.SinglePayment && product) {
@@ -181,8 +233,8 @@ export const createCheckoutSessionTransaction = async (
   const url =
     updatedCheckoutSession.type ===
     CheckoutSessionType.AddPaymentMethod
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
-      : `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
+      ? `${core.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
+      : `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
   return {
     checkoutSession: updatedCheckoutSession,
     url,

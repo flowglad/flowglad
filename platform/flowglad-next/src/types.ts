@@ -43,243 +43,254 @@ export enum InvoiceStatus {
 }
 
 export enum CountryCode {
-  AF = 'AF', // Afghanistan
-  AL = 'AL', // Albania
-  DZ = 'DZ', // Algeria
-  AS = 'AS', // American Samoa
   AD = 'AD', // Andorra
-  AO = 'AO', // Angola
-  AI = 'AI', // Anguilla
-  AQ = 'AQ', // Antarctica
+  AE = 'AE', // United Arab Emirates
+  AF = 'AF', // Afghanistan
   AG = 'AG', // Antigua and Barbuda
-  AR = 'AR', // Argentina
+  AI = 'AI', // Anguilla
+  AL = 'AL', // Albania
   AM = 'AM', // Armenia
-  AW = 'AW', // Aruba
-  AU = 'AU', // Australia
+  AO = 'AO', // Angola
+  AQ = 'AQ', // Antarctica
+  AR = 'AR', // Argentina
+  AS = 'AS', // American Samoa
   AT = 'AT', // Austria
+  AU = 'AU', // Australia
+  AW = 'AW', // Aruba
+  AX = 'AX', // Åland Islands
   AZ = 'AZ', // Azerbaijan
-  BS = 'BS', // Bahamas
-  BH = 'BH', // Bahrain
-  BD = 'BD', // Bangladesh
-  BB = 'BB', // Barbados
-  BY = 'BY', // Belarus
-  BE = 'BE', // Belgium
-  BZ = 'BZ', // Belize
-  BJ = 'BJ', // Benin
-  BM = 'BM', // Bermuda
-  BT = 'BT', // Bhutan
-  BO = 'BO', // Bolivia
   BA = 'BA', // Bosnia and Herzegovina
-  BW = 'BW', // Botswana
-  BV = 'BV', // Bouvet Island
-  BR = 'BR', // Brazil
-  IO = 'IO', // British Indian Ocean Territory
-  BN = 'BN', // Brunei Darussalam
-  BG = 'BG', // Bulgaria
+  BB = 'BB', // Barbados
+  BD = 'BD', // Bangladesh
+  BE = 'BE', // Belgium
   BF = 'BF', // Burkina Faso
+  BG = 'BG', // Bulgaria
+  BH = 'BH', // Bahrain
   BI = 'BI', // Burundi
-  KH = 'KH', // Cambodia
-  CM = 'CM', // Cameroon
+  BJ = 'BJ', // Benin
+  BL = 'BL', // Saint Barthélemy
+  BM = 'BM', // Bermuda
+  BN = 'BN', // Brunei Darussalam
+  BO = 'BO', // Bolivia
+  BQ = 'BQ', // Bonaire, Sint Eustatius and Saba
+  BR = 'BR', // Brazil
+  BS = 'BS', // Bahamas
+  BT = 'BT', // Bhutan
+  BV = 'BV', // Bouvet Island
+  BW = 'BW', // Botswana
+  BY = 'BY', // Belarus
+  BZ = 'BZ', // Belize
   CA = 'CA', // Canada
-  CV = 'CV', // Cape Verde
-  KY = 'KY', // Cayman Islands
-  CF = 'CF', // Central African Republic
-  TD = 'TD', // Chad
-  CL = 'CL', // Chile
-  CN = 'CN', // China
-  CX = 'CX', // Christmas Island
   CC = 'CC', // Cocos (Keeling) Islands
-  CO = 'CO', // Colombia
-  KM = 'KM', // Comoros
-  CG = 'CG', // Congo
   CD = 'CD', // Congo, the Democratic Republic of the
-  CK = 'CK', // Cook Islands
-  CR = 'CR', // Costa Rica
+  CF = 'CF', // Central African Republic
+  CG = 'CG', // Congo
+  CH = 'CH', // Switzerland
   CI = 'CI', // Cote D'Ivoire
-  HR = 'HR', // Croatia
+  CK = 'CK', // Cook Islands
+  CL = 'CL', // Chile
+  CM = 'CM', // Cameroon
+  CN = 'CN', // China
+  CO = 'CO', // Colombia
+  CR = 'CR', // Costa Rica
   CU = 'CU', // Cuba
+  CV = 'CV', // Cape Verde
+  CW = 'CW', // Curaçao
+  CX = 'CX', // Christmas Island
   CY = 'CY', // Cyprus
   CZ = 'CZ', // Czech Republic
-  DK = 'DK', // Denmark
+  DE = 'DE', // Germany
   DJ = 'DJ', // Djibouti
+  DK = 'DK', // Denmark
   DM = 'DM', // Dominica
   DO = 'DO', // Dominican Republic
+  DZ = 'DZ', // Algeria
   EC = 'EC', // Ecuador
-  EG = 'EG', // Egypt
-  SV = 'SV', // El Salvador
-  GQ = 'GQ', // Equatorial Guinea
-  ER = 'ER', // Eritrea
   EE = 'EE', // Estonia
+  EG = 'EG', // Egypt
+  EH = 'EH', // Western Sahara
+  ER = 'ER', // Eritrea
+  ES = 'ES', // Spain
   ET = 'ET', // Ethiopia
-  FK = 'FK', // Falkland Islands (Malvinas)
-  FO = 'FO', // Faroe Islands
-  FJ = 'FJ', // Fiji
   FI = 'FI', // Finland
+  FJ = 'FJ', // Fiji
+  FK = 'FK', // Falkland Islands (Malvinas)
+  FM = 'FM', // Micronesia, Federated States of
+  FO = 'FO', // Faroe Islands
   FR = 'FR', // France
-  GF = 'GF', // French Guiana
-  PF = 'PF', // French Polynesia
-  TF = 'TF', // French Southern Territories
   GA = 'GA', // Gabon
-  GM = 'GM', // Gambia
+  GB = 'GB', // United Kingdom
+  GD = 'GD', // Grenada
   GE = 'GE', // Georgia
-  DE = 'DE', // Germany
+  GF = 'GF', // French Guiana
+  GG = 'GG', // Guernsey
   GH = 'GH', // Ghana
   GI = 'GI', // Gibraltar
-  GR = 'GR', // Greece
   GL = 'GL', // Greenland
-  GD = 'GD', // Grenada
-  GP = 'GP', // Guadeloupe
-  GU = 'GU', // Guam
-  GT = 'GT', // Guatemala
+  GM = 'GM', // Gambia
   GN = 'GN', // Guinea
+  GP = 'GP', // Guadeloupe
+  GQ = 'GQ', // Equatorial Guinea
+  GR = 'GR', // Greece
+  GS = 'GS', // South Georgia and the South Sandwich Islands
+  GT = 'GT', // Guatemala
+  GU = 'GU', // Guam
   GW = 'GW', // Guinea-Bissau
   GY = 'GY', // Guyana
-  HT = 'HT', // Haiti
-  HM = 'HM', // Heard Island and Mcdonald Islands
-  VA = 'VA', // Holy See (Vatican City State)
-  HN = 'HN', // Honduras
   HK = 'HK', // Hong Kong
+  HM = 'HM', // Heard Island and Mcdonald Islands
+  HN = 'HN', // Honduras
+  HR = 'HR', // Croatia
+  HT = 'HT', // Haiti
   HU = 'HU', // Hungary
-  IS = 'IS', // Iceland
-  IN = 'IN', // India
   ID = 'ID', // Indonesia
-  IR = 'IR', // Iran, Islamic Republic of
-  IQ = 'IQ', // Iraq
   IE = 'IE', // Ireland
   IL = 'IL', // Israel
+  IM = 'IM', // Isle of Man
+  IN = 'IN', // India
+  IO = 'IO', // British Indian Ocean Territory
+  IQ = 'IQ', // Iraq
+  IR = 'IR', // Iran, Islamic Republic of
+  IS = 'IS', // Iceland
   IT = 'IT', // Italy
+  JE = 'JE', // Jersey
   JM = 'JM', // Jamaica
-  JP = 'JP', // Japan
   JO = 'JO', // Jordan
-  KZ = 'KZ', // Kazakhstan
+  JP = 'JP', // Japan
   KE = 'KE', // Kenya
+  KG = 'KG', // Kyrgyzstan
+  KH = 'KH', // Cambodia
   KI = 'KI', // Kiribati
+  KM = 'KM', // Comoros
+  KN = 'KN', // Saint Kitts and Nevis
   KP = 'KP', // Korea, Democratic People's Republic of
   KR = 'KR', // Korea, Republic of
   KW = 'KW', // Kuwait
-  KG = 'KG', // Kyrgyzstan
+  KY = 'KY', // Cayman Islands
+  KZ = 'KZ', // Kazakhstan
   LA = 'LA', // Lao People's Democratic Republic
-  LV = 'LV', // Latvia
   LB = 'LB', // Lebanon
-  LS = 'LS', // Lesotho
-  LR = 'LR', // Liberia
-  LY = 'LY', // Libyan Arab Jamahiriya
+  LC = 'LC', // Saint Lucia
   LI = 'LI', // Liechtenstein
+  LK = 'LK', // Sri Lanka
+  LR = 'LR', // Liberia
+  LS = 'LS', // Lesotho
   LT = 'LT', // Lithuania
   LU = 'LU', // Luxembourg
+  LV = 'LV', // Latvia
+  LY = 'LY', // Libyan Arab Jamahiriya
+  MA = 'MA', // Morocco
+  MC = 'MC', // Monaco
+  MD = 'MD', // Moldova, Republic of
   ME = 'ME', // Montenegro
-  MO = 'MO', // Macao
-  MK = 'MK', // Macedonia, the Former Yugoslav Republic of
+  MF = 'MF', // Saint Martin (French part)
   MG = 'MG', // Madagascar
-  MW = 'MW', // Malawi
-  MY = 'MY', // Malaysia
-  MV = 'MV', // Maldives
-  ML = 'ML', // Mali
-  MT = 'MT', // Malta
   MH = 'MH', // Marshall Islands
+  MK = 'MK', // Macedonia, the Former Yugoslav Republic of
+  ML = 'ML', // Mali
+  MM = 'MM', // Myanmar
+  MN = 'MN', // Mongolia
+  MO = 'MO', // Macao
+  MP = 'MP', // Northern Mariana Islands
   MQ = 'MQ', // Martinique
   MR = 'MR', // Mauritania
-  MU = 'MU', // Mauritius
-  YT = 'YT', // Mayotte
-  MX = 'MX', // Mexico
-  FM = 'FM', // Micronesia, Federated States of
-  MD = 'MD', // Moldova, Republic of
-  MC = 'MC', // Monaco
-  MN = 'MN', // Mongolia
   MS = 'MS', // Montserrat
-  MA = 'MA', // Morocco
+  MT = 'MT', // Malta
+  MU = 'MU', // Mauritius
+  MV = 'MV', // Maldives
+  MW = 'MW', // Malawi
+  MX = 'MX', // Mexico
+  MY = 'MY', // Malaysia
   MZ = 'MZ', // Mozambique
-  MM = 'MM', // Myanmar
   NA = 'NA', // Namibia
-  NR = 'NR', // Nauru
-  NP = 'NP', // Nepal
-  NL = 'NL', // Netherlands
   NC = 'NC', // New Caledonia
-  NZ = 'NZ', // New Zealand
-  NI = 'NI', // Nicaragua
   NE = 'NE', // Niger
-  NG = 'NG', // Nigeria
-  NU = 'NU', // Niue
   NF = 'NF', // Norfolk Island
-  MP = 'MP', // Northern Mariana Islands
+  NG = 'NG', // Nigeria
+  NI = 'NI', // Nicaragua
+  NL = 'NL', // Netherlands
   NO = 'NO', // Norway
+  NP = 'NP', // Nepal
+  NR = 'NR', // Nauru
+  NU = 'NU', // Niue
+  NZ = 'NZ', // New Zealand
   OM = 'OM', // Oman
-  PK = 'PK', // Pakistan
-  PW = 'PW', // Palau
-  PS = 'PS', // Palestinian Territory, Occupied
   PA = 'PA', // Panama
-  PG = 'PG', // Papua New Guinea
-  PY = 'PY', // Paraguay
   PE = 'PE', // Peru
+  PF = 'PF', // French Polynesia
+  PG = 'PG', // Papua New Guinea
   PH = 'PH', // Philippines
-  PN = 'PN', // Pitcairn
+  PK = 'PK', // Pakistan
   PL = 'PL', // Poland
-  PT = 'PT', // Portugal
+  PM = 'PM', // Saint Pierre and Miquelon
+  PN = 'PN', // Pitcairn
   PR = 'PR', // Puerto Rico
+  PS = 'PS', // Palestinian Territory, Occupied
+  PT = 'PT', // Portugal
+  PW = 'PW', // Palau
+  PY = 'PY', // Paraguay
   QA = 'QA', // Qatar
   RE = 'RE', // Reunion
   RO = 'RO', // Romania
+  RS = 'RS', // Serbia
   RU = 'RU', // Russian Federation
   RW = 'RW', // Rwanda
-  SH = 'SH', // Saint Helena
-  KN = 'KN', // Saint Kitts and Nevis
-  LC = 'LC', // Saint Lucia
-  PM = 'PM', // Saint Pierre and Miquelon
-  VC = 'VC', // Saint Vincent and the Grenadines
-  WS = 'WS', // Samoa
-  SM = 'SM', // San Marino
-  ST = 'ST', // Sao Tome and Principe
   SA = 'SA', // Saudi Arabia
-  SN = 'SN', // Senegal
-  RS = 'RS', // Serbia
-  SC = 'SC', // Seychelles
-  SL = 'SL', // Sierra Leone
-  SG = 'SG', // Singapore
-  SK = 'SK', // Slovakia
-  SI = 'SI', // Slovenia
   SB = 'SB', // Solomon Islands
-  SO = 'SO', // Somalia
-  ZA = 'ZA', // South Africa
-  GS = 'GS', // South Georgia and the South Sandwich Islands
-  ES = 'ES', // Spain
-  LK = 'LK', // Sri Lanka
+  SC = 'SC', // Seychelles
   SD = 'SD', // Sudan
-  SR = 'SR', // Suriname
-  SJ = 'SJ', // Svalbard and Jan Mayen
-  SZ = 'SZ', // Swaziland
   SE = 'SE', // Sweden
-  CH = 'CH', // Switzerland
+  SG = 'SG', // Singapore
+  SH = 'SH', // Saint Helena
+  SI = 'SI', // Slovenia
+  SJ = 'SJ', // Svalbard and Jan Mayen
+  SK = 'SK', // Slovakia
+  SL = 'SL', // Sierra Leone
+  SM = 'SM', // San Marino
+  SN = 'SN', // Senegal
+  SO = 'SO', // Somalia
+  SR = 'SR', // Suriname
+  SS = 'SS', // South Sudan
+  ST = 'ST', // Sao Tome and Principe
+  SV = 'SV', // El Salvador
+  SX = 'SX', // Sint Maarten (Dutch part)
   SY = 'SY', // Syrian Arab Republic
-  TW = 'TW', // Taiwan, Province of China
-  TJ = 'TJ', // Tajikistan
-  TZ = 'TZ', // Tanzania, United Republic of
-  TH = 'TH', // Thailand
-  TL = 'TL', // Timor-Leste
-  TG = 'TG', // Togo
-  TK = 'TK', // Tokelau
-  TO = 'TO', // Tonga
-  TT = 'TT', // Trinidad and Tobago
-  TN = 'TN', // Tunisia
-  TR = 'TR', // Turkey
-  TM = 'TM', // Turkmenistan
+  SZ = 'SZ', // Swaziland
   TC = 'TC', // Turks and Caicos Islands
+  TD = 'TD', // Chad
+  TF = 'TF', // French Southern Territories
+  TG = 'TG', // Togo
+  TH = 'TH', // Thailand
+  TJ = 'TJ', // Tajikistan
+  TK = 'TK', // Tokelau
+  TL = 'TL', // Timor-Leste
+  TM = 'TM', // Turkmenistan
+  TN = 'TN', // Tunisia
+  TO = 'TO', // Tonga
+  TR = 'TR', // Turkey
+  TT = 'TT', // Trinidad and Tobago
   TV = 'TV', // Tuvalu
-  UG = 'UG', // Uganda
+  TW = 'TW', // Taiwan, Province of China
+  TZ = 'TZ', // Tanzania, United Republic of
   UA = 'UA', // Ukraine
-  AE = 'AE', // United Arab Emirates
-  GB = 'GB', // United Kingdom
-  US = 'US', // United States
+  UG = 'UG', // Uganda
   UM = 'UM', // United States Minor Outlying Islands
+  US = 'US', // United States
   UY = 'UY', // Uruguay
   UZ = 'UZ', // Uzbekistan
-  VU = 'VU', // Vanuatu
+  VA = 'VA', // Holy See (Vatican City State)
+  VC = 'VC', // Saint Vincent and the Grenadines
   VE = 'VE', // Venezuela
-  VN = 'VN', // Viet Nam
   VG = 'VG', // Virgin Islands, British
   VI = 'VI', // Virgin Islands, U.s.
+  VN = 'VN', // Viet Nam
+  VU = 'VU', // Vanuatu
   WF = 'WF', // Wallis and Futuna
-  EH = 'EH', // Western Sahara
+  WS = 'WS', // Samoa
+  XK = 'XK', // Kosovo (not officially ISO 3166-1, but often included)
   YE = 'YE', // Yemen
+  YT = 'YT', // Mayotte
+  ZA = 'ZA', // South Africa
   ZM = 'ZM', // Zambia
   ZW = 'ZW', // Zimbabwe
 }
@@ -468,7 +479,7 @@ export interface SupabaseUpdatePayload<T = object> {
  * @see https://docs.stripe.com/payments/payment-intents/verifying-status#checking-status-retrieve
  */
 export enum PaymentStatus {
-  // TODO: remove "canceled"
+  // FIXME: remove "canceled"
   Canceled = 'canceled',
   Failed = 'failed',
   Refunded = 'refunded',
@@ -680,6 +691,12 @@ export enum OfferingType {
 }
 
 export type ApiEnvironment = 'test' | 'live'
+export type ServiceContext = 'webapp' | 'api'
+export type LogData = Record<string, any>
+export type LoggerData = LogData & {
+  service?: ServiceContext
+  apiEnvironment?: ApiEnvironment
+}
 
 export enum FlowgladApiKeyType {
   Publishable = 'publishable',
@@ -699,6 +716,7 @@ export enum BillingPeriodStatus {
   Canceled = 'canceled',
   PastDue = 'past_due',
   ScheduledToCancel = 'scheduled_to_cancel',
+  // FIXME: Add a status for "CollectionAbandoned" - when a billing period's payment collection has been abandoned
 }
 
 export enum BillingRunStatus {
@@ -762,6 +780,8 @@ export type SetupIntentableCheckoutSessionType = Exclude<
 
 export enum FeatureFlag {
   Usage = 'usage',
+  ImmediateSubscriptionAdjustments = 'immediate_subscription_adjustments',
+  SubscriptionWithUsage = 'subscription_with_usage',
 }
 
 export enum UsageMeterAggregationType {
@@ -795,7 +815,7 @@ export enum UsageCreditSourceReferenceType {
   InvoiceSettlement = 'invoice_settlement',
   ManualAdjustment = 'manual_adjustment',
   BillingPeriodTransition = 'billing_period_transition',
-  // TODO: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
+  // FIXME: Consider adding other types like Promotional, AdministrativeGrant, InitialSubscriptionGrant
 }
 
 export enum RefundStatus {
@@ -935,4 +955,42 @@ export enum SubscriptionItemType {
 export enum DestinationEnvironment {
   Livemode = 'livemode',
   Testmode = 'testmode',
+}
+
+export type StandardLogger = {
+  info: (message: string) => void
+  warn: (message: string) => void
+  error: (message: string) => void
+}
+
+// Telemetry types for trigger.dev debugging
+export interface TelemetryRecord {
+  runId: string
+}
+
+// Entities created/modified by trigger.dev tasks for debugging
+export type TelemetryEntityType =
+  | 'payment'
+  | 'billing_run'
+  | 'invoice'
+  | 'billing_period'
+  | 'subscription'
+  | 'organization'
+  | 'webhook'
+
+export type UsageBillingInfo = {
+  /**
+   * Key of form `${usageMeterId}-${priceId}`
+   */
+  usageMeterIdPriceId: string
+  usageMeterId: string
+  ledgerAccountId: string
+  balance: number
+  priceId: string
+  usageEventsPerUnit: number
+  unitPrice: number
+  livemode: boolean
+  name: string | null
+  description: string | null
+  usageEventIds: string[]
 }

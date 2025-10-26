@@ -103,7 +103,7 @@ export const grantEntitlementUsageCredits = async (
               : null
             : null,
         issuedAmount: featureItem.amount,
-        issuedAt: new Date(),
+        issuedAt: Date.now(),
         creditType: UsageCreditType.Grant,
         sourceReferenceType:
           UsageCreditSourceReferenceType.BillingPeriodTransition,
@@ -136,7 +136,7 @@ export const grantEntitlementUsageCredits = async (
           organizationId: command.organizationId,
           status: LedgerEntryStatus.Posted,
           livemode: command.livemode,
-          entryTimestamp: new Date(),
+          entryTimestamp: Date.now(),
           metadata: {},
           amount: usageCredit.issuedAmount,
           direction: LedgerEntryDirection.Credit,

@@ -61,6 +61,21 @@ export function isCurrencyZeroDecimal(currency: CurrencyCode) {
   return zeroDecimalCurrencies.includes(currency)
 }
 
-export function formatDate(date: string) {
-  return format(new Date(date), 'MMM d, yyyy')
+export function formatDate(date: Date | string | number) {
+  return format(
+    date instanceof Date ? date : new Date(date),
+    'MMM d, yyyy'
+  )
+}
+
+export function devWarn(message: string) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(`[flowglad]: ${message}`)
+  }
+}
+
+export function devError(message: string) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(`[flowglad]: ${message}`)
+  }
 }

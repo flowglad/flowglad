@@ -169,11 +169,13 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       )
 
     const {
-      purchase,
-      customer,
-      discount,
-      feeCalculation,
-      discountRedemption,
+      result: {
+        purchase,
+        customer,
+        discount,
+        feeCalculation,
+        discountRedemption,
+      },
     } = await processPurchaseBookkeepingForCheckoutSession(
       {
         checkoutSession,
@@ -205,8 +207,8 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
 
 export const calculateTrialEnd = (params: {
   hasHadTrial: boolean
-  trialPeriodDays: number | null
-}): Date | undefined => {
+  trialPeriodDays: number | null | undefined
+}): number | undefined => {
   const { hasHadTrial, trialPeriodDays } = params
   if (
     trialPeriodDays === null ||
@@ -217,9 +219,7 @@ export const calculateTrialEnd = (params: {
   }
   return hasHadTrial
     ? undefined
-    : new Date(
-        new Date().getTime() + trialPeriodDays * 24 * 60 * 60 * 1000
-      )
+    : Date.now() + trialPeriodDays * 24 * 60 * 60 * 1000
 }
 
 export const pullStripeSetupIntentDataToDatabase = async (
@@ -273,7 +273,7 @@ export const checkoutSessionFromSetupIntent = async (
   if (!metadata) {
     throw new Error('No metadata found')
   }
-  // TODO: handle non-success cases
+  // FIXME: handle non-success cases
   if (setupIntent.status !== 'succeeded') {
     throw new Error(
       `Setup intent ${setupIntent.id} is not succeeded, but ${setupIntent.status}.`
@@ -425,6 +425,12 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
   ): Promise<
     TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
   > => {
+    if (!customer) {
+      throw new Error(
+        `Customer is required for setup intent ${setupIntent.id}`
+      )
+    }
+
     if (!isCheckoutSessionSubscriptionCreating(checkoutSession)) {
       throw new Error(
         `createSubscriptionFromSetupIntentableCheckoutSession: checkout session ${checkoutSession.id} is not supported because it is of type ${checkoutSession.type}.`
@@ -499,12 +505,12 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     const preserveBillingCycle =
       checkoutSession.preserveBillingCycleAnchor &&
       !!canceledFreeSubscription
-    const startDate = new Date()
+    const startDate = Date.now()
 
     // Prepare billing cycle preservation parameters
-    let billingCycleAnchorDate: Date | undefined
-    let preservedBillingPeriodEnd: Date | undefined
-    let preservedBillingPeriodStart: Date | undefined
+    let billingCycleAnchorDate: number | undefined
+    let preservedBillingPeriodEnd: number | undefined
+    let preservedBillingPeriodStart: number | undefined
     let prorateFirstPeriod = false
 
     if (preserveBillingCycle) {
@@ -529,6 +535,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         prorateFirstPeriod = false
       }
     }
+    const now = Date.now()
 
     const output = await createSubscriptionWorkflow(
       {
@@ -565,8 +572,8 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     )
 
     const eventInserts: Event.Insert[] = []
-    if (output.eventsToLog) {
-      eventInserts.push(...output.eventsToLog)
+    if (output.eventsToInsert) {
+      eventInserts.push(...output.eventsToInsert)
     }
 
     // Link the old and new subscriptions if there was an upgrade
@@ -577,13 +584,24 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         transaction
       )
       // Add upgrade event to the events to log
+      const customer = await selectCustomerById(
+        output.result.subscription.customerId,
+        transaction
+      )
+
+      if (!customer) {
+        throw new Error(
+          `Customer not found for subscription ${output.result.subscription.id}`
+        )
+      }
+
       eventInserts.push({
         type: FlowgladEventType.SubscriptionCreated,
-        occurredAt: new Date(),
+        occurredAt: now,
         organizationId: organization.id,
         livemode: output.result.subscription.livemode,
         metadata: {},
-        submittedAt: new Date(),
+        submittedAt: now,
         processedAt: null,
         hash: constructSubscriptionCreatedEventHash(
           output.result.subscription
@@ -591,37 +609,45 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         payload: {
           object: EventNoun.Subscription,
           id: output.result.subscription.id,
+          customer: {
+            id: customer.id,
+            externalId: customer.externalId,
+          },
         },
       })
     }
-
     const updatedPurchase = await updatePurchase(
       {
         id: purchase.id,
         status: PurchaseStatus.Paid,
         priceType: price.type,
-        purchaseDate: new Date(),
+        purchaseDate: now,
       },
       transaction
     )
+
     eventInserts.push({
       type: FlowgladEventType.PurchaseCompleted,
-      occurredAt: new Date(),
+      occurredAt: now,
       organizationId: organization.id,
       livemode: updatedPurchase.livemode,
       metadata: {},
-      submittedAt: new Date(),
+      submittedAt: now,
       processedAt: null,
       hash: constructPurchaseCompletedEventHash(updatedPurchase),
       payload: {
         id: updatedPurchase.id,
         object: EventNoun.Purchase,
+        customer: {
+          id: customer.id,
+          externalId: customer.externalId,
+        },
       },
     })
 
     return {
       ...output,
-      eventsToLog: eventInserts,
+      eventsToInsert: eventInserts,
       result: {
         purchase: updatedPurchase,
         checkoutSession,
@@ -785,7 +811,7 @@ export const processSetupIntentSucceeded = async (
           subscription,
           purchase: null,
         },
-        eventsToLog: [],
+        eventsToInsert: [],
       }
     }
     if (checkoutSession.type === CheckoutSessionType.Invoice) {
@@ -830,7 +856,7 @@ export const processSetupIntentSucceeded = async (
         billingRun: null,
         purchase: null,
       },
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
 
@@ -846,7 +872,7 @@ export const processSetupIntentSucceeded = async (
     )
     return {
       result,
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
 
@@ -860,7 +886,7 @@ export const processSetupIntentSucceeded = async (
     )
     return {
       result,
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
 
@@ -875,7 +901,7 @@ export const processSetupIntentSucceeded = async (
       )
     return {
       result,
-      eventsToLog: [],
+      eventsToInsert: [],
     }
   }
 

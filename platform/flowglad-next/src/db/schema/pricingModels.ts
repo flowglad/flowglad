@@ -14,12 +14,13 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { pgPolicy } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import core from '@/utils/core'
-import { DestinationEnvironment } from '@/types'
+import { DestinationEnvironment, IntervalUnit } from '@/types'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'pricing_models'
 
@@ -41,7 +42,7 @@ export const pricingModels = pgTable(
       enableCustomerReadPolicy(
         `Enable read for customers (${TABLE_NAME})`,
         {
-          using: sql`"id" in (select "pricing_model_id" from "customers")`,
+          using: sql`"id" in (select "pricing_model_id" from "customers") OR ("is_default" = true AND "organization_id" = current_organization_id())`,
         }
       ),
       merchantPolicy(
@@ -58,23 +59,6 @@ export const pricingModels = pgTable(
   }
 ).enableRLS()
 
-export const pricingModelsSelectSchema = createSelectSchema(
-  pricingModels,
-  {
-    ...newBaseZodSelectSchemaColumns,
-  }
-)
-
-export const pricingModelsInsertSchema = createInsertSchema(
-  pricingModels
-).omit(ommittedColumnsForInsertSchema)
-
-export const pricingModelsUpdateSchema = pricingModelsInsertSchema
-  .partial()
-  .extend({
-    id: z.string(),
-  })
-
 const readOnlyColumns = {
   organizationId: true,
   livemode: true,
@@ -82,22 +66,24 @@ const readOnlyColumns = {
 
 const hiddenColumns = {
   ...hiddenColumnsForClientSchema,
-} as const
+}
 
-export const pricingModelsClientSelectSchema =
-  pricingModelsSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'PricingModelsClientSelectSchema' })
-
-export const pricingModelsClientUpdateSchema =
-  pricingModelsUpdateSchema
-    .omit(readOnlyColumns)
-    .meta({ id: 'PricingModelsClientUpdateSchema' })
-
-export const pricingModelsClientInsertSchema =
-  pricingModelsInsertSchema
-    .omit(readOnlyColumns)
-    .meta({ id: 'PricingModelsClientInsertSchema' })
+export const {
+  select: pricingModelsSelectSchema,
+  insert: pricingModelsInsertSchema,
+  update: pricingModelsUpdateSchema,
+  client: {
+    select: pricingModelsClientSelectSchema,
+    insert: pricingModelsClientInsertSchema,
+    update: pricingModelsClientUpdateSchema,
+  },
+} = buildSchemas(pricingModels, {
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'PricingModel',
+})
 
 export const pricingModelsPaginatedSelectSchema =
   createPaginatedSelectSchema(pricingModelsClientSelectSchema)
@@ -134,6 +120,9 @@ export namespace PricingModel {
 
 export const createPricingModelSchema = z.object({
   pricingModel: pricingModelsClientInsertSchema,
+  defaultPlanIntervalUnit: core
+    .createSafeZodEnum(IntervalUnit)
+    .optional(),
 })
 
 export type CreatePricingModelInput = z.infer<

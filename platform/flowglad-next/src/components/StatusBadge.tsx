@@ -1,5 +1,5 @@
 import { Check, X } from 'lucide-react'
-import Badge from '@/components/ion/Badge'
+import { Badge } from '@/components/ui/badge'
 
 type Props = {
   active: boolean
@@ -10,12 +10,10 @@ const StatusBadge = ({ active }: Props) => {
     return (
       <div className="w-20">
         <Badge
-          iconLeading={<Check size={12} strokeWidth={2} />}
-          variant="soft"
-          color="green"
-          size="sm"
-          className="w-full"
+          variant="secondary"
+          className="w-full bg-green-100 text-green-800 text-xs"
         >
+          <Check className="w-3 h-3 mr-1" strokeWidth={2} />
           Active
         </Badge>
       </div>
@@ -25,12 +23,10 @@ const StatusBadge = ({ active }: Props) => {
   return (
     <div className="w-20">
       <Badge
-        iconLeading={<X size={12} strokeWidth={2} />}
-        variant="soft"
-        color="grey"
-        size="sm"
-        className="w-full"
+        variant="secondary"
+        className="w-full bg-gray-100 text-gray-800 text-xs"
       >
+        <X className="w-3 h-3 mr-1" strokeWidth={2} />
         Inactive
       </Badge>
     </div>

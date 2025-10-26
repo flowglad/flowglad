@@ -48,7 +48,7 @@ import {
   setupSubscriptionItem,
   setupUsageCredit,
   setupUsageLedgerScenario,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
@@ -84,7 +84,7 @@ import {
   setupLedgerEntries,
   setupUsageEvent,
   setupUsageCreditApplication,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
 
 let customer: Customer.Record
@@ -121,16 +121,15 @@ describe('Subscription Billing Period Transition', async () => {
       customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
-      currentBillingPeriodEnd: new Date(Date.now() - 3000),
-      currentBillingPeriodStart: new Date(
-        Date.now() - 30 * 24 * 60 * 60 * 1000
-      ),
+      currentBillingPeriodEnd: Date.now() - 3000,
+      currentBillingPeriodStart:
+        Date.now() - 30 * 24 * 60 * 60 * 1000,
       renews: true,
     })) as Subscription.StandardRecord
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
-      startDate: subscription.currentBillingPeriodStart,
-      endDate: subscription.currentBillingPeriodEnd,
+      startDate: subscription.currentBillingPeriodStart!,
+      endDate: subscription.currentBillingPeriodEnd!,
       status: BillingPeriodStatus.Active,
     })
     billingRun = await setupBillingRun({
@@ -183,7 +182,7 @@ describe('Subscription Billing Period Transition', async () => {
       // Create a copy of billingPeriod with an endDate in the future
       const futureBillingPeriod = {
         ...billingPeriod,
-        endDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        endDate: Date.now() + 24 * 60 * 60 * 1000,
       }
       await expect(
         attemptToTransitionSubscriptionBillingPeriod(
@@ -266,7 +265,7 @@ describe('Subscription Billing Period Transition', async () => {
   //   // Test 5: If subscription.cancelScheduledAt is in the past, cancel the subscription.
   it('should cancel the subscription if cancelScheduledAt is in the past', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const pastDate = new Date(Date.now() - 1000)
+      const pastDate = Date.now() - 1000
       subscription.cancelScheduledAt = pastDate
       await updateSubscription(
         {
@@ -305,7 +304,7 @@ describe('Subscription Billing Period Transition', async () => {
       const updatedBillingPeriod = await updateBillingPeriod(
         {
           id: billingPeriod.id,
-          endDate: new Date(Date.now() - 1000),
+          endDate: Date.now() - 1000,
         },
         transaction
       )
@@ -327,8 +326,8 @@ describe('Subscription Billing Period Transition', async () => {
       expect(updatedSub.currentBillingPeriodEnd).toBeDefined()
       // And a billing run was created with scheduledFor equal to the new period's start date
       expect(newBillingRun).toBeDefined()
-      expect(newBillingRun?.scheduledFor.getTime()).toEqual(
-        new Date(updatedSub.currentBillingPeriodStart).getTime()
+      expect(newBillingRun?.scheduledFor).toEqual(
+        updatedSub.currentBillingPeriodStart
       )
     })
   })
@@ -353,7 +352,7 @@ describe('Subscription Billing Period Transition', async () => {
       const updatedBillingPeriod = await updateBillingPeriod(
         {
           id: billingPeriod.id,
-          endDate: new Date(Date.now() - 1000),
+          endDate: Date.now() - 1000,
         },
         transaction
       )
@@ -381,14 +380,12 @@ describe('Subscription Billing Period Transition', async () => {
   it('should not create a new billing period if subscription.cancelScheduledAt is set and >= current billing period end date', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Set subscription.cancelScheduledAt to just after the current billing period end
-      const futureEnd = new Date(
-        billingPeriod.endDate.getTime() + 50000
-      )
-      subscription.cancelScheduledAt = futureEnd
+      const futureEnd = new Date(billingPeriod.endDate + 50000)
+      subscription.cancelScheduledAt = futureEnd.getTime()
       await updateSubscription(
         {
           id: subscription.id,
-          cancelScheduledAt: futureEnd,
+          cancelScheduledAt: futureEnd.getTime(),
           status: SubscriptionStatus.Active,
           renews: subscription.renews,
         },
@@ -399,7 +396,7 @@ describe('Subscription Billing Period Transition', async () => {
       const updatedBillingPeriod = await updateBillingPeriod(
         {
           id: billingPeriod.id,
-          endDate: new Date(Date.now() - 1000),
+          endDate: Date.now() - 1000,
         },
         transaction
       )
@@ -418,11 +415,11 @@ describe('Subscription Billing Period Transition', async () => {
       expect(newBillingRun).toBeNull()
       expect(updatedSub.status).toBe(SubscriptionStatus.PastDue)
       // The subscription's current billing period dates should remain unchanged.
-      expect(updatedSub.currentBillingPeriodStart.getTime()).toEqual(
-        subscription.currentBillingPeriodStart.getTime()
+      expect(updatedSub.currentBillingPeriodStart).toEqual(
+        subscription.currentBillingPeriodStart
       )
-      expect(updatedSub.currentBillingPeriodEnd.getTime()).toEqual(
-        subscription.currentBillingPeriodEnd.getTime()
+      expect(updatedSub.currentBillingPeriodEnd).toEqual(
+        subscription.currentBillingPeriodEnd
       )
     })
   })
@@ -451,7 +448,7 @@ describe('Subscription Billing Period Transition', async () => {
       const updatedBillingPeriod = await updateBillingPeriod(
         {
           id: billingPeriod.id,
-          endDate: new Date(Date.now() - 1000),
+          endDate: Date.now() - 1000,
         },
         transaction
       )
@@ -480,10 +477,11 @@ describe('Subscription Billing Period Transition', async () => {
     await adminTransaction(async ({ transaction }) => {
       const invalidBillingPeriod = {
         ...billingPeriod,
-        endDate: new Date('lol'),
+        endDate: null,
       }
       await expect(
         attemptToTransitionSubscriptionBillingPeriod(
+          // @ts-expect-error
           invalidBillingPeriod,
           transaction
         )
@@ -520,16 +518,15 @@ describe('Subscription Billing Period Transition', async () => {
     })
   })
 
-  // ... Other tests ...
-
   it('should throw an error when billing period endDate is missing', async () => {
     await adminTransaction(async ({ transaction }) => {
       const invalidBillingPeriod = {
         ...billingPeriod,
-        endDate: new Date('lol'),
+        endDate: null,
       }
       await expect(
         attemptToTransitionSubscriptionBillingPeriod(
+          // @ts-expect-error
           invalidBillingPeriod,
           transaction
         )
@@ -540,7 +537,7 @@ describe('Subscription Billing Period Transition', async () => {
   // New tests for handling trial period cases
   describe('Trial Billing Period Cases', () => {
     let dummySubscriptionItem: SubscriptionItem.Record
-
+    const now = Date.now()
     beforeEach(() => {
       dummySubscriptionItem = {
         id: 'dummy1',
@@ -553,18 +550,16 @@ describe('Subscription Billing Period Transition', async () => {
         livemode: subscription.livemode,
         subscriptionId: subscription.id,
         priceId: price.id,
-        addedDate: new Date(),
+        addedDate: Date.now(),
         name: 'Test Item',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         externalId: null,
         createdByCommit: 'test',
         updatedByCommit: 'test',
         expiredAt: null,
         position: 0,
         type: SubscriptionItemType.Static,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
       }
     })
 
@@ -643,13 +638,13 @@ describe('Ledger Interactions', () => {
 
     const result = await setupUsageLedgerScenario({
       subscriptionArgs: {
-        currentBillingPeriodStart: thirtyDaysAgo,
-        currentBillingPeriodEnd: oneDayAgo,
+        currentBillingPeriodStart: thirtyDaysAgo.getTime(),
+        currentBillingPeriodEnd: oneDayAgo.getTime(),
         status: SubscriptionStatus.Active,
-        startDate: thirtyDaysAgo,
+        startDate: thirtyDaysAgo.getTime(),
       },
       subscriptionItemArgs: {
-        addedDate: thirtyDaysAgo,
+        addedDate: thirtyDaysAgo.getTime(),
       },
     })
     organization = result.organization
@@ -809,12 +804,10 @@ describe('Ledger Interactions', () => {
     it('should not grant usage credits if a future billing period already exists', async () => {
       // setup:
       await adminTransaction(async ({ transaction }) => {
-        const futureStartDate = new Date(
-          pastBillingPeriod.endDate.getTime() + 1000
-        )
-        const futureEndDate = new Date(
-          futureStartDate.getTime() + 30 * 24 * 60 * 60 * 1000
-        )
+        const futureStartDate = pastBillingPeriod.endDate + 1000
+
+        const futureEndDate =
+          futureStartDate + 30 * 24 * 60 * 60 * 1000
         await setupBillingPeriod({
           subscriptionId: subscription.id,
           startDate: futureStartDate,
@@ -856,7 +849,7 @@ describe('Ledger Interactions', () => {
         await updateSubscription(
           {
             id: subscription.id,
-            cancelScheduledAt: new Date(Date.now() - 1000),
+            cancelScheduledAt: Date.now() - 1000,
             status: SubscriptionStatus.Active,
             renews: subscription.renews,
           },
@@ -1298,7 +1291,7 @@ describe('Ledger Interactions', () => {
         creditType: UsageCreditType.Grant,
         issuedAmount: 500,
         usageMeterId: usageMeter.id,
-        expiresAt: new Date(pastBillingPeriod.endDate),
+        expiresAt: pastBillingPeriod.endDate,
         livemode: true,
       })
       const ledgerTx = await setupLedgerTransaction({
@@ -1364,7 +1357,7 @@ describe('Ledger Interactions', () => {
         creditType: UsageCreditType.Grant,
         issuedAmount: 1000,
         usageMeterId: usageMeter.id,
-        expiresAt: new Date(pastBillingPeriod.endDate),
+        expiresAt: pastBillingPeriod.endDate,
         livemode: true,
       })
 
@@ -1471,7 +1464,7 @@ describe('Ledger Interactions', () => {
         creditType: UsageCreditType.Grant,
         issuedAmount: 1000,
         usageMeterId: usageMeter.id,
-        expiresAt: new Date(pastBillingPeriod.endDate),
+        expiresAt: pastBillingPeriod.endDate,
         livemode: true,
       })
 
@@ -1643,7 +1636,7 @@ describe('Ledger Interactions', () => {
         creditType: UsageCreditType.Grant,
         issuedAmount: 10000,
         usageMeterId: usageMeter.id,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
         livemode: false,
       })
 
@@ -1709,7 +1702,7 @@ describe('Ledger Interactions', () => {
         creditType: UsageCreditType.Grant,
         issuedAmount: 100,
         usageMeterId: usageMeter.id,
-        expiresAt: new Date(pastBillingPeriod.endDate),
+        expiresAt: pastBillingPeriod.endDate,
         livemode: false,
       })
       const ledgerTx1 = await setupLedgerTransaction({
@@ -1769,9 +1762,7 @@ describe('Ledger Interactions', () => {
         creditType: UsageCreditType.Grant,
         issuedAmount: 300,
         usageMeterId: usageMeter.id,
-        expiresAt: new Date(
-          pastBillingPeriod.endDate.getTime() + 10000
-        ), // Expires after transition
+        expiresAt: pastBillingPeriod.endDate + 10000, // Expires after transition
         livemode: false,
       })
       const ledgerTx3 = await setupLedgerTransaction({
@@ -1866,7 +1857,7 @@ describe('Ledger Interactions', () => {
         creditType: UsageCreditType.Grant,
         issuedAmount: expiringAmount,
         usageMeterId: usageMeter.id,
-        expiresAt: new Date(pastBillingPeriod.endDate),
+        expiresAt: pastBillingPeriod.endDate,
         livemode: true,
       })
       const expiringTx = await setupLedgerTransaction({
@@ -1985,7 +1976,7 @@ describe('Ledger Interactions', () => {
         creditType: UsageCreditType.Grant,
         issuedAmount: expiringAmount,
         usageMeterId: usageMeter.id,
-        expiresAt: new Date(pastBillingPeriod.endDate),
+        expiresAt: pastBillingPeriod.endDate,
         livemode: true,
       })
       const expiringTx = await setupLedgerTransaction({

@@ -2,19 +2,26 @@ import { router } from '../trpc'
 import {
   createUsageEventSchema,
   bulkInsertUsageEventsSchema,
+  usageEventPaginatedSelectSchema,
+  usageEventPaginatedListSchema,
+  usageEventsPaginatedTableRowInputSchema,
+  usageEventsPaginatedTableRowOutputSchema,
   UsageEvent,
 } from '@/db/schema/usageEvents'
 import {
   bulkInsertOrDoNothingUsageEventsByTransactionId,
   selectUsageEventById,
+  selectUsageEventsPaginated,
+  selectUsageEventsTableRowData,
 } from '@/db/tableMethods/usageEventMethods'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { usageEventsClientSelectSchema } from '@/db/schema/usageEvents'
 
-import { usageProcedure } from '@/server/trpc'
+import { protectedProcedure } from '@/server/trpc'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedTransaction,
+  authenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
 import { idInputSchema } from '@/db/tableUtils'
 import { z } from 'zod'
@@ -26,12 +33,12 @@ import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageEvent',
-  tags: ['UsageEvents'],
+  tags: ['Usage Events'],
 })
 
 export const usageEventsRouteConfigs = routeConfigs
 
-export const createUsageEvent = usageProcedure
+export const createUsageEvent = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createUsageEventSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
@@ -46,7 +53,7 @@ export const createUsageEvent = usageProcedure
     )
   )
 
-export const getUsageEvent = usageProcedure
+export const getUsageEvent = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
@@ -60,7 +67,7 @@ export const getUsageEvent = usageProcedure
     return { usageEvent }
   })
 
-export const bulkInsertUsageEventsProcedure = usageProcedure
+export const bulkInsertUsageEventsProcedure = protectedProcedure
   .input(bulkInsertUsageEventsSchema)
   .output(
     z.object({ usageEvents: z.array(usageEventsClientSelectSchema) })
@@ -143,8 +150,8 @@ export const bulkInsertUsageEventsProcedure = usageProcedure
             usageMeterId: pricesMap.get(usageEvent.priceId)
               ?.usageMeterId!,
             usageDate: usageEvent.usageDate
-              ? new Date(usageEvent.usageDate)
-              : new Date(),
+              ? usageEvent.usageDate
+              : Date.now(),
           }))
         return await bulkInsertOrDoNothingUsageEventsByTransactionId(
           usageInsertsWithBillingPeriodId,
@@ -158,8 +165,43 @@ export const bulkInsertUsageEventsProcedure = usageProcedure
     return { usageEvents }
   })
 
+// List usage events with pagination
+const listUsageEventsProcedure = protectedProcedure
+  .meta(openApiMetas.LIST)
+  .input(usageEventPaginatedSelectSchema)
+  .output(usageEventPaginatedListSchema)
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        const result = await selectUsageEventsPaginated(
+          input,
+          transaction
+        )
+        return {
+          items: result.data,
+          total: result.total,
+          hasMore: result.hasMore,
+          nextCursor: result.nextCursor,
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
+// Get table rows for usage events with joins
+const getTableRowsProcedure = protectedProcedure
+  .input(usageEventsPaginatedTableRowInputSchema)
+  .output(usageEventsPaginatedTableRowOutputSchema)
+  .query(
+    authenticatedProcedureTransaction(selectUsageEventsTableRowData)
+  )
+
 export const usageEventsRouter = router({
   get: getUsageEvent,
   create: createUsageEvent,
   bulkInsert: bulkInsertUsageEventsProcedure,
+  list: listUsageEventsProcedure,
+  getTableRows: getTableRowsProcedure,
 })

@@ -71,12 +71,12 @@ describe('calculatePriceBaseAmount', () => {
     expect(
       calculatePriceBaseAmount({
         price,
-        // @ts-expect-error - we are testing the fallback behavior
         purchase: {
           ...subscriptionWithoutTrialDummyPurchase,
           firstInvoiceValue: null,
           pricePerBillingCycle: null,
-        } as Purchase.Record,
+          // note - testing fallback behavior
+        } as unknown as Purchase.SubscriptionPurchaseClientRecord,
       })
     ).toBe(1000)
   })
@@ -973,7 +973,7 @@ describe('finalizeFeeCalculation', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoice.id,
-          chargeDate: lastMonth,
+          chargeDate: lastMonth.getTime(),
           currency: CurrencyCode.USD,
           paymentMethod: PaymentMethodType.Card,
           refunded: false,

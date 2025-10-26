@@ -90,7 +90,7 @@ export const refundPaymentTransaction = async (
       status: PaymentStatus.Refunded,
       refunded: true,
       refundedAmount: payment.amount,
-      refundedAt: dateFromStripeTimestamp(refund.created),
+      refundedAt: dateFromStripeTimestamp(refund.created).getTime(),
     },
     transaction
   )
@@ -107,7 +107,7 @@ const paymentStatusFromStripePaymentIntent = async (
   paymentIntent: Stripe.PaymentIntent
 ): Promise<PaymentStatus> => {
   /**
-   * TODO: verify that this is correct: that if there is no latest charge,
+   * FIXME: verify that this is correct: that if there is no latest charge,
    * the payment status should be processing
    */
   if (!paymentIntent.latest_charge) {

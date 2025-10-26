@@ -1,11 +1,4 @@
-import {
-  boolean,
-  text,
-  pgTable,
-  pgPolicy,
-  integer,
-  timestamp,
-} from 'drizzle-orm/pg-core'
+import { boolean, pgTable, integer } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { sql } from 'drizzle-orm'
 import {
@@ -15,17 +8,18 @@ import {
   constructIndex,
   livemodePolicy,
   pgEnumColumn,
-  ommittedColumnsForInsertSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
+  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
 import { usageCredits } from '@/db/schema/usageCredits'
 import { usageMeters } from '@/db/schema/usageMeters'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import core from '@/utils/core'
 import { usageEvents } from './usageEvents'
 import { UsageCreditApplicationStatus } from '@/types'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'usage_credit_applications'
 
@@ -47,9 +41,7 @@ export const usageCreditApplications = pgTable(
       usageEvents
     ),
     amountApplied: integer('amount_applied').notNull(),
-    appliedAt: timestamp('applied_at', {
-      withTimezone: true,
-    }).defaultNow(),
+    appliedAt: timestampWithTimezoneColumn('applied_at').defaultNow(),
     targetUsageMeterId: nullableStringForeignKey(
       'target_usage_meter_id',
       usageMeters
@@ -59,9 +51,7 @@ export const usageCreditApplications = pgTable(
       organizations
     ),
     livemode: boolean('livemode').notNull(),
-    createdAt: timestamp('created_at', {
-      withTimezone: true,
-    }).defaultNow(),
+    createdAt: timestampWithTimezoneColumn('created_at').defaultNow(),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.usageCreditId]),
@@ -82,56 +72,39 @@ export const usageCreditApplications = pgTable(
     ),
     livemodePolicy(TABLE_NAME),
   ]
-)
+).enableRLS()
 
 const columnRefinements = {
   amountApplied: core.safeZodPositiveInteger,
-  appliedAt: core.safeZodDate,
   status: core.createSafeZodEnum(UsageCreditApplicationStatus),
   targetUsageMeterId: z.string().nullable().optional(),
 }
 
-export const usageCreditApplicationsInsertSchema = createInsertSchema(
-  usageCreditApplications
-)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(columnRefinements)
-
-export const usageCreditApplicationsSelectSchema = createSelectSchema(
-  usageCreditApplications
-).extend(columnRefinements)
-
-export const usageCreditApplicationsUpdateSchema =
-  usageCreditApplicationsInsertSchema
-    .partial()
-    .extend({ id: z.string() })
-
-const createOnlyColumns = {} as const
-const readOnlyColumns = {
-  organizationId: true,
-  livemode: true,
-} as const
-const hiddenColumns = {
-  createdByCommit: true,
-  updatedByCommit: true,
-} as const
-const clientWriteOmits = {
-  organizationId: true,
-  livemode: true,
-} as const
-
-export const usageCreditApplicationClientInsertSchema =
-  usageCreditApplicationsInsertSchema
-    .omit(clientWriteOmits)
-    .meta({ id: 'UsageCreditApplicationClientInsertSchema' })
-export const usageCreditApplicationClientUpdateSchema =
-  usageCreditApplicationsUpdateSchema
-    .omit({ ...clientWriteOmits })
-    .meta({ id: 'UsageCreditApplicationClientUpdateSchema' })
-export const usageCreditApplicationClientSelectSchema =
-  usageCreditApplicationsSelectSchema
-    .omit(hiddenColumns)
-    .meta({ id: 'UsageCreditApplicationClientSelectSchema' })
+export const {
+  select: usageCreditApplicationsSelectSchema,
+  insert: usageCreditApplicationsInsertSchema,
+  update: usageCreditApplicationsUpdateSchema,
+  client: {
+    insert: usageCreditApplicationClientInsertSchema,
+    update: usageCreditApplicationClientUpdateSchema,
+    select: usageCreditApplicationClientSelectSchema,
+  },
+} = buildSchemas(usageCreditApplications, {
+  refine: {
+    ...columnRefinements,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      organizationId: true,
+      livemode: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'UsageCreditApplication',
+})
 
 export namespace UsageCreditApplication {
   export type Insert = z.infer<

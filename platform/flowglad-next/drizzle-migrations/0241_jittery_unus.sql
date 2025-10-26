@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "usage_credits_payment_id_subscription_id_usage_meter_id_unique_idx" ON "usage_credits" USING btree ("payment_id","subscription_id","usage_meter_id");

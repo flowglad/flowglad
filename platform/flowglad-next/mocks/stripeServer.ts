@@ -23,6 +23,44 @@ export const stripeHandlers = [
       status: 'processing',
     })
   }),
+  // Some HTTP clients include the explicit :443 port in the URL. Handle that too.
+  http.post(
+    'https://api.stripe.com:443/v1/payment_intents',
+    (req) => {
+      return HttpResponse.json({
+        id: 'pi_mock123',
+        amount: 1000,
+        currency: 'usd',
+        status: 'processing',
+      })
+    }
+  ),
+  // Stripe SDK updates PaymentIntents via POST /v1/payment_intents/:id
+  http.post(
+    'https://api.stripe.com/v1/payment_intents/:id',
+    (req) => {
+      const { id } = req.params
+      return HttpResponse.json({
+        id,
+        amount: 1000,
+        currency: 'usd',
+        status: 'succeeded',
+      })
+    }
+  ),
+  // Port-explicit variant
+  http.post(
+    'https://api.stripe.com:443/v1/payment_intents/:id',
+    (req) => {
+      const { id } = req.params
+      return HttpResponse.json({
+        id,
+        amount: 1000,
+        currency: 'usd',
+        status: 'succeeded',
+      })
+    }
+  ),
   http.get('https://api.stripe.com/v1/payment_intents/:id', (req) => {
     // All request path params are provided in the "params"
     // argument of the response resolver.
@@ -38,6 +76,23 @@ export const stripeHandlers = [
       status,
     })
   }),
+  // Port-explicit variant
+  http.get(
+    'https://api.stripe.com:443/v1/payment_intents/:id',
+    (req) => {
+      const { id } = req.params
+      let status = 'succeeded'
+      if (typeof id === 'string' && id.includes('___')) {
+        status = id.split('___')[1]
+      }
+      return HttpResponse.json({
+        id,
+        amount: 1000,
+        currency: 'usd',
+        status,
+      })
+    }
+  ),
   http.get('https://api.stripe.com/v1/charges/:id', (req) => {
     const { id } = req.params
     const status = decodeStatusFromId(id)
@@ -47,7 +102,31 @@ export const stripeHandlers = [
       currency: 'usd',
       status,
       payment_intent: 'pi_mock123',
-      created: new Date().getTime() / 1000,
+      created: Date.now() / 1000,
+      payment_method_details: {
+        id: `pm_${nanoid()}`,
+        type: PaymentMethodType.Card,
+      },
+      billing_details: {
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        address: {
+          country: 'US',
+        },
+      },
+    })
+  }),
+  // Port-explicit variant
+  http.get('https://api.stripe.com:443/v1/charges/:id', (req) => {
+    const { id } = req.params
+    const status = decodeStatusFromId(id)
+    return HttpResponse.json({
+      id,
+      amount: 1000,
+      currency: 'usd',
+      status,
+      payment_intent: 'pi_mock123',
+      created: Date.now() / 1000,
       payment_method_details: {
         id: `pm_${nanoid()}`,
         type: PaymentMethodType.Card,
@@ -84,8 +163,54 @@ export const stripeHandlers = [
       },
     })
   }),
+  // Port-explicit variant
+  http.get(
+    'https://api.stripe.com:443/v1/payment_methods/:id',
+    (req) => {
+      const { id } = req.params
+      return HttpResponse.json({
+        id,
+        type: PaymentMethodType.Card,
+        billing_details: {
+          name: 'John Doe',
+          email: 'john.doe@example.com',
+          address: {
+            line1: '123 Test St',
+            line2: 'Apt 1',
+            city: 'Test City',
+            state: 'Test State',
+            postal_code: '12345',
+            country: 'US',
+          },
+        },
+        card: {
+          brand: 'visa',
+          last4: '1234',
+        },
+      })
+    }
+  ),
   http.post(
     'https://api.stripe.com/v1/customers',
+    async ({ request }) => {
+      const customerId = `cus_${nanoid()}`
+      const body = (await request.json()) as {
+        email?: string
+        name?: string
+      }
+      return HttpResponse.json({
+        id: customerId,
+        object: 'customer',
+        email: body.email,
+        name: body.name,
+        livemode: false,
+        created: Math.floor(Date.now() / 1000),
+      })
+    }
+  ),
+  // Port-explicit variant
+  http.post(
+    'https://api.stripe.com:443/v1/customers',
     async ({ request }) => {
       const customerId = `cus_${nanoid()}`
       const body = (await request.json()) as {
@@ -117,8 +242,35 @@ export const stripeHandlers = [
       })
     }
   ),
+  // Port-explicit variant
+  http.get(
+    'https://api.stripe.com:443/v1/customers/:id',
+    ({ params }) => {
+      const { id } = params
+      return HttpResponse.json({
+        id,
+        object: 'customer',
+        email: 'mock.customer@example.com',
+        name: 'Mock Customer',
+        livemode: false,
+        created: Math.floor(Date.now() / 1000),
+      })
+    }
+  ),
   http.post(
     'https://api.stripe.com/v1/setup_intents',
+    ({ request }) => {
+      return HttpResponse.json({
+        id: `seti_${nanoid()}`,
+        object: 'setup_intent',
+        status: 'succeeded',
+        client_secret: 'seti_123_secret_456',
+      })
+    }
+  ),
+  // Port-explicit variant
+  http.post(
+    'https://api.stripe.com:443/v1/setup_intents',
     ({ request }) => {
       return HttpResponse.json({
         id: `seti_${nanoid()}`,
@@ -140,6 +292,22 @@ export const stripeHandlers = [
       metadata: {},
     })
   }),
+  // Port-explicit variant
+  http.get(
+    'https://api.stripe.com:443/v1/setup_intents/:id',
+    (req) => {
+      const { id } = req.params
+      const status = decodeStatusFromId(id)
+      return HttpResponse.json({
+        id,
+        status,
+        object: 'setup_intent',
+        customer: `cus_${nanoid()}`,
+        payment_method: `pm_${nanoid()}`,
+        metadata: {},
+      })
+    }
+  ),
 ]
 
 export const stripeServer = setupServer(...stripeHandlers)

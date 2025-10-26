@@ -20,7 +20,7 @@ import {
   type NextjsAuthFlowgladServerSessionParams,
   type SupabaseFlowgladServerSessionParams,
 } from './types'
-
+import { z } from 'zod'
 import { Flowglad as FlowgladNode } from '@flowglad/node'
 
 const getSessionFromNextAuth = async (
@@ -94,16 +94,44 @@ const getSessionFromParams = async (
   params: FlowgladServerSessionParams
 ) => {
   let coreCustomerUser: CoreCustomerUser | null = null
-  if ('nextAuth' in params) {
-    coreCustomerUser = await getSessionFromNextAuth(params)
-  } else if ('supabaseAuth' in params) {
-    coreCustomerUser = await sessionFromSupabaseAuth(params)
-  } else if ('clerk' in params) {
-    coreCustomerUser = await sessionFromClerkAuth(params)
-  } else if (params.getRequestingCustomer) {
-    coreCustomerUser = await params.getRequestingCustomer()
+  const providerCount = [
+    'nextAuth' in params,
+    'supabaseAuth' in params,
+    'clerk' in params,
+  ].filter(Boolean).length
+  if (providerCount > 1) {
+    throw new Error(
+      'FlowgladError: Only one of nextAuth, supabaseAuth, or clerk may be defined at a time.'
+    )
   }
-  return coreCustomerUser
+  if (params.getRequestingCustomer) {
+    coreCustomerUser = await params.getRequestingCustomer()
+  } else {
+    if ('nextAuth' in params) {
+      coreCustomerUser = await getSessionFromNextAuth(params)
+    } else if ('supabaseAuth' in params) {
+      coreCustomerUser = await sessionFromSupabaseAuth(params)
+    } else if ('clerk' in params) {
+      coreCustomerUser = await sessionFromClerkAuth(params)
+    }
+  }
+
+  const customerSchema = z.object({
+    externalId: z.string().min(1),
+    name: z.string().min(1),
+    email: z.email(),
+  })
+  const parsedCustomer = customerSchema.safeParse(coreCustomerUser)
+  if (!parsedCustomer.success) {
+    throw new Error(
+      "Unable to derive requesting customer from session. Please check your flowgladServer constructor, in your server's flowglad.ts file. This is an issue with how your user's session data on the server is being mapped to Flowglad requesting customer input.\n\n" +
+        'Issues:\n' +
+        `${parsedCustomer.error.issues.map((issue) => `- ${issue.path}: ${issue.message}`).join(`\n`)}.\n\n` +
+        'Received input:\n' +
+        JSON.stringify(coreCustomerUser)
+    )
+  }
+  return parsedCustomer.data
 }
 
 export class FlowgladServer {
@@ -172,7 +200,8 @@ export class FlowgladServer {
       const getResult = await this.getCustomer()
       customer = getResult.customer
     } catch (error) {
-      if ((error as any).error.code === 'NOT_FOUND') {
+      const errorCode = (error as any)?.error?.code
+      if (errorCode === 'NOT_FOUND') {
         const session = await getSessionFromParams(
           this.createHandlerParams
         )
@@ -207,10 +236,11 @@ export class FlowgladServer {
       }
       return this.flowgladNode.customers.retrieve(session.externalId)
     }
+
   public createCustomer = async (
     params: FlowgladNode.Customers.CustomerCreateParams
   ): Promise<FlowgladNode.Customers.CustomerCreateResponse> => {
-    return this.flowgladNode.customers.create(params)
+    return await this.flowgladNode.customers.create(params)
   }
   public createCheckoutSession = async (
     params: CreateCheckoutSessionParams
@@ -311,9 +341,10 @@ export class FlowgladServer {
     })
   }
 
-  public getCatalog =
-    async (): Promise<FlowgladNode.Catalogs.CatalogRetrieveResponse> => {
-      const billing = await this.getBilling()
-      return { catalog: billing.catalog }
-    }
+  public getCatalog = async (): Promise<{
+    catalog: FlowgladNode.PricingModels.PricingModelRetrieveResponse['pricingModel']
+  }> => {
+    const billing = await this.getBilling()
+    return { catalog: billing.pricingModel }
+  }
 }

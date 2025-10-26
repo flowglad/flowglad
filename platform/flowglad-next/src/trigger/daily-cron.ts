@@ -1,17 +1,10 @@
-import { adminTransaction } from '@/db/adminTransaction'
-import { deleteExpiredCheckoutSessionsAndFeeCalculations } from '@/db/tableMethods/checkoutSessionMethods'
-import { schedules } from '@trigger.dev/sdk'
-import { deleteExpiredBillingPortalApiKeysTask } from './delete-expired-billing-portal-api-keys'
+import { logger, schedules } from '@trigger.dev/sdk'
 
 export const dailyCron = schedules.task({
   id: 'daily-cron',
   cron: '0 0 * * *',
   run: async () => {
-    await deleteExpiredBillingPortalApiKeysTask.trigger({})
-    return adminTransaction(async ({ transaction }) => {
-      return deleteExpiredCheckoutSessionsAndFeeCalculations(
-        transaction
-      )
-    })
+    logger.log('Daily cron job started')
+    logger.log('Daily cron job completed')
   },
 })

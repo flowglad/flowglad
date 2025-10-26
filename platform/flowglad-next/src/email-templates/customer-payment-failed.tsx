@@ -1,5 +1,6 @@
 import { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
+import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import * as React from 'react'
 import {
@@ -12,19 +13,27 @@ import {
   Signature,
   TotalSection,
 } from './components/themed'
+import { EmailButton } from './components/EmailButton'
 
 export const PaymentFailedEmail = ({
   invoiceNumber,
   orderDate,
+  invoice,
   lineItems,
   organizationName,
   organizationLogoUrl,
   retryDate,
-  currency,
+  discountInfo,
+  failureReason,
+  customerPortalUrl,
 }: {
-  currency: CurrencyCode
   invoiceNumber: string
   orderDate: Date
+  invoice: {
+    subtotal: number | null
+    taxAmount: number | null
+    currency: CurrencyCode
+  }
   organizationName: string
   organizationLogoUrl?: string
   lineItems: {
@@ -33,15 +42,20 @@ export const PaymentFailedEmail = ({
     quantity: number
   }[]
   retryDate?: Date
+  discountInfo?: {
+    discountName: string
+    discountCode: string
+    discountAmount: number
+    discountAmountType: string
+  } | null
+  failureReason?: string
+  customerPortalUrl?: string
 }) => {
-  const totalAmount =
-    stripeCurrencyAmountToHumanReadableCurrencyAmount(
-      currency,
-      lineItems.reduce(
-        (acc, item) => acc + item.price * item.quantity,
-        0
-      )
-    )
+  const totals = calculateInvoiceTotalsWithDiscounts(
+    lineItems,
+    invoice,
+    discountInfo
+  )
 
   return (
     <EmailLayout previewText="Payment Failed for Your Order">
@@ -51,7 +65,13 @@ export const PaymentFailedEmail = ({
       />
       <Paragraph>
         We were unable to process your payment for the order below.
-        Please check your payment information.
+        <br />
+        {failureReason && (
+          <>
+            <br />
+            <strong>Reason:</strong> {failureReason}
+          </>
+        )}
       </Paragraph>
       {retryDate ? (
         <Paragraph>
@@ -67,7 +87,7 @@ export const PaymentFailedEmail = ({
       <DetailSection>
         <DetailItem>Invoice #: {invoiceNumber}</DetailItem>
         <DetailItem>Date: {formatDate(orderDate)}</DetailItem>
-        <DetailItem>Amount: {totalAmount}</DetailItem>
+        <DetailItem>Amount: {totals.totalAmount}</DetailItem>
       </DetailSection>
 
       {lineItems.map((item, index) => (
@@ -77,11 +97,23 @@ export const PaymentFailedEmail = ({
           name={item.name}
           price={item.price}
           quantity={item.quantity}
-          currency={currency}
+          currency={invoice.currency}
         />
       ))}
 
-      <TotalSection subtotal={totalAmount} total={totalAmount} />
+      <TotalSection
+        originalAmount={totals.originalAmount}
+        subtotal={totals.subtotalAmount}
+        tax={totals.taxAmount}
+        total={totals.totalAmount}
+        discountInfo={totals.discountInfoWithCurrency}
+      />
+
+      {customerPortalUrl && (
+        <EmailButton href={customerPortalUrl}>
+          Update Payment Method
+        </EmailButton>
+      )}
 
       <Paragraph>
         If you continue to experience issues, please contact our

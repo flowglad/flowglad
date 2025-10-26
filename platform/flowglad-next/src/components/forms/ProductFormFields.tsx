@@ -14,13 +14,16 @@ import PriceFormFields from '@/components/forms/PriceFormFields'
 import { useFormContext } from 'react-hook-form'
 import { CreateProductSchema } from '@/db/schema/prices'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import StatusBadge from '../StatusBadge'
 import PricingModelSelect from './PricingModelSelect'
 import core from '@/utils/core'
 import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
-import { snakeCase } from 'change-case'
-import { useRef } from 'react'
 import { Product } from '@/db/schema/products'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
+import { useEffect } from 'react'
+import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
+import { PriceType } from '@/types'
 
 export const ProductFormFields = ({
   editProduct = false,
@@ -28,21 +31,47 @@ export const ProductFormFields = ({
   editProduct?: boolean
 }) => {
   const form = useFormContext<CreateProductSchema>()
+  const priceForm = usePriceFormContext()
   const product = form.watch('product')
-  const isSlugDirty = useRef(false)
+  const priceType = priceForm.watch('price.type')
+  const isDefaultProduct = product?.default === true
+
+  // Ensure default products remain active in UI
+  useEffect(() => {
+    if (isDefaultProduct && product?.active !== true) {
+      form.setValue('product.active', true)
+    }
+  }, [isDefaultProduct, product?.active, form])
+
+  // Clear featureIds when price type is 'usage'
+  useEffect(() => {
+    if (!editProduct && priceType === PriceType.Usage) {
+      form.setValue('featureIds', [])
+    }
+    // FIXME(FG-384): Fix this warning:
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [priceType, form])
 
   if (
     !core.IS_PROD &&
     Object.keys(form.formState.errors).length > 0
   ) {
+    // FIXME(FG-384): Fix this warning:
     // eslint-disable-next-line no-console
     console.log('errors', form.formState.errors)
   }
   return (
     <div className="relative flex justify-between items-start gap-2.5 bg-background">
-      <div className="flex-1 w-full max-w-[656px] min-w-[460px] relative flex flex-col rounded-radius-md">
+      <div className="flex-1 w-full max-w-[656px] min-w-[460px] relative flex flex-col rounded-lg-md">
         <div className="w-full relative flex flex-col items-start">
           <div className="flex-1 w-full relative flex flex-col justify-center gap-6">
+            {isDefaultProduct && (
+              <p className="text-xs text-muted-foreground">
+                Product slug, price slug, status, price type, price
+                amount, and trial settings are locked on default
+                plans.
+              </p>
+            )}
             <FormField
               control={form.control}
               name="product.name"
@@ -54,25 +83,6 @@ export const ProductFormFields = ({
                       placeholder="Product"
                       className="w-full"
                       {...field}
-                      onChange={(e) => {
-                        // First, let the field handle its own onChange
-                        field.onChange(e)
-
-                        // Then handle our auto-slug logic
-                        const newName = e.target.value
-
-                        // Only auto-generate slug if:
-                        // 1. We're not editing an existing product
-                        // 2. The slug field is not dirty (user hasn't focused it)
-                        if (!editProduct && !isSlugDirty.current) {
-                          if (newName.trim()) {
-                            const newSlug = snakeCase(newName)
-                            form.setValue('product.slug', newSlug)
-                          } else {
-                            form.setValue('product.slug', '')
-                          }
-                        }
-                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -82,34 +92,27 @@ export const ProductFormFields = ({
             <FormField
               control={form.control}
               name="product.slug"
-              render={({ field }) => {
-                const { value, ...rest } = field
-                return (
-                  <FormItem>
-                    <FormLabel>Product Slug</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="product_slug"
-                        className="w-full"
-                        {...rest}
-                        value={value || ''}
-                        onFocus={() => {
-                          isSlugDirty.current = true
-                        }}
-                        onChange={(e) => {
-                          isSlugDirty.current = true
-                          field.onChange(e)
-                        }}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs text-subtle mt-1">
-                      Used to identify the product via API. Must be
-                      unique per-pricing model.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )
-              }}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Product Slug</FormLabel>
+                  <FormControl>
+                    <AutoSlugInput
+                      {...field}
+                      name="product.slug"
+                      sourceName="product.name"
+                      placeholder="product_slug"
+                      disabledAuto={editProduct || isDefaultProduct}
+                      disabled={isDefaultProduct}
+                      className="w-full"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs text-muted-foreground mt-1">
+                    Used to identify the product via API. Must be
+                    unique per-pricing model.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
             <FormField
               control={form.control}
@@ -127,7 +130,7 @@ export const ProductFormFields = ({
                       value={field.value || ''}
                     />
                   </FormControl>
-                  <FormDescription className="text-xs text-subtle mt-1">
+                  <FormDescription className="text-xs text-muted-foreground mt-1">
                     Details about your product that will be displayed
                     on the purchase page.
                   </FormDescription>
@@ -143,7 +146,47 @@ export const ProductFormFields = ({
                 />
               </div>
             )}
-            <div className="w-full mt-4">
+            {editProduct && (
+              <FormField
+                control={form.control}
+                name="product.active"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="product-active"
+                          checked={field.value}
+                          disabled={isDefaultProduct}
+                          onCheckedChange={field.onChange}
+                        />
+                        <Label
+                          htmlFor="product-active"
+                          className="cursor-pointer w-full"
+                        >
+                          {field.value ? (
+                            <StatusBadge active={true} />
+                          ) : (
+                            <StatusBadge active={false} />
+                          )}
+                        </Label>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
+          <div className="w-full mt-6">
+            <PriceFormFields
+              edit={editProduct}
+              pricingModelId={product?.pricingModelId}
+            />
+          </div>
+          {priceType !== PriceType.Usage && (
+            <div className="w-full mt-6">
               <ProductFeatureMultiSelect
                 pricingModelId={product.pricingModelId}
                 productId={
@@ -153,38 +196,8 @@ export const ProductFormFields = ({
                 }
               />
             </div>
-            {editProduct && (
-              <FormField
-                control={form.control}
-                name="product.active"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        label={
-                          <div className="cursor-pointer w-full">
-                            {field.value ? (
-                              <StatusBadge active={true} />
-                            ) : (
-                              <StatusBadge active={false} />
-                            )}
-                          </div>
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-          </div>
-          <div className="w-full mt-8">
-            <PriceFormFields edit={editProduct} />
-          </div>
-          <div className="w-full mt-8">
+          )}
+          <div className="w-full mt-12">
             <FileInput
               directory="products"
               onUploadComplete={({ publicURL }) => {

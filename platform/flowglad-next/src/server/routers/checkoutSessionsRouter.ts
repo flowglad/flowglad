@@ -8,11 +8,12 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
+import { setCheckoutSessionCookie } from '@/server/mutations/setCheckoutSessionCookie'
 import {
   selectCheckoutSessionById,
   selectCheckoutSessions,
   selectCheckoutSessionsPaginated,
-  updateCheckoutSession,
+  updateCheckoutSession as updateCheckoutSessionDb,
   updateCheckoutSessionAutomaticallyUpdateSubscriptions,
   updateCheckoutSessionBillingAddress,
   updateCheckoutSessionCustomerEmail,
@@ -38,6 +39,10 @@ import { billingAddressSchema } from '@/db/schema/organizations'
 import { adminTransaction } from '@/db/adminTransaction'
 import { getIntentStatus } from '@/utils/bookkeeping/intentStatus'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
+import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
+import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
+import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
+import core from '@/utils/core'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'checkoutSession',
@@ -81,7 +86,7 @@ export const createCheckoutSession = protectedProcedure
     )
   )
 
-export const editCheckoutSession = protectedProcedure
+export const updateCheckoutSession = protectedProcedure
   //   .meta(openApiMetas.PUT)
   .input(editCheckoutSessionInputSchema)
   .output(singleCheckoutSessionOutputSchema)
@@ -112,7 +117,7 @@ export const editCheckoutSession = protectedProcedure
           })
         }
 
-        const updatedCheckoutSession = await updateCheckoutSession(
+        const updatedCheckoutSession = await updateCheckoutSessionDb(
           {
             ...checkoutSession,
             ...input.checkoutSession,
@@ -127,7 +132,7 @@ export const editCheckoutSession = protectedProcedure
         }
         return {
           checkoutSession: updatedCheckoutSession,
-          url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${updatedCheckoutSession.id}`,
+          url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${updatedCheckoutSession.id}`,
         }
       },
       { apiKey: ctx.apiKey }
@@ -147,7 +152,7 @@ const getCheckoutSessionProcedure = protectedProcedure
         )
         return {
           checkoutSession,
-          url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
+          url: `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`,
         }
       },
       {
@@ -253,7 +258,7 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
 
 export const checkoutSessionsRouter = router({
   create: createCheckoutSession,
-  edit: editCheckoutSession,
+  update: updateCheckoutSession,
   get: getCheckoutSessionProcedure,
   list: listCheckoutSessionsProcedure,
   getIntentStatus: getIntentStatusProcedure,
@@ -263,5 +268,9 @@ export const checkoutSessionsRouter = router({
     setBillingAddress: setBillingAddressProcedure,
     setAutomaticallyUpdateSubscriptions:
       setAutomaticallyUpdateSubscriptionsProcedure,
+    attemptDiscountCode,
+    clearDiscountCode,
+    confirm: confirmCheckoutSession,
+    setSession: setCheckoutSessionCookie,
   },
 })

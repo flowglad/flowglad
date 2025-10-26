@@ -1,9 +1,8 @@
 import * as R from 'ramda'
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import {
   notNullStringForeignKey,
-  ommittedColumnsForInsertSchema,
   constructIndex,
   constructUniqueIndex,
   tableBase,
@@ -11,6 +10,7 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { users, usersSelectSchema } from '@/db/schema/users'
 import { organizations } from '@/db/schema/organizations'
@@ -61,60 +61,32 @@ export const memberships = pgTable(
   }
 ).enableRLS()
 
-// Column refinements for SELECT schemas only
-const selectColumnRefinements = {
-  ...newBaseZodSelectSchemaColumns,
-}
-
-// Column refinements for INSERT schemas (without auto-generated columns)
-const insertColumnRefinements = {
-  // No additional refinements needed for insert
-}
-
-export const membershipsSelectSchema = createSelectSchema(
-  memberships,
-  selectColumnRefinements
-)
-
-export const membershipsInsertSchema = createInsertSchema(memberships)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(insertColumnRefinements)
-
-export const membershipsUpdateSchema = membershipsInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-const hiddenColumns = {
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const readOnlyColumns = {
-  userId: true,
-  organizationId: true,
-  livemode: true,
-} as const
-
-const createOnlyColumns = {} as const
-
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-  ...createOnlyColumns,
-} as const
-
-const clientWriteOmits = R.omit(['position'], {
-  ...hiddenColumns,
-  ...readOnlyColumns,
-  ...createOnlyColumns,
+// Build server and client schemas using the shared builder
+export const {
+  select: membershipsSelectSchema,
+  insert: membershipsInsertSchema,
+  update: membershipsUpdateSchema,
+  client: {
+    select: membershipsClientSelectSchema,
+    update: membershipsClientUpdateSchema,
+  },
+} = buildSchemas(memberships, {
+  selectRefine: {
+    ...newBaseZodSelectSchemaColumns,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      userId: true,
+      organizationId: true,
+      livemode: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'Memberships',
 })
-
-export const membershipsClientSelectSchema = membershipsSelectSchema
-  .omit(hiddenColumns)
-  .meta({ id: 'MembershipsClientSelectSchema' })
-
-export const membershipsClientUpdateSchema = membershipsUpdateSchema
-  .omit(clientWriteOmits)
-  .meta({ id: 'MembershipsClientUpdateSchema' })
 
 export namespace Membership {
   export type Insert = z.infer<typeof membershipsInsertSchema>

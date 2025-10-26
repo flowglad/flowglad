@@ -54,11 +54,7 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
   })
 }
 
-const handleMerchantEmailOTP = async ({
-  email,
-  url,
-  token,
-}: {
+const handleMerchantEmailOTP = async ({}: {
   email: string
   url: string
   token: string

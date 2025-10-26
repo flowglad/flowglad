@@ -14,7 +14,7 @@ import {
   setupUsageEvent,
   setupUsageCredit,
   setupLedgerEntries,
-} from '../../seedDatabase'
+} from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
 import { Customer } from '@/db/schema/customers'
@@ -81,12 +81,9 @@ describe('Ledger Management System', async () => {
       paymentMethodId: paymentMethod.id,
       priceId: price.id,
       status: SubscriptionStatus.Active,
-      currentBillingPeriodStart: new Date(
-        Date.now() - 30 * 24 * 60 * 60 * 1000
-      ),
-      currentBillingPeriodEnd: new Date(
-        Date.now() + 1 * 24 * 60 * 60 * 1000
-      ),
+      currentBillingPeriodStart:
+        Date.now() - 30 * 24 * 60 * 60 * 1000,
+      currentBillingPeriodEnd: Date.now() + 1 * 24 * 60 * 60 * 1000,
       livemode: true,
     })
 
@@ -296,7 +293,7 @@ describe('Ledger Management System', async () => {
               entryType: LedgerEntryType.UsageCost,
               amount: thirdUsageEvent.amount,
               status: LedgerEntryStatus.Pending,
-              discardedAt: new Date(),
+              discardedAt: Date.now(),
               sourceUsageEventId: thirdUsageEvent.id,
             },
           ],
@@ -429,7 +426,7 @@ describe('Ledger Management System', async () => {
       })
     })
 
-    // TODO: figure out how to enforce these at the db layer, and maybe in the business logic layer
+    // FIXME: figure out how to enforce these at the db layer, and maybe in the business logic layer
     //     describe('2. Immutability & Lifecycle of LedgerEntries', () => {
     //       it('should prevent alteration of core financial fields of a "posted" LedgerEntry', () => {
     //         // Test logic: Attempt to update amount, currency, etc., of a posted entry

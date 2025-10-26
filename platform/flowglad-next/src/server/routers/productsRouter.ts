@@ -1,19 +1,24 @@
 import { protectedProcedure, router } from '../trpc'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   selectProductsPaginated,
   selectProductById,
   selectProductsCursorPaginated,
+  selectProductPriceAndFeaturesByProductId,
 } from '@/db/tableMethods/productMethods'
 import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import {
   validateProductCreation,
   validateDefaultProductUpdate,
+  validateDefaultPriceUpdate,
 } from '@/utils/defaultProductValidation'
+import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
 import {
   createProductTransaction,
   editProduct as editProductPricingModel,
 } from '@/utils/pricingModel'
 import { errorHandlers } from '../trpcErrorHandler'
+import { TRPCError } from '@trpc/server'
 import {
   createProductSchema,
   editProductSchema,
@@ -33,8 +38,10 @@ import {
   productsPaginatedSelectSchema,
 } from '@/db/schema/products'
 import {
+  safelyInsertPrice,
   safelyUpdatePrice,
   selectPrices,
+  selectPriceById,
 } from '@/db/tableMethods/priceMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
 import * as R from 'ramda'
@@ -52,6 +59,7 @@ export const productsRouteConfigs = {
   ...trpcToRest('products.list'),
   ...trpcToRest('products.create'),
   ...trpcToRest('products.update'),
+  ...trpcToRest('products.get'),
 }
 
 const singleProductOutputSchema = z.object({
@@ -104,13 +112,13 @@ export const createProduct = protectedProcedure
     }
   })
 
-export const editProduct = protectedProcedure
+export const updateProduct = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editProductSchema)
   .output(singleProductOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ transaction, input }) => {
+      async ({ transaction, input, ctx }) => {
         try {
           const { product, featureIds } = input
 
@@ -123,11 +131,19 @@ export const editProduct = protectedProcedure
             throw new Error('Product not found')
           }
 
+          // If default product, always force active=true on edit to auto-correct bad states
+          const enforcedProduct = existingProduct.default
+            ? { ...product, active: true }
+            : product
+
           // Validate that default products can only have certain fields updated
-          validateDefaultProductUpdate(product, existingProduct)
+          validateDefaultProductUpdate(
+            enforcedProduct,
+            existingProduct
+          )
 
           const updatedProduct = await editProductPricingModel(
-            { product, featureIds },
+            { product: enforcedProduct, featureIds },
             transaction
           )
 
@@ -139,7 +155,31 @@ export const editProduct = protectedProcedure
           }
 
           if (input.price) {
-            await safelyUpdatePrice(input.price, transaction)
+            // Forbid creating additional prices for default products
+            const existingPrices = await selectPrices(
+              { productId: product.id },
+              transaction
+            )
+            if (product.default && existingPrices.length > 0) {
+              throw new TRPCError({
+                code: 'FORBIDDEN',
+                message:
+                  'Cannot create additional prices for the default plan',
+              })
+            }
+            const organization = await selectOrganizationById(
+              ctx.organizationId!,
+              transaction
+            )
+            await safelyInsertPrice(
+              {
+                ...input.price,
+                livemode: ctx.livemode,
+                currency: organization.defaultCurrency,
+                externalId: null,
+              },
+              transaction
+            )
           }
           return {
             product: updatedProduct,
@@ -184,25 +224,32 @@ export const getProduct = protectedProcedure
     try {
       return await authenticatedTransaction(
         async ({ transaction }) => {
-          const product = await selectProductById(
-            input.id,
-            transaction
-          )
-          if (!product) {
-            errorHandlers.product.handle(
-              new Error('Product not found'),
-              { operation: 'get', id: input.id }
+          const result =
+            await selectProductPriceAndFeaturesByProductId(
+              input.id,
+              transaction
             )
+
+          if (!result) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Product not found with id ${input.id}`,
+            })
           }
-          const prices = await selectPrices(
-            {
-              productId: product.id,
-            },
-            transaction
-          )
+
+          const { product, prices, features } = result
+
+          if (!prices || prices.length === 0) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `No prices found for product with id ${input.id}`,
+            })
+          }
+
           return {
             ...product,
             prices,
+            features,
             defaultPrice:
               prices.find((price) => price.isDefault) ?? prices[0],
           }
@@ -297,7 +344,7 @@ export const productsRouter = router({
   list: listProducts,
   get: getProduct,
   create: createProduct,
-  edit: editProduct,
+  update: updateProduct,
   getTableRows,
   getCountsByStatus,
 })

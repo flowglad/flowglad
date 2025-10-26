@@ -14,12 +14,13 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import {
   insertPrice,
+  safelyInsertPrice,
   selectPriceById,
 } from '@/db/tableMethods/priceMethods'
 import { users } from '@/db/schema/users'
 import { ApiKey, apiKeys } from '@/db/schema/apiKeys'
 import { insertBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
-import { insertBillingRun } from '@/db/tableMethods/billingRunMethods'
+import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
 import { insertBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
 import { insertInvoice } from '@/db/tableMethods/invoiceMethods'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
@@ -57,6 +58,8 @@ import {
   SubscriptionItemType,
   StripeConnectContractType,
   BusinessOnboardingStatus,
+  NormalBalanceType,
+  UsageMeterAggregationType,
 } from '@/types'
 import { core, isNil } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -189,7 +192,8 @@ export const setupOrg = async (params?: {
       },
       transaction
     )
-    const pricingModel = await insertPricingModel(
+    // Create both live and testmode default pricing models
+    const livePricingModel = await insertPricingModel(
       {
         name: 'Flowglad Test Pricing Model',
         organizationId: organization.id,
@@ -199,21 +203,30 @@ export const setupOrg = async (params?: {
       transaction
     )
 
+    const testmodePricingModel = await insertPricingModel(
+      {
+        name: 'Flowglad Test Pricing Model (testmode)',
+        organizationId: organization.id,
+        livemode: false,
+        isDefault: true,
+      },
+      transaction
+    )
+
     const product = await insertProduct(
       {
-        name: 'Flowglad Test Product',
+        name: 'Default Product',
         organizationId: organization.id,
         livemode: true,
-        description: 'Flowglad Live Product',
+        description: 'Default product for organization',
         imageURL: 'https://flowglad.com/logo.png',
         active: true,
-        displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
-        pricingModelId: pricingModel.id,
+        pricingModelId: livePricingModel.id,
         externalId: null,
-        default: false,
-        slug: `flowglad-test-product-price+${core.nanoid()}`,
+        default: true,
+        slug: `default-product-${core.nanoid()}`,
       },
       transaction
     )
@@ -222,7 +235,7 @@ export const setupOrg = async (params?: {
       {
         ...nulledPriceColumns,
         productId: product.id,
-        name: 'Flowglad Test Product Price',
+        name: 'Default Product Price',
         type: PriceType.Subscription,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
@@ -230,15 +243,20 @@ export const setupOrg = async (params?: {
         active: true,
         isDefault: true,
         unitPrice: 1000,
-        setupFeeAmount: 0,
         trialPeriodDays: 0,
         currency: CurrencyCode.USD,
         externalId: null,
-        slug: `flowglad-test-product-price+${core.nanoid()}`,
+        slug: `default-product-price-${core.nanoid()}`,
       },
       transaction
     )) as Price.SubscriptionRecord
-    return { organization, product, price, pricingModel }
+    return {
+      organization,
+      product,
+      price,
+      pricingModel: livePricingModel,
+      testmodePricingModel,
+    }
   })
 }
 
@@ -266,7 +284,6 @@ export const setupProduct = async ({
         description: 'Flowglad Live Product',
         imageURL: 'https://flowglad.com/logo.png',
         active,
-        displayFeatures: [],
         singularQuantityLabel: 'seat',
         pluralQuantityLabel: 'seats',
         pricingModelId,
@@ -414,20 +431,20 @@ export const setupSubscription = async (params: {
   interval?: IntervalUnit
   intervalCount?: number
   livemode?: boolean
-  currentBillingPeriodEnd?: Date
-  currentBillingPeriodStart?: Date
+  currentBillingPeriodEnd?: number
+  currentBillingPeriodStart?: number
   status?: SubscriptionStatus
-  trialEnd?: Date
+  trialEnd?: number
   renews?: boolean
-  startDate?: Date
-  cancelScheduledAt?: Date
+  startDate?: number
+  cancelScheduledAt?: number
   isFreePlan?: boolean
   cancellationReason?: string | null
   replacedBySubscriptionId?: string | null
-  canceledAt?: Date | null
   name?: string
+  canceledAt?: number | null
   metadata?: any
-  billingCycleAnchorDate?: Date
+  billingCycleAnchorDate?: number
 }): Promise<Subscription.Record> => {
   const status = params.status ?? SubscriptionStatus.Active
   return adminTransaction(async ({ transaction }) => {
@@ -462,7 +479,7 @@ export const setupSubscription = async (params: {
           runBillingAtPeriodStart:
             price.type === PriceType.Subscription ? true : false,
           externalId: null,
-          startDate: new Date(),
+          startDate: Date.now(),
           renews: false,
           isFreePlan: params.isFreePlan ?? false,
           cancellationReason: params.cancellationReason ?? null,
@@ -492,12 +509,12 @@ export const setupSubscription = async (params: {
             | SubscriptionStatus.Paused,
           livemode: params.livemode ?? true,
           billingCycleAnchorDate:
-            params.billingCycleAnchorDate ?? new Date(),
+            params.billingCycleAnchorDate ?? Date.now(),
           currentBillingPeriodEnd:
             params.currentBillingPeriodEnd ??
-            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(),
           currentBillingPeriodStart:
-            params.currentBillingPeriodStart ?? new Date(),
+            params.currentBillingPeriodStart ?? Date.now(),
           canceledAt: params.canceledAt ?? null,
           cancelScheduledAt: params.cancelScheduledAt ?? null,
           trialEnd: params.trialEnd ?? null,
@@ -511,7 +528,7 @@ export const setupSubscription = async (params: {
           runBillingAtPeriodStart:
             price.type === PriceType.Subscription ? true : false,
           externalId: null,
-          startDate: params.startDate ?? new Date(),
+          startDate: params.startDate ?? Date.now(),
           renews: isNil(params.renews) ? true : params.renews,
           isFreePlan: params.isFreePlan ?? false,
           cancellationReason: params.cancellationReason ?? null,
@@ -532,8 +549,8 @@ export const setupBillingPeriod = async ({
   livemode = true,
 }: {
   subscriptionId: string
-  startDate: Date
-  endDate: Date
+  startDate: number | Date
+  endDate: number | Date
   status?: BillingPeriodStatus
   livemode?: boolean
 }) => {
@@ -541,8 +558,10 @@ export const setupBillingPeriod = async ({
     return insertBillingPeriod(
       {
         subscriptionId,
-        startDate,
-        endDate,
+        startDate:
+          startDate instanceof Date ? startDate.getTime() : startDate,
+        endDate:
+          endDate instanceof Date ? endDate.getTime() : endDate,
         status,
         livemode,
       },
@@ -555,7 +574,7 @@ export const setupBillingRun = async ({
   billingPeriodId,
   paymentMethodId,
   status = BillingRunStatus.Scheduled,
-  scheduledFor = new Date(),
+  scheduledFor = Date.now(),
   subscriptionId,
   livemode = true,
   stripePaymentIntentId,
@@ -566,7 +585,7 @@ export const setupBillingRun = async ({
   subscriptionId: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    return insertBillingRun(
+    return safelyInsertBillingRun(
       {
         billingPeriodId,
         paymentMethodId,
@@ -620,6 +639,11 @@ export const setupBillingPeriodItem = async ({
           'Discount redemption ID is not allowed for usage items'
         )
       }
+      if (type === SubscriptionItemType.Usage) {
+        throw new Error(
+          'Usage type is not allowed for billing period items'
+        )
+      }
       const insert: BillingPeriodItem.Insert = {
         billingPeriodId,
         quantity,
@@ -627,8 +651,6 @@ export const setupBillingPeriodItem = async ({
         name,
         description,
         type,
-        usageMeterId,
-        usageEventsPerUnit,
         discountRedemptionId: null,
         livemode,
       }
@@ -657,9 +679,7 @@ export const setupBillingPeriodItem = async ({
         description,
         type,
         livemode,
-        usageMeterId: null,
         discountRedemptionId: null,
-        usageEventsPerUnit: null,
       }
       return insertBillingPeriodItem(insert, transaction)
     }
@@ -784,8 +804,8 @@ export const setupInvoice = async ({
         status,
         livemode,
         invoiceNumber: `TEST-001-${core.nanoid()}`,
-        invoiceDate: new Date(),
-        dueDate: new Date(),
+        invoiceDate: Date.now(),
+        dueDate: Date.now(),
         billingPeriodStartDate: billingPeriod?.startDate ?? null,
         billingPeriodEndDate: billingPeriod?.endDate ?? null,
         type: billingPeriod
@@ -827,30 +847,26 @@ export const setupPrice = async ({
   intervalCount,
   livemode,
   isDefault,
-  setupFeeAmount,
   trialPeriodDays,
   currency,
   externalId,
   active = true,
   usageMeterId,
-  startsWithCreditTrial,
   slug,
 }: {
   productId: string
   name: string
   type: PriceType
   unitPrice: number
-  intervalUnit: IntervalUnit
-  intervalCount: number
+  intervalUnit?: IntervalUnit
+  intervalCount?: number
   livemode: boolean
   isDefault: boolean
-  setupFeeAmount?: number
   usageMeterId?: string
   currency?: CurrencyCode
   externalId?: string
   trialPeriodDays?: number
   active?: boolean
-  startsWithCreditTrial?: boolean
   slug?: string
 }): Promise<Price.Record> => {
   return adminTransaction(async ({ transaction }) => {
@@ -876,7 +892,6 @@ export const setupPrice = async ({
         name,
         intervalUnit,
         intervalCount,
-        setupFeeAmount: null,
         trialPeriodDays: null,
         usageMeterId,
         usageEventsPerUnit: 1,
@@ -885,10 +900,8 @@ export const setupPrice = async ({
         name,
         intervalUnit,
         intervalCount,
-        setupFeeAmount: setupFeeAmount ?? 0,
         trialPeriodDays: trialPeriodDays ?? null,
         usageEventsPerUnit: null,
-        startsWithCreditTrial: startsWithCreditTrial ?? false,
       },
     }
     if (type === PriceType.Usage && !usageMeterId) {
@@ -896,7 +909,7 @@ export const setupPrice = async ({
     }
     switch (type) {
       case PriceType.SinglePayment:
-        return insertPrice(
+        return safelyInsertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.SinglePayment],
@@ -905,21 +918,25 @@ export const setupPrice = async ({
           transaction
         )
       case PriceType.Subscription:
-        return insertPrice(
+        return safelyInsertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.Subscription],
             type: PriceType.Subscription,
+            intervalUnit: intervalUnit ?? IntervalUnit.Month,
+            intervalCount: intervalCount ?? 1,
           },
           transaction
         )
       case PriceType.Usage:
-        return insertPrice(
+        return safelyInsertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.Usage],
             usageMeterId: usageMeterId!,
             type: PriceType.Usage,
+            intervalUnit: intervalUnit ?? IntervalUnit.Month,
+            intervalCount: intervalCount ?? 1,
           },
           transaction
         )
@@ -961,8 +978,8 @@ export const setupPayment = async ({
   subscriptionId?: string
   refunded?: boolean
   refundedAmount?: number
-  refundedAt?: Date
-  chargeDate?: Date
+  refundedAt?: number
+  chargeDate?: number
   purchaseId?: string
   paymentMethodId?: string
 }): Promise<Payment.Record> => {
@@ -980,7 +997,7 @@ export const setupPayment = async ({
         billingPeriodId,
         currency: CurrencyCode.USD,
         paymentMethod: paymentMethod ?? PaymentMethodType.Card,
-        chargeDate: chargeDate ?? new Date(),
+        chargeDate: chargeDate ?? Date.now(),
         taxCountry: CountryCode.US,
         subscriptionId: subscriptionId ?? null,
         purchaseId: purchaseId ?? null,
@@ -1039,8 +1056,8 @@ export const setupSubscriptionItem = async ({
   quantity: number
   unitPrice: number
   priceId?: string
-  addedDate?: Date
-  removedDate?: Date
+  addedDate?: number
+  removedDate?: number
   metadata?: Record<string, any>
   type?: SubscriptionItemType
   usageMeterId?: string
@@ -1054,62 +1071,34 @@ export const setupSubscriptionItem = async ({
     if (!subscription) {
       throw new Error('Subscription not found')
     }
-    if (type === SubscriptionItemType.Usage) {
-      if (!usageMeterId) {
-        throw new Error('Usage meter ID is required for usage items')
-      }
-      if (usageEventsPerUnit === undefined) {
-        throw new Error(
-          'Usage events per unit is required for usage items'
-        )
-      }
-      if (priceId) {
-        throw new Error('Price ID is not allowed for usage items')
-      }
-      const insert: SubscriptionItem.UsageInsert = {
-        subscriptionId: subscription.id,
-        name,
-        quantity,
-        unitPrice,
-        livemode: subscription.livemode,
-        priceId: priceId ?? subscription.priceId!,
-        addedDate: addedDate ?? new Date(),
-        expiredAt: null,
-        metadata: metadata ?? {},
-        externalId: null,
-        type,
-        usageMeterId,
-        usageEventsPerUnit,
-      }
-      return insertSubscriptionItem(insert, transaction)
-    } else {
-      if (usageMeterId) {
-        throw new Error(
-          'Usage meter ID is not allowed for static items'
-        )
-      }
-      if (usageEventsPerUnit) {
-        throw new Error(
-          'Usage events per unit is not allowed for static items'
-        )
-      }
-      const insert: SubscriptionItem.StaticInsert = {
-        subscriptionId: subscription.id,
-        name,
-        quantity,
-        unitPrice,
-        livemode: subscription.livemode,
-        priceId: priceId ?? subscription.priceId!,
-        addedDate: addedDate ?? new Date(),
-        expiredAt: null,
-        metadata: metadata ?? {},
-        externalId: null,
-        type,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
-      }
-      return insertSubscriptionItem(insert, transaction)
+    if (type !== SubscriptionItemType.Static) {
+      throw new Error('Subscription item type must be static')
     }
+
+    if (usageMeterId) {
+      throw new Error(
+        'Usage meter ID is not allowed for static items'
+      )
+    }
+    if (usageEventsPerUnit) {
+      throw new Error(
+        'Usage events per unit is not allowed for static items'
+      )
+    }
+    const insert: SubscriptionItem.StaticInsert = {
+      subscriptionId: subscription.id,
+      name,
+      quantity,
+      unitPrice,
+      livemode: subscription.livemode,
+      priceId: priceId ?? subscription.priceId!,
+      addedDate: addedDate ?? Date.now(),
+      expiredAt: null,
+      metadata: metadata ?? {},
+      externalId: null,
+      type: SubscriptionItemType.Static,
+    }
+    return insertSubscriptionItem(insert, transaction)
   })
 }
 
@@ -1149,6 +1138,7 @@ export const setupCheckoutSession = async ({
   automaticallyUpdateSubscriptions,
   outputMetadata,
   purchaseId,
+  invoiceId,
   outputName,
   preserveBillingCycleAnchor,
 }: {
@@ -1164,6 +1154,7 @@ export const setupCheckoutSession = async ({
   outputMetadata?: Record<string, any>
   outputName?: string
   purchaseId?: string
+  invoiceId?: string
   preserveBillingCycleAnchor?: boolean
 }) => {
   const billingAddress: BillingAddress = {
@@ -1251,11 +1242,17 @@ export const setupCheckoutSession = async ({
   } else if (type === CheckoutSessionType.Purchase) {
     insert = purchaseCheckoutSessionInsert
   } else if (type === CheckoutSessionType.Invoice) {
-    const invoice = await setupInvoice({
-      customerId: customerId,
-      organizationId: organizationId,
-      priceId: priceId,
-    })
+    let invoiceIdToUse: string
+    if (invoiceId) {
+      invoiceIdToUse = invoiceId
+    } else {
+      const invoice = await setupInvoice({
+        customerId: customerId,
+        organizationId: organizationId,
+        priceId: priceId,
+      })
+      invoiceIdToUse = invoice.id
+    }
 
     insert = {
       ...coreFields,
@@ -1267,7 +1264,7 @@ export const setupCheckoutSession = async ({
       livemode,
       targetSubscriptionId: null,
       outputName: outputName ?? null,
-      invoiceId: invoice.id,
+      invoiceId: invoiceIdToUse,
       purchaseId: null,
       outputMetadata: null,
     }
@@ -1432,12 +1429,14 @@ export const setupUsageMeter = async ({
   livemode = true,
   pricingModelId,
   slug,
+  aggregationType,
 }: {
   organizationId: string
   name: string
   livemode?: boolean
   pricingModelId?: string
   slug?: string
+  aggregationType?: UsageMeterAggregationType
 }) => {
   return adminTransaction(async ({ transaction }) => {
     let pricingModelToUseId: string | null = null
@@ -1470,6 +1469,7 @@ export const setupUsageMeter = async ({
         livemode,
         pricingModelId: pricingModelToUseId,
         slug: slug ?? `${snakeCase(name)}-${core.nanoid()}`,
+        ...(aggregationType && { aggregationType }),
       },
       transaction
     )
@@ -1542,7 +1542,14 @@ export const setupLedgerAccount = async ({
 }) => {
   return adminTransaction(async ({ transaction }) => {
     return insertLedgerAccount(
-      { subscriptionId, usageMeterId, livemode, organizationId },
+      {
+        subscriptionId,
+        usageMeterId,
+        livemode,
+        organizationId,
+        normalBalance: NormalBalanceType.CREDIT,
+        version: 0,
+      },
       transaction
     )
   })
@@ -1663,7 +1670,7 @@ export const setupUsageEvent = async (
     return insertUsageEvent(
       {
         livemode: true,
-        usageDate: params.usageDate ?? new Date(),
+        usageDate: params.usageDate ?? Date.now(),
         properties: params.properties ?? {},
         ...params,
       },
@@ -1703,12 +1710,12 @@ interface CoreLedgerEntryUserParams {
   amount: number // User provides positive amount; sign/direction handled by logic
 
   description?: string
-  entryTimestamp?: Date
+  entryTimestamp?: number
   status?: LedgerEntryStatus
   livemode?: boolean
   metadata?: Record<string, any> | null
-  discardedAt?: Date | null
-  expiredAt?: Date | null
+  discardedAt?: number | null
+  expiredAt?: number | null
   billingPeriodId?: string | null
   usageMeterId: string
   appliedToLedgerItemId?: string | null
@@ -1770,7 +1777,7 @@ const baseLedgerEntryInsertFieldsFromParams = (
     status?: LedgerEntryStatus
   }
 ) => {
-  const now = new Date()
+  const now = Date.now()
   const dbAmount = Math.abs(params.amount)
   return {
     ...ledgerEntryNulledSourceIdColumns,
@@ -1892,14 +1899,14 @@ export const setupDebitLedgerEntry = async (
 interface SetupLedgerEntryCoreParams {
   amount: number
   status?: LedgerEntryStatus
-  discardedAt?: Date | null
+  discardedAt?: number | null
 }
 // --- Credit Ledger Entry Setup ---
 interface SetupCreditCreditGrantRecognizedParams
   extends SetupLedgerEntryCoreParams {
   entryType: LedgerEntryType.CreditGrantRecognized
   sourceUsageCreditId: string
-  expiresAt?: Date | null
+  expiresAt?: number | null
 }
 
 interface SetupCreditCreditBalanceAdjustedParams
@@ -2018,7 +2025,7 @@ export const setupUsageCredit = async (
     return insertUsageCredit(
       {
         livemode: params.livemode ?? true,
-        issuedAt: params.issuedAt ?? now,
+        issuedAt: params.issuedAt ?? now.getTime(),
         sourceReferenceId:
           params.sourceReferenceId ?? `src_ref_${core.nanoid()}`,
         metadata: params.metadata ?? {},
@@ -2049,7 +2056,7 @@ export const setupUsageCreditApplication = async (
     return insertUsageCreditApplication(
       {
         livemode: true,
-        appliedAt: now,
+        appliedAt: now.getTime(),
         status: params.status ?? UsageCreditApplicationStatus.Posted,
         ...params,
       },
@@ -2103,7 +2110,7 @@ export const setupRefund = async (
         status: RefundStatus.Succeeded,
         reason: 'Test Refund',
         gatewayRefundId: `ref_gw_${core.nanoid()}`,
-        refundProcessedAt: new Date(),
+        refundProcessedAt: Date.now(),
         notes: 'Test Refund Notes',
         ...params,
       },
@@ -2313,7 +2320,7 @@ export const setupProductFeature = async (
   params: Partial<ProductFeature.Insert> & {
     productId: string
     featureId: string
-    expiredAt?: Date | null
+    expiredAt?: number | null
     organizationId: string
   }
 ) => {
@@ -2433,7 +2440,6 @@ export const setupUsageLedgerScenario = async (params: {
     intervalCount: 1,
     livemode,
     isDefault: false,
-    setupFeeAmount: 0,
     usageMeterId: usageMeter.id,
     ...(params.priceArgs ?? {}),
   })
@@ -2452,17 +2458,17 @@ export const setupUsageLedgerScenario = async (params: {
     name: 'Test Subscription Item',
     quantity: 1,
     unitPrice: price.unitPrice,
-    type: SubscriptionItemType.Usage,
-    usageMeterId: usageMeter.id,
-    usageEventsPerUnit: 1,
+    // type: SubscriptionItemType.Usage,
+    // usageMeterId: usageMeter.id,
+    // usageEventsPerUnit: 1,
     ...(params.subscriptionItemArgs ?? {}),
   })
   const billingPeriod = await setupBillingPeriod({
     subscriptionId: subscription.id,
-    startDate: subscription.currentBillingPeriodStart || new Date(),
+    startDate: subscription.currentBillingPeriodStart ?? Date.now(),
     endDate:
-      subscription.currentBillingPeriodEnd ||
-      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      subscription.currentBillingPeriodEnd ??
+      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(),
     status: BillingPeriodStatus.Active,
     livemode,
   })

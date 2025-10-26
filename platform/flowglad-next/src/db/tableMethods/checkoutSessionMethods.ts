@@ -23,6 +23,8 @@ import { DbTransaction } from '@/db/types'
 import { and, eq, inArray, lt, not } from 'drizzle-orm'
 import { feeCalculations } from '../schema/feeCalculations'
 
+const CHECKOUT_SESSION_RETENTION_MS = 14 * 24 * 60 * 60 * 1000
+
 const config: ORMMethodCreatorConfig<
   typeof checkoutSessions,
   typeof checkoutSessionsSelectSchema,
@@ -58,12 +60,18 @@ export const selectCheckoutSessions = createSelectFunction(
 export const deleteExpiredCheckoutSessionsAndFeeCalculations = async (
   transaction: DbTransaction
 ) => {
+  const retentionCutoff = new Date(
+    Date.now() - CHECKOUT_SESSION_RETENTION_MS
+  )
   const expiredCheckoutSessions = await transaction
     .select()
     .from(checkoutSessions)
     .where(
       and(
-        lt(checkoutSessions.expires, new Date()),
+        lt(
+          checkoutSessions.createdAt,
+          new Date(retentionCutoff).getTime()
+        ),
         not(
           inArray(checkoutSessions.status, [
             CheckoutSessionStatus.Succeeded,
@@ -108,8 +116,8 @@ export const selectOpenNonExpiredCheckoutSessions = async (
     transaction
   )
   return sessions
-    .filter((session) => session.expires > new Date())
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .filter((session) => session.expires > Date.now())
+    .sort((a, b) => b.createdAt - a.createdAt)
 }
 
 export const bulkUpdateCheckoutSessions = async (

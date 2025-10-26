@@ -2,36 +2,53 @@ import { Customer } from '@/db/schema/customers'
 import { Purchase } from '@/db/schema/purchases'
 import { Payment } from '@/db/schema/payments'
 import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
-import PurchasesTable from './PurchasesTable'
-import InvoicesTable from '@/components/InvoicesTable'
+import { UsageEvent } from '@/db/schema/usageEvents'
+import { PurchasesDataTable } from './purchases/data-table'
+import { UsageEventsDataTable } from './usage-events/data-table'
+import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
 import core from '@/utils/core'
 import { CurrencyCode, PaymentStatus } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import SubscriptionsTable from '@/app/finance/subscriptions/SubscriptionsTable'
-import TableTitle from '@/components/ion/TableTitle'
+import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 // import { useState } from 'react'
-import PaymentsTable from '@/app/finance/payments/PaymentsTable'
+import { PaymentsDataTable } from '@/app/finance/payments/data-table'
 import { DetailLabel } from '@/components/DetailLabel'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 const CustomerDetailsSection = ({
   customer,
   payments,
+  usageEvents,
 }: {
   customer: Customer.ClientRecord
   payments: Payment.ClientRecord[]
+  usageEvents: UsageEvent.ClientRecord[]
 }) => {
-  const billingPortalURL = core.billingPortalPageURL({
+  const billingPortalURL = core.customerBillingPortalURL({
     organizationId: customer.organizationId,
-    customerExternalId: customer.externalId,
-    page: 'manage',
+    customerId: customer.id,
   })
 
+  // Calculate usage events metrics
+  const totalUsageEvents = usageEvents.length
+  const totalUsageAmount = usageEvents.reduce(
+    (sum, event) => sum + event.amount,
+    0
+  )
+  const latestUsageEvent =
+    usageEvents.length > 0
+      ? usageEvents.reduce((latest, current) =>
+          new Date(current.usageDate) > new Date(latest.usageDate)
+            ? current
+            : latest
+        )
+      : null
+
   return (
-    <div className="w-full min-w-40 flex flex-col gap-4 py-5 pr-5 rounded-radius-sm">
-      <div className="text-xl font-semibold text-on-primary-hover">
+    <div className="w-full min-w-40 flex flex-col gap-4 py-5 pr-5 rounded-md">
+      <div className="text-xl font-semibold text-foreground">
         Details
       </div>
       <div className="grid grid-cols-2 gap-x-16 gap-y-4">
@@ -60,8 +77,6 @@ const CustomerDetailsSection = ({
               </CopyableTextTableCell>
             }
           />
-        </div>
-        <div className="flex flex-col gap-4">
           <DetailLabel
             label="Customer Since"
             value={core.formatDate(customer.createdAt)}
@@ -77,6 +92,8 @@ const CustomerDetailsSection = ({
               </CopyableTextTableCell>
             }
           />
+        </div>
+        <div className="flex flex-col gap-4">
           <DetailLabel
             label="Total Spend"
             value={stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -90,6 +107,24 @@ const CustomerDetailsSection = ({
                 .reduce((acc, payment) => acc + payment.amount, 0)
             )}
           />
+          <DetailLabel
+            label="Total Usage Events"
+            value={totalUsageEvents.toString()}
+          />
+          <DetailLabel
+            label="Total Usage Amount"
+            value={totalUsageAmount.toString()}
+          />
+          <DetailLabel
+            label="Latest Usage"
+            value={
+              latestUsageEvent?.usageDate
+                ? core.formatDate(
+                    new Date(latestUsageEvent.usageDate)
+                  )
+                : 'None'
+            }
+          />
         </div>
       </div>
     </div>
@@ -100,6 +135,7 @@ export interface CustomerBillingSubPageProps {
   purchases: Purchase.ClientRecord[]
   invoices: InvoiceWithLineItems[]
   payments: Payment.ClientRecord[]
+  usageEvents: UsageEvent.ClientRecord[]
 }
 
 export const CustomerBillingSubPage = ({
@@ -107,6 +143,7 @@ export const CustomerBillingSubPage = ({
   purchases,
   invoices,
   payments,
+  usageEvents,
 }: CustomerBillingSubPageProps) => {
   // const [createInvoiceModalOpen, setCreateInvoiceModalOpen] =
   //   useState(false)
@@ -117,30 +154,35 @@ export const CustomerBillingSubPage = ({
           <CustomerDetailsSection
             customer={customer}
             payments={payments}
+            usageEvents={usageEvents}
           />
           <div className="w-full flex flex-col gap-5 pb-20">
-            <TableTitle title="Subscriptions" noButtons />
-            <SubscriptionsTable
+            <SubscriptionsDataTable
+              title="Subscriptions"
               filters={{
                 customerId: customer.id,
               }}
             />
-            <TableTitle
+            <InvoicesDataTable
               title="Invoices"
-              noButtons
-              // buttonLabel="Create Invoice"
-              // buttonIcon={<Plus size={16} />}
-              // buttonOnClick={() => setCreateInvoiceModalOpen(true)}
-            />
-            <InvoicesTable customer={customer} />
-            <TableTitle title="Payments" noButtons />
-            <PaymentsTable
               filters={{
                 customerId: customer.id,
               }}
             />
-            <TableTitle title="Purchases" noButtons />
-            <PurchasesTable
+            <PaymentsDataTable
+              title="Payments"
+              filters={{
+                customerId: customer.id,
+              }}
+            />
+            <PurchasesDataTable
+              title="Purchases"
+              filters={{
+                customerId: customer.id,
+              }}
+            />
+            <UsageEventsDataTable
+              title="Usage Events"
               filters={{
                 customerId: customer.id,
               }}

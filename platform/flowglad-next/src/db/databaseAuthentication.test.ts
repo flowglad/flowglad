@@ -14,7 +14,7 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { eq } from 'drizzle-orm'
-import { users, type UserRecord } from '@/db/schema/users'
+import { users, type User } from '@/db/schema/users'
 import { memberships, type Membership } from '@/db/schema/memberships'
 import { type Organization } from '@/db/schema/organizations'
 import { customers, type Customer } from '@/db/schema/customers'
@@ -24,7 +24,7 @@ import core from '@/utils/core'
 
 type BetterAuthUserWithRole = BetterAuthUser & { role: string }
 
-let webUser: UserRecord
+let webUser: User.Record
 let webOrgA: Organization.Record
 let webOrgB: Organization.Record
 let webOrgC: Organization.Record
@@ -35,13 +35,13 @@ let webBetterAuthId: string
 let webUserEmail: string
 
 let secretOrg: Organization.Record
-let secretUser: UserRecord
+let secretUser: User.Record
 let secretMembership: Membership.Record
 let secretClerkId: string
 
 let billingOrg: Organization.Record
-let billingUser1: UserRecord
-let billingUser2: UserRecord
+let billingUser1: User.Record
+let billingUser2: User.Record
 let billingMem1: Membership.Record
 let billingMem2: Membership.Record
 let billingCustomer: Customer.Record
@@ -72,7 +72,7 @@ beforeEach(async () => {
         betterAuthId: webBetterAuthId,
       })
       .returning()
-    webUser = insertedUser as UserRecord
+    webUser = insertedUser as User.Record
 
     const [mA] = await transaction
       .insert(memberships)
@@ -120,7 +120,7 @@ beforeEach(async () => {
         clerkId: secretClerkId,
       })
       .returning()
-    secretUser = insertedSecretUser as UserRecord
+    secretUser = insertedSecretUser as User.Record
 
     const [m] = await transaction
       .insert(memberships)
@@ -149,7 +149,7 @@ beforeEach(async () => {
     const [m1] = await transaction
       .insert(memberships)
       .values({
-        userId: (u1 as UserRecord).id,
+        userId: (u1 as User.Record).id,
         organizationId: billingOrg.id,
         focused: false,
         livemode: true,
@@ -167,15 +167,15 @@ beforeEach(async () => {
     const [m2] = await transaction
       .insert(memberships)
       .values({
-        userId: (u2 as UserRecord).id,
+        userId: (u2 as User.Record).id,
         organizationId: billingOrg.id,
         focused: false,
         livemode: true,
       })
       .returning()
 
-    billingUser1 = u1 as UserRecord
-    billingUser2 = u2 as UserRecord
+    billingUser1 = u1 as User.Record
+    billingUser2 = u2 as User.Record
     billingMem1 = m1 as Membership.Record
     billingMem2 = m2 as Membership.Record
   })
@@ -925,8 +925,8 @@ describe('subtleties and invariants across flows', () => {
 
 describe('Customer Role vs Merchant Role Authentication', () => {
   let customerOrg: Organization.Record
-  let merchantUser: UserRecord
-  let customerUser: UserRecord
+  let merchantUser: User.Record
+  let customerUser: User.Record
   let customer1: Customer.Record
   let customer2SameOrg: Customer.Record
   let customerDifferentOrg: Customer.Record
@@ -957,7 +957,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
           betterAuthId: `bau_${core.nanoid()}`,
         })
         .returning()
-      customerUser = user as UserRecord
+      customerUser = user as User.Record
     })
 
     // Create customers
@@ -1046,7 +1046,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
               betterAuthId: `bau_${core.nanoid()}`,
             })
             .returning()
-          return user as UserRecord
+          return user as User.Record
         }
       )
 
@@ -1071,7 +1071,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
               betterAuthId: `bau_${core.nanoid()}`,
             })
             .returning()
-          return user as UserRecord
+          return user as User.Record
         }
       )
 
@@ -1111,15 +1111,21 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       expect(org2Result.jwtClaim.role).toBe('customer')
     })
 
-    it('should set correct livemode based on customer record', async () => {
-      // Create test mode customer
+    it('should correctly set livemode to true for livemode customer', async () => {
+      const liveModeResult = await dbInfoForCustomerBillingPortal({
+        betterAuthId: customerUser.betterAuthId!,
+        organizationId: customerOrg.id,
+      })
+      expect(liveModeResult.livemode).toBe(true)
+    })
+
+    it('should throw for a test mode customer', async () => {
       const testModeCustomer = await setupCustomer({
         organizationId: customerOrg.id,
         email: 'testmode@test.com',
         livemode: false,
       })
 
-      // Create user for test mode customer
       const testModeUser = await adminTransaction(
         async ({ transaction }) => {
           const [user] = await transaction
@@ -1132,30 +1138,80 @@ describe('Customer Role vs Merchant Role Authentication', () => {
             })
             .returning()
 
-          // Update customer with userId
           await transaction
             .update(customers)
             .set({ userId: user.id })
             .where(eq(customers.id, testModeCustomer.id))
 
-          return user as UserRecord
+          return user as User.Record
         }
       )
 
-      const testModeResult = await dbInfoForCustomerBillingPortal({
-        betterAuthId: testModeUser.betterAuthId!,
+      await expect(
+        dbInfoForCustomerBillingPortal({
+          betterAuthId: testModeUser.betterAuthId!,
+          organizationId: customerOrg.id,
+        })
+      ).rejects.toThrow('Customer not found')
+    })
+
+    it('should select only livemode customer when both exist and set customer_id claim', async () => {
+      // Create a separate livemode customer explicitly, and a test-mode customer for same org
+      const liveModeCustomer = await setupCustomer({
+        organizationId: customerOrg.id,
+        email: `livemode-${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+      const liveModeUser = await adminTransaction(
+        async ({ transaction }) => {
+          const [user] = await transaction
+            .insert(users)
+            .values({
+              id: `usr_${core.nanoid()}`,
+              email: liveModeCustomer.email!,
+              name: 'Live Mode Customer User',
+              betterAuthId: `bau_${core.nanoid()}`,
+            })
+            .returning()
+          await transaction
+            .update(customers)
+            .set({ userId: (user as User.Record).id })
+            .where(eq(customers.id, liveModeCustomer.id))
+          return user as User.Record
+        }
+      )
+
+      const testModeCustomer = await setupCustomer({
+        organizationId: customerOrg.id,
+        email: `testmode-${core.nanoid()}@test.com`,
+        livemode: false,
+      })
+      await adminTransaction(async ({ transaction }) => {
+        const [user] = await transaction
+          .insert(users)
+          .values({
+            id: `usr_${core.nanoid()}`,
+            email: testModeCustomer.email!,
+            name: 'Test Mode Customer User',
+            betterAuthId: `bau_${core.nanoid()}`,
+          })
+          .returning()
+        await transaction
+          .update(customers)
+          .set({ userId: (user as User.Record).id })
+          .where(eq(customers.id, testModeCustomer.id))
+      })
+
+      const livemodeResult = await dbInfoForCustomerBillingPortal({
+        betterAuthId: liveModeUser.betterAuthId!,
         organizationId: customerOrg.id,
       })
 
-      expect(testModeResult.livemode).toBe(false)
-
-      // Compare with live mode customer
-      const liveModeResult = await dbInfoForCustomerBillingPortal({
-        betterAuthId: customerUser.betterAuthId!,
-        organizationId: customerOrg.id,
-      })
-
-      expect(liveModeResult.livemode).toBe(true)
+      expect(livemodeResult.userId).toBe(liveModeUser.id)
+      expect(livemodeResult.livemode).toBe(true)
+      expect(
+        livemodeResult.jwtClaim.user_metadata.app_metadata.customer_id
+      ).toBe(liveModeCustomer.id)
     })
   })
 
@@ -1262,7 +1318,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
               betterAuthId: `bau_${core.nanoid()}`,
             })
             .returning()
-          return user as UserRecord
+          return user as User.Record
         }
       )
 

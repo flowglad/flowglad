@@ -30,30 +30,26 @@ jobs:
       environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
     secrets: inherit
 
-  deploy-hosted-billing-staging:
-    uses: ./.github/workflows/build-and-deploy-hosted-billing.yml
-    with:
-      environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'preview' }}
-    secrets: inherit
-
   merge-main-to-stable:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [deploy-hosted-billing-staging, deploy-flowglad-next-staging]
+    needs: [deploy-flowglad-next-staging]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure Git
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Rebase stable onto main
         run: |
+          set -euo pipefail
           git fetch origin stable
           git checkout stable
           git pull origin stable

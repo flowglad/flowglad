@@ -67,12 +67,6 @@ export const stripeProductToProductInsert = (
     externalId: stripeProduct.id,
     active: stripeProduct.active,
     imageURL: stripeProduct.images?.[0] ?? '',
-    displayFeatures:
-      stripeProduct.marketing_features?.map((feature) => ({
-        enabled: true,
-        label: feature.name ?? '',
-        details: '',
-      })) ?? [],
     singularQuantityLabel: stripeProduct.unit_label ?? '',
     pluralQuantityLabel: stripeProduct.unit_label
       ? `${stripeProduct.unit_label}s`
@@ -328,30 +322,38 @@ export const stripeSubscriptionToSubscriptionInsert = async (
     status: stripeSubscriptionToSubscriptionStatus(
       stripeSubscription
     ),
-    startDate: dateFromStripeTimestamp(stripeSubscription.start_date),
+    startDate: dateFromStripeTimestamp(
+      stripeSubscription.start_date
+    ).getTime(),
     name: stripeSubscription.items.data[0].plan.nickname ?? '',
-    billingCycleAnchorDate: new Date(
+    billingCycleAnchorDate: dateFromStripeTimestamp(
       stripeSubscription.billing_cycle_anchor
-    ),
+    ).getTime(),
     metadata: stripeSubscription.metadata,
     customerId: customer.id,
     defaultPaymentMethodId: defaultPaymentMethod?.id ?? null,
     backupPaymentMethodId: null,
     trialEnd: stripeSubscription.trial_end
-      ? dateFromStripeTimestamp(stripeSubscription.trial_end)
+      ? dateFromStripeTimestamp(
+          stripeSubscription.trial_end
+        ).getTime()
       : null,
     currentBillingPeriodStart: dateFromStripeTimestamp(
       stripeSubscription.current_period_start
-    ),
+    ).getTime(),
     currentBillingPeriodEnd: dateFromStripeTimestamp(
       stripeSubscription.current_period_end
-    ),
+    ).getTime(),
     canceledAt: stripeSubscription.canceled_at
-      ? dateFromStripeTimestamp(stripeSubscription.canceled_at)
+      ? dateFromStripeTimestamp(
+          stripeSubscription.canceled_at
+        ).getTime()
       : null,
     stripeSetupIntentId: null,
     cancelScheduledAt: stripeSubscription.cancel_at
-      ? dateFromStripeTimestamp(stripeSubscription.cancel_at)
+      ? dateFromStripeTimestamp(
+          stripeSubscription.cancel_at
+        ).getTime()
       : null,
     runBillingAtPeriodStart: null,
     priceId: price.id,
@@ -382,11 +384,9 @@ export const stripeSubscriptionItemToSubscriptionItemInsert = (
     metadata: stripeSubscriptionItem.metadata,
     unitPrice: stripeSubscriptionItem.plan.amount ?? 0,
     quantity: stripeSubscriptionItem.quantity ?? 0,
-    addedDate: new Date(),
+    addedDate: Date.now(),
     externalId: stripeSubscriptionItem.id,
     expiredAt: null,
     type: SubscriptionItemType.Static,
-    usageMeterId: null,
-    usageEventsPerUnit: null,
   }
 }

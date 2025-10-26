@@ -9,10 +9,8 @@ import {
 import DiscountFormFields from '@/components/forms/DiscountFormFields'
 import { trpc } from '@/app/_trpc/client'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import {
-  countableCurrencyAmountToRawStringAmount,
-  rawStringAmountToCountableCurrencyAmount,
-} from '@/utils/stripe'
+import { countableCurrencyAmountToRawStringAmount } from '@/utils/stripe'
+import { toEditDiscountInput } from './discountFormHelpers'
 
 interface EditDiscountModalProps {
   isOpen: boolean
@@ -31,8 +29,16 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     organization!.defaultCurrency,
     discount.amount
   )
+  const discountForForm =
+    discount.amountType === 'fixed'
+      ? (() => {
+          const { amount: _omitAmount, ...rest } = discount as any
+          return rest
+        })()
+      : discount
+
   const defaultValues: EditDiscountFormSchema = {
-    discount,
+    discount: discountForForm as any,
     id: discount.id,
     __rawAmountString,
   }
@@ -44,16 +50,11 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
       formSchema={editDiscountFormSchema}
       defaultValues={defaultValues}
       onSubmit={(input) => {
-        return editDiscount.mutateAsync({
-          ...input,
-          discount: {
-            ...input.discount,
-            amount: rawStringAmountToCountableCurrencyAmount(
-              organization!.defaultCurrency,
-              input.__rawAmountString!
-            ),
-          },
-        })
+        const payload = toEditDiscountInput(
+          input,
+          organization!.defaultCurrency
+        )
+        return editDiscount.mutateAsync(payload)
       }}
     >
       <DiscountFormFields edit />

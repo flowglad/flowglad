@@ -1,4 +1,4 @@
-import { router, usageProcedure } from '../trpc'
+import { router, protectedProcedure } from '../trpc'
 import {
   editUsageMeterSchema,
   usageMeterPaginatedListSchema,
@@ -8,7 +8,7 @@ import {
 } from '@/db/schema/usageMeters'
 import {
   selectUsageMeterById,
-  updateUsageMeter,
+  updateUsageMeter as updateUsageMeterDB,
   selectUsageMetersPaginated,
   selectUsageMetersCursorPaginated,
 } from '@/db/tableMethods/usageMeterMethods'
@@ -24,50 +24,51 @@ import {
 } from '@/db/tableUtils'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
-import { FeatureFlag } from '@/types'
-import { hasFeatureFlag } from '@/utils/organizationHelpers'
+import { errorHandlers } from '../trpcErrorHandler'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageMeter',
-  tags: ['UsageMeters'],
+  tags: ['Usage Meters'],
 })
 
 export const usageMetersRouteConfigs = routeConfigs
 
-export const createUsageMeter = usageProcedure
+export const createUsageMeter = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction, userId, livemode }) => {
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
+        try {
+          const [{ organization }] =
+            await selectMembershipAndOrganizations(
+              {
+                userId,
+                focused: true,
+              },
+              transaction
+            )
+          const usageMeter = await insertUsageMeter(
             {
-              userId,
-              focused: true,
+              ...input.usageMeter,
+              organizationId: organization.id,
+              livemode,
             },
             transaction
           )
-        if (!hasFeatureFlag(organization, FeatureFlag.Usage)) {
-          throw new Error(
-            `Organization ${organization.id} does not have feature flag ${FeatureFlag.Usage} enabled`
-          )
+          return { usageMeter }
+        } catch (error) {
+          errorHandlers.usageMeter.handle(error, {
+            operation: 'create',
+          })
+          throw error
         }
-        const usageMeter = await insertUsageMeter(
-          {
-            ...input.usageMeter,
-            organizationId: organization.id,
-            livemode,
-          },
-          transaction
-        )
-        return { usageMeter }
       }
     )
   )
 
-const listUsageMetersProcedure = usageProcedure
+const listUsageMetersProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(usageMeterPaginatedSelectSchema)
   .output(usageMeterPaginatedListSchema)
@@ -79,26 +80,34 @@ const listUsageMetersProcedure = usageProcedure
     )
   )
 
-const editUsageMeter = usageProcedure
+const updateUsageMeter = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const usageMeter = await updateUsageMeter(
-          {
-            ...input.usageMeter,
+        try {
+          const usageMeter = await updateUsageMeterDB(
+            {
+              ...input.usageMeter,
+              id: input.id,
+            },
+            transaction
+          )
+          return { usageMeter }
+        } catch (error) {
+          errorHandlers.usageMeter.handle(error, {
+            operation: 'update',
             id: input.id,
-          },
-          transaction
-        )
-        return { usageMeter }
+          })
+          throw error
+        }
       }
     )
   )
 
-const getUsageMeter = usageProcedure
+const getUsageMeter = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
@@ -114,7 +123,7 @@ const getUsageMeter = usageProcedure
     )
   )
 
-const getTableRowsProcedure = usageProcedure
+const getTableRowsProcedure = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
@@ -134,7 +143,7 @@ const getTableRowsProcedure = usageProcedure
 export const usageMetersRouter = router({
   get: getUsageMeter,
   create: createUsageMeter,
-  update: editUsageMeter,
+  update: updateUsageMeter,
   list: listUsageMetersProcedure,
   getTableRows: getTableRowsProcedure,
 })

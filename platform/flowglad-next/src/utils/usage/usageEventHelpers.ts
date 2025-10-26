@@ -1,6 +1,10 @@
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
-import { LedgerTransactionType, PriceType } from '@/types'
+import {
+  LedgerTransactionType,
+  PriceType,
+  UsageMeterAggregationType,
+} from '@/types'
 import {
   insertUsageEvent,
   selectUsageEvents,
@@ -10,6 +14,7 @@ import { DbTransaction } from '@/db/types'
 import { CreateUsageEventInput } from '@/db/schema/usageEvents'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { UsageEvent } from '@/db/schema/usageEvents'
+import { selectUsageMeterById } from '@/db/tableMethods/usageMeterMethods'
 
 export const ingestAndProcessUsageEvent = async (
   {
@@ -65,15 +70,50 @@ export const ingestAndProcessUsageEvent = async (
       livemode,
       properties: usageEventInput.properties ?? {},
       usageDate: usageEventInput.usageDate
-        ? new Date(usageEventInput.usageDate)
-        : new Date(),
+        ? new Date(usageEventInput.usageDate).getTime()
+        : Date.now(),
     },
     transaction
   )
 
+  // Check if UsageMeter is of type count_distinct_properties
+  // If so, only return a ledgerCommand if
+  // there isn't already a usageEvent for the current billing period with the same properties object
+  const usageMeter = await selectUsageMeterById(
+    usageEvent.usageMeterId,
+    transaction
+  )
+  if (
+    usageMeter.aggregationType ===
+    UsageMeterAggregationType.CountDistinctProperties
+  ) {
+    if (!billingPeriod) {
+      throw new Error(
+        `Billing period is required in ingestAndProcessUsageEvent for usage meter of type "count_distinct_properties".`
+      )
+    }
+    const eventsInPeriod = await selectUsageEvents(
+      {
+        usageMeterId: usageEvent.usageMeterId,
+        ...(usageEvent.properties && {
+          properties: usageEvent.properties,
+        }),
+        billingPeriodId: billingPeriod.id,
+      },
+      transaction
+    )
+    // Filter out the just-inserted event
+    const existingUsageEvent = eventsInPeriod.find(
+      (event) => event.id !== usageEvent.id
+    )
+    if (existingUsageEvent) {
+      return { result: { usageEvent } }
+    }
+  }
+
   return {
     result: { usageEvent },
-    eventsToLog: [],
+    eventsToInsert: [],
     ledgerCommand: {
       type: LedgerTransactionType.UsageEventProcessed,
       livemode,

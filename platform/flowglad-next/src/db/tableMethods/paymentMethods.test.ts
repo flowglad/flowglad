@@ -76,7 +76,7 @@ describe('paymentMethods.ts', () => {
           {
             id: payment.id,
             refunded: true,
-            refundedAt: new Date(),
+            refundedAt: Date.now(),
             refundedAmount: payment.amount,
             status: PaymentStatus.Refunded,
           },
@@ -109,7 +109,7 @@ describe('paymentMethods.ts', () => {
             {
               id: payment.id,
               refunded: true,
-              refundedAt: new Date(),
+              refundedAt: Date.now(),
               refundedAmount: refundAmount,
             },
             transaction
@@ -129,7 +129,7 @@ describe('paymentMethods.ts', () => {
             {
               id: nonExistentPaymentId,
               refunded: true,
-              refundedAt: new Date(),
+              refundedAt: Date.now(),
               refundedAmount: 500,
             },
             transaction
@@ -159,7 +159,7 @@ describe('paymentMethods.ts', () => {
             {
               id: nonRefundablePayment.id,
               refunded: true,
-              refundedAt: new Date(),
+              refundedAt: Date.now(),
               refundedAmount: 500,
             },
             transaction
@@ -177,7 +177,7 @@ describe('paymentMethods.ts', () => {
           {
             id: payment.id,
             refunded: true,
-            refundedAt: new Date(),
+            refundedAt: Date.now(),
             refundedAmount: payment.amount,
             status: PaymentStatus.Refunded,
           },
@@ -189,7 +189,7 @@ describe('paymentMethods.ts', () => {
           {
             id: payment.id,
             refunded: true,
-            refundedAt: new Date(),
+            refundedAt: Date.now(),
             refundedAmount: payment.amount,
             status: PaymentStatus.Refunded,
           },
@@ -232,7 +232,32 @@ describe('paymentMethods.ts', () => {
       })
     })
 
-    it('throws error when payment is in a terminal state', async () => {
+    it('returns existing payment when updating terminal state to same status', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create a payment in a terminal state
+        const terminalPayment = await setupPayment({
+          stripeChargeId: `ch_${nanoid()}`,
+          status: PaymentStatus.Failed,
+          amount: 1000,
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          paymentMethod: PaymentMethodType.Card,
+        })
+
+        const result = await safelyUpdatePaymentStatus(
+          terminalPayment,
+          PaymentStatus.Failed,
+          transaction
+        )
+
+        expect(result.id).toBe(terminalPayment.id)
+        expect(result.status).toBe(PaymentStatus.Failed)
+      })
+    })
+
+    it('throws error when payment is updated to different terminal state', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Create a payment in a terminal state
         const terminalPayment = await setupPayment({
@@ -367,7 +392,7 @@ describe('selectRevenueDataForOrganization', () => {
         customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoiceJan.id,
-        chargeDate: new Date('2023-01-10T10:00:00.000Z'),
+        chargeDate: new Date('2023-01-10T10:00:00.000Z').getTime(),
       })
 
       // Payment 2: Jan, 150 (15000 cents), 50 (5000 cents) refund
@@ -377,12 +402,12 @@ describe('selectRevenueDataForOrganization', () => {
         amount: 15000,
         refundedAmount: 5000,
         refunded: true,
-        refundedAt: new Date('2023-01-16T00:00:00.000Z'),
+        refundedAt: new Date('2023-01-16T00:00:00.000Z').getTime(),
         livemode: true,
         customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoiceJan.id,
-        chargeDate: new Date('2023-01-15T10:00:00.000Z'),
+        chargeDate: new Date('2023-01-15T10:00:00.000Z').getTime(),
       })
 
       // --- Payments for Second Interval (February 2023 UTC) ---
@@ -397,7 +422,7 @@ describe('selectRevenueDataForOrganization', () => {
         customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoiceFeb.id,
-        chargeDate: new Date('2023-02-05T10:00:00.000Z'),
+        chargeDate: new Date('2023-02-05T10:00:00.000Z').getTime(),
       })
 
       // --- Payments outside the date range ---
@@ -410,7 +435,7 @@ describe('selectRevenueDataForOrganization', () => {
         customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoiceOutOfRange.id,
-        chargeDate: new Date('2022-12-20T10:00:00.000Z'),
+        chargeDate: new Date('2022-12-20T10:00:00.000Z').getTime(),
       })
 
       // Payment 5: Mar 2023 (after toDate)
@@ -422,15 +447,15 @@ describe('selectRevenueDataForOrganization', () => {
         customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoiceOutOfRange.id,
-        chargeDate: new Date('2023-03-05T10:00:00.000Z'),
+        chargeDate: new Date('2023-03-05T10:00:00.000Z').getTime(),
       })
 
       const revenueData = await selectRevenueDataForOrganization(
         {
           organizationId: organization.id,
           revenueChartIntervalUnit,
-          fromDate,
-          toDate,
+          fromDate: fromDate.getTime(),
+          toDate: toDate.getTime(),
           productId: null,
         },
         transaction
@@ -526,7 +551,6 @@ describe('selectRevenueDataForOrganization', () => {
         currency: CurrencyCode.USD,
         intervalUnit: IntervalUnit.Day,
         intervalCount: 1,
-        setupFeeAmount: 0,
       })
       const priceB = await setupPrice({
         productId: productB.id,
@@ -538,7 +562,6 @@ describe('selectRevenueDataForOrganization', () => {
         currency: CurrencyCode.USD,
         intervalUnit: IntervalUnit.Day,
         intervalCount: 1,
-        setupFeeAmount: 0,
       })
 
       // Setup Purchases
@@ -608,7 +631,7 @@ describe('selectRevenueDataForOrganization', () => {
             0,
             0
           )
-        ),
+        ).getTime(),
       })
 
       // Payment 2 (Product A), refunded
@@ -618,7 +641,7 @@ describe('selectRevenueDataForOrganization', () => {
         amount: 5000,
         refundedAmount: 1000,
         refunded: true,
-        refundedAt: new Date(),
+        refundedAt: Date.now(),
         livemode: true,
         customerId: customer.id,
         organizationId: organization.id,
@@ -634,7 +657,7 @@ describe('selectRevenueDataForOrganization', () => {
             0,
             0
           )
-        ),
+        ).getTime(),
       })
 
       // Payment 3 (Product B) - Should be excluded by productId filter
@@ -657,15 +680,15 @@ describe('selectRevenueDataForOrganization', () => {
             0,
             0
           )
-        ),
+        ).getTime(),
       })
 
       const revenueData = await selectRevenueDataForOrganization(
         {
           organizationId: organization.id,
           revenueChartIntervalUnit,
-          fromDate,
-          toDate,
+          fromDate: fromDate.getTime(),
+          toDate: toDate.getTime(),
           productId: productA.id,
         },
         transaction
@@ -744,7 +767,6 @@ describe('selectRevenueDataForOrganization', () => {
         currency: CurrencyCode.USD,
         intervalUnit: IntervalUnit.Day,
         intervalCount: 1,
-        setupFeeAmount: 0,
       })
 
       const purchaseB = await setupPurchase({
@@ -782,15 +804,15 @@ describe('selectRevenueDataForOrganization', () => {
             0,
             0
           )
-        ),
+        ).getTime(),
       })
 
       const revenueData = await selectRevenueDataForOrganization(
         {
           organizationId: organization.id,
           revenueChartIntervalUnit,
-          fromDate,
-          toDate,
+          fromDate: fromDate.getTime(),
+          toDate: toDate.getTime(),
           productId: productA.id, // Filter by Product A (which has no payments)
         },
         transaction
@@ -838,15 +860,15 @@ describe('selectRevenueDataForOrganization', () => {
         customerId: customer.id,
         organizationId: organization.id,
         invoiceId: someInvoice.id,
-        chargeDate: new Date('2023-04-15T10:00:00.000Z'),
+        chargeDate: new Date('2023-04-15T10:00:00.000Z').getTime(),
       })
 
       const revenueData = await selectRevenueDataForOrganization(
         {
           organizationId: organization.id,
           revenueChartIntervalUnit,
-          fromDate,
-          toDate,
+          fromDate: fromDate.getTime(),
+          toDate: toDate.getTime(),
           productId: null, // No product filter
         },
         transaction
@@ -903,7 +925,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceJan1.id,
-          chargeDate: new Date('2023-01-01T10:00:00.000Z'),
+          chargeDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
         })
         await setupPayment({
           stripeChargeId: `ch_day1_2_${nanoid()}`,
@@ -913,7 +935,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceJan1.id,
-          chargeDate: new Date('2023-01-01T14:00:00.000Z'),
+          chargeDate: new Date('2023-01-01T14:00:00.000Z').getTime(),
         })
 
         // Payment on Jan 3
@@ -925,15 +947,15 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceJan3.id,
-          chargeDate: new Date('2023-01-03T12:00:00.000Z'),
+          chargeDate: new Date('2023-01-03T12:00:00.000Z').getTime(),
         })
 
         const revenueData = await selectRevenueDataForOrganization(
           {
             organizationId: organization.id,
             revenueChartIntervalUnit,
-            fromDate,
-            toDate,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
             productId: null,
           },
           transaction
@@ -996,7 +1018,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceW_A.id,
-          chargeDate: new Date('2023-01-02T10:00:00.000Z'),
+          chargeDate: new Date('2023-01-02T10:00:00.000Z').getTime(),
         })
         await setupPayment({
           // Jan 4 (Wed)
@@ -1007,7 +1029,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceW_A.id,
-          chargeDate: new Date('2023-01-04T14:00:00.000Z'),
+          chargeDate: new Date('2023-01-04T14:00:00.000Z').getTime(),
         })
 
         // Payment for Week B (Jan 9 - Jan 15)
@@ -1020,15 +1042,15 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceW_B.id,
-          chargeDate: new Date('2023-01-09T12:00:00.000Z'),
+          chargeDate: new Date('2023-01-09T12:00:00.000Z').getTime(),
         })
 
         const revenueData = await selectRevenueDataForOrganization(
           {
             organizationId: organization.id,
             revenueChartIntervalUnit,
-            fromDate,
-            toDate,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
             productId: null,
           },
           transaction
@@ -1092,7 +1114,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceJan.id,
-          chargeDate: new Date('2023-01-05T10:00:00.000Z'),
+          chargeDate: new Date('2023-01-05T10:00:00.000Z').getTime(),
         })
         await setupPayment({
           stripeChargeId: `ch_monthJan2_${nanoid()}`,
@@ -1102,7 +1124,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceJan.id,
-          chargeDate: new Date('2023-01-20T14:00:00.000Z'),
+          chargeDate: new Date('2023-01-20T14:00:00.000Z').getTime(),
         })
 
         // Payment for February
@@ -1114,15 +1136,15 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceFeb.id,
-          chargeDate: new Date('2023-02-10T12:00:00.000Z'),
+          chargeDate: new Date('2023-02-10T12:00:00.000Z').getTime(),
         })
 
         const revenueData = await selectRevenueDataForOrganization(
           {
             organizationId: organization.id,
             revenueChartIntervalUnit,
-            fromDate,
-            toDate,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
             productId: null,
           },
           transaction
@@ -1181,7 +1203,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoice2023.id,
-          chargeDate: new Date('2023-01-05T10:00:00.000Z'),
+          chargeDate: new Date('2023-01-05T10:00:00.000Z').getTime(),
         })
         await setupPayment({
           stripeChargeId: `ch_year2023_2_${nanoid()}`,
@@ -1191,7 +1213,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoice2023.id,
-          chargeDate: new Date('2023-11-20T14:00:00.000Z'),
+          chargeDate: new Date('2023-11-20T14:00:00.000Z').getTime(),
         })
 
         // Payment for 2024
@@ -1203,15 +1225,15 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoice2024.id,
-          chargeDate: new Date('2024-02-10T12:00:00.000Z'),
+          chargeDate: new Date('2024-02-10T12:00:00.000Z').getTime(),
         })
 
         const revenueData = await selectRevenueDataForOrganization(
           {
             organizationId: organization.id,
             revenueChartIntervalUnit,
-            fromDate,
-            toDate,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
             productId: null,
           },
           transaction
@@ -1266,7 +1288,9 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoice.id,
-          chargeDate: new Date(`${targetDayStr}T10:00:00.000Z`),
+          chargeDate: new Date(
+            `${targetDayStr}T10:00:00.000Z`
+          ).getTime(),
         })
         await setupPayment({
           stripeChargeId: `ch_sameday2_${nanoid()}`,
@@ -1276,15 +1300,17 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoice.id,
-          chargeDate: new Date(`${targetDayStr}T14:00:00.000Z`),
+          chargeDate: new Date(
+            `${targetDayStr}T14:00:00.000Z`
+          ).getTime(),
         })
 
         const revenueData = await selectRevenueDataForOrganization(
           {
             organizationId: organization.id,
             revenueChartIntervalUnit,
-            fromDate,
-            toDate,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
             productId: null,
           },
           transaction
@@ -1331,7 +1357,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceJuly.id,
-          chargeDate: new Date('2023-07-05T10:00:00.000Z'),
+          chargeDate: new Date('2023-07-05T10:00:00.000Z').getTime(),
         })
         await setupPayment({
           stripeChargeId: `ch_july2_${nanoid()}`,
@@ -1341,7 +1367,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceJuly.id,
-          chargeDate: new Date('2023-07-15T14:00:00.000Z'),
+          chargeDate: new Date('2023-07-15T14:00:00.000Z').getTime(),
         })
 
         // Payment outside July (in August)
@@ -1353,15 +1379,15 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceAug.id,
-          chargeDate: new Date('2023-08-01T10:00:00.000Z'),
+          chargeDate: new Date('2023-08-01T10:00:00.000Z').getTime(),
         })
 
         const revenueData = await selectRevenueDataForOrganization(
           {
             organizationId: organization.id,
             revenueChartIntervalUnit,
-            fromDate,
-            toDate,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
             productId: null,
           },
           transaction
@@ -1401,7 +1427,7 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceJuly.id,
-          chargeDate: new Date('2023-07-03T10:00:00.000Z'), // Falls within toDate
+          chargeDate: new Date('2023-07-03T10:00:00.000Z').getTime(), // Falls within toDate
         })
 
         // Payment within the same month, but AFTER toDate
@@ -1413,15 +1439,15 @@ describe('selectRevenueDataForOrganization', () => {
           customerId: customer.id,
           organizationId: organization.id,
           invoiceId: invoiceJuly.id,
-          chargeDate: new Date('2023-07-10T14:00:00.000Z'), // Falls outside toDate, but in same month interval
+          chargeDate: new Date('2023-07-10T14:00:00.000Z').getTime(), // Falls outside toDate, but in same month interval
         })
 
         const revenueData = await selectRevenueDataForOrganization(
           {
             organizationId: organization.id,
             revenueChartIntervalUnit,
-            fromDate,
-            toDate,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
             productId: null,
           },
           transaction
@@ -1466,7 +1492,7 @@ describe('selectRevenueDataForOrganization', () => {
         customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoice.id,
-        chargeDate,
+        chargeDate: chargeDate.getTime(),
       })
 
       // Payment 2: Full refund
@@ -1476,12 +1502,12 @@ describe('selectRevenueDataForOrganization', () => {
         amount: 15000,
         refundedAmount: 15000,
         refunded: true,
-        refundedAt: new Date(),
+        refundedAt: Date.now(),
         livemode: true,
         customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoice.id,
-        chargeDate,
+        chargeDate: chargeDate.getTime(),
       })
 
       // Payment 3: Partial refund
@@ -1491,12 +1517,12 @@ describe('selectRevenueDataForOrganization', () => {
         amount: 20000,
         refundedAmount: 7000,
         refunded: true,
-        refundedAt: new Date(),
+        refundedAt: Date.now(),
         livemode: true,
         customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoice.id,
-        chargeDate,
+        chargeDate: chargeDate.getTime(),
       })
 
       // Payment 4: refundedAmount is null/undefined (should be treated as 0 by COALESCE)
@@ -1510,15 +1536,15 @@ describe('selectRevenueDataForOrganization', () => {
         customerId: customer.id,
         organizationId: organization.id,
         invoiceId: invoice.id,
-        chargeDate,
+        chargeDate: chargeDate.getTime(),
       })
 
       const revenueData = await selectRevenueDataForOrganization(
         {
           organizationId: organization.id,
           revenueChartIntervalUnit,
-          fromDate,
-          toDate,
+          fromDate: fromDate.getTime(),
+          toDate: toDate.getTime(),
           productId: null,
         },
         transaction
@@ -1548,8 +1574,8 @@ describe('selectRevenueDataForOrganization', () => {
         {
           organizationId: organization.id,
           revenueChartIntervalUnit,
-          fromDate,
-          toDate,
+          fromDate: fromDate.getTime(),
+          toDate: toDate.getTime(),
           productId: null,
         },
         transaction

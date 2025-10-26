@@ -23,7 +23,7 @@ import { selectProductById } from '@/db/tableMethods/productMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'productFeature', // singular, camelCase
-  tags: ['ProductFeatures'], // plural, PascalCase
+  tags: ['Product Features'], // plural, space-separated
 })
 
 export const productFeaturesRouteConfigs = routeConfigs
@@ -107,9 +107,10 @@ export const expireProductFeature = protectedProcedure
       resource: 'productFeature',
       routeSuffix: 'expire',
       requireIdParam: true,
-      summary:
+      summary: 'Expire Product Feature',
+      description:
         'Expire a product feature, making it no longer available for subscription items',
-      tags: ['ProductFeatures'],
+      tags: ['Product Features'],
     })
   )
   .input(idInputSchema) // Input is the ID of the ProductFeature record
@@ -127,7 +128,7 @@ export const expireProductFeature = protectedProcedure
   )
 
 export const productFeaturesRouter = router({
-  createOrRestore: createOrRestoreProductFeature,
+  create: createOrRestoreProductFeature,
   list: listProductFeatures,
   get: getProductFeature,
   expire: expireProductFeature,

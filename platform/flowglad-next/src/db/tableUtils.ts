@@ -14,15 +14,17 @@ import {
   SQL,
   ilike,
   or,
-  SQLWrapper,
+  isNull,
+  Table,
 } from 'drizzle-orm'
-import core, { gitCommitId } from '@/utils/core'
+import { PgTimestampColumn } from './types'
+import { timestamptzMs } from './timestampMs'
+import core, { gitCommitId, IS_TEST } from '@/utils/core'
 import {
   boolean,
   integer,
   pgEnum,
   text,
-  timestamp,
   IndexBuilderOn,
   uniqueIndex,
   index,
@@ -42,8 +44,14 @@ import {
 } from '@/db/types'
 import { CountryCode, TaxType, SupabasePayloadType } from '@/types'
 import { z } from 'zod'
-import { createSelectSchema } from 'drizzle-zod'
-import { noCase, sentenceCase, snakeCase } from 'change-case'
+import {
+  BuildRefine,
+  BuildSchema,
+  createSelectSchema,
+  NoUnknownKeys,
+} from 'drizzle-zod'
+import { noCase, snakeCase } from 'change-case'
+import { countryCodeSchema } from './commonZodSchema'
 
 export const merchantRole = pgRole('merchant', {
   createRole: false,
@@ -142,10 +150,12 @@ export const createSelectById = <
       const result = results[0]
       return selectSchema.parse(result)
     } catch (error) {
-      console.error(
-        `[selectById] Error selecting ${config.tableName} with id ${id}:`,
-        error
-      )
+      if (!IS_TEST) {
+        console.error(
+          `[selectById] Error selecting ${config.tableName} with id ${id}:`,
+          error
+        )
+      }
       throw new Error(
         `Failed to select ${config.tableName} by id ${id}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -181,14 +191,16 @@ export const createInsertManyFunction = <
       return result.map((item) => {
         const parsed = selectSchema.safeParse(item)
         if (!parsed.success) {
-          console.error(
-            '[createInsertManyFunction] Zod parsing error:',
-            parsed.error.issues
-          )
-          console.error(
-            '[createInsertManyFunction] Failed item:',
-            item
-          )
+          if (!IS_TEST) {
+            console.error(
+              '[createInsertManyFunction] Zod parsing error:',
+              parsed.error.issues
+            )
+            console.error(
+              '[createInsertManyFunction] Failed item:',
+              item
+            )
+          }
           throw Error(
             `createInsertManyFunction: Error parsing result: ${JSON.stringify(
               item
@@ -198,10 +210,59 @@ export const createInsertManyFunction = <
         return parsed.data
       })
     } catch (error) {
-      console.error(
-        `[createInsertManyFunction] Error inserting into ${config.tableName}:`,
-        error
-      )
+      if (IS_TEST) {
+        // Log info to help debug Zod errors in test mode
+        if (error instanceof z.ZodError) {
+          for (const issue of error.issues) {
+            const { path, message } = issue
+            // Try to extract the problematic value and its type from the input
+            let value: unknown = undefined
+            let valueType: string = 'unknown'
+            if (Array.isArray(insert)) {
+              for (const item of insert) {
+                let current: any = item
+                for (const key of path) {
+                  if (
+                    current &&
+                    typeof current === 'object' &&
+                    key in current
+                  ) {
+                    current = current[key]
+                  } else {
+                    current = undefined
+                    break
+                  }
+                }
+                if (current !== undefined) {
+                  value = current
+                  valueType = Object.prototype.toString.call(current)
+                  break
+                }
+              }
+            }
+            // Print debug info
+
+            // FIXME(FG-384): Fix this warning:
+            // eslint-disable-next-line no-console
+            console.info(
+              '[createInsertManyFunction][TEST] ZodError at path:',
+              path.join('.'),
+              '| value:',
+              value,
+              '| type:',
+              valueType,
+              '| message:',
+              message
+            )
+          }
+        }
+      }
+      if (!IS_TEST) {
+        console.error(
+          `[createInsertManyFunction] Error inserting into ${config.tableName}:`,
+          error
+        )
+      }
       if (
         error instanceof Error &&
         error.message.includes('duplicate key')
@@ -211,6 +272,7 @@ export const createInsertManyFunction = <
           { cause: error }
         )
       }
+
       throw new Error(
         `Failed to insert items into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -237,10 +299,12 @@ export const createInsertFunction = <
       const [result] = await insertMany([insert], transaction)
       return result
     } catch (error) {
-      console.error(
-        `[createInsertFunction] Error inserting single item into ${config.tableName}:`,
-        error
-      )
+      if (!IS_TEST) {
+        console.error(
+          `[createInsertFunction] Error inserting single item into ${config.tableName}:`,
+          error
+        )
+      }
       throw new Error(
         `Failed to insert item into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -297,21 +361,28 @@ export const createUpdateFunction = <
 
       const parsed = selectSchema.safeParse(result)
       if (!parsed.success) {
-        console.error(
-          '[createUpdateFunction] Zod parsing error:',
-          parsed.error.issues
-        )
-        console.error('[createUpdateFunction] Failed result:', result)
+        if (!IS_TEST) {
+          console.error(
+            '[createUpdateFunction] Zod parsing error:',
+            parsed.error.issues
+          )
+          console.error(
+            '[createUpdateFunction] Failed result:',
+            result
+          )
+        }
         throw Error(
           `createUpdateFunction: Error parsing result: ${JSON.stringify(result)}. Issues: ${JSON.stringify(parsed.error.issues)}`
         )
       }
       return parsed.data
     } catch (error) {
-      console.error(
-        `[createUpdateFunction] Error updating ${config.tableName} with id ${update.id}:`,
-        error
-      )
+      if (!IS_TEST) {
+        console.error(
+          `[createUpdateFunction] Error updating ${config.tableName} with id ${update.id}:`,
+          error
+        )
+      }
       if (error instanceof Error && error.message.includes('No ')) {
         throw error
       }
@@ -327,16 +398,29 @@ export const whereClauseFromObject = <T extends PgTableWithId>(
   table: T,
   selectConditions: SelectConditions<T>
 ) => {
-  const keys = Object.keys(selectConditions)
+  const keys = Object.keys(selectConditions).filter((key) => {
+    const value = selectConditions[key]
+    // Filter out undefined and empty strings to prevent invalid SQL parameters
+    // null values are kept and handled separately by isNull() condition
+    // Arrays (including empty arrays) are kept for inArray() processing
+    return value !== undefined && value !== ''
+  })
   if (keys.length === 0) {
     return undefined
   }
   const conditions = keys.map((key) => {
     if (Array.isArray(selectConditions[key])) {
+      // Filter out undefined and empty strings from arrays to prevent SQL parameter issues
+      const cleanArray = selectConditions[key].filter(
+        (item: any) => item !== undefined && item !== ''
+      )
       return inArray(
         table[key as keyof typeof table] as PgColumn,
-        selectConditions[key]
+        cleanArray
       )
+    }
+    if (selectConditions[key] === null) {
+      return isNull(table[key as keyof typeof table] as PgColumn)
     }
     return eq(
       table[key as keyof typeof table] as PgColumn,
@@ -445,10 +529,7 @@ export const activeColumn = () =>
 
 export const descriptionColumn = () => text('description')
 
-export const timestampWithTimezoneColumn = (name: string) =>
-  timestamp(name, {
-    withTimezone: true,
-  })
+export const timestampWithTimezoneColumn = timestamptzMs
 
 export const createdAtColumn = () =>
   timestampWithTimezoneColumn('created_at').notNull().defaultNow()
@@ -464,11 +545,9 @@ export const tableBase = (idPrefix?: string) => ({
     )
     .notNull(),
   createdAt: createdAtColumn(),
-  updatedAt: timestamp('updated_at', {
-    withTimezone: true,
-  })
+  updatedAt: timestampWithTimezoneColumn('updated_at')
     .defaultNow()
-    .$onUpdate(() => new Date()),
+    .$onUpdate(() => Date.now()),
   createdByCommit: text('created_by_commit').$defaultFn(gitCommitId),
   updatedByCommit: text('updated_by_commit').$defaultFn(gitCommitId),
   livemode: boolean('livemode').notNull(),
@@ -505,7 +584,7 @@ export const taxColumns = () => ({
 })
 
 export const taxSchemaColumns = {
-  taxCountry: core.createSafeZodEnum(CountryCode),
+  taxCountry: countryCodeSchema,
   taxType: core.createSafeZodEnum(TaxType).nullable(),
 }
 
@@ -666,8 +745,6 @@ export const constructIndex = (
 }
 
 export const newBaseZodSelectSchemaColumns = {
-  createdAt: core.safeZodDate,
-  updatedAt: core.safeZodDate,
   position: z.number(),
 } as const
 
@@ -753,6 +830,8 @@ export const ommittedColumnsForInsertSchema = {
 
 export const hiddenColumnsForClientSchema = {
   position: true,
+  createdByCommit: true,
+  updatedByCommit: true,
 } as const
 
 export const createPaginatedSelectSchema = <T extends {}>(
@@ -767,10 +846,7 @@ export const createPaginatedSelectSchema = <T extends {}>(
         message: 'Limit must be between 1 and 100',
       })
       .optional(),
-  }) as z.ZodType<{
-    cursor?: string
-    limit?: number
-  }>
+  })
 }
 
 export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
@@ -883,18 +959,20 @@ export const createBulkInsertOrDoNothingFunction = <
         .returning()
       return result.map((data) => config.selectSchema.parse(data))
     } catch (error) {
-      console.error(
-        `[createBulkInsertOrDoNothingFunction] Error bulk inserting with conflict handling into ${config.tableName}:`,
-        error
-      )
-      console.error(
-        '[createBulkInsertOrDoNothingFunction] Data count:',
-        data.length
-      )
-      console.error(
-        '[createBulkInsertOrDoNothingFunction] Target:',
-        target
-      )
+      if (!IS_TEST) {
+        console.error(
+          `[createBulkInsertOrDoNothingFunction] Error bulk inserting with conflict handling into ${config.tableName}:`,
+          error
+        )
+        console.error(
+          '[createBulkInsertOrDoNothingFunction] Data count:',
+          data.length
+        )
+        console.error(
+          '[createBulkInsertOrDoNothingFunction] Target:',
+          target
+        )
+      }
       throw new Error(
         `Failed to bulk insert with conflict handling into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -935,15 +1013,17 @@ export const createBulkUpsertFunction = <
         .returning()
       return result.map((data) => config.selectSchema.parse(data))
     } catch (error) {
-      console.error(
-        `[createBulkUpsertFunction] Error bulk upserting into ${config.tableName}:`,
-        error
-      )
-      console.error(
-        '[createBulkUpsertFunction] Data count:',
-        data.length
-      )
-      console.error('[createBulkUpsertFunction] Target:', target)
+      if (!IS_TEST) {
+        console.error(
+          `[createBulkUpsertFunction] Error bulk upserting into ${config.tableName}:`,
+          error
+        )
+        console.error(
+          '[createBulkUpsertFunction] Data count:',
+          data.length
+        )
+        console.error('[createBulkUpsertFunction] Target:', target)
+      }
       throw new Error(
         `Failed to bulk upsert into ${config.tableName}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error }
@@ -1152,11 +1232,18 @@ export const createPaginatedListQuerySchema = <T extends z.ZodType>(
   }>
 }
 
+const metadataValueSchema = z.union([
+  z.string().max(500),
+  z.number(),
+  z.boolean(),
+])
+
 export const metadataSchema = z
-  .record(z.string(), z.any())
-  .describe(
-    'User-defined data associated with the resource. Does not influence any internal behavior.'
-  )
+  .record(z.string(), metadataValueSchema)
+  .meta({
+    description: 'JSON object',
+    id: 'Metadata',
+  })
 
 export const createPaginatedTableRowOutputSchema = <
   T extends z.ZodType,
@@ -1520,7 +1607,7 @@ export const createCursorPaginatedSelectFunction = <
         .select({ count: count() })
         .from(table as SelectTable)
         .$dynamic()
-        .where(filterClause)
+        .where(and(filterClause, searchQueryClause))
 
       const data: z.infer<S>[] = queryResult
         .map((item) => selectSchema.parse(item))
@@ -1565,4 +1652,74 @@ export const createCursorPaginatedSelectFunction = <
       )
     }
   }
+}
+
+export interface CreateSelectSchema<
+  TCoerce extends
+    | Partial<
+        Record<
+          'bigint' | 'boolean' | 'date' | 'number' | 'string',
+          true
+        >
+      >
+    | true
+    | undefined,
+> {
+  <
+    TTable extends Table,
+    TRefine extends BuildRefine<TTable['_']['columns'], TCoerce>,
+  >(
+    table: TTable,
+    refine?: NoUnknownKeys<TRefine, TTable['$inferSelect']>
+  ): BuildSchema<'select', TTable['_']['columns'], TRefine, TCoerce>
+}
+
+export const TIMESTAMPTZ_MS = Symbol('timestamptzMs')
+
+export const clientWriteOmitsConstructor = <
+  T extends Record<string, true>,
+>(
+  params: T
+) => {
+  return R.omit(
+    ['position', 'createdByCommit', 'updatedByCommit'],
+    params
+  )
+}
+
+/**
+ * Creates a SQL condition that filters out expired records.
+ *
+ * This function consolidates the common pattern of filtering out records
+ * where `expiredAt` is not null and is in the past, while keeping records
+ * that are either not expired (expiredAt is null) or expire in the future.
+ *
+ * @param expiredAtColumn - The column reference for the expiredAt field
+ * @param anchorDate - The date to compare against (defaults to current time)
+ * @returns SQL condition for filtering expired records
+ *
+ * @example
+ * ```typescript
+ * // Filter out expired product features
+ * const notExpiredCondition = createDateNotPassedFilter(productFeatures.expiredAt)
+ *
+ * // Filter out expired subscription items as of a specific date
+ * const notExpiredAsOfDate = createDateNotPassedFilter(
+ *   subscriptionItems.expiredAt,
+ *   '2024-01-01'
+ * )
+ * ```
+ */
+export const createDateNotPassedFilter = (
+  expiredAtColumn: PgTimestampColumn,
+  anchorDate: string | number | Date = Date.now()
+): SQL | undefined => {
+  const anchorTime =
+    typeof anchorDate === 'string' || typeof anchorDate === 'number'
+      ? new Date(anchorDate).getTime()
+      : anchorDate.getTime()
+
+  // Create the condition that records are not expired
+  // This means: expiredAt IS NULL OR expiredAt > anchorTime
+  return or(isNull(expiredAtColumn), gt(expiredAtColumn, anchorTime))
 }

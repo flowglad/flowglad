@@ -25,6 +25,7 @@ import {
   constructGinIndex,
   merchantPolicy,
   enableCustomerReadPolicy,
+  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import {
   organizations,
@@ -35,6 +36,7 @@ import { z } from 'zod'
 import { users } from './users'
 import { pricingModels } from './pricingModels'
 import { sql } from 'drizzle-orm'
+import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'customers'
 
@@ -122,7 +124,7 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
   ]
 }).enableRLS()
 
-const readonlyColumns = {
+const readOnlyColumns = {
   livemode: true,
   billingAddress: true,
   invoiceNumberBase: true,
@@ -133,53 +135,29 @@ const hiddenColumns = {
   stripeCustomerId: true,
   taxId: true,
   stackAuthHostedBillingUserId: true,
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const nonClientEditableColumns = {
-  ...hiddenColumns,
-  ...readonlyColumns,
 } as const
 
 const zodSchemaEnhancementColumns = {
   billingAddress: billingAddressSchema.nullable().optional(),
 }
 
-export const customersSelectSchema = createSelectSchema(
-  customers,
-  zodSchemaEnhancementColumns
-)
-
-export const customersInsertSchema = createInsertSchema(customers)
-  .omit(ommittedColumnsForInsertSchema)
-  .extend(zodSchemaEnhancementColumns)
-
-export const customersUpdateSchema = customersInsertSchema
-  .partial()
-  .extend({ id: z.string() })
-
-const clientWriteOmits = R.omit(
-  ['position'],
-  nonClientEditableColumns
-)
-
-export const customerClientInsertSchema = customersInsertSchema
-  .omit(clientWriteOmits)
-  .meta({
-    id: 'CustomerInsert',
-  })
-
-export const customerClientUpdateSchema = customersUpdateSchema
-  .omit(clientWriteOmits)
-  .meta({
-    id: 'CustomerUpdate',
-  })
-
-export const customerClientSelectSchema = customersSelectSchema
-  .omit(hiddenColumns)
-  .meta({
-    id: 'CustomerRecord',
-  })
+export const {
+  insert: customersInsertSchema,
+  select: customersSelectSchema,
+  update: customersUpdateSchema,
+  client: {
+    select: customerClientSelectSchema,
+    insert: customerClientInsertSchema,
+    update: customerClientUpdateSchema,
+  },
+} = buildSchemas(customers, {
+  refine: zodSchemaEnhancementColumns,
+  client: {
+    hiddenColumns,
+    readOnlyColumns,
+  },
+  entityName: 'Customer',
+})
 
 const supabaseSchemas = createSupabaseWebhookSchema({
   table: customers,
@@ -194,7 +172,10 @@ export const customersSupabaseUpdatePayloadSchema =
   supabaseSchemas.supabaseUpdatePayloadSchema
 
 export const editCustomerInputSchema = z.object({
-  customer: customerClientUpdateSchema,
+  customer: customerClientUpdateSchema.omit({
+    externalId: true,
+    id: true,
+  }),
   externalId: z.string(),
 })
 

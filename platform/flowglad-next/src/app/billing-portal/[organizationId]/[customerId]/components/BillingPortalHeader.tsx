@@ -25,18 +25,14 @@ export function BillingPortalHeader({
   const logoutMutation = trpc.utils.logout.useMutation()
 
   const handleLogout = async () => {
-    try {
-      await logoutMutation.mutateAsync()
-      await signOut()
-      router.push('/sign-in')
-    } catch (error) {
-      console.error('Logout failed:', error)
-      toast.error(
-        'Failed to log out. Please try again or refresh the page.'
-      )
-    }
+    const currentPath = window.location.pathname
+    const pathSegments = currentPath.split('/')
+    const organizationId = pathSegments[2] // Should be org_xxx
+    const billingPortalPath = `/billing-portal/${organizationId}`
+    router.push(
+      `/logout?redirect=${encodeURIComponent(billingPortalPath)}`
+    )
   }
-
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 max-w-6xl">

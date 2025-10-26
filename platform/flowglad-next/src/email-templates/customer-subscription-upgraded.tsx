@@ -129,10 +129,8 @@ export const CustomerSubscriptionUpgradedEmail = ({
       </Paragraph>
 
       <EmailButton
-        href={core.billingPortalPageURL({
+        href={core.organizationBillingPortalURL({
           organizationId,
-          customerExternalId,
-          page: 'sign-in',
         })}
         testId="manage-subscription-button"
       >

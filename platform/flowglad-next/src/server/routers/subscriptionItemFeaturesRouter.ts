@@ -8,7 +8,7 @@ import {
 } from '@/db/schema/subscriptionItemFeatures'
 import {
   selectSubscriptionItemFeatureById,
-  updateSubscriptionItemFeature,
+  updateSubscriptionItemFeature as updateSubscriptionItemFeatureDB,
   insertSubscriptionItemFeature,
   expireSubscriptionItemFeature as expireSubscriptionItemFeatureMethod,
   selectClientSubscriptionItemFeatureAndFeatureById,
@@ -27,7 +27,7 @@ import { kebabCase } from 'change-case'
 
 const resourceName = 'subscriptionItemFeature' // Using camelCase for resource name consistent with other routers
 const pluralResourceName = 'subscriptionItemFeatures' // Explicitly define plural for openapi path
-const tags = ['SubscriptionItemFeatures']
+const tags = ['Subscription Item Features']
 
 const { openApiMetas, routeConfigs: baseRouteConfigsObj } =
   generateOpenApiMetas({
@@ -78,13 +78,13 @@ const createSubscriptionItemFeature = protectedProcedure
               'Organization ID is required for this operation.',
           })
         }
-        // TODO: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
+        // FIXME: Potentially validate that the featureId, productFeatureId, and subscriptionId belong to the org
 
         const { id: subscriptionItemFeatureId } =
           await insertSubscriptionItemFeature(
             {
               ...input.subscriptionItemFeature,
-              // livemode is part of tableBase, so it's handled by enhancedCreateInsertSchema
+              livemode: ctx.livemode,
             },
             transaction
           )
@@ -98,7 +98,7 @@ const createSubscriptionItemFeature = protectedProcedure
     )
   )
 
-const editSubscriptionItemFeature = protectedProcedure
+const updateSubscriptionItemFeature = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editSubscriptionItemFeatureInputSchema)
   .output(subscriptionItemFeatureClientResponse)
@@ -110,7 +110,7 @@ const editSubscriptionItemFeature = protectedProcedure
           id: input.id,
         } as SubscriptionItemFeature.Update
 
-        await updateSubscriptionItemFeature(
+        await updateSubscriptionItemFeatureDB(
           updatePayload,
           transaction
         )
@@ -151,7 +151,8 @@ const expireSubscriptionItemFeature = protectedProcedure
   .meta(
     createPostOpenApiMeta({
       resource: pluralResourceName, // Use plural form for the path base
-      summary:
+      summary: 'Expire Subscription Item Feature',
+      description:
         'Expire a feature attached to a subscription item, no longer granting the customer access to it',
       tags: tags,
       routeSuffix: 'expire', // This appends /deactivate
@@ -194,6 +195,6 @@ const expireSubscriptionItemFeature = protectedProcedure
 export const subscriptionItemFeaturesRouter = router({
   get: getSubscriptionItemFeature,
   create: createSubscriptionItemFeature,
-  update: editSubscriptionItemFeature,
+  update: updateSubscriptionItemFeature,
   deactivate: expireSubscriptionItemFeature,
 })

@@ -13,6 +13,7 @@ import { notFound, redirect } from 'next/navigation'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import CheckoutForm from '@/components/CheckoutForm'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
+import { LightThemeWrapper } from '@/components/LightThemeWrapper'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 const CheckoutSessionPage = async ({
@@ -76,7 +77,7 @@ const CheckoutSessionPage = async ({
     sellerOrganization,
     redirectUrl: core.safeUrl(
       `/purchase/post-payment`,
-      core.envVariable('NEXT_PUBLIC_APP_URL')
+      core.NEXT_PUBLIC_APP_URL
     ),
     readonlyCustomerEmail: customer.email,
     feeCalculation: null,
@@ -85,25 +86,29 @@ const CheckoutSessionPage = async ({
   }
 
   return (
-    <div className="flex flex-col items-center justify-start h-screen pt-16 gap-8 max-w-[380px] m-auto">
-      <div className="flex flex-row items-center justify-between w-full relative">
-        {checkoutSession.cancelUrl && (
-          <Link
-            href={checkoutSession.cancelUrl}
-            className="absolute left-0"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </Link>
-        )}
-        <div className="text-2xl font-bold flex-1 text-center">
-          Add Payment Method
+    <LightThemeWrapper>
+      <div className="w-full h-full min-h-screen">
+        <div className="flex flex-col items-center justify-start min-h-screen pt-16 pb-8 gap-8 max-w-[380px] m-auto">
+          <div className="flex flex-row items-center justify-between w-full relative">
+            {checkoutSession.cancelUrl && (
+              <Link
+                href={checkoutSession.cancelUrl}
+                className="absolute left-0"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </Link>
+            )}
+            <div className="text-2xl font-bold flex-1 text-center">
+              Add Payment Method
+            </div>
+            <div className="flex-0" />
+          </div>
+          <CheckoutPageProvider values={checkoutInfo}>
+            <CheckoutForm />
+          </CheckoutPageProvider>
         </div>
-        <div className="flex-0" />
       </div>
-      <CheckoutPageProvider values={checkoutInfo}>
-        <CheckoutForm />
-      </CheckoutPageProvider>
-    </div>
+    </LightThemeWrapper>
   )
 }
 

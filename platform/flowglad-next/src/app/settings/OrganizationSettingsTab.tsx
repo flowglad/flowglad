@@ -4,11 +4,9 @@ import { useState } from 'react'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { DetailLabel } from '@/components/DetailLabel'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
-import PageTitle from '@/components/ion/PageTitle'
-import OrganizationMembersTable from '@/app/settings/teammates/OrganizationMembersTable'
+import { PageHeader } from '@/components/ui/page-header'
+import { OrganizationMembersDataTable } from '@/app/settings/teammates/data-table'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
-import { Button } from '@/components/ui/button'
-import TableTitle from '@/components/ion/TableTitle'
 
 const OrganizationSettingsTab = () => {
   const { organization } = useAuthenticatedContext()
@@ -35,18 +33,10 @@ const OrganizationSettingsTab = () => {
       </div>
 
       <div>
-        <div className="flex flex-row justify-between items-start mb-4">
-          <TableTitle title="Team" noButtons />
-          <Button
-            onClick={() => setIsInviteModalOpen(true)}
-            size="sm"
-            variant="outline"
-          >
-            <Plus className="w-4 h-4" strokeWidth={2} />
-            Invite Member
-          </Button>
-        </div>
-        <OrganizationMembersTable />
+        <OrganizationMembersDataTable
+          title="Team"
+          onInviteMember={() => setIsInviteModalOpen(true)}
+        />
         <InviteUserToOrganizationModal
           isOpen={isInviteModalOpen}
           setIsOpen={setIsInviteModalOpen}

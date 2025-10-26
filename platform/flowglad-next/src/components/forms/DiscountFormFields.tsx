@@ -21,9 +21,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DiscountAmountType, DiscountDuration } from '@/types'
-import NumberInput from '@/components/ion/NumberInput'
 import StatusBadge from '@/components/StatusBadge'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 import { Percent } from 'lucide-react'
 import { core } from '@/utils/core'
@@ -46,12 +46,6 @@ export default function DiscountFormFields({
   const duration = watch('discount.duration')
   const amountType = watch('discount.amountType')
   const discount = watch('discount')
-  if (!core.IS_PROD) {
-    const discount = watch('discount')
-    console.log('===discount', discount)
-    // eslint-disable-next-line no-console
-    console.log('===errors', errors)
-  }
   const { organization } = useAuthenticatedContext()
   const zeroDecimal = isCurrencyZeroDecimal(
     organization!.defaultCurrency
@@ -104,7 +98,21 @@ export default function DiscountFormFields({
                 <Select
                   value={field.value ?? DiscountAmountType.Fixed}
                   onValueChange={(value) => {
-                    form.setValue('discount.amount', 0)
+                    if (value === DiscountAmountType.Percent) {
+                      form.setValue('discount.amount', 1)
+                      // Clear raw amount string when switching to percent
+                      form.setValue(
+                        '__rawAmountString',
+                        undefined as any
+                      )
+                    } else {
+                      form.setValue('__rawAmountString', '0')
+                      // Remove amount when switching to fixed
+                      form.setValue(
+                        'discount.amount',
+                        undefined as any
+                      )
+                    }
                     field.onChange(value)
                   }}
                 >
@@ -130,7 +138,12 @@ export default function DiscountFormFields({
             control={control}
             name="discount.amount"
             render={({ field }) => {
-              const parseError = errors.discount?.amount?.message
+              const amountFieldState =
+                form.getFieldState('discount.amount')
+              const parseError =
+                (amountFieldState.error?.message as
+                  | string
+                  | undefined) || undefined
               const moreThan100 = field.value && field.value > 100
               const lessThan0 = field.value && field.value < 0
               let logicError: string | undefined
@@ -141,24 +154,42 @@ export default function DiscountFormFields({
                 logicError = 'Amount must be greater than 0'
               }
               return (
-                <NumberInput
-                  value={field.value?.toString() ?? ''}
-                  label="Amount"
-                  className="flex-1"
-                  showControls={false}
-                  onValueChange={(value) => {
-                    field.onChange(value.floatValue)
-                  }}
-                  error={parseError ?? logicError}
-                  max={100}
-                  min={0}
-                  iconTrailing={<Percent size={16} />}
-                />
+                <FormItem className="flex-1">
+                  <FormLabel>Amount</FormLabel>
+                  <div className="relative">
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={100}
+                        step={1}
+                        placeholder="1"
+                        className="pr-10 text-right"
+                        value={field.value?.toString() ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          const intValue = parseInt(value)
+                          if (!isNaN(intValue)) {
+                            field.onChange(intValue)
+                          } else {
+                            field.onChange('')
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
+                  {(parseError ?? logicError) && (
+                    <FormMessage>
+                      {parseError ?? logicError}
+                    </FormMessage>
+                  )}
+                </FormItem>
               )
             }}
           />
         ) : (
-          <Controller
+          <FormField
             control={control}
             name="__rawAmountString"
             render={({ field }) => (
@@ -182,6 +213,7 @@ export default function DiscountFormFields({
                     />
                   </FormControl>
                 </div>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -226,24 +258,35 @@ export default function DiscountFormFields({
         )}
       />
       {duration === DiscountDuration.NumberOfPayments && (
-        <Controller
+        <FormField
           control={control}
           name="discount.numberOfPayments"
           render={({ field }) => {
             return (
-              <NumberInput
-                label="Number of Payments"
-                placeholder="10"
-                onValueChange={(value) => {
-                  field.onChange(value.floatValue)
-                }}
-                defaultValue={1}
-                max={10000000000}
-                min={1}
-                step={1}
-                showControls={false}
-                error={errors.discount?.numberOfPayments?.message}
-              />
+              <FormItem>
+                <FormLabel>Number of Payments</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={10000000000}
+                    step={1}
+                    placeholder="10"
+                    defaultValue={1}
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      const floatValue = parseFloat(value)
+                      if (!isNaN(floatValue)) {
+                        field.onChange(floatValue)
+                      } else {
+                        field.onChange(1)
+                      }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )
           }}
         />
@@ -255,19 +298,23 @@ export default function DiscountFormFields({
             name="discount.active"
             control={control}
             render={({ field }) => (
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-                label={
-                  <div className="cursor-pointer w-full">
-                    {field.value ? (
-                      <StatusBadge active={true} />
-                    ) : (
-                      <StatusBadge active={false} />
-                    )}
-                  </div>
-                }
-              />
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="discount-active"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+                <Label
+                  htmlFor="discount-active"
+                  className="cursor-pointer w-full"
+                >
+                  {field.value ? (
+                    <StatusBadge active={true} />
+                  ) : (
+                    <StatusBadge active={false} />
+                  )}
+                </Label>
+              </div>
             )}
           />
         </div>

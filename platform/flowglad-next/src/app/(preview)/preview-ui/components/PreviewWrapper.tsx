@@ -56,7 +56,7 @@ export function PreviewWrapper({
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-muted-foreground">
             Loading preview styles...
           </p>
         </div>
@@ -83,13 +83,15 @@ export function PreviewWrapper({
               />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900">
+          <h3 className="text-lg font-medium text-foreground">
             Failed to Load Styles
           </h3>
-          <p className="mt-2 text-sm text-gray-600">{error}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {error}
+          </p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
           >
             Reload Page
           </button>

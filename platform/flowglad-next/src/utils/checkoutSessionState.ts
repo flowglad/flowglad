@@ -124,7 +124,7 @@ export const findCheckoutSession = async (
     transaction
   )
 
-  if (sessions[0].expires && sessions[0].expires < new Date()) {
+  if (sessions[0].expires && sessions[0].expires < Date.now()) {
     return null
   }
 
@@ -196,7 +196,7 @@ export const createNonInvoiceCheckoutSession = async (
   const checkoutSessionInsertCore = {
     priceId: price.id,
     status: CheckoutSessionStatus.Open,
-    expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24 hours
+    expires: new Date(Date.now() + 1000 * 60 * 60 * 24).getTime(), // 24 hours
     organizationId,
     livemode: price.livemode,
     productId: price.productId,
@@ -232,16 +232,23 @@ export const createNonInvoiceCheckoutSession = async (
     }
   }
 
+  // Validate that checkout sessions cannot be created for default products
+  const product = await selectProductById(
+    price.productId,
+    transaction
+  )
+  if (product.default) {
+    throw new Error(
+      'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+    )
+  }
+
   const checkoutSession = await insertCheckoutSession(
     checkoutSessionInsert,
     transaction
   )
   const organization = await selectOrganizationById(
     organizationId,
-    transaction
-  )
-  const product = await selectProductById(
-    price.productId,
     transaction
   )
 

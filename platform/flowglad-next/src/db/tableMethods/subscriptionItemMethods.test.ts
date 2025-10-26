@@ -128,13 +128,11 @@ describe('subscriptionItemMethods', async () => {
         unitPrice: 2000,
         priceId: price.id,
         livemode: true,
-        addedDate: new Date(),
+        addedDate: Date.now(),
         expiredAt: null,
         externalId: core.nanoid(),
         metadata: {},
         type: SubscriptionItemType.Static,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
       }
       await adminTransaction(async ({ transaction }) => {
         const result = await insertSubscriptionItem(
@@ -182,8 +180,6 @@ describe('subscriptionItemMethods', async () => {
             id: subscriptionItem.id,
             ...updates,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -207,8 +203,6 @@ describe('subscriptionItemMethods', async () => {
               id: core.nanoid(),
               name: 'Non Existent',
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
             transaction
           )
@@ -254,13 +248,11 @@ describe('subscriptionItemMethods', async () => {
           unitPrice: 100,
           priceId: price.id,
           livemode: true,
-          addedDate: new Date(),
+          addedDate: Date.now(),
           expiredAt: null,
           externalId: core.nanoid(),
           metadata: {},
           type: SubscriptionItemType.Static,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
         {
           subscriptionId: subscription.id,
@@ -269,13 +261,11 @@ describe('subscriptionItemMethods', async () => {
           unitPrice: 200,
           priceId: price.id,
           livemode: true,
-          addedDate: new Date(),
+          addedDate: Date.now(),
           expiredAt: null,
           externalId: core.nanoid(),
           metadata: {},
           type: SubscriptionItemType.Static,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
       await adminTransaction(async ({ transaction }) => {
@@ -368,8 +358,6 @@ describe('subscriptionItemMethods', async () => {
           externalId: subscriptionItem.externalId,
           metadata: subscriptionItem.metadata,
           type: SubscriptionItemType.Static,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         }, // Cast to any to bypass strict Insert type checking for id
         {
           // New item to insert
@@ -379,13 +367,11 @@ describe('subscriptionItemMethods', async () => {
           unitPrice: 500,
           priceId: price.id,
           livemode: true,
-          addedDate: new Date(),
+          addedDate: Date.now(),
           expiredAt: null,
           externalId: newItemExternalId,
           metadata: {},
           type: SubscriptionItemType.Static,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
       await adminTransaction(async ({ transaction }) => {
@@ -455,22 +441,24 @@ describe('subscriptionItemMethods', async () => {
           subscriptionItem.id,
           transaction
         )
-        expect(updatedItem?.expiredAt).toEqual(expiryDate)
+        expect(updatedItem?.expiredAt).toEqual(expiryDate.getTime())
 
         const [updatedFeature] = await transaction
           .select()
           .from(subscriptionItemFeatures)
           .where(eq(subscriptionItemFeatures.id, feature!.id))
-        expect(updatedFeature?.expiredAt).toEqual(expiryDate)
+        expect(updatedFeature?.expiredAt).toEqual(
+          expiryDate.getTime()
+        )
       })
     })
   })
 
   describe('selectRichSubscriptionsAndActiveItems', () => {
     it('should return rich subscriptions with only active items', async () => {
-      const now = new Date()
-      const futureDate = new Date(now.getTime() + 24 * 60 * 60 * 1000) // tomorrow
-      const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000) // yesterday
+      const now = Date.now()
+      const futureDate = now + 24 * 60 * 60 * 1000 // tomorrow
+      const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
 
       await adminTransaction(async ({ transaction }) => {
         // Create an expired item
@@ -488,8 +476,6 @@ describe('subscriptionItemMethods', async () => {
             id: expiredSetup.id,
             expiredAt: pastDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -499,8 +485,6 @@ describe('subscriptionItemMethods', async () => {
             id: subscriptionItem.id,
             expiredAt: pastDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         ) // Expire the original item
@@ -529,8 +513,6 @@ describe('subscriptionItemMethods', async () => {
             id: item1.id,
             expiredAt: futureDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -596,8 +578,8 @@ describe('subscriptionItemMethods', async () => {
     })
 
     it('should only include feature items for active subscription items', async () => {
-      const now = new Date()
-      const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000) // yesterday
+      const now = Date.now()
+      const pastDate = now - 24 * 60 * 60 * 1000 // yesterday
 
       await adminTransaction(async ({ transaction }) => {
         // First expire the original subscription item from beforeEach
@@ -606,8 +588,6 @@ describe('subscriptionItemMethods', async () => {
             id: subscriptionItem.id,
             expiredAt: pastDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -657,8 +637,6 @@ describe('subscriptionItemMethods', async () => {
             id: expiredItem.id,
             expiredAt: pastDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -733,7 +711,7 @@ describe('subscriptionItemMethods', async () => {
           subscriptionId: scenario1.subscription.id,
           amount: 100,
           usageMeterId: secondUsageMeter.id,
-          usageDate: new Date(),
+          usageDate: Date.now(),
           organizationId: organization.id,
           priceId: price.id,
           billingPeriodId: scenario1.billingPeriod.id,
@@ -805,10 +783,8 @@ describe('subscriptionItemMethods', async () => {
         await updateSubscriptionItem(
           {
             id: subscriptionItem.id,
-            expiredAt: new Date(0), // Set to epoch to ensure it's expired
+            expiredAt: 0, // Set to epoch to ensure it's expired
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -852,26 +828,22 @@ describe('subscriptionItemMethods', async () => {
         quantity: 1,
         unitPrice: 100,
         livemode: true,
-        addedDate: new Date(),
+        addedDate: Date.now(),
         expiredAt: null,
         externalId: itemExternalId1,
         metadata: {},
         type: SubscriptionItemType.Static,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
       },
       {
         name: 'Bulk External ID Item 2',
         quantity: 2,
         unitPrice: 200,
         livemode: true,
-        addedDate: new Date(),
+        addedDate: Date.now(),
         expiredAt: null,
         externalId: itemExternalId2,
         metadata: {},
         type: SubscriptionItemType.Static,
-        usageMeterId: null,
-        usageEventsPerUnit: null,
       },
     ]
 
@@ -885,8 +857,6 @@ describe('subscriptionItemMethods', async () => {
                 subscriptionId: subscription.id,
                 priceId: price.id,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               }
             }),
             transaction
@@ -911,8 +881,6 @@ describe('subscriptionItemMethods', async () => {
               subscriptionId: subscription.id,
               priceId: price.id,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             }
           }),
           transaction
@@ -933,8 +901,6 @@ describe('subscriptionItemMethods', async () => {
                 subscriptionId: subscription.id,
                 priceId: price.id,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               }
             }),
             transaction
@@ -954,12 +920,8 @@ describe('subscriptionItemMethods', async () => {
 
   describe('selectCurrentlyActiveSubscriptionItems', () => {
     const anchorDate = new Date()
-    const futureDate = new Date(
-      anchorDate.getTime() + 1000 * 60 * 60 * 24
-    ) // 1 day after anchor
-    const pastDate = new Date(
-      anchorDate.getTime() - 1000 * 60 * 60 * 24
-    ) // 1 day before anchor
+    const futureDate = anchorDate.getTime() + 1000 * 60 * 60 * 24 // 1 day after anchor
+    const pastDate = anchorDate.getTime() - 1000 * 60 * 60 * 24 // 1 day before anchor
 
     it('should return items not expired or expiring after anchorDate', async () => {
       await adminTransaction(async ({ transaction }) => {
@@ -969,8 +931,6 @@ describe('subscriptionItemMethods', async () => {
             id: subscriptionItem.id,
             expiredAt: pastDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -982,14 +942,13 @@ describe('subscriptionItemMethods', async () => {
           quantity: 1,
           unitPrice: 100,
           priceId: price.id,
+          addedDate: pastDate, // Ensure it's added before anchorDate
         })
         await updateSubscriptionItem(
           {
             id: futureExpiringItem.id,
             expiredAt: futureDate,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -1001,6 +960,7 @@ describe('subscriptionItemMethods', async () => {
           quantity: 1,
           unitPrice: 100,
           priceId: price.id,
+          addedDate: pastDate, // Ensure it's added before anchorDate
         })
         // Ensure expiredAt is explicitly null for this test case
         await updateSubscriptionItem(
@@ -1008,8 +968,6 @@ describe('subscriptionItemMethods', async () => {
             id: noExpiryItem.id,
             expiredAt: null,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
           transaction
         )
@@ -1035,6 +993,16 @@ describe('subscriptionItemMethods', async () => {
 
     it('should apply whereConditions in addition to active filter', async () => {
       await adminTransaction(async ({ transaction }) => {
+        // Update the original subscription item to have addedDate before anchorDate
+        await updateSubscriptionItem(
+          {
+            id: subscriptionItem.id,
+            addedDate: pastDate, // Ensure it's added before anchorDate
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+
         // Item that is active but has a different name
         await setupSubscriptionItem({
           subscriptionId: subscription.id,
@@ -1042,6 +1010,7 @@ describe('subscriptionItemMethods', async () => {
           quantity: 1,
           unitPrice: 100,
           priceId: price.id,
+          addedDate: pastDate, // Ensure it's added before anchorDate
         })
         // subscriptionItem is active by default (expiredAt is null)
 

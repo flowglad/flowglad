@@ -1,5 +1,5 @@
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import { ClipboardIcon } from 'lucide-react'
 
 const CopyableTextTableCell = ({
@@ -17,7 +17,7 @@ const CopyableTextTableCell = ({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 cursor-pointer flex-row group',
+        'inline-flex max-w-full items-center gap-2 cursor-pointer flex-row group',
         className
       )}
       onClick={(e) => {

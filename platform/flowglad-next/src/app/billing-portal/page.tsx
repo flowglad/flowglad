@@ -21,7 +21,7 @@ export default function BillingPortalRootPage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="max-w-2xl w-full shadow-xl">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-20 h-20 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center">
@@ -104,7 +104,15 @@ export default function BillingPortalRootPage() {
           </div>
         </CardContent>
 
-        <CardFooter className="flex flex-col sm:flex-row gap-3">
+        <CardFooter className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => router.push('/')}
+          >
+            <Home className="mr-2 h-4 w-4" />
+            Return Home
+          </Button>
           <Button
             variant="default"
             className="w-full sm:w-auto"
@@ -114,14 +122,6 @@ export default function BillingPortalRootPage() {
           >
             Go to Settings
             <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={() => router.push('/')}
-          >
-            <Home className="mr-2 h-4 w-4" />
-            Return Home
           </Button>
         </CardFooter>
       </Card>

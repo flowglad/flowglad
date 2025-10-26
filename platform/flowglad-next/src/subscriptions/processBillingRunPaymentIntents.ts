@@ -38,12 +38,14 @@ import {
   sendPaymentFailedEmail,
 } from '@/utils/email'
 import { Payment } from '@/db/schema/payments'
-import { UserRecord } from '@/db/schema/users'
+import { User } from '@/db/schema/users'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import {
   selectInvoiceLineItems,
   selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
 } from '@/db/tableMethods/invoiceLineItemMethods'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
+import { adminTransaction } from '@/db/adminTransaction'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import {
   safelyUpdateSubscriptionStatus,
@@ -103,7 +105,7 @@ interface BillingRunNotificationParams {
   organization: Organization.Record
   subscription: Subscription.Record
   payment: Payment.Record
-  organizationMemberUsers: UserRecord[]
+  organizationMemberUsers: User.Record[]
   invoiceLineItems: InvoiceLineItem.Record[]
 }
 
@@ -128,7 +130,7 @@ const processSucceededNotifications = async (
 
 interface BillingRunFailureNotificationParams
   extends BillingRunNotificationParams {
-  retryDate?: Date
+  retryDate?: Date | number
 }
 
 const processFailedNotifications = async (
@@ -136,18 +138,29 @@ const processFailedNotifications = async (
 ) => {
   const organizationName = params.organization.name
   const currency = params.invoice.currency
+
+  // Fetch discount information if this invoice is from a billing period (subscription)
+  const discountInfo = await fetchDiscountInfoForInvoice(
+    params.invoice
+  )
+
   await sendPaymentFailedEmail({
     organizationName: params.organization.name,
     to: [params.customer.email],
     invoiceNumber: params.invoice.invoiceNumber,
     orderDate: params.invoice.invoiceDate,
+    invoice: {
+      subtotal: params.invoice.subtotal,
+      taxAmount: params.invoice.taxAmount,
+      currency: params.invoice.currency,
+    },
     lineItems: params.invoiceLineItems.map((item) => ({
       name: item.description ?? '',
       price: item.price,
       quantity: item.quantity,
     })),
     retryDate: params.retryDate,
-    currency,
+    discountInfo,
   })
 
   await sendOrganizationPaymentFailedNotificationEmail({
@@ -207,7 +220,8 @@ export const processPaymentIntentEventForBillingRun = async (
   const eventTimestamp = dateFromStripeTimestamp(event.created)
   const eventPrecedesLastPaymentIntentEvent =
     billingRun.lastPaymentIntentEventTimestamp &&
-    billingRun.lastPaymentIntentEventTimestamp >= eventTimestamp
+    billingRun.lastPaymentIntentEventTimestamp >=
+      eventTimestamp.getTime()
   /**
    * If the last payment intent event timestamp is greater than the event timestamp being
    * processed, we can skip processing this event.
@@ -266,7 +280,7 @@ export const processPaymentIntentEventForBillingRun = async (
     {
       id: billingRun.id,
       status: billingRunStatus,
-      lastPaymentIntentEventTimestamp: eventTimestamp,
+      lastPaymentIntentEventTimestamp: eventTimestamp.getTime(),
     },
     transaction
   )
@@ -283,7 +297,10 @@ export const processPaymentIntentEventForBillingRun = async (
     )
   }
 
-  const { payment } = await processPaymentIntentStatusUpdated(
+  const {
+    result: { payment },
+    eventsToInsert: childeventsToInsert,
+  } = await processPaymentIntentStatusUpdated(
     event.data.object,
     transaction
   )
@@ -315,7 +332,7 @@ export const processPaymentIntentEventForBillingRun = async (
         (entry) => entry.ledgerAccountId!
       ),
     },
-    billingPeriod.endDate,
+    new Date(billingPeriod.endDate),
     transaction
   )
 
@@ -365,7 +382,10 @@ export const processPaymentIntentEventForBillingRun = async (
   const organizationMemberUsers = usersAndMemberships.map(
     (userAndMembership) => userAndMembership.user
   )
-  const eventsToLog: Event.Insert[] = []
+  const eventsToInsert: Event.Insert[] = []
+  if (childeventsToInsert && childeventsToInsert.length > 0) {
+    eventsToInsert.push(...childeventsToInsert)
+  }
 
   const notificationParams: BillingRunNotificationParams = {
     invoice,
@@ -449,7 +469,7 @@ export const processPaymentIntentEventForBillingRun = async (
       payment,
     },
     ledgerCommand: invoiceLedgerCommand,
-    eventsToLog,
+    eventsToInsert,
   }
 }
 

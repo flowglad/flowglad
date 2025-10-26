@@ -1,5 +1,4 @@
-import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { cn } from '@/lib/utils'
 import omit from 'ramda/src/omit'
 import has from 'ramda/src/has'
 import {
@@ -16,16 +15,18 @@ import { camelCase, sentenceCase } from 'change-case'
 import latinMap from './latinMap'
 import { z } from 'zod'
 import axios, { AxiosRequestConfig } from 'axios'
-import { CurrencyCode, Nullish, StripePriceMode } from '@/types'
-
-export const cn = (...inputs: ClassValue[]) => {
-  return twMerge(clsx(inputs))
-}
+import {
+  CountryCode,
+  CurrencyCode,
+  Nullish,
+  StripePriceMode,
+} from '@/types'
 
 export const envVariable = (key: string) => process.env[key] || ''
 
-export const localizedEnvVariable = (key: string) =>
-  envVariable(`${envVariable('LOCAL_USER')}_${key}`)
+//This would make self hosting more complicated to implement, we currently only use stripping user suffix from env vars on vercel:env-pull post processing step.
+// export const localizedEnvVariable = (key: string) =>
+//   envVariable(`${envVariable('LOCAL_USER')}_${key}`)
 
 export const safeUrl = (path: string, urlBase: string) => {
   const protocol = urlBase.match('localhost') ? 'http' : 'https'
@@ -165,7 +166,7 @@ export const safeContactList = (
 }
 
 export const formatDate = (
-  date: Date | string,
+  date: Date | string | number,
   includeTime?: boolean
 ) =>
   format(
@@ -319,12 +320,8 @@ export const safeZodNonNegativeInteger = z.coerce
 
 export const safeZodPositiveInteger = z.coerce
   .number()
-  .transform((str) => Number(str))
-  .refine(
-    (arg) => z.number().int().positive().safeParse(arg).success,
-    { message: 'Value must be a positive integer' }
-  )
-  .describe('safeZodPositiveInteger')
+  .int()
+  .positive()
   .meta({
     description: 'A positive integer',
   })
@@ -344,7 +341,8 @@ export const safeZodNullOrUndefined = z
   .transform(() => {
     return null
   })
-  .describe('safeZodNullOrUndefined')
+  .pipe(z.null())
+  .describe('Omitted.')
 
 export const safeZodNullishString = z
   .string()
@@ -361,14 +359,13 @@ export const nanoid = customAlphabet(
 
 type EnumValues<T> = T extends Record<string, infer U> ? U : never
 
-export const createSafeZodEnum = <T extends Record<string, string>>(
+export const createSafeZodEnum = <
+  T extends Record<string, string | number>,
+>(
   enumType: T
 ) => {
-  const values = Object.values(enumType) as [
-    EnumValues<T>,
-    ...EnumValues<T>[],
-  ]
-  return z.enum(values as [EnumValues<T>, ...EnumValues<T>[]])
+  // Use nativeEnum so the inferred type is the TS enum type
+  return z.nativeEnum(enumType)
 }
 
 /**
@@ -433,10 +430,6 @@ export const createInvoiceNumber = (
   return `${invoiceNumberBase}-${number.toString().padStart(5, '0')}`
 }
 
-export function cx(...args: ClassValue[]) {
-  return twMerge(clsx(...args))
-}
-
 export const safeZodAlwaysNull = z
   .any()
   .transform(() => null)
@@ -493,52 +486,42 @@ export const gitCommitId = () => {
   }
   return commitId
 }
+const LOCALHOST_URL = 'http://localhost:3000'
 
-export const billingPortalPageURL = (params: {
-  organizationId: string
-  customerExternalId: string
-  page: 'sign-in' | 'manage' | 'validate-magic-link'
-}) => {
-  const { organizationId, customerExternalId, page } = params
-  const baseURL = core.IS_TEST
-    ? 'http://localhost:3000'
-    : process.env.NEXT_PUBLIC_HOSTED_BILLING_PORTAL_URL!
+const NEXT_PUBLIC_APP_URL = IS_TEST
+  ? LOCALHOST_URL
+  : process.env.NEXT_PUBLIC_APP_URL || LOCALHOST_URL
 
-  if (page === 'validate-magic-link') {
-    /**
-     * Note: stack auth redirects post-magic link signin redirects, for whatever reason,
-     * don't seem to work if we redirect from a page to another page, but they will work if
-     * we redirect to a route to a page
-     */
-    return safeUrl(
-      `api/${organizationId}/${customerExternalId}/${page}`,
-      baseURL
-    )
-  }
-  return safeUrl(
-    `p/${organizationId}/${customerExternalId}/${page}`,
-    baseURL
-  )
-}
-
-export const emailBaseUrl =
-  envVariable('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3000'
+export const emailBaseUrl = NEXT_PUBLIC_APP_URL
 
 export const customerBillingPortalURL = (params: {
   organizationId: string
-  customerId: string
+  customerId?: string
 }) => {
   const { organizationId, customerId } = params
   return safeUrl(
-    `/billing-portal/${organizationId}/${customerId}`,
-    emailBaseUrl
+    `/billing-portal/${organizationId}/${customerId || ''}`,
+    NEXT_PUBLIC_APP_URL
   )
 }
+
+export const organizationBillingPortalURL = (params: {
+  organizationId: string
+}) => {
+  const { organizationId } = params
+  return safeUrl(
+    `/billing-portal/${organizationId}`,
+    NEXT_PUBLIC_APP_URL
+  )
+}
+
+export const nowTime = () => Date.now()
 
 export const core = {
   IS_PROD,
   IS_TEST,
   DEV_ENVIRONMENT_NOTIF_PREFIX,
+  NEXT_PUBLIC_APP_URL,
   notEmptyOrNil,
   envVariable,
   camelCase,
@@ -546,7 +529,7 @@ export const core = {
   fetch: middlewareFetch,
   post,
   sliceIntoChunks,
-  localizedEnvVariable,
+  // localizedEnvVariable,
   formatDate,
   safeContactList,
   devPrefixString,
@@ -562,7 +545,6 @@ export const core = {
   areDatabaseIdsEqual,
   constructMidnightDate,
   emailAddressToCompanyDomain,
-  billingPortalPageURL,
   nanoid,
   amountInDollars,
   omit,
@@ -575,6 +557,8 @@ export const core = {
   formatDateRange,
   gitCommitId,
   customerBillingPortalURL,
+  organizationBillingPortalURL,
+  nowTime,
   safeZodNullOrUndefined,
   safeZodNullishString,
   safeZodPositiveInteger,

@@ -3,9 +3,8 @@ import {
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
 import {
-  insertCustomer,
-  updateCustomer,
   selectCustomerById,
+  updateCustomer,
 } from '@/db/tableMethods/customerMethods'
 import {
   createStripeCustomer,
@@ -27,11 +26,15 @@ import {
   finalizeFeeCalculation,
 } from '@/utils/bookkeeping/fees/common'
 import { DbTransaction } from '@/db/types'
+import { createCustomerBookkeeping } from '@/utils/bookkeeping'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { Event } from '@/db/schema/events'
+import { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 
 export const confirmCheckoutSessionTransaction = async (
   input: { id: string },
   transaction: DbTransaction
-): Promise<{ customer: Customer.Record }> => {
+): Promise<TransactionOutput<{ customer: Customer.Record }>> => {
   try {
     // Find purchase session
     const checkoutSession = await selectCheckoutSessionById(
@@ -66,6 +69,9 @@ export const confirmCheckoutSessionTransaction = async (
     }
 
     let customer: Customer.Record | null = null
+    let customerEvents: Event.Insert[] = []
+    let customerLedgerCommand: LedgerCommand | undefined = undefined
+
     if (checkoutSession.customerId) {
       // Find customer
       customer = await selectCustomerById(
@@ -89,21 +95,31 @@ export const confirmCheckoutSessionTransaction = async (
           `Checkout session has no customer email, and no purchase: ${input.id}`
         )
       }
-      // Create new customer
-      customer = await insertCustomer(
+      const customerResult = await createCustomerBookkeeping(
         {
-          email: checkoutSession.customerEmail,
-          organizationId: checkoutSession.organizationId,
-          name:
-            checkoutSession.customerName ||
-            checkoutSession.billingAddress?.name ||
-            checkoutSession.customerEmail,
-          billingAddress: checkoutSession.billingAddress,
-          externalId: core.nanoid(),
-          livemode: checkoutSession.livemode,
+          customer: {
+            email: checkoutSession.customerEmail,
+            organizationId: checkoutSession.organizationId,
+            name:
+              checkoutSession.customerName ||
+              checkoutSession.billingAddress?.name ||
+              checkoutSession.customerEmail,
+            billingAddress: checkoutSession.billingAddress,
+            externalId: core.nanoid(),
+          },
         },
-        transaction
+        {
+          transaction,
+          organizationId: checkoutSession.organizationId,
+          livemode: checkoutSession.livemode,
+        }
       )
+
+      customer = customerResult.result.customer
+
+      // Store events/ledger from customer creation to bubble up
+      customerEvents = customerResult.eventsToInsert || []
+      customerLedgerCommand = customerResult.ledgerCommand
     }
     /**
      * Set the customer id if the checkout session doesn't have one,
@@ -189,7 +205,12 @@ export const confirmCheckoutSessionTransaction = async (
       )
     }
     return {
-      customer,
+      result: {
+        customer,
+      },
+      eventsToInsert:
+        customerEvents.length > 0 ? customerEvents : undefined,
+      ledgerCommand: customerLedgerCommand,
     }
   } catch (error) {
     core.error(error)

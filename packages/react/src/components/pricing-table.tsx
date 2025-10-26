@@ -8,7 +8,7 @@ import { useState } from 'react'
 import { useFlowgladTheme } from '../FlowgladTheme'
 
 interface PricingTableProduct
-  extends Pick<Product, 'name' | 'description' | 'displayFeatures'> {
+  extends Pick<Product, 'name' | 'description'> {
   primaryButtonText: string
   secondaryButtonText?: string
   prices: Pick<
@@ -100,7 +100,7 @@ function PricingTableProductColumn({
       )}
     >
       <div className="flowglad-flex flowglad-flex-col flowglad-gap-2">
-        <h3 className="flowglad-text-2xl flowglad-font-bold">
+        <h3 className="flowglad-text-2xl flowglad-font-normal">
           {product.name}
         </h3>
         <PriceLabel
@@ -113,9 +113,6 @@ function PricingTableProductColumn({
           </p>
         )}
       </div>
-      {product.displayFeatures && (
-        <FeatureList features={product.displayFeatures} />
-      )}
       <div className="flowglad-flex flowglad-flex-col flowglad-gap-2">
         <PricingTableButton
           type="button"

@@ -11,6 +11,7 @@ import {
 import { keysToCamelCase } from '@/utils/core'
 import { sendSvixEvent } from '@/utils/svix'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { storeTelemetry } from '@/utils/redis'
 
 const eventInsertSchema = supabaseInsertPayloadSchema(
   eventsSelectSchema
@@ -83,7 +84,7 @@ export const eventInsertedTask = task({
       }
 
       const updatedEvent = await updateEvent(
-        { id: event.id, processedAt: new Date() },
+        { id: event.id, processedAt: Date.now() },
         transaction
       )
       const organization = await selectOrganizationById(
@@ -105,6 +106,12 @@ export const eventInsertedTask = task({
         event: mostUpToDateEvent,
         organization,
       })
+
+      await storeTelemetry(
+        'webhook',
+        mostUpToDateEvent.id,
+        ctx.run.id
+      )
     }
     return result
   },

@@ -1,5 +1,3 @@
-// Generated with Ion on 11/15/2024, 6:09:53 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1210:41903
 'use client'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -7,16 +5,16 @@ import { Price } from '@/db/schema/prices'
 import { Clipboard, Ellipsis, Eye, Pencil } from 'lucide-react'
 import { Product } from '@/db/schema/products'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import EditPriceModal from '@/components/forms/EditPriceModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 import EditProductModal from '@/components/forms/EditProductModal'
 
 import { Plus } from 'lucide-react'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
-import TableTitle from '@/components/ion/TableTitle'
-import PricesTable from './PricesTable'
+import { PricesDataTable } from './prices/data-table'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
 import PopoverMenu, {
@@ -26,7 +24,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ion/Popover'
+} from '@/components/ui/popover'
 
 export type InternalProductDetailsPageProps = {
   product: Product.ClientRecord
@@ -56,10 +54,18 @@ function InternalProductDetailsPage(
     {
       label: 'Copy Link',
       handler: () => copyPurchaseLinkHandler(),
+      disabled: product.default,
+      helperText: product.default
+        ? 'Cannot copy checkout link for default products. Default products are automatically assigned to customers.'
+        : undefined,
     },
     {
       label: 'Preview',
       handler: () => previewProductHandler(),
+      disabled: product.default,
+      helperText: product.default
+        ? 'Cannot preview checkout for default products. Default products are automatically assigned to customers.'
+        : undefined,
     },
   ]
 
@@ -70,22 +76,26 @@ function InternalProductDetailsPage(
           <Breadcrumb />
           <div className="flex flex-row items-center justify-between">
             <div className="min-w-0 overflow-hidden mr-4">
-              <PageTitle className="truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                {product.name}
-              </PageTitle>
+              <PageHeader
+                title={product.name}
+                className="truncate whitespace-nowrap overflow-hidden text-ellipsis"
+              />
             </div>
             <div className="flex flex-row gap-4 justify-end flex-shrink-0">
               <Button onClick={() => setIsEditOpen(true)}>
-                <Pencil size={16} />
+                <Pencil className="w-4 h-4 mr-2" />
                 Edit
               </Button>
               <Popover>
-                <PopoverTrigger asChild>
+                <PopoverTrigger className="flex">
                   <Button
                     className="flex justify-center items-center border-primary"
                     variant="outline"
+                    asChild
                   >
-                    <Ellipsis className="rotate-90 w-4 h-6" />
+                    <span>
+                      <Ellipsis className="rotate-90 w-4 h-6" />
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-fit" align="end">
@@ -99,30 +109,36 @@ function InternalProductDetailsPage(
           <div className="min-w-40 flex flex-col gap-5 pb-5">
             <DateRangeRevenueChart
               organizationCreatedAt={
-                organization?.createdAt ?? new Date()
+                organization?.createdAt
+                  ? new Date(organization.createdAt)
+                  : new Date()
               }
               alignDatePicker="right"
               productId={product.id}
             />
           </div>
         </div>
-        <TableTitle
-          title="Prices"
-          buttonLabel="Create Price"
-          buttonIcon={<Plus className="w-4 h-4" strokeWidth={2} />}
-          buttonOnClick={() => setIsCreatePriceOpen(true)}
-          buttonDisabledTooltip="Product must be selected"
-        />
-        <PricesTable
+        <PricesDataTable
+          title="Price History"
           productId={product.id}
           filters={{
             productId: product.id,
           }}
+          onCreatePrice={
+            product.default
+              ? undefined
+              : () => setIsCreatePriceOpen(true)
+          }
         />
-        <CreatePriceModal
+        {/* for now, only one active & default price per product, so we use editpricemodal instead */}
+        <EditPriceModal
           isOpen={isCreatePriceOpen}
           setIsOpen={setIsCreatePriceOpen}
-          productId={product.id}
+          price={
+            prices.find(
+              (p) => p.isDefault === true && p.active === true
+            )!
+          }
         />
       </div>
       <EditProductModal

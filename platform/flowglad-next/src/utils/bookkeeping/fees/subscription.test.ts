@@ -61,8 +61,8 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     })
     billingPeriodRec = await setupBillingPeriod({
       subscriptionId: subscriptionRec.id,
-      startDate: new Date('2023-01-01T00:00:00.000Z'),
-      endDate: new Date('2023-01-31T23:59:59.999Z'),
+      startDate: new Date('2023-01-01T00:00:00.000Z').getTime(),
+      endDate: new Date('2023-01-31T23:59:59.999Z').getTime(),
     })
     const countries = await adminTransaction(
       async ({ transaction }) =>
@@ -95,6 +95,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
   })
 
   it('should calculate basic subscription with static items, no discount, domestic payment, Platform contract', async () => {
+    const nowTime = Date.now()
     const staticItem: BillingPeriodItem.StaticRecord = {
       id: core.nanoid(),
       billingPeriodId: billingPeriodRec.id,
@@ -104,10 +105,8 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       unitPrice: 5000,
       quantity: 1,
       discountRedemptionId: null,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: nowTime,
+      updatedAt: nowTime,
       livemode: true,
       createdByCommit: null,
       updatedByCommit: null,
@@ -150,6 +149,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
   })
 
   it('should handle subscription with static/usage items, discount, international payment, MerchantOfRecord contract', async () => {
+    const nowTime = Date.now()
     const staticItem: BillingPeriodItem.StaticRecord = {
       id: core.nanoid(),
       billingPeriodId: billingPeriodRec.id,
@@ -159,36 +159,22 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       unitPrice: 3000,
       quantity: 1,
       discountRedemptionId: null,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: nowTime,
+      updatedAt: nowTime,
       livemode: false,
       createdByCommit: null,
       updatedByCommit: null,
       position: 0,
     }
-    const usageItem: BillingPeriodItem.UsageRecord = {
-      id: core.nanoid(),
-      billingPeriodId: billingPeriodRec.id,
-      name: 'Usage Component Euro',
-      description: 'Usage part of Euro plan',
-      type: SubscriptionItemType.Usage,
-      unitPrice: 5,
-      quantity: 1,
-      discountRedemptionId: null,
-      usageMeterId: usageMeterRec.id,
-      usageEventsPerUnit: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      livemode: false,
-      createdByCommit: null,
-      updatedByCommit: null,
-      position: 0,
-    }
-    const billingPeriodItems = [staticItem, usageItem]
+    const billingPeriodItems = [staticItem]
     const usageOverages = [
-      { usageMeterId: usageMeterRec.id, balance: 100 },
+      {
+        usageMeterId: usageMeterRec.id,
+        balance: 100,
+        priceId: orgData.price.id,
+        usageEventsPerUnit: 1,
+        unitPrice: 5,
+      },
     ]
 
     const discountRedemptionRec: DiscountRedemption.Record = {
@@ -198,8 +184,8 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       discountCode: testDiscount.code,
       discountAmountType: testDiscount.amountType,
       discountAmount: testDiscount.amount,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: nowTime,
+      updatedAt: nowTime,
       livemode: false,
       createdByCommit: null,
       updatedByCommit: null,

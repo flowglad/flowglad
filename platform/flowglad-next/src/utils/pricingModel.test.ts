@@ -26,7 +26,10 @@ import {
   DestinationEnvironment,
 } from '@/types'
 import { core } from '@/utils/core'
-import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
+import {
+  selectPricingModelById,
+  selectPricingModels,
+} from '@/db/tableMethods/pricingModelMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
@@ -302,9 +305,6 @@ describe('clonePricingModelTransaction', () => {
         sourceProduct.description
       )
       expect(clonedProduct.active).toBe(sourceProduct.active)
-      expect(clonedProduct.displayFeatures).toEqual(
-        sourceProduct.displayFeatures
-      )
       expect(clonedProduct.singularQuantityLabel).toBe(
         sourceProduct.singularQuantityLabel
       )
@@ -407,9 +407,6 @@ describe('clonePricingModelTransaction', () => {
         sourcePrice.intervalCount
       )
       expect(clonedPrice.unitPrice).toBe(sourcePrice.unitPrice)
-      expect(clonedPrice.setupFeeAmount).toBe(
-        sourcePrice.setupFeeAmount
-      )
       expect(clonedPrice.trialPeriodDays).toBe(
         sourcePrice.trialPeriodDays
       )
@@ -916,7 +913,7 @@ describe('clonePricingModelTransaction', () => {
           // Mark it as expired
           return await transaction
             .update(productFeatures)
-            .set({ expiredAt: new Date() })
+            .set({ expiredAt: Date.now() })
             .where(eq(productFeatures.id, pf.id))
             .returning()
             .then((rows) => rows[0])
@@ -1051,7 +1048,7 @@ describe('clonePricingModelTransaction', () => {
       // Check products and prices
       expect(clonedPricingModel.products).toHaveLength(2)
       const basicProduct = clonedPricingModel.products.find(
-        (p) => p.name === 'Flowglad Test Product'
+        (p) => p.name === 'Default Product'
       )
       const proProduct = clonedPricingModel.products.find(
         (p) => p.name === 'Pro Plan'
@@ -1510,6 +1507,115 @@ describe('clonePricingModelTransaction', () => {
       expect(clonedUsageMeters).toHaveLength(1)
       expect(clonedUsageMeters[0].livemode).toBe(false)
     })
+
+    it('should not affect default pricing models across livemode boundaries when cloning', async () => {
+      // Note: sourcePricingModel from beforeEach is already a livemode=true, isDefault=true pricing model
+      // So we'll use that as our livemode default
+      const livemodeDefaultPricingModel = sourcePricingModel
+
+      // Get the testmode pricing model that setupOrg already created
+      const testmodeDefaultPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const [pricingModel] = await selectPricingModels(
+            {
+              organizationId: organization.id,
+              livemode: false,
+              isDefault: true,
+            },
+            transaction
+          )
+          return pricingModel!
+        }
+      )
+
+      // Verify both are default for their respective livemodes
+      expect(livemodeDefaultPricingModel.isDefault).toBe(true)
+      expect(livemodeDefaultPricingModel.livemode).toBe(true)
+      expect(testmodeDefaultPricingModel.isDefault).toBe(true)
+      expect(testmodeDefaultPricingModel.livemode).toBe(false)
+
+      // Clone the livemode default pricing model
+      const clonedLivemodePricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          return clonePricingModelTransaction(
+            {
+              id: livemodeDefaultPricingModel.id,
+              name: 'Cloned Livemode PM',
+            },
+            transaction
+          )
+        }
+      )
+
+      // The cloned pricing model should NOT be default (cloning never sets isDefault=true)
+      expect(clonedLivemodePricingModel.isDefault).toBe(false)
+      expect(clonedLivemodePricingModel.livemode).toBe(true)
+
+      // Verify the original livemode default is still default (unchanged by cloning)
+      const refreshedLivemodeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelById(
+            livemodeDefaultPricingModel.id,
+            transaction
+          )
+        }
+      )
+      expect(refreshedLivemodeDefault.isDefault).toBe(true)
+      expect(refreshedLivemodeDefault.livemode).toBe(true)
+
+      // Verify the testmode default is still default (unchanged by livemode cloning)
+      const refreshedTestmodeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelById(
+            testmodeDefaultPricingModel.id,
+            transaction
+          )
+        }
+      )
+      expect(refreshedTestmodeDefault.isDefault).toBe(true)
+      expect(refreshedTestmodeDefault.livemode).toBe(false)
+
+      // Clone testmode to livemode with destinationEnvironment
+      const clonedCrossEnvironment = await adminTransaction(
+        async ({ transaction }) => {
+          return clonePricingModelTransaction(
+            {
+              id: testmodeDefaultPricingModel.id,
+              name: 'Cloned Cross Environment',
+              destinationEnvironment: DestinationEnvironment.Livemode,
+            },
+            transaction
+          )
+        }
+      )
+
+      // The cloned pricing model should NOT be default
+      expect(clonedCrossEnvironment.isDefault).toBe(false)
+      expect(clonedCrossEnvironment.livemode).toBe(true)
+
+      // Verify both original defaults are still default
+      const finalLivemodeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelById(
+            livemodeDefaultPricingModel.id,
+            transaction
+          )
+        }
+      )
+      expect(finalLivemodeDefault.isDefault).toBe(true)
+      expect(finalLivemodeDefault.livemode).toBe(true)
+
+      const finalTestmodeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelById(
+            testmodeDefaultPricingModel.id,
+            transaction
+          )
+        }
+      )
+      expect(finalTestmodeDefault.isDefault).toBe(true)
+      expect(finalTestmodeDefault.livemode).toBe(false)
+    })
   })
 
   describe('Parent Association Validation', () => {
@@ -1965,7 +2071,6 @@ describe('createProductTransaction', () => {
               description: 'Test Description',
               active: true,
               imageURL: null,
-              displayFeatures: [],
               singularQuantityLabel: 'singular',
               pluralQuantityLabel: 'plural',
               pricingModelId: sourcePricingModel.id,
@@ -1979,14 +2084,11 @@ describe('createProductTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 unitPrice: 1000,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
-                startsWithCreditTrial: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
@@ -2009,7 +2111,6 @@ describe('createProductTransaction', () => {
     expect(product.description).toBe('Test Description')
     expect(product.active).toBe(true)
     expect(product.imageURL).toBe(null)
-    expect(product.displayFeatures).toEqual([])
     expect(product.singularQuantityLabel).toBe('singular')
     expect(product.pluralQuantityLabel).toBe('plural')
     expect(product.pricingModelId).toBe(sourcePricingModel.id)
@@ -2019,7 +2120,6 @@ describe('createProductTransaction', () => {
     expect(price.intervalCount).toBe(1)
     expect(price.intervalUnit).toBe(IntervalUnit.Month)
     expect(price.unitPrice).toBe(1000)
-    expect(price.setupFeeAmount).toBe(0)
     expect(price.trialPeriodDays).toBe(0)
     expect(price.currency).toBe(CurrencyCode.USD)
     expect(price.externalId).toBe(null)
@@ -2040,7 +2140,6 @@ describe('createProductTransaction', () => {
               description: 'Test Description',
               active: true,
               imageURL: null,
-              displayFeatures: [],
               singularQuantityLabel: 'singular',
               pluralQuantityLabel: 'plural',
               pricingModelId: sourcePricingModel.id,
@@ -2054,14 +2153,11 @@ describe('createProductTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 unitPrice: 1000,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
-                startsWithCreditTrial: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],
@@ -2106,7 +2202,6 @@ describe('createProductTransaction', () => {
               description: 'Test Description',
               active: true,
               imageURL: null,
-              displayFeatures: [],
               singularQuantityLabel: 'singular',
               pluralQuantityLabel: 'plural',
               pricingModelId: sourcePricingModel.id,
@@ -2120,14 +2215,11 @@ describe('createProductTransaction', () => {
                 intervalCount: 1,
                 intervalUnit: IntervalUnit.Month,
                 unitPrice: 1000,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 active: true,
                 usageMeterId: null,
                 usageEventsPerUnit: null,
                 isDefault: true,
-                startsWithCreditTrial: null,
-                overagePriceId: null,
                 slug: `flowglad-test-product-price+${core.nanoid()}`,
               },
             ],

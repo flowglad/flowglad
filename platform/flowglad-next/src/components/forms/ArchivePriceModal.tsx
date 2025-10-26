@@ -1,6 +1,13 @@
 'use client'
 
-import Modal from '@/components/ion/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
@@ -9,29 +16,13 @@ import {
   editPriceSchema,
   Price,
 } from '@/db/schema/prices'
+import { idInputSchema } from '@/db/tableUtils'
 
 interface ArchivePriceModalProps {
   trigger?: React.ReactNode
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
   price: Price.ClientRecord
-}
-
-export const priceToArchivePriceInput = (
-  price: Pick<
-    Price.ClientRecord,
-    'id' | 'productId' | 'active' | 'type'
-  >
-): EditPriceInput => {
-  return {
-    id: price.id,
-    price: {
-      id: price.id,
-      productId: price.productId,
-      active: !price.active,
-      type: price.type,
-    },
-  }
 }
 
 const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
@@ -41,17 +32,19 @@ const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
   price,
 }) => {
   const router = useRouter()
-  const editPrice = trpc.prices.edit.useMutation()
+  const archivePrice = trpc.prices.archive.useMutation()
 
   const handleArchive = async () => {
-    const data = priceToArchivePriceInput(price)
-    const parsed = editPriceSchema.safeParse(data)
+    const data = {
+      id: price.id,
+    }
+    const parsed = idInputSchema.safeParse(data)
     if (!parsed.success) {
       console.error('Invalid data:', parsed.error)
       return
     }
 
-    await editPrice.mutateAsync(parsed.data)
+    await archivePrice.mutateAsync(parsed.data)
     router.refresh()
     setIsOpen(false)
   }
@@ -73,28 +66,33 @@ const ArchivePriceModal: React.FC<ArchivePriceModalProps> = ({
   )
 
   return (
-    <Modal
-      trigger={trigger}
-      title={price.active ? 'Archive price' : 'Unarchive price'}
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      footer={
-        <div className="flex justify-end gap-3 w-full">
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleArchive}
-            disabled={editPrice.isPending}
-          >
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
             {price.active ? 'Archive price' : 'Unarchive price'}
-          </Button>
-        </div>
-      }
-      showClose
-    >
-      {modalText}
-    </Modal>
+          </DialogTitle>
+        </DialogHeader>
+        {modalText}
+        <DialogFooter>
+          <div className="flex justify-end gap-3 w-full">
+            <Button
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleArchive}
+              disabled={archivePrice.isPending}
+            >
+              {price.active ? 'Archive price' : 'Unarchive price'}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

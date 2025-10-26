@@ -60,11 +60,13 @@ const processPaymentIntent = async ({
     throw new Error(`Payment intent not found: ${paymentIntentId}`)
   }
   const { payment, purchase, invoice, checkoutSession } =
-    await adminTransaction(async ({ transaction }) => {
-      const { payment } = await processPaymentIntentStatusUpdated(
-        paymentIntent,
-        transaction
-      )
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const { result, eventsToInsert } =
+        await processPaymentIntentStatusUpdated(
+          paymentIntent,
+          transaction
+        )
+      const { payment } = result
       if (!payment.purchaseId) {
         throw new Error(
           `No purchase id found for payment ${payment.id}`
@@ -102,7 +104,10 @@ const processPaymentIntent = async ({
           )
         }
       }
-      return { payment, purchase, checkoutSession, invoice }
+      return {
+        result: { payment, purchase, checkoutSession, invoice },
+        eventsToInsert,
+      }
     })
   return {
     purchase,
@@ -132,28 +137,34 @@ const processCheckoutSession = async ({
   checkoutSessionId,
   request,
 }: ProcessCheckoutSessionParams): Promise<ProcessCheckoutSessionResult> => {
-  const result = await adminTransaction(async ({ transaction }) => {
-    const [checkoutSession] = await selectCheckoutSessions(
-      {
-        id: checkoutSessionId,
-      },
-      transaction
-    )
-    if (!checkoutSession) {
-      throw new Error(
-        `Purchase session not found: ${checkoutSessionId}`
+  const result = await comprehensiveAdminTransaction(
+    async ({ transaction }) => {
+      const [checkoutSession] = await selectCheckoutSessions(
+        {
+          id: checkoutSessionId,
+        },
+        transaction
       )
+      if (!checkoutSession) {
+        throw new Error(
+          `Purchase session not found: ${checkoutSessionId}`
+        )
+      }
+      const result = await processNonPaymentCheckoutSession(
+        checkoutSession,
+        transaction
+      )
+      return {
+        result: {
+          checkoutSession,
+          purchase: result.result.purchase,
+          invoice: result.result.invoice,
+        },
+        eventsToInsert: result.eventsToInsert,
+        ledgerCommand: result.ledgerCommand,
+      }
     }
-    const result = await processNonPaymentCheckoutSession(
-      checkoutSession,
-      transaction
-    )
-    return {
-      checkoutSession,
-      purchase: result.purchase,
-      invoice: result.invoice,
-    }
-  })
+  )
 
   /**
    * If the purchase session has a success url, redirect to it.
@@ -201,7 +212,7 @@ const processSetupIntent = async ({
     setupSuceededResult.billingRun?.id
   ) {
     const { billingRun } = setupSuceededResult
-    await executeBillingRun(setupSuceededResult.billingRun.id)
+    await executeBillingRun(billingRun.id)
   }
 
   const url = checkoutSession.successUrl

@@ -52,7 +52,7 @@ const PostPurchaseAssetButtonStrip = ({
         size="sm"
         onClick={() => setIsEditOpen(true)}
       >
-        <Pencil size={16} />
+        <Pencil className="w-4 h-4 mr-2" />
         Edit
       </Button>
       <Button
@@ -60,7 +60,7 @@ const PostPurchaseAssetButtonStrip = ({
         size="sm"
         onClick={() => setIsDeleteOpen(true)}
       >
-        <Trash size={16} />
+        <Trash className="w-4 h-4 mr-2" />
         Delete
       </Button>
     </>
@@ -75,7 +75,7 @@ const PostPurchaseAssetRow = ({
   modals,
 }: PostPurchaseAssetRowProps) => {
   return (
-    <div className="w-full flex items-center justify-between py-4 px-3 bg-container bg-nav border border-stroke-subtle rounded-radius [&:not(:only-child)]:rounded-none [&:not(:only-child)]:border-t-0 [&:not(:only-child)]:first:border-t [&:not(:only-child)]:first:rounded-t-radius [&:not(:only-child)]:last:rounded-b-radius">
+    <div className="w-full flex items-center justify-between py-4 px-3 bg-background bg-background border border-muted rounded-radius [&:not(:only-child)]:rounded-none [&:not(:only-child)]:border-t-0 [&:not(:only-child)]:first:border-t [&:not(:only-child)]:first:rounded-t-radius [&:not(:only-child)]:last:rounded-b-radius">
       <div className="flex items-center gap-3 w-full">
         <div className="flex items-center justify-center w-8 h-8 rounded-radius bg-input">
           {itemIcon}
@@ -85,7 +85,7 @@ const PostPurchaseAssetRow = ({
             {asset.name}
           </div>
           {mode === 'seller' && (
-            <div className="text-xs text-subtle">
+            <div className="text-xs text-muted-foreground">
               Available after purchase
             </div>
           )}
@@ -180,7 +180,7 @@ export const LinkPostPurchaseAssetRow = ({
               size="sm"
               onClick={() => window.open(link.url, '_blank')}
             >
-              <SquareArrowOutUpRight size={16} />
+              <SquareArrowOutUpRight className="w-4 h-4 mr-2" />
               Open
             </Button>
           ) : (

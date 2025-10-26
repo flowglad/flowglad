@@ -18,6 +18,7 @@ interface PaymentFailedNotificationData {
   amount: number
   currency: CurrencyCode
   invoiceNumber?: string
+  failureReason?: string
 }
 
 export const sendOrganizationPaymentFailedNotificationTask = task({
@@ -76,6 +77,7 @@ export const sendOrganizationPaymentFailedNotificationTask = task({
         invoiceNumber: paymentData.invoiceNumber,
         customerId: customer.id,
         customerName: customer.name,
+        failureReason: paymentData.failureReason,
       }),
     })
 

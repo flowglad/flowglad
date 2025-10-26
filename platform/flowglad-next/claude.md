@@ -2,18 +2,21 @@
 **IMPORTANT**: This project uses `pnpm` as its package manager. ALWAYS use `pnpm` for all package management operations. Never use `npm` or `yarn`.
 
 Examples:
-- Install dependencies: `pnpm install`
-- Add a package: `pnpm add <package-name>`
-- Run scripts: `pnpm run <script-name>`
+- Install dependencies: `pnpm install-packages` (N.B. - this project is in a monorepo but installs its own packages, hence the custom install script)
+- Add a package: `pnpm install-packages <package-name>` 
 - Build: `pnpm build`
-- Lint: `pnpm lint`
-- Type check: `pnpm type-check`
+- Lint and typecheck: `pnpm check`
+
+## Installing Dependencies 
 
 ## On Every Change
-Whenever you complete a task, confirm that everything lints as expected:
+Whenever you complete a task, confirm that everything lints and typechecks as expected:
 ```bash
-pnpm lint
+pnpm check
 ```
+
+## Running Tests
+If you are trying to run tests to see whether they pass, you must use `pnpm test:run`. `pnpm test` will run the test suite in watch mode and leave you waiting for timeouts.
 
 ## When Writing TRPC Code
 1. Always specify mutation and query outputs using `.output()`
@@ -31,7 +34,6 @@ Do this in four steps:
 3. Prepare global setup — see [@new-test-3-before-each-setup.md](llm-prompts/new-test-3-before-each-setup.md)
 4. Implement tests — see [@new-test-4-implementation.md](llm-prompts/new-test-4-implementation.md)
 
-### ast-grep
-Remember that you have `ast-grep` CLI at your disposal.
+### Use ast-grep instead of grep
 
-ast-grep is a code tool for structural search and replace. It is like syntax-aware grep/sed! You can write code patterns to locate and modify code, based on AST, in thousands of files, interactively.
+You run in an environment where `ast-grep` is available; whenever a search requires syntax-aware or structural matching, default to `ast-grep --lang rust -p '<pattern>'` (or set `--lang` appropriately) and avoid falling back to text-only tools like `rg` or `grep` unless I explicitly request a plain-text search.

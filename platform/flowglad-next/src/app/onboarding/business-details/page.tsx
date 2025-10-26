@@ -1,8 +1,11 @@
-// Generated with Ion on 11/18/2024, 2:07:04 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1303:14448
 'use client'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  REFERRAL_OPTIONS,
+  type ReferralOption,
+} from '@/utils/referrals'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { trpc } from '@/app/_trpc/client'
@@ -32,8 +35,10 @@ import {
 
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
+  const setReferralSelection =
+    trpc.utils.setReferralSelection.useMutation()
   const { data } = trpc.countries.list.useQuery()
-  const { setOrganization, user } = useAuthContext()
+  const { setOrganization } = useAuthContext()
   const form = useForm<CreateOrganizationInput>({
     resolver: zodResolver(createOrganizationSchema),
     defaultValues: {
@@ -43,10 +48,24 @@ const BusinessDetails = () => {
     },
   })
   const router = useRouter()
+  const [referralSource, setReferralSource] = useState<
+    ReferralOption | undefined
+  >()
   const onSubmit = form.handleSubmit(async (data) => {
     try {
       const { organization } =
         await createOrganization.mutateAsync(data)
+
+      if (referralSource) {
+        try {
+          await setReferralSelection.mutateAsync({
+            source: referralSource,
+          })
+        } catch (err) {
+          // Non-blocking: proceed even if referral caching fails
+          console.error('Failed to cache referral selection', err)
+        }
+      }
       setOrganization(organization)
       router.refresh()
       router.push('/onboarding')
@@ -64,7 +83,7 @@ const BusinessDetails = () => {
       .sort((a, b) => a.label.localeCompare(b.label)) ?? []
 
   return (
-    <div className="bg-internal h-full w-full flex justify-between items-center">
+    <div className="bg-background h-full w-full flex justify-between items-center">
       <div className="flex-1 h-full w-full flex flex-col justify-center items-center gap-9 p-20">
         <div className="w-full flex flex-col items-center gap-4">
           <Form {...form}>
@@ -125,12 +144,36 @@ const BusinessDetails = () => {
                     </FormItem>
                   )}
                 />
+                <FormItem>
+                  <FormLabel>How did you hear about us?</FormLabel>
+                  <FormControl>
+                    <Select
+                      value={referralSource}
+                      onValueChange={(val: string) =>
+                        setReferralSource(val as ReferralOption)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REFERRAL_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                </FormItem>
               </div>
               <Button
                 variant="default"
                 size="default"
                 type="submit"
-                disabled={form.formState.isSubmitting}
+                disabled={
+                  form.formState.isSubmitting || !referralSource
+                }
                 className="w-full"
               >
                 Continue

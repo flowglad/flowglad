@@ -5,6 +5,7 @@ import {
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
 import { PriceType, CheckoutSessionStatus } from '@/types'
+import { shouldBlockCheckout } from '@/app/checkout/guard'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 import { notFound, redirect } from 'next/navigation'
@@ -24,6 +25,7 @@ const CheckoutSessionPage = async ({
     feeCalculation,
     maybeCustomer,
     maybeCurrentSubscriptions,
+    discount,
   } = await adminTransaction(async ({ transaction }) => {
     return checkoutInfoForCheckoutSession(id, transaction)
   })
@@ -32,15 +34,25 @@ const CheckoutSessionPage = async ({
     notFound()
   }
   /**
-   * If the customer has an active subscription, and the price is a subscription,
+   * If the customer already has an active paid subscription, and the price is a subscription,
    * and the organization does not allow multiple subscriptions per customer,
    * redirect to the post-payment page.
+   *
+   * Note: This allows free/default → paid upgrades to proceed while still blocking
+   * multiple active paid subscriptions at the page level. The backend enforces this as well.
    */
   if (
-    maybeCurrentSubscriptions &&
-    maybeCurrentSubscriptions.length > 0 &&
-    price.type === PriceType.Subscription &&
-    !sellerOrganization.allowMultipleSubscriptionsPerCustomer
+    shouldBlockCheckout({
+      currentSubscriptions: (maybeCurrentSubscriptions ?? []).map(
+        (s) => ({
+          status: s.status,
+          isFreePlan: s.isFreePlan,
+        })
+      ),
+      priceType: price.type,
+      allowMultipleSubscriptionsPerCustomer:
+        sellerOrganization.allowMultipleSubscriptionsPerCustomer,
+    })
   ) {
     if (checkoutSession.successUrl) {
       redirect(checkoutSession.successUrl)
@@ -94,8 +106,9 @@ const CheckoutSessionPage = async ({
     type: price.type,
     redirectUrl: core.safeUrl(
       `/purchase/post-payment`,
-      core.envVariable('NEXT_PUBLIC_APP_URL')
+      core.NEXT_PUBLIC_APP_URL
     ),
+    discount,
     readonlyCustomerEmail: maybeCustomer?.email,
     feeCalculation,
     clientSecret,

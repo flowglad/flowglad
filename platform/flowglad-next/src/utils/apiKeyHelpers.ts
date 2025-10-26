@@ -1,11 +1,7 @@
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { FlowgladApiKeyType } from '@/types'
+import { AuthenticatedTransactionParams } from '@/db/types'
 import {
-  AuthenticatedTransactionParams,
-  DbTransaction,
-} from '@/db/types'
-import {
-  createBillingPortalApiKey,
   createSecretApiKey,
   replaceSecretApiKey,
 } from '@/utils/unkey'
@@ -18,10 +14,8 @@ import {
   CreateApiKeyInput,
   RotateApiKeyInput,
 } from '@/db/schema/apiKeys'
-import { Organization } from '@/db/schema/organizations'
-import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { User } from '@stackframe/stack'
+import { deleteApiKeyVerificationResult } from './redis'
 
 export const createSecretApiKeyTransaction = async (
   input: CreateApiKeyInput,
@@ -68,80 +62,6 @@ export const createSecretApiKeyTransaction = async (
   }
 }
 
-export const createBillingPortalApiKeyTransaction = async (
-  params: {
-    organization: Organization.Record
-    stackAuthHostedBillingUserId: string
-    livemode: boolean
-    name: string
-  },
-  transaction: DbTransaction
-) => {
-  // Create the API key
-  const { apiKeyInsert, shownOnlyOnceKey } =
-    await createBillingPortalApiKey({
-      name: params.name,
-      apiEnvironment: params.livemode ? 'live' : 'test',
-      organization: params.organization,
-      userId: params.stackAuthHostedBillingUserId,
-      type: FlowgladApiKeyType.BillingPortalToken,
-      stackAuthHostedBillingUserId:
-        params.stackAuthHostedBillingUserId,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
-    })
-
-  // Insert the API key into the database
-  const apiKey = await insertApiKey(apiKeyInsert, transaction)
-  return {
-    apiKey,
-    shownOnlyOnceKey,
-  }
-}
-
-export const verifyBillingPortalApiKeyTransaction = async (
-  {
-    organizationId,
-    livemode,
-    user,
-  }: {
-    organizationId: string
-    livemode: boolean
-    user: Pick<User, 'id'>
-  },
-  transaction: DbTransaction
-) => {
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
-  const [customer] = await selectCustomers(
-    {
-      organizationId,
-      stackAuthHostedBillingUserId: user.id,
-      livemode,
-    },
-    transaction
-  )
-  if (!customer) {
-    return null
-  }
-
-  const { apiKey, shownOnlyOnceKey } =
-    await createBillingPortalApiKeyTransaction(
-      {
-        organization,
-        stackAuthHostedBillingUserId: user.id,
-        livemode,
-        name: `Billing Portal Key for ${customer.name} (id: ${customer.id})`,
-      },
-      transaction
-    )
-  return {
-    apiKey,
-    shownOnlyOnceKey,
-  }
-}
-
 export const rotateSecretApiKeyTransaction = async (
   input: RotateApiKeyInput,
   { transaction, userId }: AuthenticatedTransactionParams
@@ -174,6 +94,11 @@ export const rotateSecretApiKeyTransaction = async (
     apiKeyInsert,
     transaction
   )
+
+  await deleteApiKeyVerificationResult({
+    hashText: existingApiKey.hashText ?? '',
+  })
+
   return {
     newApiKey: {
       ...newApiKeyRecord,
@@ -181,4 +106,18 @@ export const rotateSecretApiKeyTransaction = async (
     shownOnlyOnceKey,
     oldApiKey: existingApiKey,
   }
+}
+
+export const getApiKeyHeader = (authorizationHeader: string) => {
+  const trimmed = authorizationHeader.trim()
+  if (trimmed.toLowerCase().startsWith('bearer ')) {
+    // Only accept 'Bearer <key>'; reject all other prefixes
+    return trimmed.slice('Bearer '.length)
+  }
+  // If there's no space (just a key), accept it
+  if (!trimmed.includes(' ')) {
+    return trimmed
+  }
+  // For any other type of Authorization header, reject
+  return null
 }

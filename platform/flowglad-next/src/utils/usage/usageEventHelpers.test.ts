@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import * as core from 'nanoid'
 
 // Schema imports
@@ -7,10 +7,7 @@ import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Price } from '@/db/schema/prices'
 import { Subscription } from '@/db/schema/subscriptions'
-import {
-  UsageEvent,
-  CreateUsageEventInput,
-} from '@/db/schema/usageEvents'
+import { CreateUsageEventInput } from '@/db/schema/usageEvents'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
@@ -31,6 +28,7 @@ import {
   LedgerTransactionInitiatingSourceType,
   IntervalUnit,
   CurrencyCode,
+  UsageMeterAggregationType,
 } from '@/types'
 
 // Function to test
@@ -45,19 +43,17 @@ import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 
 describe('usageEventHelpers', () => {
-  let organization: Organization.Record
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let usagePrice: Price.Record
   let mainSubscription: Subscription.Record
   let mainBillingPeriod: BillingPeriod.Record
   let ledgerAccount: LedgerAccount.Record
-
+  let organization: Organization.Record
   beforeEach(async () => {
     await adminTransaction(async ({ transaction }) => {
       const orgSetup = await setupOrg()
       organization = orgSetup.organization
-
       customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -83,7 +79,6 @@ describe('usageEventHelpers', () => {
         intervalCount: 1,
         livemode: true,
         isDefault: false,
-        setupFeeAmount: 0,
         currency: CurrencyCode.USD,
         usageMeterId: usageMeter.id,
       })
@@ -120,7 +115,7 @@ describe('usageEventHelpers', () => {
         subscriptionId: mainSubscription.id,
         transactionId: `txn_${core.nanoid()}`,
         amount: 10,
-        usageDate: new Date().getTime(),
+        usageDate: Date.now(),
         properties: { custom_field: 'happy_path_value' },
       }
       const input: CreateUsageEventInput = {
@@ -387,7 +382,7 @@ describe('usageEventHelpers', () => {
     })
 
     it('should handle usageEvent.usageDate (timestamp and undefined)', async () => {
-      const timestamp = new Date().getTime()
+      const timestamp = Date.now()
       const datePresentDetails: CreateUsageEventInput['usageEvent'] =
         {
           priceId: usagePrice.id,
@@ -408,7 +403,7 @@ describe('usageEventHelpers', () => {
             )
           }
         )
-      expect(resultWithDate.usageDate!.getTime()).toBe(timestamp)
+      expect(resultWithDate.usageDate!).toBe(timestamp)
 
       const dateAbsentDetails: CreateUsageEventInput['usageEvent'] = {
         priceId: usagePrice.id,
@@ -486,10 +481,8 @@ describe('usageEventHelpers', () => {
       })
       await setupBillingPeriod({
         subscriptionId: testmodeSubscription.id,
-        startDate: new Date(),
-        endDate: new Date(
-          new Date().getTime() + 30 * 24 * 60 * 60 * 1000
-        ),
+        startDate: Date.now(),
+        endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
         livemode: false,
       })
       const liveFalseDetails: CreateUsageEventInput['usageEvent'] = {
@@ -532,6 +525,221 @@ describe('usageEventHelpers', () => {
           )
         })
       expect(liveFalseLedgerItems[0].livemode).toBe(false)
+    })
+
+    it('should handle usage meter of type "count_distinct_properties" correctly', async () => {
+      // Setup a usage meter with count_distinct_properties aggregation
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Distinct Properties Usage Meter',
+        livemode: true,
+        aggregationType:
+          UsageMeterAggregationType.CountDistinctProperties,
+      })
+
+      // Setup price with this usage meter
+      const distinctPrice = await setupPrice({
+        productId: (
+          await adminTransaction(async ({ transaction }) => {
+            const orgSetup = await setupOrg()
+            return orgSetup.product
+          })
+        ).id,
+        name: 'Distinct Properties Price',
+        type: PriceType.Usage,
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
+      // Setup subscription
+      const distinctSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: distinctPrice.id,
+      })
+
+      // Setup billing period
+      const now = new Date()
+      const endDate = new Date(now)
+      endDate.setDate(now.getDate() + 30)
+      const distinctBillingPeriod = await setupBillingPeriod({
+        subscriptionId: distinctSubscription.id,
+        startDate: now,
+        endDate: endDate,
+      })
+
+      // Setup ledger account
+      await setupLedgerAccount({
+        subscriptionId: distinctSubscription.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+        organizationId: organization.id,
+      })
+
+      const testProperties = {
+        user_id: 'user_123',
+        feature: 'export',
+      }
+
+      // Test 1: First event with unique properties should emit ledger command
+      const firstEventDetails: CreateUsageEventInput['usageEvent'] = {
+        priceId: distinctPrice.id,
+        subscriptionId: distinctSubscription.id,
+        transactionId: `txn_distinct_1_${core.nanoid()}`,
+        amount: 1,
+        properties: testProperties,
+      }
+
+      const beforeFirstEvent = Date.now()
+      const { usageEvent: firstUsageEvent } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: firstEventDetails },
+                livemode: true,
+              },
+              transaction
+            )
+          }
+        )
+
+      // Verify first usage event was inserted with correct properties
+      expect(firstUsageEvent).toBeDefined()
+      expect(firstUsageEvent.properties).toEqual(testProperties)
+      expect(firstUsageEvent.billingPeriodId).toBe(
+        distinctBillingPeriod.id
+      )
+      expect(firstUsageEvent.usageMeterId).toBe(usageMeter.id)
+
+      // Verify usageDate
+      const firstEventTime = firstUsageEvent.usageDate!
+      expect(firstEventTime).toBeGreaterThanOrEqual(beforeFirstEvent)
+      expect(firstEventTime).toBeLessThanOrEqual(Date.now())
+
+      // Verify ledger command was emitted (ledger transaction created)
+      const firstLedgerTransactions = await adminTransaction(
+        async ({ transaction }) => {
+          return selectLedgerTransactions(
+            {
+              initiatingSourceId: firstUsageEvent.id,
+              initiatingSourceType:
+                LedgerTransactionInitiatingSourceType.UsageEvent,
+            },
+            transaction
+          )
+        }
+      )
+      expect(firstLedgerTransactions.length).toBe(1)
+
+      // Test 2: Second event with same properties should NOT emit ledger command
+      const secondEventDetails: CreateUsageEventInput['usageEvent'] =
+        {
+          priceId: distinctPrice.id,
+          subscriptionId: distinctSubscription.id,
+          transactionId: `txn_distinct_2_${core.nanoid()}`,
+          amount: 1,
+          properties: testProperties, // Same properties as first event
+        }
+
+      const beforeSecondEvent = Date.now()
+      const { usageEvent: secondUsageEvent } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: secondEventDetails },
+                livemode: true,
+              },
+              transaction
+            )
+          }
+        )
+
+      // Verify second usage event was inserted with correct properties
+      expect(secondUsageEvent).toBeDefined()
+      expect(secondUsageEvent.properties).toEqual(testProperties)
+      expect(secondUsageEvent.billingPeriodId).toBe(
+        distinctBillingPeriod.id
+      )
+      expect(secondUsageEvent.usageMeterId).toBe(usageMeter.id)
+
+      // Verify usageDate
+      const secondEventTime = secondUsageEvent.usageDate!
+      expect(secondEventTime).toBeGreaterThanOrEqual(
+        beforeSecondEvent
+      )
+      expect(secondEventTime).toBeLessThanOrEqual(Date.now())
+
+      // Verify NO ledger command was emitted (no new ledger transaction)
+      const secondLedgerTransactions = await adminTransaction(
+        async ({ transaction }) => {
+          return selectLedgerTransactions(
+            {
+              initiatingSourceId: secondUsageEvent.id,
+              initiatingSourceType:
+                LedgerTransactionInitiatingSourceType.UsageEvent,
+            },
+            transaction
+          )
+        }
+      )
+      expect(secondLedgerTransactions.length).toBe(0)
+
+      // Verify the two events are different records
+      expect(firstUsageEvent.id).not.toBe(secondUsageEvent.id)
+
+      // Test 3: Third event with different properties should emit ledger command
+      const thirdEventDetails: CreateUsageEventInput['usageEvent'] = {
+        priceId: distinctPrice.id,
+        subscriptionId: distinctSubscription.id,
+        transactionId: `txn_distinct_3_${core.nanoid()}`,
+        amount: 1,
+        properties: { ...testProperties, feature: 'import' },
+      }
+      const { usageEvent: thirdUsageEvent } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: thirdEventDetails },
+                livemode: true,
+              },
+              transaction
+            )
+          }
+        )
+      expect(thirdUsageEvent).toBeDefined()
+      expect(thirdUsageEvent.properties).toEqual({
+        ...testProperties,
+        feature: 'import',
+      })
+      expect(thirdUsageEvent.billingPeriodId).toBe(
+        distinctBillingPeriod.id
+      )
+      expect(thirdUsageEvent.usageMeterId).toBe(usageMeter.id)
+      expect(thirdUsageEvent.usageDate).toBeDefined()
+
+      // Verify ledger command was emitted (ledger transaction created)
+      const thirdLedgerTransactions = await adminTransaction(
+        async ({ transaction }) => {
+          return selectLedgerTransactions(
+            {
+              initiatingSourceId: thirdUsageEvent.id,
+              initiatingSourceType:
+                LedgerTransactionInitiatingSourceType.UsageEvent,
+            },
+            transaction
+          )
+        }
+      )
+      expect(thirdLedgerTransactions.length).toBe(1)
     })
   })
 })

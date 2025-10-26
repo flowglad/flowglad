@@ -2,12 +2,9 @@ import {
   boolean,
   integer,
   jsonb,
-  pgPolicy,
   pgTable,
   text,
-  timestamp,
 } from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import {
   pgEnumColumn,
   ommittedColumnsForInsertSchema,
@@ -21,6 +18,7 @@ import {
   hiddenColumnsForClientSchema,
   merchantPolicy,
   enableCustomerReadPolicy,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import {
   Customer,
@@ -28,7 +26,10 @@ import {
   customers,
   customersSelectSchema,
 } from '@/db/schema/customers'
-import { organizations } from '@/db/schema/organizations'
+import {
+  billingAddressSchema,
+  organizations,
+} from '@/db/schema/organizations'
 import { prices } from '@/db/schema/prices'
 import {
   Product,
@@ -40,6 +41,7 @@ import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import { sql } from 'drizzle-orm'
+import { buildSchemas } from '@/db/createZodSchemas'
 
 export const TABLE_NAME = 'purchases'
 
@@ -69,7 +71,9 @@ const columns = {
     'organization_id',
     organizations
   ),
-  billingCycleAnchor: timestamp('billing_cycle_anchor'),
+  billingCycleAnchor: timestampWithTimezoneColumn(
+    'billing_cycle_anchor'
+  ),
   /**
    * Billing fields
    */
@@ -93,8 +97,8 @@ const columns = {
   firstInvoiceValue: integer('first_invoice_value'),
   totalPurchaseValue: integer('total_purchase_value'),
   bankPaymentOnly: boolean('bank_payment_only').default(false),
-  purchaseDate: timestamp('purchase_date'),
-  endDate: timestamp('end_date'),
+  purchaseDate: timestampWithTimezoneColumn('purchase_date'),
+  endDate: timestampWithTimezoneColumn('end_date'),
   proposal: text('proposal'),
   archived: boolean('archived').default(false),
   billingAddress: jsonb('billing_address'),
@@ -130,21 +134,13 @@ export const purchases = pgTable(TABLE_NAME, columns, (table) => {
   ]
 }).enableRLS()
 
-const zodSchemaEnhancementColumns = {
+const refineColumns = {
   quantity: core.safeZodPositiveInteger,
   status: core.createSafeZodEnum(PurchaseStatus),
   priceType: core.createSafeZodEnum(PriceType),
   metadata: metadataSchema.nullable().optional(),
+  billingAddress: billingAddressSchema.nullable().optional(),
 }
-
-const baseSelectSchema = createSelectSchema(purchases, {
-  ...newBaseZodSelectSchemaColumns,
-  ...zodSchemaEnhancementColumns,
-})
-
-const baseInsertSchema = createInsertSchema(purchases, {
-  ...zodSchemaEnhancementColumns,
-}).omit(ommittedColumnsForInsertSchema)
 
 const nulledInstallmentColumns = {
   totalPurchaseValue: core.safeZodNullOrUndefined,
@@ -166,19 +162,41 @@ const nulledSubscriptionColumns = {
   trialPeriodDays: core.safeZodNullOrUndefined,
 }
 
-export const subscriptionPurchaseInsertSchema = baseInsertSchema
-  .extend(subscriptionColumns)
-  .extend(nulledInstallmentColumns)
-  .describe(SUBSCRIPTION_PURCHASE_DESCRIPTION)
-
-export const subscriptionPurchaseUpdateSchema =
-  subscriptionPurchaseInsertSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      priceType: z.literal(PriceType.Subscription),
-    })
-    .describe(SUBSCRIPTION_PURCHASE_DESCRIPTION)
+export const {
+  insert: subscriptionPurchaseInsertSchema,
+  select: subscriptionPurchaseSelectSchema,
+  update: subscriptionPurchaseUpdateSchema,
+  client: {
+    insert: subscriptionPurchaseClientInsertSchema,
+    select: subscriptionPurchaseClientSelectSchema,
+    update: subscriptionPurchaseClientUpdateSchema,
+  },
+} = buildSchemas(purchases, {
+  discriminator: 'priceType',
+  refine: {
+    ...refineColumns,
+    ...subscriptionColumns,
+    ...nulledInstallmentColumns,
+  },
+  selectRefine: {
+    ...newBaseZodSelectSchemaColumns,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      // Keep billingAddress out of client writes entirely
+      billingAddress: true,
+    },
+    // Allow organizationId and livemode only on create, not update (matches previous behavior)
+    createOnlyColumns: {
+      organizationId: true,
+      livemode: true,
+    },
+  },
+  entityName: 'SubscriptionPurchase',
+})
 
 const singlePaymentColumns = {
   ...nulledSubscriptionColumns,
@@ -194,13 +212,70 @@ const usageColumns = {
   priceType: z.literal(PriceType.Usage),
 }
 
-export const singlePaymentPurchaseInsertSchema = baseInsertSchema
-  .extend(singlePaymentColumns)
-  .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
+export const {
+  insert: singlePaymentPurchaseInsertSchema,
+  select: singlePaymentPurchaseSelectSchema,
+  update: singlePaymentPurchaseUpdateSchema,
+  client: {
+    insert: singlePaymentPurchaseClientInsertSchema,
+    select: singlePaymentPurchaseClientSelectSchema,
+    update: singlePaymentPurchaseClientUpdateSchema,
+  },
+} = buildSchemas(purchases, {
+  discriminator: 'priceType',
+  refine: {
+    ...refineColumns,
+    ...singlePaymentColumns,
+  },
+  selectRefine: {
+    ...newBaseZodSelectSchemaColumns,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+    // For single payment, these were previously omitted on both insert and update
+    readOnlyColumns: {
+      organizationId: true,
+      livemode: true,
+      billingAddress: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'SinglePaymentPurchase',
+})
 
-export const usagePurchaseInsertSchema = baseInsertSchema
-  .extend(usageColumns)
-  .describe(USAGE_PURCHASE_DESCRIPTION)
+export const {
+  insert: usagePurchaseInsertSchema,
+  select: usagePurchaseSelectSchema,
+  update: usagePurchaseUpdateSchema,
+  client: {
+    insert: usagePurchaseClientInsertSchema,
+    select: usagePurchaseClientSelectSchema,
+    update: usagePurchaseClientUpdateSchema,
+  },
+} = buildSchemas(purchases, {
+  discriminator: 'priceType',
+  refine: {
+    ...refineColumns,
+    ...usageColumns,
+  },
+  selectRefine: {
+    ...newBaseZodSelectSchemaColumns,
+  },
+  client: {
+    hiddenColumns: {
+      ...hiddenColumnsForClientSchema,
+    },
+    readOnlyColumns: {
+      organizationId: true,
+      livemode: true,
+      billingAddress: true,
+    },
+    createOnlyColumns: {},
+  },
+  entityName: 'UsagePurchase',
+})
 
 export const purchasesInsertSchema = z
   .discriminatedUnion('priceType', [
@@ -209,34 +284,6 @@ export const purchasesInsertSchema = z
     usagePurchaseInsertSchema,
   ])
   .describe(PURCHASES_BASE_DESCRIPTION)
-
-export const subscriptionPurchaseSelectSchema = baseSelectSchema
-  .extend(subscriptionColumns)
-  .extend(nulledInstallmentColumns)
-  .describe(SUBSCRIPTION_PURCHASE_DESCRIPTION)
-
-export const singlePaymentPurchaseSelectSchema = baseSelectSchema
-  .extend(singlePaymentColumns)
-  .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
-
-export const usagePurchaseSelectSchema = baseSelectSchema
-  .extend(usageColumns)
-  .describe(USAGE_PURCHASE_DESCRIPTION)
-
-const singlePaymentPurchaseUpdateSchema =
-  singlePaymentPurchaseInsertSchema
-    .partial()
-    .extend({
-      id: z.string(),
-      priceType: z.literal(PriceType.SinglePayment),
-    })
-    .describe(SINGLE_PAYMENT_PURCHASE_DESCRIPTION)
-
-const usagePurchaseUpdateSchema = singlePaymentPurchaseUpdateSchema
-  .extend({
-    priceType: z.literal(PriceType.Usage),
-  })
-  .describe(USAGE_PURCHASE_DESCRIPTION)
 
 export const purchasesUpdateSchema = z.union([
   subscriptionPurchaseUpdateSchema,
@@ -252,75 +299,7 @@ export const purchasesSelectSchema = z
   ])
   .describe(PURCHASES_BASE_DESCRIPTION)
 
-// Client Subscription Schemas
-export const subscriptionPurchaseClientInsertSchema =
-  subscriptionPurchaseInsertSchema
-    .omit({
-      billingAddress: true,
-    })
-    .meta({
-      id: 'SubscriptionPurchaseInsert',
-    })
-
-const hiddenColumns = {
-  ...hiddenColumnsForClientSchema,
-} as const
-
-const clientWriteOmits = {
-  billingAddress: true,
-  organizationId: true,
-  livemode: true,
-} as const
-
-export const subscriptionPurchaseClientUpdateSchema =
-  subscriptionPurchaseUpdateSchema.omit(clientWriteOmits).meta({
-    id: 'SubscriptionPurchaseUpdate',
-  })
-
-export const subscriptionPurchaseClientSelectSchema =
-  subscriptionPurchaseSelectSchema.omit(hiddenColumns).meta({
-    id: 'SubscriptionPurchaseRecord',
-  })
-
-// Client Single Payment Schemas
-export const singlePaymentPurchaseClientInsertSchema =
-  singlePaymentPurchaseInsertSchema.omit(clientWriteOmits).meta({
-    id: 'SinglePaymentPurchaseInsert',
-  })
-
-export const usagePurchaseClientInsertSchema =
-  usagePurchaseInsertSchema.omit(clientWriteOmits).meta({
-    id: 'UsagePurchaseInsert',
-  })
-
-export const singlePaymentPurchaseClientUpdateSchema =
-  singlePaymentPurchaseUpdateSchema.omit(clientWriteOmits).meta({
-    id: 'SinglePaymentPurchaseUpdate',
-  })
-
-export const usagePurchaseClientUpdateSchema =
-  usagePurchaseUpdateSchema
-    .omit(clientWriteOmits)
-    .meta({
-      id: 'UsagePurchaseUpdate',
-    })
-    .describe(USAGE_PURCHASE_DESCRIPTION)
-
-export const singlePaymentPurchaseClientSelectSchema =
-  singlePaymentPurchaseSelectSchema.omit(hiddenColumns).meta({
-    id: 'SinglePaymentPurchaseRecord',
-  })
-
-export const usagePurchaseClientSelectSchema =
-  singlePaymentPurchaseSelectSchema
-    .extend({
-      priceType: z.literal(PriceType.Usage),
-    })
-    .omit(hiddenColumns)
-    .meta({
-      id: 'UsagePurchaseRecord',
-    })
-    .describe(USAGE_PURCHASE_DESCRIPTION)
+// Client schemas are generated by buildSchemas above for each subtype
 
 // Combined Client Schemas
 export const purchaseClientInsertSchema = z

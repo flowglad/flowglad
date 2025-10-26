@@ -12,7 +12,6 @@ import {
   setUserIdForCustomerRecords,
 } from '@/db/tableMethods/customerMethods'
 import {
-  createPricedCheckoutSessionSchema,
   customerBillingCreateAddPaymentMethodSession,
   customerBillingCreatePricedCheckoutSession,
   customerBillingTransaction,
@@ -50,7 +49,7 @@ import {
   selectUserById,
   selectUsers,
 } from '@/db/tableMethods/userMethods'
-import core, { customerBillingPortalURL } from '@/utils/core'
+import core from '@/utils/core'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import { setCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
@@ -67,6 +66,7 @@ import {
   checkoutSessionClientSelectSchema,
   createCheckoutSessionSchema,
   productCheckoutSessionSchema,
+  customerBillingCreatePricedCheckoutSessionSchema,
 } from '@/db/schema/checkoutSessions'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
@@ -354,7 +354,7 @@ const requestMagicLinkProcedure = publicProcedure
           email, // required
           callbackURL: core.safeUrl(
             `/billing-portal/${organizationId}/magic-link-success`,
-            process.env.NEXT_PUBLIC_APP_URL!
+            core.NEXT_PUBLIC_APP_URL
           ),
         },
         // This endpoint requires session cookies.
@@ -469,6 +469,7 @@ const getCustomersForUserAndOrganizationProcedure =
             {
               userId: ctx.user.id,
               organizationId: ctx.organizationId,
+              livemode: true,
             },
             transaction
           )
@@ -481,7 +482,8 @@ const createCheckoutSessionWithPriceProcedure =
   customerProtectedProcedure
     .input(
       z.object({
-        checkoutSession: createPricedCheckoutSessionSchema,
+        checkoutSession:
+          customerBillingCreatePricedCheckoutSessionSchema,
       })
     )
     .output(

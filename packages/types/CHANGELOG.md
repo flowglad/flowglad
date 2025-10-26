@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.11.0
+
+### Minor Changes
+
+- bump @flowglad/node dependency to v0.22, cleanup FlowgladServer methods
+
 ## 0.10.18
 
 ### Patch Changes

@@ -24,10 +24,10 @@ export function CancelSubscriptionDialog({
 }: CancelSubscriptionDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100vw-32px)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             Cancel Subscription
           </DialogTitle>
           <DialogDescription>
@@ -36,11 +36,11 @@ export function CancelSubscriptionDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-md bg-amber-50 p-4">
-            <h4 className="text-sm font-medium text-amber-900 mb-2">
+          <div className="rounded-md bg-muted p-4">
+            <h4 className="text-sm font-medium text-foreground mb-2">
               What happens when you cancel:
             </h4>
-            <ul className="text-sm text-amber-700 space-y-1">
+            <ul className="text-sm text-muted-foreground space-y-1">
               {currentPeriodEnd && (
                 <li>
                   • Your subscription will remain active until{' '}
@@ -65,20 +65,20 @@ export function CancelSubscriptionDialog({
           )}
         </div>
 
-        <DialogFooter className="sm:flex-row-reverse">
-          <Button
-            variant="destructive"
-            onClick={onConfirm}
-            disabled={loading}
-          >
-            {loading ? 'Canceling...' : 'Cancel Subscription'}
-          </Button>
+        <DialogFooter className="sm:justify-end">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
-            Keep Subscription
+            Go back
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {loading ? 'Canceling...' : 'Cancel subscription'}
           </Button>
         </DialogFooter>
       </DialogContent>

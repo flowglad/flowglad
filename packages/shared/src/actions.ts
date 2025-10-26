@@ -95,7 +95,7 @@ export const createUsageEventSchema = z.object({
   priceId: z.string(),
   subscriptionId: z.string(),
   usageMeterId: z.string(),
-  properties: z.record(z.string(), z.unknown()).nullish(),
+  properties: z.record(z.string(), z.unknown()).optional(),
   transactionId: z.string(),
   usageDate: z.number().optional(),
 })

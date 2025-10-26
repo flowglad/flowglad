@@ -11,13 +11,13 @@ import { selectApiKeys } from './tableMethods/apiKeyMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from './tableMethods/membershipMethods'
 import { FlowgladApiKeyType } from '@/types'
 import { JwtPayload } from 'jsonwebtoken'
-import { headers } from 'next/headers'
 import { customers, customersSelectSchema } from './schema/customers'
 import { ApiKey } from './schema/apiKeys'
 import { parseUnkeyMeta } from '@/utils/unkey'
 import { auth, getSession } from '@/utils/auth'
 import { User } from 'better-auth'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
+import { headers } from 'next/headers'
 
 type SessionUser = Session['user']
 
@@ -65,7 +65,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
       throw error
     }
     if (!result) {
-      throw new Error('No result')
+      throw new Error('No result for provided API key')
     }
     const meta = parseUnkeyMeta(result.meta)
     return {
@@ -279,7 +279,16 @@ export const requestingCustomerAndUser = async ({
     .where(
       and(
         eq(users.betterAuthId, betterAuthId),
-        eq(customers.organizationId, organizationId)
+        eq(customers.organizationId, organizationId),
+        /**
+         * For now, only support granting access to livemode customers,
+         * so we can avoid unintentionally allowing customers to get access
+         * to test mode customers for the merchant who match their email.
+         *
+         * FIXME: support billing portal access for test mode customers specifically.
+         * This will require more sophisticated auth business logic.
+         */
+        eq(customers.livemode, true)
       )
     )
     .limit(1)
@@ -321,11 +330,13 @@ export const dbInfoForCustomerBillingPortal = async ({
         aud: 'stub',
         email: user.email!,
         role: 'customer',
-        created_at: user.createdAt.toISOString(),
-        updated_at:
-          user.updatedAt?.toISOString() || new Date().toISOString(),
+        created_at: new Date(user.createdAt).toISOString(),
+        updated_at: user.updatedAt
+          ? new Date(user.updatedAt).toISOString()
+          : new Date().toISOString(),
         app_metadata: {
           provider: 'customerBillingPortal',
+          customer_id: customer.id,
         },
       },
       app_metadata: { provider: 'customerBillingPortal' },

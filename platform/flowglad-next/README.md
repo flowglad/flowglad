@@ -2,6 +2,45 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
+### Prerequisites
+
+- PostgreSQL database (local or remote)
+- Node.js (v20.0.0) and pnpm
+
+### Setup Steps
+
+1. **Install dependencies**:
+   ```bash
+   pnpm install
+   ```
+
+2. **Set up environment variables**:
+   ```bash
+   # Copy the example environment file
+   cp .env.example .env
+   
+   # Edit .env and add your database URL
+   DATABASE_URL=postgresql://username:password@localhost:5432/flowglad_dev
+   ```
+
+3. **Set up the database**:
+   ```bash
+   # Run database migrations
+   pnpm migrations:push
+   
+   # Seed the countries table (required for local development)
+   pnpm seed:countries
+   ```
+
+4. **Start the development server**:
+   ```bash
+   pnpm dev
+   ```
+
+### For Core Team Members
+
+If you're part of the core Flowglad team:
+
 1. `vercel link` to link the repo to an existing Vercel project.
 2. Ask Agree to get you into the Trigger project.
 3. `pnpm vercel:env-pull` to pull the latest environment variables.
@@ -14,6 +53,12 @@ pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Database Setup Notes
+
+- **Countries Table**: The `countries` table must be populated with ISO 3166-1 alpha-2 country codes for the application to function properly. This is required for organization setup, billing addresses, and tax calculations.
+- **Fresh Database**: When setting up a fresh database, always run `pnpm seed:countries` after migrations to populate the countries table.
+- **Idempotent**: The countries seeding script is safe to run multiple times - it won't duplicate data.
 
 ## How to Read the Codebase
 

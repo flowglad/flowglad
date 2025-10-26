@@ -303,6 +303,127 @@ export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
   return formatter.format(amount)
 }
 
+// Constants for readability and maintainability
+const THRESHOLDS = {
+  SMALL_AMOUNT: 100,
+  THOUSAND: 1000,
+  MILLION: 1000000,
+} as const
+
+/**
+ * Creates a currency formatter with specified decimal places
+ */
+const createCurrencyFormatter = (
+  currency: CurrencyCode,
+  decimals: number,
+  useGrouping = true
+) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping,
+  })
+}
+
+/**
+ * Determines decimal precision for K notation based on magnitude
+ */
+const getKNotationDecimals = (thousands: number): number => {
+  return thousands >= 100 ? 1 : 2
+}
+
+/**
+ * Determines decimal precision for M notation based on magnitude
+ */
+const getMNotationDecimals = (millions: number): number => {
+  if (millions >= 100) return 0
+  if (millions >= 10) return 1
+  return 2
+}
+
+/**
+ * Formats currency amounts with shortened notation for y-axis labels
+ * Examples:
+ * - $5.69 -> $5.69 (amounts under $100)
+ * - $489.58 -> $490 (amounts $100-$999 rounded to nearest dollar)
+ * - $9,325.69 -> $9.33K (thousands with K notation)
+ * - $843,901.21 -> $843.9K (larger amounts with K notation)
+ * - $2,843,901.21 -> $2.84M (millions with M notation)
+ * - $23,843,901.21 -> $23.8M (larger millions with M notation)
+ * - $490,239,321.24 -> $490M (hundreds of millions with M notation)
+ */
+export const stripeCurrencyAmountToShortReadableCurrencyAmount = (
+  currency: CurrencyCode,
+  amount: number
+) => {
+  // Convert from stripe cents format if needed
+  const actualAmount = !isCurrencyZeroDecimal(currency)
+    ? amount / 100
+    : amount
+
+  // For amounts under $100, show as-is with cents
+  if (actualAmount < THRESHOLDS.SMALL_AMOUNT) {
+    return createCurrencyFormatter(currency, 2).format(actualAmount)
+  }
+
+  // For amounts $100-$999, round to nearest dollar
+  if (actualAmount < THRESHOLDS.THOUSAND) {
+    const rounded = Math.round(actualAmount)
+    // If rounding pushes us to $1000 or above, use K notation instead
+    if (rounded >= THRESHOLDS.THOUSAND) {
+      const thousands = actualAmount / THRESHOLDS.THOUSAND
+      return (
+        createCurrencyFormatter(currency, 2).format(thousands) + 'K'
+      )
+    }
+    return createCurrencyFormatter(currency, 0).format(rounded)
+  }
+
+  // For amounts $1000-$999,999, use K notation
+  if (actualAmount < THRESHOLDS.MILLION) {
+    const thousands = actualAmount / THRESHOLDS.THOUSAND
+    const decimals = getKNotationDecimals(thousands)
+
+    // Check if rounding would result in >= 1000K, if so use M notation instead
+    const roundedThousands =
+      Math.round(thousands * Math.pow(10, decimals)) /
+      Math.pow(10, decimals)
+    if (roundedThousands >= THRESHOLDS.THOUSAND) {
+      // Switch to M notation to avoid displaying "1000K" or higher
+      const millions = actualAmount / THRESHOLDS.MILLION
+      const millionDecimals = getMNotationDecimals(millions)
+      // Disable grouping for large M values to avoid commas
+      return (
+        createCurrencyFormatter(
+          currency,
+          millionDecimals,
+          false
+        ).format(millions) + 'M'
+      )
+    }
+
+    // Use the correct decimal precision based on the rounded value
+    const finalDecimals = getKNotationDecimals(roundedThousands)
+    return (
+      createCurrencyFormatter(currency, finalDecimals).format(
+        thousands
+      ) + 'K'
+    )
+  }
+
+  // For amounts $1,000,000+, use M notation
+  const millions = actualAmount / THRESHOLDS.MILLION
+  const decimals = getMNotationDecimals(millions)
+  // Disable grouping for large M values to avoid commas like $1,000M
+  return (
+    createCurrencyFormatter(currency, decimals, false).format(
+      millions
+    ) + 'M'
+  )
+}
+
 export const countableCurrencyAmountToRawStringAmount = (
   currencyCode: CurrencyCode,
   amount: number
@@ -323,18 +444,21 @@ export const rawStringAmountToCountableCurrencyAmount = (
   return Math.round(Number(amount) * 100)
 }
 
+const stripeApiKey = (livemode: boolean) => {
+  if (core.IS_TEST) {
+    return 'sk_test_fake_key_1234567890abcdef'
+  }
+  return livemode
+    ? core.envVariable('STRIPE_SECRET_KEY')
+    : core.envVariable('STRIPE_TEST_MODE_SECRET_KEY') || ''
+}
 export const stripe = (livemode: boolean) => {
-  return new Stripe(
-    livemode
-      ? core.envVariable('STRIPE_SECRET_KEY')
-      : core.envVariable('STRIPE_TEST_MODE_SECRET_KEY') || '',
-    {
-      apiVersion: '2024-09-30.acacia',
-      httpClient: core.IS_TEST
-        ? Stripe.createFetchHttpClient()
-        : undefined,
-    }
-  )
+  return new Stripe(stripeApiKey(livemode), {
+    apiVersion: '2024-09-30.acacia',
+    httpClient: core.IS_TEST
+      ? Stripe.createFetchHttpClient()
+      : undefined,
+  })
 }
 
 export const createConnectedAccount = async ({
@@ -567,6 +691,7 @@ export type CheckoutSessionStripeIntentMetadata = z.infer<
 export type BillingRunStripeIntentMetadata = z.infer<
   typeof billingRunIntentMetadataSchema
 >
+
 const stripeConnectTransferDataForOrganization = ({
   organization,
   livemode,
@@ -581,9 +706,11 @@ const stripeConnectTransferDataForOrganization = ({
 } => {
   const stripeAccountId = organization.stripeAccountId
   let on_behalf_of: string | undefined
+
   let transfer_data:
     | Stripe.PaymentIntentCreateParams['transfer_data']
     | undefined
+
   if (livemode) {
     if (!stripeAccountId) {
       throw new Error(
@@ -592,7 +719,7 @@ const stripeConnectTransferDataForOrganization = ({
     }
     if (!organization.payoutsEnabled) {
       throw new Error(
-        `Organization ${organization.id} has payouts enabled but the invoice is not in livemode. This is a configuration error.`
+        `Organization ${organization.id} does not have payouts enabled.`
       )
     }
     if (
@@ -732,6 +859,34 @@ export const getStripeTaxCalculation = async (
   return stripe(livemode).tax.calculations.retrieve(id)
 }
 
+const deriveFullyOnboardedStatusFromStripeAccount = (
+  account: Stripe.Account
+): boolean => {
+  if (!account.tos_acceptance?.date) {
+    return false
+  }
+  /**
+   * MOR accounts use the recipient service agreement,
+   * which doesn't allow them to have card payments.
+   */
+  if (account.tos_acceptance?.service_agreement === 'recipient') {
+    return (
+      account.capabilities?.transfers === 'active' &&
+      account.payouts_enabled
+    )
+  }
+  /**
+   * Platform / self-settlement accounts can have
+   * card payments, and their accounts
+   * have no tos_acceptance.service_agreement property
+   */
+  return (
+    account.capabilities?.card_payments === 'active' &&
+    account.capabilities?.transfers === 'active' &&
+    account.payouts_enabled
+  )
+}
+
 export const getConnectedAccountOnboardingStatus = async (
   accountId: string,
   livemode: boolean
@@ -745,10 +900,7 @@ export const getConnectedAccountOnboardingStatus = async (
     requirements?.pending_verification || []
   const eventuallyDueFields = requirements?.eventually_due || []
   const isFullyOnboarded =
-    remainingFields.length === 0 &&
-    pastDueFields.length === 0 &&
-    pendingVerificationFields.length === 0 &&
-    eventuallyDueFields.length === 0
+    deriveFullyOnboardedStatusFromStripeAccount(account)
   const payoutsEnabled = account.capabilities?.transfers === 'active'
   let onboardingStatus = BusinessOnboardingStatus.FullyOnboarded
   if (!isFullyOnboarded) {
@@ -895,6 +1047,8 @@ export const paymentMethodFromStripeCharge = (
     case 'card_present':
       return PaymentMethodType.Card
     case 'ach_debit':
+      return PaymentMethodType.USBankAccount
+    case 'us_bank_account':
       return PaymentMethodType.USBankAccount
     case 'sepa_debit':
       return PaymentMethodType.SEPADebit
@@ -1084,6 +1238,8 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
     currency,
     customer: stripeCustomerId,
     payment_method: stripePaymentMethodId,
+    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+    // result in 400 errors). Keep this in mind when changing this code.
     confirm: true,
     off_session: true,
     application_fee_amount: applicationFeeAmount,
@@ -1092,6 +1248,75 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
       enabled: true,
     },
     ...transferData,
+  })
+}
+
+export const createPaymentIntentForBillingRun = async ({
+  amount,
+  currency,
+  stripeCustomerId,
+  stripePaymentMethodId,
+  billingPeriodId,
+  billingRunId,
+  feeCalculation,
+  organization,
+  livemode,
+}: {
+  amount: number
+  currency: CurrencyCode
+  stripeCustomerId: string
+  stripePaymentMethodId: string
+  billingPeriodId: string
+  billingRunId: string
+  feeCalculation: FeeCalculation.Record
+  organization: Organization.Record
+  livemode: boolean
+}) => {
+  if (!organization.stripeAccountId && livemode) {
+    throw new Error(
+      `createPaymentIntentForBillingRun: Organization ${organization.id} does not have a Stripe account ID`
+    )
+  }
+  const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
+  const metadata: BillingRunStripeIntentMetadata = {
+    billingRunId,
+    type: IntentMetadataType.BillingRun,
+    billingPeriodId,
+  }
+  const transferData = stripeConnectTransferDataForOrganization({
+    organization,
+    livemode,
+  })
+
+  const applicationFeeAmount = livemode ? totalFeeAmount : undefined
+
+  // Create payment intent WITHOUT confirming
+  return stripe(livemode).paymentIntents.create({
+    amount,
+    currency,
+    customer: stripeCustomerId,
+    payment_method: stripePaymentMethodId,
+    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+    // result in 400 errors). Keep this in mind when changing this code.
+    confirm: false, // Don't confirm yet
+    application_fee_amount: applicationFeeAmount,
+    metadata,
+    automatic_payment_methods: {
+      enabled: true,
+    },
+    ...transferData,
+  })
+}
+
+export const confirmPaymentIntentForBillingRun = async (
+  paymentIntentId: string,
+  livemode: boolean
+) => {
+  // Confirm the payment intent with Stripe
+  return stripe(livemode).paymentIntents.confirm(paymentIntentId, {
+    // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
+    // result in 400 errors). Keep this in mind when changing this code.
+    off_session: true,
   })
 }
 

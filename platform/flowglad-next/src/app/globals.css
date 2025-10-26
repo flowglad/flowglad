@@ -2,20 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-body {
-  color: rgb(var(--foreground-rgb));
-  transition: background-color 0.3s ease;
-  /* TODO: change to "rgb(var(--background))" - right now, hardcoded because this doesn't consider .dark (?) */
-  background: '#1b1b1b';
-  overscroll-behavior: none;
-}
-
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -29,18 +15,29 @@ body {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
+  /* Custom focus box shadow for discount input */
+  .discount-input-focus:focus {
+    box-shadow: 0 0 0 3px hsla(0, 0%, 4%, 25%), 0 1px 1px 0 rgba(0, 0, 0, 0.08) !important;
+  }
 }
 
 @layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow-x: hidden;
+  }
+  
   body {
     background: var(--background);
     color: var(--foreground);
   }
 
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus,
-  input:-webkit-autofill:active {
+  input:-webkit-autofill:not([data-stripe]):not([name*="__privateStripe"]),
+  input:-webkit-autofill:hover:not([data-stripe]):not([name*="__privateStripe"]),
+  input:-webkit-autofill:focus:not([data-stripe]):not([name*="__privateStripe"]),
+  input:-webkit-autofill:active:not([data-stripe]):not([name*="__privateStripe"]) {
     /* -webkit-background-clip: text;
     -webkit-text-fill-color: inherit; */
     -webkit-text-fill-color: var(--foreground) !important;
@@ -50,295 +47,133 @@ body {
     box-shadow: inset 0 0 20px 20px transparent;
   }
 
+  /* Ensure Stripe iframes are visible and properly rendered */
+  iframe[name*="__privateStripe"],
+  iframe[title*="Google autocomplete"],
+  iframe[src*="stripe.com"] {
+    opacity: 1 !important;
+    /* Remove background styling - let Appearance API handle content styling */
+  }
+
+  /* Specific positioning for Stripe autocomplete iframe to appear below input field */
+  iframe[name*="__privateStripe"][title*="Google autocomplete suggestions"] {
+    transform: translateY(4px) !important; /* Push iframe down by 4px */
+    margin-top: 0 !important;
+  }
+
+  /* DIAGNOSTIC & FIX: Direct styling of Google Places API elements */
+  /* These might be rendered outside of Stripe's control */
+  .pac-container {
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    box-shadow: 0px 4px 6px -1px rgba(0,0,0,0.1), 0px 2px 4px -1px rgba(0,0,0,0.06) !important;
+    z-index: 9999 !important;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+
+  .pac-item {
+    background-color: #ffffff !important;
+    color: #0a0a0a !important;
+    padding: 12px 16px !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+  }
+
+  .pac-item:hover,
+  .pac-item.pac-item-selected {
+    background-color: #f3f4f6 !important;
+    color: #0a0a0a !important;
+  }
+
+  .pac-item-query {
+    color: #0a0a0a !important;
+    font-weight: 500 !important;
+  }
+
+  /* Additional Google Maps autocomplete styling */
+  .pac-matched {
+    font-weight: 600 !important;
+    color: #0a0a0a !important;
+  }
+
+  /* Ensure Stripe Elements containers allow proper iframe positioning */
+  .StripeElement {
+    position: relative;
+  }
+
   :root {
-    /* Internals */
-    --list-item-background-hover: #2c2c2c;
-    --shadow-low: 0px 1px 8px 0px var(--shadow-weak);
-    --shadow-medium: 0px 4px 20px 0px var(--shadow-weak);
-    --shadow-medium-diffuse: 20px 20px 20px 20px var(--shadow-weak);
-    --shadow-high: 0px 1px 8px 0px var(--shadow),
-      0px 16px 40px 0px var(--shadow-strong);
-    --background: #2b2b2b;
-    --disabled: #1f1f1f;
-    --overlay: rgba(11, 7, 7, 0.5);
-    --background-input: #2b2b2b;
-    --border-default: #2b2b2b;
-
-    --container: #000000;
-    --container-high: #363636;
-
-    --inverse: #dedede;
-    --on-inverse: #070707;
-
-    --foreground: #d2d2d2;
-    --secondary: #939393;
-    --subtle: #6c6c6c;
-    --on-disabled: #4b4b4b;
-    --stroke: #2b2b2b;
-    --stroke-strong: #4b4b4b;
-    --stroke-subtle: #363636;
-    --stroke-disabled: #1f1f1f;
-    --stroke-inverse: #4b4b4b;
-
-    --primary-accent: #000000;
-    --primary-container: #060606;
-    --stroke-primary: #606060;
-    --primary: #f9f9f9;
-    --on-primary: #000000;
-    --on-primary-container: #acacac;
-    --primary-strong: #606060;
-
-    --primary-hover: #e6e6e6;
-    --on-primary-hover: #f9f9f9;
-
-    --primary-pressed: #cccccc;
-    --on-primary-pressed: #f9f9f9;
-
-    --neutral-accent: #141414;
-    --neutral-container: #292929;
-    --neutral-stroke: #656565;
-    --neutral: #939393;
-    --on-neutral: #2b2b2b;
-    --on-neutral-container: #dedede;
-
-    --neutral-hover: #ebebeb;
-    --on-neutral-hover: #0a0a0a;
-
-    --neutral-pressed: #cfcfcf;
-    --on-neutral-pressed: #000000;
-
-    --success-accent: #00150c;
-    --success-container: #002c1d;
-    --stroke-success: #006c4c;
-    --success: #00a575;
-    --on-success: white;
-    --on-success-container: #4edea7;
-    --success-strong: #005138;
-
-    --success-hover: #005138;
-    --on-success-hover: white;
-
-    --success-pressed: #00452f;
-    --on-success-pressed: white;
-
-    --warning-accent: #141100;
-    --warning-container: #2c2600;
-    --stroke-warning: #6a5f00;
-    --warning: #867800;
-    --on-warning: white;
-    --on-warning-container: #dec800;
-    --warning-status: #504700;
-
-    --warning-hover: #504700;
-    --on-warning-hover: white;
-
-    --warning-pressed: #443c00;
-    --on-warning-pressed: white;
-
-    --danger-accent: #2e0001;
-    --danger-container: #520003;
-    --stroke-danger: #bb1b1b;
-    --danger: #ff5447;
-    --on-danger: white;
-    --on-danger-container: #ffb6ad;
-    --danger-strong: #bb1b1b;
-
-    --danger-hover: #94000a;
-    --on-danger-hover: white;
-
-    --danger-pressed: #800006;
-    --on-danger-pressed: white;
-
-    --info-accent: #000f2e;
-    --info-container: #002357;
-    --stroke-info: #005ac7;
-    --info: #528bff;
-    --on-info: white;
-    --on-info-container: #fbfaff;
-    --info-strong: #005ac7;
-
-    --info-hover: #004299;
-    --on-info-hover: white;
-
-    --info-pressed: #003780;
-    --on-info-pressed: white;
-
-    --shadow-weak: rgba(0, 0, 0, 0.07);
-    --shadow: rgba(0, 0, 0, 0.2);
-    --shadow-strong: rgba(0, 0, 0, 0.25);
-
-    --radius-xs: 6px;
-    --radius-sm: 8px;
-    --radius: 10px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-
-    /* shadcn compatibility layer */
-    --primary-foreground: var(--on-primary);
-    --secondary: var(--neutral-container);
-    --secondary-foreground: var(--on-neutral-container);
-    --accent: var(--primary-container);
-    --accent-foreground: var(--on-primary-container);
-    --destructive: var(--danger);
-    --destructive-foreground: var(--on-danger);
-    --input: var(--stroke);
-    --ring: var(--primary);
-    --muted: var(--neutral-container);
-    --muted-foreground: var(--subtle);
-    --popover: var(--background);
-    --popover-foreground: var(--foreground);
-    --card: var(--background);
-    --card-foreground: var(--foreground);
-    --border: var(--stroke);
-    --radius: 10px;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --radius: 0.625rem;
+    --background: 0 0% 98.5%;
+    --foreground: 0 0% 14.5%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 14.5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 14.5%;
+    --primary: 0 0% 20.5%;
+    --primary-foreground: 0 0% 98.5%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 20.5%;
+    --muted: 0 0% 97.5%;
+    --muted-foreground: 0 0% 55.6%;
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 20.5%;
+    --destructive: 15 85% 58%;
+    --border: 0 0% 92.2%;
+    --input: 0 0% 92.2%;
+    --ring: 0 0% 70.8%;
+    --chart-1: 35 75% 65%;
+    --chart-2: 195 40% 60%;
+    --chart-3: 225 25% 40%;
+    --chart-4: 85 65% 83%;
+    --chart-5: 75 65% 77%;
+    --sidebar: 0 0% 98.5%;
+    --sidebar-foreground: 0 0% 14.5%;
+    --sidebar-primary: 0 0% 20.5%;
+    --sidebar-primary-foreground: 0 0% 98.5%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 0 0% 20.5%;
+    --sidebar-border: 0 0% 92.2%;
+    --sidebar-ring: 0 0% 70.8%;
   }
 
   .dark {
-    --internal: #1b1b1b;
-    --nav: #1b1b1b;
-
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-    --background: #1b1b1b;
-    --background-input: #2b2b2b;
-    --disabled: #1f1f1f;
-    --overlay: rgba(11, 7, 7, 0.5);
-    --container: #000000;
-    --container-high: #363636;
-    --inverse: #dedede;
-    --on-inverse: #070707;
-    --foreground: #d2d2d2;
-    --secondary: #939393;
-    --subtle: #6c6c6c;
-    --on-disabled: #4b4b4b;
-    --stroke: #2b2b2b;
-    --stroke-strong: #4b4b4b;
-    --stroke-subtle: #363636;
-    --stroke-disabled: #1f1f1f;
-    --stroke-inverse: #4b4b4b;
-    --primary-accent: #000000;
-    --primary-container: #060606;
-    --stroke-primary: #606060;
-    --primary: #f9f9f9;
-    --on-primary: #000000;
-    --on-primary-container: #acacac;
-    --primary-strong: #606060;
-    --primary-hover: #e6e6e6;
-    --on-primary-hover: #f9f9f9;
-    --primary-pressed: #cccccc;
-    --on-primary-pressed: #f9f9f9;
-    --neutral-accent: #141414;
-    --neutral-container: #292929;
-    --neutral-stroke: #656565;
-    --neutral: #939393;
-    --on-neutral: #2b2b2b;
-    --on-neutral-container: #dedede;
-    --neutral-hover: #ebebeb;
-    --on-neutral-hover: #0a0a0a;
-    --neutral-pressed: #cfcfcf;
-    --on-neutral-pressed: #000000;
-    --success-accent: #00150c;
-    --success-container: #002c1d;
-    --stroke-success: #006c4c;
-    --success: #00a575;
-    --on-success: #ffffff;
-    --on-success-container: #4edea7;
-    --success-strong: #005138;
-    --success-hover: #005138;
-    --on-success-hover: #ffffff;
-    --success-pressed: #00452f;
-    --on-success-pressed: #ffffff;
-    --warning-accent: #141100;
-    --warning-container: #2c2600;
-    --stroke-warning: #6a5f00;
-    --warning: #867800;
-    --on-warning: #ffffff;
-    --on-warning-container: #dec800;
-    --warning-status: #504700;
-    --warning-hover: #504700;
-    --on-warning-hover: #ffffff;
-    --warning-pressed: #443c00;
-    --on-warning-pressed: #ffffff;
-    --danger-accent: #2e0001;
-    --danger-container: #520003;
-    --stroke-danger: #bb1b1b;
-    --danger: #ff5447;
-    --on-danger: #ffffff;
-    --on-danger-container: #ffb6ad;
-    --danger-strong: #bb1b1b;
-    --danger-hover: #94000a;
-    --on-danger-hover: #ffffff;
-    --danger-pressed: #800006;
-    --on-danger-pressed: #ffffff;
-    --info-accent: #000f2e;
-    --info-container: #002357;
-    --stroke-info: #005ac7;
-    --info: #528bff;
-    --on-info: #ffffff;
-    --on-info-container: #fbfaff;
-    --info-strong: #005ac7;
-    --info-hover: #004299;
-    --on-info-hover: #ffffff;
-    --info-pressed: #003780;
-    --on-info-pressed: #ffffff;
-    --shadow-weak: rgba(0, 0, 0, 0.2);
-    --shadow: rgba(0, 0, 0, 0.45);
-    --shadow-strong: rgba(0, 0, 0, 0.7);
-
-    /* shadcn compatibility layer */
-    --primary-foreground: var(--on-primary);
-    --secondary: var(--neutral-container);
-    --secondary-foreground: var(--on-neutral-container);
-    --accent: var(--primary-container);
-    --accent-foreground: var(--on-primary-container);
-    --destructive: var(--danger);
-    --destructive-foreground: var(--on-danger);
-    --input: var(--background-input);
-    --ring: var(--primary);
-    --muted: var(--neutral-container);
-    --muted-foreground: var(--subtle);
-    --popover: var(--background);
-    --popover-foreground: var(--foreground);
-    --card: var(--background);
-    --card-foreground: var(--foreground);
-    --border: var(--stroke);
-    --radius: 10px;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 0 0% 7.5%;
+    --foreground: 0 0% 98.5%;
+    --card: 0 0% 11.5%;
+    --card-foreground: 0 0% 98.5%;
+    --popover: 0 0% 13.5%;
+    --popover-foreground: 0 0% 98.5%;
+    --primary: 0 0% 92.2%;
+    --primary-foreground: 0 0% 10.5%;
+    --secondary: 0 0% 12.5%;
+    --secondary-foreground: 0 0% 98.5%;
+    --muted: 0 0% 100% / 10%;
+    --muted-foreground: 0 0% 70.8%;
+    --accent: 0 0% 100% / 7.5%;
+    --accent-foreground: 0 0% 98.5%;
+    --destructive: 12 75% 70%;
+    --border: 0 0% 100% / 10%;
+    --input: 0 0% 100% / 15%;
+    --ring: 0 0% 55.6%;
+    --chart-1: 270 85% 49%;
+    --chart-2: 155 50% 70%;
+    --chart-3: 75 65% 77%;
+    --chart-4: 310 80% 63%;
+    --chart-5: 20 85% 65%;
+    --sidebar: 0 0% 10.5%;
+    --sidebar-foreground: 0 0% 98.5%;
+    --sidebar-primary: 270 85% 49%;
+    --sidebar-primary-foreground: 0 0% 98.5%;
+    --sidebar-accent: 0 0% 100% / 7.5%;
+    --sidebar-accent-foreground: 0 0% 98.5%;
+    --sidebar-border: 0 0% 100% / 10%;
+    --sidebar-ring: 0 0% 55.6%;
   }
 }
 
-@layer components {
-  .primary-focus {
-    outline: none;
-    /* box-shadow: 0px 0px 0px 3px var(--primary-container); */
-  }
 
-  .neutral-focus {
-    outline: none;
-    /* box-shadow: 0px 0px 0px 3px var(--neutral-container); */
-  }
-
-  .danger-focus {
-    outline: none;
-    /* box-shadow: 0px 0px 0px 3px var(--danger-container); */
-  }
-}
 
 .tiptap {
   :first-child {
@@ -349,12 +184,12 @@ body {
   }
 }
 
-input:-internal-autofill-selected {
-  background-color: var(--background-input) !important;
+input:-internal-autofill-selected:not([data-stripe]):not([name*="__privateStripe"]) {
+  background-color: hsl(var(--input)) !important;
 }
 
-input:-webkit-autofill {
-  background-color: var(--background-input) !important;
+input:-webkit-autofill:not([data-stripe]):not([name*="__privateStripe"]) {
+  background-color: hsl(var(--input)) !important;
 }
 
 input {
@@ -369,5 +204,7 @@ input {
   }
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }

@@ -1,16 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import PaymentsTable from './PaymentsTable'
+import { PaymentsDataTable } from './data-table'
 import { PaymentStatus } from '@/types'
-import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs'
-import { PaymentsTab } from './components/PaymentsTab'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import PageTitle from '@/components/ion/PageTitle'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default function InternalPaymentsPage() {
-  const [activeTab, setActiveTab] = useState<string>('all')
+  const [activeFilter, setActiveFilter] = useState<string>('all')
+
+  // Filter options for the button group
+  const filterOptions = [
+    { value: 'all', label: 'All' },
+    { value: PaymentStatus.Succeeded, label: 'Succeeded' },
+    { value: PaymentStatus.Processing, label: 'Processing' },
+    { value: PaymentStatus.Refunded, label: 'Refunded' },
+    { value: PaymentStatus.Canceled, label: 'Canceled' },
+  ]
 
   const getFiltersForTab = (tab: string) => {
     if (tab === 'all') {
@@ -27,25 +34,16 @@ export default function InternalPaymentsPage() {
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
         <div className="flex flex-row justify-between">
-          <PageTitle>Payments</PageTitle>
+          <PageHeader title="Payments" />
         </div>
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
-          <TabsList className="gap-8 border-b border-stroke-subtle">
-            <PaymentsTab status="all" />
-            <PaymentsTab status={PaymentStatus.Succeeded} />
-            <PaymentsTab status={PaymentStatus.Processing} />
-            <PaymentsTab status={PaymentStatus.Refunded} />
-            <PaymentsTab status={PaymentStatus.Canceled} />
-          </TabsList>
-
-          <TabsContent value={activeTab} className="mt-6">
-            <PaymentsTable filters={getFiltersForTab(activeTab)} />
-          </TabsContent>
-        </Tabs>
+        <div className="w-full">
+          <PaymentsDataTable
+            filters={getFiltersForTab(activeFilter)}
+            filterOptions={filterOptions}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+          />
+        </div>
       </div>
     </InternalPageContainer>
   )

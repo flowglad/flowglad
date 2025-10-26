@@ -15,7 +15,7 @@ import { z } from 'zod'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'PaymentMethod',
-  tags: ['PaymentMethods'],
+  tags: ['Payment Methods'],
 })
 
 export const paymentMethodsRouteConfigs = routeConfigs

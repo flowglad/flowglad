@@ -103,8 +103,8 @@ export const selectRevenueDataForOrganization = async (
     sql`
       WITH dates AS (
         SELECT generate_series(
-          date_trunc(${revenueChartIntervalUnit}, (${fromDate.toISOString()}::timestamp AT TIME ZONE 'UTC')),
-          date_trunc(${revenueChartIntervalUnit}, (${toDate.toISOString()}::timestamp AT TIME ZONE 'UTC')),
+          date_trunc(${revenueChartIntervalUnit}, (${new Date(fromDate).toISOString()}::timestamp AT TIME ZONE 'UTC')),
+          date_trunc(${revenueChartIntervalUnit}, (${new Date(toDate).toISOString()}::timestamp AT TIME ZONE 'UTC')),
           (1 || ' ' || ${revenueChartIntervalUnit})::interval
         ) AS date
       ),
@@ -120,8 +120,8 @@ export const selectRevenueDataForOrganization = async (
         }
         WHERE 
           ${payments.organizationId} = ${organizationId}
-          AND ${payments.chargeDate} >= ${fromDate.toISOString()}
-          AND ${payments.chargeDate} <= ${toDate.toISOString()}
+          AND ${payments.chargeDate} >= ${new Date(fromDate).toISOString()}
+          AND ${payments.chargeDate} <= ${new Date(toDate).toISOString()}
           ${
             params.productId
               ? sql`AND ${prices.productId} = ${params.productId}`
@@ -271,6 +271,10 @@ export const safelyUpdatePaymentStatus = async (
   status: PaymentStatus,
   transaction: DbTransaction
 ) => {
+  // If already in the target status, return existing payment (idempotent)
+  if (payment.status === status) {
+    return payment
+  }
   if (isPaymentInTerminalState(payment)) {
     throw new Error(
       `Payment ${payment.id} is in a terminal state: ${payment.status}; cannot update to ${status}`
@@ -286,7 +290,7 @@ export const safelyUpdatePaymentStatus = async (
 }
 
 export const selectStalePayments = async (
-  staleThresholdDate: Date,
+  staleThresholdDate: Date | number,
   transaction: DbTransaction
 ): Promise<Payment.Record[]> => {
   const stalePaymentStatuses = [
@@ -301,7 +305,10 @@ export const selectStalePayments = async (
     .where(
       and(
         inArray(payments.status, stalePaymentStatuses),
-        lte(payments.updatedAt, staleThresholdDate)
+        lte(
+          payments.updatedAt,
+          new Date(staleThresholdDate).getTime()
+        )
       )
     )
   return paymentsSelectSchema.array().parse(result)
@@ -324,7 +331,7 @@ export const selectResolvedPaymentsMonthToDate = async (
         whereClauseFromObject(payments, selectConditions),
         gte(
           payments.chargeDate,
-          getCurrentMonthStartTimestamp(new Date())
+          getCurrentMonthStartTimestamp(new Date()).getTime()
         ),
         inArray(payments.status, resolvedPaymentStatuses)
       )

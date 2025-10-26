@@ -16,7 +16,7 @@ import { useState } from 'react'
 import { Loader2, Key } from 'lucide-react'
 import { authClient, signIn } from '@/utils/authClient'
 import Link from 'next/link'
-import { cn } from '@/utils/core'
+import { cn } from '@/lib/utils'
 import ErrorLabel from '@/components/ErrorLabel'
 import { toast } from 'sonner'
 import z from 'zod'
@@ -187,6 +187,17 @@ export default function SignIn() {
           />
         </div>
       </CardContent>
+      <CardFooter className="flex flex-col gap-2">
+        <div className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{' '}
+          <Link
+            href="/sign-up"
+            className="text-primary hover:underline"
+          >
+            Sign up
+          </Link>
+        </div>
+      </CardFooter>
     </Card>
   )
 }

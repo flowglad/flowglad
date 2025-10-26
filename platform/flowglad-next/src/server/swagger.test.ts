@@ -44,7 +44,7 @@ describe('Swagger Configuration', () => {
     }
 
     it('should not have forbidden fields in any input schemas', () => {
-      // TODO: stronger types
+      // FIXME: stronger types
       Object.values(paths || {}).forEach((path: any) => {
         Object.values(path).forEach((method: any) => {
           if (
@@ -79,6 +79,14 @@ describe('Swagger Configuration', () => {
               `Schema contains forbidden output field "${key}" at path: ${path}`
             )
           }
+          if (
+            key.startsWith('createdAtCommit') ||
+            key.startsWith('updatedAtCommit')
+          ) {
+            throw new Error(
+              `Schema contains forbidden output field "${key}" at path: ${path}`
+            )
+          }
         })
       }
 
@@ -90,7 +98,7 @@ describe('Swagger Configuration', () => {
       })
     }
 
-    it('should not have "stripe*" or "position" fields in any output schemas', () => {
+    it('should not have "stripe*" or "position" or "createdAtCommit" or "updatedAtCommit" fields in any output schemas', () => {
       Object.values(paths || {}).forEach((path: any) => {
         Object.values(path).forEach((method: any) => {
           if (method.responses) {
@@ -404,7 +412,7 @@ describe('Swagger Configuration', () => {
         const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['get', 'post'].sort()
+          ['get'].sort()
         )
       })
 
@@ -412,15 +420,7 @@ describe('Swagger Configuration', () => {
         const route = paths?.[`${basePath}/{id}`]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['get', 'put'].sort()
-        )
-      })
-
-      it('should have correct send-reminder route methods', () => {
-        const route = paths?.[`${basePath}/{id}/send-reminder`]
-        expect(route).toBeDefined()
-        expect(Object.keys(route || {}).sort()).toEqual(
-          ['post'].sort()
+          ['get'].sort()
         )
       })
     })
@@ -556,7 +556,7 @@ describe('Swagger Configuration', () => {
         const route = paths?.[basePath]
         expect(route).toBeDefined()
         expect(Object.keys(route || {}).sort()).toEqual(
-          ['post'].sort()
+          ['get', 'post'].sort()
         )
       })
 
@@ -655,7 +655,7 @@ describe('Swagger Configuration', () => {
         expect(route).toBeDefined()
         // Assuming GET (list) and POST (create)
         expect(Object.keys(route || {}).sort()).toEqual(
-          // TODO: standardize list methods / procedures
+          // FIXME: standardize list methods / procedures
           ['post'].sort()
         )
       })
@@ -668,6 +668,241 @@ describe('Swagger Configuration', () => {
           ['get', 'put'].sort()
         )
       })
+    })
+  })
+
+  describe('Timestamp Fields Shape', () => {
+    const TIMESTAMP_MIN = -9007199254740991
+    const TIMESTAMP_MAX = 9007199254740991
+
+    const checkTimestampFields = (schema: any, path: string) => {
+      if (!schema || typeof schema !== 'object') return
+
+      if (
+        schema.properties &&
+        typeof schema.properties === 'object'
+      ) {
+        ;['createdAt', 'updatedAt'].forEach((key) => {
+          const prop = schema.properties[key]
+          if (prop && typeof prop === 'object') {
+            expect(prop.type).toBe('integer')
+            expect(prop.minimum).toBe(TIMESTAMP_MIN)
+            expect(prop.maximum).toBe(TIMESTAMP_MAX)
+          }
+        })
+      }
+
+      // Recursively check nested schemas (objects, arrays via items, etc.)
+      Object.entries(schema).forEach(([k, v]) => {
+        if (typeof v === 'object' && v !== null) {
+          checkTimestampFields(v, `${path}.${k}`)
+        }
+      })
+    }
+
+    it('should enforce bounds for createdAt/updatedAt in all request body schemas', () => {
+      Object.entries(paths || {}).forEach(
+        ([pathKey, pathValue]: [string, any]) => {
+          Object.entries(pathValue).forEach(
+            ([methodKey, methodValue]: [string, any]) => {
+              const requestSchema =
+                methodValue.requestBody?.content?.['application/json']
+                  ?.schema
+              if (requestSchema) {
+                checkTimestampFields(
+                  requestSchema,
+                  `${pathKey}.${methodKey}.request`
+                )
+              }
+            }
+          )
+        }
+      )
+    })
+
+    it('should enforce bounds for createdAt/updatedAt in all response schemas', () => {
+      Object.entries(paths || {}).forEach(
+        ([pathKey, pathValue]: [string, any]) => {
+          Object.entries(pathValue).forEach(
+            ([methodKey, methodValue]: [string, any]) => {
+              if (methodValue.responses) {
+                Object.values(methodValue.responses).forEach(
+                  (response: any) => {
+                    const responseSchema =
+                      response.content?.['application/json']?.schema
+                    if (responseSchema) {
+                      checkTimestampFields(
+                        responseSchema,
+                        `${pathKey}.${methodKey}.response`
+                      )
+                    }
+                  }
+                )
+              }
+            }
+          )
+        }
+      )
+    })
+
+    it('should enforce bounds for createdAt/updatedAt in components.schemas', () => {
+      const schemas = openApiDoc.components?.schemas || {}
+      Object.entries(schemas).forEach(
+        ([name, schema]: [string, any]) => {
+          checkTimestampFields(schema, `components.schemas.${name}`)
+        }
+      )
+    })
+  })
+
+  describe('Epoch milliseconds description enforcement', () => {
+    const TIMESTAMP_MIN = -9007199254740991
+    const TIMESTAMP_MAX = 9007199254740991
+
+    const checkEpochDescriptionSchemas = (
+      schema: any,
+      path: string
+    ) => {
+      if (!schema || typeof schema !== 'object') return
+
+      const desc = String(schema.description || '')
+      if (desc.includes('Epoch milliseconds')) {
+        if (Array.isArray(schema.anyOf)) {
+          const anyOf = schema.anyOf as any[]
+          const stringEntries = anyOf.filter(
+            (s) => s && typeof s === 'object' && s.type === 'string'
+          )
+          expect(stringEntries.length).toBe(0)
+
+          const integerEntries = anyOf.filter(
+            (s) => s && typeof s === 'object' && s.type === 'integer'
+          )
+          expect(integerEntries.length).toBeGreaterThan(0)
+          integerEntries.forEach((intSchema) => {
+            expect(intSchema.minimum).toBe(TIMESTAMP_MIN)
+            expect(intSchema.maximum).toBe(TIMESTAMP_MAX)
+            // Keep original description on the integer entry
+            expect(String(intSchema.description || '')).toContain(
+              'Epoch milliseconds'
+            )
+          })
+
+          const nullEntries = anyOf.filter(
+            (s) => s && typeof s === 'object' && s.type === 'null'
+          )
+          // Nullable is allowed; if present, must be exactly type null
+          expect(nullEntries.length).toBeGreaterThanOrEqual(0)
+        } else {
+          // Non-nullable: must be a bounded integer
+          expect(schema.type).toBe('integer')
+          expect(schema.minimum).toBe(TIMESTAMP_MIN)
+          expect(schema.maximum).toBe(TIMESTAMP_MAX)
+        }
+      }
+
+      // Recurse into nested structures
+      if (
+        schema.properties &&
+        typeof schema.properties === 'object'
+      ) {
+        Object.entries(schema.properties).forEach(([key, value]) => {
+          if (typeof value === 'object' && value !== null) {
+            checkEpochDescriptionSchemas(
+              value,
+              `${path}.properties.${key}`
+            )
+          }
+        })
+      }
+
+      if (schema.items && typeof schema.items === 'object') {
+        checkEpochDescriptionSchemas(schema.items, `${path}.items`)
+      }
+
+      ;['allOf', 'oneOf', 'anyOf'].forEach((key) => {
+        const arr = (schema as any)[key]
+        if (Array.isArray(arr)) {
+          arr.forEach((sub, idx) => {
+            if (sub && typeof sub === 'object') {
+              checkEpochDescriptionSchemas(
+                sub,
+                `${path}.${key}[${idx}]`
+              )
+            }
+          })
+        }
+      })
+
+      if (
+        schema.additionalProperties &&
+        typeof schema.additionalProperties === 'object'
+      ) {
+        checkEpochDescriptionSchemas(
+          schema.additionalProperties,
+          `${path}.additionalProperties`
+        )
+      }
+
+      if (schema.not && typeof schema.not === 'object') {
+        checkEpochDescriptionSchemas(schema.not, `${path}.not`)
+      }
+    }
+
+    it('enforces correct shape for all request schemas with Epoch milliseconds description', () => {
+      Object.entries(paths || {}).forEach(
+        ([pathKey, pathValue]: [string, any]) => {
+          Object.entries(pathValue).forEach(
+            ([methodKey, methodValue]: [string, any]) => {
+              const requestSchema =
+                methodValue.requestBody?.content?.['application/json']
+                  ?.schema
+              if (requestSchema) {
+                checkEpochDescriptionSchemas(
+                  requestSchema,
+                  `${pathKey}.${methodKey}.request`
+                )
+              }
+            }
+          )
+        }
+      )
+    })
+
+    it('enforces correct shape for all response schemas with Epoch milliseconds description', () => {
+      Object.entries(paths || {}).forEach(
+        ([pathKey, pathValue]: [string, any]) => {
+          Object.entries(pathValue).forEach(
+            ([methodKey, methodValue]: [string, any]) => {
+              if (methodValue.responses) {
+                Object.values(methodValue.responses).forEach(
+                  (response: any) => {
+                    const responseSchema =
+                      response.content?.['application/json']?.schema
+                    if (responseSchema) {
+                      checkEpochDescriptionSchemas(
+                        responseSchema,
+                        `${pathKey}.${methodKey}.response`
+                      )
+                    }
+                  }
+                )
+              }
+            }
+          )
+        }
+      )
+    })
+
+    it('enforces correct shape in components.schemas for Epoch milliseconds description', () => {
+      const schemas = openApiDoc.components?.schemas || {}
+      Object.entries(schemas).forEach(
+        ([name, schema]: [string, any]) => {
+          checkEpochDescriptionSchemas(
+            schema,
+            `components.schemas.${name}`
+          )
+        }
+      )
     })
   })
 })

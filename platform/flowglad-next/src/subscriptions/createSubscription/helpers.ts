@@ -3,6 +3,7 @@ import {
   PriceType,
   IntervalUnit,
   SubscriptionItemType,
+  NormalBalanceType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -48,18 +49,29 @@ export const deriveSubscriptionStatus = ({
   autoStart,
   trialEnd,
   defaultPaymentMethodId,
+  isDefaultPlan,
 }: {
   autoStart: boolean
-  trialEnd?: Date
+  trialEnd?: Date | number
   defaultPaymentMethodId?: string
+  isDefaultPlan: boolean
 }):
   | SubscriptionStatus.Trialing
   | SubscriptionStatus.Active
   | SubscriptionStatus.Incomplete => {
+  /**
+   * If the subscription is a default plan, it is always active
+   */
   if (trialEnd) {
     return SubscriptionStatus.Trialing
   }
+  if (!autoStart) {
+    return SubscriptionStatus.Incomplete
+  }
   if (autoStart && defaultPaymentMethodId) {
+    return SubscriptionStatus.Active
+  }
+  if (isDefaultPlan) {
     return SubscriptionStatus.Active
   }
   return SubscriptionStatus.Incomplete
@@ -75,10 +87,10 @@ export const deriveSubscriptionStatus = ({
 export const createProratedBillingPeriodItems = (
   subscriptionItems: SubscriptionItem.Record[],
   billingPeriod: BillingPeriod.Record,
-  upgradeDate: Date
+  upgradeDate: Date | number
 ): BillingPeriodItem.Insert[] => {
   // Skip if upgrade date is at period start (no proration needed)
-  if (upgradeDate.getTime() === billingPeriod.startDate.getTime()) {
+  if (new Date(upgradeDate).getTime() === billingPeriod.startDate) {
     return []
   }
 
@@ -92,7 +104,7 @@ export const createProratedBillingPeriodItems = (
     quantity: item.quantity,
     unitPrice: Math.round(item.unitPrice * split.afterPercentage),
     name: `Prorated: ${item.name}`,
-    description: `Prorated charge for ${(split.afterPercentage * 100).toFixed(1)}% of billing period (${upgradeDate.toISOString().split('T')[0]} to ${billingPeriod.endDate.toISOString().split('T')[0]})`,
+    description: `Prorated charge for ${(split.afterPercentage * 100).toFixed(1)}% of billing period (${new Date(upgradeDate).toISOString().split('T')[0]} to ${new Date(billingPeriod.endDate).toISOString().split('T')[0]})`,
     livemode: item.livemode,
     type: SubscriptionItemType.Static,
     usageMeterId: null,
@@ -148,8 +160,8 @@ export const safelyProcessCreationForExistingSubscription = async (
    * Otherwise, we schedule the billing run for the end of the billing period.
    */
   const scheduledFor = subscription.runBillingAtPeriodStart
-    ? subscription.currentBillingPeriodStart
-    : subscription.currentBillingPeriodEnd
+    ? subscription.currentBillingPeriodStart!
+    : subscription.currentBillingPeriodEnd!
 
   const billingRun: BillingRun.Record | undefined =
     existingBillingRun ??
@@ -182,7 +194,7 @@ export const safelyProcessCreationForExistingSubscription = async (
       billingPeriodItems: billingPeriodAndItems.billingPeriodItems,
       billingRun,
     },
-    eventsToLog: [],
+    eventsToInsert: [],
   }
 }
 
@@ -289,7 +301,7 @@ export const setupLedgerAccounts = async (
   params: {
     subscription: Subscription.Record
     subscriptionItems: SubscriptionItem.Record[]
-    price: Price.Record
+    price: Price.ClientRecord
   },
   transaction: DbTransaction
 ) => {
@@ -301,6 +313,8 @@ export const setupLedgerAccounts = async (
         usageMeterId: price.usageMeterId,
         livemode: subscription.livemode,
         organizationId: subscription.organizationId,
+        normalBalance: NormalBalanceType.CREDIT,
+        version: 0,
       },
     ],
     transaction
@@ -311,7 +325,7 @@ export const activateSubscription = async (
   params: {
     subscription: Subscription.Record
     subscriptionItems: SubscriptionItem.Record[]
-    defaultPaymentMethod: PaymentMethod.Record
+    defaultPaymentMethod?: PaymentMethod.Record
     autoStart: boolean
   },
   transaction: DbTransaction
@@ -343,7 +357,7 @@ export const activateSubscription = async (
       currentBillingPeriodStart: startDate,
       currentBillingPeriodEnd: endDate,
       billingCycleAnchorDate: startDate,
-      defaultPaymentMethodId: defaultPaymentMethod.id,
+      defaultPaymentMethodId: defaultPaymentMethod?.id,
       interval: subscription.interval ?? IntervalUnit.Month,
       intervalCount: subscription.intervalCount ?? 1,
       renews: true,
@@ -489,13 +503,18 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     defaultPaymentMethod: PaymentMethod.Record | null
     autoStart: boolean
     prorateFirstPeriod?: boolean
-    preservedBillingPeriodEnd?: Date
-    preservedBillingPeriodStart?: Date
+    preservedBillingPeriodEnd?: Date | number
+    preservedBillingPeriodStart?: Date | number
+    isDefaultPlan: boolean
   },
   transaction: DbTransaction
 ) => {
-  const { subscription, defaultPaymentMethod, subscriptionItems } =
-    params
+  const {
+    subscription,
+    defaultPaymentMethod,
+    subscriptionItems,
+    isDefaultPlan,
+  } = params
   /**
    * If
    * and no default payment method is provided,
@@ -505,11 +524,16 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
    * and we do not want to create a billing period or run
    * for a subscription that is not yet active.
    */
+  const isCreditTrial =
+    subscription.status === SubscriptionStatus.CreditTrial
+  const isIncomplete =
+    subscription.status === SubscriptionStatus.Incomplete
+  const isNoDefaultPaymentMethod = !defaultPaymentMethod
+  const isNonRenewing = !subscription.renews
   if (
-    subscription.status === SubscriptionStatus.CreditTrial ||
-    (subscription.status === SubscriptionStatus.Incomplete &&
-      !defaultPaymentMethod) ||
-    !subscription.renews
+    isCreditTrial ||
+    (isIncomplete && isNoDefaultPaymentMethod) ||
+    isNonRenewing
   ) {
     return {
       subscription,
@@ -533,8 +557,8 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
    * Also create billing period when preserving cycle with proration, even if dates don't match
    */
   const shouldCreateBillingPeriod =
-    (subscription.startDate?.getTime() ===
-      subscription.currentBillingPeriodStart?.getTime() ||
+    (subscription.startDate ===
+      subscription.currentBillingPeriodStart ||
       params.prorateFirstPeriod) &&
     params.autoStart &&
     defaultPaymentMethod &&
@@ -585,8 +609,8 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     }
 
     const scheduledFor = subscription.runBillingAtPeriodStart
-      ? subscription.currentBillingPeriodStart
-      : subscription.currentBillingPeriodEnd
+      ? subscription.currentBillingPeriodStart!
+      : subscription.currentBillingPeriodEnd!
     const billingRun = await createBillingRun(
       {
         billingPeriod,
@@ -608,7 +632,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
    *
    * In practice this should never be reached
    */
-  if (!defaultPaymentMethod) {
+  if (!defaultPaymentMethod && !isDefaultPlan) {
     throw new Error(
       'Default payment method is required if trial period is not set'
     )
@@ -631,7 +655,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
   return await activateSubscription(
     {
       ...params,
-      defaultPaymentMethod,
+      defaultPaymentMethod: defaultPaymentMethod ?? undefined,
     },
     transaction
   )

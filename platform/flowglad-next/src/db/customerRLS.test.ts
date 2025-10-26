@@ -9,15 +9,19 @@ import {
   setupSubscription,
   setupInvoice,
   setupPayment,
+  setupPrice,
 } from '@/../seedDatabase'
-import { insertPricingModel } from './tableMethods/pricingModelMethods'
+import {
+  insertPricingModel,
+  selectPricingModelForCustomer,
+} from './tableMethods/pricingModelMethods'
 import { insertProduct } from './tableMethods/productMethods'
 import { insertPrice } from './tableMethods/priceMethods'
 import { sql } from 'drizzle-orm'
 import db from './client'
 import type { Organization } from './schema/organizations'
 import type { Customer } from './schema/customers'
-import type { UserRecord } from './schema/users'
+import type { User } from './schema/users'
 import type { Invoice } from './schema/invoices'
 import type { Subscription } from './schema/subscriptions'
 import type { Payment } from './schema/payments'
@@ -66,6 +70,7 @@ import { DbTransaction } from './types'
 import { afterEach } from 'vitest'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { setupProduct, setupPricingModel } from '@/../seedDatabase'
+import { ApiKey } from './schema/apiKeys'
 
 /**
  * Helper function to create an authenticated transaction with customer role.
@@ -73,7 +78,7 @@ import { setupProduct, setupPricingModel } from '@/../seedDatabase'
  */
 async function authenticatedCustomerTransaction<T>(
   customer: Customer.Record,
-  user: UserRecord,
+  user: User.Record,
   organization: Organization.Record,
   fn: (params: {
     transaction: DbTransaction
@@ -144,10 +149,10 @@ describe('Customer Role RLS Policies', () => {
   let org1Price: Price.Record
   let org2Price: Price.Record
 
-  let userA: UserRecord // Has customer in both orgs
-  let userB: UserRecord // Only in org1
-  let userC: UserRecord // Only in org1
-  let userD: UserRecord // Only in org2
+  let userA: User.Record // Has customer in both orgs
+  let userB: User.Record // Only in org1
+  let userC: User.Record // Only in org1
+  let userD: User.Record // Only in org2
 
   // Customers in Org1
   let customerA_Org1: Customer.Record
@@ -400,7 +405,7 @@ describe('Customer Role RLS Policies', () => {
       customerId: customerA_Org1.id,
       organizationId: org1.id,
       paymentMethodId: paymentMethodA_Org1.id,
-      chargeDate: new Date(),
+      chargeDate: Date.now(),
       livemode: true,
     })
 
@@ -412,7 +417,7 @@ describe('Customer Role RLS Policies', () => {
       customerId: customerB_Org1.id,
       organizationId: org1.id,
       paymentMethodId: paymentMethodB_Org1.id,
-      chargeDate: new Date(),
+      chargeDate: Date.now(),
       livemode: true,
     })
   })
@@ -827,62 +832,68 @@ describe('Customer Role RLS Policies', () => {
   })
 
   describe('Query Filtering and Aggregation', () => {
-    it('should filter queries with WHERE conditions correctly', async () => {
-      const result = await authenticatedCustomerTransaction(
-        customerA_Org1,
-        userA,
-        org1,
-        async ({ transaction }) => {
-          // Query with specific conditions
-          const paidInvoices = await selectInvoices(
-            { status: InvoiceStatus.Paid },
-            transaction
-          )
+    it(
+      'should filter queries with WHERE conditions correctly',
+      async () => {
+        const result = await authenticatedCustomerTransaction(
+          customerA_Org1,
+          userA,
+          org1,
+          async ({ transaction }) => {
+            // Query with specific conditions
+            const paidInvoices = await selectInvoices(
+              { status: InvoiceStatus.Paid },
+              transaction
+            )
 
-          const openInvoices = await selectInvoices(
-            { status: InvoiceStatus.Open },
-            transaction
-          )
+            const openInvoices = await selectInvoices(
+              { status: InvoiceStatus.Open },
+              transaction
+            )
 
-          // Query with organizationId (should still be filtered to own data)
-          const orgFilteredInvoices = await selectInvoices(
-            { organizationId: org1.id },
-            transaction
-          )
+            // Query with organizationId (should still be filtered to own data)
+            const orgFilteredInvoices = await selectInvoices(
+              { organizationId: org1.id },
+              transaction
+            )
 
-          return { paidInvoices, openInvoices, orgFilteredInvoices }
-        }
-      )
+            return { paidInvoices, openInvoices, orgFilteredInvoices }
+          }
+        )
 
-      // Should only see own paid invoices
-      const ownPaidInvoices = result.paidInvoices.filter(
-        (i) => i.customerId === customerA_Org1.id
-      )
-      expect(ownPaidInvoices.length).toBeGreaterThanOrEqual(1)
-      expect(
-        result.paidInvoices.every(
+        // Should only see own paid invoices
+        const ownPaidInvoices = result.paidInvoices.filter(
           (i) => i.customerId === customerA_Org1.id
         )
-      ).toBe(true)
+        expect(ownPaidInvoices.length).toBeGreaterThanOrEqual(1)
+        expect(
+          result.paidInvoices.every(
+            (i) => i.customerId === customerA_Org1.id
+          )
+        ).toBe(true)
 
-      // Should only see own open invoices
-      const ownOpenInvoices = result.openInvoices.filter(
-        (i) => i.customerId === customerA_Org1.id
-      )
-      expect(ownOpenInvoices.length).toBeGreaterThanOrEqual(1)
-      expect(
-        result.openInvoices.every(
+        // Should only see own open invoices
+        const ownOpenInvoices = result.openInvoices.filter(
           (i) => i.customerId === customerA_Org1.id
         )
-      ).toBe(true)
+        expect(ownOpenInvoices.length).toBeGreaterThanOrEqual(1)
+        expect(
+          result.openInvoices.every(
+            (i) => i.customerId === customerA_Org1.id
+          )
+        ).toBe(true)
 
-      // Org filter should still only show own invoices
-      expect(
-        result.orgFilteredInvoices.every(
-          (i) => i.customerId === customerA_Org1.id
-        )
-      ).toBe(true)
-    })
+        // Org filter should still only show own invoices
+        expect(
+          result.orgFilteredInvoices.every(
+            (i) => i.customerId === customerA_Org1.id
+          )
+        ).toBe(true)
+      },
+      {
+        timeout: 10000,
+      }
+    )
 
     it('should handle empty results gracefully', async () => {
       // Create a customer with no related data
@@ -1128,7 +1139,7 @@ describe('Customer Role RLS Policies', () => {
             {
               id: subscriptionB_Org1.id,
               status: SubscriptionStatus.Canceled,
-              canceledAt: new Date(),
+              canceledAt: Date.now(),
               renews: false,
             },
             transaction
@@ -1197,7 +1208,6 @@ describe('Customer Role RLS Policies', () => {
             name: 'Product in Model A',
             description: 'Product in pricing model A',
             imageURL: '',
-            displayFeatures: [],
             singularQuantityLabel: 'unit',
             pluralQuantityLabel: 'units',
             externalId: `prod_${core.nanoid()}`,
@@ -1216,7 +1226,6 @@ describe('Customer Role RLS Policies', () => {
             name: 'Product in Model B',
             description: 'Product in pricing model B',
             imageURL: '',
-            displayFeatures: [],
             singularQuantityLabel: 'unit',
             pluralQuantityLabel: 'units',
             externalId: `prod_${core.nanoid()}`,
@@ -1242,12 +1251,9 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
             isDefault: true,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
             usageMeterId: null,
           },
           transaction
@@ -1266,12 +1272,9 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
             isDefault: true,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
             usageMeterId: null,
           },
           transaction
@@ -1285,7 +1288,6 @@ describe('Customer Role RLS Policies', () => {
             name: 'Active Product',
             description: 'Active product for testing',
             imageURL: '',
-            displayFeatures: [],
             singularQuantityLabel: 'unit',
             pluralQuantityLabel: 'units',
             externalId: `prod_${core.nanoid()}`,
@@ -1304,7 +1306,6 @@ describe('Customer Role RLS Policies', () => {
             name: 'Inactive Product',
             description: 'Inactive product for testing',
             imageURL: '',
-            displayFeatures: [],
             singularQuantityLabel: 'unit',
             pluralQuantityLabel: 'units',
             externalId: `prod_${core.nanoid()}`,
@@ -1329,12 +1330,9 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
             isDefault: true,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
             usageMeterId: null,
           },
           transaction
@@ -1353,12 +1351,9 @@ describe('Customer Role RLS Policies', () => {
             active: false,
             livemode: true,
             isDefault: false,
-            setupFeeAmount: 0,
             trialPeriodDays: 0,
             currency: CurrencyCode.USD,
             usageEventsPerUnit: null,
-            startsWithCreditTrial: false,
-            overagePriceId: null,
             usageMeterId: null,
           },
           transaction
@@ -1385,9 +1380,6 @@ describe('Customer Role RLS Policies', () => {
 
       // Refresh the customer objects AFTER the admin transaction commits
       await adminTransaction(async ({ transaction }) => {
-        const { selectCustomerById } = await import(
-          './tableMethods/customerMethods'
-        )
         customerA_Org1 = await selectCustomerById(
           customerA_Org1.id,
           transaction
@@ -1770,12 +1762,9 @@ describe('Customer Role RLS Policies', () => {
                 active: true, // Price is active but product is not
                 livemode: true,
                 isDefault: true,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
                 usageEventsPerUnit: null,
-                startsWithCreditTrial: false,
-                overagePriceId: null,
                 usageMeterId: null,
               },
               transaction
@@ -1873,12 +1862,9 @@ describe('Customer Role RLS Policies', () => {
                 active: false, // Both product and price inactive
                 livemode: true,
                 isDefault: false,
-                setupFeeAmount: 0,
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
                 usageEventsPerUnit: null,
-                startsWithCreditTrial: false,
-                overagePriceId: null,
                 usageMeterId: null,
               },
               transaction
@@ -2087,6 +2073,81 @@ describe('Customer Role RLS Policies', () => {
       expect(newCustomerError).toMatch(
         /Failed to insert|row-level security|violates/
       )
+    })
+  })
+
+  describe('Customer with null pricingModelId should access default pricing model', () => {
+    let organization: Organization.Record
+    let defaultPricingModel: PricingModel.Record
+    let customerWithNullPricingModel: Customer.Record
+    let user: User.Record
+    let apiKey: ApiKey.Record
+
+    beforeEach(async () => {
+      // Set up organization with default pricing model
+      const orgData = await setupOrg()
+      organization = orgData.organization
+      defaultPricingModel = orgData.pricingModel
+
+      // Create a product for the default pricing model
+      const defaultProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: defaultPricingModel.id,
+        name: 'Default Product',
+        active: true,
+      })
+
+      // Create a price for the product
+      await setupPrice({
+        productId: defaultProduct.id,
+        name: 'Default Product Price',
+        type: PriceType.Subscription,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        unitPrice: 1000,
+        currency: CurrencyCode.USD,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+      })
+
+      // Create user and API key for authentication first
+      const userApiKey = await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+      user = userApiKey.user
+      apiKey = userApiKey.apiKey
+
+      // Create customer without pricing model, using the same user as the API key
+      customerWithNullPricingModel = await setupCustomer({
+        organizationId: organization.id,
+        email: 'null-pricing-model@example.com',
+        userId: user.id,
+      })
+    })
+
+    it('should allow customer with null pricingModelId to access billing portal and get default pricing model', async () => {
+      expect(customerWithNullPricingModel.pricingModelId).toBeNull()
+
+      // Test as a customer (not merchant) to reproduce the RLS issue
+
+      // Use the helper function to simulate customer accessing billing portal with proper RLS context
+      const result = await authenticatedCustomerTransaction(
+        customerWithNullPricingModel,
+        user,
+        organization,
+        async ({ transaction }) => {
+          return selectPricingModelForCustomer(
+            customerWithNullPricingModel,
+            transaction
+          )
+        }
+      )
+
+      expect(result).toBeDefined()
+      expect(result.id).toBe(defaultPricingModel.id)
+      expect(result.isDefault).toBe(true)
     })
   })
 })

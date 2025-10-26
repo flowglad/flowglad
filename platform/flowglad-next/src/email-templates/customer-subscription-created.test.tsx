@@ -100,10 +100,8 @@ describe('CustomerSubscriptionCreatedEmail', () => {
     )
 
     const button = getByTestId('manage-subscription-button')
-    const expectedUrl = core.billingPortalPageURL({
+    const expectedUrl = core.organizationBillingPortalURL({
       organizationId: baseProps.organizationId,
-      customerExternalId: baseProps.customerExternalId,
-      page: 'sign-in',
     })
 
     expect(button).toHaveAttribute('href', expectedUrl)

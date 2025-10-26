@@ -28,6 +28,7 @@ describe('productsRouter - Default Product Constraints', () => {
   let defaultProductId: string
   let defaultPriceId: string
   let regularProductId: string
+  let regularPriceId: string
   const livemode = true
 
   beforeEach(async () => {
@@ -58,7 +59,6 @@ describe('productsRouter - Default Product Constraints', () => {
           default: false,
           description: null,
           imageURL: null,
-          displayFeatures: null,
           singularQuantityLabel: null,
           pluralQuantityLabel: null,
           externalId: null,
@@ -83,13 +83,10 @@ describe('productsRouter - Default Product Constraints', () => {
           active: true,
           name: 'Regular Price',
           trialPeriodDays: null,
-          setupFeeAmount: null,
           usageEventsPerUnit: null,
           usageMeterId: null,
           externalId: null,
           slug: null,
-          startsWithCreditTrial: false,
-          overagePriceId: null,
         },
         transaction
       )
@@ -100,6 +97,7 @@ describe('productsRouter - Default Product Constraints', () => {
         defaultProductId: bookkeepingResult.result.defaultProduct.id,
         defaultPriceId: bookkeepingResult.result.defaultPrice.id,
         regularProductId: regularProduct.id,
+        regularPriceId: regularPrice.id,
       }
     })
 
@@ -108,6 +106,7 @@ describe('productsRouter - Default Product Constraints', () => {
     defaultProductId = result.defaultProductId
     defaultPriceId = result.defaultPriceId
     regularProductId = result.regularProductId
+    regularPriceId = result.regularPriceId
   })
 
   describe('createProduct', () => {
@@ -121,7 +120,6 @@ describe('productsRouter - Default Product Constraints', () => {
           active: true,
           description: '',
           imageURL: '',
-          displayFeatures: [],
           singularQuantityLabel: '',
           pluralQuantityLabel: '',
         })
@@ -140,7 +138,6 @@ describe('productsRouter - Default Product Constraints', () => {
             active: true,
             description: '',
             imageURL: '',
-            displayFeatures: [],
             singularQuantityLabel: '',
             pluralQuantityLabel: '',
           })
@@ -153,7 +150,6 @@ describe('productsRouter - Default Product Constraints', () => {
               default: false,
               description: null,
               imageURL: null,
-              displayFeatures: null,
               singularQuantityLabel: null,
               pluralQuantityLabel: null,
               externalId: null,
@@ -183,13 +179,10 @@ describe('productsRouter - Default Product Constraints', () => {
               active: true,
               name: 'Regular Price',
               trialPeriodDays: null,
-              setupFeeAmount: null,
               usageEventsPerUnit: null,
               usageMeterId: null,
               externalId: null,
               slug: null,
-              startsWithCreditTrial: false,
-              overagePriceId: null,
             },
             transaction
           )
@@ -239,7 +232,7 @@ describe('productsRouter - Default Product Constraints', () => {
       }).toThrow('Cannot change the default status of a product')
     })
 
-    it('should allow updating allowed fields on default products', async () => {
+    it('should allow updating allowed fields on default products (excluding slug)', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
           const existingProduct = await selectProductById(
@@ -251,7 +244,6 @@ describe('productsRouter - Default Product Constraints', () => {
           validateDefaultProductUpdate(
             {
               name: 'Updated Base Plan Name',
-              slug: 'updated-base-plan',
               description: 'Updated description',
             },
             existingProduct
@@ -262,7 +254,6 @@ describe('productsRouter - Default Product Constraints', () => {
             {
               id: defaultProductId,
               name: 'Updated Base Plan Name',
-              slug: 'updated-base-plan',
               description: 'Updated description',
             },
             transaction
@@ -274,7 +265,6 @@ describe('productsRouter - Default Product Constraints', () => {
 
       expect(result).toBeDefined()
       expect(result.name).toBe('Updated Base Plan Name')
-      expect(result.slug).toBe('updated-base-plan')
       expect(result.description).toBe('Updated description')
       expect(result.default).toBe(true) // Should remain default
     })
@@ -296,6 +286,18 @@ describe('productsRouter - Default Product Constraints', () => {
           )
         }).toThrow(
           'Cannot update the following fields on default products'
+        )
+
+        // Try to change slug (falls under generic disallowed fields validation)
+        expect(() => {
+          validateDefaultProductUpdate(
+            {
+              slug: 'should-not-allow-slug-changes',
+            } as any,
+            existingProduct
+          )
+        }).toThrow(
+          'Cannot update the following fields on default products: slug'
         )
       })
     })

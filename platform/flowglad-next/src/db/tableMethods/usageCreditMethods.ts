@@ -5,6 +5,7 @@ import {
   createSelectFunction,
   ORMMethodCreatorConfig,
   createBulkInsertFunction,
+  createBulkInsertOrDoNothingFunction,
 } from '@/db/tableUtils'
 import {
   usageCredits,
@@ -56,12 +57,31 @@ export const bulkInsertUsageCredits = createBulkInsertFunction(
   config
 )
 
+export const bulkInsertOrDoNothingUsageCredits =
+  createBulkInsertOrDoNothingFunction(usageCredits, config)
+
+export const bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter =
+  async (
+    usageCreditInserts: UsageCredit.Insert[],
+    transaction: DbTransaction
+  ) => {
+    return bulkInsertOrDoNothingUsageCredits(
+      usageCreditInserts,
+      [
+        usageCredits.paymentId,
+        usageCredits.subscriptionId,
+        usageCredits.usageMeterId,
+      ],
+      transaction
+    )
+  }
+
 /**
  * Safely finalizes usage credits for a succeeded payment.
  * This will set the status of all pending usage credits for the payment to posted.
  * This will not fail if some of the usage credits are already posted.
  *
- * TODO: design question: should this be for ALL usage meters? Or just one per?
+ * FIXME: design question: should this be for ALL usage meters? Or just one per?
  */
 export const safelyFinalizeUsageCreditForSucceededPayment = async (
   payment: Payment.Record,

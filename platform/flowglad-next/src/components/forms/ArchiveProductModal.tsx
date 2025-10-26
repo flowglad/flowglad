@@ -1,6 +1,14 @@
 'use client'
 
-import Modal from '@/components/ion/Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
@@ -16,6 +24,7 @@ interface ArchiveProductModalProps {
   product: {
     id: string
     active: boolean
+    name: string
   }
 }
 
@@ -26,13 +35,14 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
   product,
 }) => {
   const router = useRouter()
-  const editProduct = trpc.products.edit.useMutation()
+  const editProduct = trpc.products.update.useMutation()
 
   const handleArchive = async () => {
     const data: EditProductInput = {
       product: {
         id: product.id,
         active: !product.active,
+        name: product.name,
       },
       id: product.id,
     }
@@ -65,32 +75,37 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
   )
 
   return (
-    <Modal
-      trigger={trigger}
-      title={
-        product.active ? 'Deactivate product' : 'Activate product'
-      }
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      footer={
-        <div className="flex justify-end gap-3 w-full">
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleArchive}
-            disabled={editProduct.isPending}
-          >
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
             {product.active
               ? 'Deactivate product'
               : 'Activate product'}
-          </Button>
-        </div>
-      }
-      showClose
-    >
-      {modalText}
-    </Modal>
+          </DialogTitle>
+        </DialogHeader>
+        {modalText}
+        <DialogFooter>
+          <div className="flex justify-end gap-3 w-full">
+            <Button
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleArchive}
+              disabled={editProduct.isPending}
+            >
+              {product.active
+                ? 'Deactivate product'
+                : 'Activate product'}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

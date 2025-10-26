@@ -51,9 +51,6 @@ export type CheckoutPageContextValues = {
   product?: Nullish<Product.ClientRecord>
   flowType: CheckoutFlowType
   editCheckoutSessionLoading?: boolean
-  editCheckoutSession: ReturnType<
-    typeof trpc.purchases.updateSession.useMutation
-  >['mutateAsync']
   editCheckoutSessionPaymentMethodType: ReturnType<
     typeof trpc.checkoutSessions.public.setPaymentMethodType.useMutation
   >['mutateAsync']
@@ -64,10 +61,10 @@ export type CheckoutPageContextValues = {
     typeof trpc.checkoutSessions.public.setBillingAddress.useMutation
   >['mutateAsync']
   attemptDiscountCode: ReturnType<
-    typeof trpc.discounts.attempt.useMutation
+    typeof trpc.checkoutSessions.public.attemptDiscountCode.useMutation
   >['mutateAsync']
   clearDiscountCode: ReturnType<
-    typeof trpc.discounts.clear.useMutation
+    typeof trpc.checkoutSessions.public.clearDiscountCode.useMutation
   >['mutateAsync']
   editCheckoutSessionAutomaticallyUpdateSubscriptions: ReturnType<
     typeof trpc.checkoutSessions.public.setAutomaticallyUpdateSubscriptions.useMutation
@@ -138,8 +135,6 @@ export const useCheckoutPageContext =
   (): CheckoutPageContextValues => {
     const rawCheckoutInfo = useContext(CheckoutPageContext)
     const checkoutInfo = checkoutInfoSchema.parse(rawCheckoutInfo)
-    const editCheckoutSession =
-      trpc.purchases.updateSession.useMutation()
     const editCheckoutSessionPaymentMethodType =
       trpc.checkoutSessions.public.setPaymentMethodType.useMutation()
     const editCheckoutSessionCustomerEmail =
@@ -148,10 +143,19 @@ export const useCheckoutPageContext =
       trpc.checkoutSessions.public.setBillingAddress.useMutation()
     const editCheckoutSessionAutomaticallyUpdateSubscriptions =
       trpc.checkoutSessions.public.setAutomaticallyUpdateSubscriptions.useMutation()
-    const attemptDiscountCode = trpc.discounts.attempt.useMutation()
-    const clearDiscountCode = trpc.discounts.clear.useMutation()
+    const attemptDiscountCode =
+      trpc.checkoutSessions.public.attemptDiscountCode.useMutation()
+    const clearDiscountCode =
+      trpc.checkoutSessions.public.clearDiscountCode.useMutation()
     const router = useRouter()
-    const checkoutBlocked = editCheckoutSession.isPending ?? false
+    const checkoutBlocked =
+      (attemptDiscountCode.isPending ||
+        clearDiscountCode.isPending ||
+        editCheckoutSessionPaymentMethodType.isPending ||
+        editCheckoutSessionCustomerEmail.isPending ||
+        editCheckoutSessionBillingAddress.isPending ||
+        editCheckoutSessionAutomaticallyUpdateSubscriptions.isPending) ??
+      false
     const currency = currencyFromCheckoutInfoCore(checkoutInfo)
     const subscriptionDetails =
       subscriptionDetailsFromCheckoutInfoCore(checkoutInfo)
@@ -165,11 +169,6 @@ export const useCheckoutPageContext =
       },
       checkoutBlocked,
       currency,
-      editCheckoutSession: debounce(async (input) => {
-        const result = await editCheckoutSession.mutateAsync(input)
-        router.refresh()
-        return result
-      }, 500),
       editCheckoutSessionPaymentMethodType: debounce(
         async (input) => {
           const result =
@@ -227,3 +226,17 @@ const CheckoutPageProvider = ({
 }
 
 export default CheckoutPageProvider
+
+export const TestCheckoutPageProvider = ({
+  children,
+  values,
+}: {
+  children: React.ReactNode
+  values: CheckoutPageContextValues
+}) => {
+  return (
+    <CheckoutPageProvider values={values}>
+      {children}
+    </CheckoutPageProvider>
+  )
+}

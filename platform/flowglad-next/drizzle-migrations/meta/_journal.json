@@ -1674,6 +1674,62 @@
       "when": 1757270411408,
       "tag": "0239_sharp_kree",
       "breakpoints": true
+    },
+    {
+      "idx": 240,
+      "version": "7",
+      "when": 1757628314689,
+      "tag": "0240_soft_loki",
+      "breakpoints": true
+    },
+    {
+      "idx": 241,
+      "version": "7",
+      "when": 1759207480610,
+      "tag": "0241_jittery_unus",
+      "breakpoints": true
+    },
+    {
+      "idx": 242,
+      "version": "7",
+      "when": 1759290724875,
+      "tag": "0242_daily_carmella_unuscione",
+      "breakpoints": true
+    },
+    {
+      "idx": 243,
+      "version": "7",
+      "when": 1759428362022,
+      "tag": "0243_bizarre_guardsmen",
+      "breakpoints": true
+    },
+    {
+      "idx": 244,
+      "version": "7",
+      "when": 1759943373361,
+      "tag": "0244_daily_wildside",
+      "breakpoints": true
+    },
+    {
+      "idx": 245,
+      "version": "7",
+      "when": 1760123342826,
+      "tag": "0245_nifty_stark_industries",
+      "breakpoints": true
+    },
+    {
+      "idx": 246,
+      "version": "7",
+      "when": 1760763922496,
+      "tag": "0246_soft_shriek",
+      "breakpoints": true
+    },
+    {
+      "idx": 247,
+      "version": "7",
+      "when": 1760925281638,
+      "tag": "0247_thankful_gladiator",
+      "breakpoints": true
     }
   ]
 }

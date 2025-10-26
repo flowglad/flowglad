@@ -22,7 +22,7 @@ import {
 } from '@/db/schema/customers'
 import { setupPurchase } from '@/../seedDatabase'
 import { Organization } from '@/db/schema/organizations'
-import { UserRecord } from '@/db/schema/users'
+import { User } from '@/db/schema/users'
 
 describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId', () => {
   let targetEmail: string
@@ -294,8 +294,8 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 describe('setUserIdForCustomerRecords', () => {
   let organization: Organization.Record
   let targetEmail: string
-  let user1: UserRecord
-  let user2: UserRecord
+  let user1: User.Record
+  let user2: User.Record
 
   beforeEach(async () => {
     // Set up organization
@@ -803,6 +803,7 @@ describe('Customer uniqueness constraints', () => {
       // Attempt to create duplicate using raw insert
       await expect(
         adminTransaction(async ({ transaction }) => {
+          // @ts-expect-error - intentionally setting null for test
           await transaction.insert(customers).values({
             id: `cust_${core.nanoid()}`,
             organizationId: organization1.id,
@@ -810,7 +811,7 @@ describe('Customer uniqueness constraints', () => {
             email: `customer2_${core.nanoid()}@test.com`,
             name: 'Customer 2',
             livemode: true,
-            createdAt: new Date(),
+            createdAt: Date.now(),
             updatedAt: new Date(),
           })
         })
@@ -847,8 +848,8 @@ describe('Customer uniqueness constraints', () => {
             email: `customer_${core.nanoid()}@test.com`,
             name: 'Customer with null externalId',
             livemode: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
           })
         })
       ).rejects.toThrow()

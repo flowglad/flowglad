@@ -85,7 +85,7 @@ const PayPurchasePage = async ({
     ? await getSetupIntent(checkoutSession.stripeSetupIntentId)
     : await getPaymentIntent(checkoutSession.stripePaymentIntentId!)
   /**
-   * TODO: more helpful error screen
+   * FIXME: more helpful error screen
    */
   if (!stripeIntent) {
     notFound()
@@ -111,7 +111,7 @@ const PayPurchasePage = async ({
     purchase,
     redirectUrl: core.safeUrl(
       `/purchase/post-payment`,
-      core.envVariable('NEXT_PUBLIC_APP_URL')
+      core.NEXT_PUBLIC_APP_URL
     ),
     clientSecret: stripeIntent.client_secret,
   })

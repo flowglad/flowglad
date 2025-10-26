@@ -176,18 +176,6 @@ export type PaymentRefundedLedgerCommand = z.infer<
   typeof paymentRefundedLedgerCommandSchema
 >
 
-export const billingRecalculatedLedgerCommandSchema = z.object({
-  ...baseLedgerCommandFields,
-  type: z.literal(LedgerTransactionType.BillingRecalculated),
-  payload: z.object({
-    newCalculation: subscriptionMeterPeriodCalculationSelectSchema, // Its calculationRunId is initiatingSourceId
-    oldCalculation: subscriptionMeterPeriodCalculationSelectSchema,
-  }),
-})
-export type BillingRecalculatedLedgerCommand = z.infer<
-  typeof billingRecalculatedLedgerCommandSchema
->
-
 export const settleInvoiceUsageCostsLedgerCommandSchema = z.object({
   ...baseLedgerCommandFields,
   type: z.literal(LedgerTransactionType.SettleInvoiceUsageCosts),
@@ -207,7 +195,6 @@ export const ledgerCommandSchema = z.discriminatedUnion('type', [
   adminCreditAdjustedLedgerCommandSchema,
   creditGrantExpiredLedgerCommandSchema,
   paymentRefundedLedgerCommandSchema,
-  billingRecalculatedLedgerCommandSchema,
   settleInvoiceUsageCostsLedgerCommandSchema,
 ])
 
@@ -223,4 +210,10 @@ export interface OutstandingUsageCostAggregation {
   usageMeterId: string
   subscriptionId: string
   outstandingBalance: number
+  priceId: string
+  usageEventsPerUnit: number
+  unitPrice: number
+  livemode: boolean
+  name: string | null
+  description: string | null
 }

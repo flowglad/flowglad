@@ -1,8 +1,8 @@
 'use client'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
-import PageTitle from '@/components/ion/PageTitle'
-import PurchasesTable from '@/app/customers/[id]/PurchasesTable'
+import { PageHeader } from '@/components/ui/page-header'
+import { PurchasesDataTable } from './data-table'
 
 const InnerPurchasesPage = ({
   organizationId,
@@ -13,11 +13,9 @@ const InnerPurchasesPage = ({
     <InternalPageContainer>
       <div className="w-full relative flex flex-col justify-center gap-8 pb-6">
         <Breadcrumb />
-        <div className="flex flex-row justify-between items-center mb-6 gap-8">
-          <PageTitle>Purchases</PageTitle>
-        </div>
+        <PageHeader title="Purchases" className="mb-6" />
       </div>
-      <PurchasesTable />
+      <PurchasesDataTable filters={{ organizationId }} />
     </InternalPageContainer>
   )
 }

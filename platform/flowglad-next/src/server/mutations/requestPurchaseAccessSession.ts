@@ -56,7 +56,7 @@ export const requestPurchaseAccessSession = publicProcedure
       const verificationURL =
         core.safeUrl(
           `/purchase/verify/${purchase.id}`,
-          core.envVariable('NEXT_PUBLIC_APP_URL')
+          core.NEXT_PUBLIC_APP_URL
         ) + `?token=${purchaseAccessSession.token}`
 
       await sendPurchaseAccessSessionTokenEmail({

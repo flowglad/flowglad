@@ -28,13 +28,15 @@ import {
 import { useAuthContext } from '@/contexts/authContext'
 import { SubscriptionItemType } from '@/types'
 
-export const newInvoiceLineItem: InvoiceLineItem.ClientInsert = {
-  type: SubscriptionItemType.Static,
-  description: '',
-  quantity: 1,
-  price: 0,
-  priceId: null,
-}
+export const newInvoiceLineItem: CreateInvoiceInput['invoiceLineItems'][0] =
+  {
+    type: SubscriptionItemType.Static,
+    description: '',
+    quantity: 1,
+    price: 0,
+    priceId: null,
+  }
+
 export const InvoiceFormLineItemsField = () => {
   const { livemode } = useAuthContext()
   const { control, setValue, watch } =
@@ -82,7 +84,7 @@ export const InvoiceFormLineItemsField = () => {
             size="default"
             className="opacity-0"
           >
-            <GripVertical size={16} />
+            <GripVertical className="w-4 h-4 mr-2" />
           </Button>
           <Label className="flex-1">Item</Label>
         </div>
@@ -119,8 +121,8 @@ export const InvoiceFormLineItemsField = () => {
         size="sm"
         onClick={addAnItemClickHandler}
       >
-        <Plus size={16} />
-        Add Item
+        <Plus className="w-4 h-4 mr-2" />
+        Add Line Item
       </Button>
     </div>
   )

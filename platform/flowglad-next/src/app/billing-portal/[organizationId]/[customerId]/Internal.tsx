@@ -75,6 +75,8 @@ function BillingPortalPage() {
         `/billing-portal/${organizationId}/select-customer`
       )
     }
+    // FIXME(FG-384): Fix this warning:
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     session,
     customersData,
@@ -136,7 +138,7 @@ function BillingPortalPage() {
     window.open(
       core.safeUrl(
         `/invoice/view/${organizationId}/${invoiceId}`,
-        process.env.NEXT_PUBLIC_APP_URL!
+        core.NEXT_PUBLIC_APP_URL
       ),
       '_blank'
     )
@@ -221,8 +223,12 @@ function BillingPortalPage() {
                     name: currentSubscription.name || 'Subscription',
                     status:
                       currentSubscription.status as SubscriptionStatus,
-                    currentPeriodEnd,
-                    currentPeriodStart,
+                    currentPeriodEnd: currentPeriodEnd
+                      ? new Date(currentPeriodEnd)
+                      : undefined,
+                    currentPeriodStart: currentPeriodStart
+                      ? new Date(currentPeriodStart)
+                      : undefined,
                     cancelAtPeriodEnd,
                     canceledAt: canceledAt
                       ? new Date(canceledAt)
@@ -298,8 +304,10 @@ function BillingPortalPage() {
                     id: invoice.id,
                     number: invoice.invoiceNumber,
                     status: invoice.status,
-                    created: invoice.createdAt,
-                    dueDate: new Date(invoice.dueDate),
+                    created: new Date(invoice.createdAt),
+                    dueDate: invoice.dueDate
+                      ? new Date(invoice.dueDate)
+                      : undefined,
                     amountDue: 0,
                     currency: invoice.currency,
                     hostedInvoiceUrl: invoice.pdfURL || undefined,

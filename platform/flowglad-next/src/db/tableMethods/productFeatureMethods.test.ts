@@ -3,6 +3,7 @@ import {
   unexpireProductFeatures,
   syncProductFeatures,
   selectProductFeatures,
+  selectFeaturesByProductFeatureWhere,
 } from './productFeatureMethods'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
@@ -60,13 +61,13 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     await setupProductFeature({
       productId: product.id,
@@ -150,13 +151,13 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     // - Call `unexpireProductFeatures` with a list containing only the ID for Feature A and a non-existent Feature C.
     const result = await adminTransaction(async ({ transaction }) => {
@@ -189,7 +190,7 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
 
     // - Call `unexpireProductFeatures` with an empty `featureIds` array.
@@ -214,7 +215,7 @@ describe('unexpireProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     // - Create a second, different product.
     const otherProduct = await setupProduct({
@@ -320,13 +321,13 @@ describe('syncProductFeatures', () => {
       productId: product.id,
       featureId: featureA.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     await setupProductFeature({
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` matching the two expired features.
@@ -371,7 +372,7 @@ describe('syncProductFeatures', () => {
       productId: product.id,
       featureId: featureC.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
     // - Feature D is a new feature that doesn't have a product feature record yet.
 
@@ -424,7 +425,7 @@ describe('syncProductFeatures', () => {
       productId: product.id,
       featureId: featureB.id,
       organizationId: organization.id,
-      expiredAt: new Date(),
+      expiredAt: Date.now(),
     })
 
     // - Call `syncProductFeatures` with `desiredFeatureIds` = `['feature_A_id']`.
@@ -454,5 +455,232 @@ describe('syncProductFeatures', () => {
     )
     expect(featureAState?.expiredAt).toBeNull()
     expect(featureBState?.expiredAt).not.toBeNull()
+  })
+})
+
+describe('selectFeaturesByProductFeatureWhere', () => {
+  it('should only return active features (expiredAt is null)', async () => {
+    // Create active features
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: null, // active
+    })
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureB.id,
+      organizationId: organization.id,
+      expiredAt: null, // active
+    })
+
+    // Create expired features
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureC.id,
+      organizationId: organization.id,
+      expiredAt: Date.now() - 1000, // expired in the past
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectFeaturesByProductFeatureWhere(
+        { productId: product.id },
+        transaction
+      )
+    })
+
+    // Should only return active features (A and B)
+    expect(result).toHaveLength(2)
+    const returnedFeatureIds = result.map((r) => r.feature.id)
+    expect(returnedFeatureIds).toContain(featureA.id)
+    expect(returnedFeatureIds).toContain(featureB.id)
+    expect(returnedFeatureIds).not.toContain(featureC.id)
+  })
+
+  it('should return features that expire in the future', async () => {
+    const futureTime = Date.now() + 24 * 60 * 60 * 1000 // 24 hours from now
+
+    // Create a feature that expires in the future
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: futureTime,
+    })
+
+    // Create a feature that never expires
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureB.id,
+      organizationId: organization.id,
+      expiredAt: null,
+    })
+
+    // Create a feature that already expired
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureC.id,
+      organizationId: organization.id,
+      expiredAt: Date.now() - 1000, // expired in the past
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectFeaturesByProductFeatureWhere(
+        { productId: product.id },
+        transaction
+      )
+    })
+
+    // Should return both the future-expiring feature and the never-expiring feature
+    expect(result).toHaveLength(2)
+    const returnedFeatureIds = result.map((r) => r.feature.id)
+    expect(returnedFeatureIds).toContain(featureA.id) // future expiration
+    expect(returnedFeatureIds).toContain(featureB.id) // never expires
+    expect(returnedFeatureIds).not.toContain(featureC.id) // already expired
+  })
+
+  it('should not return features that have already expired', async () => {
+    const pastTime = Date.now() - 1000 // 1 second ago
+
+    // Create features with past expiration
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: pastTime,
+    })
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureB.id,
+      organizationId: organization.id,
+      expiredAt: pastTime,
+    })
+
+    // Create one active feature for comparison
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureC.id,
+      organizationId: organization.id,
+      expiredAt: null,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectFeaturesByProductFeatureWhere(
+        { productId: product.id },
+        transaction
+      )
+    })
+
+    // Should only return the active feature
+    expect(result).toHaveLength(1)
+    expect(result[0].feature.id).toBe(featureC.id)
+  })
+
+  it('should return empty array when all features are expired', async () => {
+    const pastTime = Date.now() - 1000
+
+    // Create only expired features
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: pastTime,
+    })
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureB.id,
+      organizationId: organization.id,
+      expiredAt: pastTime,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectFeaturesByProductFeatureWhere(
+        { productId: product.id },
+        transaction
+      )
+    })
+
+    // Should return empty array
+    expect(result).toHaveLength(0)
+  })
+
+  it('should handle mixed expiration states correctly', async () => {
+    const pastTime = Date.now() - 1000
+    const futureTime = Date.now() + 24 * 60 * 60 * 1000 // 24 hours from now
+
+    // Feature A: Never expires (null)
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: null,
+    })
+
+    // Feature B: Expires in the future
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureB.id,
+      organizationId: organization.id,
+      expiredAt: futureTime,
+    })
+
+    // Feature C: Already expired
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureC.id,
+      organizationId: organization.id,
+      expiredAt: pastTime,
+    })
+
+    // Feature D: Expires in the future (different time)
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureD.id,
+      organizationId: organization.id,
+      expiredAt: futureTime + 1000,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectFeaturesByProductFeatureWhere(
+        { productId: product.id },
+        transaction
+      )
+    })
+
+    // Should return A, B, and D (not C)
+    expect(result).toHaveLength(3)
+    const returnedFeatureIds = result.map((r) => r.feature.id)
+    expect(returnedFeatureIds).toContain(featureA.id) // never expires
+    expect(returnedFeatureIds).toContain(featureB.id) // future expiration
+    expect(returnedFeatureIds).toContain(featureD.id) // future expiration
+    expect(returnedFeatureIds).not.toContain(featureC.id) // already expired
+  })
+
+  it('should work with specific feature filtering', async () => {
+    // Create active and expired features
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureA.id,
+      organizationId: organization.id,
+      expiredAt: null, // active
+    })
+    await setupProductFeature({
+      productId: product.id,
+      featureId: featureB.id,
+      organizationId: organization.id,
+      expiredAt: Date.now() - 1000, // expired
+    })
+
+    // Query for specific feature
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectFeaturesByProductFeatureWhere(
+        { productId: product.id, featureId: featureA.id },
+        transaction
+      )
+    })
+
+    // Should return only the active feature A
+    expect(result).toHaveLength(1)
+    expect(result[0].feature.id).toBe(featureA.id)
   })
 })

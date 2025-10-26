@@ -1,23 +1,32 @@
-// Generated with Ion on 11/15/2024, 6:09:53 PM
-// Figma Link: https://www.figma.com/design/3fYHKpBnD7eYSAmfSvPhvr?node-id=1210:41903
 'use client'
 import { Button } from '@/components/ui/button'
-import { ProductsTable } from '@/app/store/products/ProductsTable'
+import { ProductsDataTable } from '@/app/store/products/data-table'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
-import PageTitle from '@/components/ion/PageTitle'
-import { Pencil, Plus } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Pencil, Plus, Ellipsis } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
-import CustomersTable from '@/app/customers/CustomersTable'
-import TableTitle from '@/components/ion/TableTitle'
-import FeaturesTable from '@/app/features/FeaturesTable'
+import { CustomersDataTable } from '@/app/customers/data-table'
+import { TableHeader } from '@/components/ui/table-header'
+import { FeaturesDataTable } from '@/app/features/data-table'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
+import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import DefaultBadge from '@/components/DefaultBadge'
-import UsageMetersTable from '@/app/store/usage-meters/UsageMetersTable'
+import { UsageMetersDataTable } from '@/app/store/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import PopoverMenu, {
+  PopoverMenuItem,
+} from '@/components/PopoverMenu'
+import { trpc } from '@/app/_trpc/client'
+import { toast } from 'sonner'
 
 export type InnerPricingModelDetailsPageProps = {
   pricingModel: PricingModel.ClientRecord
@@ -29,12 +38,74 @@ function InnerPricingModelDetailsPage({
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
     useState(false)
+  const [isCreateCustomerModalOpen, setIsCreateCustomerModalOpen] =
+    useState(false)
   const [isCreateFeatureModalOpen, setIsCreateFeatureModalOpen] =
     useState(false)
   const [
     isCreateUsageMeterModalOpen,
     setIsCreateUsageMeterModalOpen,
   ] = useState(false)
+  const [activeProductFilter, setActiveProductFilter] =
+    useState<string>('all')
+  const {
+    data: exportPricingModelData,
+    refetch,
+    isFetching,
+  } = trpc.pricingModels.export.useQuery(
+    {
+      id: pricingModel.id,
+    },
+    {
+      enabled: false, // Only fetch when user clicks export
+    }
+  )
+
+  // Filter options for the button group
+  const productFilterOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+  ]
+
+  const getProductFilterForTab = (tab: string) => {
+    const baseFilter = { pricingModelId: pricingModel.id }
+
+    if (tab === 'all') {
+      return baseFilter
+    }
+
+    return {
+      ...baseFilter,
+      active: tab === 'active',
+    }
+  }
+
+  const exportPricingModelHandler = async () => {
+    const result = await refetch()
+    const pricingModelYAML = result.data?.pricingModelYAML
+
+    if (pricingModelYAML) {
+      const blob = new Blob([pricingModelYAML], { type: 'text/yaml' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `pricing-${pricingModel.id}.yaml`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Pricing model exported successfully')
+    } else {
+      toast.error('Failed to export pricing model')
+    }
+  }
+
+  const moreMenuItems: PopoverMenuItem[] = [
+    {
+      label: 'Export',
+      handler: () => exportPricingModelHandler(),
+      helperText: 'Export pricing model as YAML file',
+    },
+  ]
 
   return (
     <InternalPageContainer>
@@ -43,63 +114,73 @@ function InnerPricingModelDetailsPage({
           <Breadcrumb />
           <div className="flex flex-row items-center justify-between">
             <div className="flex flex-row items-center gap-2 min-w-0 overflow-hidden mr-4">
-              <PageTitle className="truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                {pricingModel.name}
-              </PageTitle>
+              <PageHeader
+                title={pricingModel.name}
+                className="truncate whitespace-nowrap overflow-hidden text-ellipsis"
+              />
               {pricingModel.isDefault && <DefaultBadge />}
             </div>
             <div className="flex flex-row gap-4 justify-end flex-shrink-0">
               <Button onClick={() => setIsEditOpen(true)}>
-                <Pencil size={16} />
+                <Pencil className="w-4 h-4 mr-2" />
                 Edit
               </Button>
+              <Popover>
+                <PopoverTrigger className="flex">
+                  <Button
+                    className="flex justify-center items-center border-primary"
+                    variant="outline"
+                    asChild
+                  >
+                    <span>
+                      <Ellipsis className="rotate-90 w-4 h-6" />
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-fit" align="end">
+                  <PopoverMenu items={moreMenuItems} />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-5">
-          <TableTitle
-            title="Products"
-            buttonLabel="Create Product"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
-              setIsCreateProductModalOpen(true)
-            }}
-          />
-          <ProductsTable
-            filters={{ pricingModelId: pricingModel.id }}
+          <ProductsDataTable
+            filters={getProductFilterForTab(activeProductFilter)}
+            filterOptions={productFilterOptions}
+            activeFilter={activeProductFilter}
+            onFilterChange={setActiveProductFilter}
+            onCreateProduct={() => setIsCreateProductModalOpen(true)}
+            buttonVariant="outline"
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableTitle title="Customers" noButtons />
-          <CustomersTable
+          <CustomersDataTable
+            title="Customers"
             filters={{ pricingModelId: pricingModel.id }}
+            onCreateCustomer={() =>
+              setIsCreateCustomerModalOpen(true)
+            }
+            buttonVariant="outline"
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableTitle
+          <FeaturesDataTable
             title="Features"
-            buttonLabel="Create Feature"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
-              setIsCreateFeatureModalOpen(true)
-            }}
-          />
-          <FeaturesTable
             filters={{ pricingModelId: pricingModel.id }}
+            onCreateFeature={() => setIsCreateFeatureModalOpen(true)}
+            buttonVariant="outline"
           />
         </div>
         <div className="flex flex-col gap-5">
-          <TableTitle
+          <UsageMetersDataTable
             title="Usage Meters"
-            buttonLabel="Create Usage Meter"
-            buttonIcon={<Plus size={16} />}
-            buttonOnClick={() => {
-              setIsCreateUsageMeterModalOpen(true)
-            }}
-          />
-          <UsageMetersTable
             filters={{ pricingModelId: pricingModel.id }}
+            onCreateUsageMeter={() =>
+              setIsCreateUsageMeterModalOpen(true)
+            }
+            buttonVariant="outline"
           />
         </div>
       </div>
@@ -113,6 +194,10 @@ function InnerPricingModelDetailsPage({
         setIsOpen={setIsCreateProductModalOpen}
         defaultPricingModelId={pricingModel.id}
       />
+      <CreateCustomerFormModal
+        isOpen={isCreateCustomerModalOpen}
+        setIsOpen={setIsCreateCustomerModalOpen}
+      />
       <CreateFeatureModal
         isOpen={isCreateFeatureModalOpen}
         setIsOpen={setIsCreateFeatureModalOpen}
@@ -121,6 +206,7 @@ function InnerPricingModelDetailsPage({
       <CreateUsageMeterModal
         isOpen={isCreateUsageMeterModalOpen}
         setIsOpen={setIsCreateUsageMeterModalOpen}
+        defaultPricingModelId={pricingModel.id}
       />
     </InternalPageContainer>
   )
