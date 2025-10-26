@@ -6,8 +6,11 @@ import {
   CustomersPaginatedTableRowInput,
 } from '@/db/schema/customers'
 import { selectCustomersCursorPaginatedWithTableRowData } from '@/db/tableMethods/customerMethods'
+import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { getSession } from '@/utils/auth'
 import { createCustomersCsv } from '@/utils/csv-export'
+import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
+import { CurrencyCode } from '@/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,37 +63,59 @@ export async function GET(request: NextRequest) {
     const filters = buildFiltersFromRequest(request)
     const searchQuery = parseSearchQuery(request)
 
-    const items = await authenticatedTransaction<
-      CustomerTableRowData[]
-    >(async ({ transaction }) => {
-      const rows: CustomerTableRowData[] = []
-      let pageAfter: string | undefined
+    const user = await betterAuthUserToApplicationUser(session.user)
 
-      while (true) {
-        const response =
-          await selectCustomersCursorPaginatedWithTableRowData({
-            input: {
-              pageAfter,
-              pageSize: PAGE_SIZE,
-              filters,
-              searchQuery,
-            },
-            transaction,
-          })
+    const { items, defaultCurrency } =
+      await authenticatedTransaction<{
+        items: CustomerTableRowData[]
+        defaultCurrency: CurrencyCode
+      }>(async ({ transaction }) => {
+        // Get the user's focused organization to access its default currency
+        const focusedMembership =
+          await selectFocusedMembershipAndOrganization(
+            user.id,
+            transaction
+          )
 
-        rows.push(...response.items)
-
-        if (!response.hasNextPage || !response.endCursor) {
-          break
+        if (!focusedMembership) {
+          throw new Error('No focused membership found')
         }
 
-        pageAfter = response.endCursor
-      }
+        const rows: CustomerTableRowData[] = []
+        let pageAfter: string | undefined
 
-      return rows
-    })
+        while (true) {
+          const response =
+            await selectCustomersCursorPaginatedWithTableRowData({
+              input: {
+                pageAfter,
+                pageSize: PAGE_SIZE,
+                filters,
+                searchQuery,
+              },
+              transaction,
+            })
 
-    const { csv, filename } = createCustomersCsv(items)
+          rows.push(...response.items)
+
+          if (!response.hasNextPage || !response.endCursor) {
+            break
+          }
+
+          pageAfter = response.endCursor
+        }
+
+        return {
+          items: rows,
+          defaultCurrency:
+            focusedMembership.organization.defaultCurrency,
+        }
+      })
+
+    const { csv, filename } = createCustomersCsv(
+      items,
+      defaultCurrency as CurrencyCode
+    )
 
     return new NextResponse(csv, {
       status: 200,

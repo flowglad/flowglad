@@ -26,10 +26,13 @@ const escapeCsvValue = (
   return `"${escaped}"`
 }
 
-const formatCurrency = (amount: number | undefined) => {
+const formatCurrency = (
+  amount: number | undefined,
+  currency: CurrencyCode = CurrencyCode.USD
+) => {
   const safeAmount = Number(amount ?? 0)
   return stripeCurrencyAmountToHumanReadableCurrencyAmount(
-    CurrencyCode.USD,
+    currency,
     safeAmount
   )
 }
@@ -48,6 +51,7 @@ const formatTimestampedFilename = (prefix: string, date: Date) => {
 
 export const createCustomersCsv = (
   rows: CustomerTableRowData[],
+  currency: CurrencyCode = CurrencyCode.USD,
   now: Date = new Date()
 ) => {
   const header = CSV_HEADERS.map(escapeCsvValue).join(',')
@@ -56,7 +60,7 @@ export const createCustomersCsv = (
     const fields = [
       row.customer.name,
       row.customer.email,
-      formatCurrency(row.totalSpend),
+      formatCurrency(row.totalSpend, currency),
       row.payments ?? 0,
       formatDate(row.customer.createdAt),
       row.customer.id,
