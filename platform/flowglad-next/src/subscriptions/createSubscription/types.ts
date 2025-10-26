@@ -32,6 +32,7 @@ export interface CreateSubscriptionParams {
   backupPaymentMethod?: PaymentMethod.Record
   autoStart?: boolean
   discountRedemption?: DiscountRedemption.Record | null
+  previousSubscriptionId?: string // ID of canceled free subscription when upgrading
   billingCycleAnchorDate?: Date | number
   preservedBillingPeriodEnd?: Date | number
   preservedBillingPeriodStart?: Date | number

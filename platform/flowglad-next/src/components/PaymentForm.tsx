@@ -180,9 +180,9 @@ const PaymentForm = () => {
   const [emailError, setEmailError] = useState<string | undefined>(
     undefined
   )
-  const [addressError, setAddressError] = useState<string | undefined>(
-    undefined
-  )
+  const [addressError, setAddressError] = useState<
+    string | undefined
+  >(undefined)
   const embedsReady =
     emailEmbedReady && paymentEmbedReady && addressEmbedReady
   const [errorMessage, setErrorMessage] = useState<
@@ -277,11 +277,15 @@ const PaymentForm = () => {
           setIsSubmitting(false)
           return
         }
-        
-        const addressValidation = billingAddressSchema.safeParse(checkoutSession.billingAddress)
-        
+
+        const addressValidation = billingAddressSchema.safeParse(
+          checkoutSession.billingAddress
+        )
+
         if (!addressValidation.success) {
-          setAddressError('Please fill in all required address fields')
+          setAddressError(
+            'Please fill in all required address fields'
+          )
           setIsSubmitting(false)
           return
         }
@@ -507,7 +511,9 @@ const PaymentForm = () => {
               setTimeout(forceStripeElementsReflow, 100)
             }}
             onChange={async (event) => {
-              if (checkoutSession.status === CheckoutSessionStatus.Open) {
+              if (
+                checkoutSession.status === CheckoutSessionStatus.Open
+              ) {
                 try {
                   await editCheckoutSessionBillingAddress({
                     id: checkoutSession.id,

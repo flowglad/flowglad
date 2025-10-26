@@ -71,7 +71,7 @@ export const confirmCheckoutSessionTransaction = async (
     let customer: Customer.Record | null = null
     let customerEvents: Event.Insert[] = []
     let customerLedgerCommand: LedgerCommand | undefined = undefined
-    
+
     if (checkoutSession.customerId) {
       // Find customer
       customer = await selectCustomerById(
@@ -114,9 +114,9 @@ export const confirmCheckoutSessionTransaction = async (
           livemode: checkoutSession.livemode,
         }
       )
-      
+
       customer = customerResult.result.customer
-      
+
       // Store events/ledger from customer creation to bubble up
       customerEvents = customerResult.eventsToInsert || []
       customerLedgerCommand = customerResult.ledgerCommand
@@ -208,7 +208,8 @@ export const confirmCheckoutSessionTransaction = async (
       result: {
         customer,
       },
-      eventsToInsert: customerEvents.length > 0 ? customerEvents : undefined,
+      eventsToInsert:
+        customerEvents.length > 0 ? customerEvents : undefined,
       ledgerCommand: customerLedgerCommand,
     }
   } catch (error) {

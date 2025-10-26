@@ -20,10 +20,12 @@ import { Invoice } from '@/db/schema/invoices'
 export const processNonPaymentCheckoutSession = async (
   checkoutSession: CheckoutSession.Record,
   transaction: DbTransaction
-): Promise<TransactionOutput<{
-  purchase: Purchase.Record
-  invoice: Invoice.Record
-}>> => {
+): Promise<
+  TransactionOutput<{
+    purchase: Purchase.Record
+    invoice: Invoice.Record
+  }>
+> => {
   checkoutSession = await updateCheckoutSession(
     {
       ...checkoutSession,

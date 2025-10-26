@@ -122,7 +122,8 @@ export const updateOrganizationOnboardingStatus = async (
       )
 
       if (
-        newOnboardingStatus === BusinessOnboardingStatus.FullyOnboarded &&
+        newOnboardingStatus ===
+          BusinessOnboardingStatus.FullyOnboarded &&
         !organization.payoutsEnabled
       ) {
         await idempotentSendPayoutNotification(organization.id)

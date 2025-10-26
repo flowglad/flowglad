@@ -3,15 +3,15 @@ import { sendPayoutNotificationEmail } from '@/utils/email'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { adminTransaction } from '@/db/adminTransaction'
-import { createTriggerIdempotencyKey, testSafeTriggerInvoker } from '@/utils/backendCore'
+import {
+  createTriggerIdempotencyKey,
+  testSafeTriggerInvoker,
+} from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 
 export const sendPayoutNotificationTask = task({
   id: 'send-payout-notification',
-  run: async (
-    payload: { organizationId: string },
-    { ctx }
-  ) => {
+  run: async (payload: { organizationId: string }, { ctx }) => {
     logger.log('Sending payout notification', {
       organizationId: payload.organizationId,
       ctx,
@@ -57,8 +57,8 @@ export const sendPayoutNotificationTask = task({
   },
 })
 
-export const idempotentSendPayoutNotification = testSafeTriggerInvoker(
-  async (organizationId: string) => {
+export const idempotentSendPayoutNotification =
+  testSafeTriggerInvoker(async (organizationId: string) => {
     await sendPayoutNotificationTask.trigger(
       { organizationId },
       {
@@ -67,5 +67,4 @@ export const idempotentSendPayoutNotification = testSafeTriggerInvoker(
         ),
       }
     )
-  }
-)
+  })

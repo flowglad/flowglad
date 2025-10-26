@@ -25,7 +25,11 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
   if (!paymentData) {
     throw new Error('No payment data items provided')
   }
-  const totals = calculateInvoiceTotalsRaw(invoiceLineItems, invoice, discountInfo)
+  const totals = calculateInvoiceTotalsRaw(
+    invoiceLineItems,
+    invoice,
+    discountInfo
+  )
   const billingAddress = customer.billingAddress
 
   return (

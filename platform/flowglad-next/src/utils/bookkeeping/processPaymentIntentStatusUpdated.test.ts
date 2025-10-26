@@ -72,8 +72,10 @@ import {
   selectUsageCredits,
 } from '@/db/tableMethods/usageCreditMethods'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
-import { createMockStripeCharge, createMockPaymentIntent } from '@/test/helpers/stripeMocks'
- 
+import {
+  createMockStripeCharge,
+  createMockPaymentIntent,
+} from '@/test/helpers/stripeMocks'
 
 // Mock getStripeCharge
 vi.mock('../stripe', async () => {
@@ -857,10 +859,18 @@ describe('Process payment intent status updated', async () => {
       )
       expect(result2.payment.id).toEqual(result1.payment.id)
       expect(result2.payment.amount).toEqual(result1.payment.amount)
-      expect(result2.payment.stripeChargeId).toEqual(result1.payment.stripeChargeId)
-      expect(result2.payment.paymentMethodId).toEqual(result1.payment.paymentMethodId)
-      expect(result2.payment.invoiceId).toEqual(result1.payment.invoiceId)
-      expect(result2.payment.purchaseId).toEqual(result1.payment.purchaseId)
+      expect(result2.payment.stripeChargeId).toEqual(
+        result1.payment.stripeChargeId
+      )
+      expect(result2.payment.paymentMethodId).toEqual(
+        result1.payment.paymentMethodId
+      )
+      expect(result2.payment.invoiceId).toEqual(
+        result1.payment.invoiceId
+      )
+      expect(result2.payment.purchaseId).toEqual(
+        result1.payment.purchaseId
+      )
       expect(result2.payment.status).toEqual(result1.payment.status)
     })
 
@@ -2226,7 +2236,7 @@ describe('Process payment intent status updated', async () => {
             quantity: 1,
             livemode: true,
           })
-          
+
           // Update to remove customer ID to make it anonymous
           return updateCheckoutSession(
             {
@@ -2250,70 +2260,72 @@ describe('Process payment intent status updated', async () => {
         })
       })
 
-         const mockPaymentIntent = {
-           id: `pi_${core.nanoid()}`,
-           status: 'succeeded' as const,
-           metadata: {
-             type: 'checkout_session',
-             checkoutSessionId: anonymousCheckoutSession.id,
-           },
-           latest_charge: `ch_${core.nanoid()}`,
-         }
+      const mockPaymentIntent = {
+        id: `pi_${core.nanoid()}`,
+        status: 'succeeded' as const,
+        metadata: {
+          type: 'checkout_session',
+          checkoutSessionId: anonymousCheckoutSession.id,
+        },
+        latest_charge: `ch_${core.nanoid()}`,
+      }
 
-         // Mock the Stripe charge
-         const mockCharge = createMockStripeCharge({
-           id: mockPaymentIntent.latest_charge,
-           payment_intent: mockPaymentIntent.id,
-           status: 'succeeded',
-           amount: 10000,
-           currency: 'usd',
-           payment_method_details: {
-             type: 'card',
-             card: {
-               brand: 'visa',
-               last4: '4242',
-               amount_authorized: 10000,
-               authorization_code: '123456',
-               checks: {
-                 address_line1_check: 'pass',
-                 address_postal_code_check: 'pass',
-                 cvc_check: 'pass',
-               },
-               country: 'US',
-               exp_month: 1,
-               exp_year: 2024,
-               funding: 'credit',
-               installments: null,
-               mandate: null,
-               network: 'visa',
-               three_d_secure: null,
-               wallet: null,
-             },
-           },
-         })
-         vi.mocked(getStripeCharge).mockResolvedValue(mockCharge)
+      // Mock the Stripe charge
+      const mockCharge = createMockStripeCharge({
+        id: mockPaymentIntent.latest_charge,
+        payment_intent: mockPaymentIntent.id,
+        status: 'succeeded',
+        amount: 10000,
+        currency: 'usd',
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+            amount_authorized: 10000,
+            authorization_code: '123456',
+            checks: {
+              address_line1_check: 'pass',
+              address_postal_code_check: 'pass',
+              cvc_check: 'pass',
+            },
+            country: 'US',
+            exp_month: 1,
+            exp_year: 2024,
+            funding: 'credit',
+            installments: null,
+            mandate: null,
+            network: 'visa',
+            three_d_secure: null,
+            wallet: null,
+          },
+        },
+      })
+      vi.mocked(getStripeCharge).mockResolvedValue(mockCharge)
 
-         const { result, eventsToInsert } = await adminTransaction(
-           async ({ transaction }) =>
-             processPaymentIntentStatusUpdated(
-               mockPaymentIntent,
-               transaction
-             )
-         )
+      const { result, eventsToInsert } = await adminTransaction(
+        async ({ transaction }) =>
+          processPaymentIntentStatusUpdated(
+            mockPaymentIntent,
+            transaction
+          )
+      )
 
-         // Should have PaymentSucceeded event
-         const paymentSucceededEvent = eventsToInsert?.find(
-           (e) => e.type === FlowgladEventType.PaymentSucceeded
-         )
-         expect(paymentSucceededEvent).toBeDefined()
+      // Should have PaymentSucceeded event
+      const paymentSucceededEvent = eventsToInsert?.find(
+        (e) => e.type === FlowgladEventType.PaymentSucceeded
+      )
+      expect(paymentSucceededEvent).toBeDefined()
 
-         // Should have CustomerCreated event from the anonymous checkout
-         const customerCreatedEvent = eventsToInsert?.find(
-           (e) => e.type === FlowgladEventType.CustomerCreated
-         )
-         expect(customerCreatedEvent).toBeDefined()
-         expect(customerCreatedEvent?.payload.object).toEqual(EventNoun.Customer)
-         expect(customerCreatedEvent?.payload.customer).toBeDefined()
+      // Should have CustomerCreated event from the anonymous checkout
+      const customerCreatedEvent = eventsToInsert?.find(
+        (e) => e.type === FlowgladEventType.CustomerCreated
+      )
+      expect(customerCreatedEvent).toBeDefined()
+      expect(customerCreatedEvent?.payload.object).toEqual(
+        EventNoun.Customer
+      )
+      expect(customerCreatedEvent?.payload.customer).toBeDefined()
     })
   })
 })

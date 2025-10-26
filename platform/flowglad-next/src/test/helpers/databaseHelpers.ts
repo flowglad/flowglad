@@ -12,10 +12,13 @@ export async function selectEventsByCustomer(
   organizationId: string,
   transaction: DbTransaction
 ) {
-  const allEvents = await selectEvents({ organizationId }, transaction)
-  
+  const allEvents = await selectEvents(
+    { organizationId },
+    transaction
+  )
+
   // Filter events for this specific customer by checking the payload
-  return allEvents.filter(event => 
-    event.payload.customer?.id === customerId
+  return allEvents.filter(
+    (event) => event.payload.customer?.id === customerId
   )
 }

@@ -1316,7 +1316,7 @@ export const confirmPaymentIntentForBillingRun = async (
   return stripe(livemode).paymentIntents.confirm(paymentIntentId, {
     // NOTE: `off_session: true` *requires* `confirm: true` (not doing this will
     // result in 400 errors). Keep this in mind when changing this code.
-    off_session: true
+    off_session: true,
   })
 }
 
