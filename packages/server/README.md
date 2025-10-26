@@ -9,7 +9,7 @@ npm install @flowglad/server
 # or
 yarn add @flowglad/server
 # or
-pnpm add @flowglad/server
+bun add @flowglad/server
 ```
 
 ## Usage
@@ -84,7 +84,7 @@ This package includes integration tests that test the FlowgladServer against a l
 ### Prerequisites
 
 - Node.js 18+
-- pnpm
+- bun
 - Docker and Docker Compose
 
 ### Running Integration Tests Locally
@@ -93,15 +93,15 @@ This package includes integration tests that test the FlowgladServer against a l
 
 ```bash
 cd platform/flowglad-next
-pnpm test:setup
-pnpm dev
+bun run test:setup
+bun run dev
 ```
 
 2. In a new terminal, run the integration tests:
 
 ```bash
 cd packages/server
-pnpm test:integration
+bun run test:integration
 ```
 
 ### Running Integration Tests in CI

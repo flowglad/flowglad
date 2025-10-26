@@ -1,6 +1,6 @@
 /* 
 run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/upsertCatalogsAndPurchases.ts
+NODE_ENV=production bunx tsx src/scripts/upsertCatalogsAndPurchases.ts
 */
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'

@@ -36,55 +36,38 @@ jobs:
         uses: actions/setup-node@9ced9a43a244f3ac94f13bfd896db8c8f30da67a # v3
         with:
           node-version: '18'
-      
-      - name: Install pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          version: 8
-      
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-      
-      - name: Setup pnpm cache
-        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-      
-      - name: Install dependencies
-        run: pnpm install-packages
-        working-directory: platform/flowglad-next
+          bun-version: '1.2.14'
+          cache: true
 
-      - name: Install Vercel CLI
-        run: pnpm install --global vercel@41.6.2
+      - name: Install dependencies
+        run: bun run install-packages --no-progress
+        working-directory: platform/flowglad-next
         
       - name: Pull Vercel Environment Variables
         run: |
           set -euo pipefail
-          vercel pull --yes --environment=${{ inputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
+          bunx --bun vercel@41.6.2 pull --yes --environment=${{ inputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
           cp .vercel/.env.${{ inputs.environment }}.local .env.local
           cp .vercel/.env.${{ inputs.environment }}.local platform/flowglad-next/.env.local
 
       - name: Attempt to remove dev routes if production
-        run: pnpm prebuild
+        run: bun run prebuild
         working-directory: platform/flowglad-next
 
       - name: Build Project Artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
+        run: bunx --bun vercel@41.6.2 build --token=${{ secrets.VERCEL_TOKEN }} ${{ inputs.environment == 'production' && '--prod' || '' }}
 
       - name: Deploy Trigger
-        run: export TRIGGER_ENV=${{ inputs.environment == 'production' && 'prod' || 'staging' }} && pnpm trigger:deploy
+        run: export TRIGGER_ENV=${{ inputs.environment == 'production' && 'prod' || 'staging' }} && bun run trigger:deploy
         working-directory: platform/flowglad-next
         env:
           TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
 
       - name: Run migrations
-        run: pnpm migrations:push
+        run: bun run migrations:push
         working-directory: platform/flowglad-next
 
       - name: Deploy to Vercel

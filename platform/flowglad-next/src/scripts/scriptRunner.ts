@@ -1,6 +1,6 @@
 /* 
 Run scripts using the script runner using the following command:
-NODE_ENV=production pnpm tsx scripts/example.ts
+NODE_ENV=production bunx tsx scripts/example.ts
 
 The script runner does the following:
  - Pulls environment variables from Vercel based on target env chosen
@@ -10,10 +10,10 @@ The script runner does the following:
 Post script run regardless of the script's success or failure, the script runner will pull development environment variables from Vercel
 
 To skip the environment pull step, add --skip-env-pull as an argument:
-NODE_ENV=production pnpm tsx scripts/example.ts --skip-env-pull
+NODE_ENV=production bunx tsx scripts/example.ts --skip-env-pull
 
 To use a custom database URL, pass it as the second argument:
-NODE_ENV=production pnpm tsx scripts/example.ts --skip-env-pull "postgresql://user:password@host:port/database"
+NODE_ENV=production bunx tsx scripts/example.ts --skip-env-pull "postgresql://user:password@host:port/database"
 */
 
 import core from '@/utils/core'
@@ -26,7 +26,7 @@ function pullDevelopmentEnvVars() {
   execSync(`vercel env pull .env.local`, {
     stdio: 'inherit',
   })
-  execSync('pnpm postvercel:env-pull', {
+  execSync('bun run postvercel:env-pull', {
     stdio: 'inherit',
   })
   // eslint-disable-next-line no-console
@@ -36,7 +36,7 @@ function pullDevelopmentEnvVars() {
 }
 
 function rmDevelopmentEnvVars() {
-  execSync('pnpm vercel:env-rm', {
+  execSync('bun run vercel:env-rm', {
     stdio: 'inherit',
   })
 }

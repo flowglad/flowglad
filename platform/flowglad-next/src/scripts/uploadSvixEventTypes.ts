@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* 
 run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/uploadSvixEventTypes.ts svix_secret_key=...
+NODE_ENV=production bunx tsx src/scripts/uploadSvixEventTypes.ts svix_secret_key=...
 */
 import { Svix } from 'svix'
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -17,7 +17,7 @@ const uploadSvixEventTypes = async (db: PostgresJsDatabase) => {
   if (!svixSecretKeyArg) {
     console.error('Error: svix_secret_key argument is required')
     console.error(
-      'Usage: NODE_ENV=production pnpm tsx src/scripts/uploadSvixEventTypes.ts svix_secret_key=...'
+      'Usage: NODE_ENV=production bunx tsx src/scripts/uploadSvixEventTypes.ts svix_secret_key=...'
     )
     process.exit(1)
   }

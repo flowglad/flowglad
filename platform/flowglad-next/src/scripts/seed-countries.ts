@@ -6,9 +6,9 @@
  * is populated with all necessary country data for the application.
  *
  * Usage:
- *   pnpm tsx src/scripts/seed-countries.ts
+ *   bunx tsx src/scripts/seed-countries.ts
  *   or
- *   pnpm seed:countries
+ *   bun run seed:countries
  */
 
 import { loadEnvConfig } from '@next/env'

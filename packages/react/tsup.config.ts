@@ -37,7 +37,7 @@ export default defineConfig((overrideOptions) => {
   }
 
   return runAfterLast([
-    'pnpm build:declarations',
-    shouldPublish && 'pnpm publish:local',
+    'bun run build:declarations',
+    shouldPublish && 'bun run publish:local',
   ])(esm, cjs)
 })

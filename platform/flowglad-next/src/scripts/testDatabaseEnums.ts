@@ -1,6 +1,6 @@
 /* testDatabaseEnums script with targeted environment
 run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/testDatabaseEnums.ts
+NODE_ENV=production bunx tsx src/scripts/testDatabaseEnums.ts
 */
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'

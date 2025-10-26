@@ -35,21 +35,21 @@ if [ -f "registry.json" ]; then
     echo "Running shadcn registry validation..."
     
     # Check if tsx is available
-    if command -v pnpm &> /dev/null; then
-        pnpm validate:registry
+    if command -v bun &> /dev/null; then
+        bun run validate:registry
         VALIDATION_EXIT_CODE=$?
-    elif command -v npx &> /dev/null; then
-        npx tsx src/scripts/validate-registry.ts
+    elif command -v bunx &> /dev/null; then
+        bunx tsx src/scripts/validate-registry.ts
         VALIDATION_EXIT_CODE=$?
     else
-        echo "Warning: Could not run registry validation (pnpm/npx not found)"
+        echo "Warning: Could not run registry validation (bun/bunx not found)"
         VALIDATION_EXIT_CODE=0
     fi
     
     if [ $VALIDATION_EXIT_CODE -ne 0 ]; then
         echo ""
         echo "❌ Registry validation failed. Please fix the errors before committing."
-        echo "Run 'pnpm validate:registry' to see detailed errors."
+        echo "Run 'bun run validate:registry' to see detailed errors."
         exit 1
     fi
     

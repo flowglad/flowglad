@@ -7,7 +7,7 @@ import chalk from 'chalk'
 const initialPublish = async () => {
   console.log(chalk.blue('🚀 Initial publish of all packages...'))
   try {
-    await exec('pnpm yalc:publish')
+    await exec('bun run yalc:publish')
     console.log(chalk.green('✅ Initial publish complete\n'))
   } catch (error) {
     console.error(chalk.red('❌ Initial publish failed:'), error)
@@ -21,7 +21,7 @@ const linkPackagesGlobally = async () => {
     for (const packageName of Object.keys(dependencyGraph)) {
       const packagePath = `packages/${packageName.replace('@flowglad/', '')}`
       console.log(chalk.yellow(`Linking ${packageName}...`))
-      await exec(`cd ${packagePath} && pnpm link --global`)
+      await exec(`cd ${packagePath} && bun link --global`)
     }
     console.log(chalk.green('✅ All packages linked globally\n'))
   } catch (error) {
@@ -65,7 +65,7 @@ const buildAndPushPackage = async (packageName: string) => {
   try {
     // Build the package
     await exec(
-      `cd ${packagePath} && pnpm build && pnpm build:declarations`
+      `cd ${packagePath} && bun run build && bun run build:declarations`
     )
 
     // Push to yalc - add --copy flag to force file copying instead of symlinks

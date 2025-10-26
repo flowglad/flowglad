@@ -1,22 +1,22 @@
 ## Package Manager
-**IMPORTANT**: This project uses `pnpm` as its package manager. ALWAYS use `pnpm` for all package management operations. Never use `npm` or `yarn`.
+**IMPORTANT**: This project uses `bun` as its package manager. ALWAYS use `bun` for all package management operations. Never use `npm` or `yarn`.
 
 Examples:
-- Install dependencies: `pnpm install-packages` (N.B. - this project is in a monorepo but installs its own packages, hence the custom install script)
-- Add a package: `pnpm install-packages <package-name>` 
-- Build: `pnpm build`
-- Lint and typecheck: `pnpm check`
+- Install dependencies: `bun run install-packages` (N.B. - this project is in a monorepo but installs its own packages, hence the custom install script)
+- Add a package: `bun add <package-name>`
+- Build: `bun run build`
+- Lint and typecheck: `bun run check`
 
 ## Installing Dependencies 
 
 ## On Every Change
 Whenever you complete a task, confirm that everything lints and typechecks as expected:
 ```bash
-pnpm check
+bun run check
 ```
 
 ## Running Tests
-If you are trying to run tests to see whether they pass, you must use `pnpm test:run`. `pnpm test` will run the test suite in watch mode and leave you waiting for timeouts.
+If you are trying to run tests to see whether they pass, you must use `bun run test`. `bun run test:watch` will run the test suite in watch mode and leave you waiting for timeouts.
 
 ## When Writing TRPC Code
 1. Always specify mutation and query outputs using `.output()`

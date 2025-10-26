@@ -16,7 +16,7 @@ npm install @flowglad/react
 # or
 yarn add @flowglad/react
 # or
-pnpm add @flowglad/react
+bun add @flowglad/react
 ```
 
 ## Quick Start

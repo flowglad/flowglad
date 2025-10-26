@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /*
 Run the script using the following command:
-NODE_ENV=production pnpm tsx src/scripts/migrateSingleSubscriptionBillingPeriod.ts stripe_subscription_id=sub_...
+NODE_ENV=production bunx tsx src/scripts/migrateSingleSubscriptionBillingPeriod.ts stripe_subscription_id=sub_...
 */
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
@@ -318,7 +318,7 @@ async function migrateSingleSubscriptionBillingPeriodScript(
       'Error: stripe_subscription_id argument is required'
     )
     console.error(
-      'Usage: NODE_ENV=production pnpm tsx src/scripts/migrateSingleSubscriptionBillingPeriod.ts stripe_subscription_id=sub_...'
+      'Usage: NODE_ENV=production bunx tsx src/scripts/migrateSingleSubscriptionBillingPeriod.ts stripe_subscription_id=sub_...'
     )
     process.exit(1)
   }

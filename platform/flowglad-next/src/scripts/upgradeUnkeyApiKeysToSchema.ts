@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* 
 run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/upgradeUnkeyApiKeysToSchema.ts
+NODE_ENV=production bunx tsx src/scripts/upgradeUnkeyApiKeysToSchema.ts
 */
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'

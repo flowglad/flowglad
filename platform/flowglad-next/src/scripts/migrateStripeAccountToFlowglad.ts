@@ -1,6 +1,6 @@
 /* 
 run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/migrateStripeAccountToFlowglad.ts connected_account_id=acct_...
+NODE_ENV=production bunx tsx src/scripts/migrateStripeAccountToFlowglad.ts connected_account_id=acct_...
 */
 /* eslint-disable no-console */
 
@@ -532,7 +532,7 @@ async function migrateStripeAccountToFlowglad(
   if (!connectedAccountIdArg) {
     console.error('Error: connected_account_id argument is required')
     console.error(
-      'Usage: NODE_ENV=production pnpm tsx src/scripts/migrateStripeAccountToFlowglad.ts connected_account_id=acct_...'
+      'Usage: NODE_ENV=production bunx tsx src/scripts/migrateStripeAccountToFlowglad.ts connected_account_id=acct_...'
     )
     process.exit(1)
   }

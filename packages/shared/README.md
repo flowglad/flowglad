@@ -20,7 +20,7 @@ npm install @flowglad/shared
 # or
 yarn add @flowglad/shared
 # or
-pnpm add @flowglad/shared
+bun add @flowglad/shared
 ```
 
 ## Usage

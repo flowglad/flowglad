@@ -8,8 +8,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
-# Enable corepack and ensure pnpm is available (uses version from package.json)
-RUN corepack enable
+# Install Bun
+ENV BUN_INSTALL=/root/.bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="${BUN_INSTALL}/bin:${PATH}"
 
 # Increase Node.js heap for build to avoid OOM
 ARG NODE_OPTIONS=--max-old-space-size=6144
@@ -25,22 +27,22 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 # Pre-copy manifest and config files to maximize cache
-COPY package.json pnpm-lock.yaml next.config.mjs ./
+COPY package.json bun.lock next.config.mjs bunfig.toml ./
 
 # Prepare a minimal env file so prebuild step using dotenvx doesn't fail
 RUN touch .env.local
 
 # Install dependencies (full deps for build)
-RUN pnpm install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 # Copy the rest of the source
 COPY . .
 
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+RUN --mount=type=cache,id=bun-install-cache,target=/root/.bun/install/cache \
   --mount=type=cache,id=tool-cache,target=/app/node_modules/.cache \
   --mount=type=cache,id=vite-cache,target=/app/node_modules/.vite \
   --mount=type=cache,id=next-cache,target=/app/.next/cache \
-  pnpm build
+  bun run build
 
 ###############################################
 # Runtime stage

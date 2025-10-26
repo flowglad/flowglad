@@ -59,10 +59,10 @@
 First, install the packages necessary Flowglad packages based on your project setup:
 ```bash
 # Next.js Projects
-pnpm install @flowglad/nextjs
+bun add @flowglad/nextjs
 
 # Vite Projects
-pnpm install @flowglad/react @flowglad/server
+bun add @flowglad/react @flowglad/server
 ```
 
 Flowglad couples tightly with your auth. Here are some prompts that you can use to integrate Flowglad, based on your auth provider, in about 30 seconds:
@@ -74,7 +74,7 @@ Flowglad couples tightly with your auth. Here are some prompts that you can use 
 Please set up billing for our app according to the following instructions. Note that this assumes a Next.js application. If our project uses a different stack, you will need to adapt it accordingly. Specifically, you will need to change the following:
 `bash
 # replace @flowglad/nextjs with @flowglad/react and @flowglad/server
-pnpm install @flowglad/react @flowglad/server # or whatever package manager we use
+bun add @flowglad/react @flowglad/server # or whatever package manager we use
 `
 
 `ts
@@ -162,7 +162,7 @@ export default function Billing() {
 Please set up billing for our app according to the following instructions. Note that this assumes a Next.js application. If our project uses a different stack, you will need to adapt it accordingly. Specifically, you will need to change the following:
 `bash
 # replace @flowglad/nextjs with @flowglad/react and @flowglad/server
-pnpm install @flowglad/react @flowglad/server # or whatever package manager we use
+bun add @flowglad/react @flowglad/server # or whatever package manager we use
 `
 
 `ts
@@ -251,7 +251,7 @@ export default function Billing() {
 Please set up billing for our app according to the following instructions. Note that this assumes a Next.js application. If our project uses a different stack, you will need to adapt it accordingly. Specifically, you will need to change the following:
 `bash
 # replace @flowglad/nextjs with @flowglad/react and @flowglad/server
-pnpm install @flowglad/react @flowglad/server # or whatever package manager we use
+bun add @flowglad/react @flowglad/server # or whatever package manager we use
 `
 
 `ts

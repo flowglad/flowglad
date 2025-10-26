@@ -92,25 +92,25 @@ If you haven't already done so, clone your Github repository to your local machi
 
 ### Install dependencies
 
-Ensure you have [pnpm](https://pnpm.io/installation) installed and run:
+Ensure you have [Bun](https://bun.sh/docs/installation) installed and run:
 
 ```bash
-pnpm install
+bun install
 ```
 
 Next, use the [Vercel CLI](https://vercel.com/docs/cli) to link your project:
 
 ```bash
-pnpm dlx vercel login
-pnpm dlx vercel link
+bunx vercel login
+bunx vercel link
 ```
 
-`pnpm dlx` runs a package from the registry, without installing it as a dependency. Alternatively, you can install these packages globally, and drop the `pnpm dlx` part.
+`bunx` runs a package from the registry, without installing it as a dependency. Alternatively, you can install these packages globally, and drop the `bunx` part.
 
 If you don't intend to use a local Supabase instance for development and testing, you can use the Vercel CLI to download the development env vars:
 
 ```bash
-pnpm dlx vercel env pull .env.local
+bunx vercel env pull .env.local
 ```
 
 Running this command will create a new `.env.local` file in your project folder. For security purposes, you will need to set the `SUPABASE_SERVICE_ROLE_KEY` manually from your [Supabase dashboard](https://app.supabase.io/) (`Settings > API`). If you are not using a local Supabase instance, you should also change the `--local` flag to `--linked' or '--project-id <string>' in the `supabase:generate-types` script in `package.json`.(see -> [https://supabase.com/docs/reference/cli/supabase-gen-types-typescript])
@@ -127,7 +127,7 @@ First, you will need to install [Docker](https://www.docker.com/get-started/). Y
 Next, run the following command to start a local Supabase instance and run the migrations to set up the database schema:
 
 ```bash
-pnpm supabase:start
+bun run supabase:start
 ```
 
 The terminal output will provide you with URLs to access the different services within the Supabase stack. The Supabase Studio is where you can make changes to your local database instance.
@@ -137,13 +137,13 @@ Copy the value for the `service_role_key` and paste it as the value for the `SUP
 You can print out these URLs at any time with the following command:
 
 ```bash
-pnpm supabase:status
+bun run supabase:status
 ```
 
 To link your local Supabase instance to your project, run the following command, navigate to the Supabase project you created above, and enter your database password.
 
 ```bash
-pnpm supabase:link
+bun run supabase:link
 ```
 
 If you need to reset your database password, head over to [your database settings](https://supabase.com/dashboard/project/_/settings/database) and click "Reset database password", and this time copy it across to a password manager! 😄
@@ -153,14 +153,14 @@ If you need to reset your database password, head over to [your database setting
 Once you've linked your project, you can pull down any schema changes you made in your remote database with:
 
 ```bash
-pnpm supabase:pull
+bun run supabase:pull
 ```
 
 You can seed your local database with any data you added in your remote database with:
 
 ```bash
-pnpm supabase:generate-seed
-pnpm supabase:reset
+bun run supabase:generate-seed
+bun run supabase:reset
 ```
 
 🚧 Warning: this is seeding data from the `production` database. Currently, this only contains test data, but we recommend using [Branching](https://supabase.com/docs/guides/platform/branching) or manually setting up a `preview` or `staging` environment once this contains real customer data.
@@ -168,19 +168,19 @@ pnpm supabase:reset
 You can make changes to the database schema in your local Supabase Studio and run the following command to generate TypeScript types to match your schema:
 
 ```bash
-pnpm supabase:generate-types
+bun run supabase:generate-types
 ```
 
 You can also automatically generate a migration file with all the changes you've made to your local database schema with the following command:
 
 ```bash
-pnpm supabase:generate-migration
+bun run supabase:generate-migration
 ```
 
 And push those changes to your remote database with:
 
 ```bash
-pnpm supabase:push
+bun run supabase:push
 ```
 
 Remember to test your changes thoroughly in your `local` and `staging` or `preview` environments before deploying them to `production`!
@@ -190,7 +190,7 @@ Remember to test your changes thoroughly in your `local` and `staging` or `previ
 Use the [Stripe CLI](https://stripe.com/docs/stripe-cli) to [login to your Stripe account](https://stripe.com/docs/stripe-cli#login-account):
 
 ```bash
-pnpm stripe:login
+bun run stripe:login
 ```
 
 This will print a URL to navigate to in your browser and provide access to your Stripe account.
@@ -198,7 +198,7 @@ This will print a URL to navigate to in your browser and provide access to your 
 Next, start local webhook forwarding:
 
 ```bash
-pnpm stripe:listen
+bun run stripe:listen
 ```
 
 Running this Stripe command will print a webhook secret (such as, `whsec_***`) to the console. Set `STRIPE_WEBHOOK_SECRET` to this value in your `.env.local` file. If you haven't already, you should also set `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` and `STRIPE_SECRET_KEY` in your `.env.local` file using the **test mode**(!) keys from your Stripe dashboard.
@@ -208,7 +208,7 @@ Running this Stripe command will print a webhook secret (such as, `whsec_***`) t
 In a separate terminal, run the following command to start the development server:
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
 Note that webhook forwarding and the development server must be running concurrently in two separate terminals for the application to work correctly.

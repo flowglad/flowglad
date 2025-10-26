@@ -18,8 +18,8 @@
     "supabase:generate-seed": "npx supabase db dump --data-only -f supabase/seed.sql",
     "supabase:push": "npx supabase db push",
     "supabase:pull": "npx supabase db pull",
-    "link:packages": "yalc add @flowglad/nextjs @flowglad/react @flowglad/server @flowglad/shared && yalc update && pnpm install --ignore-workspace --force && yalc update",
-    "unlink:packages": "yalc remove --all && pnpm install"
+    "link:packages": "yalc add @flowglad/nextjs @flowglad/react @flowglad/server @flowglad/shared && yalc update && bun install --force && yalc update",
+    "unlink:packages": "yalc remove --all && bun install"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.10.2",
