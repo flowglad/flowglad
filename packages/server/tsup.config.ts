@@ -43,9 +43,9 @@ export default defineConfig((overrideOptions) => {
   //   `cp ./package.${format}.json ./dist/${format}/package.json`
 
   return runAfterLast([
-    'pnpm build:declarations',
+    'bun run build:declarations',
     // copyPackageJson('esm'),
     // copyPackageJson('cjs'),
-    shouldPublish && 'pnpm publish:local',
+    shouldPublish && 'bun run publish:local',
   ])(esm, cjs)
 })

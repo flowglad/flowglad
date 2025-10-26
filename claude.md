@@ -1,11 +1,11 @@
 ## Package Manager
-**IMPORTANT**: This project uses `pnpm` as its package manager. ALWAYS use `pnpm` for all package management operations. Never use `npm` or `yarn`.
+**IMPORTANT**: This project uses `bun` as its package manager. ALWAYS use `bun` for all package management operations. Never use `npm` or `yarn`.
 
 Examples:
-- Install dependencies: `pnpm install`
-- Add a package: `pnpm add <package-name>`
-- Run scripts: `pnpm run <script-name>`
-- Build: `pnpm build` or `pnpm -r build`
+- Install dependencies: `bun install`
+- Add a package: `bun add <package-name>`
+- Run scripts: `bun run <script-name>`
+- Build: `bun run build`
 
 ## Init
 Run the following script EVERY TIME you are in a new context:
