@@ -13,6 +13,6 @@ export const metadata: ToolMetadata = {
 
 export default async function helloWorld() {
   return {
-    content: [{ type: 'text', text: 'Hello, world!' }],
+    content: [{ type: 'text', text: 'Hi, world!' }],
   }
 }

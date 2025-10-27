@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "xmcp dev & next dev ",
+    "dev": "xmcp dev & next dev & wait",
     "prebuild": "dotenvx run -f .env.local -- pnpm tsx src/scripts/removeDevRoutes.ts && pnpm build:preview-css",
     "build": "pnpm check && next build",
     "build:preview-css": "tsx src/scripts/build-preview-css.ts",
@@ -178,7 +178,7 @@
     "trpc-to-openapi": "3.0.1",
     "tsx": "^4.17.0",
     "vaul": "1.1.2",
-    "xmcp": "^0.3.4",
+    "xmcp": "^0.3.5",
     "zod": "4.1.5",
     "zod-openapi": "5.4.0"
   },
@@ -204,6 +204,7 @@
     "autoprefixer": "^10.4.20",
     "babel-plugin-syntax-trailing-function-commas": "^6.22.0",
     "chalk": "5.6.2",
+    "concurrently": "^9.2.1",
     "drizzle-kit": "0.28.1",
     "esbuild": "0.25.0",
     "esbuild-plugin-babel": "^0.2.3",

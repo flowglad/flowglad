@@ -1,4 +1,9 @@
 import { xmcpHandler } from '@xmcp/adapter'
+import core from '@/utils/core'
+
+if (core.IS_PROD) {
+  throw new Error('MCP handler should not be used in production')
+}
 
 /**
  * Verify the Bearer token from the Authorization header
@@ -25,8 +30,9 @@ function verifyBearerToken(req: Request): boolean {
   // const { result } = await verifyApiKey(token)
   // const isValid = result?.valid ?? false
 
-  // For now, hardcoded for testing
-  const isValid = token === '12345'
+  // Use environment variable for bearer token
+  const expectedToken = process.env.MCP_BEARER_TOKEN
+  const isValid = Boolean(expectedToken && token === expectedToken)
 
   if (!isValid) {
     console.warn('Invalid token provided')
