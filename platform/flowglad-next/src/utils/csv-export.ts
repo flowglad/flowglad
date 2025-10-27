@@ -72,7 +72,7 @@ export const createCustomersCsv = (
     return fields.map(escapeCsvValue).join(',')
   })
 
-  const csv = `\uFEFF` + [header, ...data].join('\n')
+  const csv = [header, ...data].join('\n')
   const filename = formatTimestampedFilename('customers', now)
 
   return {
