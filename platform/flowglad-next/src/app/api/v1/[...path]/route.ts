@@ -53,8 +53,8 @@ import {
 } from '@/utils/securityTelemetry'
 import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
 
-//searchParamsToObject converts a URLSearchParams object (like the kind you get from a query string such as ?limit=10&tag=a&tag=b)
-//into a plain JavaScript object { limit: "10", tag: ["a", "b"] }.
+// searchParamsToObject converts a URLSearchParams object (like the kind you get from a query string such as ?limit=10&tag=a&tag=b)
+// into a plain JavaScript object { limit: "10", tag: ["a", "b"] }.
 
 const searchParamsToObject = (
   searchParams: URLSearchParams
