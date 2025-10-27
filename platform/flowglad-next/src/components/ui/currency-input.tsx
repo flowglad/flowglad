@@ -30,7 +30,10 @@ export const CurrencyInput = ({
       )}
       min={0}
       onKeyDown={(e) => {
-        if (e.key === '-' || e.key === 'e') e.preventDefault()
+        // Prevent minus sign and scientific notation
+        if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+          e.preventDefault()
+        }
       }}
       onValueChange={(val) => {
         if (val == null || val === '') {
