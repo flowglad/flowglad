@@ -30,8 +30,14 @@ export const CurrencyInput = ({
       )}
       min={0}
       onKeyDown={(e) => {
-        // Prevent minus sign and scientific notation
-        if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+        // Prevent minus sign and scientific notation (but allow modifier key combinations)
+        if (
+          e.key === '-' ||
+          ((e.key === 'e' || e.key === 'E') &&
+            !e.ctrlKey &&
+            !e.metaKey &&
+            !e.altKey)
+        ) {
           e.preventDefault()
         }
       }}
