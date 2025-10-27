@@ -29,12 +29,7 @@ const buildFiltersFromRequest = (
   if (archivedParam !== null) {
     filters.archived = archivedParam === 'true'
   }
-
-  const organizationId = url.searchParams.get('organizationId')
-  if (organizationId) {
-    filters.organizationId = organizationId
-  }
-
+  
   const pricingModelId = url.searchParams.get('pricingModelId')
   if (pricingModelId) {
     filters.pricingModelId = pricingModelId
