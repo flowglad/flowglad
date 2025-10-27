@@ -28,7 +28,21 @@ export const CurrencyInput = ({
         error ? 'border-destructive' : '',
         className
       )}
-      onValueChange={onValueChange}
+      min={0}
+      onKeyDown={(e) => {
+        if (e.key === '-' || e.key === 'e') e.preventDefault()
+      }}
+      onValueChange={(val) => {
+        if (val == null || val === '') {
+          onValueChange?.(val)
+          return
+        }
+        if (val.startsWith('-')) {
+          return
+        }
+        const num = parseFloat(val)
+        if (!isNaN(num) && num >= 0) onValueChange?.(val)
+      }}
       allowDecimals={allowDecimals}
       {...props}
     />
