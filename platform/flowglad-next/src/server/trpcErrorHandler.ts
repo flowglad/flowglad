@@ -332,5 +332,6 @@ export const errorHandlers = {
   organization: createErrorHandler({ resource: 'organization' }),
   invoice: createErrorHandler({ resource: 'invoice' }),
   payment: createErrorHandler({ resource: 'payment' }),
+  usageMeter: createErrorHandler({ resource: 'usage meter' }),
   generic: createErrorHandler({ resource: 'unknown' }),
 }

@@ -13,7 +13,6 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  insertPricingModel,
   selectPricingModelsPaginated,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
   selectPricingModelsTableRows,
@@ -34,6 +33,8 @@ import {
 import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { TRPCError } from '@trpc/server'
 import { adminTransaction } from '@/db/adminTransaction'
+import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
+import yaml from 'json-to-pretty-yaml'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'pricingModel',
@@ -305,6 +306,27 @@ const setupPricingModelProcedure = protectedProcedure
     )
   )
 
+const exportPricingModelProcedure = protectedProcedure
+  .input(idInputSchema)
+  .output(
+    z.object({
+      pricingModelYAML: z
+        .string()
+        .describe('YAML representation of the pricing model'),
+    })
+  )
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const data = await getPricingModelSetupData(
+          input.id,
+          transaction
+        )
+        return { pricingModelYAML: yaml.stringify(data) }
+      }
+    )
+  )
+
 export const pricingModelsRouter = router({
   list: listPricingModelsProcedure,
   setup: setupPricingModelProcedure,
@@ -314,4 +336,5 @@ export const pricingModelsRouter = router({
   update: updatePricingModelProcedure,
   clone: clonePricingModelProcedure,
   getTableRows: getTableRowsProcedure,
+  export: exportPricingModelProcedure,
 })

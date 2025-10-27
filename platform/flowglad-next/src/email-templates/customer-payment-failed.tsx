@@ -51,7 +51,11 @@ export const PaymentFailedEmail = ({
   failureReason?: string
   customerPortalUrl?: string
 }) => {
-  const totals = calculateInvoiceTotalsWithDiscounts(lineItems, invoice, discountInfo)
+  const totals = calculateInvoiceTotalsWithDiscounts(
+    lineItems,
+    invoice,
+    discountInfo
+  )
 
   return (
     <EmailLayout previewText="Payment Failed for Your Order">

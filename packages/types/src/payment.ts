@@ -1,7 +1,6 @@
 import { type Flowglad } from '@flowglad/node'
 
-export type Payment =
-  Flowglad.Payments.PaymentRetrieveResponse.Payment
+export type Payment = Flowglad.PaymentClientSelectSchema
 
 export type PaymentStatus = Payment['status']
 

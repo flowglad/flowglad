@@ -48,8 +48,8 @@ export const ProductFormFields = ({
     if (!editProduct && priceType === PriceType.Usage) {
       form.setValue('featureIds', [])
     }
-  // FIXME(FG-384): Fix this warning:
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // FIXME(FG-384): Fix this warning:
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceType, form])
 
   if (
@@ -180,7 +180,10 @@ export const ProductFormFields = ({
             )}
           </div>
           <div className="w-full mt-6">
-            <PriceFormFields edit={editProduct} />
+            <PriceFormFields
+              edit={editProduct}
+              pricingModelId={product?.pricingModelId}
+            />
           </div>
           {priceType !== PriceType.Usage && (
             <div className="w-full mt-6">

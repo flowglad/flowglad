@@ -75,8 +75,8 @@ function BillingPortalPage() {
         `/billing-portal/${organizationId}/select-customer`
       )
     }
-  // FIXME(FG-384): Fix this warning:
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // FIXME(FG-384): Fix this warning:
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     session,
     customersData,

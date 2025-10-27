@@ -117,9 +117,7 @@ describe('OrderReceiptEmail', () => {
   })
 
   it('should render the email button with correct billing portal URL', () => {
-    const { getByRole } = render(
-      <OrderReceiptEmail {...mockProps} />
-    )
+    const { getByRole } = render(<OrderReceiptEmail {...mockProps} />)
 
     const button = getByRole('link', { name: 'View Order →' })
     const expectedUrl = core.customerBillingPortalURL({
@@ -354,9 +352,15 @@ describe('OrderReceiptEmail', () => {
         )
 
         // 10% of $60.00 = $6.00
-        expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
-        expect(getByTestId('discount-amount')).toHaveTextContent('-$6.00')
-        expect(getByTestId('total-amount')).toHaveTextContent('$54.00')
+        expect(getByTestId('original-amount')).toHaveTextContent(
+          '$60.00'
+        )
+        expect(getByTestId('discount-amount')).toHaveTextContent(
+          '-$6.00'
+        )
+        expect(getByTestId('total-amount')).toHaveTextContent(
+          '$54.00'
+        )
       })
 
       it('should correctly calculate 25% discount on $60.00', () => {
@@ -379,9 +383,15 @@ describe('OrderReceiptEmail', () => {
         )
 
         // 25% of $60.00 = $15.00
-        expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
-        expect(getByTestId('discount-amount')).toHaveTextContent('-$15.00')
-        expect(getByTestId('total-amount')).toHaveTextContent('$45.00')
+        expect(getByTestId('original-amount')).toHaveTextContent(
+          '$60.00'
+        )
+        expect(getByTestId('discount-amount')).toHaveTextContent(
+          '-$15.00'
+        )
+        expect(getByTestId('total-amount')).toHaveTextContent(
+          '$45.00'
+        )
       })
 
       it('should correctly calculate percentage discount with tax', () => {
@@ -405,11 +415,19 @@ describe('OrderReceiptEmail', () => {
         )
 
         // 10% of $60.00 = $6.00 discount
-        expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
-        expect(getByTestId('discount-amount')).toHaveTextContent('-$6.00')
-        expect(getByTestId('subtotal-amount')).toHaveTextContent('$54.00')
+        expect(getByTestId('original-amount')).toHaveTextContent(
+          '$60.00'
+        )
+        expect(getByTestId('discount-amount')).toHaveTextContent(
+          '-$6.00'
+        )
+        expect(getByTestId('subtotal-amount')).toHaveTextContent(
+          '$54.00'
+        )
         expect(getByTestId('tax-amount')).toHaveTextContent('$5.40')
-        expect(getByTestId('total-amount')).toHaveTextContent('$59.40')
+        expect(getByTestId('total-amount')).toHaveTextContent(
+          '$59.40'
+        )
       })
 
       it('should cap percentage discount at 100%', () => {
@@ -432,8 +450,12 @@ describe('OrderReceiptEmail', () => {
         )
 
         // 100% of $60.00 = $60.00 (capped)
-        expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
-        expect(getByTestId('discount-amount')).toHaveTextContent('-$60.00')
+        expect(getByTestId('original-amount')).toHaveTextContent(
+          '$60.00'
+        )
+        expect(getByTestId('discount-amount')).toHaveTextContent(
+          '-$60.00'
+        )
         expect(getByTestId('total-amount')).toHaveTextContent('$0.00')
       })
     })

@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/server",
-  "version": "0.10.18",
+  "version": "0.11.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@flowglad/shared": "workspace:*",
-    "@flowglad/node": "0.21.0",
+    "@flowglad/types": "workspace:*",
+    "@flowglad/node": "0.22.0",
     "zod": "4.1.5"
   },
   "devDependencies": {

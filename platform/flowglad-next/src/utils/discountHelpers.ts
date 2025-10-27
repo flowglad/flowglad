@@ -15,7 +15,7 @@ export interface DiscountInfo {
 /**
  * Calculates the actual discount amount in cents from discount info and base amount.
  * Handles both fixed and percentage discount types correctly.
- * 
+ *
  * @param baseAmount - The base amount in cents to calculate discount from
  * @param discountInfo - The discount information containing amount and type
  * @returns The calculated discount amount in cents
@@ -28,19 +28,21 @@ export const calculateDiscountAmount = (
     // For fixed discounts, amount is already in cents (e.g., 1000 = $10.00)
     return Math.min(discountInfo.discountAmount, baseAmount) // Can't discount more than the base amount
   }
-  
+
   if (discountInfo.discountAmountType === 'percent') {
     // For percentage discounts, amount is the percentage value (e.g., 10 = 10%)
-    return Math.round((baseAmount * Math.min(discountInfo.discountAmount, 100)) / 100)
+    return Math.round(
+      (baseAmount * Math.min(discountInfo.discountAmount, 100)) / 100
+    )
   }
-  
+
   return 0
 }
 
 /**
  * Convenience function that calculates discount amount with null safety.
  * Returns 0 if discountInfo is null or undefined.
- * 
+ *
  * @param baseAmount - The base amount in cents to calculate discount from
  * @param discountInfo - The discount information (can be null/undefined)
  * @returns The calculated discount amount in cents, or 0 if no discount info
@@ -49,7 +51,9 @@ export const calculateDiscountAmountSafe = (
   baseAmount: number,
   discountInfo: DiscountInfo | null | undefined
 ): number => {
-  return discountInfo ? calculateDiscountAmount(baseAmount, discountInfo) : 0
+  return discountInfo
+    ? calculateDiscountAmount(baseAmount, discountInfo)
+    : 0
 }
 
 /**
@@ -62,13 +66,13 @@ export interface InvoiceTotalsCalculation {
   taxAmountInCents: number
   totalInCents: number
   calculatedDiscountAmount: number
-  
+
   // Formatted amounts for display
   originalAmount: string
   subtotalAmount: string
   taxAmount: string | null
   totalAmount: string
-  
+
   // Enhanced discount info with currency
   discountInfoWithCurrency: {
     discountName: string
@@ -82,7 +86,7 @@ export interface InvoiceTotalsCalculation {
 /**
  * Comprehensive helper that calculates invoice totals with discount handling.
  * This encapsulates the entire pattern of: calculate base amount → apply discount → format for display.
- * 
+ *
  * @param lineItems - Array of line items with price and quantity
  * @param invoice - Invoice object with taxAmount and currency
  * @param discountInfo - Optional discount information
@@ -97,37 +101,47 @@ export const calculateInvoiceTotalsWithDiscounts = (
   discountInfo?: DiscountInfo | null
 ): InvoiceTotalsCalculation => {
   // Calculate base amount from line items
-  const baseAmount = lineItems.reduce((acc, item) => acc + item.price * item.quantity, 0)
-  
+  const baseAmount = lineItems.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  )
+
   // Calculate discount amount using shared logic
-  const calculatedDiscountAmount = calculateDiscountAmountSafe(baseAmount, discountInfo)
-  
+  const calculatedDiscountAmount = calculateDiscountAmountSafe(
+    baseAmount,
+    discountInfo
+  )
+
   // Calculate totals with the correct discount amount
   const originalAmountInCents = baseAmount
   const subtotalInCents = baseAmount - calculatedDiscountAmount
   const taxAmountInCents = invoice.taxAmount || 0
   const totalInCents = subtotalInCents + taxAmountInCents
-  
+
   // Format amounts for display
-  const originalAmount = stripeCurrencyAmountToHumanReadableCurrencyAmount(
-    invoice.currency,
-    originalAmountInCents
-  )
-  const subtotalAmount = stripeCurrencyAmountToHumanReadableCurrencyAmount(
-    invoice.currency,
-    subtotalInCents
-  )
-  const taxAmount = taxAmountInCents > 0 
-    ? stripeCurrencyAmountToHumanReadableCurrencyAmount(
-        invoice.currency,
-        taxAmountInCents
-      )
-    : null
-  const totalAmount = stripeCurrencyAmountToHumanReadableCurrencyAmount(
-    invoice.currency,
-    totalInCents
-  )
-  
+  const originalAmount =
+    stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      invoice.currency,
+      originalAmountInCents
+    )
+  const subtotalAmount =
+    stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      invoice.currency,
+      subtotalInCents
+    )
+  const taxAmount =
+    taxAmountInCents > 0
+      ? stripeCurrencyAmountToHumanReadableCurrencyAmount(
+          invoice.currency,
+          taxAmountInCents
+        )
+      : null
+  const totalAmount =
+    stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      invoice.currency,
+      totalInCents
+    )
+
   // Prepare discount info with calculated amount for TotalSection
   const discountInfoWithCurrency = discountInfo
     ? {
@@ -136,7 +150,7 @@ export const calculateInvoiceTotalsWithDiscounts = (
         currency: invoice.currency,
       }
     : null
-  
+
   return {
     // Raw amounts in cents
     originalAmountInCents,
@@ -144,21 +158,21 @@ export const calculateInvoiceTotalsWithDiscounts = (
     taxAmountInCents,
     totalInCents,
     calculatedDiscountAmount,
-    
+
     // Formatted amounts for display
     originalAmount,
     subtotalAmount,
     taxAmount,
     totalAmount,
-    
+
     // Enhanced discount info
-    discountInfoWithCurrency
+    discountInfoWithCurrency,
   }
 }
 
 /**
  * Simplified helper for PDF and receipt generation that only calculates raw amounts.
- * 
+ *
  * @param lineItems - Array of line items with price and quantity
  * @param invoice - Invoice object with taxAmount
  * @param discountInfo - Optional discount information
@@ -177,18 +191,24 @@ export const calculateInvoiceTotalsRaw = (
   total: number
   calculatedDiscountAmount: number
 } => {
-  const baseAmount = lineItems.reduce((acc, item) => acc + item.price * item.quantity, 0)
-  const calculatedDiscountAmount = calculateDiscountAmountSafe(baseAmount, discountInfo)
+  const baseAmount = lineItems.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  )
+  const calculatedDiscountAmount = calculateDiscountAmountSafe(
+    baseAmount,
+    discountInfo
+  )
   const subtotal = baseAmount - calculatedDiscountAmount
   const taxAmount = invoice.taxAmount ?? 0
   const total = subtotal + taxAmount
-  
+
   return {
     baseAmount,
     subtotal,
     taxAmount,
     total,
-    calculatedDiscountAmount
+    calculatedDiscountAmount,
   }
 }
 
@@ -306,7 +326,10 @@ export const calculateInvoiceTotalsFromLineItems = (
   // Calculate base amount from line items (like payment receipt PDF)
   const baseAmount = calculateInvoiceBaseAmount({ invoiceLineItems })
 
-  const discountAmount = calculateDiscountAmountSafe(baseAmount, discountInfo)
+  const discountAmount = calculateDiscountAmountSafe(
+    baseAmount,
+    discountInfo
+  )
 
   // Calculate totals
   const originalAmountInCents = baseAmount
@@ -340,10 +363,11 @@ export const calculateInvoiceTotalsFromLineItems = (
       totalInCents
     )
 
-  const discountAmountFormatted = stripeCurrencyAmountToHumanReadableCurrencyAmount(
-    invoice.currency,
-    discountAmount
-  )
+  const discountAmountFormatted =
+    stripeCurrencyAmountToHumanReadableCurrencyAmount(
+      invoice.currency,
+      discountAmount
+    )
 
   return {
     originalAmount,
@@ -357,7 +381,7 @@ export const calculateInvoiceTotalsFromLineItems = (
 /**
  * Calculates invoice totals with proper discount handling.
  * This provides an alternative to calculateInvoiceTotalsFromLineItems with the same logic.
- * 
+ *
  * @param invoice - The invoice record with taxAmount and currency
  * @param invoiceLineItems - The line items to calculate from
  * @param discountInfo - Optional discount information
@@ -378,24 +402,31 @@ export const calculateInvoiceTotals = (
   discountAmount: number
 } => {
   // Calculate base amount from line items
-  const baseAmount = invoiceLineItems.reduce((acc, item) => acc + item.price * item.quantity, 0)
-  
+  const baseAmount = invoiceLineItems.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  )
+
   // Calculate discount amount using the correct logic
-  const discountAmount = calculateDiscountAmountSafe(baseAmount, discountInfo)
-  
+  const discountAmount = calculateDiscountAmountSafe(
+    baseAmount,
+    discountInfo
+  )
+
   // Calculate totals
   const originalAmountInCents = baseAmount
   const subtotalInCents = baseAmount - discountAmount
   const taxAmountInCents = invoice.taxAmount || 0
   const totalInCents = subtotalInCents + taxAmountInCents
-  
+
   // Format amounts for display (this would need to be imported from utils/stripe)
   // For now, returning the raw values - the calling code should format them
   return {
     originalAmount: originalAmountInCents.toString(),
     subtotalAmount: subtotalInCents.toString(),
-    taxAmount: taxAmountInCents > 0 ? taxAmountInCents.toString() : null,
+    taxAmount:
+      taxAmountInCents > 0 ? taxAmountInCents.toString() : null,
     totalAmount: totalInCents.toString(),
-    discountAmount
+    discountAmount,
   }
 }

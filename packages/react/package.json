@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/react",
-  "version": "0.10.18",
+  "version": "0.11.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -19,13 +19,13 @@
     "test": "vitest --reporter=verbose"
   },
   "dependencies": {
-    "@flowglad/node": "0.21.0",
+    "@flowglad/node": "0.22.0",
     "@flowglad/shared": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@tanstack/react-query": "5.66.0",
-    "axios": "1.8.4",
+    "axios": "1.12.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "2.1.1",
     "@adobe/css-tools": "4.4.2",

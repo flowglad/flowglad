@@ -216,13 +216,15 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     stripeCustomerId: string | null
   },
   transaction: DbTransaction
-): Promise<TransactionOutput<{
-  purchase: Purchase.Record
-  customer: Customer.Record
-  discount: Discount.Record | null
-  feeCalculation: FeeCalculation.Record
-  discountRedemption: DiscountRedemption.Record | null
-}>> => {
+): Promise<
+  TransactionOutput<{
+    purchase: Purchase.Record
+    customer: Customer.Record
+    discount: Discount.Record | null
+    feeCalculation: FeeCalculation.Record
+    discountRedemption: DiscountRedemption.Record | null
+  }>
+> => {
   const [{ price, product }] =
     await selectPriceProductAndOrganizationByPriceWhere(
       { id: checkoutSession.priceId! },
@@ -287,7 +289,9 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       {
         customer: {
           email: checkoutSession.customerEmail!,
-          name: checkoutSession.customerName ?? checkoutSession.customerEmail!,
+          name:
+            checkoutSession.customerName ??
+            checkoutSession.customerEmail!,
           organizationId: product.organizationId,
           externalId: core.nanoid(),
           billingAddress: checkoutSession.billingAddress,
@@ -301,8 +305,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       }
     )
     customer = customerResult.result.customer
-    
-    
+
     // Store events/ledger from customer creation to bubble up
     customerEvents = customerResult.eventsToInsert || []
     customerLedgerCommand = customerResult.ledgerCommand
@@ -467,10 +470,12 @@ export const processStripeChargeForInvoiceCheckoutSession = async (
     charge: Pick<Stripe.Charge, 'status' | 'amount'>
   },
   transaction: DbTransaction
-): Promise<TransactionOutput<{
-  checkoutSession: CheckoutSession.Record
-  invoice: Invoice.Record
-}>> => {
+): Promise<
+  TransactionOutput<{
+    checkoutSession: CheckoutSession.Record
+    invoice: Invoice.Record
+  }>
+> => {
   const invoice = await selectInvoiceById(
     checkoutSession.invoiceId,
     transaction
@@ -587,11 +592,13 @@ export const processStripeChargeForCheckoutSession = async (
     >
   },
   transaction: DbTransaction
-): Promise<TransactionOutput<{
-  purchase: Purchase.Record | null
-  invoice: Invoice.Record | null
-  checkoutSession: CheckoutSession.Record
-}>> => {
+): Promise<
+  TransactionOutput<{
+    purchase: Purchase.Record | null
+    invoice: Invoice.Record | null
+    checkoutSession: CheckoutSession.Record
+  }>
+> => {
   let purchase: Purchase.Record | null = null
   let checkoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
@@ -601,8 +608,8 @@ export const processStripeChargeForCheckoutSession = async (
   let invoice: Invoice.Record | null = null
   let purchaseBookkeepingResult: Awaited<
     ReturnType<typeof processPurchaseBookkeepingForCheckoutSession>
-  > | null = null;
-  
+  > | null = null
+
   if (checkoutSession.type === CheckoutSessionType.Invoice) {
     const result = await processStripeChargeForInvoiceCheckoutSession(
       {
@@ -639,12 +646,13 @@ export const processStripeChargeForCheckoutSession = async (
       )
     purchase = purchaseBookkeepingResult.result.purchase
     if (purchase) {
-      const invoiceForPurchase = await createInitialInvoiceForPurchase(
-        {
-          purchase,
-        },
-        transaction
-      )
+      const invoiceForPurchase =
+        await createInitialInvoiceForPurchase(
+          {
+            purchase,
+          },
+          transaction
+        )
       invoice = invoiceForPurchase.invoice
     }
   }

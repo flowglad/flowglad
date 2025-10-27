@@ -8,7 +8,7 @@ import { useState } from 'react'
 import { useFlowgladTheme } from '../FlowgladTheme'
 
 interface PricingTableProduct
-  extends Pick<Product, 'name' | 'description' | 'displayFeatures'> {
+  extends Pick<Product, 'name' | 'description'> {
   primaryButtonText: string
   secondaryButtonText?: string
   prices: Pick<
@@ -29,8 +29,7 @@ interface PricingTableProduct
 }
 
 interface PricingTableProps {
-  // FIXME: Remove displayFeatures ommission upon next Node SDK release
-  products: Omit<PricingTableProduct, 'displayFeatures'>[]
+  products: PricingTableProduct[]
 }
 
 function PricingTableButton({

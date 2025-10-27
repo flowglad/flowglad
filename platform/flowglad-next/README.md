@@ -5,7 +5,7 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 ### Prerequisites
 
 - PostgreSQL database (local or remote)
-- Node.js and pnpm
+- Node.js (v20.0.0) and pnpm
 
 ### Setup Steps
 
