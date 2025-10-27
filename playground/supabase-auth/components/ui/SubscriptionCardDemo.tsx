@@ -32,6 +32,35 @@ export const SubscribeButton = () => {
   );
 };
 
+export const AddPaymentMethodButton = () => {
+  const billing = useBilling();
+  const { createAddPaymentMethodCheckoutSession } = billing;
+  if (billing.errors && billing.errors.length > 0) {
+    return (
+      <div>
+        Error: {billing.errors.map((error) => error.message).join(', ')}
+      </div>
+    );
+  }
+  if (!billing.loaded || !createAddPaymentMethodCheckoutSession) {
+    return <div>Loading...</div>;
+  }
+  return (
+    <button
+      onClick={() =>
+        createAddPaymentMethodCheckoutSession({
+          autoRedirect: true,
+          successUrl: `${window.location.origin}/success`,
+          cancelUrl: `${window.location.origin}/cancel`
+        })
+      }
+      className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-200"
+    >
+      Add Payment Method
+    </button>
+  );
+};
+
 export const SubscriptionDemoCard = () => {
   const billing = useBilling();
   if (!billing.loaded) {

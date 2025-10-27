@@ -3,8 +3,11 @@
 import LogoCloud from '@/components/ui/LogoCloud';
 import { User } from '@supabase/supabase-js';
 import { useBilling } from '@flowglad/nextjs';
-import { SubscriptionDemoCard, SubscribeButton } from '../SubscriptionCardDemo';
-import { PricingTable } from '@flowglad/react';
+import {
+  SubscriptionDemoCard,
+  SubscribeButton,
+  AddPaymentMethodButton
+} from '../SubscriptionCardDemo';
 
 interface Props {
   user: User | null | undefined;
@@ -29,7 +32,9 @@ export default function Pricing({ user }: Props) {
       </section>
     );
   }
-
+  if (!billing.createAddPaymentMethodCheckoutSession) {
+    return <div>Loading...</div>;
+  }
   const products = billing.catalog?.products.map((item) => {
     return {
       ...item,
@@ -47,6 +52,7 @@ export default function Pricing({ user }: Props) {
       <div className="max-w-6xl px-4 py-8 mx-auto sm:py-24 sm:px-6 lg:px-8">
         <div className="sm:flex sm:flex-col sm:align-center"></div>
         <SubscribeButton />
+        <AddPaymentMethodButton />
       </div>
       <SubscriptionDemoCard />
       <LogoCloud />
