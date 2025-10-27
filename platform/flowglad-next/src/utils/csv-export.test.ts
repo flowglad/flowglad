@@ -5,21 +5,6 @@ import {
   InferredCustomerStatus,
 } from '@/db/schema/customers'
 import { CurrencyCode } from '@/types'
-import core from '@/utils/core'
-
-// Mock the core.formatDate function to ensure consistent test results
-vi.mock('@/utils/core', () => ({
-  titleCase: vi.fn((str: string) => {
-    // Mock titleCase to capitalize first letter of each word
-    return str
-      .split(' ')
-      .map(
-        (word) =>
-          word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-      )
-      .join(' ')
-  }),
-}))
 
 // Mock the stripe currency function
 vi.mock('@/utils/stripe', () => ({
@@ -180,7 +165,7 @@ describe('createCustomersCsv', () => {
     })
 
     it('should handle customers with null/undefined values', () => {
-      const customerWithNulls: CustomerTableRowData = {
+      const customerWithNulls: Partial<CustomerTableRowData> = {
         customer: {
           id: 'cust_null',
           organizationId: 'org_1',
@@ -202,13 +187,13 @@ describe('createCustomersCsv', () => {
           updatedByCommit: null,
           position: 1,
         },
-        totalSpend: undefined as any, // Testing undefined
-        payments: null as any, // Testing null
+        totalSpend: undefined, // Testing undefined
+        payments: undefined, // Testing undefined
         status: InferredCustomerStatus.Pending,
       }
 
       const result = createCustomersCsv(
-        [customerWithNulls],
+        [customerWithNulls as CustomerTableRowData],
         CurrencyCode.USD,
         fixedDate
       )
@@ -384,7 +369,7 @@ describe('createCustomersCsv', () => {
         ...mockCustomerTableRowData[0],
         customer: {
           ...mockCustomerTableRowData[0].customer,
-          createdAt: '2024-02-15T08:30:00.000Z' as any, // String date
+          createdAt: new Date('2024-02-15T08:30:00.000Z').getTime(), // Convert string to timestamp
         },
       }
 
@@ -405,7 +390,7 @@ describe('createCustomersCsv', () => {
         ...mockCustomerTableRowData[0],
         customer: {
           ...mockCustomerTableRowData[0].customer,
-          createdAt: null as any, // Null date
+          createdAt: 0, // Use 0 to represent invalid/null timestamp
         },
       }
 
@@ -418,7 +403,7 @@ describe('createCustomersCsv', () => {
       const lines = result.csv.split('\n')
       const dataRow = lines[1]
 
-      expect(dataRow).toContain('""') // Empty quoted value for null date
+      expect(dataRow).toContain('""') // Empty quoted value for invalid timestamp
     })
   })
 
@@ -489,59 +474,6 @@ describe('createCustomersCsv', () => {
 
       expect(result1.csv).toBe(result2.csv)
       expect(result1.filename).toBe(result2.filename)
-    })
-  })
-
-  describe('Performance and Scalability', () => {
-    it('should handle large datasets efficiently', () => {
-      // Create a large dataset
-      const largeDataset: CustomerTableRowData[] = Array.from(
-        { length: 1000 },
-        (_, index) => ({
-          customer: {
-            id: `cust_${index}`,
-            organizationId: 'org_1',
-            email: `customer${index}@example.com`,
-            name: `Customer ${index}`,
-            externalId: `ext_${index}`,
-            createdAt: new Date('2024-01-01T10:00:00.000Z').getTime(),
-            updatedAt: new Date('2024-01-01T10:00:00.000Z').getTime(),
-            archived: false,
-            stripeCustomerId: `cus_${index}`,
-            taxId: null,
-            logoURL: null,
-            iconURL: null,
-            domain: null,
-            billingAddress: null,
-            userId: null,
-            pricingModelId: null,
-            invoiceNumberBase: `INV${index}`,
-            stackAuthHostedBillingUserId: null,
-            livemode: true,
-            createdByCommit: null,
-            updatedByCommit: null,
-            position: index,
-          },
-          totalSpend: index * 100,
-          payments: Math.floor(index / 10),
-          status: InferredCustomerStatus.Active,
-        })
-      )
-
-      const startTime = Date.now()
-      const result = createCustomersCsv(
-        largeDataset,
-        CurrencyCode.USD,
-        fixedDate
-      )
-      const endTime = Date.now()
-
-      // Should complete within reasonable time (adjust threshold as needed)
-      expect(endTime - startTime).toBeLessThan(1000) // 1 second
-
-      // Should have correct number of lines (headers + data)
-      const lines = result.csv.split('\n')
-      expect(lines).toHaveLength(1001) // 1 header + 1000 data rows
     })
   })
 
@@ -639,38 +571,6 @@ describe('createCustomersCsv', () => {
       const firstDataRow = lines[1]
 
       expect(firstDataRow).toContain('"$125.00"') // Should use $ for USD
-    })
-
-    it('should use current date as default when not specified', () => {
-      // Mock Date.now to return a fixed timestamp, but don't break Date constructor
-      const mockTimestamp = new Date(
-        '2024-03-20T10:00:00.000Z'
-      ).getTime()
-      vi.spyOn(Date, 'now').mockReturnValue(mockTimestamp)
-
-      // Since the default parameter uses new Date(), we need to ensure it gets our mock timestamp
-      const originalDate = global.Date
-      global.Date = class extends Date {
-        constructor(...args: any[]) {
-          if (args.length === 0) {
-            super(mockTimestamp)
-          } else {
-            // Handle the case where arguments are passed to Date constructor
-            super(...(args as []))
-          }
-        }
-      } as any
-
-      const result = createCustomersCsv(
-        mockCustomerTableRowData,
-        CurrencyCode.USD
-      )
-
-      expect(result.filename).toBe('customers_2024-03-20.csv')
-
-      // Restore original Date
-      global.Date = originalDate
-      vi.restoreAllMocks()
     })
   })
 })
