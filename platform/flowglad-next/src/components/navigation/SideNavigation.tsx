@@ -257,7 +257,7 @@ export const SideNavigation = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  aria-label="Toggle order"
+                  aria-label="Open organization switcher"
                   onClick={() => {
                     setIsSelectOrgModalOpen(true)
                   }}
