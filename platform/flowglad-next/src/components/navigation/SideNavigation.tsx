@@ -6,7 +6,6 @@ import {
   Users,
   CircleDollarSign,
   BookOpen,
-  Loader2,
   ChevronsUpDown,
   LogOut,
   TriangleRight,
@@ -14,12 +13,12 @@ import {
 } from 'lucide-react'
 import { useAuthContext } from '@/contexts/authContext'
 import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { NavMain } from './NavMain'
 import { NavStandalone } from './NavStandalone'
 import { trpc } from '@/app/_trpc/client'
 import { cn } from '@/lib/utils'
-import { useEffect, useState } from 'react'
 import { Skeleton } from '../ui/skeleton'
 import { BusinessOnboardingStatus } from '@/types'
 import { RiDiscordFill } from '@remixicon/react'
@@ -36,7 +35,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
-import { signOut } from '@/utils/authClient'
+import { SelectOrganizationModal } from '../forms/SelectOrganizationModal'
 
 // Official Shadcn navigation interfaces
 type StandaloneNavItem = {
@@ -60,6 +59,7 @@ type MainNavItem = {
 export const SideNavigation = () => {
   const pathname = usePathname()
   const { user, organization } = useAuthContext()
+  const utils = trpc.useUtils()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
     onSuccess: async () => {
       await invalidateTRPC()
@@ -82,13 +82,20 @@ export const SideNavigation = () => {
     initialFocusedMembershipLoading,
     setInitialFocusedMembershipLoading,
   ] = useState(true)
-  const [signingOut, setSigningOut] = useState(false)
+  const [isSelectOrgModalOpen, setIsSelectOrgModalOpen] = useState(false)
   const focusedMembershipData = focusedMembership.data
   useEffect(() => {
     if (focusedMembershipData) {
       setInitialFocusedMembershipLoading(false)
     }
   }, [focusedMembershipData])
+
+  // Invalidate organizations list whenever the logged-in user changes
+  useEffect(() => {
+    if (user?.id) {
+      void utils.organizations.getOrganizations.invalidate()
+    }
+  }, [user?.id, utils])
   const livemode = focusedMembership.data?.membership.livemode
   const router = useRouter()
   const { state } = useSidebar()
@@ -252,8 +259,7 @@ export const SideNavigation = () => {
                   size="sm"
                   aria-label="Toggle order"
                   onClick={() => {
-                    // navigate to organization selector
-                    router.push('/select-organization')
+                    setIsSelectOrgModalOpen(true)
                   }}
                   className="p-1"
                 >
@@ -362,6 +368,11 @@ export const SideNavigation = () => {
           </SidebarGroup>
         </div>
       </SidebarFooter>
+      
+      <SelectOrganizationModal 
+        isOpen={isSelectOrgModalOpen} 
+        setIsOpen={setIsSelectOrgModalOpen} 
+      />
     </>
   )
 }

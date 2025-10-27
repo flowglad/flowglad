@@ -19,51 +19,24 @@ export default async function Home() {
     throw new Error('User email not found')
   }
   const user = await betterAuthUserToApplicationUser(betterAuthUser)
-  const result = await adminTransaction(async ({ transaction }) => {
-    const membershipsAndOrganizations =
-      await selectMembershipAndOrganizations(
-        {
-          userId: user.id,
-        },
-        transaction
-      )
-    const focusedMembership = membershipsAndOrganizations.find(
-      (item) => item.membership.focused
+  const membershipsAndOrganizations = await adminTransaction(async ({ transaction }) => {
+    const memberships = await selectMembershipAndOrganizations(
+      { userId: user.id },
+      transaction
     )
-    if (focusedMembership) {
-      return {
-        focusedMembershipAndOrganization: focusedMembership,
-        membershipsAndOrganizations,
-      }
-    } else if (membershipsAndOrganizations.length > 0) {
-      await updateMembership(
-        {
-          id: membershipsAndOrganizations[0].membership.id,
-          focused: true,
-        },
-        transaction
-      )
-      return {
-        focusedMembershipAndOrganization:
-          membershipsAndOrganizations[0],
-        membershipsAndOrganizations,
-      }
+
+    // Ensure at least one membership is focused so the UI always has context
+    const hasFocused = memberships.some((item) => item.membership.focused)
+    if (!hasFocused && memberships.length > 0) {
+      await updateMembership({ id: memberships[0].membership.id, focused: true }, transaction)
     }
-    return {
-      focusedMembershipAndOrganization: null,
-      membershipsAndOrganizations,
-    }
+
+    return memberships
   })
 
-  const {
-    focusedMembershipAndOrganization,
-    membershipsAndOrganizations,
-  } = result
   if (membershipsAndOrganizations.length === 0) {
     redirect('/onboarding/business-details')
-  } else if (focusedMembershipAndOrganization) {
-    redirect('/dashboard')
-  } else {
-    redirect('/select-organization')
   }
+
+  redirect('/dashboard')
 }
