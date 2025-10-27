@@ -1,5 +1,5 @@
 import { CustomerTableRowData } from '@/db/schema/customers'
-import core from '@/utils/core'
+import { titleCase } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { CurrencyCode } from '@/types'
 import { format } from 'date-fns'
@@ -41,7 +41,8 @@ const formatDate = (date: Date | string | number | undefined) => {
   if (!date) {
     return ''
   }
-  return core.formatDate(date)
+  // Use consistent yyyy-MM-dd format for CSV exports (same as filename format)
+  return format(new Date(date), 'yyyy-MM-dd')
 }
 
 const formatTimestampedFilename = (prefix: string, date: Date) => {
@@ -65,7 +66,7 @@ export const createCustomersCsv = (
       formatDate(row.customer.createdAt),
       row.customer.id,
       row.customer.externalId,
-      row.status,
+      titleCase(row.status),
     ]
 
     return fields.map(escapeCsvValue).join(',')
