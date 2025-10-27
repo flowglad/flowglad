@@ -1141,29 +1141,36 @@ export const createPaginatedSelectFunction = <
             limit
         )
       }
-      const { parameters, createdAt, direction } = cursor
+      const {
+        parameters,
+        createdAt,
+        direction,
+      }: {
+        parameters: SelectConditions<T>
+        createdAt: Date | undefined
+        direction: PaginationDirection
+      } = cursor
         ? decodeCursor(cursor)
         : {
-            parameters: {},
-            createdAt: new Date(),
+            parameters: {} as SelectConditions<T>,
+            createdAt: undefined,
             direction: 'forward',
           }
       let query = transaction
         .select()
         .from(table as SelectTable)
         .$dynamic()
-      //This if statements check if there are parameter THEN run the pagination
-      //which is bad we want the pagination to run regardless of the parameters.
-      //Removing the if statement fixes this problem
-      // if (Object.keys(parameters).length > 0)
-      query = query.where(
-        and(
+      if (Object.keys(parameters).length > 0) {
+        query = query.where(whereClauseFromObject(table, parameters))
+      }
+
+      if (createdAt) {
+        query = query.where(
           direction === 'forward'
             ? gt(table.createdAt, createdAt)
             : lt(table.createdAt, createdAt)
         )
-      )
-      //  }
+      }
       const queryLimit = limit + 1
       query = query
         .orderBy(
