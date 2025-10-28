@@ -124,7 +124,7 @@ describe('stringFilterFn', () => {
     expect(result).toBe(false)
   })
 
-  it('should return false for non-string filter values', () => {
+  it('should treat non-string filter values as no filter', () => {
     const row = createMockRow('test', 'name')
 
     const result = stringFilterFn(row, 'name', 123)
