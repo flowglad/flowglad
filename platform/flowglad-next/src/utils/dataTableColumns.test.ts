@@ -16,10 +16,10 @@ import {
 // Helper function to create mock Row objects
 function createMockRow<T>(value: T, columnId: string): Row<any> {
   return {
-    getValue: vi.fn((id: string) => {
+    getValue: (id: string) => {
       if (id === columnId) return value
       return undefined
-    }),
+    },
   } as unknown as Row<any>
 }
 
