@@ -1,10 +1,6 @@
 import { xmcpHandler } from '@xmcp/adapter'
 import core from '@/utils/core'
 
-if (core.IS_PROD) {
-  throw new Error('MCP handler should not be used in production')
-}
-
 /**
  * Verify the Bearer token from the Authorization header
  */
@@ -45,6 +41,11 @@ function verifyBearerToken(req: Request): boolean {
  * Authenticated MCP handler with API key verification
  */
 export async function mcpHandler(req: Request) {
+  // Check if running in production
+  if (core.IS_PROD) {
+    throw new Error('MCP handler should not be used in production')
+  }
+
   // Verify authentication
   if (!verifyBearerToken(req)) {
     return new Response(
