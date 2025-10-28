@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { createCustomersCsv } from '@/utils/csv-export'
 import {
   CustomerTableRowData,
@@ -6,30 +6,11 @@ import {
 } from '@/db/schema/customers'
 import { CurrencyCode } from '@/types'
 
-// Mock the stripe currency function
-vi.mock('@/utils/stripe', () => ({
-  stripeCurrencyAmountToHumanReadableCurrencyAmount: vi.fn(
-    (currency: CurrencyCode, amount: number) => {
-      // Simple mock that returns formatted currency like $10.50
-      const formatted = (amount / 100).toFixed(2)
-      const symbol =
-        currency === CurrencyCode.USD
-          ? '$'
-          : currency === CurrencyCode.EUR
-            ? '€'
-            : currency
-      return `${symbol}${formatted}`
-    }
-  ),
-}))
-
 describe('createCustomersCsv', () => {
   let mockCustomerTableRowData: CustomerTableRowData[]
   let fixedDate: Date
 
   beforeEach(() => {
-    vi.clearAllMocks()
-
     // Use a fixed date for consistent test results
     fixedDate = new Date('2024-01-15T12:00:00.000Z')
 
@@ -201,8 +182,9 @@ describe('createCustomersCsv', () => {
       const lines = result.csv.split('\n')
       const dataRow = lines[1]
 
-      expect(dataRow).toContain('"$0.00"') // totalSpend should default to 0
+      expect(dataRow).toContain('"$0.00"') // totalSpend should default to 0 and be formatted as currency
       expect(dataRow).toContain('"0"') // payments should default to 0
+      expect(dataRow).toContain('"Pending"')
     })
 
     it('should properly escape CSV values containing quotes', () => {
@@ -344,7 +326,8 @@ describe('createCustomersCsv', () => {
       const lines = result.csv.split('\n')
       const dataRow = lines[1]
 
-      expect(dataRow).toContain('"$9999999.99"')
+      // Real implementation uses comma separators for large numbers
+      expect(dataRow).toContain('"$9,999,999.99"')
     })
   })
 
