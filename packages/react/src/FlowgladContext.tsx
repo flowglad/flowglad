@@ -71,6 +71,8 @@ export interface NonPresentContextValues {
   createActivateSubscriptionCheckoutSession: null
   checkFeatureAccess: null
   checkUsageBalance: null
+  pricingModel: null
+  billingPortalUrl: null
   reload: null
   catalog: null
   invoices: []
@@ -115,6 +117,8 @@ const notPresentContextValues: NonPresentContextValues = {
   createActivateSubscriptionCheckoutSession: null,
   checkFeatureAccess: null,
   checkUsageBalance: null,
+  pricingModel: null,
+  billingPortalUrl: null,
   reload: null,
   catalog: null,
   invoices: [],
