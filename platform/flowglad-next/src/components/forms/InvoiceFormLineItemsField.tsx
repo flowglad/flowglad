@@ -77,7 +77,7 @@ export const InvoiceFormLineItemsField = () => {
 
   return (
     <div className="space-y-2">
-      <div className="w-full flex items-end gap-8">
+      <div className="w-full flex items-end gap-2">
         <div className="flex flex-row gap-2 min-w-80 items-end">
           <Button
             variant="ghost"
