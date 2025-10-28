@@ -135,7 +135,7 @@ export const BillingHeader = React.forwardRef<
               width={1200}
               height={800}
               className="w-full h-auto object-contain"
-              sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 767px) calc(50vw - 4rem), (max-width: 1023px) calc(50vw - 6rem), 374px"
+              sizes="(max-width: 768px) 100vw, 448px"
               priority
             />
           </div>
