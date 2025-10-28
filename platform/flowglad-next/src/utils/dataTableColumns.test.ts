@@ -14,13 +14,13 @@ import {
 } from './dataTableColumns'
 
 // Helper function to create mock Row objects
-function createMockRow<T>(value: T, columnId: string): Row<any> {
+function createMockRow<T>(value: T, columnId: string): Row<unknown> {
   return {
     getValue: (id: string) => {
       if (id === columnId) return value
       return undefined
     },
-  } as unknown as Row<any>
+  } as Row<unknown>
 }
 
 describe('stringSortingFn', () => {
