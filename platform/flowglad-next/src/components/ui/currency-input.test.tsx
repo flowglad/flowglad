@@ -224,7 +224,7 @@ describe('CurrencyInput Component', () => {
 
       const input = screen.getByRole('textbox')
 
-      // Test that completely invalid input doesn't break the component
+      // Test that completely invalid input doesn't break the entire component
       fireEvent.change(input, { target: { value: 'abc' } })
 
       // The component should handle this gracefully without calling onValueChange
