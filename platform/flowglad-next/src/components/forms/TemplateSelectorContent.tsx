@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import { TemplateGrid } from '@/components/pricing-model-templates/TemplateGrid'
 import { PRICING_MODEL_TEMPLATES } from '@/constants/pricingModelTemplates'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
@@ -25,13 +25,17 @@ export function TemplateSelectorContent({
           Create Pricing Model
         </h2>
         <div className="flex items-center gap-2">
+          <Button
+            onClick={onImportPricingModel}
+            variant="secondary"
+            size="sm"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Import
+          </Button>
           <Button onClick={onCreateBlank} size="sm">
             <Plus className="w-4 h-4 mr-2" />
             New
-          </Button>
-          <Button onClick={onImportPricingModel} size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Import
           </Button>
         </div>
       </div>
