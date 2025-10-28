@@ -97,6 +97,9 @@ jobs:
       - name: Install dependencies
         run: bun install --no-progress
       - name: Run build (all packages)
+        env:
+          TURBO_FORCE: "1"
+          TURBO_NO_DAEMON: "1"
         run: bun run build
       - name: Run linting and typechecking (all packages)
         run: bun run check
@@ -118,6 +121,9 @@ jobs:
       - name: Install dependencies
         run: bun install --no-progress
       - name: Run build
+        env:
+          TURBO_FORCE: "1"
+          TURBO_NO_DAEMON: "1"
         run: bun run build
       - name: Run tests
         run: bun run test
