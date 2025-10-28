@@ -24,6 +24,13 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import SendInvoiceReminderEmailModal from '@/components/forms/SendInvoiceReminderEmailModal'
 import core from '@/utils/core'
 import { sentenceCase } from 'change-case'
+import {
+  stringSortingFn,
+  stringFilterFn,
+  dateSortingFn,
+  numberSortingFn,
+  arrayFilterFn,
+} from '@/utils/dataTableColumns'
 
 export type InvoiceTableRowData = {
   invoice: Invoice.ClientRecord
@@ -137,24 +144,8 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Customer" />
     ),
-    sortingFn: (rowA, rowB, columnId) => {
-      const nameA = rowA.getValue<string>(columnId) ?? ''
-      const nameB = rowB.getValue<string>(columnId) ?? ''
-      return nameA.localeCompare(nameB)
-    },
-    filterFn: (row, columnId, filterValue) => {
-      if (!filterValue || typeof filterValue !== 'string') {
-        return true
-      }
-      const value = (
-        row.getValue<string>(columnId) ?? ''
-      ).toLowerCase()
-      const search = filterValue.toLowerCase().trim()
-      if (search.length === 0) {
-        return true
-      }
-      return value.includes(search)
-    },
+    sortingFn: stringSortingFn,
+    filterFn: stringFilterFn,
     cell: ({ row }) => {
       const customer = row.original.customer
       const displayName =
@@ -179,11 +170,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Number" />
     ),
-    sortingFn: (rowA, rowB, columnId) => {
-      const numberA = rowA.getValue<string>(columnId) ?? ''
-      const numberB = rowB.getValue<string>(columnId) ?? ''
-      return numberA.localeCompare(numberB)
-    },
+    sortingFn: stringSortingFn,
     cell: ({ row }) => (
       <div>
         <DataTableCopyableCell
@@ -205,24 +192,8 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
-    sortingFn: (rowA, rowB, columnId) => {
-      const statusA = rowA.getValue<string>(columnId) ?? ''
-      const statusB = rowB.getValue<string>(columnId) ?? ''
-      return statusA.localeCompare(statusB)
-    },
-    filterFn: (row, columnId, filterValue) => {
-      if (!filterValue) {
-        return true
-      }
-      const value = row.getValue<string>(columnId)
-      if (Array.isArray(filterValue)) {
-        if (filterValue.length === 0) {
-          return true
-        }
-        return filterValue.includes(value)
-      }
-      return value === filterValue
-    },
+    sortingFn: stringSortingFn,
+    filterFn: arrayFilterFn,
     cell: ({ row }) => {
       const invoice = row.original.invoice
       return <InvoiceStatusBadge invoice={invoice} />
@@ -242,11 +213,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Total" />
     ),
-    sortingFn: (rowA, rowB, columnId) => {
-      const totalA = Number(rowA.getValue(columnId) ?? 0)
-      const totalB = Number(rowB.getValue(columnId) ?? 0)
-      return totalA - totalB
-    },
+    sortingFn: numberSortingFn,
     cell: ({ row }) => {
       const total = row.getValue('total') as number
       const formatted =
@@ -270,13 +237,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Due Date" />
     ),
-    sortingFn: (rowA, rowB, columnId) => {
-      const dateA = rowA.getValue<Date | string | null>(columnId)
-      const dateB = rowB.getValue<Date | string | null>(columnId)
-      const timeA = dateA ? new Date(dateA).getTime() : 0
-      const timeB = dateB ? new Date(dateB).getTime() : 0
-      return timeA - timeB
-    },
+    sortingFn: dateSortingFn,
     cell: ({ row }) => {
       const dueDate = row.getValue('dueDate') as Date | null
       return (
@@ -295,13 +256,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Created" />
     ),
-    sortingFn: (rowA, rowB, columnId) => {
-      const dateA = rowA.getValue<Date | string | null>(columnId)
-      const dateB = rowB.getValue<Date | string | null>(columnId)
-      const timeA = dateA ? new Date(dateA).getTime() : 0
-      const timeB = dateB ? new Date(dateB).getTime() : 0
-      return timeA - timeB
-    },
+    sortingFn: dateSortingFn,
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {core.formatDate(row.getValue('createdAt'))}
@@ -317,11 +272,7 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="ID" />
     ),
-    sortingFn: (rowA, rowB, columnId) => {
-      const idA = rowA.getValue<string>(columnId) ?? ''
-      const idB = rowB.getValue<string>(columnId) ?? ''
-      return idA.localeCompare(idB)
-    },
+    sortingFn: stringSortingFn,
     cell: ({ row }) => (
       <div>
         <DataTableCopyableCell copyText={row.getValue('invoiceId')}>
