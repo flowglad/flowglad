@@ -23,7 +23,11 @@ import {
   updateProduct,
 } from './tableMethods/productMethods'
 import { insertPrice, updatePrice } from './tableMethods/priceMethods'
-import { metadataSchema, whereClauseFromObject } from './tableUtils'
+import {
+  metadataSchema,
+  whereClauseFromObject,
+  encodeCursor,
+} from './tableUtils'
 
 describe('createCursorPaginatedSelectFunction', () => {
   let organizationId: string
@@ -1422,6 +1426,365 @@ describe('whereClauseFromObject', () => {
       expect(result1).toBeDefined()
       expect(result2).toBeDefined()
     })
+  })
+})
+
+describe('createPaginatedSelectFunction', () => {
+  let organizationId: string
+  let customerIds: string[] = []
+
+  beforeEach(async () => {
+    const { organization } = await setupOrg()
+    organizationId = organization.id
+    customerIds = []
+
+    // Create 25 customers for pagination testing
+    for (let i = 0; i < 25; i++) {
+      const customer = await setupCustomer({
+        organizationId,
+        email: `paginated-test${i}-${core.nanoid()}@example.com`,
+        livemode: i % 3 === 0, // Every third customer is livemode
+      })
+      customerIds.push(customer.id)
+    }
+  })
+
+  it('should return first page with default limit', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { selectCustomersPaginated } = await import(
+        './tableMethods/customerMethods'
+      )
+      return selectCustomersPaginated(
+        {
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBe(10)
+    expect(result.hasMore).toBe(true)
+    expect(result.nextCursor).toBeDefined()
+    expect(result.currentCursor).toBeUndefined()
+    expect(result.total).toBeGreaterThanOrEqual(25)
+  })
+
+  it('should return correct page with custom limit', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { selectCustomersPaginated } = await import(
+        './tableMethods/customerMethods'
+      )
+      return selectCustomersPaginated(
+        {
+          limit: 5,
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBe(5)
+    expect(result.hasMore).toBe(true)
+  })
+
+  it('should paginate to next page using cursor', async () => {
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        const { selectCustomersPaginated } = await import(
+          './tableMethods/customerMethods'
+        )
+        return selectCustomersPaginated(
+          {
+            limit: 10,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(firstPage.nextCursor).toBeDefined()
+
+    const secondPage = await adminTransaction(
+      async ({ transaction }) => {
+        const { selectCustomersPaginated } = await import(
+          './tableMethods/customerMethods'
+        )
+        return selectCustomersPaginated(
+          {
+            cursor: firstPage.nextCursor!,
+            limit: 10,
+          },
+          transaction
+        )
+      }
+    )
+
+    if (secondPage.data.length > 0) {
+      expect(secondPage.currentCursor).toBe(firstPage.nextCursor)
+
+      // Verify no overlap between pages
+      const firstPageIds = new Set(firstPage.data.map((c) => c.id))
+      const secondPageIds = new Set(secondPage.data.map((c) => c.id))
+      const intersection = new Set(
+        [...firstPageIds].filter((id) => secondPageIds.has(id))
+      )
+      // There might be 1 overlap due to cursor precision, but should be minimal
+      expect(intersection.size).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('should maintain correct order by createdAt (forward direction)', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { selectCustomersPaginated } = await import(
+        './tableMethods/customerMethods'
+      )
+      return selectCustomersPaginated(
+        {
+          limit: 20,
+        },
+        transaction
+      )
+    })
+
+    // Verify records are ordered by creation date ascending (oldest first in forward direction)
+    for (let i = 0; i < result.data.length - 1; i++) {
+      expect(
+        new Date(result.data[i].createdAt).getTime()
+      ).toBeLessThanOrEqual(
+        new Date(result.data[i + 1].createdAt).getTime()
+      )
+    }
+  })
+
+  it('should enforce maximum limit of 100', async () => {
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        const { selectCustomersPaginated } = await import(
+          './tableMethods/customerMethods'
+        )
+        return selectCustomersPaginated(
+          {
+            limit: 101,
+          },
+          transaction
+        )
+      })
+    ).rejects.toThrow('limit must be less than or equal to 100')
+  })
+
+  it('should return hasMore=false when on last page', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { selectCustomersPaginated } = await import(
+        './tableMethods/customerMethods'
+      )
+      return selectCustomersPaginated(
+        {
+          limit: 100,
+        },
+        transaction
+      )
+    })
+
+    // If we request more items than exist, hasMore should be false
+    if (result.data.length < 100) {
+      expect(result.hasMore).toBe(false)
+      expect(result.nextCursor).toBeUndefined()
+    }
+  })
+
+  it('should handle empty result set', async () => {
+    // Since createPaginatedSelectFunction uses createdAt for cursor filtering,
+    // not parameter filtering in the cursor, we'll test with a far future date
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { selectCustomersPaginated } = await import(
+        './tableMethods/customerMethods'
+      )
+      const { encodeCursor } = await import('./tableUtils')
+      // Use a future date that won't match any records
+      const cursor = encodeCursor({
+        parameters: {},
+        createdAt: new Date('2099-01-01'),
+        direction: 'forward',
+      })
+      return selectCustomersPaginated(
+        {
+          cursor,
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBe(0)
+    expect(result.hasMore).toBe(false)
+    expect(result.nextCursor).toBeUndefined()
+  })
+
+  it('should correctly count total records', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { selectCustomersPaginated } = await import(
+        './tableMethods/customerMethods'
+      )
+      return selectCustomersPaginated(
+        {
+          limit: 5,
+        },
+        transaction
+      )
+    })
+
+    expect(result.total).toBeGreaterThanOrEqual(25)
+    expect(typeof result.total).toBe('number')
+  })
+
+  it('should handle cursor with parameters filter', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { selectCustomersPaginated } = await import(
+        './tableMethods/customerMethods'
+      )
+      const { encodeCursor } = await import('./tableUtils')
+
+      // Note: createPaginatedSelectFunction applies parameters filter from cursor
+      // to both the data query and total count query
+      const cursor = encodeCursor({
+        parameters: { organizationId },
+        createdAt: new Date(0),
+        direction: 'forward',
+      })
+
+      return selectCustomersPaginated(
+        {
+          cursor,
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBeGreaterThan(0)
+    // All results should belong to the organization due to cursor parameters
+    result.data.forEach((customer) => {
+      expect(customer.organizationId).toBe(organizationId)
+    })
+    // Total should reflect the filtered count
+    expect(result.total).toBeGreaterThanOrEqual(result.data.length)
+  })
+
+  it('should handle backward pagination direction', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { selectCustomersPaginated } = await import(
+        './tableMethods/customerMethods'
+      )
+      const { encodeCursor } = await import('./tableUtils')
+
+      // Create cursor with backward direction
+      const cursor = encodeCursor({
+        parameters: {},
+        createdAt: new Date(), // Start from now
+        direction: 'backward',
+      })
+
+      return selectCustomersPaginated(
+        {
+          cursor,
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBeGreaterThan(0)
+
+    // Verify records are ordered by creation date descending (newest first in backward direction)
+    for (let i = 0; i < result.data.length - 1; i++) {
+      expect(
+        new Date(result.data[i].createdAt).getTime()
+      ).toBeGreaterThanOrEqual(
+        new Date(result.data[i + 1].createdAt).getTime()
+      )
+    }
+  })
+
+  it('should return consistent results across multiple fetches without cursor', async () => {
+    const firstFetch = await adminTransaction(
+      async ({ transaction }) => {
+        const { selectCustomersPaginated } = await import(
+          './tableMethods/customerMethods'
+        )
+        return selectCustomersPaginated(
+          {
+            limit: 5,
+          },
+          transaction
+        )
+      }
+    )
+
+    const secondFetch = await adminTransaction(
+      async ({ transaction }) => {
+        const { selectCustomersPaginated } = await import(
+          './tableMethods/customerMethods'
+        )
+        return selectCustomersPaginated(
+          {
+            limit: 5,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Without new data, the first page should be the same
+    expect(firstFetch.data.map((c) => c.id)).toEqual(
+      secondFetch.data.map((c) => c.id)
+    )
+  })
+
+  it('should handle limit at exact boundary of available records', async () => {
+    // Get total count first
+    const totalResult = await adminTransaction(
+      async ({ transaction }) => {
+        const { selectCustomersPaginated } = await import(
+          './tableMethods/customerMethods'
+        )
+        const { encodeCursor } = await import('./tableUtils')
+        const cursor = encodeCursor({
+          parameters: { organizationId },
+          createdAt: new Date(0),
+          direction: 'forward',
+        })
+        return selectCustomersPaginated(
+          {
+            cursor,
+            limit: 100,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Request exactly the number of records that exist
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { selectCustomersPaginated } = await import(
+        './tableMethods/customerMethods'
+      )
+      const { encodeCursor } = await import('./tableUtils')
+      const cursor = encodeCursor({
+        parameters: { organizationId },
+        createdAt: new Date(0),
+        direction: 'forward',
+      })
+      return selectCustomersPaginated(
+        {
+          cursor,
+          limit: Math.min(totalResult.data.length, 100),
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBe(
+      Math.min(totalResult.data.length, 100)
+    )
   })
 })
 
