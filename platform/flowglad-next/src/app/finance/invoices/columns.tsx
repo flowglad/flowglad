@@ -140,7 +140,7 @@ function InvoiceActionsMenu({
 export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'customerName',
-    accessorFn: (row) => row.customer.name?.trim() ?? '',
+    accessorFn: (row) => row.customer.name?.trim() || row.customer.id,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Customer" />
     ),
