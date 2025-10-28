@@ -48,8 +48,6 @@ import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 import { organizationBillingPortalURL } from '@/utils/core'
-import { createCustomersCsv } from '@/utils/csv-export'
-import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'customer',
@@ -359,93 +357,6 @@ const getTableRowsProcedure = protectedProcedure
     )
   )
 
-const exportCsvProcedure = protectedProcedure
-  .input(
-    z.object({
-      filters: z
-        .object({
-          archived: z.boolean().optional(),
-          pricingModelId: z.string().optional(),
-        })
-        .optional(),
-      searchQuery: z.string().optional(),
-    })
-  )
-  .output(
-    z.object({
-      csv: z.string(),
-      filename: z.string(),
-    })
-  )
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, organizationId }) => {
-        const { filters, searchQuery } = input
-        const PAGE_SIZE = 100
-
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User ID is required',
-          })
-        }
-
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Organization ID is required',
-          })
-        }
-
-        // Get the user's focused organization to access its default currency
-        const focusedMembership =
-          await selectFocusedMembershipAndOrganization(
-            userId,
-            transaction
-          )
-
-        if (!focusedMembership) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'No focused membership found',
-          })
-        }
-
-        const rows: import('@/db/schema/customers').CustomerTableRowData[] =
-          []
-        let pageAfter: string | undefined
-
-        while (true) {
-          const response =
-            await selectCustomersCursorPaginatedWithTableRowData({
-              input: {
-                pageAfter,
-                pageSize: PAGE_SIZE,
-                filters,
-                searchQuery,
-              },
-              transaction,
-            })
-
-          rows.push(...response.items)
-
-          if (!response.hasNextPage || !response.endCursor) {
-            break
-          }
-
-          pageAfter = response.endCursor
-        }
-
-        const { csv, filename } = createCustomersCsv(
-          rows,
-          focusedMembership.organization.defaultCurrency
-        )
-
-        return { csv, filename }
-      }
-    )
-  )
-
 export const customersRouter = router({
   create: createCustomerProcedure,
   /**
@@ -457,5 +368,4 @@ export const customersRouter = router({
   internal__getById: getCustomerById,
   list: listCustomersProcedure,
   getTableRows: getTableRowsProcedure,
-  exportCsv: exportCsvProcedure,
 })

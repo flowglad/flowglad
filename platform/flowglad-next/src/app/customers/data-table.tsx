@@ -151,19 +151,50 @@ export function CustomersDataTable({
 
   const hasResults = (data?.total ?? 0) > 0
 
-  const exportCsvMutation = trpc.customers.exportCsv.useMutation()
-
   const handleExport = React.useCallback(async () => {
     setIsExporting(true)
     try {
-      const trimmedSearch = searchQuery.trim()
-      const { csv, filename } = await exportCsvMutation.mutateAsync({
-        filters,
-        searchQuery: trimmedSearch || undefined,
+      const params = new URLSearchParams()
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value === undefined || value === null) {
+          return
+        }
+        params.set(key, String(value))
       })
+      const trimmedSearch = searchQuery.trim()
+      if (trimmedSearch) {
+        params.set('searchQuery', trimmedSearch)
+      }
+      const query = params.toString()
+      const response = await fetch(
+        query
+          ? `/api/customers/export?${query}`
+          : '/api/customers/export'
+      )
+      if (!response.ok) {
+        throw new Error('Failed to export customers')
+      }
 
-      // Create and trigger download
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+      const blob = await response.blob()
+      const contentDisposition = response.headers.get(
+        'Content-Disposition'
+      )
+
+      let filename = 'customers.csv'
+      if (contentDisposition) {
+        const utf8Match = contentDisposition.match(
+          /filename\*=UTF-8''([^;]+)/i
+        )
+        const simpleMatch = contentDisposition.match(
+          /filename="?([^\";]+)"?/i
+        )
+        if (utf8Match?.[1]) {
+          filename = decodeURIComponent(utf8Match[1])
+        } else if (simpleMatch?.[1]) {
+          filename = simpleMatch[1]
+        }
+      }
+
       const fileURL = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = fileURL
@@ -177,7 +208,7 @@ export function CustomersDataTable({
     } finally {
       setIsExporting(false)
     }
-  }, [filters, searchQuery, exportCsvMutation])
+  }, [filters, searchQuery])
 
   return (
     <div className="w-full">
