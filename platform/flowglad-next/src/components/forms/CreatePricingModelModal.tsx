@@ -191,6 +191,7 @@ const CreatePricingModelModal: React.FC<
                   variant="secondary"
                   size="icon"
                   onClick={handleBackToSelector}
+                  aria-label="Go back to template selector"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -226,6 +227,7 @@ const CreatePricingModelModal: React.FC<
                 variant="secondary"
                 size="icon"
                 onClick={handleBackToSelector}
+                aria-label="Go back to template selector"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
