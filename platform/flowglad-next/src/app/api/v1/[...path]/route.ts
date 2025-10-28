@@ -53,7 +53,7 @@ import {
 } from '@/utils/securityTelemetry'
 import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
 
-const searchParamsToObject = (
+export const searchParamsToObject = (
   searchParams: URLSearchParams
 ): Record<string, string | string[]> => {
   const result: Record<string, string | string[]> = {}
