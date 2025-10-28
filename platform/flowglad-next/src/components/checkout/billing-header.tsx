@@ -128,18 +128,19 @@ export const BillingHeader = React.forwardRef<
       {/* Product Image */}
       {product.imageURL && (
         <div className="w-full">
-          <div className="relative w-full aspect-[760/420] rounded-lg overflow-hidden bg-muted">
+          <div className={cn('w-full rounded-lg overflow-hidden bg-muted')}>
             <Image
               src={product.imageURL}
               alt={product.name}
-              fill
-              className="object-cover object-center"
+              width={1200}
+              height={800}
+              className="w-full h-auto object-contain"
               sizes="(max-width: 768px) 100vw, 448px"
+              priority
             />
           </div>
         </div>
       )}
-
       {/* Product Description */}
       {product.description && (
         <div
