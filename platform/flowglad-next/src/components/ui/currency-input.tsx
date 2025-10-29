@@ -1,4 +1,3 @@
-// @ts-ignore - react-currency-input-field doesn't have types
 import InnerCurrencyInput from 'react-currency-input-field'
 
 import { cn } from '@/lib/utils'
@@ -29,28 +28,9 @@ export const CurrencyInput = ({
         className
       )}
       min={0}
-      onKeyDown={(e) => {
-        // Prevent minus sign and scientific notation (but allow modifier key combinations)
-        if (
-          e.key === '-' ||
-          ((e.key === 'e' || e.key === 'E') &&
-            !e.ctrlKey &&
-            !e.metaKey &&
-            !e.altKey)
-        ) {
-          e.preventDefault()
-        }
-      }}
+      allowNegativeValue={false}
       onValueChange={(val) => {
-        if (val == null || val === '') {
-          onValueChange?.(val)
-          return
-        }
-        if (val.startsWith('-')) {
-          return
-        }
-        const num = parseFloat(val)
-        if (!isNaN(num) && num >= 0) onValueChange?.(val)
+        onValueChange?.(val)
       }}
       allowDecimals={allowDecimals}
       {...props}

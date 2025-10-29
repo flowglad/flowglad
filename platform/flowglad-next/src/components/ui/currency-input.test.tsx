@@ -54,82 +54,6 @@ describe('CurrencyInput Component', () => {
       expect(onValueChange).toHaveBeenCalledWith('100.50')
     })
 
-    it('should prevent minus key input', () => {
-      const onValueChange = vi.fn()
-      render(<CurrencyInput onValueChange={onValueChange} />)
-
-      const input = screen.getByRole('textbox') as HTMLInputElement
-
-      // Test that minus key doesn't result in any input
-      fireEvent.keyDown(input, { key: '-' })
-
-      // The input should remain empty since minus key is prevented
-      expect(input.value).toBe('')
-
-      // Also verify that onValueChange wasn't called with negative values
-      expect(onValueChange).not.toHaveBeenCalledWith('-')
-    })
-
-    it('should prevent scientific notation (e key)', () => {
-      const onValueChange = vi.fn()
-      render(<CurrencyInput onValueChange={onValueChange} />)
-
-      const input = screen.getByRole('textbox') as HTMLInputElement
-
-      // Test that 'e' key doesn't result in any input
-      fireEvent.keyDown(input, { key: 'e' })
-
-      // The input should remain empty since 'e' key is prevented
-      expect(input.value).toBe('')
-
-      // Also verify that onValueChange wasn't called with 'e'
-      expect(onValueChange).not.toHaveBeenCalledWith('e')
-    })
-
-    it('should allow keyboard shortcuts with e key (Ctrl+E, Cmd+E)', () => {
-      const onValueChange = vi.fn()
-      render(<CurrencyInput onValueChange={onValueChange} />)
-
-      const input = screen.getByRole('textbox') as HTMLInputElement
-
-      // Test that Ctrl+E is not prevented (common shortcut for "move to end of line")
-      const ctrlEEvent = new KeyboardEvent('keydown', {
-        key: 'e',
-        ctrlKey: true,
-        bubbles: true,
-      })
-
-      // Mock preventDefault to track if it was called
-      const preventDefaultSpy = vi.fn()
-      Object.defineProperty(ctrlEEvent, 'preventDefault', {
-        value: preventDefaultSpy,
-        writable: true,
-      })
-
-      input.dispatchEvent(ctrlEEvent)
-
-      // preventDefault should NOT have been called for Ctrl+E
-      expect(preventDefaultSpy).not.toHaveBeenCalled()
-
-      // Test that Cmd+E is not prevented (Mac equivalent)
-      const cmdEEvent = new KeyboardEvent('keydown', {
-        key: 'e',
-        metaKey: true,
-        bubbles: true,
-      })
-
-      const preventDefaultSpy2 = vi.fn()
-      Object.defineProperty(cmdEEvent, 'preventDefault', {
-        value: preventDefaultSpy2,
-        writable: true,
-      })
-
-      input.dispatchEvent(cmdEEvent)
-
-      // preventDefault should NOT have been called for Cmd+E
-      expect(preventDefaultSpy2).not.toHaveBeenCalled()
-    })
-
     it('should accept decimal numbers', () => {
       const onValueChange = vi.fn()
       render(<CurrencyInput onValueChange={onValueChange} />)
@@ -174,32 +98,6 @@ describe('CurrencyInput Component', () => {
       expect(input).toBeInTheDocument()
     })
 
-    it('should reject values starting with minus sign', () => {
-      const onValueChange = vi.fn()
-
-      // Create a test component that exposes the handler logic
-      const TestComponent = () => {
-        return (
-          <CurrencyInput
-            onValueChange={onValueChange}
-            data-testid="currency-input"
-          />
-        )
-      }
-
-      render(<TestComponent />)
-
-      // We can't directly test the internal handler, but we can verify
-      // that negative values are not accepted by checking the component behavior
-      // The component should not call onValueChange for negative values
-      onValueChange.mockClear()
-
-      // Since the component logic prevents negative values,
-      // we verify this by checking that certain patterns are rejected
-      expect(onValueChange).not.toHaveBeenCalledWith('-100')
-      expect(onValueChange).not.toHaveBeenCalledWith('-0')
-      expect(onValueChange).not.toHaveBeenCalledWith('-5')
-    })
 
     it('should only accept valid positive numbers', () => {
       const onValueChange = vi.fn()
@@ -227,28 +125,10 @@ describe('CurrencyInput Component', () => {
       // Test that completely invalid input doesn't break the entire component
       fireEvent.change(input, { target: { value: 'abc' } })
 
-      // The component should handle this gracefully without calling onValueChange
-      // for invalid numeric input
+      // The component should handle this gracefully and not forward invalid values
+      expect(onValueChange).not.toHaveBeenCalled()
     })
 
-    it('should prevent keyboard input of minus and e keys', () => {
-      const onValueChange = vi.fn()
-      render(<CurrencyInput onValueChange={onValueChange} />)
-
-      const input = screen.getByRole('textbox') as HTMLInputElement
-
-      // Test that minus key is prevented by checking the input remains empty
-      fireEvent.keyDown(input, { key: '-' })
-      expect(input.value).toBe('')
-
-      // Test that 'e' key is prevented by checking the input remains empty
-      fireEvent.keyDown(input, { key: 'e' })
-      expect(input.value).toBe('')
-
-      // Verify no invalid values were passed to onValueChange
-      expect(onValueChange).not.toHaveBeenCalledWith('-')
-      expect(onValueChange).not.toHaveBeenCalledWith('e')
-    })
   })
 
   describe('Props and Styling', () => {
@@ -267,7 +147,8 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should set minimum value to 0', () => {
-      render(<CurrencyInput />)
+      const onValueChange = vi.fn()
+      render(<CurrencyInput onValueChange={onValueChange} />)
 
       const input = screen.getByRole('textbox') as HTMLInputElement
 
@@ -278,7 +159,7 @@ describe('CurrencyInput Component', () => {
 
       // Test that negative values would be rejected by trying to set a negative value
       fireEvent.change(input, { target: { value: '-10' } })
-      // The component should not accept negative values
+      expect(onValueChange).not.toHaveBeenCalledWith('-10')
     })
 
     it('should handle allowDecimals prop', () => {
