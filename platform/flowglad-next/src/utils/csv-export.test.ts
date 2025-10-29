@@ -5,6 +5,12 @@ import {
   InferredCustomerStatus,
 } from '@/db/schema/customers'
 import { CurrencyCode } from '@/types'
+import {
+  createMockCustomerTableRowDataArray,
+  createMockCustomerTableRowData,
+  customerTestScenarios,
+  createCustomersWithAllStatuses,
+} from '@/test/helpers/customerMocks'
 
 // Mock the stripe currency function
 vi.mock('@/utils/stripe', () => ({
@@ -33,60 +39,35 @@ describe('createCustomersCsv', () => {
     // Use a fixed date for consistent test results
     fixedDate = new Date('2024-01-15T12:00:00.000Z')
 
-    // Create sample customer data that matches your schema
+    // Create sample customer data using the helper - create specific test data
     mockCustomerTableRowData = [
-      {
+      createMockCustomerTableRowData({
         customer: {
           id: 'cust_1',
-          organizationId: 'org_1',
-          email: 'john.doe@example.com',
-          name: 'John Doe',
-          externalId: 'ext_john_123',
+          email: 'customer1@example.com',
+          name: 'Customer 1',
+          externalId: 'ext_customer_1',
           createdAt: new Date('2024-01-01T10:00:00.000Z').getTime(),
-          updatedAt: new Date('2024-01-01T10:00:00.000Z').getTime(),
-          archived: false,
-          logoURL: null,
-          iconURL: null,
-          domain: null,
-          billingAddress: null,
-          userId: null,
-          pricingModelId: null,
-          invoiceNumberBase: 'INV001',
-          livemode: true,
-          createdByCommit: null,
-          updatedByCommit: null,
           position: 1,
         },
         totalSpend: 12500, // $125.00 in cents
         payments: 3,
         status: InferredCustomerStatus.Active,
-      },
-      {
+      }),
+      createMockCustomerTableRowData({
         customer: {
           id: 'cust_2',
-          organizationId: 'org_1',
-          email: 'jane.smith@example.com',
-          name: 'Jane Smith',
-          externalId: 'ext_jane_456',
-          createdAt: new Date('2024-01-10T15:30:00.000Z').getTime(),
-          updatedAt: new Date('2024-01-10T15:30:00.000Z').getTime(),
-          archived: true,
-          logoURL: null,
-          iconURL: null,
-          domain: null,
-          billingAddress: null,
-          userId: null,
-          pricingModelId: null,
-          invoiceNumberBase: 'INV002',
-          livemode: true,
-          createdByCommit: null,
-          updatedByCommit: null,
+          email: 'customer2@example.com',
+          name: 'Customer 2',
+          externalId: 'ext_customer_2',
+          createdAt: new Date('2024-01-02T10:00:00.000Z').getTime(),
           position: 2,
+          archived: true,
         },
         totalSpend: 0,
         payments: 0,
         status: InferredCustomerStatus.Archived,
-      },
+      }),
     ]
   })
 
@@ -128,10 +109,10 @@ describe('createCustomersCsv', () => {
       const secondDataRow = lines[2]
 
       expect(firstDataRow).toBe(
-        '"John Doe","john.doe@example.com","$125.00","3","2024-01-01","cust_1","ext_john_123","Active"'
+        '"Customer 1","customer1@example.com","$125.00","3","2024-01-01","cust_1","ext_customer_1","Active"'
       )
       expect(secondDataRow).toBe(
-        '"Jane Smith","jane.smith@example.com","$0.00","0","2024-01-10","cust_2","ext_jane_456","Archived"'
+        '"Customer 2","customer2@example.com","$0.00","0","2024-01-02","cust_2","ext_customer_2","Archived"'
       )
     })
 
@@ -165,35 +146,11 @@ describe('createCustomersCsv', () => {
     })
 
     it('should handle customers with null/undefined values', () => {
-      const customerWithNulls: Partial<CustomerTableRowData> = {
-        customer: {
-          id: 'cust_null',
-          organizationId: 'org_1',
-          email: 'null@example.com',
-          name: 'Null Customer',
-          externalId: 'ext_null',
-          createdAt: new Date('2024-01-01T10:00:00.000Z').getTime(),
-          updatedAt: new Date('2024-01-01T10:00:00.000Z').getTime(),
-          archived: false,
-          logoURL: null,
-          iconURL: null,
-          domain: null,
-          billingAddress: null,
-          userId: null,
-          pricingModelId: null,
-          invoiceNumberBase: 'INV003',
-          livemode: true,
-          createdByCommit: null,
-          updatedByCommit: null,
-          position: 1,
-        },
-        totalSpend: undefined, // Testing undefined
-        payments: undefined, // Testing undefined
-        status: InferredCustomerStatus.Pending,
-      }
+      const customerWithNulls =
+        customerTestScenarios.withUndefinedValues()
 
       const result = createCustomersCsv(
-        [customerWithNulls as CustomerTableRowData],
+        [customerWithNulls],
         CurrencyCode.USD,
         fixedDate
       )
@@ -206,32 +163,7 @@ describe('createCustomersCsv', () => {
     })
 
     it('should properly escape CSV values containing quotes', () => {
-      const customerWithQuotes: CustomerTableRowData = {
-        customer: {
-          id: 'cust_quotes',
-          organizationId: 'org_1',
-          email: 'quotes@example.com',
-          name: 'Company "Name" Ltd.',
-          externalId: 'ext_"quotes"',
-          createdAt: new Date('2024-01-01T10:00:00.000Z').getTime(),
-          updatedAt: new Date('2024-01-01T10:00:00.000Z').getTime(),
-          archived: false,
-          logoURL: null,
-          iconURL: null,
-          domain: null,
-          billingAddress: null,
-          userId: null,
-          pricingModelId: null,
-          invoiceNumberBase: 'INV004',
-          livemode: true,
-          createdByCommit: null,
-          updatedByCommit: null,
-          position: 4,
-        },
-        totalSpend: 5000,
-        payments: 1,
-        status: InferredCustomerStatus.Active,
-      }
+      const customerWithQuotes = customerTestScenarios.withQuotes()
 
       const result = createCustomersCsv(
         [customerWithQuotes],
@@ -248,32 +180,7 @@ describe('createCustomersCsv', () => {
     })
 
     it('should handle customers with commas in names', () => {
-      const customerWithCommas: CustomerTableRowData = {
-        customer: {
-          id: 'cust_comma',
-          organizationId: 'org_1',
-          email: 'comma@example.com',
-          name: 'Smith, John Jr.',
-          externalId: 'ext_comma',
-          createdAt: new Date('2024-01-01T10:00:00.000Z').getTime(),
-          updatedAt: new Date('2024-01-01T10:00:00.000Z').getTime(),
-          archived: false,
-          logoURL: null,
-          iconURL: null,
-          domain: null,
-          billingAddress: null,
-          userId: null,
-          pricingModelId: null,
-          invoiceNumberBase: 'INV005',
-          livemode: true,
-          createdByCommit: null,
-          updatedByCommit: null,
-          position: 5,
-        },
-        totalSpend: 2500,
-        payments: 1,
-        status: InferredCustomerStatus.Active,
-      }
+      const customerWithCommas = customerTestScenarios.withCommas()
 
       const result = createCustomersCsv(
         [customerWithCommas],
@@ -330,10 +237,8 @@ describe('createCustomersCsv', () => {
     })
 
     it('should handle large amounts correctly', () => {
-      const largeAmountCustomer: CustomerTableRowData = {
-        ...mockCustomerTableRowData[0],
-        totalSpend: 999999999, // $9,999,999.99
-      }
+      const largeAmountCustomer =
+        customerTestScenarios.withLargeAmount()
 
       const result = createCustomersCsv(
         [largeAmountCustomer],
@@ -361,17 +266,15 @@ describe('createCustomersCsv', () => {
       const secondDataRow = lines[2]
 
       expect(firstDataRow).toContain('"2024-01-01"')
-      expect(secondDataRow).toContain('"2024-01-10"')
+      expect(secondDataRow).toContain('"2024-01-02"')
     })
 
     it('should handle different date input types', () => {
-      const customerWithStringDate: CustomerTableRowData = {
-        ...mockCustomerTableRowData[0],
+      const customerWithStringDate = createMockCustomerTableRowData({
         customer: {
-          ...mockCustomerTableRowData[0].customer,
-          createdAt: new Date('2024-02-15T08:30:00.000Z').getTime(), // Convert string to timestamp
+          createdAt: new Date('2024-02-15T08:30:00.000Z').getTime(),
         },
-      }
+      })
 
       const result = createCustomersCsv(
         [customerWithStringDate],
@@ -386,13 +289,8 @@ describe('createCustomersCsv', () => {
     })
 
     it('should handle undefined/null dates gracefully', () => {
-      const customerWithNullDate: CustomerTableRowData = {
-        ...mockCustomerTableRowData[0],
-        customer: {
-          ...mockCustomerTableRowData[0].customer,
-          createdAt: 0, // Use 0 to represent invalid/null timestamp
-        },
-      }
+      const customerWithNullDate =
+        customerTestScenarios.withInvalidDate()
 
       const result = createCustomersCsv(
         [customerWithNullDate],
@@ -409,28 +307,8 @@ describe('createCustomersCsv', () => {
 
   describe('Status Handling', () => {
     it('should include all customer status types', () => {
-      const customersWithAllStatuses: CustomerTableRowData[] = [
-        {
-          ...mockCustomerTableRowData[0],
-          status: InferredCustomerStatus.Active,
-        },
-        {
-          ...mockCustomerTableRowData[0],
-          customer: {
-            ...mockCustomerTableRowData[0].customer,
-            id: 'cust_pending',
-          },
-          status: InferredCustomerStatus.Pending,
-        },
-        {
-          ...mockCustomerTableRowData[0],
-          customer: {
-            ...mockCustomerTableRowData[0].customer,
-            id: 'cust_archived',
-          },
-          status: InferredCustomerStatus.Archived,
-        },
-      ]
+      const customersWithAllStatuses =
+        createCustomersWithAllStatuses()
 
       const result = createCustomersCsv(
         customersWithAllStatuses,
@@ -483,59 +361,9 @@ describe('createCustomersCsv', () => {
         // Normal customer
         mockCustomerTableRowData[0],
         // Customer with special characters in name and email
-        {
-          customer: {
-            id: 'cust_special',
-            organizationId: 'org_1',
-            email: 'test+special@example-company.co.uk',
-            name: 'José María García-Rodríguez & Associates, Inc.',
-            externalId: 'ext_special_123',
-            createdAt: new Date('2024-01-05T14:22:33.000Z').getTime(),
-            updatedAt: new Date('2024-01-05T14:22:33.000Z').getTime(),
-            archived: false,
-            logoURL: null,
-            iconURL: null,
-            domain: null,
-            billingAddress: null,
-            userId: null,
-            pricingModelId: null,
-            invoiceNumberBase: 'INV_SPECIAL',
-            livemode: true,
-            createdByCommit: null,
-            updatedByCommit: null,
-            position: 6,
-          },
-          totalSpend: 75050, // $750.50
-          payments: 15,
-          status: InferredCustomerStatus.Active,
-        },
+        customerTestScenarios.withSpecialCharacters(),
         // Customer with zero spend
-        {
-          customer: {
-            id: 'cust_zero',
-            organizationId: 'org_1',
-            email: 'free@example.com',
-            name: 'Free User',
-            externalId: 'ext_free',
-            createdAt: new Date('2024-01-12T09:15:00.000Z').getTime(),
-            updatedAt: new Date('2024-01-12T09:15:00.000Z').getTime(),
-            archived: false,
-            logoURL: null,
-            iconURL: null,
-            domain: null,
-            billingAddress: null,
-            userId: null,
-            pricingModelId: null,
-            invoiceNumberBase: 'INV_FREE',
-            livemode: true,
-            createdByCommit: null,
-            updatedByCommit: null,
-            position: 7,
-          },
-          totalSpend: 0,
-          payments: 0,
-          status: InferredCustomerStatus.Pending,
-        },
+        customerTestScenarios.withZeroSpend(),
       ]
 
       const result = createCustomersCsv(
