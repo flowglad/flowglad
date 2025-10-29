@@ -98,8 +98,7 @@ describe('BillingHeader', () => {
         { intervalCount: 1, intervalUnit: IntervalUnit.Day },
         undefined
       )
-      // Note: The current implementation returns "dayly" for "day", which is a known limitation
-      expect(result).toBe('dayly')
+      expect(result).toBe('daily')
     })
 
     it('should return "2 months" for multiple month interval', () => {
@@ -139,7 +138,7 @@ describe('BillingHeader', () => {
         intervalCount: 1,
         intervalUnit: IntervalUnit.Day,
       })
-      expect(result).toBe('dayly')
+      expect(result).toBe('daily')
     })
 
     it('should fallback to price data when purchase data is undefined', () => {
