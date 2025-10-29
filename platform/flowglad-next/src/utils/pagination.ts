@@ -18,12 +18,6 @@ export const paginationParamsSchema = z.object({
   cursor: z
     .preprocess(singleOrError('cursor'), z.string().min(1))
     .optional(),
-  direction: z
-    .preprocess(
-      singleOrError('direction'),
-      z.enum(['forward', 'backward'])
-    )
-    .optional(),
 })
 
 export type PaginationParams = z.infer<typeof paginationParamsSchema>

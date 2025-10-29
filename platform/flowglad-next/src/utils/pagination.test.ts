@@ -43,10 +43,8 @@ describe('parsePaginationParams (strict single values)', () => {
   it('accepts single values', () => {
     const out = parsePaginationParams({
       limit: '10',
-      direction: 'forward',
     })
     expect(out.limit).toBe(10)
-    expect(out.direction).toBe('forward')
   })
 
   it('rejects duplicate limit values', () => {
@@ -67,12 +65,4 @@ describe('parsePaginationParams (strict single values)', () => {
     )
   })
 
-  it('rejects duplicate direction values', () => {
-    const qp: Record<string, string | string[]> = {
-      direction: ['forward', 'backward'],
-    }
-    expect(() => parsePaginationParams(qp)).toThrow(
-      /Multiple 'direction' values/i
-    )
-  })
 })

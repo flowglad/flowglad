@@ -2,7 +2,7 @@
  * Converts URLSearchParams to a plain object, handling duplicate keys by converting them to arrays.
  *
  * This function is essential for cursor pagination because it properly forwards query parameters
- * like `cursor`, `limit`, and `direction` from the URL to the tRPC backend.
+ * like `cursor` and `limit` from the URL to the tRPC backend.
  *
  * @example
  * // Single values

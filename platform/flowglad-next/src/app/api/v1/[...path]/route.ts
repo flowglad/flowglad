@@ -344,46 +344,6 @@ const innerHandler = async (
         // Map URL parameters and body to tRPC input
         const input = route.mapParams(matches, body)
 
-        const queryParamsObject = searchParamsToObject(
-          new URL(req.url).searchParams
-        )
-
-        let paginationParams: PaginationParams | undefined = undefined
-        try {
-          paginationParams = parsePaginationParams(queryParamsObject)
-          if (paginationParams.cursor)
-            parseAndValidateCursor(paginationParams.cursor)
-        } catch (error) {
-          parentSpan.setStatus({
-            code: SpanStatusCode.ERROR,
-            message: 'Invalid pagination parameters',
-          })
-          parentSpan.setAttributes({
-            'error.type': 'VALIDATION_ERROR',
-            'error.category': 'VALIDATION_ERROR',
-            'error.message': (error as Error).message,
-            'http.status_code': 400,
-          })
-
-          logger.error(
-            `[${requestId}] Invalid pagination parameters`,
-            {
-              service: 'api',
-              apiEnvironment: req.unkey
-                ?.environment as ApiEnvironment,
-              request_id: requestId,
-              error: error as Error,
-              queryParams: queryParamsObject,
-            }
-          )
-
-          return NextResponse.json(
-            { error: (error as Error).message },
-            { status: 400 }
-          )
-        }
-
-        const mergedInput = { ...(input ?? {}), ...paginationParams }
         const paramExtractionDuration =
           Date.now() - paramExtractionStartTime
 
@@ -396,33 +356,64 @@ const innerHandler = async (
         const newUrl = new URL(req.url)
         newUrl.pathname = `/api/v1/trpc/${route.procedure}`
 
-        let newReq: Request
-        // If we have input, add it as a query parameter
-        if (mergedInput && req.method === 'GET') {
-          newUrl.searchParams.set(
-            'input',
-            JSON.stringify({ json: mergedInput })
+        if (req.method === 'GET') {
+          const queryParamsObject = searchParamsToObject(
+            new URL(req.url).searchParams
           )
-        } else if (req.method === 'GET') {
-          newUrl.searchParams.set(
-            'input',
-            JSON.stringify({ json: {} })
-          )
+          try {
+            const parsedPaginationParams: PaginationParams = parsePaginationParams(queryParamsObject)
+            if (parsedPaginationParams.cursor) {
+              parseAndValidateCursor(parsedPaginationParams.cursor)
+            }
+            const mergedInput = { ...(input ?? {}), ...parsedPaginationParams }
+            newUrl.searchParams.set(
+              'input',
+              JSON.stringify({ json: mergedInput })
+            )
+          } catch (error) {
+            parentSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Invalid pagination parameters',
+            })
+            parentSpan.setAttributes({
+              'error.type': 'VALIDATION_ERROR',
+              'error.category': 'VALIDATION_ERROR',
+              'error.message': (error as Error).message,
+              'http.status_code': 400,
+            })
+
+            logger.error(
+              `[${requestId}] Invalid pagination parameters`,
+              {
+                service: 'api',
+                apiEnvironment: req.unkey
+                  ?.environment as ApiEnvironment,
+                request_id: requestId,
+                error: error as Error,
+                queryParams: queryParamsObject,
+              }
+            )
+
+            return NextResponse.json(
+              { error: (error as Error).message },
+              { status: 400 }
+            )
+          }
         }
+
+        let newReq: Request
+
         /**
          * TRPC expects a POST requests for all mutations.
          * So even if we have a PUT in the OpenAPI spec, we need to convert it to a POST
          * when mapping to TRPC.
          */
-        if (
-          (mergedInput && req.method === 'POST') ||
-          req.method === 'PUT'
-        ) {
+        if (req.method === 'POST' || req.method === 'PUT') {
           newReq = new Request(newUrl, {
             headers: req.headers,
             method: 'POST',
             body: JSON.stringify({
-              json: mergedInput,
+              json: input,
             }),
           })
         } else {
