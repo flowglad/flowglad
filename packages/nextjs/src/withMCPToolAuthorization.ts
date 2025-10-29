@@ -42,7 +42,6 @@ export const toolWithFeatureAccessCheck = <T extends z.ZodRawShape>(
       }
       const checkoutSession =
         await params.flowgladServer.createCheckoutSession({
-          type: 'product',
           priceId: price.id,
           quantity: 1,
           successUrl: params.successUrl,

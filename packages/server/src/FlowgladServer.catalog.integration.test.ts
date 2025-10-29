@@ -4,28 +4,28 @@ import { setupProduct } from './test/seedServer'
 
 describe('FlowgladServer Catalog Tests', async () => {
   const flowgladServer = createTestFlowgladServer()
-  const result = await flowgladServer.getCatalog()
+  const result = await flowgladServer.getPricingModel()
   const inactiveProduct = await setupProduct({
     name: 'Inactive Product',
     description: 'Inactive Product',
-    catalogId: result.catalog.id,
+    pricingModelId: result.pricingModel.id,
     active: false,
   })
 
   it('should get the catalog', async () => {
     expect(result).toBeDefined()
-    expect(result.catalog).toBeDefined()
-    expect(result.catalog.products).toBeDefined()
+    expect(result.pricingModel).toBeDefined()
+    expect(result.pricingModel.products).toBeDefined()
   })
 
   it('should not include any inactive products', async () => {
-    const latestCatalog = await flowgladServer.getCatalog()
-    expect(latestCatalog.catalog.products).toBeDefined()
+    const latestPricingModel = await flowgladServer.getPricingModel()
+    expect(latestPricingModel.pricingModel.products).toBeDefined()
     expect(
-      latestCatalog.catalog.products.map((p) => p.id)
+      latestPricingModel.pricingModel.products.map((p) => p.id)
     ).not.toContain(inactiveProduct.product.id)
     expect(
-      latestCatalog.catalog.products.map((p) => p.id).length
+      latestPricingModel.pricingModel.products.map((p) => p.id).length
     ).toBeGreaterThan(0)
   })
 })
