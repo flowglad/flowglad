@@ -47,28 +47,17 @@ import { productFeaturesRouteConfigs } from '@/server/routers/productFeaturesRou
 import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
 import { headers } from 'next/headers'
 import {
+  parsePaginationParams,
+  parseAndValidateCursor,
+  type PaginationParams,
+} from '@/utils/pagination'
+import { searchParamsToObject } from '@/utils/url'
+import {
   trackSecurityEvent,
   trackFailedAuth,
   checkForExpiredKeyUsage,
 } from '@/utils/securityTelemetry'
 import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
-
-export const searchParamsToObject = (
-  searchParams: URLSearchParams
-): Record<string, string | string[]> => {
-  const result: Record<string, string | string[]> = {}
-  for (const [key, value] of searchParams.entries()) {
-    const existing = result[key]
-    if (existing === undefined) {
-      result[key] = value
-    } else if (Array.isArray(existing)) {
-      existing.push(value)
-    } else {
-      result[key] = [existing, value]
-    }
-  }
-  return result
-}
 
 interface FlowgladRESTRouteContext {
   params: Promise<{ path: string[] }>
@@ -352,22 +341,49 @@ const innerHandler = async (
           }
         }
 
-        //
-
         // Map URL parameters and body to tRPC input
-        const mappedInput = route.mapParams(matches, body)
+        const input = route.mapParams(matches, body)
 
-        //Creates a parameter objects because in the parameters weren't being sent to tableUtils for pagination
         const queryParamsObject = searchParamsToObject(
           new URL(req.url).searchParams
         )
-        const mergedInput =
-          Object.keys(queryParamsObject).length > 0
-            ? {
-                ...queryParamsObject,
-                ...(mappedInput ?? {}),
-              }
-            : mappedInput
+
+        let paginationParams: PaginationParams | undefined = undefined
+        try {
+          paginationParams = parsePaginationParams(queryParamsObject)
+          if (paginationParams.cursor)
+            parseAndValidateCursor(paginationParams.cursor)
+        } catch (error) {
+          parentSpan.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: 'Invalid pagination parameters',
+          })
+          parentSpan.setAttributes({
+            'error.type': 'VALIDATION_ERROR',
+            'error.category': 'VALIDATION_ERROR',
+            'error.message': (error as Error).message,
+            'http.status_code': 400,
+          })
+
+          logger.error(
+            `[${requestId}] Invalid pagination parameters`,
+            {
+              service: 'api',
+              apiEnvironment: req.unkey
+                ?.environment as ApiEnvironment,
+              request_id: requestId,
+              error: error as Error,
+              queryParams: queryParamsObject,
+            }
+          )
+
+          return NextResponse.json(
+            { error: (error as Error).message },
+            { status: 400 }
+          )
+        }
+
+        const mergedInput = { ...(input ?? {}), ...paginationParams }
         const paramExtractionDuration =
           Date.now() - paramExtractionStartTime
 
@@ -890,10 +906,10 @@ const handlerWrapper = core.IS_TEST
 const handler = handlerWrapper
 
 export {
-  handler as DELETE,
   handler as GET,
   handler as POST,
   handler as PUT,
+  handler as DELETE,
 }
 
 // Example Usage:

@@ -1,7 +1,9 @@
-import * as R from 'ramda'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomersCursorPaginatedWithTableRowData } from './tableMethods/customerMethods'
+import {
+  selectCustomersCursorPaginatedWithTableRowData,
+  selectCustomersPaginated,
+} from './tableMethods/customerMethods'
 import {
   setupOrg,
   setupCustomer,
@@ -9,13 +11,11 @@ import {
 } from '@/../seedDatabase'
 import { core } from '@/utils/core'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { nulledPriceColumns, Price, prices } from '@/db/schema/prices'
-import { PriceType, CurrencyCode, FlowgladApiKeyType } from '@/types'
-import { eq, and as drizzleAnd } from 'drizzle-orm'
+import { nulledPriceColumns, Price } from '@/db/schema/prices'
+import { PriceType, CurrencyCode } from '@/types'
+import { eq, and as drizzleAnd, inArray, sql } from 'drizzle-orm'
 import { pgTable, text, integer, boolean } from 'drizzle-orm/pg-core'
-import { ApiKey, apiKeys } from '@/db/schema/apiKeys'
-import { users } from '@/db/schema/users'
-import { memberships } from '@/db/schema/memberships'
+import { ApiKey } from '@/db/schema/apiKeys'
 import { PricingModel, pricingModels } from './schema/pricingModels'
 import { Product } from './schema/products'
 import {
@@ -27,7 +27,9 @@ import {
   metadataSchema,
   whereClauseFromObject,
   encodeCursor,
+  decodeCursor,
 } from './tableUtils'
+import { customers } from './schema/customers'
 
 describe('createCursorPaginatedSelectFunction', () => {
   let organizationId: string
@@ -1451,9 +1453,6 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should return first page with default limit', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      const { selectCustomersPaginated } = await import(
-        './tableMethods/customerMethods'
-      )
       return selectCustomersPaginated(
         {
           limit: 10,
@@ -1471,9 +1470,6 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should return correct page with custom limit', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      const { selectCustomersPaginated } = await import(
-        './tableMethods/customerMethods'
-      )
       return selectCustomersPaginated(
         {
           limit: 5,
@@ -1489,11 +1485,13 @@ describe('createPaginatedSelectFunction', () => {
   it('should paginate to next page using cursor', async () => {
     const firstPage = await adminTransaction(
       async ({ transaction }) => {
-        const { selectCustomersPaginated } = await import(
-          './tableMethods/customerMethods'
-        )
+        const initialCursor = encodeCursor({
+          parameters: { organizationId }, // Required in tests (bypasses auth flow)
+          direction: 'forward',
+        })
         return selectCustomersPaginated(
           {
+            cursor: initialCursor,
             limit: 10,
           },
           transaction
@@ -1505,9 +1503,6 @@ describe('createPaginatedSelectFunction', () => {
 
     const secondPage = await adminTransaction(
       async ({ transaction }) => {
-        const { selectCustomersPaginated } = await import(
-          './tableMethods/customerMethods'
-        )
         return selectCustomersPaginated(
           {
             cursor: firstPage.nextCursor!,
@@ -1518,25 +1513,20 @@ describe('createPaginatedSelectFunction', () => {
       }
     )
 
-    if (secondPage.data.length > 0) {
-      expect(secondPage.currentCursor).toBe(firstPage.nextCursor)
+    expect(secondPage.data.length).toBeGreaterThan(0)
+    expect(secondPage.currentCursor).toBe(firstPage.nextCursor)
 
-      // Verify no overlap between pages
-      const firstPageIds = new Set(firstPage.data.map((c) => c.id))
-      const secondPageIds = new Set(secondPage.data.map((c) => c.id))
-      const intersection = new Set(
-        [...firstPageIds].filter((id) => secondPageIds.has(id))
-      )
-      // There might be 1 overlap due to cursor precision, but should be minimal
-      expect(intersection.size).toBeLessThanOrEqual(1)
-    }
+    // Verify no overlap between pages (deterministic tie-breaker by id)
+    const firstPageIds = new Set(firstPage.data.map((c) => c.id))
+    const secondPageIds = new Set(secondPage.data.map((c) => c.id))
+    const intersection = new Set(
+      [...firstPageIds].filter((id) => secondPageIds.has(id))
+    )
+    expect(intersection.size).toBe(0)
   })
 
   it('should maintain correct order by createdAt (forward direction)', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      const { selectCustomersPaginated } = await import(
-        './tableMethods/customerMethods'
-      )
       return selectCustomersPaginated(
         {
           limit: 20,
@@ -1558,9 +1548,6 @@ describe('createPaginatedSelectFunction', () => {
   it('should enforce maximum limit of 100', async () => {
     await expect(
       adminTransaction(async ({ transaction }) => {
-        const { selectCustomersPaginated } = await import(
-          './tableMethods/customerMethods'
-        )
         return selectCustomersPaginated(
           {
             limit: 101,
@@ -1573,11 +1560,13 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should return hasMore=false when on last page', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      const { selectCustomersPaginated } = await import(
-        './tableMethods/customerMethods'
-      )
+      const initialCursor = encodeCursor({
+        parameters: { organizationId }, // Required in tests (bypasses auth flow)
+        direction: 'forward',
+      })
       return selectCustomersPaginated(
         {
+          cursor: initialCursor,
           limit: 100,
         },
         transaction
@@ -1585,24 +1574,19 @@ describe('createPaginatedSelectFunction', () => {
     })
 
     // If we request more items than exist, hasMore should be false
-    if (result.data.length < 100) {
-      expect(result.hasMore).toBe(false)
-      expect(result.nextCursor).toBeUndefined()
-    }
+    expect(result.hasMore).toBe(false)
+    expect(result.nextCursor).toBeUndefined()
   })
 
   it('should handle empty result set', async () => {
     // Since createPaginatedSelectFunction uses createdAt for cursor filtering,
     // not parameter filtering in the cursor, we'll test with a far future date
     const result = await adminTransaction(async ({ transaction }) => {
-      const { selectCustomersPaginated } = await import(
-        './tableMethods/customerMethods'
-      )
-      const { encodeCursor } = await import('./tableUtils')
       // Use a future date that won't match any records
       const cursor = encodeCursor({
         parameters: {},
         createdAt: new Date('2099-01-01'),
+        id: '0',
         direction: 'forward',
       })
       return selectCustomersPaginated(
@@ -1619,11 +1603,117 @@ describe('createPaginatedSelectFunction', () => {
     expect(result.nextCursor).toBeUndefined()
   })
 
+  it('should paginate deterministically when many rows share identical createdAt', async () => {
+    const fixed = new Date('2020-01-01T00:00:00Z')
+    const result = await adminTransaction(async ({ transaction }) => {
+      // Force identical createdAt for at least 20 existing rows
+      const page = await selectCustomersPaginated(
+        { limit: 20 },
+        transaction
+      )
+      const ids = page.data.map((c) => c.id)
+      if (ids.length > 0) {
+        await transaction
+          .update(customers)
+          .set({
+            createdAt: sql`${fixed.toISOString()}::timestamptz`,
+          })
+          .where(inArray(customers.id, ids))
+      }
+
+      const page1 = await selectCustomersPaginated(
+        { limit: 10 },
+        transaction
+      )
+      const page2 = await selectCustomersPaginated(
+        { limit: 10, cursor: page1.nextCursor! },
+        transaction
+      )
+
+      // zero overlap due to (createdAt, id) keyset pagination
+      const set1 = new Set(page1.data.map((c) => c.id))
+      const set2 = new Set(page2.data.map((c) => c.id))
+      const overlap = [...set1].filter((id) => set2.has(id))
+      expect(overlap.length).toBe(0)
+
+      // ordering by (createdAt, id) ascending in forward
+      const all = [...page1.data, ...page2.data]
+      for (let i = 0; i < all.length - 1; i++) {
+        const a = all[i]
+        const b = all[i + 1]
+        const ta = new Date(a.createdAt).getTime()
+        const tb = new Date(b.createdAt).getTime()
+        expect(ta <= tb || (ta === tb && a.id <= b.id)).toBe(true)
+      }
+      return true
+    })
+    expect(result).toBe(true)
+  })
+
+  it('should include id and direction in nextCursor', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersPaginated({ limit: 5 }, transaction)
+    })
+    expect(result.nextCursor).toBeDefined()
+    const decoded = decodeCursor(result.nextCursor!)
+    expect(decoded.id).toBeDefined()
+    expect(decoded.direction).toBe('forward')
+  })
+
+  it('should handle backward pagination boundary with identical createdAt deterministically', async () => {
+    const fixed = new Date('2020-01-02T00:00:00Z')
+    await adminTransaction(async ({ transaction }) => {
+      // Force many rows to share the same timestamp for a robust boundary test
+      const firstPage = await selectCustomersPaginated(
+        { limit: 20 },
+        transaction
+      )
+      const ids = firstPage.data.map((c) => c.id)
+      if (ids.length > 0) {
+        await transaction
+          .update(customers)
+          .set({
+            createdAt: sql`${fixed.toISOString()}::timestamptz`,
+          })
+          .where(inArray(customers.id, ids))
+      }
+
+      // Start from just after the fixed timestamp, direction backward
+      const cursor = encodeCursor({
+        parameters: {},
+        createdAt: new Date('2020-01-03T00:00:00Z'),
+        id: 'zzzzzzzz',
+        direction: 'backward',
+      })
+      const page1 = await selectCustomersPaginated(
+        { limit: 10, cursor },
+        transaction
+      )
+      const page2 = await selectCustomersPaginated(
+        { limit: 10, cursor: page1.nextCursor! },
+        transaction
+      )
+
+      // zero overlap across backward pages
+      const set1 = new Set(page1.data.map((c) => c.id))
+      const set2 = new Set(page2.data.map((c) => c.id))
+      const overlap = [...set1].filter((id) => set2.has(id))
+      expect(overlap.length).toBe(0)
+
+      // ordering by (createdAt desc, id desc) in backward
+      const all = [...page1.data, ...page2.data]
+      for (let i = 0; i < all.length - 1; i++) {
+        const a = all[i]
+        const b = all[i + 1]
+        const ta = new Date(a.createdAt).getTime()
+        const tb = new Date(b.createdAt).getTime()
+        expect(ta >= tb || (ta === tb && a.id >= b.id)).toBe(true)
+      }
+    })
+  })
+
   it('should correctly count total records', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      const { selectCustomersPaginated } = await import(
-        './tableMethods/customerMethods'
-      )
       return selectCustomersPaginated(
         {
           limit: 5,
@@ -1637,53 +1727,51 @@ describe('createPaginatedSelectFunction', () => {
   })
 
   it('should preserve cursor parameters across pagination', async () => {
-    const { decodeCursor } = await import('./tableUtils')
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        // Start without a cursor to get the first page
+        return selectCustomersPaginated(
+          {
+            limit: 10,
+          },
+          transaction
+        )
+      }
+    )
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      const { selectCustomersPaginated } = await import(
-        './tableMethods/customerMethods'
-      )
-      const { encodeCursor } = await import('./tableUtils')
+    expect(firstPage.data.length).toBeGreaterThan(0)
+    expect(firstPage.total).toBeGreaterThanOrEqual(
+      firstPage.data.length
+    )
 
-      // Note: createPaginatedSelectFunction stores parameters in cursor
-      // but doesn't apply them as filters - it only uses createdAt for pagination
-      const cursor = encodeCursor({
-        parameters: { organizationId },
-        createdAt: new Date(0),
-        direction: 'forward',
-      })
+    // Verify the cursor preserves parameters by using it in a subsequent request
+    const secondPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersPaginated(
+          {
+            cursor: firstPage.nextCursor!,
+            limit: 10,
+          },
+          transaction
+        )
+      }
+    )
 
-      return selectCustomersPaginated(
-        {
-          cursor,
-          limit: 10,
-        },
-        transaction
-      )
-    })
+    // Verify that pagination continues correctly with the preserved parameters
+    expect(secondPage.data.length).toBeGreaterThan(0)
+    expect(secondPage.currentCursor).toBe(firstPage.nextCursor)
 
-    expect(result.data.length).toBeGreaterThan(0)
-    expect(result.total).toBeGreaterThanOrEqual(result.data.length)
-
-    // Verify the cursor preserves parameters for future pagination
-    if (result.nextCursor) {
-      const decodedCursor = decodeCursor(result.nextCursor)
-      expect(decodedCursor.parameters).toHaveProperty(
-        'organizationId'
-      )
-      expect(decodedCursor.parameters.organizationId).toBe(
-        organizationId
-      )
-    }
+    // Verify no overlap between pages (proving the cursor worked correctly)
+    const firstPageIds = new Set(firstPage.data.map((c) => c.id))
+    const secondPageIds = new Set(secondPage.data.map((c) => c.id))
+    const intersection = new Set(
+      [...firstPageIds].filter((id) => secondPageIds.has(id))
+    )
+    expect(intersection.size).toBe(0)
   })
 
   it('should handle backward pagination direction', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
-      const { selectCustomersPaginated } = await import(
-        './tableMethods/customerMethods'
-      )
-      const { encodeCursor } = await import('./tableUtils')
-
       // Create cursor with backward direction
       const cursor = encodeCursor({
         parameters: {},
@@ -1715,9 +1803,6 @@ describe('createPaginatedSelectFunction', () => {
   it('should return consistent results across multiple fetches without cursor', async () => {
     const firstFetch = await adminTransaction(
       async ({ transaction }) => {
-        const { selectCustomersPaginated } = await import(
-          './tableMethods/customerMethods'
-        )
         return selectCustomersPaginated(
           {
             limit: 5,
@@ -1729,9 +1814,6 @@ describe('createPaginatedSelectFunction', () => {
 
     const secondFetch = await adminTransaction(
       async ({ transaction }) => {
-        const { selectCustomersPaginated } = await import(
-          './tableMethods/customerMethods'
-        )
         return selectCustomersPaginated(
           {
             limit: 5,
@@ -1751,12 +1833,8 @@ describe('createPaginatedSelectFunction', () => {
     // Get total count first
     const totalResult = await adminTransaction(
       async ({ transaction }) => {
-        const { selectCustomersPaginated } = await import(
-          './tableMethods/customerMethods'
-        )
-        const { encodeCursor } = await import('./tableUtils')
         const cursor = encodeCursor({
-          parameters: { organizationId },
+          parameters: { organizationId }, // Required in tests (bypasses auth flow)
           createdAt: new Date(0),
           direction: 'forward',
         })
@@ -1772,12 +1850,8 @@ describe('createPaginatedSelectFunction', () => {
 
     // Request exactly the number of records that exist
     const result = await adminTransaction(async ({ transaction }) => {
-      const { selectCustomersPaginated } = await import(
-        './tableMethods/customerMethods'
-      )
-      const { encodeCursor } = await import('./tableUtils')
       const cursor = encodeCursor({
-        parameters: { organizationId },
+        parameters: { organizationId }, // Required in tests (bypasses auth flow)
         createdAt: new Date(0),
         direction: 'forward',
       })

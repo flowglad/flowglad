@@ -16,6 +16,7 @@ import {
   or,
   isNull,
   Table,
+  ne,
 } from 'drizzle-orm'
 import { PgTimestampColumn } from './types'
 import { timestamptzMs } from './timestampMs'
@@ -1084,26 +1085,36 @@ type PaginationDirection = 'forward' | 'backward'
 export const encodeCursor = <T extends PgTableWithId>({
   parameters,
   createdAt = new Date(0),
+  id,
   direction = 'forward',
 }: {
   parameters: SelectConditions<T>
   createdAt?: Date
+  id?: string
   direction?: PaginationDirection
 }) => {
   return Buffer.from(
-    `${JSON.stringify({ parameters, createdAt, direction })}`
+    `${JSON.stringify({
+      parameters,
+      createdAt: createdAt.getTime(),
+      id,
+      direction,
+    })}`
   ).toString('base64')
 }
 
 /**
  *
- * @param cursor a string of the form `{"parameters": {...}, "createdAt": "2024-01-01T00:00:00.000Z"}`
+ * @param cursor a string of the form `{"parameters": {...}, "createdAt": 1704067200000, "id": "abc123", "direction": "forward"}`
  */
 export const decodeCursor = (cursor: string) => {
   const decoded = JSON.parse(Buffer.from(cursor, 'base64').toString())
   return {
     parameters: decoded.parameters,
-    createdAt: new Date(decoded.createdAt),
+    createdAt: decoded.createdAt
+      ? new Date(decoded.createdAt)
+      : undefined,
+    id: decoded.id,
     direction: decoded.direction,
   }
 }
@@ -1144,16 +1155,19 @@ export const createPaginatedSelectFunction = <
       const {
         parameters,
         createdAt,
+        id,
         direction,
       }: {
         parameters: SelectConditions<T>
         createdAt: Date | undefined
+        id: string | undefined
         direction: PaginationDirection
       } = cursor
         ? decodeCursor(cursor)
         : {
             parameters: {} as SelectConditions<T>,
             createdAt: undefined,
+            id: undefined,
             direction: 'forward',
           }
       let query = transaction
@@ -1164,21 +1178,35 @@ export const createPaginatedSelectFunction = <
         query = query.where(whereClauseFromObject(table, parameters))
       }
 
-      if (createdAt) {
-        query = query.where(
+      if (createdAt && id) {
+        // Use id as tie-breaker for stable ordering when createdAt is the same
+        // Force epoch-ms number for custom timestamptzMs column to ensure consistent toDriver
+        const createdAtMs = createdAt.valueOf()
+        const keyset =
           direction === 'forward'
-            ? gt(table.createdAt, createdAt)
-            : lt(table.createdAt, createdAt)
-        )
+            ? or(
+                gt(table.createdAt, createdAtMs),
+                and(
+                  eq(table.createdAt, createdAtMs),
+                  gt(table.id, id)
+                )
+              )
+            : or(
+                lt(table.createdAt, createdAtMs),
+                and(
+                  eq(table.createdAt, createdAtMs),
+                  lt(table.id, id)
+                )
+              )
+        // Exclude the anchor row by id to avoid boundary duplication
+        query = query.where(and(ne(table.id, id), keyset))
       }
       const queryLimit = limit + 1
-      query = query
-        .orderBy(
-          direction === 'forward'
-            ? asc(table.createdAt)
-            : desc(table.createdAt)
-        )
-        .limit(queryLimit)
+      const orderings =
+        direction === 'forward'
+          ? [asc(table.createdAt), asc(table.id)]
+          : [desc(table.createdAt), desc(table.id)]
+      query = query.orderBy(...orderings).limit(queryLimit)
       const result = await query
 
       // Check if we got an extra item
@@ -1201,7 +1229,10 @@ export const createPaginatedSelectFunction = <
         nextCursor: hasMore
           ? encodeCursor({
               parameters,
-              createdAt: data[data.length - 1].createdAt as Date,
+              createdAt: new Date(
+                data[data.length - 1].createdAt as number
+              ),
+              id: data[data.length - 1].id as string,
               direction,
             })
           : undefined,

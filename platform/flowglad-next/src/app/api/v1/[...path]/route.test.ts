@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { searchParamsToObject } from './route'
+import { searchParamsToObject } from '@/utils/url'
 
 describe('searchParamsToObject', () => {
   it('should convert empty URLSearchParams to empty object', () => {
