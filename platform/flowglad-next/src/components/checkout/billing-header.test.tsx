@@ -1,73 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { CheckoutFlowType, CurrencyCode, IntervalUnit, PriceType } from '@/types'
-import { BillingHeader, intervalLabel, pricingSubtitleForSubscriptionFlow } from './billing-header'
-import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
-import type { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
-
-// Mock the checkout page context
-vi.mock('@/contexts/checkoutPageContext', () => ({
-  useCheckoutPageContext: vi.fn(),
-}))
-
-// Mock Next.js Image component
-vi.mock('next/image', () => ({
-  default: ({ src, alt, ...props }: any) => (
-    <img src={src} alt={alt} {...props} />
-  ),
-}))
-
-// Mock the CheckoutMarkdownView component
-vi.mock('@/components/ui/checkout-markdown-view', () => ({
-  CheckoutMarkdownView: ({ source, ...props }: any) => (
-    <div data-testid="product-description" {...props}>
-      {source}
-    </div>
-  ),
-}))
-
-// Mock the stripe utility function
-vi.mock('@/utils/stripe', () => ({
-  stripeCurrencyAmountToHumanReadableCurrencyAmount: vi.fn((currency, amount) => {
-    return `$${(amount / 100).toFixed(2)}`
-  }),
-}))
-
-const mockUseCheckoutPageContext = vi.mocked(useCheckoutPageContext)
+import { describe, it, expect } from 'vitest'
+import { IntervalUnit } from '@/types'
+import { intervalLabel } from './billing-header'
 
 describe('BillingHeader', () => {
-  const mockCheckoutContext: Partial<CheckoutPageContextValues> = {
-    flowType: CheckoutFlowType.Subscription,
-    product: {
-      id: 'prod_123',
-      name: 'Test Product',
-      description: 'Test product description',
-      imageURL: 'https://example.com/image.jpg',
-    } as any,
-    price: {
-      id: 'price_123',
-      currency: CurrencyCode.USD,
-      unitPrice: 2999, // $29.99
-      type: PriceType.Subscription,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-    } as any,
-    checkoutSession: {
-      id: 'cs_123',
-      quantity: 1,
-    } as any,
-    purchase: null,
-    features: [
-      { id: 'feat_1', name: 'Feature 1' } as any,
-      { id: 'feat_2', name: 'Feature 2' } as any,
-    ],
-  }
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mockUseCheckoutPageContext.mockReturnValue(mockCheckoutContext as any)
-  })
-
   describe('intervalLabel function', () => {
     it('should return "monthly" for single month interval', () => {
       const result = intervalLabel(
