@@ -32,6 +32,7 @@ import { trpc } from '@/app/_trpc/client'
 import { CustomerTableRowData } from '@/db/schema/customers'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
+import { ExportLimitModal } from '@/components/ui/export-limit-modal'
 
 export interface CustomersTableFilters {
   archived?: boolean
@@ -102,6 +103,9 @@ export function CustomersDataTable({
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
   const [isExporting, setIsExporting] = React.useState(false)
+  const [showExportLimitModal, setShowExportLimitModal] =
+    React.useState(false)
+  const [customerCount, setCustomerCount] = React.useState(0)
 
   const table = useReactTable({
     data: data?.items || [],
@@ -157,23 +161,37 @@ export function CustomersDataTable({
     setIsExporting(true)
     try {
       const trimmedSearch = searchQuery.trim()
-      const { csv, filename } = await exportCsvMutation.mutateAsync({
+
+      const result = await exportCsvMutation.mutateAsync({
         filters,
         searchQuery: trimmedSearch || undefined,
       })
 
-      // Create and trigger download
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-      const fileURL = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = fileURL
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(fileURL)
+      // Check if export exceeds limit
+      if (result.exceedsLimit) {
+        setCustomerCount(result.totalCustomers)
+        setShowExportLimitModal(true)
+        return
+      }
+
+      // Proceed with normal export
+      if (result.csv && result.filename) {
+        const blob = new Blob([result.csv], {
+          type: 'text/csv;charset=utf-8',
+        })
+        const fileURL = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = fileURL
+        link.download = result.filename
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(fileURL)
+      } else {
+        console.warn('⚠️ No CSV or filename in result:', result)
+      }
     } catch (error) {
-      console.error('Failed to export customers', error)
+      console.error('❌ Failed to export customers', error)
     } finally {
       setIsExporting(false)
     }
@@ -308,6 +326,13 @@ export function CustomersDataTable({
           exportLoading={isExporting}
         />
       </div>
+
+      {/* Export limit modal */}
+      <ExportLimitModal
+        open={showExportLimitModal}
+        onOpenChange={setShowExportLimitModal}
+        customerCount={customerCount}
+      />
     </div>
   )
 }

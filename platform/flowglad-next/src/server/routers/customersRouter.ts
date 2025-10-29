@@ -23,6 +23,7 @@ import {
   customersPaginatedListSchema,
   customersPaginatedTableRowOutputSchema,
   customersPaginatedTableRowInputSchema,
+  Customer,
 } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
@@ -373,16 +374,18 @@ const exportCsvProcedure = protectedProcedure
   )
   .output(
     z.object({
-      csv: z.string(),
-      filename: z.string(),
+      csv: z.string().optional(),
+      filename: z.string().optional(),
+      totalCustomers: z.number(),
+      exceedsLimit: z.boolean(),
     })
   )
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction, userId, organizationId }) => {
         const { filters, searchQuery } = input
+        const CUSTOMER_LIMIT = 3 // Set to 3 for testing (you have 6 customers)
         const PAGE_SIZE = 100
-
         if (!userId) {
           throw new TRPCError({
             code: 'UNAUTHORIZED',
@@ -397,7 +400,28 @@ const exportCsvProcedure = protectedProcedure
           })
         }
 
-        // Get the user's focused organization to access its default currency
+        // Get first page to check total count with minimal data transfer
+        const countCheckResponse =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 1, // Minimal page size for count check
+              filters,
+              searchQuery,
+            },
+            transaction,
+          })
+
+        const totalCustomers = countCheckResponse.total || 0
+
+        // Early return if over limit - no additional DB operations
+        if (totalCustomers > CUSTOMER_LIMIT) {
+          return {
+            totalCustomers,
+            exceedsLimit: true,
+          }
+        }
+
+        // Only if under limit, get user's organization and proceed with full export
         const focusedMembership =
           await selectFocusedMembershipAndOrganization(
             userId,
@@ -411,11 +435,13 @@ const exportCsvProcedure = protectedProcedure
           })
         }
 
-        const rows: import('@/db/schema/customers').CustomerTableRowData[] =
-          []
-        let pageAfter: string | undefined
+        // Start with the first page we already fetched
+        const rows = [...countCheckResponse.items]
 
-        while (true) {
+        let pageAfter = countCheckResponse.endCursor
+
+        // Continue fetching remaining pages if there are more
+        while (countCheckResponse.hasNextPage && pageAfter) {
           const response =
             await selectCustomersCursorPaginatedWithTableRowData({
               input: {
@@ -441,7 +467,12 @@ const exportCsvProcedure = protectedProcedure
           focusedMembership.organization.defaultCurrency
         )
 
-        return { csv, filename }
+        return {
+          csv,
+          filename,
+          totalCustomers,
+          exceedsLimit: false,
+        }
       }
     )
   )
