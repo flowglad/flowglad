@@ -29,9 +29,7 @@ export const CurrencyInput = ({
       )}
       min={0}
       allowNegativeValue={false}
-      onValueChange={(val) => {
-        onValueChange?.(val)
-      }}
+      onValueChange={onValueChange}
       allowDecimals={allowDecimals}
       {...props}
     />
