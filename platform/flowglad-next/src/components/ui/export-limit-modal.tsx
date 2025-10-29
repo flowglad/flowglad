@@ -13,18 +13,27 @@ interface ExportLimitModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   customerCount: number
+  customerLimit: number
 }
 
 export function ExportLimitModal({
   open,
   onOpenChange,
   customerCount,
+  customerLimit,
 }: ExportLimitModalProps) {
   const handleContactSupport = () => {
-    window.open(
-      'mailto:hello@flowglad.com?subject=Customer Data Export Request',
-      '_blank'
-    )
+    const subject = 'Customer Data Export Request'
+    const body = `Hello Flowglad Team,
+
+I need help exporting my customer data. I have ${customerCount.toLocaleString()} customers in my account, which exceeds the current export limit of ${customerLimit} customers.
+
+Thank you for your assistance!
+
+Best regards,`
+    
+    const mailtoUrl = `mailto:hello@flowglad.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    window.open(mailtoUrl, '_blank')
   }
 
   return (
@@ -37,7 +46,7 @@ export function ExportLimitModal({
           </div>
           <DialogDescription className="space-y-2">
             <p>
-              Oops! You have over 3 customers (
+              Oops! You have over {customerLimit} customers (
               {customerCount.toLocaleString()} total).
             </p>
             <p>

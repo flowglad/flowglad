@@ -33,6 +33,7 @@ import { CustomerTableRowData } from '@/db/schema/customers'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { ExportLimitModal } from '@/components/ui/export-limit-modal'
+import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
 
 export interface CustomersTableFilters {
   archived?: boolean
@@ -188,10 +189,10 @@ export function CustomersDataTable({
         link.remove()
         window.URL.revokeObjectURL(fileURL)
       } else {
-        console.warn('⚠️ No CSV or filename in result:', result)
+        console.warn('No CSV or filename in result:', result)
       }
     } catch (error) {
-      console.error('❌ Failed to export customers', error)
+      console.error('Failed to export customers', error)
     } finally {
       setIsExporting(false)
     }
@@ -332,6 +333,7 @@ export function CustomersDataTable({
         open={showExportLimitModal}
         onOpenChange={setShowExportLimitModal}
         customerCount={customerCount}
+        customerLimit={CSV_EXPORT_LIMITS.CUSTOMER_LIMIT}
       />
     </div>
   )

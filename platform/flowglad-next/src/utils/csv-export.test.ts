@@ -6,7 +6,6 @@ import {
 } from '@/db/schema/customers'
 import { CurrencyCode } from '@/types'
 import {
-  createMockCustomerTableRowDataArray,
   createMockCustomerTableRowData,
   customerTestScenarios,
   createCustomersWithAllStatuses,

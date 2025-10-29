@@ -51,6 +51,7 @@ import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 import { organizationBillingPortalURL } from '@/utils/core'
 import { createCustomersCsv } from '@/utils/csv-export'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
+import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'customer',
@@ -384,7 +385,7 @@ const exportCsvProcedure = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transaction, userId, organizationId }) => {
         const { filters, searchQuery } = input
-        const CUSTOMER_LIMIT = 3 // Set to 3 for testing (you have 6 customers)
+        const CUSTOMER_LIMIT = CSV_EXPORT_LIMITS.CUSTOMER_LIMIT
         const PAGE_SIZE = 100
         if (!userId) {
           throw new TRPCError({
