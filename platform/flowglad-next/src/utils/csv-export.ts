@@ -21,7 +21,11 @@ const escapeCsvValue = (
   if (value === null || value === undefined) {
     return '""'
   }
-  const stringValue = String(value)
+  let stringValue = String(value)
+  // Prefix with a single quote if the value starts with =, +, -, or @ to avoid spreadsheet formula injection
+  if (/^[=+\-@]/.test(stringValue)) {
+    stringValue = `'${stringValue}`
+  }
   const escaped = stringValue.replace(/"/g, '""')
   return `"${escaped}"`
 }
