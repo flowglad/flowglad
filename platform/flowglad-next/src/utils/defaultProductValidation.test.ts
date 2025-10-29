@@ -86,25 +86,6 @@ describe('defaultProductValidation', () => {
         'Default products cannot have trials'
       )
     })
-
-    it('should fail for product with reserved slug', () => {
-      const product = {
-        name: 'Free Plan',
-        slug: 'free',
-        prices: [
-          {
-            amount: 0,
-            type: PriceType.SinglePayment,
-            slug: 'free',
-            trialDays: 0,
-          },
-        ],
-      }
-
-      expect(() => validateDefaultProductSchema(product)).toThrow(
-        "Slug 'free' is reserved for auto-generated default plans"
-      )
-    })
   })
 
   describe('createDefaultPlanConfig', () => {

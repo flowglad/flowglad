@@ -16,7 +16,7 @@ export async function generateMetadata({
   params,
 }: PurchasePageProps): Promise<Metadata> {
   const { productId } = await params
-  
+
   try {
     const [{ product, organization }] = await adminTransaction(
       async ({ transaction }) => {

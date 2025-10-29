@@ -49,7 +49,11 @@ export const OrderReceiptEmail = ({
     discountAmountType: string
   } | null
 }) => {
-  const totals = calculateInvoiceTotalsWithDiscounts(lineItems, invoice, discountInfo)
+  const totals = calculateInvoiceTotalsWithDiscounts(
+    lineItems,
+    invoice,
+    discountInfo
+  )
 
   return (
     <EmailLayout previewText="Thanks for your order!">

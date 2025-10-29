@@ -48,7 +48,6 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
       }}
       hideFooter={webhookSecret ? true : false}
       autoClose={false}
-      allowContentOverflow={true}
     >
       {webhookSecret ? (
         <div className="flex flex-col gap-4">

@@ -94,10 +94,12 @@ describe('Receipt Components', () => {
           invoiceLineItems={invoiceLineItems}
           customer={customer}
           organization={organization}
-          paymentDataItems={[{
-            payment: paymentWithDiscount,
-            paymentMethod: null
-          }]}
+          paymentDataItems={[
+            {
+              payment: paymentWithDiscount,
+              paymentMethod: null,
+            },
+          ]}
           discountInfo={{
             discountName: 'Fixed Discount',
             discountCode: 'SAVE10',
@@ -108,11 +110,17 @@ describe('Receipt Components', () => {
       )
 
       // Should show original amount ($60.00)
-      expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+      expect(getByTestId('original-amount')).toHaveTextContent(
+        '$60.00'
+      )
       // Should show discount amount ($10.00)
-      expect(getByTestId('discount-amount')).toHaveTextContent('-$10.00')
+      expect(getByTestId('discount-amount')).toHaveTextContent(
+        '-$10.00'
+      )
       // Should show subtotal ($50.00)
-      expect(getByTestId('subtotal-amount')).toHaveTextContent('$50.00')
+      expect(getByTestId('subtotal-amount')).toHaveTextContent(
+        '$50.00'
+      )
       // Should show total ($50.00)
       expect(getByTestId('total-amount')).toHaveTextContent('$50.00')
       // Should show amount paid ($50.00)
@@ -142,10 +150,12 @@ describe('Receipt Components', () => {
           invoiceLineItems={invoiceLineItems}
           customer={customer}
           organization={organization}
-          paymentDataItems={[{
-            payment: paymentWithDiscount,
-            paymentMethod: null
-          }]}
+          paymentDataItems={[
+            {
+              payment: paymentWithDiscount,
+              paymentMethod: null,
+            },
+          ]}
           discountInfo={{
             discountName: 'Percentage Discount',
             discountCode: 'SAVE10',
@@ -156,11 +166,17 @@ describe('Receipt Components', () => {
       )
 
       // Should show original amount ($60.00)
-      expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+      expect(getByTestId('original-amount')).toHaveTextContent(
+        '$60.00'
+      )
       // Should show discount amount ($6.00 - 10% of $60.00)
-      expect(getByTestId('discount-amount')).toHaveTextContent('-$6.00')
+      expect(getByTestId('discount-amount')).toHaveTextContent(
+        '-$6.00'
+      )
       // Should show subtotal ($54.00)
-      expect(getByTestId('subtotal-amount')).toHaveTextContent('$54.00')
+      expect(getByTestId('subtotal-amount')).toHaveTextContent(
+        '$54.00'
+      )
       // Should show total ($54.00)
       expect(getByTestId('total-amount')).toHaveTextContent('$54.00')
       // Should show amount paid ($54.00)
@@ -176,17 +192,24 @@ describe('Receipt Components', () => {
       })
 
       // Update the invoice with the correct subtotal and tax
-      const updatedInvoiceWithTax = await adminTransaction(async ({ transaction }) => {
-        return await updateInvoice({
-          id: invoiceWithDiscountAndTax.id,
-          type: invoiceWithDiscountAndTax.type,
-          purchaseId: invoiceWithDiscountAndTax.purchaseId,
-          billingPeriodId: invoiceWithDiscountAndTax.billingPeriodId,
-          subscriptionId: invoiceWithDiscountAndTax.subscriptionId,
-          subtotal: 5400, // $54.00 after 10% discount
-          taxAmount: 540, // $5.40 tax
-        } as any, transaction)
-      })
+      const updatedInvoiceWithTax = await adminTransaction(
+        async ({ transaction }) => {
+          return await updateInvoice(
+            {
+              id: invoiceWithDiscountAndTax.id,
+              type: invoiceWithDiscountAndTax.type,
+              purchaseId: invoiceWithDiscountAndTax.purchaseId,
+              billingPeriodId:
+                invoiceWithDiscountAndTax.billingPeriodId,
+              subscriptionId:
+                invoiceWithDiscountAndTax.subscriptionId,
+              subtotal: 5400, // $54.00 after 10% discount
+              taxAmount: 540, // $5.40 tax
+            } as any,
+            transaction
+          )
+        }
+      )
 
       const paymentWithDiscountAndTax = await setupPayment({
         invoiceId: invoiceWithDiscountAndTax.id,
@@ -203,10 +226,12 @@ describe('Receipt Components', () => {
           invoiceLineItems={invoiceLineItems}
           customer={customer}
           organization={organization}
-          paymentDataItems={[{
-            payment: paymentWithDiscountAndTax,
-            paymentMethod: null
-          }]}
+          paymentDataItems={[
+            {
+              payment: paymentWithDiscountAndTax,
+              paymentMethod: null,
+            },
+          ]}
           discountInfo={{
             discountName: 'Percentage Discount',
             discountCode: 'SAVE10',
@@ -217,11 +242,17 @@ describe('Receipt Components', () => {
       )
 
       // Should show original amount ($60.00)
-      expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+      expect(getByTestId('original-amount')).toHaveTextContent(
+        '$60.00'
+      )
       // Should show discount amount ($6.00)
-      expect(getByTestId('discount-amount')).toHaveTextContent('-$6.00')
+      expect(getByTestId('discount-amount')).toHaveTextContent(
+        '-$6.00'
+      )
       // Should show subtotal ($54.00)
-      expect(getByTestId('subtotal-amount')).toHaveTextContent('$54.00')
+      expect(getByTestId('subtotal-amount')).toHaveTextContent(
+        '$54.00'
+      )
       // Should show tax ($5.40)
       expect(getByTestId('tax-amount')).toHaveTextContent('$5.40')
       // Should show total ($59.40)
@@ -253,10 +284,12 @@ describe('Receipt Components', () => {
           invoiceLineItems={invoiceLineItems}
           customer={customer}
           organization={organization}
-          paymentDataItems={[{
-            payment: paymentWithLargeDiscount,
-            paymentMethod: null
-          }]}
+          paymentDataItems={[
+            {
+              payment: paymentWithLargeDiscount,
+              paymentMethod: null,
+            },
+          ]}
           discountInfo={{
             discountName: 'Full Discount',
             discountCode: 'FREE',
@@ -267,11 +300,17 @@ describe('Receipt Components', () => {
       )
 
       // Should show original amount ($60.00)
-      expect(getByTestId('original-amount')).toHaveTextContent('$60.00')
+      expect(getByTestId('original-amount')).toHaveTextContent(
+        '$60.00'
+      )
       // Should show discount amount ($60.00 - capped at 100%)
-      expect(getByTestId('discount-amount')).toHaveTextContent('-$60.00')
+      expect(getByTestId('discount-amount')).toHaveTextContent(
+        '-$60.00'
+      )
       // Should show subtotal ($0.00)
-      expect(getByTestId('subtotal-amount')).toHaveTextContent('$0.00')
+      expect(getByTestId('subtotal-amount')).toHaveTextContent(
+        '$0.00'
+      )
       // Should show total ($0.00)
       expect(getByTestId('total-amount')).toHaveTextContent('$0.00')
       // Should show amount paid ($0.00)

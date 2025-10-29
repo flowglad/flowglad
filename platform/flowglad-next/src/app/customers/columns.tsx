@@ -50,6 +50,10 @@ function CustomerActionsMenu({
       label: 'Copy Portal Link',
       icon: <ExternalLink className="h-4 w-4" />,
       handler: copyPortalURLHandler,
+      disabled: !customer.livemode,
+      helperText: !customer.livemode
+        ? 'Only livemode customers can access the billing portal'
+        : undefined,
     },
     {
       label: 'Copy External ID',

@@ -88,6 +88,9 @@ export const setupPricingModelTransaction = async (
       livemode,
       organizationId,
       pricingModelId: pricingModel.id,
+      ...(usageMeter.aggregationType && {
+        aggregationType: usageMeter.aggregationType,
+      }),
     }))
   const usageMeters =
     await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
