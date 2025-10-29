@@ -13,7 +13,11 @@ describe('CurrencyInput Component', () => {
       // Simulate typing a positive number
       fireEvent.change(input, { target: { value: '100.50' } })
 
-      expect(onValueChange).toHaveBeenCalledWith('100.50')
+      expect(onValueChange).toHaveBeenCalledWith(
+        '100.50',
+        undefined,
+        expect.objectContaining({ value: '100.50' })
+      )
     })
 
     it('should accept zero', () => {
@@ -25,7 +29,11 @@ describe('CurrencyInput Component', () => {
       // Simulate typing zero
       fireEvent.change(input, { target: { value: '0' } })
 
-      expect(onValueChange).toHaveBeenCalledWith('0')
+      expect(onValueChange).toHaveBeenCalledWith(
+        '0',
+        undefined,
+        expect.objectContaining({ value: '0' })
+      )
     })
 
     it('should reject negative numbers by not calling onValueChange', () => {
@@ -51,7 +59,11 @@ describe('CurrencyInput Component', () => {
 
       // Verify that positive numbers still work
       fireEvent.change(input, { target: { value: '100.50' } })
-      expect(onValueChange).toHaveBeenCalledWith('100.50')
+      expect(onValueChange).toHaveBeenCalledWith(
+        '100.50',
+        undefined,
+        expect.objectContaining({ value: '100.50' })
+      )
     })
 
     it('should accept decimal numbers', () => {
@@ -65,9 +77,21 @@ describe('CurrencyInput Component', () => {
       fireEvent.change(input, { target: { value: '0.01' } })
       fireEvent.change(input, { target: { value: '1000.00' } })
 
-      expect(onValueChange).toHaveBeenCalledWith('99.99')
-      expect(onValueChange).toHaveBeenCalledWith('0.01')
-      expect(onValueChange).toHaveBeenCalledWith('1000.00')
+      expect(onValueChange).toHaveBeenCalledWith(
+        '99.99',
+        undefined,
+        expect.objectContaining({ value: '99.99' })
+      )
+      expect(onValueChange).toHaveBeenCalledWith(
+        '0.01',
+        undefined,
+        expect.objectContaining({ value: '0.01' })
+      )
+      expect(onValueChange).toHaveBeenCalledWith(
+        '1000.00',
+        undefined,
+        expect.objectContaining({ value: '1000.00' })
+      )
     })
   })
 
@@ -90,12 +114,16 @@ describe('CurrencyInput Component', () => {
       // Type a value first
       fireEvent.change(input, { target: { value: '123' } })
 
-      // Now clear it by selecting all and deleting
-      fireEvent.keyDown(input, { key: 'a', ctrlKey: true })
-      fireEvent.keyDown(input, { key: 'Backspace' })
+      // Now provide invalid input to exercise the undefined/null path
+      onValueChange.mockClear()
+      fireEvent.change(input, { target: { value: 'abc' } })
 
-      // The component should handle this gracefully
-      expect(input).toBeInTheDocument()
+      // The library calls onValueChange(undefined, name?, values?) for invalid/empty input
+      expect(onValueChange).toHaveBeenCalledWith(
+        undefined,
+        undefined,
+        expect.objectContaining({ float: null, formatted: '', value: '' })
+      )
     })
 
 
@@ -108,10 +136,18 @@ describe('CurrencyInput Component', () => {
       const input = screen.getByRole('textbox')
 
       fireEvent.change(input, { target: { value: '123.45' } })
-      expect(onValueChange).toHaveBeenCalledWith('123.45')
+      expect(onValueChange).toHaveBeenCalledWith(
+        '123.45',
+        undefined,
+        expect.objectContaining({ value: '123.45' })
+      )
 
       fireEvent.change(input, { target: { value: '0.01' } })
-      expect(onValueChange).toHaveBeenCalledWith('0.01')
+      expect(onValueChange).toHaveBeenCalledWith(
+        '0.01',
+        undefined,
+        expect.objectContaining({ value: '0.01' })
+      )
     })
   })
 
@@ -125,8 +161,12 @@ describe('CurrencyInput Component', () => {
       // Test that completely invalid input doesn't break the entire component
       fireEvent.change(input, { target: { value: 'abc' } })
 
-      // The library calls onValueChange(undefined) for invalid input
-      expect(onValueChange).toHaveBeenCalledWith(undefined)
+      // The library calls onValueChange(undefined, name?, values?) for invalid input
+      expect(onValueChange).toHaveBeenCalledWith(
+        undefined,
+        undefined,
+        expect.objectContaining({ float: null, formatted: '', value: '' })
+      )
     })
 
   })
@@ -163,11 +203,17 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should handle allowDecimals prop', () => {
-      render(<CurrencyInput allowDecimals={false} />)
+      const onValueChange = vi.fn()
+      render(<CurrencyInput allowDecimals={false} onValueChange={onValueChange} />)
 
       const input = screen.getByRole('textbox')
-      // The allowDecimals prop should be passed through to the underlying component
-      expect(input).toBeInTheDocument()
+
+      // Simulate typing a decimal; with allowDecimals=false, the value provided to handler should not include a decimal
+      fireEvent.change(input, { target: { value: '12.34' } })
+
+      expect(onValueChange).toHaveBeenCalled()
+      const lastCall = onValueChange.mock.calls[onValueChange.mock.calls.length - 1]
+      expect(lastCall[0]).not.toMatch(/\./)
     })
   })
 })
