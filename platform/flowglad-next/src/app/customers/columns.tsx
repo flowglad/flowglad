@@ -6,6 +6,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Pencil, ExternalLink, Copy } from 'lucide-react'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
@@ -14,6 +15,12 @@ import {
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import {
+  stringSortingFn,
+  stringFilterFn,
+  dateSortingFn,
+  numberSortingFn,
+} from '@/utils/dataTableColumns'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import { Customer, CustomerTableRowData } from '@/db/schema/customers'
 import { CurrencyCode } from '@/types'
@@ -81,40 +88,64 @@ function CustomerActionsMenu({
 export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'name',
-    accessorFn: (row) => row.customer.name,
-    header: 'Name',
-    cell: ({ row }) => (
-      <div className="truncate" title={row.getValue('name')}>
-        {row.getValue('name')}
-      </div>
+    accessorFn: (row) => row.customer.name?.trim() ?? '',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Name" />
     ),
+    sortingFn: stringSortingFn,
+    filterFn: stringFilterFn,
+    cell: ({ row }) => {
+      const name = row.original.customer.name?.trim()
+      const fallback = row.original.customer.email
+      const display = name && name.length > 0 ? name : fallback
+      return (
+        <div className="truncate" title={display}>
+          {display}
+        </div>
+      )
+    },
     size: 200,
     minSize: 200,
     maxSize: 275,
   },
   {
     id: 'email',
-    accessorFn: (row) => row.customer.email,
-    header: 'Email',
-    cell: ({ row }) => (
-      <div>
-        <DataTableCopyableCell
-          copyText={row.getValue('email')}
-          className="lowercase"
-        >
-          {row.getValue('email')}
-        </DataTableCopyableCell>
-      </div>
+    accessorFn: (row) =>
+      row.customer.email?.trim().toLowerCase() ?? '',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Email" />
     ),
+    sortingFn: stringSortingFn,
+    filterFn: stringFilterFn,
+    cell: ({ row }) => {
+      const email = row.original.customer.email
+      return (
+        <div>
+          <DataTableCopyableCell
+            copyText={email}
+            className="lowercase"
+          >
+            {email}
+          </DataTableCopyableCell>
+        </div>
+      )
+    },
     size: 220,
     minSize: 120,
     maxSize: 250,
   },
   {
     accessorKey: 'totalSpend',
-    header: 'Total Spend',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Total Spend" />
+    ),
+    sortingFn: numberSortingFn,
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('totalSpend') || '0')
+      const rawValue = row.getValue<number | string>('totalSpend')
+      const amount =
+        typeof rawValue === 'number'
+          ? rawValue
+          : parseFloat((rawValue as string) || '0')
       const formatted =
         stripeCurrencyAmountToHumanReadableCurrencyAmount(
           CurrencyCode.USD,
@@ -128,7 +159,10 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   },
   {
     accessorKey: 'payments',
-    header: 'Payments',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Payments" />
+    ),
+    sortingFn: numberSortingFn,
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {row.getValue('payments') || 0}
@@ -141,7 +175,10 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'createdAt',
     accessorFn: (row) => row.customer.createdAt,
-    header: 'Created',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created" />
+    ),
+    sortingFn: dateSortingFn,
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {core.formatDate(row.getValue('createdAt'))}
@@ -154,7 +191,10 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'customerId',
     accessorFn: (row) => row.customer.id,
-    header: 'ID',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
+    sortingFn: stringSortingFn,
     cell: ({ row }) => (
       <div>
         <DataTableCopyableCell copyText={row.getValue('customerId')}>

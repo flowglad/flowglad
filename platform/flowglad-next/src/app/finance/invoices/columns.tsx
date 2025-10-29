@@ -12,6 +12,7 @@ import {
   EnhancedDataTableActionsMenu,
   ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 // Other imports
 import { Invoice } from '@/db/schema/invoices'
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
@@ -23,6 +24,13 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import SendInvoiceReminderEmailModal from '@/components/forms/SendInvoiceReminderEmailModal'
 import core from '@/utils/core'
 import { sentenceCase } from 'change-case'
+import {
+  stringSortingFn,
+  stringFilterFn,
+  dateSortingFn,
+  numberSortingFn,
+  arrayFilterFn,
+} from '@/utils/dataTableColumns'
 
 export type InvoiceTableRowData = {
   invoice: Invoice.ClientRecord
@@ -132,14 +140,22 @@ function InvoiceActionsMenu({
 export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'customerName',
-    accessorFn: (row) => row.customer.name,
-    header: 'Customer',
+    accessorFn: (row) => row.customer.name?.trim() || row.customer.id,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Customer" />
+    ),
+    sortingFn: stringSortingFn,
+    filterFn: stringFilterFn,
     cell: ({ row }) => {
       const customer = row.original.customer
+      const displayName =
+        typeof customer.name === 'string' && customer.name.length > 0
+          ? customer.name
+          : customer.id
       return (
         <div>
           <DataTableLinkableCell href={`/customers/${customer.id}`}>
-            {customer.name}
+            {displayName}
           </DataTableLinkableCell>
         </div>
       )
@@ -151,7 +167,10 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'invoiceNumber',
     accessorFn: (row) => row.invoice.invoiceNumber,
-    header: 'Number',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Number" />
+    ),
+    sortingFn: stringSortingFn,
     cell: ({ row }) => (
       <div>
         <DataTableCopyableCell
@@ -170,7 +189,11 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'status',
     accessorFn: (row) => row.invoice.status,
-    header: 'Status',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
+    sortingFn: stringSortingFn,
+    filterFn: arrayFilterFn,
     cell: ({ row }) => {
       const invoice = row.original.invoice
       return <InvoiceStatusBadge invoice={invoice} />
@@ -187,7 +210,10 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
         return sum + item.price * item.quantity
       }, 0)
     },
-    header: 'Total',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Total" />
+    ),
+    sortingFn: numberSortingFn,
     cell: ({ row }) => {
       const total = row.getValue('total') as number
       const formatted =
@@ -208,7 +234,10 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'dueDate',
     accessorFn: (row) => row.invoice.dueDate,
-    header: 'Due Date',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Due Date" />
+    ),
+    sortingFn: dateSortingFn,
     cell: ({ row }) => {
       const dueDate = row.getValue('dueDate') as Date | null
       return (
@@ -224,7 +253,10 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'createdAt',
     accessorFn: (row) => row.invoice.createdAt,
-    header: 'Created',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created" />
+    ),
+    sortingFn: dateSortingFn,
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {core.formatDate(row.getValue('createdAt'))}
@@ -237,7 +269,10 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'invoiceId',
     accessorFn: (row) => row.invoice.id,
-    header: 'ID',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
+    sortingFn: stringSortingFn,
     cell: ({ row }) => (
       <div>
         <DataTableCopyableCell copyText={row.getValue('invoiceId')}>

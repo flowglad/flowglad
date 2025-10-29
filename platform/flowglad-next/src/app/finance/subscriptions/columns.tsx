@@ -15,6 +15,14 @@ import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import { Subscription } from '@/db/schema/subscriptions'
 import { SubscriptionStatus } from '@/types'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
+import {
+  stringSortingFn,
+  stringFilterFn,
+  dateSortingFn,
+  dateSortingFnNullsFirst,
+  arrayFilterFn,
+} from '@/utils/dataTableColumns'
 
 const subscriptionStatusColors: Record<SubscriptionStatus, string> = {
   [SubscriptionStatus.Active]: 'bg-green-100 text-green-800',
@@ -80,12 +88,27 @@ function SubscriptionActionsMenu({
 export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'customerName',
-    accessorFn: (row) => row.customer.name || row.customer.email,
-    header: 'Customer',
+    accessorFn: (row) => {
+      const customer = row.customer
+      const name = customer.name?.trim() ?? ''
+      const email = customer.email?.trim() ?? ''
+      const combined = [name, email]
+        .filter((value) => value.length > 0)
+        .join(' ')
+
+      return combined.toLowerCase()
+    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Customer" />
+    ),
+    sortingFn: stringSortingFn,
+    filterFn: stringFilterFn,
     cell: ({ row }) => {
       const customer = row.original.customer
-      const displayName =
-        customer.name.length === 0 ? customer.email : customer.name
+      const hasName =
+        typeof customer.name === 'string' &&
+        customer.name.trim().length > 0
+      const displayName = hasName ? customer.name : customer.email
       return (
         <div>
           <DataTableLinkableCell href={`/customers/${customer.id}`}>
@@ -101,7 +124,11 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'status',
     accessorFn: (row) => row.subscription.status,
-    header: 'Status',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
+    sortingFn: stringSortingFn,
+    filterFn: arrayFilterFn,
     cell: ({ row }) => {
       const status = row.getValue('status') as SubscriptionStatus
       return <SubscriptionStatusBadge status={status} />
@@ -113,7 +140,11 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'productName',
     accessorFn: (row) => row.product.name,
-    header: 'Product',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Product" />
+    ),
+    sortingFn: stringSortingFn,
+    filterFn: arrayFilterFn,
     cell: ({ row }) => {
       const product = row.original.product
       return (
@@ -133,7 +164,10 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'createdAt',
     accessorFn: (row) => row.subscription.createdAt,
-    header: 'Created',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created" />
+    ),
+    sortingFn: dateSortingFn,
     cell: ({ row }) => {
       const date = row.getValue('createdAt') as Date
       return (
@@ -149,7 +183,10 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'canceledAt',
     accessorFn: (row) => row.subscription.canceledAt,
-    header: 'Canceled',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Canceled" />
+    ),
+    sortingFn: dateSortingFnNullsFirst,
     cell: ({ row }) => {
       const date = row.getValue('canceledAt') as Date | null
       return (
@@ -165,7 +202,10 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
     id: 'subscriptionId',
     accessorFn: (row) => row.subscription.id,
-    header: 'ID',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ID" />
+    ),
+    sortingFn: stringSortingFn,
     cell: ({ row }) => {
       const id = row.getValue('subscriptionId') as string
       return (
