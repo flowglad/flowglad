@@ -47,3 +47,25 @@ export const parseAndValidateCursor = (
     throw new Error('Invalid cursor')
   }
 }
+
+const legacyCursorPayloadSchema = z
+  .object({
+    parameters: z.record(z.string(), z.unknown()).optional(),
+    createdAt: z.number(),
+    direction: z.enum(['forward', 'backward']),
+  })
+  .strict()
+
+export type LegacyCursorPayload = z.infer<typeof legacyCursorPayloadSchema>
+
+export const parseAndValidateLegacyCursor = (
+  cursor: string
+): LegacyCursorPayload => {
+  try {
+    const raw = Buffer.from(cursor, 'base64').toString()
+    const decoded = JSON.parse(raw)
+    return legacyCursorPayloadSchema.parse(decoded)
+  } catch (err) {
+    throw new Error('Invalid legacy cursor')
+  }
+}

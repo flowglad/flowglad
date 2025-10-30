@@ -1174,32 +1174,41 @@ export const createPaginatedSelectFunction = <
         .select()
         .from(table as SelectTable)
         .$dynamic()
-      if (Object.keys(parameters).length > 0) {
-        query = query.where(whereClauseFromObject(table, parameters))
-      }
+      const baseWhere =
+        Object.keys(parameters).length > 0
+          ? whereClauseFromObject(table, parameters)
+          : undefined
 
-      if (createdAt && id) {
-        // Use id as tie-breaker for stable ordering when createdAt is the same
+      if (createdAt) {
         // Force epoch-ms number for custom timestamptzMs column to ensure consistent toDriver
         const createdAtMs = createdAt.valueOf()
-        const keyset =
-          direction === 'forward'
-            ? or(
-                gt(table.createdAt, createdAtMs),
-                and(
-                  eq(table.createdAt, createdAtMs),
-                  gt(table.id, id)
+        if (id) {
+          // Preferred: composite keyset with tie-breaker on id
+          const keyset =
+            direction === 'forward'
+              ? or(
+                  gt(table.createdAt, createdAtMs),
+                  and(eq(table.createdAt, createdAtMs), gt(table.id, id))
                 )
-              )
-            : or(
-                lt(table.createdAt, createdAtMs),
-                and(
-                  eq(table.createdAt, createdAtMs),
-                  lt(table.id, id)
+              : or(
+                  lt(table.createdAt, createdAtMs),
+                  and(eq(table.createdAt, createdAtMs), lt(table.id, id))
                 )
-              )
-        // Exclude the anchor row by id to avoid boundary duplication
-        query = query.where(and(ne(table.id, id), keyset))
+          // Exclude anchor row to avoid boundary duplication, combine with base filter
+          const boundary = and(ne(table.id, id), keyset)
+          query = query.where(and(baseWhere, boundary))
+        } else {
+          // Legacy fallback: apply createdAt-only boundary when id is absent
+          const keyset =
+            direction === 'forward'
+              ? gt(table.createdAt, createdAtMs)
+              : lt(table.createdAt, createdAtMs)
+          query = query.where(and(baseWhere, keyset))
+        }
+      }
+      // If no cursor boundary was applied, apply base filter (if any)
+      if (!createdAt && baseWhere) {
+        query = query.where(baseWhere)
       }
       const queryLimit = limit + 1
       const orderings =
