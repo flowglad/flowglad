@@ -1,4 +1,4 @@
-import { xmcpHandler } from '@xmcp/adapter'
+import { xmcpHandler } from '../../.xmcp/adapter'
 import core from '@/utils/core'
 
 /**
