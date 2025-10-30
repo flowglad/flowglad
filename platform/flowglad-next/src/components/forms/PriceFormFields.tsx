@@ -53,7 +53,7 @@ const SubscriptionFields = ({
   )
   return (
     <>
-      <div className="flex items-end gap-2.5">
+      <div className="flex flex-col md:flex-row items-end gap-2.5">
         <FormField
           control={control}
           name="__rawPriceString"
@@ -233,7 +233,7 @@ const UsageFields = ({
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="flex items-end gap-2.5">
+      <div className="flex flex-col md:flex-row items-end gap-2.5">
         <FormField
           control={control}
           name="__rawPriceString"

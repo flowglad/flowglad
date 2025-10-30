@@ -19,6 +19,7 @@ import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsR
 import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
 import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
 import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
+import { invoiceLineItemsRouteConfigs } from '@/server/routers/invoiceLineItemsRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
 import { purchasesRouteConfigs } from '@/server/routers/purchasesRouter'
 import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
@@ -73,6 +74,7 @@ const routeConfigs = [
   ...checkoutSessionsRouteConfigs,
   ...pricesRouteConfigs,
   ...invoicesRouteConfigs,
+  ...invoiceLineItemsRouteConfigs,
   ...paymentMethodsRouteConfigs,
   ...paymentsRouteConfigs,
   ...purchasesRouteConfigs,
