@@ -45,9 +45,6 @@ const CreateOrganizationModal: React.FC<
         // Invalidate queries to refresh the organization list
         await trpcContext.organizations.getOrganizations.invalidate()
         await trpcContext.organizations.getFocusedMembership.invalidate()
-
-        // Refresh the page to ensure all components update with the new organization
-        router.refresh()
       }}
       submitButtonText="Create Organization"
     >
