@@ -4,7 +4,10 @@ import {
   selectOrganizations,
   updateOrganization,
 } from '@/db/tableMethods/organizationMethods'
-import { insertMembership } from '@/db/tableMethods/membershipMethods'
+import {
+  insertMembership,
+  unfocusMembershipsForUser,
+} from '@/db/tableMethods/membershipMethods'
 import {
   BusinessOnboardingStatus,
   FeatureFlag,
@@ -104,6 +107,9 @@ export const createOrganizationTransaction = async (
       transaction
     )
   const organizationId = organizationRecord.id
+
+  await unfocusMembershipsForUser(user.id, transaction)
+
   await insertMembership(
     {
       organizationId,
