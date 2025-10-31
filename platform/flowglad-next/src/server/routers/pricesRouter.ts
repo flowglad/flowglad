@@ -35,9 +35,6 @@ import {
 } from '@/db/tableUtils'
 import { PriceType } from '@/types'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { SelectConditions } from '@/db/tableUtils'
-import { prices } from '@/db/schema/prices'
-import { DbTransaction } from '@/db/types'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Price',
