@@ -219,6 +219,41 @@ export const updatePrice = protectedProcedure
     )
   })
 
+export const getPrice = protectedProcedure
+  .meta(openApiMetas.GET)
+  .input(idInputSchema)
+  .output(singlePriceOutputSchema)
+  .query(async ({ input, ctx }) => {
+    try {
+      const price = await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPriceById(input.id, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+
+      if (!price) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Price with id ${input.id} not found`,
+        })
+      }
+
+      return { price }
+    } catch (error) {
+      if (error instanceof TRPCError && error.code === 'NOT_FOUND') {
+        throw error
+      }
+      // Handle case where selectPriceById throws an error
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Price with id ${input.id} not found`,
+      })
+    }
+  })
+
 export const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
@@ -295,4 +330,5 @@ export const pricesRouter = router({
   listUsagePricesForProduct,
   setAsDefault: setPriceAsDefault,
   archive: archivePrice,
+  get: getPrice,
 })

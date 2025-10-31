@@ -626,4 +626,54 @@ describe('pricesRouter - Default Price Constraints', () => {
       ).rejects.toThrow() // Database constraint will throw an error
     })
   })
+
+  describe('getPrice', () => {
+    it('should return a price when a valid ID is provided', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      const result = await pricesRouter
+        .createCaller(ctx)
+        .get({ id: regularPriceId })
+
+      expect(result).toBeDefined()
+      expect(result.price).toBeDefined()
+      expect(result.price.id).toBe(regularPriceId)
+    })
+
+    it('should throw a TRPCError with NOT_FOUND code when an invalid ID is provided', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+      const invalidId = 'price_invalid_' + core.nanoid()
+
+      await expect(
+        pricesRouter.createCaller(ctx).get({ id: invalidId })
+      ).rejects.toThrow(
+        new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Price with id ${invalidId} not found`,
+        })
+      )
+    })
+  })
 })
