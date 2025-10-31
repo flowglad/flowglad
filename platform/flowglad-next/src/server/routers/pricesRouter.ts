@@ -220,58 +220,16 @@ export const updatePrice = protectedProcedure
   })
 
 export const getPrice = protectedProcedure
+  .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ price: pricesClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    const organizationId = ctx.organizationId
-    if (!organizationId) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'organizationId is required',
-      })
-    }
-
-    let price
-    try {
-      price = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectPriceById(input.id, transaction)
-        },
-        {
-          apiKey: ctx.apiKey,
-        }
-      )
-    } catch (error) {
-      // Handle the case where selectPriceById throws an error for non-existent records
-      if (
-        error instanceof Error &&
-        error.message.includes('No prices found with id:')
-      ) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Price with id ${input.id} not found`,
-        })
-      }
-      throw error // Re-throw other errors
-    }
-
-    // Check if the price belongs to the user's organization through its product
-    const product = await authenticatedTransaction(
+    const price = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectProductById(price.productId, transaction)
+        return selectPriceById(input.id, transaction)
       },
-      {
-        apiKey: ctx.apiKey,
-      }
+      { apiKey: ctx.apiKey }
     )
-
-    if (!product || product.organizationId !== organizationId) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Price with id ${input.id} not found`,
-      })
-    }
-
     return { price }
   })
 

@@ -651,7 +651,7 @@ describe('pricesRouter - Default Price Constraints', () => {
       expect(result.price.id).toBe(regularPriceId)
     })
 
-    it('should throw a TRPCError with NOT_FOUND code when an invalid ID is provided', async () => {
+    it('should throw a TRPCError when an invalid ID is provided', async () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
         livemode,
@@ -668,12 +668,7 @@ describe('pricesRouter - Default Price Constraints', () => {
 
       await expect(
         pricesRouter.createCaller(ctx).get({ id: invalidId })
-      ).rejects.toThrow(
-        new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Price with id ${invalidId} not found`,
-        })
-      )
+      ).rejects.toThrow(TRPCError)
     })
   })
 })
