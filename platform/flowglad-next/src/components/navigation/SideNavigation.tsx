@@ -6,11 +6,8 @@ import {
   Users,
   CircleDollarSign,
   BookOpen,
-  Loader2,
-  ChevronsUpDown,
   LogOut,
   TriangleRight,
-  Plus,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuthContext } from '@/contexts/authContext'
@@ -32,20 +29,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { signOut } from '@/utils/authClient'
-import CreateOrganizationModal from '@/components/forms/CreateOrganizationModal'
+import OrganizationSwitcher from '@/components/navigation/OrganizationSwitcher'
 
 // Official Shadcn navigation interfaces
 type StandaloneNavItem = {
@@ -68,11 +55,7 @@ type MainNavItem = {
 
 export const SideNavigation = () => {
   const pathname = usePathname()
-  const { user, organization } = useAuthContext()
-  const [
-    isCreateOrganizationModalOpen,
-    setIsCreateOrganizationModalOpen,
-  ] = useState(false)
+  const { organization } = useAuthContext()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
     onSuccess: async () => {
       await invalidateTRPC()
@@ -91,15 +74,6 @@ export const SideNavigation = () => {
   const { invalidate: invalidateTRPC } = trpc.useUtils()
   const focusedMembership =
     trpc.organizations.getFocusedMembership.useQuery()
-  const organizations = trpc.organizations.getOrganizations.useQuery()
-  const updateFocusedMembership =
-    trpc.organizations.updateFocusedMembership.useMutation({
-      onSuccess: async () => {
-        await invalidateTRPC()
-        await focusedMembership.refetch()
-        router.refresh()
-      },
-    })
   const [
     initialFocusedMembershipLoading,
     setInitialFocusedMembershipLoading,
@@ -269,91 +243,7 @@ export const SideNavigation = () => {
                 {organization?.name}
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Switch organization"
-                      className="p-1"
-                      disabled={updateFocusedMembership.isPending}
-                    >
-                      {updateFocusedMembership.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <ChevronsUpDown className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-60">
-                    {organizations.isLoading ? (
-                      <DropdownMenuItem disabled>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Loading organizations...
-                      </DropdownMenuItem>
-                    ) : organizations.data?.length === 0 ? (
-                      <DropdownMenuItem disabled>
-                        No organizations found
-                      </DropdownMenuItem>
-                    ) : (
-                      organizations.data?.map((org) => (
-                        <DropdownMenuItem
-                          key={org.id}
-                          onClick={async () => {
-                            if (org.id !== organization?.id) {
-                              await updateFocusedMembership.mutateAsync(
-                                {
-                                  organizationId: org.id,
-                                }
-                              )
-                            }
-                          }}
-                          className={
-                            org.id === organization?.id
-                              ? 'bg-accent'
-                              : ''
-                          }
-                          disabled={updateFocusedMembership.isPending}
-                        >
-                          <div className="flex items-center gap-2">
-                            {updateFocusedMembership.isPending &&
-                            updateFocusedMembership.variables
-                              ?.organizationId === org.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : org.logoURL ? (
-                              <Image
-                                className="rounded-full object-cover h-4 w-4 bg-white"
-                                alt={org.name}
-                                src={org.logoURL}
-                                width={16}
-                                height={16}
-                              />
-                            ) : (
-                              <div className="h-4 w-4 rounded-full bg-muted-foreground/20" />
-                            )}
-                            <span className="truncate">
-                              {org.name}
-                            </span>
-                            {org.id === organization?.id && (
-                              <span className="ml-auto text-xs text-muted-foreground">
-                                Current
-                              </span>
-                            )}
-                          </div>
-                        </DropdownMenuItem>
-                      ))
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() =>
-                        setIsCreateOrganizationModalOpen(true)
-                      }
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create New Organization
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <OrganizationSwitcher />
               </div>
               <div className="text-xs font-medium text-muted-foreground truncate">
                 {organization?.tagline}
@@ -457,11 +347,6 @@ export const SideNavigation = () => {
           </SidebarGroup>
         </div>
       </SidebarFooter>
-
-      <CreateOrganizationModal
-        isOpen={isCreateOrganizationModalOpen}
-        setIsOpen={setIsCreateOrganizationModalOpen}
-      />
     </>
   )
 }

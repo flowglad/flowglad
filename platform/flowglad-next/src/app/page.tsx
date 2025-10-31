@@ -2,6 +2,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectMembershipAndOrganizations,
   updateMembership,
+  unfocusMembershipsForUser,
 } from '@/db/tableMethods/membershipMethods'
 import { getSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
@@ -31,6 +32,8 @@ export default async function Home() {
         (item) => item.membership.focused
       )
       if (!hasFocused && memberships.length > 0) {
+        // Unfocus memberships first to avoid race condition
+        await unfocusMembershipsForUser(user.id, transaction)
         await updateMembership(
           { id: memberships[0].membership.id, focused: true },
           transaction
