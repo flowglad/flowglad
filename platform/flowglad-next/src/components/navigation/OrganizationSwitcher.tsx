@@ -131,10 +131,10 @@ const OrganizationSwitcher = () => {
                 </CommandGroup>
               </CommandList>
             </Command>
-            <div className="border-t">
+            <div className="border-t flex justify-center">
               <Button
                 variant="ghost"
-                className="w-full justify-start"
+                className="w-max-content"
                 onClick={() => {
                   setIsOrgMenuOpen(false)
                   setIsCreateOrganizationModalOpen(true)
