@@ -56,7 +56,7 @@ export const PaymentFailedEmail = ({
 
   return (
     <EmailLayout previewText="Payment Failed for Your Order">
-      <TestModeBanner><TestModeBanner/>
+      <TestModeBanner livemode={livemode} />
       <Header
         title="Payment Unsuccessful"
         organizationLogoUrl={organizationLogoUrl}

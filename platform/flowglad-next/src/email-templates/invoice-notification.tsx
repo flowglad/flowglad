@@ -50,7 +50,7 @@ export const InvoiceNotificationEmail = ({
 
   return (
     <EmailLayout previewText={`New Invoice from ${organizationName}`}>
-      <TestModeBanner><TestModeBanner/>
+      <TestModeBanner livemode={livemode} />
       <Header
         title="New Invoice"
         organizationLogoUrl={organizationLogoUrl}

@@ -24,7 +24,7 @@ export const CustomerBillingPortalMagicLinkEmail = ({
       previewText={`Sign in to your billing portal${organizationName ? ` for ${organizationName}` : ''}`}
       variant="customer"
     >
-      <TestModeBanner><TestModeBanner/>
+      <TestModeBanner livemode={livemode} />
       <Img
         src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
         width="540"

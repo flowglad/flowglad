@@ -52,7 +52,7 @@ export const InvoiceReminderEmail = ({
 
   return (
     <EmailLayout previewText="Invoice Reminder">
-      <TestModeBanner><TestModeBanner/>
+      <TestModeBanner livemode={livemode} />
       <Header
         title="Invoice Reminder"
         organizationLogoUrl={organizationLogoUrl}

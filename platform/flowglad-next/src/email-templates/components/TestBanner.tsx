@@ -1,12 +1,9 @@
-import { trpc } from '@/utils/trpc';
-import { getMembership } from "@/server/mutations/toggleTestMode";
 
-export default function TestModeBanner() {
-  const { data: membership } = trpc.getMembership.useQuery();
+export default function TestModeBanner(livemode: boolean) {
 
-  if (!membership) return null;
+  if (livemode) return null;
 
-  return membership.livemode ? null : (
+  return livemode ? null : (
     <div className="bg-yellow-500 text-black text-center p-2 font-bold">
       TEST MODE ENABLED
     </div>

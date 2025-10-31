@@ -54,7 +54,7 @@ export const OrderReceiptEmail = ({
 
   return (
     <EmailLayout previewText="Thanks for your order!">
-      <TestModeBanner><TestModeBanner/>
+      <TestModeBanner livemode={livemode} />
       <Header
         title="Thanks for your order!"
         organizationLogoUrl={organizationLogoUrl}

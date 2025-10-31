@@ -18,7 +18,7 @@ export const ForgotPasswordEmail = ({
       previewText={`Reset your password, ${user}`}
       variant="customer"
     >
-      <TestModeBanner><TestModeBanner/>
+      <TestModeBanner livemode={livemode} />
       <Img
         src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
         width="540"

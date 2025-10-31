@@ -44,10 +44,3 @@ export const toggleTestMode = protectedProcedure
       data: { membership: updatedMembership },
     }
   })
-
-export const getMembership = protectedProcedure.query(async () => {
-  return authenticatedTransaction(async ({ transaction, userId }) => {
-    const { membership } = await selectFocusedMembershipAndOrganization(userId, transaction);
-    return membership;
-  });
-});

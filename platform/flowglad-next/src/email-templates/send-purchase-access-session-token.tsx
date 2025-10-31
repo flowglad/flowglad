@@ -26,7 +26,7 @@ export const SendPurchaseAccessSessionTokenEmail = ({
     <Head />
     <Preview>Access your order with this magic link.</Preview>
     <Body style={main}>
-      <TestModeBanner><TestModeBanner/>
+      <TestModeBanner livemode={livemode} />
       <Container style={container}>
         <Img
           src={`${emailBaseUrl}/static/flowglad-logo.png`}
