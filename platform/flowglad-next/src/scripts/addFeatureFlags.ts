@@ -45,7 +45,7 @@ async function updateFeatureFlags(db: PostgresJsDatabase) {
       transaction
     )
 
-    if (!overwriteArg || overwriteArg !== 'true') {
+    if (overwriteArg?.toLowerCase() !== 'true') {
       featureFlagArgObj = {
         ...org.featureFlags,
         ...featureFlagArgObj,
