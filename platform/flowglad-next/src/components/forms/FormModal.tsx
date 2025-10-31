@@ -95,7 +95,7 @@ interface FormModalProps<T extends FieldValues>
   /**
    * Allow content to overflow the modal (e.g., for dropdowns, popovers, focus rings).
    * Set to false for long forms that need scrolling with fixed header/footer.
-   * @default true
+   * @default false
    */
   allowContentOverflow?: boolean
 }
@@ -121,7 +121,7 @@ export const NestedFormModal = <T extends FieldValues>({
   form,
   onSuccess,
   mode = 'modal',
-  allowContentOverflow = true,
+  allowContentOverflow = false,
 }: NestedFormModalProps<T>) => {
   const shouldRenderContent = useShouldRenderContent({ isOpen })
   const footer = (
@@ -242,7 +242,7 @@ const FormModal = <T extends FieldValues>({
   autoClose = true,
   hideFooter = false,
   mode = 'modal',
-  allowContentOverflow = true,
+  allowContentOverflow = false,
 }: FormModalProps<T>) => {
   const id = useId()
   const router = useRouter()
