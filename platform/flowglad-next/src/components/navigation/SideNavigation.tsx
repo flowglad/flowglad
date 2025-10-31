@@ -6,7 +6,6 @@ import {
   Users,
   CircleDollarSign,
   BookOpen,
-  Loader2,
   LogOut,
   TriangleRight,
   type LucideIcon,
@@ -30,12 +29,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Button } from '@/components/ui/button'
-import { signOut } from '@/utils/authClient'
+import OrganizationSwitcher from '@/components/navigation/OrganizationSwitcher'
 
 // Official Shadcn navigation interfaces
 type StandaloneNavItem = {
@@ -58,7 +55,7 @@ type MainNavItem = {
 
 export const SideNavigation = () => {
   const pathname = usePathname()
-  const { user, organization } = useAuthContext()
+  const { organization } = useAuthContext()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
     onSuccess: async () => {
       await invalidateTRPC()
@@ -241,9 +238,12 @@ export const SideNavigation = () => {
         >
           <div className="flex items-center gap-3 rounded-md">
             {maybeLogo}
-            <div className="flex flex-col justify-center gap-0.5 whitespace-nowrap">
+            <div className="flex justify-center gap-0.5 whitespace-nowrap items-center">
               <div className="text-sm font-semibold text-foreground truncate">
                 {organization?.name}
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <OrganizationSwitcher />
               </div>
               <div className="text-xs font-medium text-muted-foreground truncate">
                 {organization?.tagline}
