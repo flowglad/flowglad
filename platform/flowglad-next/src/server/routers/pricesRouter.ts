@@ -220,12 +220,20 @@ export const updatePrice = protectedProcedure
   })
 
 export const getPrice = protectedProcedure
-  .meta(openApiMetas.GET)
   .input(idInputSchema)
-  .output(singlePriceOutputSchema)
+  .output(z.object({ price: pricesClientSelectSchema }))
   .query(async ({ input, ctx }) => {
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+
+    let price
     try {
-      const price = await authenticatedTransaction(
+      price = await authenticatedTransaction(
         async ({ transaction }) => {
           return selectPriceById(input.id, transaction)
         },
@@ -233,25 +241,38 @@ export const getPrice = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-
-      if (!price) {
+    } catch (error) {
+      // Handle the case where selectPriceById throws an error for non-existent records
+      if (
+        error instanceof Error &&
+        error.message.includes('No prices found with id:')
+      ) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: `Price with id ${input.id} not found`,
         })
       }
+      throw error // Re-throw other errors
+    }
 
-      return { price }
-    } catch (error) {
-      if (error instanceof TRPCError && error.code === 'NOT_FOUND') {
-        throw error
+    // Check if the price belongs to the user's organization through its product
+    const product = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectProductById(price.productId, transaction)
+      },
+      {
+        apiKey: ctx.apiKey,
       }
-      // Handle case where selectPriceById throws an error
+    )
+
+    if (!product || product.organizationId !== organizationId) {
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: `Price with id ${input.id} not found`,
       })
     }
+
+    return { price }
   })
 
 export const getTableRows = protectedProcedure
