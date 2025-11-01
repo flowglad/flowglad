@@ -35,9 +35,6 @@ import {
 } from '@/db/tableUtils'
 import { PriceType } from '@/types'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { SelectConditions } from '@/db/tableUtils'
-import { prices } from '@/db/schema/prices'
-import { DbTransaction } from '@/db/types'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Price',
@@ -203,6 +200,20 @@ export const updatePrice = protectedProcedure
     )
   })
 
+export const getPrice = protectedProcedure
+  .meta(openApiMetas.GET)
+  .input(idInputSchema)
+  .output(z.object({ price: pricesClientSelectSchema }))
+  .query(async ({ input, ctx }) => {
+    const price = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectPriceById(input.id, transaction)
+      },
+      { apiKey: ctx.apiKey }
+    )
+    return { price }
+  })
+
 export const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
@@ -279,4 +290,5 @@ export const pricesRouter = router({
   listUsagePricesForProduct,
   setAsDefault: setPriceAsDefault,
   archive: archivePrice,
+  get: getPrice,
 })
