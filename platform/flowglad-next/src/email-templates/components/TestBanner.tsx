@@ -1,9 +1,32 @@
-export default function TestModeBanner({ livemode }: { livemode: boolean }) {
+import { Heading, Section } from '@react-email/components'
+import * as React from 'react'
+
+const bannerStyle: React.CSSProperties = {
+  backgroundColor: '#eab308',
+  padding: '8px',
+  margin: 0,
+  textAlign: 'center',
+}
+
+const headingStyle: React.CSSProperties = {
+  color: '#000000',
+  fontSize: '30px',
+  margin: 0,
+  padding: 0,
+}
+
+export default function TestModeBanner({
+  livemode,
+}: {
+  livemode: boolean
+}) {
   if (livemode) return null
 
   return (
-    <div className="bg-yellow-500 text-black text-center p-2 font-bold">
-      TEST MODE ENABLED
-    </div>
+    <Section style={bannerStyle}>
+      <Heading style={headingStyle} as="h2">
+        TEST MODE
+      </Heading>
+    </Section>
   )
 }
