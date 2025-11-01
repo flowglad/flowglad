@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@xmcp/*": [
+        "./.xmcp/*"
       ]
     },
     "target": "ES2017"
@@ -34,7 +37,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "trigger.config.ts"
+    "trigger.config.ts",
+    "xmcp-env.d.ts"
   ],
   "exclude": [
     "node_modules",

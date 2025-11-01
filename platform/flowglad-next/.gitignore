@@ -52,3 +52,8 @@ public/preview/preview.*.css
 
 # shadcn registry build artifacts
 public/ui/*.json
+
+# xmcp
+.xmcp
+xmcp-env.d.ts
+xmcp-adapter/
