@@ -1,8 +1,4 @@
-export default function TestModeBanner({
-  livemode,
-}: {
-  livemode: boolean
-}) {
+export default function TestModeBanner({ livemode }: { livemode: boolean }) {
   if (livemode) return null
 
   return (
