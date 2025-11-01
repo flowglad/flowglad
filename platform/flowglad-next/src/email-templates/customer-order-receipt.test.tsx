@@ -29,6 +29,7 @@ describe('OrderReceiptEmail', () => {
       },
     ],
     organizationName: 'Test Organization',
+    livemode: false,
   }
 
   it('should render the email template with all components', () => {

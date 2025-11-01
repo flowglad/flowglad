@@ -115,6 +115,7 @@ export const sendReceiptEmail = async (params: {
       organizationId: invoice.organizationId,
       customerId: params.customerId,
       discountInfo: params.discountInfo,
+      livemode: invoice.livemode,
     }),
   })
 }
@@ -145,6 +146,7 @@ export const sendPurchaseAccessSessionTokenEmail = async (params: {
   to: string[]
   magicLink: string
   replyTo?: string | null
+  livemode: boolean
 }) => {
   return safeSend({
     from: 'notifications@flowglad.com',
@@ -189,6 +191,7 @@ export const sendPaymentFailedEmail = async (params: {
   } | null
   failureReason?: string
   customerPortalUrl?: string
+  livemode: boolean
 }) => {
   return safeSend({
     from: 'notifications@flowglad.com',
@@ -209,6 +212,7 @@ export const sendPaymentFailedEmail = async (params: {
       discountInfo: params.discountInfo,
       failureReason: params.failureReason,
       customerPortalUrl: params.customerPortalUrl,
+      livemode: params.livemode,
     }),
   })
 }
@@ -221,15 +225,16 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
   customerId,
   currency,
   customerName,
+  livemode,
 }: {
   to: string[]
   organizationName: string
   invoiceNumber: string
-  orderDate: Date | number
   amount: number
   customerId: string
   customerName: string
   currency: CurrencyCode
+  livemode: boolean
 }) => {
   return safeSend({
     from: 'notifications@flowglad.com',
@@ -249,6 +254,7 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
       customerId,
       currency,
       customerName: customerName,
+      livemode,
     }),
   })
 }
@@ -296,6 +302,7 @@ export const sendInvoiceReminderEmail = async ({
       organizationName,
       organizationLogoUrl,
       discountInfo,
+      livemode: invoice.livemode,
     }),
   })
 }
@@ -343,6 +350,7 @@ export const sendInvoiceNotificationEmail = async ({
       organizationName,
       organizationLogoUrl,
       discountInfo,
+      livemode: invoice.livemode,
     }),
   })
 }
@@ -407,21 +415,24 @@ export const sendCustomerBillingPortalMagicLink = async ({
   url,
   customerName,
   organizationName,
+  livemode,
 }: {
   to: string[]
   url: string
   customerName?: string
-  organizationName?: string
+  organizationName: string
+  livemode: boolean
 }) => {
   return safeSend({
     from: 'notifications@flowglad.com',
     to: to.map(safeTo),
-    subject: `Sign in to your ${organizationName ? `${organizationName}` : ''} billing portal`,
+    subject: `Sign in to your ${organizationName} billing portal`,
     react: await CustomerBillingPortalMagicLinkEmail({
       email: to[0],
       url,
       customerName,
       organizationName,
+      livemode,
     }),
   })
 }

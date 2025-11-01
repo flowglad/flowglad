@@ -13,6 +13,7 @@ import {
   Signature,
 } from './components/themed'
 import core from '@/utils/core'
+import TestModeBanner from './components/TestBanner'
 
 const baseUrl = process.env.VERCEL_URL || core.NEXT_PUBLIC_APP_URL
 
@@ -22,6 +23,7 @@ export const InvoiceReminderEmail = ({
   organizationLogoUrl,
   organizationName,
   discountInfo,
+  livemode,
 }: {
   invoice: Invoice.Record
   invoiceLineItems: InvoiceLineItem.Record[]
@@ -33,6 +35,7 @@ export const InvoiceReminderEmail = ({
     discountAmount: number
     discountAmountType: string
   } | null
+  livemode: boolean
 }) => {
   const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
     calculateInvoiceTotalsFromLineItems(
@@ -51,6 +54,7 @@ export const InvoiceReminderEmail = ({
 
   return (
     <EmailLayout previewText="Invoice Reminder">
+      <TestModeBanner livemode={livemode} />
       <Header
         title="Invoice Reminder"
         organizationLogoUrl={organizationLogoUrl}
