@@ -2,7 +2,6 @@ import { Img, Section } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
 import { EmailLayout, Header, Paragraph } from './components/themed'
-import TestModeBanner from './components/TestBanner'
 
 export interface ForgotPasswordEmailProps {
   user: string
@@ -18,7 +17,6 @@ export const ForgotPasswordEmail = ({
       previewText={`Reset your password, ${user}`}
       variant="customer"
     >
-      <TestModeBanner livemode={livemode} />
       <Img
         src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
         width="540"

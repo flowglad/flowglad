@@ -17,10 +17,12 @@ import TestModeBanner from './components/TestBanner'
 
 interface SendPurchaseAccessSessionTokenEmailProps {
   magicLink?: string
+  livemode: boolean
 }
 
 export const SendPurchaseAccessSessionTokenEmail = ({
   magicLink,
+  livemode,
 }: SendPurchaseAccessSessionTokenEmailProps) => (
   <Html>
     <Head />

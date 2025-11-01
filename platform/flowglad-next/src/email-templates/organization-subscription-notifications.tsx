@@ -1,15 +1,4 @@
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Img,
-  Link,
-  Preview,
-  Section,
-  Text,
-} from '@react-email/components'
+import { Img, Section, Text } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
 import {
@@ -37,6 +26,7 @@ export interface OrganizationSubscriptionCanceledNotificationEmailProps {
   customerName: string
   customerEmail: string
   cancellationDate: Date
+  livemode: boolean
 }
 
 const detailsValue = {
@@ -52,6 +42,7 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
   customerId,
   customerName,
   customerEmail,
+  livemode,
 }: OrganizationSubscriptionCreatedNotificationEmailProps) => {
   return (
     <EmailLayout
@@ -127,12 +118,14 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
   customerName,
   customerEmail,
   cancellationDate,
+  livemode,
 }: OrganizationSubscriptionCanceledNotificationEmailProps) => {
   return (
     <EmailLayout
       previewText={`Subscription Cancelled: ${customerName} canceled ${subscriptionName}`}
       variant="organization"
     >
+      <TestModeBanner livemode={livemode} />
       <Img
         src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
         width="540"

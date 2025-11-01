@@ -8,7 +8,8 @@ export interface CustomerBillingPortalMagicLinkEmailProps {
   customerName?: string
   email: string
   url: string
-  organizationName?: string
+  organizationName: string
+  livemode: boolean
 }
 
 export const CustomerBillingPortalMagicLinkEmail = ({
@@ -16,12 +17,13 @@ export const CustomerBillingPortalMagicLinkEmail = ({
   email,
   url,
   organizationName,
+  livemode,
 }: CustomerBillingPortalMagicLinkEmailProps) => {
   const displayName = customerName || email
 
   return (
     <EmailLayout
-      previewText={`Sign in to your billing portal${organizationName ? ` for ${organizationName}` : ''}`}
+      previewText={`Sign in to your billing portal for ${organizationName}`}
       variant="customer"
     >
       <TestModeBanner livemode={livemode} />
@@ -36,8 +38,8 @@ export const CustomerBillingPortalMagicLinkEmail = ({
       <Paragraph variant="customer">Hi {displayName},</Paragraph>
       <Paragraph variant="customer">
         You requested a magic link to sign in to your billing portal
-        {organizationName ? ` for ${organizationName}` : ''}. Click
-        the button below to access your account.
+        for {organizationName}. Click the button below to access your
+        account.
       </Paragraph>
       <Section
         style={{ textAlign: 'center' as const, marginTop: '32px' }}

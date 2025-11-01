@@ -23,6 +23,7 @@ export const InvoiceReminderEmail = ({
   organizationLogoUrl,
   organizationName,
   discountInfo,
+  livemode,
 }: {
   invoice: Invoice.Record
   invoiceLineItems: InvoiceLineItem.Record[]
@@ -34,6 +35,7 @@ export const InvoiceReminderEmail = ({
     discountAmount: number
     discountAmountType: string
   } | null
+  livemode: boolean
 }) => {
   const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
     calculateInvoiceTotalsFromLineItems(

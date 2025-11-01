@@ -1,7 +1,6 @@
 import { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
 import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import * as React from 'react'
 import {
   DetailItem,
@@ -27,6 +26,7 @@ export const PaymentFailedEmail = ({
   discountInfo,
   failureReason,
   customerPortalUrl,
+  livemode,
 }: {
   invoiceNumber: string
   orderDate: Date
@@ -51,8 +51,13 @@ export const PaymentFailedEmail = ({
   } | null
   failureReason?: string
   customerPortalUrl?: string
+  livemode: boolean
 }) => {
-  const totals = calculateInvoiceTotalsWithDiscounts(lineItems, invoice, discountInfo)
+  const totals = calculateInvoiceTotalsWithDiscounts(
+    lineItems,
+    invoice,
+    discountInfo
+  )
 
   return (
     <EmailLayout previewText="Payment Failed for Your Order">
