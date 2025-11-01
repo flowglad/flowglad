@@ -88,6 +88,9 @@ export const setupPricingModelTransaction = async (
       livemode,
       organizationId,
       pricingModelId: pricingModel.id,
+      ...(usageMeter.aggregationType && {
+        aggregationType: usageMeter.aggregationType,
+      }),
     }))
   const usageMeters =
     await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
@@ -198,7 +201,6 @@ export const setupPricingModelTransaction = async (
               intervalUnit: price.intervalUnit,
               trialPeriodDays: price.trialPeriodDays,
               usageEventsPerUnit: price.usageEventsPerUnit,
-              startsWithCreditTrial: price.startsWithCreditTrial,
               currency: organization.defaultCurrency,
               productId,
               livemode,
@@ -219,7 +221,6 @@ export const setupPricingModelTransaction = async (
               intervalUnit: price.intervalUnit,
               trialPeriodDays: price.trialPeriodDays,
               usageEventsPerUnit: price.usageEventsPerUnit,
-              startsWithCreditTrial: price.startsWithCreditTrial,
               currency: organization.defaultCurrency,
               productId,
               livemode,
@@ -239,7 +240,6 @@ export const setupPricingModelTransaction = async (
               intervalUnit: null,
               trialPeriodDays: price.trialPeriodDays,
               usageEventsPerUnit: price.usageEventsPerUnit,
-              startsWithCreditTrial: null,
               currency: organization.defaultCurrency,
               productId,
               livemode,
@@ -304,7 +304,6 @@ export const setupPricingModelTransaction = async (
       intervalUnit: defaultPlanConfig.price.intervalUnit,
       trialPeriodDays: null,
       usageEventsPerUnit: null,
-      startsWithCreditTrial: null,
       currency: organization.defaultCurrency,
       productId: defaultProduct.id,
       livemode,

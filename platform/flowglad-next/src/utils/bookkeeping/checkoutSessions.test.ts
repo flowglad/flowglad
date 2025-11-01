@@ -32,7 +32,10 @@ import {
 } from '@/../seedDatabase'
 import { Customer } from '@/db/schema/customers'
 import { Invoice } from '@/db/schema/invoices'
-import { adminTransaction, comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import core from '../core'
 import Stripe from 'stripe'
@@ -45,16 +48,14 @@ import {
   feeCalculations,
 } from '@/db/schema/feeCalculations'
 import { Discount } from '@/db/schema/discounts'
-import {
-  selectLatestFeeCalculation,
-} from '@/db/tableMethods/feeCalculationMethods'
+import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { DbTransaction } from '@/db/types'
 import { eq } from 'drizzle-orm'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
-import { selectEvents } from '@/db/tableMethods/eventMethods'
+import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
 import {
   BillingAddress,
   Organization,
@@ -652,15 +653,20 @@ describe('Checkout Sessions', async () => {
         }
       )
 
-      const { result: bookkeepingResult, eventsToInsert, ledgerCommand } = await comprehensiveAdminTransaction(
+      const {
+        result: bookkeepingResult,
+        eventsToInsert,
+        ledgerCommand,
+      } = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          const result = await processPurchaseBookkeepingForCheckoutSession(
-            {
-              checkoutSession: updatedCheckoutSession,
-              stripeCustomerId: `cus_${core.nanoid()}`,
-            },
-            transaction
-          )
+          const result =
+            await processPurchaseBookkeepingForCheckoutSession(
+              {
+                checkoutSession: updatedCheckoutSession,
+                stripeCustomerId: `cus_${core.nanoid()}`,
+              },
+              transaction
+            )
           return {
             result,
             eventsToInsert: result.eventsToInsert,
@@ -671,34 +677,52 @@ describe('Checkout Sessions', async () => {
 
       // Verify customer was created
       expect(bookkeepingResult.customer).toBeDefined()
-      expect(bookkeepingResult.customer.email).toEqual('anonymous@example.com')
-      expect(bookkeepingResult.customer.name).toEqual('Anonymous Customer')
-      
-      const dbEvents = await adminTransaction(async ({ transaction }) => {
-        return selectEventsByCustomer(
-          bookkeepingResult.customer.id,
-          organization.id,
-          transaction
-        )
-      })
-      
+      expect(bookkeepingResult.customer.email).toEqual(
+        'anonymous@example.com'
+      )
+      expect(bookkeepingResult.customer.name).toEqual(
+        'Anonymous Customer'
+      )
+
+      const dbEvents = await adminTransaction(
+        async ({ transaction }) => {
+          return selectEventsByCustomer(
+            bookkeepingResult.customer.id,
+            organization.id,
+            transaction
+          )
+        }
+      )
+
       // Verify specific event types were created in database
-      const customerCreatedEvent = dbEvents.find(e => e.type === FlowgladEventType.CustomerCreated)
+      const customerCreatedEvent = dbEvents.find(
+        (e) => e.type === FlowgladEventType.CustomerCreated
+      )
       expect(customerCreatedEvent).toBeDefined()
       expect(customerCreatedEvent?.payload.object).toEqual('customer')
       expect(customerCreatedEvent?.payload.customer).toBeDefined()
-      
+
       // Type guard to ensure customer exists
       if (customerCreatedEvent?.payload.customer) {
-        expect(customerCreatedEvent.payload.customer.id).toEqual(bookkeepingResult.customer.id)
-        expect(customerCreatedEvent.payload.customer.externalId).toEqual(bookkeepingResult.customer.externalId)
+        expect(customerCreatedEvent.payload.customer.id).toEqual(
+          bookkeepingResult.customer.id
+        )
+        expect(
+          customerCreatedEvent.payload.customer.externalId
+        ).toEqual(bookkeepingResult.customer.externalId)
       }
-      
+
       // Check for subscription-related events
-      const subscriptionCreatedEvent = dbEvents.find(e => e.type === FlowgladEventType.SubscriptionCreated)
+      const subscriptionCreatedEvent = dbEvents.find(
+        (e) => e.type === FlowgladEventType.SubscriptionCreated
+      )
       expect(subscriptionCreatedEvent).toBeDefined()
-      expect(subscriptionCreatedEvent?.payload.object).toEqual('subscription')
-      expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(bookkeepingResult.customer.id)
+      expect(subscriptionCreatedEvent?.payload.object).toEqual(
+        'subscription'
+      )
+      expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(
+        bookkeepingResult.customer.id
+      )
     })
 
     it('should use existing customer when linked to purchase', async () => {
@@ -905,30 +929,32 @@ describe('Checkout Sessions', async () => {
     })
 
     it('should link fee calculation to purchase record', async () => {
-      const { latestFeeCalculation, result } = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          const result =
-            await processPurchaseBookkeepingForCheckoutSession(
-              {
-                checkoutSession,
-                stripeCustomerId: succeededCharge.customer! as string,
-              },
-              transaction
-            )
-          const latestFeeCalculation =
-            await selectLatestFeeCalculation(
-              {
-                checkoutSessionId: checkoutSession.id,
-              },
-              transaction
-            )
-          return {
-            result: { latestFeeCalculation, result },
-            eventsToInsert: result.eventsToInsert,
-            ledgerCommand: result.ledgerCommand,
+      const { latestFeeCalculation, result } =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result =
+              await processPurchaseBookkeepingForCheckoutSession(
+                {
+                  checkoutSession,
+                  stripeCustomerId:
+                    succeededCharge.customer! as string,
+                },
+                transaction
+              )
+            const latestFeeCalculation =
+              await selectLatestFeeCalculation(
+                {
+                  checkoutSessionId: checkoutSession.id,
+                },
+                transaction
+              )
+            return {
+              result: { latestFeeCalculation, result },
+              eventsToInsert: result.eventsToInsert,
+              ledgerCommand: result.ledgerCommand,
+            }
           }
-        }
-      )
+        )
 
       expect(latestFeeCalculation?.purchaseId).toEqual(
         result.result.purchase.id
@@ -1279,20 +1305,6 @@ async function deleteFeeCalculation(
   await transaction
     .delete(feeCalculations)
     .where(eq(feeCalculations.id, id))
-}
-
-// Helper function to query events by customer
-async function selectEventsByCustomer(
-  customerId: string,
-  organizationId: string,
-  transaction: DbTransaction
-) {
-  const allEvents = await selectEvents({ organizationId }, transaction)
-  
-  // Filter events for this specific customer by checking the payload
-  return allEvents.filter(event => 
-    event.payload.customer?.id === customerId
-  )
 }
 
 // Helper function to update an organization

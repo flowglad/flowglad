@@ -22,7 +22,6 @@ import {
 import { createStripeCustomer } from './stripe'
 import { Purchase } from '@/db/schema/purchases'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import core from './core'
 import {
   insertPurchase,
   selectPurchaseById,
@@ -30,32 +29,17 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Customer } from '@/db/schema/customers'
-import { billingAddressSchema } from '@/db/schema/organizations'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { Payment } from '@/db/schema/payments'
-import {
-  selectPriceById,
-  selectPricesAndProductsByProductWhere,
-} from '@/db/tableMethods/priceMethods'
+import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
-  selectOpenNonExpiredCheckoutSessions,
-  updateCheckoutSessionsForOpenPurchase,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import {
   selectDefaultPricingModel,
-  insertPricingModel,
   safelyInsertPricingModel,
   selectPricingModelById,
 } from '@/db/tableMethods/pricingModelMethods'
-import {
-  selectProducts,
-  insertProduct,
-} from '@/db/tableMethods/productMethods'
-import {
-  selectPrices,
-  insertPrice,
-} from '@/db/tableMethods/priceMethods'
+import { insertProduct } from '@/db/tableMethods/productMethods'
+import { insertPrice } from '@/db/tableMethods/priceMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { Event } from '@/db/schema/events'
@@ -321,7 +305,6 @@ export const createFreePlanPriceInsert = (
       usageMeterId: null,
       externalId: null,
       slug: config.slug,
-      startsWithCreditTrial: null,
     }
   }
 }

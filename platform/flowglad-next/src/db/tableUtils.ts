@@ -241,6 +241,9 @@ export const createInsertManyFunction = <
               }
             }
             // Print debug info
+
+            // FIXME(FG-384): Fix this warning:
+            // eslint-disable-next-line no-console
             console.info(
               '[createInsertManyFunction][TEST] ZodError at path:',
               path.join('.'),

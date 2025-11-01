@@ -84,6 +84,8 @@ export const CreateProductModal = ({
           price: {
             ...input.price,
             unitPrice,
+            // default to using product slug for price slug
+            slug: input.product.slug,
           },
         })
         navigator.clipboard.writeText(

@@ -132,7 +132,7 @@ const InvoiceFormFields = ({
   ])
   return (
     <>
-      <div className="w-full flex items-start gap-2.5">
+      <div className="w-full flex flex-col md:flex-row items-start gap-2.5">
         <div className="flex-1">
           <FormItem>
             <FormLabel>Bill From</FormLabel>
@@ -179,7 +179,7 @@ const InvoiceFormFields = ({
           )}
         />
       </div>
-      <div className="w-full flex items-start gap-2.5">
+      <div className="w-full flex flex-col md:flex-row items-start gap-2.5">
         <FormField
           control={form.control}
           name="invoice.invoiceDate"
@@ -240,12 +240,12 @@ const InvoiceFormFields = ({
           )}
         />
       </div>
-      <div className="w-full flex flex-row items-start gap-2.5">
+      <div className="w-full flex flex-col md:flex-row items-start gap-2.5">
         <FormField
           control={form.control}
           name="invoice.ownerMembershipId"
           render={({ field }) => (
-            <FormItem className="flex-1">
+            <FormItem className="w-full md:flex-1">
               <FormLabel>Owner</FormLabel>
               <FormControl>
                 <ConnectedSelect
@@ -302,8 +302,8 @@ const InvoiceFormFields = ({
           )}
         />
       </div>
-      <div className="w-full flex flex-row items-start gap-2.5">
-        <div className="flex-1">
+      <div className="w-full flex flex-col md:flex-row items-start gap-2.5">
+        <div className="w-full md:flex-1">
           <FormLabel>Due</FormLabel>
           <Select
             value={dueOption}

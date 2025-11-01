@@ -977,3 +977,20 @@ export type TelemetryEntityType =
   | 'subscription'
   | 'organization'
   | 'webhook'
+
+export type UsageBillingInfo = {
+  /**
+   * Key of form `${usageMeterId}-${priceId}`
+   */
+  usageMeterIdPriceId: string
+  usageMeterId: string
+  ledgerAccountId: string
+  balance: number
+  priceId: string
+  usageEventsPerUnit: number
+  unitPrice: number
+  livemode: boolean
+  name: string | null
+  description: string | null
+  usageEventIds: string[]
+}

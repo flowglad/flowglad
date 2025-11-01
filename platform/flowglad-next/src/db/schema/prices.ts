@@ -57,7 +57,6 @@ const createOnlyColumns = {
   usageEventsPerUnit: true,
   intervalUnit: true,
   intervalCount: true,
-  startsWithCreditTrial: true,
   trialPeriodDays: true,
   unitPrice: true,
 } as const
@@ -113,7 +112,6 @@ export const prices = pgTable(
       columnName: 'currency',
       enumBase: CurrencyCode,
     }).notNull(),
-    startsWithCreditTrial: boolean('starts_with_credit_trial'),
     /**
      * A hidden column, used primarily for managing migrations from
      * from external processors onto Flowglad
@@ -164,7 +162,6 @@ export const prices = pgTable(
 
 export const nulledPriceColumns = {
   usageEventsPerUnit: null,
-  startsWithCreditTrial: null,
   usageMeterId: null,
   trialPeriodDays: null,
   intervalUnit: null,
@@ -185,7 +182,6 @@ const basePriceColumns = {
   ),
   currency: currencyCodeSchema,
   usageEventsPerUnit: core.safeZodNullOrUndefined,
-  startsWithCreditTrial: core.safeZodNullOrUndefined,
 }
 
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
@@ -212,18 +208,6 @@ const subscriptionPriceColumns = {
     ),
   usageEventsPerUnit: core.safeZodNullOrUndefined,
   usageMeterId: core.safeZodNullOrUndefined,
-  /**
-   * FIXME: remove this field
-   */
-  startsWithCreditTrial: z
-    .boolean()
-    .nullish()
-    .transform((val) => null)
-    .pipe(z.null())
-    .optional()
-    .describe(
-      'Whether or not subscriptions created from this price should automatically start with a credit trial. If true, the subscription will be created status "credit_trial".'
-    ),
 }
 
 const usagePriceColumns = {
@@ -255,11 +239,7 @@ const singlePaymentPriceColumns = {
   trialPeriodDays: core.safeZodNullOrUndefined.optional(),
   usageMeterId: core.safeZodNullOrUndefined.optional(),
   usageEventsPerUnit: core.safeZodNullOrUndefined.optional(),
-  startsWithCreditTrial: core.safeZodNullOrUndefined.optional(),
 }
-
-const SINGLE_PAYMENT_PRICE_DESCRIPTION =
-  'A single payment price, which only gets paid once. Subscriptions cannot be made from single payment prices. Purchases, though, can.'
 
 // subtype schemas are built via buildSchemas below
 
@@ -573,7 +553,7 @@ export type CreateProductSchema = z.infer<typeof createProductSchema>
 
 export const editProductSchema = z.object({
   product: productsClientUpdateSchema,
-  price: pricesClientUpdateSchema.optional(),
+  price: pricesClientInsertSchema.optional(),
   featureIds: z.array(z.string()).optional(),
   id: z.string(),
 })
@@ -668,6 +648,5 @@ export const singlePaymentPriceDefaultColumns: Pick<
   keyof typeof singlePaymentPriceColumns
 > = {
   ...nulledPriceColumns,
-  startsWithCreditTrial: null,
   type: PriceType.SinglePayment,
 }

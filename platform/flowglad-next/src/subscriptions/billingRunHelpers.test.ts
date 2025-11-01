@@ -1,4 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+} from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   setupOrg,
@@ -15,11 +22,9 @@ import {
   setupUsageEvent,
   setupUsageMeter,
   setupPrice,
+  setupPayment,
   teardownOrg,
   setupSubscriptionItem,
-  setupSubscriptionItemFeature,
-  setupProductFeature,
-  setupUsageCreditGrantFeature,
 } from '@/../seedDatabase'
 import {
   calculateFeeAndTotalAmountDueForBillingPeriod,
@@ -30,8 +35,7 @@ import {
   scheduleBillingRunRetry,
   constructBillingRunRetryInsert,
   createInvoiceInsertForBillingRun,
-  billingPeriodItemsToInvoiceLineItemInserts,
-  calculateTotalAmountToCharge,
+  billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts,
   tabulateOutstandingUsageCosts,
   createBillingRun,
 } from './billingRunHelpers'
@@ -49,10 +53,7 @@ import {
   LedgerEntryStatus,
   LedgerEntryType,
   LedgerTransactionType,
-  FeatureType,
-  FeatureUsageGrantFrequency,
   PaymentStatus,
-  CountryCode,
 } from '@/types'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -66,25 +67,15 @@ import {
 } from '@/db/tableMethods/billingRunMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
-import { Payment } from '@/db/schema/payments'
 import { Invoice } from '@/db/schema/invoices'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import {
   safelyUpdatePaymentMethod,
   updatePaymentMethod,
 } from '@/db/tableMethods/paymentMethodMethods'
-import {
-  deleteInvoiceLineItemsByinvoiceId,
-  insertInvoiceLineItems,
-} from '@/db/tableMethods/invoiceLineItemMethods'
-import {
-  invoiceIsInTerminalState,
-  insertInvoice,
-  selectInvoices,
-  updateInvoice,
-  safelyUpdateInvoiceStatus,
-} from '@/db/tableMethods/invoiceMethods'
-import { insertPayment } from '@/db/tableMethods/paymentMethods'
+import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import core from '@/utils/core'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
@@ -99,6 +90,26 @@ import { updateBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMeth
 import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import {
+  createPaymentIntentForBillingRun,
+  confirmPaymentIntentForBillingRun,
+  stripeIdFromObjectOrId,
+} from '@/utils/stripe'
+import {
+  createMockPaymentIntentResponse,
+  createMockConfirmationResult,
+} from '@/test/helpers/stripeMocks'
+
+// Mock Stripe functions
+vi.mock('@/utils/stripe', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/utils/stripe')>()
+  return {
+    ...actual,
+    createPaymentIntentForBillingRun: vi.fn(),
+    confirmPaymentIntentForBillingRun: vi.fn(),
+  }
+})
 
 describe('billingRunHelpers', async () => {
   let organization: Organization.Record
@@ -194,20 +205,10 @@ describe('billingRunHelpers', async () => {
       description: 'Test Description',
     })
 
-    usageBillingPeriodItem = await setupBillingPeriodItem({
-      billingPeriodId: billingPeriod.id,
-      quantity: 1, // Usage items typically start at 0 quantity in BPI
-      unitPrice: usageBasedPrice.unitPrice,
-      name: usageBasedPrice.name ?? 'Global Usage Based Item Name',
-      type: SubscriptionItemType.Usage,
-      usageMeterId: usageMeter.id,
-      usageEventsPerUnit: 1,
-      description: 'Test Description',
-    })
-
     billingPeriodItems = [
       staticBillingPeriodItem,
-      usageBillingPeriodItem,
+      // Note: we've removed usageBillingPeriodItem
+      // Usage charges come through the usageOverages parameter instead
     ]
 
     ledgerAccount = await setupLedgerAccount({
@@ -300,6 +301,7 @@ describe('billingRunHelpers', async () => {
           )
       )
       expect(totalDueAmount).toBeGreaterThan(0)
+      // TODO: check the total due amount is correct
     })
 
     it('should not create a payment intent if the invoice is in a terminal state', async () => {
@@ -317,41 +319,6 @@ describe('billingRunHelpers', async () => {
         )
       )
       expect(result.invoice.status).toBe(InvoiceStatus.Paid)
-    })
-    it('should calculate the correct amount to charge based on total due and amount paid', async () => {
-      const totalDueAmount = 1000
-      const totalAmountPaid = 400
-      const payments: Payment.Record[] = []
-
-      const amountToCharge = calculateTotalAmountToCharge({
-        totalDueAmount,
-        totalAmountPaid,
-        payments,
-      })
-
-      expect(amountToCharge).toBe(600)
-    })
-
-    it('should return 0 when amount paid equals or exceeds total due', async () => {
-      const totalDueAmount = 1000
-      const totalAmountPaid = 1000
-      const payments: Payment.Record[] = []
-
-      const amountToCharge = calculateTotalAmountToCharge({
-        totalDueAmount,
-        totalAmountPaid,
-        payments,
-      })
-
-      expect(amountToCharge).toBe(0)
-
-      const overpaidAmount = calculateTotalAmountToCharge({
-        totalDueAmount: 1000,
-        totalAmountPaid: 1200,
-        payments: [],
-      })
-
-      expect(overpaidAmount).toBe(0)
     })
   })
 
@@ -514,12 +481,20 @@ describe('billingRunHelpers', async () => {
         organizationId: organization.id,
         priceId: staticPrice.id,
       })
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingPeriodItems,
-        usageOverages: [],
-        billingRunId: billingRun.id,
-      })
+      const zeroQuantityBillingPeriodItem = {
+        ...staticBillingPeriodItem,
+        quantity: 0,
+      }
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingPeriodItems: [
+            staticBillingPeriodItem,
+            zeroQuantityBillingPeriodItem,
+          ],
+          usageOverages: [],
+          billingRunId: billingRun.id,
+        })
       expect(lineItems.length).toBe(1)
     })
   })
@@ -710,18 +685,12 @@ describe('billingRunHelpers', async () => {
 
       expect(result.feeCalculation).toBeDefined()
       expect(result.totalDueAmount).toBeGreaterThan(0)
-      const usageBillingPeriodItems = billingPeriodItems.filter(
-        (item) => item.usageMeterId !== null
-      )
+
       expect(result.totalDueAmount).toBe(
         billingPeriodItems.reduce(
           (acc, item) => acc + item.unitPrice * item.quantity,
           0
-        ) -
-          usageBillingPeriodItems.reduce(
-            (acc, item) => acc + item.unitPrice * item.quantity,
-            0
-          )
+        )
       )
     })
 
@@ -1031,6 +1000,395 @@ describe('billingRunHelpers', async () => {
     ).resolves.toBeUndefined()
   })
 
+  describe('Atomicity Tests for executeBillingRun', () => {
+    const setupOverpaymentScenario = async () => {
+      const invoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
+
+      return await setupPayment({
+        stripeChargeId: 'ch_test_123' + core.nanoid(),
+        status: PaymentStatus.Succeeded,
+        amount: 1000000, // Overpayment
+        livemode: billingPeriod.livemode,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: 'pi_overpayment_test' + core.nanoid(),
+        invoiceId: invoice.id,
+        paymentMethod: paymentMethod.type,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: billingPeriod.subscriptionId,
+        paymentMethodId: paymentMethod.id,
+      })
+    }
+
+    describe('Zero Amount Scenarios', () => {
+      it('should handle overpayment without creating Stripe payment intent', async () => {
+        await setupOverpaymentScenario()
+
+        // Mock Stripe to ensure no API calls are made
+        vi.mocked(createPaymentIntentForBillingRun).mockClear()
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify no Stripe calls were made
+        expect(
+          vi.mocked(createPaymentIntentForBillingRun)
+        ).not.toHaveBeenCalled()
+
+        // Verify database state is correct
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(
+          BillingRunStatus.Succeeded
+        )
+
+        const invoices = await adminTransaction(({ transaction }) =>
+          selectInvoices(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+        )
+        const finalInvoice = invoices.find(
+          (inv) => inv.billingPeriodId === billingPeriod.id
+        )
+        expect(finalInvoice).toBeDefined()
+        expect(finalInvoice!.status).toBe(InvoiceStatus.Paid)
+      })
+    })
+
+    describe('Stripe API Failures', () => {
+      it('should rollback when payment intent creation fails', async () => {
+        // Mock Stripe function to fail
+        vi.mocked(
+          createPaymentIntentForBillingRun
+        ).mockRejectedValueOnce(new Error('Stripe API failure'))
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run is marked as failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeDefined()
+
+        // Verify no payment was created due to transaction rollback
+        const payments = await adminTransaction(({ transaction }) =>
+          selectPayments(
+            { billingPeriodId: billingRun.billingPeriodId },
+            transaction
+          )
+        )
+        expect(payments).toHaveLength(0)
+      })
+
+      it('should handle payment intent status requires_payment_method', async () => {
+        // Mock successful payment intent creation
+        const mockPaymentIntent = createMockPaymentIntentResponse({
+          status: 'requires_payment_method', // Payment failed - card declined, insufficient funds, etc.
+          amount: staticBillingPeriodItem.unitPrice,
+          customer: customer.stripeCustomerId!,
+          payment_method: paymentMethod.stripePaymentMethodId!,
+          metadata: {
+            billingRunId: billingRun.id,
+            type: 'BillingRun',
+            billingPeriodId: billingPeriod.id,
+          },
+        })
+
+        vi.mocked(
+          createPaymentIntentForBillingRun
+        ).mockResolvedValueOnce(mockPaymentIntent)
+
+        // Mock confirmation to fail (card declined scenario)
+        vi.mocked(
+          confirmPaymentIntentForBillingRun
+        ).mockRejectedValueOnce(new Error('Your card was declined.'))
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run is marked as failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeDefined()
+
+        // Verify payment was created but without charge ID (since payment failed)
+        const payments = await adminTransaction(({ transaction }) =>
+          selectPayments(
+            { billingPeriodId: billingRun.billingPeriodId },
+            transaction
+          )
+        )
+        expect(payments).toHaveLength(1)
+        expect(payments[0].stripePaymentIntentId).toBe(
+          mockPaymentIntent.id
+        )
+        expect(payments[0].stripeChargeId).toBeNull() // No charge ID since payment failed
+        expect(payments[0].status).toBe(PaymentStatus.Processing) // Payment created but not yet confirmed
+
+        // Verify invoice is still awaiting payment confirmation (not marked as paid)
+        const invoices = await adminTransaction(({ transaction }) =>
+          selectInvoices(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+        )
+        expect(invoices).toHaveLength(1)
+        expect(invoices[0].status).toBe(
+          InvoiceStatus.AwaitingPaymentConfirmation
+        )
+      })
+
+      it('should handle payment intent creation success but confirmation API failure', async () => {
+        // Mock successful payment intent creation
+        const mockPaymentIntent = createMockPaymentIntentResponse({
+          status: 'requires_confirmation', // Payment intent created successfully
+          amount: staticBillingPeriodItem.unitPrice,
+          customer: customer.stripeCustomerId!,
+          payment_method: paymentMethod.stripePaymentMethodId!,
+          metadata: {
+            billingRunId: billingRun.id,
+            type: 'BillingRun',
+            billingPeriodId: billingPeriod.id,
+          },
+        })
+
+        vi.mocked(
+          createPaymentIntentForBillingRun
+        ).mockResolvedValueOnce(mockPaymentIntent)
+
+        // Mock confirmation API to fail (network error, Stripe API down, etc.)
+        vi.mocked(
+          confirmPaymentIntentForBillingRun
+        ).mockRejectedValueOnce(
+          new Error('Stripe API temporarily unavailable')
+        )
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run is marked as failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeDefined()
+
+        // Verify payment was created but without charge ID (since confirmation failed)
+        const payments = await adminTransaction(({ transaction }) =>
+          selectPayments(
+            { billingPeriodId: billingRun.billingPeriodId },
+            transaction
+          )
+        )
+        expect(payments).toHaveLength(1)
+        expect(payments[0].stripePaymentIntentId).toBe(
+          mockPaymentIntent.id
+        )
+        expect(payments[0].stripeChargeId).toBeNull() // No charge ID since confirmation failed
+        expect(payments[0].status).toBe(PaymentStatus.Processing) // Payment created but confirmation failed
+
+        // Verify invoice is still awaiting payment confirmation (not marked as paid)
+        const invoices = await adminTransaction(({ transaction }) =>
+          selectInvoices(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+        )
+        expect(invoices).toHaveLength(1)
+        expect(invoices[0].status).toBe(
+          InvoiceStatus.AwaitingPaymentConfirmation
+        )
+      })
+
+      it('should rollback when customer ID validation fails', async () => {
+        // Setup customer without stripe ID
+        await adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customer.id,
+              stripeCustomerId: null,
+            },
+            transaction
+          )
+        })
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeDefined()
+
+        // Verify no payment was created
+        const payments = await adminTransaction(({ transaction }) =>
+          selectPayments(
+            { billingPeriodId: billingRun.billingPeriodId },
+            transaction
+          )
+        )
+        expect(payments).toHaveLength(0)
+
+        // Verify no Stripe calls were made
+        expect(
+          vi.mocked(createPaymentIntentForBillingRun)
+        ).not.toHaveBeenCalled()
+      })
+
+      it('should rollback when payment method ID validation fails', async () => {
+        // Setup payment method without stripe ID
+        await adminTransaction(async ({ transaction }) => {
+          await safelyUpdatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              stripePaymentMethodId: null,
+            },
+            transaction
+          )
+        })
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeDefined()
+
+        // Verify no payment was created
+        const payments = await adminTransaction(({ transaction }) =>
+          selectPayments(
+            { billingPeriodId: billingRun.billingPeriodId },
+            transaction
+          )
+        )
+        expect(payments).toHaveLength(0)
+
+        // Verify no Stripe calls were made
+        expect(
+          vi.mocked(createPaymentIntentForBillingRun)
+        ).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('Successful Payment Processing', () => {
+      it('should create payment intent and update database atomically', async () => {
+        const mockPaymentIntent = createMockPaymentIntentResponse({
+          amount: staticBillingPeriodItem.unitPrice,
+          customer: customer.stripeCustomerId!,
+          payment_method: paymentMethod.stripePaymentMethodId!,
+          metadata: {
+            billingRunId: billingRun.id,
+            type: 'BillingRun',
+            billingPeriodId: billingPeriod.id,
+          },
+        })
+        const mockConfirmationResult = createMockConfirmationResult(
+          mockPaymentIntent.id
+        )
+
+        vi.mocked(
+          createPaymentIntentForBillingRun
+        ).mockResolvedValueOnce(mockPaymentIntent)
+        vi.mocked(
+          confirmPaymentIntentForBillingRun
+        ).mockResolvedValueOnce(mockConfirmationResult)
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run is awaiting payment confirmation
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction)
+        )
+        expect(updatedBillingRun.status).toBe(
+          BillingRunStatus.AwaitingPaymentConfirmation
+        )
+
+        // Verify payment record was created with correct properties
+        const payments = await adminTransaction(({ transaction }) =>
+          selectPayments(
+            { billingPeriodId: billingRun.billingPeriodId },
+            transaction
+          )
+        )
+        const payment = payments.find(
+          (p) => p.billingPeriodId === billingRun.billingPeriodId
+        )
+        expect(payment).toBeDefined()
+        expect(payment).toMatchObject({
+          stripePaymentIntentId: mockPaymentIntent.id,
+          amount: staticBillingPeriodItem.unitPrice,
+          stripeChargeId: mockConfirmationResult.latest_charge
+            ? stripeIdFromObjectOrId(
+                mockConfirmationResult.latest_charge
+              )
+            : undefined,
+          billingPeriodId: billingRun.billingPeriodId,
+          status: PaymentStatus.Processing,
+        })
+
+        // Verify invoice was created/updated
+        const invoices = await adminTransaction(({ transaction }) =>
+          selectInvoices(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+        )
+        const invoice = invoices.find(
+          (inv) => inv.billingPeriodId === billingPeriod.id
+        )
+        expect(invoice).toBeDefined()
+        expect(invoice).toMatchObject({
+          status: InvoiceStatus.AwaitingPaymentConfirmation,
+          customerId: customer.id,
+          organizationId: organization.id,
+        })
+
+        // Verify Stripe was called with correct parameters
+        expect(
+          vi.mocked(createPaymentIntentForBillingRun)
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            amount: staticBillingPeriodItem.unitPrice,
+            currency: staticPrice.currency,
+            stripeCustomerId: customer.stripeCustomerId,
+            stripePaymentMethodId:
+              paymentMethod.stripePaymentMethodId,
+            billingPeriodId: billingPeriod.id,
+            billingRunId: billingRun.id,
+            organization: expect.objectContaining({
+              id: organization.id,
+            }),
+            livemode: billingPeriod.livemode,
+          })
+        )
+
+        expect(
+          vi.mocked(confirmPaymentIntentForBillingRun)
+        ).toHaveBeenCalledWith(
+          mockPaymentIntent.id,
+          billingRun.livemode
+        )
+      })
+    })
+  })
+
   describe('executeBillingRunCalculationAndBookkeepingSteps', () => {
     it('should create a new invoice when none exists for the billing period', async () => {
       const result = await adminTransaction(({ transaction }) =>
@@ -1151,7 +1509,7 @@ describe('billingRunHelpers', async () => {
       // Create some initial line items
       await adminTransaction(async ({ transaction }) => {
         const initialLineItems =
-          billingPeriodItemsToInvoiceLineItemInserts({
+          billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
             invoiceId: invoice.id,
             billingPeriodItems: [
               {
@@ -1398,36 +1756,26 @@ describe('billingRunHelpers', async () => {
 
     it('should handle multiple payments for billing period', async () => {
       // Create a payment for the billing period
-      await adminTransaction(async ({ transaction }) => {
-        await insertPayment(
-          {
-            amount: 50,
-            currency: CurrencyCode.USD,
-            status: PaymentStatus.Succeeded,
-            organizationId: organization.id,
-            chargeDate: Date.now(),
-            customerId: customer.id,
-            invoiceId: (
-              await setupInvoice({
-                billingPeriodId: billingPeriod.id,
-                customerId: customer.id,
-                organizationId: organization.id,
-                priceId: staticPrice.id,
-              })
-            ).id,
-            paymentMethodId: paymentMethod.id,
-            refunded: false,
-            refundedAmount: 0,
-            refundedAt: null,
-            taxCountry: CountryCode.US,
-            paymentMethod: paymentMethod.type,
-            stripePaymentIntentId: 'pi_test',
-            livemode: billingPeriod.livemode,
-            subscriptionId: billingPeriod.subscriptionId,
-            billingPeriodId: billingPeriod.id,
-          },
-          transaction
-        )
+      const invoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
+
+      await setupPayment({
+        stripeChargeId: 'ch_test_123' + core.nanoid(),
+        status: PaymentStatus.Succeeded,
+        amount: 50,
+        livemode: billingPeriod.livemode,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: 'pi_test' + core.nanoid(),
+        invoiceId: invoice.id,
+        paymentMethod: paymentMethod.type,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: billingPeriod.subscriptionId,
+        paymentMethodId: paymentMethod.id,
       })
 
       const result = await adminTransaction(({ transaction }) =>
@@ -1529,9 +1877,6 @@ describe('billingRunHelpers', async () => {
             transaction
           )
         expect(rawOutstandingUsageCosts.length).toBe(1)
-        expect(rawOutstandingUsageCosts[0].usageEventId).toBe(
-          usageEvent.id
-        )
       })
 
       // 2. Action
@@ -1560,36 +1905,26 @@ describe('billingRunHelpers', async () => {
     it('should succeed and mark invoice as Paid if amount to charge is zero due to overpayment', async () => {
       // 1. Setup: Create a payment that overpays the due amount.
       // Total due is staticBillingPeriodItem.unitPrice (50)
-      await adminTransaction(async ({ transaction }) => {
-        await insertPayment(
-          {
-            amount: 1000000, // Overpayment
-            currency: CurrencyCode.USD,
-            status: PaymentStatus.Succeeded,
-            organizationId: organization.id,
-            chargeDate: Date.now(),
-            customerId: customer.id,
-            invoiceId: (
-              await setupInvoice({
-                billingPeriodId: billingPeriod.id,
-                customerId: customer.id,
-                organizationId: organization.id,
-                priceId: staticPrice.id,
-              })
-            ).id,
-            paymentMethodId: paymentMethod.id,
-            refunded: false,
-            refundedAmount: 0,
-            refundedAt: null,
-            taxCountry: CountryCode.US,
-            paymentMethod: paymentMethod.type,
-            stripePaymentIntentId: 'pi_overpayment_test',
-            livemode: billingPeriod.livemode,
-            subscriptionId: billingPeriod.subscriptionId,
-            billingPeriodId: billingPeriod.id,
-          },
-          transaction
-        )
+      const invoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
+
+      await setupPayment({
+        stripeChargeId: 'ch_test_123' + core.nanoid(),
+        status: PaymentStatus.Succeeded,
+        amount: 1000000, // Overpayment
+        livemode: billingPeriod.livemode,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: 'pi_overpayment_test' + core.nanoid(),
+        invoiceId: invoice.id,
+        paymentMethod: paymentMethod.type,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: billingPeriod.subscriptionId,
+        paymentMethodId: paymentMethod.id,
       })
       core.IS_TEST = true
 
@@ -1619,88 +1954,101 @@ describe('billingRunHelpers', async () => {
         ...staticBillingPeriodItem,
         quantity: 0,
       }
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: 'some-invoice-id',
-        billingRunId: billingRun.id,
-        billingPeriodItems: [staticBpiWithZeroQuantity],
-        usageOverages: [],
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: 'some-invoice-id',
+          billingRunId: billingRun.id,
+          billingPeriodItems: [staticBpiWithZeroQuantity],
+          usageOverages: [],
+        })
       expect(lineItems.length).toBe(0)
     })
 
     it('should return quantity 0 if usageEventsPerUnit is null', () => {
-      const usageBpiWithNull = {
-        ...usageBillingPeriodItem,
-        usageEventsPerUnit: null,
-        type: SubscriptionItemType.Usage,
-      }
+      // Test that when usageEventsPerUnit is null in usageOverages, quantity becomes 0
       const usageOverages = [
         {
           usageMeterId: usageMeter.id,
           balance: 100,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: null as any, // null to test the edge case
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          name: null,
+          description: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: 'some-invoice-id',
-        billingRunId: billingRun.id,
-        billingPeriodItems: [
-          {
-            ...usageBpiWithNull,
-            usageMeterId: usageMeter.id,
-            usageEventsPerUnit: 0,
-            type: SubscriptionItemType.Usage,
-          },
-        ],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: 'some-invoice-id',
+          billingRunId: billingRun.id,
+          billingPeriodItems: [],
+          usageOverages,
+        })
       expect(lineItems.length).toBe(0)
     })
 
     it('should not create line items if usageEventsPerUnit is 0', () => {
-      const usageBpiWithZero = {
-        ...usageBillingPeriodItem,
-        usageEventsPerUnit: 0,
-      }
+      // Test that when usageEventsPerUnit is 0 in usageOverages, no line items are created
       const usageOverages = [
         {
           usageMeterId: usageMeter.id,
           balance: 100,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 0,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          name: null,
+          description: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: 'some-invoice-id',
-        billingRunId: billingRun.id,
-        billingPeriodItems: [
-          {
-            ...usageBpiWithZero,
-            usageMeterId: usageMeter.id,
-            type: SubscriptionItemType.Usage,
-          },
-        ],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: 'some-invoice-id',
+          billingRunId: billingRun.id,
+          billingPeriodItems: [],
+          usageOverages,
+        })
       expect(lineItems.length).toBe(0)
     })
 
-    it('should ignore usage overages that do not have a matching billing period item', () => {
+    it('should process usage overages regardless of matching billing period items', () => {
+      // Usage overages are processed independently - they don't need to match billing period items
       const usageOverages = [
         {
           usageMeterId: 'some-other-meter-id',
           balance: 100,
           ledgerAccountId: 'some-other-account-id',
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          name: null,
+          description: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: 'some-invoice-id',
-        billingRunId: billingRun.id,
-        billingPeriodItems: [staticBillingPeriodItem], // Does not contain a matching usage item
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: 'some-invoice-id',
+          billingRunId: billingRun.id,
+          billingPeriodItems: [staticBillingPeriodItem],
+          usageOverages,
+        })
 
-      expect(lineItems.length).toBe(1)
-      expect(lineItems[0].type).toBe(SubscriptionItemType.Static)
+      expect(lineItems.length).toBe(2) // 1 static + 1 usage
+      const staticItem = lineItems.find(
+        (item) => item.type === SubscriptionItemType.Static
+      )
+      const usageItem = lineItems.find(
+        (item) => item.type === SubscriptionItemType.Usage
+      )
+      expect(staticItem).toBeDefined()
+      expect(usageItem).toBeDefined()
     })
   })
 
@@ -1855,7 +2203,6 @@ describe('billingRunHelpers', async () => {
         const rawCost = result.rawOutstandingUsageCosts[0]
         expect(rawCost.ledgerAccountId).toBe(ledgerAccount.id)
         expect(rawCost.usageMeterId).toBe(usageMeter.id)
-        expect(rawCost.usageEventId).toBe(usageEvent.id)
         expect(rawCost.balance).toBe(100)
 
         expect(
@@ -1949,12 +2296,10 @@ describe('billingRunHelpers', async () => {
           transaction
         )
 
-        expect(result.rawOutstandingUsageCosts.length).toBe(2)
-        const sortedRawCosts = [
-          ...result.rawOutstandingUsageCosts,
-        ].sort((a, b) => a.balance - b.balance)
-        expect(sortedRawCosts[0].balance).toBe(usageEvent2.amount)
-        expect(sortedRawCosts[1].balance).toBe(usageEvent1.amount)
+        expect(result.rawOutstandingUsageCosts.length).toBe(1)
+        expect(result.rawOutstandingUsageCosts[0].balance).toBe(
+          usageEvent1.amount + usageEvent2.amount
+        )
 
         expect(
           result.outstandingUsageCostsByLedgerAccountId.size
@@ -2086,6 +2431,12 @@ describe('billingRunHelpers', async () => {
           usageMeterId: usageMeter.id,
           subscriptionId: subscription.id,
           outstandingBalance: 100,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: 10,
+          livemode: true,
+          name: expect.stringContaining('Usage: '),
+          description: expect.stringContaining('usageEventId'),
         })
 
         const aggCostLa3 =
@@ -2095,6 +2446,12 @@ describe('billingRunHelpers', async () => {
           usageMeterId: usageMeter.id,
           subscriptionId: subscription.id,
           outstandingBalance: 200,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: 10,
+          livemode: true,
+          name: expect.stringContaining('Usage: '),
+          description: expect.stringContaining('usageEventId'),
         })
 
         expect(
@@ -2200,7 +2557,7 @@ describe('billingRunHelpers', async () => {
     })
   })
 
-  describe('billingPeriodItemsToInvoiceLineItemInserts', () => {
+  describe('billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts', () => {
     let invoice: Invoice.Record
     beforeEach(async () => {
       invoice = await setupInvoice({
@@ -2212,12 +2569,13 @@ describe('billingRunHelpers', async () => {
       })
     })
     it('should correctly generate a Static invoice line item', () => {
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [staticBillingPeriodItem],
-        usageOverages: [],
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [staticBillingPeriodItem],
+          usageOverages: [],
+        })
 
       expect(lineItems.length).toBe(1)
       const staticLineItem =
@@ -2236,15 +2594,23 @@ describe('billingRunHelpers', async () => {
           usageMeterId: usageMeter.id,
           balance: 100,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          name: null,
+          description: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
 
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [usageBillingPeriodItem],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [],
+          usageOverages,
+        })
 
       expect(lineItems.length).toBe(1)
       const usageLineItem =
@@ -2261,15 +2627,23 @@ describe('billingRunHelpers', async () => {
           usageMeterId: usageMeter.id,
           balance: 0,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          name: null,
+          description: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
 
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [usageBillingPeriodItem],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [],
+          usageOverages,
+        })
 
       expect(lineItems.length).toBe(0)
     })
@@ -2280,14 +2654,22 @@ describe('billingRunHelpers', async () => {
           usageMeterId: usageMeter.id,
           balance: 500,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          name: null,
+          description: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems, // Contains both static and usage items from beforeEach
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [staticBillingPeriodItem], // Only static items - usage comes from usageOverages
+          usageOverages,
+        })
 
       expect(lineItems.length).toBe(2)
       const staticItem = lineItems.find(
@@ -2301,78 +2683,88 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should return quantity 0 if usageEventsPerUnit is null', () => {
-      const usageBpiWithNull = {
-        ...usageBillingPeriodItem,
-        usageEventsPerUnit: null,
-        type: SubscriptionItemType.Usage,
-      }
       const usageOverages = [
         {
           usageMeterId: usageMeter.id,
           balance: 100,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: null as any, // null to test the edge case
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          name: null,
+          description: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [
-          {
-            ...usageBpiWithNull,
-            usageMeterId: usageMeter.id,
-            usageEventsPerUnit: 0,
-            type: SubscriptionItemType.Usage,
-          },
-        ],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [],
+          usageOverages,
+        })
       expect(lineItems.length).toBe(0)
     })
 
     it('should not create line items if usageEventsPerUnit is 0', () => {
-      const usageBpiWithZero = {
-        ...usageBillingPeriodItem,
-        usageEventsPerUnit: 0,
-      }
       const usageOverages = [
         {
           usageMeterId: usageMeter.id,
           balance: 100,
           ledgerAccountId: ledgerAccount.id,
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 0, // 0 to test filtering
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          name: null,
+          description: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [
-          {
-            ...usageBpiWithZero,
-            usageMeterId: usageMeter.id,
-            type: SubscriptionItemType.Usage,
-          },
-        ],
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [], // No static items, testing usage only
+          usageOverages,
+        })
       expect(lineItems.length).toBe(0)
     })
 
-    it('should ignore usage overages that do not have a matching billing period item', () => {
+    it('should process usage overages regardless of matching billing period items', () => {
+      // Usage overages are processed independently - they don't need to match billing period items
       const usageOverages = [
         {
           usageMeterId: 'some-other-meter-id',
           balance: 100,
           ledgerAccountId: 'some-other-account-id',
+          priceId: usageBasedPrice.id,
+          usageEventsPerUnit: 1,
+          unitPrice: usageBasedPrice.unitPrice,
+          livemode: true,
+          name: null,
+          description: null,
+          usageEventId: 'test-usage-event-id',
         },
       ]
-      const lineItems = billingPeriodItemsToInvoiceLineItemInserts({
-        invoiceId: invoice.id,
-        billingRunId: billingRun.id,
-        billingPeriodItems: [staticBillingPeriodItem], // Does not contain a matching usage item
-        usageOverages,
-      })
+      const lineItems =
+        billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts({
+          invoiceId: invoice.id,
+          billingRunId: billingRun.id,
+          billingPeriodItems: [staticBillingPeriodItem],
+          usageOverages,
+        })
 
-      expect(lineItems.length).toBe(1)
-      expect(lineItems[0].type).toBe(SubscriptionItemType.Static)
+      expect(lineItems.length).toBe(2) // 1 static + 1 usage
+      const staticItem = lineItems.find(
+        (item) => item.type === SubscriptionItemType.Static
+      )
+      const usageItem = lineItems.find(
+        (item) => item.type === SubscriptionItemType.Usage
+      )
+      expect(staticItem).toBeDefined()
+      expect(usageItem).toBeDefined()
     })
   })
 

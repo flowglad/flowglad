@@ -3,17 +3,15 @@ import { type Flowglad } from '@flowglad/node'
 export type Catalog =
   Flowglad.CustomerRetrieveBillingResponse['catalog']
 
-export type Product =
-  Flowglad.CustomerRetrieveBillingResponse.Catalog.Product
+export type Product = Flowglad.ProductRetrieveResponse
 
 export type SinglePaymentPrice =
-  Flowglad.CustomerRetrieveBillingResponse.Catalog.Product.SinglePaymentPrice
+  Flowglad.SinglePaymentPriceClientSelectSchema
 
 export type SubscriptionPrice =
-  Flowglad.CustomerRetrieveBillingResponse.Catalog.Product.SubscriptionPrice
+  Flowglad.SubscriptionPriceClientSelectSchema
 
-export type UsagePrice =
-  Flowglad.CustomerRetrieveBillingResponse.Catalog.Product.UsagePrice
+export type UsagePrice = Flowglad.UsagePriceClientSelectSchema
 
 export type Price =
   | SinglePaymentPrice

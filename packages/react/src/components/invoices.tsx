@@ -131,7 +131,7 @@ export function Invoices({
             )}
           >
             <TableCell className="flowglad-font-medium flowglad-text-muted-foreground flowglad-w-32 flowglad-pl-0">
-              {formatDate(invoice.createdAt)}
+              {formatDate(new Date(invoice.createdAt))}
             </TableCell>
             <TableCell className="flowglad-font-medium flowglad-w-32 flowglad-text-foreground">
               {humanReadableCurrencyAmount(
@@ -142,7 +142,9 @@ export function Invoices({
             <TableCell className="flowglad-flex flowglad-justify-end">
               <InvoiceStatusBadge
                 status={invoice.status}
-                dueDate={invoice.dueDate}
+                dueDate={
+                  invoice.dueDate ? new Date(invoice.dueDate) : null
+                }
               />
             </TableCell>
           </TableRow>

@@ -82,12 +82,6 @@ function expectSubscriptionItemsToMatch(
       expect(matchingResultItem.quantity).toBe(newItem.quantity)
       expect(matchingResultItem.unitPrice).toBe(newItem.unitPrice)
       expect(matchingResultItem.type).toBe(newItem.type)
-      expect(matchingResultItem.usageMeterId).toBe(
-        newItem.usageMeterId
-      )
-      expect(matchingResultItem.usageEventsPerUnit).toBe(
-        newItem.usageEventsPerUnit
-      )
       if (
         matchingResultItem.expiredAt == null ||
         newItem.expiredAt == null
@@ -128,8 +122,6 @@ describe('adjustSubscription Integration Tests', async () => {
     | 'addedDate'
     | 'externalId'
     | 'type'
-    | 'usageMeterId'
-    | 'usageEventsPerUnit'
   >
   beforeEach(async () => {
     customer = await setupCustomer({
@@ -179,8 +171,6 @@ describe('adjustSubscription Integration Tests', async () => {
       addedDate: Date.now(),
       externalId: null,
       type: SubscriptionItemType.Static,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
     }
   })
 
@@ -401,8 +391,6 @@ describe('adjustSubscription Integration Tests', async () => {
           externalId: null,
           expiredAt: null,
           type: SubscriptionItemType.Static,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -464,8 +452,6 @@ describe('adjustSubscription Integration Tests', async () => {
             externalId: null,
             expiredAt: null,
             type: SubscriptionItemType.Static,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
           },
         ]
 
@@ -546,8 +532,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 200,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -609,8 +593,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 200,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -670,8 +652,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 200,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
           const orgWithFeatureFlag = await updateOrganization(
@@ -738,8 +718,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 9999, // $99.99
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -831,8 +809,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 5000,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
             {
               ...subscriptionItemCore,
@@ -841,8 +817,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 1000,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
           const orgWithFeatureFlag = await updateOrganization(
@@ -939,8 +913,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 5000,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -1026,8 +998,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 4000,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -1490,8 +1460,6 @@ describe('adjustSubscription Integration Tests', async () => {
                 externalId: null,
                 expiredAt: null,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               },
             ]
 
@@ -1582,18 +1550,27 @@ describe('adjustSubscription Integration Tests', async () => {
               // A: added || to prevent -0 != 0 error
               expect(adj.unitPrice % 1 || 0).toEqual(0)
             })
-            // A: Check exactly one of the bpItems has name that contains "Proration: Removal of Item 2 x 2"
+            // The new logic creates a single "Net charge adjustment" item
+            const netChargeItems = bpItems.filter((adj) =>
+              adj.name?.includes('Net charge adjustment')
+            )
+            expect(netChargeItems.length).toBe(1)
+            expect(netChargeItems[0].unitPrice).toBeGreaterThan(0)
+
+            // Verify the charge amount makes sense
+            // Old plan total: $1.00 (Item 1) + $4.00 (Item 2) = $5.00
+            // New plan total: $1.00 (Item 1) + $9.00 (Item 3) = $10.00
+            // Since we're at ~50% through the period:
+            // Fair value: 50% of $5.00 (old) + 50% of $10.00 (new) = 250 + 500 = ~$7.50
+            // Already paid: $0.00
+            // Net charge: ~$7.50
+            // Allow wide tolerance since timing varies
             expect(
-              bpItems.filter((adj) =>
-                adj.name.includes('Proration: Removal of Item 2 x 2')
-              ).length
-            ).toBe(1)
-            // A: Check exactly one of the bpItems has name that contains "Proration: Addition of Item 3 x 3"
-            expect(
-              bpItems.filter((adj) =>
-                adj.name.includes('Proration: Addition of Item 3 x 3')
-              ).length
-            ).toBe(1)
+              netChargeItems[0].unitPrice
+            ).toBeGreaterThanOrEqual(500) // At least $5.00
+            expect(netChargeItems[0].unitPrice).toBeLessThanOrEqual(
+              1000
+            ) // At most $10.00
 
             // Verify that a billing run was executed.
             const billingRuns = await selectBillingRuns(
@@ -1678,8 +1655,6 @@ describe('adjustSubscription Integration Tests', async () => {
                 unitPrice: 4999,
                 expiredAt: null,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               },
             ]
 
@@ -1783,8 +1758,6 @@ describe('adjustSubscription Integration Tests', async () => {
                 unitPrice: 4999,
                 expiredAt: null,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               },
             ]
             const orgWithFeatureFlag = await updateOrganization(
@@ -1963,8 +1936,6 @@ describe('adjustSubscription Integration Tests', async () => {
                 unitPrice: 999,
                 expiredAt: null,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               },
               {
                 ...subscriptionItemCore,
@@ -1973,8 +1944,6 @@ describe('adjustSubscription Integration Tests', async () => {
                 unitPrice: 500, // cheaper add-on
                 expiredAt: null,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               },
             ]
 
@@ -2050,8 +2019,6 @@ describe('adjustSubscription Integration Tests', async () => {
                 unitPrice: 100,
                 expiredAt: null,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               },
               {
                 ...subscriptionItemCore,
@@ -2060,8 +2027,6 @@ describe('adjustSubscription Integration Tests', async () => {
                 unitPrice: 300,
                 expiredAt: null,
                 type: SubscriptionItemType.Static,
-                usageMeterId: null,
-                usageEventsPerUnit: null,
               },
             ]
 
@@ -2243,8 +2208,6 @@ describe('adjustSubscription Integration Tests', async () => {
               externalId: null,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -2503,8 +2466,6 @@ describe('adjustSubscription Integration Tests', async () => {
               externalId: null,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -2569,8 +2530,6 @@ describe('adjustSubscription Integration Tests', async () => {
               externalId: null,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -2622,8 +2581,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 150,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -2683,8 +2640,6 @@ describe('adjustSubscription Integration Tests', async () => {
               livemode: false,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -2732,8 +2687,6 @@ describe('adjustSubscription Integration Tests', async () => {
               livemode: false,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -2771,7 +2724,10 @@ describe('adjustSubscription Integration Tests', async () => {
             { billingPeriodId: bp.id },
             transaction
           )
-          expect(bpItems.length).toBeGreaterThan(0)
+          // With zero unit price items (free plan), this is a downgrade scenario
+          // The new logic applies downgrade protection and creates NO proration items
+          // when net charge would be <= 0
+          expect(bpItems.length).toBe(0)
         })
       })
 
@@ -2978,8 +2934,6 @@ describe('adjustSubscription Integration Tests', async () => {
               unitPrice: 200,
               expiredAt: null,
               type: SubscriptionItemType.Static,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
             },
           ]
 
@@ -3052,8 +3006,6 @@ describe('adjustSubscription Integration Tests', async () => {
                   priceId: 'invalid_price_id',
                   expiredAt: null,
                   type: SubscriptionItemType.Static,
-                  usageMeterId: null,
-                  usageEventsPerUnit: null,
                 },
               ]
 

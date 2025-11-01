@@ -154,6 +154,8 @@ export default function DiscountCodeInput() {
         })
       }
     },
+    // FIXME(FG-384): Fix this warning:
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [clearDiscountCode, purchase, product]
   )
 

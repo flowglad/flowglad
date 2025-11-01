@@ -26,6 +26,7 @@ import {
 } from '@/email-templates/organization/organization-payment-failed'
 import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
 import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
+import { PayoutNotificationEmail } from '@/email-templates/organization/payout-notification'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
@@ -432,6 +433,24 @@ export const sendCustomerBillingPortalMagicLink = async ({
       customerName,
       organizationName,
       livemode,
+    }),
+  })
+}
+
+export const sendPayoutNotificationEmail = async ({
+  to,
+  organizationName,
+}: {
+  to: string[]
+  organizationName: string
+}) => {
+  return safeSend({
+    from: 'Flowglad <notifications@flowglad.com>',
+    to: to.map(safeTo),
+    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+    subject: `Enable Payouts for ${organizationName}`,
+    react: await PayoutNotificationEmail({
+      organizationName,
     }),
   })
 }

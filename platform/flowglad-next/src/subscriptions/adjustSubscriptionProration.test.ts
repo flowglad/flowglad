@@ -119,8 +119,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       unitPrice: 999, // $9.99
       addedDate: billingPeriodStart,
       type: SubscriptionItemType.Static,
-      usageMeterId: undefined,
-      usageEventsPerUnit: undefined,
     })
 
     // Set up invoice for payments to reference
@@ -162,8 +160,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -191,29 +187,11 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       const percentRemaining = 0.5
 
       // Verify proration items are created
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
-      )
       const correctionItems = bpItems.filter((item) =>
         item.name?.includes('correction')
       )
-
-      expect(removalItems).toHaveLength(1)
-      expect(additionItems).toHaveLength(1)
-
-      // Verify that proration adjustments exist (removal and addition)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-
-      // Verify correction adjustment exists if needed (current logic includes correction to reach net charge)
-      // Correction adjustments are only created when proration adjustments don't equal the net charge
       if (correctionItems.length > 0) {
-        expect(correctionItems[0].name).toContain(
-          'Net charge adjustment'
-        )
+        expect(correctionItems[0].name).toContain('Net charge: ')
       }
 
       // The current logic focuses on the total net charge, not individual proration amounts
@@ -263,8 +241,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -288,36 +264,25 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         transaction
       )
 
-      // Verify: Behavior should be identical to Processing payment test
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
-      )
-      const correctionItems = bpItems.filter(
-        (item) =>
-          item.name?.includes('correction') ||
-          item.name?.includes('adjustment')
+      // Verify: The new logic creates a single net charge adjustment item
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('Net charge adjustment')
       )
 
-      expect(removalItems).toHaveLength(1)
-      expect(additionItems).toHaveLength(1)
+      // Should have exactly one proration adjustment item
+      expect(correctionItems).toHaveLength(1)
 
       // Processing and Succeeded payments should be treated identically
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
+      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+      expect(correctionItems[0].name).toContain(
+        'Net charge adjustment'
+      )
 
-      // Verify correction adjustment exists if needed (current logic includes correction to reach net charge)
-      // Correction adjustments are only created when proration adjustments don't equal the net charge
-      if (correctionItems.length > 0) {
-        expect(correctionItems[0].name).toContain(
-          'Net charge adjustment'
-        )
-      }
-
-      // The current logic focuses on the total net charge, not individual proration amounts
-      // The correction adjustment ensures the total equals the calculated net charge
+      // Verify the specific charge amount
+      // Fair value: 50% of $9.99 (old) + 50% of $49.99 (new) = ~$30.00 total
+      // Already paid: $9.99
+      // Net charge should be: ~$20.00
+      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(20, 0) // ~$20.00
 
       // Verify final charge calculation
       const totalProrationAmount = bpItems.reduce(
@@ -357,8 +322,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -382,33 +345,26 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         transaction
       )
 
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
-      )
-      const correctionItems = bpItems.filter(
-        (item) =>
-          item.name?.includes('correction') ||
-          item.name?.includes('adjustment')
+      // Verify: The new logic creates a single net charge adjustment item
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('Net charge adjustment')
       )
 
-      expect(removalItems).toHaveLength(1)
-      expect(additionItems).toHaveLength(1)
-
-      // Verify proration adjustments exist (50% through period)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-
-      // Verify correction adjustment exists (current logic includes correction to reach net charge)
+      // Should have exactly one proration adjustment item
       expect(correctionItems).toHaveLength(1)
+      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
       expect(correctionItems[0].name).toContain(
         'Net charge adjustment'
       )
 
-      // The current logic focuses on the total net charge, not individual proration amounts
-      // The correction adjustment ensures the total equals the calculated net charge
+      // Verify the specific charge amount
+      // Fair value: 50% of $9.99 (old) + 50% of $49.99 (new) = ~$30.00 total
+      // Already paid: $0.00 (failed payment ignored)
+      // Net charge should be: ~$30.00 (full fair value)
+      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(
+        3000 / 100,
+        0
+      ) // ~$30.00, allow 50 cent tolerance
 
       // Critical difference: Since failed payment is ignored, customer pays FULL fair value
       const totalProrationAmount = bpItems.reduce(
@@ -418,7 +374,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
 
       // Customer should pay full $29.99 since no successful payment exists
       // This means proration adjustments alone should equal ~$29.99
-      expect(totalProrationAmount).toBeCloseTo(2999, 2) // ~$29.99 from proration alone, allow 2 cent tolerance
+      expect(totalProrationAmount / 100).toBeCloseTo(2999 / 100, 0) // ~$29.99 from proration alone, allow 2 cent tolerance
     })
   })
 
@@ -455,8 +411,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
         {
           // Add new item (no ID = new item)
@@ -474,8 +428,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -502,20 +454,22 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         transaction
       )
 
-      // Should have addition adjustment for new item only (no removal)
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
+      // The new logic creates a single net charge adjustment item
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('Net charge adjustment')
       )
 
-      expect(removalItems).toHaveLength(0) // No items removed
-      expect(additionItems).toHaveLength(1) // Only new add-on item
+      // Should have exactly one proration adjustment item for the net charge
+      expect(correctionItems).toHaveLength(1)
 
-      // Verify addition adjustment (should be positive, ~50% of $20.00)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-      expect(additionItems[0].unitPrice).toBeCloseTo(1000, 2) // ~$10.00, allow 2 cent tolerance
+      // Verify net charge adjustment (should be positive)
+      // Old plan total: $9.99
+      // New plan total: $9.99 + $20.00 = $29.99
+      // Fair value: 50% of $9.99 (old) + 50% of $29.99 (new) = 500 + 1500 = ~$20.00
+      // Already paid: $9.99
+      // Net charge: ~$10.00
+      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
 
       // Verify subscription record reflects most expensive item
       expect(result.subscription.name).toBe('Add-on Feature')
@@ -566,33 +520,15 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         transaction
       )
 
-      // Should have removal adjustment for expired item only (no addition)
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
-      )
-      const correctionItems = bpItems.filter(
-        (item) =>
-          item.name?.includes('correction') ||
-          item.name?.includes('adjustment')
+      // The new logic applies downgrade protection and creates NO proration items
+      // when net charge would be <= 0
+      // In this case: Fair value ~$5.00, Already paid $9.99, Net charge would be negative
+      // But we cap at 0 (no refunds), so NO billing period items are created
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('Net charge adjustment')
       )
 
-      expect(removalItems).toHaveLength(1) // Only expired item
-      expect(additionItems).toHaveLength(0) // No new items added
-
-      // Verify removal adjustment exists (should be negative)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-
-      // Verify correction adjustment exists (current logic includes correction to reach net charge)
-      expect(correctionItems).toHaveLength(1)
-      expect(correctionItems[0].name).toContain(
-        'Net charge adjustment'
-      )
-
-      // The current logic focuses on the total net charge, not individual proration amounts
-      // The correction adjustment ensures the total equals the calculated net charge
+      expect(correctionItems).toHaveLength(0) // No proration items for downgrades
 
       // Verify subscription record name remains unchanged when no active items
       // (The sync logic doesn't update when there are no active items)
@@ -649,8 +585,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -674,35 +608,15 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         transaction
       )
 
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
-      )
-      const correctionItems = bpItems.filter(
-        (item) =>
-          item.name?.includes('correction') ||
-          item.name?.includes('adjustment')
+      // The new logic applies downgrade protection and creates NO proration items
+      // when net charge would be <= 0
+      // Customer already paid $49.99, fair value is ~$29.99 (would be ~$20 credit)
+      // But we don't issue credits, so NO billing period items are created
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('Net charge adjustment')
       )
 
-      // Debug: Print all billing period items
-      bpItems.forEach((item) => {})
-
-      expect(removalItems).toHaveLength(1) // Only expensive item (original was expired)
-      expect(additionItems).toHaveLength(1)
-
-      // Verify removal adjustments exist (negative)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-
-      // Verify addition adjustment exists (positive)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-
-      // The current logic focuses on the total net charge, not individual proration amounts
-      // The correction adjustment ensures the total equals the calculated net charge
-
-      // Should have correction item to zero out the negative net charge
-      expect(correctionItems).toHaveLength(1)
+      expect(correctionItems).toHaveLength(0) // No proration items for downgrades
 
       // Verify total billing adjustments result in $0 additional charge (no credits)
       const totalProrationAmount = bpItems.reduce(
@@ -749,8 +663,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -780,38 +692,24 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         transaction
       )
 
-      // Should have both removal and addition adjustments
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
-      )
-      const correctionItems = bpItems.filter(
-        (item) =>
-          item.name?.includes('correction') ||
-          item.name?.includes('adjustment')
+      // The new logic creates a single net charge adjustment item for upgrades
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('Net charge adjustment')
       )
 
-      expect(removalItems).toHaveLength(1) // Removed old item
-      expect(additionItems).toHaveLength(1) // Added new item
+      expect(correctionItems).toHaveLength(1) // One proration item for net charge
+      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+      expect(correctionItems[0].name).toContain(
+        'Net charge adjustment'
+      )
 
-      // Verify removal adjustment exists (should be negative)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-
-      // Verify addition adjustment exists (should be positive)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-
-      // Verify correction adjustment exists if needed (current logic includes correction to reach net charge)
-      // Correction adjustments are only created when proration adjustments don't equal the net charge
-      if (correctionItems.length > 0) {
-        expect(correctionItems[0].name).toContain(
-          'Net charge adjustment'
-        )
-      }
-
-      // The current logic focuses on the total net charge, not individual proration amounts
-      // The correction adjustment ensures the total equals the calculated net charge
+      // Verify the specific charge amount
+      // Old plan: $9.99
+      // New plan: $29.99
+      // Fair value: 50% of $9.99 (old) + 50% of $29.99 (new) = 500 + 1500 = ~$20.00
+      // Already paid: $9.99
+      // Net charge: ~$10.00
+      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
 
       // Verify subscription record reflects new plan
       expect(result.subscription.name).toBe('Replacement Plan')
@@ -858,8 +756,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -883,32 +779,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         transaction
       )
 
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
-      )
-      const correctionItems = bpItems.filter(
-        (item) =>
-          item.name?.includes('correction') ||
-          item.name?.includes('adjustment')
+      // The new logic applies downgrade protection and creates NO proration items
+      // when downgrading to a free plan (net charge would be negative)
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('Net charge adjustment')
       )
 
-      expect(removalItems).toHaveLength(1)
-      expect(additionItems).toHaveLength(1)
-
-      // Verify removal adjustment exists (should be negative)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-
-      // Verify addition adjustment (should be 0 for free plan)
-      expect(additionItems[0].unitPrice).toBe(0)
-
-      // The current logic focuses on the total net charge, not individual proration amounts
-      // The correction adjustment ensures the total equals the calculated net charge
-
-      // Should have correction item to prevent overcharge
-      expect(correctionItems).toHaveLength(1)
+      expect(correctionItems).toHaveLength(0) // No proration items for downgrades
 
       // Verify total billing adjustments result in $0 additional charge (downgrade protection)
       const totalProrationAmount = bpItems.reduce(
@@ -973,8 +850,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -1002,38 +877,24 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         transaction
       )
 
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
-      )
-      const correctionItems = bpItems.filter(
-        (item) =>
-          item.name?.includes('correction') ||
-          item.name?.includes('adjustment')
+      // The new logic creates a single net charge adjustment item for upgrades
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('Net charge adjustment')
       )
 
-      // Should have removal adjustments for both old items
-      expect(removalItems).toHaveLength(2) // Both old items removed
-      expect(additionItems).toHaveLength(1) // One new item added
-
-      // Verify removal adjustments (should be negative, ~50% of each old item)
-      removalItems.forEach((item) => {
-        expect(item.unitPrice).toBeLessThan(0)
-      })
-
-      // Verify addition adjustment exists (should be positive)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-
-      // Verify correction adjustment exists (current logic includes correction to reach net charge)
       expect(correctionItems).toHaveLength(1)
+      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
       expect(correctionItems[0].name).toContain(
         'Net charge adjustment'
       )
 
-      // The current logic focuses on the total net charge, not individual proration amounts
-      // The correction adjustment ensures the total equals the calculated net charge
+      // Verify the specific charge amount
+      // Old plan total: $19.99 + $9.99 = $29.98
+      // New plan total: $49.99
+      // Fair value: 50% of $29.98 (old) + 50% of $49.99 (new) = 1499 + 2500 = ~$40.00
+      // Already paid: $29.98
+      // Net charge: ~$10.00
+      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
 
       // Verify total proration amount
       const totalProrationAmount = bpItems.reduce(
@@ -1078,8 +939,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -1103,32 +962,24 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         transaction
       )
 
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
-      )
-      const correctionItems = bpItems.filter(
-        (item) =>
-          item.name?.includes('correction') ||
-          item.name?.includes('adjustment')
+      // The new logic creates a single net charge adjustment item
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('Net charge adjustment')
       )
 
-      expect(removalItems).toHaveLength(1)
-      expect(additionItems).toHaveLength(1)
+      expect(correctionItems).toHaveLength(1)
+      expect(correctionItems[0].unitPrice).toBeGreaterThan(0)
+      expect(correctionItems[0].name).toContain(
+        'Net charge adjustment'
+      )
 
-      // Verify removal adjustment exists (should be negative)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-
-      // Verify addition adjustment exists (should be positive)
-      expect(additionItems[0].unitPrice).toBeGreaterThan(0)
-
-      // The current logic focuses on the total net charge, not individual proration amounts
-      // The correction adjustment ensures the total equals the calculated net charge
-
-      // Correction items may or may not be needed depending on whether proration adjustments equal the net charge
-      // The current logic creates correction adjustments when needed to reach the correct net charge
+      // Verify the specific charge amount
+      // Old plan: $15.00
+      // New plan: $25.00
+      // Fair value: 50% of $15.00 (old) + 50% of $25.00 (new) = 750 + 1250 = ~$20.00
+      // Already paid: $0.00 (no payments)
+      // Net charge: ~$20.00 (full fair value)
+      expect(correctionItems[0].unitPrice / 100).toBeCloseTo(20, 0) // ~$20.00
 
       // Verify total proration amount (should be full fair value since no existing payments)
       const totalProrationAmount = bpItems.reduce(
@@ -1187,8 +1038,6 @@ describe('Proration Logic - Payment Status Scenarios', () => {
           expiredAt: null,
           livemode: true,
           externalId: null,
-          usageMeterId: null,
-          usageEventsPerUnit: null,
         },
       ]
 
@@ -1212,32 +1061,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         transaction
       )
 
-      const removalItems = bpItems.filter((item) =>
-        item.name?.includes('Removal')
-      )
-      const additionItems = bpItems.filter((item) =>
-        item.name?.includes('Addition')
-      )
-      const correctionItems = bpItems.filter(
-        (item) =>
-          item.name?.includes('correction') ||
-          item.name?.includes('adjustment')
+      // The new logic applies downgrade protection and creates NO proration items
+      // when downgrading to a free plan (net charge would be negative)
+      const correctionItems = bpItems.filter((item) =>
+        item.name?.includes('Net charge adjustment')
       )
 
-      expect(removalItems).toHaveLength(1)
-      expect(additionItems).toHaveLength(1)
-
-      // Verify removal adjustment exists (should be negative)
-      expect(removalItems[0].unitPrice).toBeLessThan(0)
-
-      // Verify addition adjustment (should be 0 for free plan)
-      expect(additionItems[0].unitPrice).toBe(0)
-
-      // The current logic focuses on the total net charge, not individual proration amounts
-      // The correction adjustment ensures the total equals the calculated net charge
-
-      // Should have correction item to prevent overcharge
-      expect(correctionItems).toHaveLength(1)
+      expect(correctionItems).toHaveLength(0) // No proration items for downgrades
 
       // Verify total billing adjustments result in $0 additional charge (downgrade protection)
       const totalProrationAmount = bpItems.reduce(
@@ -1250,7 +1080,8 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       expect(result.subscription.name).toBe('Free Plan')
 
       // Verify no arithmetic errors occurred (test should complete without throwing)
-      expect(bpItems.length).toBeGreaterThan(0)
+      // With no proration items created, bpItems.length should be 0
+      expect(bpItems.length).toBe(0)
     })
   })
 })

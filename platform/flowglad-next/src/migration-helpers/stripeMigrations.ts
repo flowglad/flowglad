@@ -388,7 +388,5 @@ export const stripeSubscriptionItemToSubscriptionItemInsert = (
     externalId: stripeSubscriptionItem.id,
     expiredAt: null,
     type: SubscriptionItemType.Static,
-    usageMeterId: null,
-    usageEventsPerUnit: null,
   }
 }

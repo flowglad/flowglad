@@ -368,8 +368,6 @@ describe('calculateBillingPeriodItemsValue', () => {
       createdByCommit: 'test',
       updatedByCommit: 'test',
       type: SubscriptionItemType.Static,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
       position: 0,
     }
   }

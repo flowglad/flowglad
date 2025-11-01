@@ -65,6 +65,8 @@ export function NavMain({
       }
     })
     setExpandedItems(initialExpanded)
+    // FIXME(FG-384): Fix this warning:
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, pathname])
 
   return (

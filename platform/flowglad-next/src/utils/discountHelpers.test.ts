@@ -65,7 +65,10 @@ describe('discountHelpers', () => {
 
   describe('calculateDiscountAmountSafe', () => {
     it('should return discount amount when discountInfo is provided', () => {
-      const result = calculateDiscountAmountSafe(6000, mockDiscountInfo)
+      const result = calculateDiscountAmountSafe(
+        6000,
+        mockDiscountInfo
+      )
       expect(result).toBe(600) // 10% of $60.00 = $6.00
     })
 

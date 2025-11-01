@@ -147,6 +147,7 @@ export function EditSubscriptionPaymentMethodModal({
       onSubmit={handleSubmit}
       submitButtonText={isSubmitting ? 'Updating...' : 'Update'}
       autoClose={false}
+      allowContentOverflow={false}
     >
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">

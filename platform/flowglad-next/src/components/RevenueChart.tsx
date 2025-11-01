@@ -70,12 +70,17 @@ export function RevenueChart({
     })
   const [tooltipData, setTooltipData] =
     React.useState<TooltipCallbackProps | null>(null)
-
   // Use useRef to store tooltip data during render, then update state after render
+
+  // FIXME(FG-384): Fix this warning:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const pendingTooltipData =
     React.useRef<TooltipCallbackProps | null>(null)
 
   // Use useEffect to safely update tooltip state after render
+
+  // FIXME(FG-384): Fix this warning:
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     if (pendingTooltipData.current !== null) {
       setTooltipData(pendingTooltipData.current)
@@ -202,27 +207,8 @@ export function RevenueChart({
   }
   return (
     <div className="w-full h-full">
-      <div className="flex flex-row gap-2 justify-between">
-        <div className="text-sm text-muted-foreground w-fit flex items-center flex-row">
-          <p className="whitespace-nowrap">Revenue by</p>
-          <Select
-            value={interval}
-            onValueChange={(value) =>
-              setInterval(value as RevenueChartIntervalUnit)
-            }
-          >
-            <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {intervalOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="flex gap-2 justify-between">
+        <div className="text-sm text-muted-foreground w-fit flex items-center"></div>
         {/*         <Button
           variant="ghost"
           size="sm"
@@ -236,20 +222,40 @@ export function RevenueChart({
         </Button> */}
       </div>
 
-      <div className="mt-2">
+      <div>
         {isLoading ? (
           <Skeleton className="w-36 h-12" />
         ) : (
-          <>
+          <div className="flex flex-col">
             <p className="text-xl font-semibold text-foreground">
               {formattedRevenueValue}
             </p>
-            <p className="text-sm text-muted-foreground">
-              {isTooltipLabelDate
-                ? core.formatDate(new Date(tooltipLabel as string))
-                : core.formatDateRange({ fromDate, toDate })}
-            </p>
-          </>
+            <div className="flex items-center flex-row w-fit">
+              <p className="whitespace-nowrap text-sm text-muted-foreground">
+                Revenue by
+              </p>
+              <Select
+                value={interval}
+                onValueChange={(value) =>
+                  setInterval(value as RevenueChartIntervalUnit)
+                }
+              >
+                <SelectTrigger className="border-none bg-transparent px-1 text-muted-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {intervalOptions.map((option) => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         )}
       </div>
       {isLoading ? (

@@ -22,7 +22,10 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { paymentMethodSummaryLabel } from '@/utils/paymentMethodHelpers'
 import { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { calculateInvoiceTotalsRaw, calculateDiscountAmountSafe } from '@/utils/discountHelpers'
+import {
+  calculateInvoiceTotalsRaw,
+  calculateDiscountAmountSafe,
+} from '@/utils/discountHelpers'
 import { CurrencyCode } from '@/types'
 
 /**
@@ -459,7 +462,10 @@ export const InvoiceTotals: React.FC<InvoiceTotalsProps> = ({
   originalAmount,
 }) => {
   // Calculate discount amount using shared logic
-  const calculatedDiscountAmount = calculateDiscountAmountSafe(originalAmount || subtotal, discountInfo)
+  const calculatedDiscountAmount = calculateDiscountAmountSafe(
+    originalAmount || subtotal,
+    discountInfo
+  )
   return (
     <Row data-testid="invoice-totals">
       <Column style={{ width: '60%' }}></Column>
@@ -717,7 +723,11 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   paymentLink,
   discountInfo,
 }) => {
-  const totals = calculateInvoiceTotalsRaw(invoiceLineItems, invoice, discountInfo)
+  const totals = calculateInvoiceTotalsRaw(
+    invoiceLineItems,
+    invoice,
+    discountInfo
+  )
   const billingAddress = customer.billingAddress
 
   return (

@@ -59,6 +59,7 @@ import {
   StripeConnectContractType,
   BusinessOnboardingStatus,
   NormalBalanceType,
+  UsageMeterAggregationType,
 } from '@/types'
 import { core, isNil } from '@/utils/core'
 import { sql } from 'drizzle-orm'
@@ -343,6 +344,7 @@ interface SetupCustomerParams {
   pricingModelId?: string
   externalId?: string
   userId?: string
+  name?: string
 }
 
 export const setupCustomer = async (params: SetupCustomerParams) => {
@@ -352,7 +354,7 @@ export const setupCustomer = async (params: SetupCustomerParams) => {
       {
         organizationId: params.organizationId,
         email,
-        name: email,
+        name: params.name ?? email,
         externalId: params.externalId?.trim() || core.nanoid(),
         livemode: params.livemode ?? true,
         stripeCustomerId:
@@ -439,6 +441,7 @@ export const setupSubscription = async (params: {
   isFreePlan?: boolean
   cancellationReason?: string | null
   replacedBySubscriptionId?: string | null
+  name?: string
   canceledAt?: number | null
   metadata?: any
   billingCycleAnchorDate?: number
@@ -472,7 +475,7 @@ export const setupSubscription = async (params: {
           intervalCount: null,
           metadata: params.metadata ?? {},
           stripeSetupIntentId: `setupintent_${core.nanoid()}`,
-          name: null,
+          name: params.name ?? null,
           runBillingAtPeriodStart:
             price.type === PriceType.Subscription ? true : false,
           externalId: null,
@@ -636,6 +639,11 @@ export const setupBillingPeriodItem = async ({
           'Discount redemption ID is not allowed for usage items'
         )
       }
+      if (type === SubscriptionItemType.Usage) {
+        throw new Error(
+          'Usage type is not allowed for billing period items'
+        )
+      }
       const insert: BillingPeriodItem.Insert = {
         billingPeriodId,
         quantity,
@@ -643,8 +651,6 @@ export const setupBillingPeriodItem = async ({
         name,
         description,
         type,
-        usageMeterId,
-        usageEventsPerUnit,
         discountRedemptionId: null,
         livemode,
       }
@@ -673,9 +679,7 @@ export const setupBillingPeriodItem = async ({
         description,
         type,
         livemode,
-        usageMeterId: null,
         discountRedemptionId: null,
-        usageEventsPerUnit: null,
       }
       return insertBillingPeriodItem(insert, transaction)
     }
@@ -898,7 +902,6 @@ export const setupPrice = async ({
         intervalCount,
         trialPeriodDays: trialPeriodDays ?? null,
         usageEventsPerUnit: null,
-        startsWithCreditTrial: null,
       },
     }
     if (type === PriceType.Usage && !usageMeterId) {
@@ -1094,8 +1097,6 @@ export const setupSubscriptionItem = async ({
       metadata: metadata ?? {},
       externalId: null,
       type: SubscriptionItemType.Static,
-      usageMeterId: null,
-      usageEventsPerUnit: null,
     }
     return insertSubscriptionItem(insert, transaction)
   })
@@ -1428,12 +1429,14 @@ export const setupUsageMeter = async ({
   livemode = true,
   pricingModelId,
   slug,
+  aggregationType,
 }: {
   organizationId: string
   name: string
   livemode?: boolean
   pricingModelId?: string
   slug?: string
+  aggregationType?: UsageMeterAggregationType
 }) => {
   return adminTransaction(async ({ transaction }) => {
     let pricingModelToUseId: string | null = null
@@ -1466,6 +1469,7 @@ export const setupUsageMeter = async ({
         livemode,
         pricingModelId: pricingModelToUseId,
         slug: slug ?? `${snakeCase(name)}-${core.nanoid()}`,
+        ...(aggregationType && { aggregationType }),
       },
       transaction
     )

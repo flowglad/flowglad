@@ -28,7 +28,9 @@ describe('generateMetadata for checkout pages', () => {
         params: Promise.resolve({ priceId: price.id }),
       })
 
-      expect(metadata.title).toBe(`${organization.name} | ${product.name}`)
+      expect(metadata.title).toBe(
+        `${organization.name} | ${product.name}`
+      )
     })
 
     it('should return fallback "Checkout" title for non-existent price', async () => {
@@ -48,16 +50,19 @@ describe('generateMetadata for checkout pages', () => {
         params: Promise.resolve({ productId: product.id }),
       })
 
-      expect(metadata.title).toBe(`${organization.name} | ${product.name}`)
+      expect(metadata.title).toBe(
+        `${organization.name} | ${product.name}`
+      )
     })
 
     it('should return fallback "Checkout" title for non-existent product', async () => {
       const metadata: Metadata = await generateMetadataForProduct({
-        params: Promise.resolve({ productId: 'non_existent_product_id' }),
+        params: Promise.resolve({
+          productId: 'non_existent_product_id',
+        }),
       })
 
       expect(metadata.title).toBe('Checkout')
     })
   })
 })
-

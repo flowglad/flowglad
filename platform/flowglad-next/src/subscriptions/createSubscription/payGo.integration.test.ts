@@ -1,14 +1,8 @@
-import {
-  CoreSripeSetupIntent,
-  processSetupIntentSucceeded,
-} from '@/utils/bookkeeping/processSetupIntent'
 import { describe, it, expect } from 'vitest'
 import {
-  setupCustomer,
   setupPrice,
   setupProduct,
   setupProductFeature,
-  setupToggleFeature,
   setupUsageCreditGrantFeature,
   setupUsageMeter,
   setupOrg,
@@ -27,7 +21,6 @@ import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import { IntentMetadataType } from '@/utils/stripe'
-import { createSubscriptionWorkflow } from './workflow'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
@@ -280,7 +273,7 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 2. Call @createCheckoutSessionTransaction to create an ActivateSubscription checkout session
-    const checkoutSession = await adminTransaction(
+    const checkoutSession = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
         const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
           {
@@ -336,7 +329,7 @@ describe('Pay as You Go Workflow E2E', () => {
           transaction
         )
         expect(feeCalculations).toHaveLength(1)
-        return checkoutSession
+        return { result: checkoutSession }
       }
     )
 
@@ -358,7 +351,7 @@ describe('Pay as You Go Workflow E2E', () => {
       )
     })
 
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
       // 5. Call @customerBillingTransaction again and assert final state
       const billingState3 = await customerBillingTransaction(
         {
@@ -382,6 +375,7 @@ describe('Pay as You Go Workflow E2E', () => {
         activatedSubscription?.experimental?.usageMeterBalances?.[0]
           .availableBalance
       ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
+      return { result: null }
     })
 
     // 6. Create a usage event after payment
@@ -406,7 +400,7 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 7. Call @customerBillingTransaction again and assert final state after new usage
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
       const billingState4 = await customerBillingTransaction(
         {
           externalId: customer.externalId,
@@ -422,6 +416,7 @@ describe('Pay as You Go Workflow E2E', () => {
         activatedSubscriptionAfterUsage?.experimental
           ?.usageMeterBalances?.[0].availableBalance
       ).toBe(900) // 1000 - 100 (new usage) = 900
+      return { result: null }
     })
   })
 })

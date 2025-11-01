@@ -15,6 +15,7 @@ import {
   FeeCalculationType,
   SubscriptionItemType,
   CountryCode,
+  UsageBillingInfo,
 } from '@/types'
 import { Country } from '@/db/schema/countries'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
@@ -29,34 +30,36 @@ export interface SubscriptionFeeCalculationParams {
   organizationCountry: Country.Record
   livemode: boolean
   currency: CurrencyCode
-  usageOverages: { usageMeterId: string; balance: number }[]
+  usageOverages: Pick<
+    UsageBillingInfo,
+    | 'usageMeterId'
+    | 'balance'
+    | 'priceId'
+    | 'usageEventsPerUnit'
+    | 'unitPrice'
+  >[]
 }
 
 export const calculateBillingItemBaseAmount = (
   items: BillingPeriodItem.Record[],
-  overages: { usageMeterId: string; balance: number }[]
+  overages: Pick<
+    UsageBillingInfo,
+    | 'usageMeterId'
+    | 'balance'
+    | 'priceId'
+    | 'usageEventsPerUnit'
+    | 'unitPrice'
+  >[]
 ): number => {
   const staticAmt = items
     .filter((i) => i.type === SubscriptionItemType.Static)
     .reduce((acc, i) => acc + i.unitPrice * i.quantity, 0)
-  const usageMap = new Map(
-    items
-      .filter((i) => i.type === SubscriptionItemType.Usage)
-      .map((i) => [
-        i.usageMeterId,
-        i as BillingPeriodItem.UsageRecord,
-      ])
-  )
   const usageAmt = overages
-    .map(({ usageMeterId, balance }) => {
-      const rec = usageMap.get(usageMeterId)
-      if (!rec)
-        throw Error(
-          `Usage billing period item not found for usage meter id: ${usageMeterId}`
-        )
-      return (balance / rec.usageEventsPerUnit) * rec.unitPrice
+    .map(({ balance, usageEventsPerUnit, unitPrice }) => {
+      return (balance / usageEventsPerUnit) * unitPrice
     })
     .reduce((acc, v) => acc + v, 0)
+
   return staticAmt + usageAmt
 }
 

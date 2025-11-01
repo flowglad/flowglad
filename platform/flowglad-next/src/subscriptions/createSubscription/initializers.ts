@@ -116,8 +116,6 @@ export const createStandardSubscriptionAndItems = async (
     externalId: null,
     expiredAt: null,
     type: SubscriptionItemType.Static,
-    usageMeterId: null,
-    usageEventsPerUnit: null,
   }
 
   const subscriptionItems = await bulkInsertSubscriptionItems(
@@ -199,8 +197,6 @@ export const createNonRenewingSubscriptionAndItems = async (
     externalId: null,
     expiredAt: null,
     type: SubscriptionItemType.Static,
-    usageMeterId: null,
-    usageEventsPerUnit: null,
   }
 
   const subscriptionItems = await bulkInsertSubscriptionItems(
@@ -241,13 +237,6 @@ export const insertSubscriptionAndItems = async (
       transaction
     )
   }
-  if (price.startsWithCreditTrial) {
-    return await createNonRenewingSubscriptionAndItems(
-      params,
-      transaction
-    )
-  }
-
   const derivedInterval = interval ?? price.intervalUnit
   const derivedIntervalCount = intervalCount ?? price.intervalCount
   if (!derivedInterval) {

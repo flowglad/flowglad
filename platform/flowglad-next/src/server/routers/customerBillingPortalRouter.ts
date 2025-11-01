@@ -290,11 +290,12 @@ const requestMagicLinkProcedure = publicProcedure
 
       // Check if customers exist and handle user creation/linking in single transaction
       await adminTransaction(async ({ transaction }) => {
-        // Find customers by email and organizationId
+        // Find livemode customers by email and organizationId
         const customers = await selectCustomers(
           {
             email,
             organizationId,
+            livemode: true,
           },
           transaction
         )

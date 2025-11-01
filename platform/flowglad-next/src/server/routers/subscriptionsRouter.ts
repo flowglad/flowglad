@@ -1,8 +1,6 @@
 import { protectedProcedure, router } from '../trpc'
 import {
   BillingPeriodStatus,
-  EventNoun,
-  FlowgladEventType,
   IntervalUnit,
   PriceType,
   SubscriptionCancellationArrangement,
@@ -12,7 +10,6 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
-  eventfulAuthenticatedProcedureTransaction,
 } from '@/db/authenticatedTransaction'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
@@ -83,8 +80,9 @@ const adjustSubscriptionProcedure = protectedProcedure
     openapi: {
       method: 'POST',
       path: '/api/v1/subscriptions/{id}/adjust',
-      summary:
-        'Adjust a Subscription. Note: Immediate adjustments are in private preview. Adjustments at the end of the current billing period are generally available.',
+      summary: 'Adjust a Subscription',
+      description:
+        'Note: Immediate adjustments are in private preview (Please let us know you use this feature: https://github.com/flowglad/flowglad/issues/616). Adjustments at the end of the current billing period are generally available.',
       tags: ['Subscriptions'],
       protect: true,
     },

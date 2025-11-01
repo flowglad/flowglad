@@ -165,8 +165,6 @@ export const expireSubscriptionItem = async (
       id: subscriptionItemId,
       expiredAt: new Date(expiredAt).getTime(),
       type: subscriptionItem.type,
-      usageMeterId: subscriptionItem.usageMeterId,
-      usageEventsPerUnit: subscriptionItem.usageEventsPerUnit,
     },
     transaction
   )

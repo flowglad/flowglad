@@ -1,4 +1,5 @@
 import type { Flowglad as FlowgladNode } from '@flowglad/node'
+import type { Price } from '@flowglad/types'
 
 export enum FlowgladActionKey {
   GetCustomerBilling = 'customers/billing',
@@ -91,12 +92,9 @@ export type BillingWithChecks = CustomerRetrieveBillingResponse & {
    * @param priceSlug - The slug of the price to get
    * @returns The price, or null if the price is not found
    */
-  getPrice: (
-    priceSlug: string
-  ) =>
-    | CustomerRetrieveBillingResponse['catalog']['products'][number]['prices'][number]
-    | null
+  getPrice: (priceSlug: string) => Price | null
 }
 
 export type SubscriptionExperimentalFields =
-  FlowgladNode.CustomerRetrieveBillingResponse.SubscriptionItem.Experimental
+  | FlowgladNode.CustomerRetrieveBillingResponse.NonRenewingSubscriptionDetails.Experimental
+  | FlowgladNode.CustomerRetrieveBillingResponse.StandardSubscriptionDetails.Experimental

@@ -17,6 +17,8 @@ import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMe
 import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
 import { PriceType, SubscriptionStatus } from '@/types'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
+import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
+import { idempotentSendCustomerSubscriptionUpgradedNotification } from '@/trigger/notifications/send-customer-subscription-upgraded-notification'
 import { Event } from '@/db/schema/events'
 import {
   FeatureFlag,
@@ -105,17 +107,6 @@ export const createSubscriptionWorkflow = async (
       transaction
     )
 
-  if (price.startsWithCreditTrial) {
-    await setupLedgerAccounts(
-      {
-        subscription,
-        subscriptionItems,
-        price,
-      },
-      transaction
-    )
-  }
-
   const {
     subscription: updatedSubscription,
     billingPeriod,
@@ -137,9 +128,28 @@ export const createSubscriptionWorkflow = async (
   // Don't send notifications for free subscriptions
   // A subscription is considered free if unitPrice is 0, not based on slug
   if (price.unitPrice !== 0) {
+    // Send organization notification
     await idempotentSendOrganizationSubscriptionCreatedNotification(
       updatedSubscription
     )
+
+    // Send customer notification - choose based on whether this is an upgrade
+    if (params.previousSubscriptionId) {
+      // This is an upgrade from free to paid
+      await idempotentSendCustomerSubscriptionUpgradedNotification({
+        customerId: updatedSubscription.customerId,
+        newSubscriptionId: updatedSubscription.id,
+        previousSubscriptionId: params.previousSubscriptionId,
+        organizationId: updatedSubscription.organizationId,
+      })
+    } else {
+      // This is a new paid subscription
+      await idempotentSendCustomerSubscriptionCreatedNotification({
+        customerId: updatedSubscription.customerId,
+        subscriptionId: updatedSubscription.id,
+        organizationId: updatedSubscription.organizationId,
+      })
+    }
   }
 
   const timestamp = Date.now()

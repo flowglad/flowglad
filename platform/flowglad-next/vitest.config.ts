@@ -23,6 +23,10 @@ export default defineConfig(({ mode }) => {
       },
       mockReset: true,
       clearMocks: true,
+      /**
+       * Make sure tests running in CI show output
+       */
+      silent: false,
     },
     resolve: {
       alias: {

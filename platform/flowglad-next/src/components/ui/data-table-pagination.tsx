@@ -26,6 +26,7 @@ export function DataTablePagination<TData>({
 }: DataTablePaginationProps<TData>) {
   // Determine the correct count to display
   // Priority: filteredCount (when filtered) > totalCount (server-side) > client-side count
+  const rows = table.getFilteredRowModel().rows
   const totalRows = React.useMemo(() => {
     if (isFiltered && typeof filteredCount === 'number') {
       return filteredCount
@@ -34,14 +35,8 @@ export function DataTablePagination<TData>({
       return totalCount
     }
     // Fallback to client-side count (only accurate for client-side pagination)
-    return table.getFilteredRowModel().rows.length
-  }, [
-    isFiltered,
-    filteredCount,
-    totalCount,
-    table,
-    table.getFilteredRowModel().rows,
-  ])
+    return rows.length
+  }, [isFiltered, filteredCount, totalCount, rows])
 
   const shouldHidePagination = totalRows <= 10
 

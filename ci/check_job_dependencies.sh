@@ -8,13 +8,20 @@
 # This file may not be copied, modified, or distributed except according to
 # those terms.
 
-set -eo pipefail
+set -euo pipefail
 which yq > /dev/null
 jobs=$(for i in $(find .github -iname '*.yaml' -or -iname '*.yml')
   do
     # Select jobs that are triggered by pull request.
     if yq -e '.on | has("pull_request")' "$i" 2>/dev/null >/dev/null
     then
+      # Skip reusable workflows (those with workflow_call) as their jobs
+      # don't need to be direct dependencies of all-jobs-succeed
+      if yq -e '.on | has("workflow_call")' "$i" 2>/dev/null >/dev/null
+      then
+        continue
+      fi
+      
       # This gets the list of jobs that all-jobs-succeed does not depend on.
       comm -23 \
         <(yq -r '.jobs | keys | .[]' "$i" | sort | uniq) \

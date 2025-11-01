@@ -115,17 +115,6 @@ export const validateDefaultPriceUpdate = (
         'Default prices for default products cannot have a time-based trial',
     })
   }
-  if (
-    update.startsWithCreditTrial !== undefined &&
-    update.startsWithCreditTrial !== null &&
-    update.startsWithCreditTrial !== false
-  ) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Default prices for default products cannot start with a credit trial',
-    })
-  }
 
   // Prevent changing the billing interval for default prices on default products
   if (
@@ -203,12 +192,5 @@ export const validateDefaultProductSchema = (product: {
   // Check no trials
   if (price.trialDays && price.trialDays > 0) {
     throw new Error('Default products cannot have trials')
-  }
-
-  // Check reserved slug usage
-  if (product.slug === 'free') {
-    throw new Error(
-      "Slug 'free' is reserved for auto-generated default plans"
-    )
   }
 }
