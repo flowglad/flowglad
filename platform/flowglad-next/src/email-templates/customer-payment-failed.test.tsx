@@ -6,7 +6,6 @@ import { CurrencyCode } from '@/types'
 describe('PaymentFailedEmail', () => {
   // Use a fixed date to avoid timezone issues
   const testDate = new Date('2024-03-19T12:00:00.000Z') // Noon UTC to avoid timezone edge cases
-
   const mockProps = {
     invoiceNumber: 'INV-123',
     orderDate: testDate,

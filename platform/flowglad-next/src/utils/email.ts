@@ -137,16 +137,7 @@ export const sendOrganizationPaymentNotificationEmail = async (
      * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
      * https://github.com/resend/react-email/issues/868
      */
-    react: await OrganizationPaymentNotificationEmail({
-      organizationName: params.organizationName,
-      amount: params.amount,
-      invoiceNumber: params.invoiceNumber,
-      currency: params.currency,
-      customerId: params.customerId,
-      customerName: params.customerName,
-      customerEmail: params.customerEmail,
-      livemode: params.livemode,
-    }),
+    react: await OrganizationPaymentNotificationEmail(params),
   })
 }
 
@@ -169,10 +160,7 @@ export const sendPurchaseAccessSessionTokenEmail = async (params: {
      * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
      * https://github.com/resend/react-email/issues/868
      */
-    react: await SendPurchaseAccessSessionTokenEmail({
-      magicLink: params.magicLink,
-      livemode: params.livemode,
-    }),
+    react: await SendPurchaseAccessSessionTokenEmail(params),
   })
 }
 
