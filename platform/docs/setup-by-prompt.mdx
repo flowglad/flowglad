@@ -102,16 +102,6 @@ return (
   {/* ... existing layout JSX ... */}
 </FlowgladProvider>
 ) `
-
-4. Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
-
-`tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
-
-export default function Billing() {
-  return <BillingPage />
-}
-`
 ```
 
 ```mdx clerk
@@ -179,15 +169,6 @@ return (
 </FlowgladProvider>
 ) `
 
-4. Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
-
-`tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
-
-export default function Billing() {
-  return <BillingPage />
-}
-`
 ```
 
 ```mdx next-auth
@@ -264,10 +245,15 @@ return (
 4. Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
 
 `tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
+import { useBilling } from '@flowglad/nextjs'
 
 export default function Billing() {
-  return <BillingPage />
+  const { checkFeatureAccess } = useBilling()
+  if (checkFeatureAccess("my_feature")) {
+    return <div>You have access!</div>
+  } else {
+    return <div>Please upgrade</div>
+  }
 }
 `
 ```
