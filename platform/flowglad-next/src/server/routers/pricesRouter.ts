@@ -223,7 +223,21 @@ export const getPrice = protectedProcedure
   .query(async ({ input, ctx }) => {
     const price = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectPriceById(input.id, transaction)
+        try {
+          return await selectPriceById(input.id, transaction)
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('No prices found with id') ||
+              error.message.includes('Failed to select prices by id'))
+          ) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'Price not found',
+            })
+          }
+          throw error
+        }
       },
       { apiKey: ctx.apiKey }
     )
