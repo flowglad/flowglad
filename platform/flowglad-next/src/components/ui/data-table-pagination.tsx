@@ -63,7 +63,7 @@ export function DataTablePagination<TData>({
               className="h-8"
               onClick={() => onExport()}
               disabled={exportDisabled || exportLoading}
-              aria-label="Export CSV"
+              aria-label={exportLoading ? 'Exporting...' : exportLabel}
             >
               {exportLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
