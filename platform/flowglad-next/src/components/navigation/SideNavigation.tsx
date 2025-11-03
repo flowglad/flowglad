@@ -236,17 +236,16 @@ export const SideNavigation = () => {
               : 'max-w-lg opacity-100 flex-1'
           )}
         >
-          <div className="flex items-center gap-3 rounded-md">
+          <div className="flex items-center gap-3 rounded-md min-w-0">
             {maybeLogo}
-            <div className="flex justify-center gap-0.5 whitespace-nowrap items-center">
-              <div className="text-sm font-semibold text-foreground truncate">
-                {organization?.name}
+            <div className="flex flex-1 items-center gap-2 min-w-0">
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-semibold text-foreground truncate">
+                  {organization?.name}
+                </span>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex-shrink-0 text-muted-foreground">
                 <OrganizationSwitcher />
-              </div>
-              <div className="text-xs font-medium text-muted-foreground truncate">
-                {organization?.tagline}
               </div>
             </div>
           </div>

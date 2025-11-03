@@ -39,10 +39,7 @@ const OrganizationFormFields: React.FC = () => {
         name="organization.name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>
-              Organization Name{' '}
-              <span className="text-destructive">*</span>
-            </FormLabel>
+            <FormLabel>Organization Name</FormLabel>
             <FormControl>
               <Input placeholder="Your Company" {...field} />
             </FormControl>
@@ -56,9 +53,7 @@ const OrganizationFormFields: React.FC = () => {
         name="organization.countryId"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>
-              Country <span className="text-destructive">*</span>
-            </FormLabel>
+            <FormLabel>Country</FormLabel>
             <FormControl>
               <Select
                 value={field.value ?? undefined}
