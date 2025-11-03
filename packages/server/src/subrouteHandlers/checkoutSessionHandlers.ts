@@ -1,15 +1,5 @@
-import {
-  FlowgladActionKey,
-  HTTPMethod,
-  createAddPaymentMethodCheckoutSessionSchema,
-  createActivateSubscriptionCheckoutSessionSchema,
-  createProductCheckoutSessionSchema,
-} from '@flowglad/shared'
-import {
-  InferRouteHandlerParams,
-  SubRouteHandler,
-  SubRouteHandlerResultData,
-} from './types'
+import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
+import { SubRouteHandler, SubRouteHandlerResultData } from './types'
 import { FlowgladServer } from '../FlowgladServer'
 import { parseErrorStringToErrorObject } from '../serverUtils'
 
@@ -35,11 +25,8 @@ const createCheckoutSession: SubRouteHandler<
     }
   }
   try {
-    const parsedParams = createProductCheckoutSessionSchema.parse(
-      params.data
-    )
     const checkoutSession =
-      await flowgladServer.createCheckoutSession(parsedParams)
+      await flowgladServer.createCheckoutSession(params.data)
     data = checkoutSession
     status = 200
   } catch (e) {
@@ -82,11 +69,9 @@ const createAddPaymentMethodCheckoutSession: SubRouteHandler<
     }
   }
   try {
-    const parsedParams =
-      createAddPaymentMethodCheckoutSessionSchema.parse(params.data)
     const checkoutSession =
       await flowgladServer.createAddPaymentMethodCheckoutSession(
-        parsedParams
+        params.data
       )
     data = checkoutSession
     status = 200
@@ -130,13 +115,9 @@ const createActivateSubscriptionCheckoutSession: SubRouteHandler<
     }
   }
   try {
-    const parsedParams =
-      createActivateSubscriptionCheckoutSessionSchema.parse(
-        params.data
-      )
     const checkoutSession =
       await flowgladServer.createActivateSubscriptionCheckoutSession(
-        parsedParams
+        params.data
       )
     data = checkoutSession
     status = 200

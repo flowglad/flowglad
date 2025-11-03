@@ -18,7 +18,6 @@ const createCoreCheckoutSessionSchema = z.object({
 
 export const createProductCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
-    type: z.literal('product'),
     priceId: z.string(),
     quantity: z.number().optional().default(1),
   })

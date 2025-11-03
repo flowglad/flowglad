@@ -11,6 +11,9 @@ import {
   constructGetProduct,
   constructGetPrice,
   CreateActivateSubscriptionCheckoutSessionParams,
+  createActivateSubscriptionCheckoutSessionSchema,
+  createAddPaymentMethodCheckoutSessionSchema,
+  createProductCheckoutSessionSchema,
 } from '@flowglad/shared'
 import {
   type ClerkFlowgladServerSessionParams,
@@ -265,9 +268,16 @@ export class FlowgladServer {
     } else {
       throw new Error('Price ID or price slug must be provided')
     }
+    const parsedParams = createProductCheckoutSessionSchema.parse({
+      ...params,
+      type: 'product',
+      priceId,
+      customerExternalId: session.externalId,
+    })
     return this.flowgladNode.checkoutSessions.create({
       checkoutSession: {
-        ...params,
+        ...parsedParams,
+        // FIXME: need to hard code these to make types pass
         type: 'product',
         priceId,
         customerExternalId: session.externalId,
@@ -299,9 +309,11 @@ export class FlowgladServer {
     if (!session) {
       throw new Error('User not authenticated')
     }
+    const parsedParams =
+      createAddPaymentMethodCheckoutSessionSchema.parse(params)
     return await this.flowgladNode.checkoutSessions.create({
       checkoutSession: {
-        ...params,
+        ...parsedParams,
         type: 'add_payment_method',
         customerExternalId: session.externalId,
       },
@@ -317,9 +329,12 @@ export class FlowgladServer {
     if (!session) {
       throw new Error('User not authenticated')
     }
+    const parsedParams =
+      createActivateSubscriptionCheckoutSessionSchema.parse(params)
+
     return await this.flowgladNode.checkoutSessions.create({
       checkoutSession: {
-        ...params,
+        ...parsedParams,
         type: 'activate_subscription',
         customerExternalId: session.externalId,
       },

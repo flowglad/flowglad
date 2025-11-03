@@ -1,6 +1,10 @@
 import { useBilling } from '@flowglad/nextjs';
 
-export const SubscribeButton = () => {
+export const SubscribeButton = ({
+  usePriceSlug = false
+}: {
+  usePriceSlug?: boolean;
+}) => {
   const billing = useBilling();
   const { createCheckoutSession, catalog } = billing;
   if (billing.errors && billing.errors.length > 0) {
@@ -15,19 +19,30 @@ export const SubscribeButton = () => {
   }
   return (
     <button
-      onClick={() =>
-        createCheckoutSession({
-          autoRedirect: true,
-          priceId:
-            catalog.products.find((product) => !product.default)?.defaultPrice
-              .id || '',
-          successUrl: `${window.location.origin}/success`,
-          cancelUrl: `${window.location.origin}/cancel`
-        })
-      }
+      onClick={() => {
+        if (usePriceSlug) {
+          createCheckoutSession({
+            autoRedirect: true,
+            priceSlug:
+              catalog.products.find((product) => !product.default)?.defaultPrice
+                .slug || '',
+            successUrl: `${window.location.origin}/success`,
+            cancelUrl: `${window.location.origin}/cancel`
+          });
+        } else {
+          createCheckoutSession({
+            autoRedirect: true,
+            priceId:
+              catalog.products.find((product) => !product.default)?.defaultPrice
+                .id || '',
+            successUrl: `${window.location.origin}/success`,
+            cancelUrl: `${window.location.origin}/cancel`
+          });
+        }
+      }}
       className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-200"
     >
-      Subscribe
+      Subscribe ({usePriceSlug ? 'Price Slug' : 'Price ID'})
     </button>
   );
 };

@@ -52,6 +52,7 @@ export default function Pricing({ user }: Props) {
       <div className="max-w-6xl px-4 py-8 mx-auto sm:py-24 sm:px-6 lg:px-8">
         <div className="sm:flex sm:flex-col sm:align-center"></div>
         <SubscribeButton />
+        <SubscribeButton usePriceSlug={true} />
         <AddPaymentMethodButton />
       </div>
       <SubscriptionDemoCard />
