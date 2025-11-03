@@ -8,9 +8,11 @@ import {
 import { invoiceUpdatedTask } from '@/trigger/supabase/invoice-updated'
 import { customerCreatedTask } from '@/trigger/supabase/customer-inserted'
 import { eventInsertedTask } from '@/trigger/supabase/event-inserted'
+import { organizationUpdatedTask } from '@/trigger/supabase/organization-updated'
 import { Invoice } from '@/db/schema/invoices'
 import { Customer } from '@/db/schema/customers'
 import { Event } from '@/db/schema/events'
+import { Organization } from '@/db/schema/organizations'
 import { Membership } from '@/db/schema/memberships'
 import { memberInsertedTask } from '@/trigger/supabase/member-inserted'
 
@@ -50,6 +52,11 @@ export async function POST(request: Request) {
     case `events:${SupabasePayloadType.INSERT}`:
       await eventInsertedTask.trigger(
         payload as SupabaseInsertPayload<Event.Record>
+      )
+      break
+    case `organizations:${SupabasePayloadType.UPDATE}`:
+      await organizationUpdatedTask.trigger(
+        payload as SupabaseUpdatePayload<Organization.Record>
       )
       break
     default:

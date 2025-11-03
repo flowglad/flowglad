@@ -27,6 +27,7 @@ import {
 import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
 import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
 import { PayoutNotificationEmail } from '@/email-templates/organization/payout-notification'
+import { OrganizationPayoutsEnabledNotificationEmail } from '@/email-templates/organization/organization-payouts-enabled'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
@@ -450,6 +451,31 @@ export const sendPayoutNotificationEmail = async ({
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     subject: `Enable Payouts for ${organizationName}`,
     react: await PayoutNotificationEmail({
+      organizationName,
+    }),
+  })
+}
+
+export const sendOrganizationPayoutsEnabledNotificationEmail = async ({
+  to,
+  organizationName,
+}: {
+  to: string[]
+  organizationName: string
+}) => {
+  return safeSend({
+    from: 'Flowglad <notifications@flowglad.com>',
+    to: to.map(safeTo),
+    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+    subject: `Payouts Enabled for ${organizationName}`,
+    /**
+     * NOTE: await needed to prevent
+     * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
+     * @see
+     * https://www.reddit.com/r/reactjs/comments/1hdzwop/i_need_help_with_rendering_reactemail_as_html/
+     * https://github.com/resend/react-email/issues/868
+     */
+    react: await OrganizationPayoutsEnabledNotificationEmail({
       organizationName,
     }),
   })
