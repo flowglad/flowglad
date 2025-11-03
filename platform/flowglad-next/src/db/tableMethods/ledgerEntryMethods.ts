@@ -166,21 +166,15 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
 }
 
 /**
- * Fetches and calculates usage meter balances for subscriptions.
- * This function:
- * 1. Retrieves all relevant ledger entries for the given subscriptions
- * 2. Groups entries by ledger account to calculate balances
- * 3. Returns the balances along with their associated usage meters
+ * Aggregates usage meter balances for subscriptions directly in SQL.
+ * The query filters ledger entries by subscription/account scope, enforces the
+ * "available" balance rules, and joins the usage meter metadata so that the
+ * database returns one summarized row per meter rather than every individual entry.
  *
- * The function only considers entries that:
- * - Match the provided subscription/ledger account filters
- * - Are relevant for "available" balance calculation (posted or pending debits)
- * - Have not been discarded
- *
- * @param scopedWhere - Filter conditions for subscription and ledger account
- * @param transaction - Database transaction to use
- * @param calculationDate - Date to use for balance calculations (defaults to current date)
- * @returns Array of usage meter balances with their subscription IDs
+ * @param scopedWhere - Subscription and ledger account filters to apply
+ * @param transaction - Database transaction used to execute the aggregation
+ * @param calculationDate - Anchor date for discard filtering (defaults to now)
+ * @returns Usage meters with their computed available balances per subscription
  */
 export const selectUsageMeterBalancesForSubscriptions = async (
   scopedWhere: Pick<
@@ -192,14 +186,27 @@ export const selectUsageMeterBalancesForSubscriptions = async (
 ): Promise<
   { usageMeterBalance: UsageMeterBalance; subscriptionId: string }[]
 > => {
-  // Step 1: Fetch ledger entries with their associated usage meters
-  // Uses INNER JOIN to only get entries with valid usage meters
-  const entries = await transaction
+  // Build a CASE/SUM expression that treats credits as positive and debits as negative.
+  const balanceExpression = sql<number>`
+    SUM(
+      CASE
+        WHEN ${ledgerEntries.direction} = ${LedgerEntryDirection.Credit}
+        THEN ${ledgerEntries.amount}
+        ELSE -${ledgerEntries.amount}
+      END
+    )
+  `
+
+  // Run the aggregation inside the database so only summarized balances are returned.
+  const results = await transaction
     .select({
-      ledgerEntry: ledgerEntries,
+      ledgerAccountId: ledgerEntries.ledgerAccountId,
+      subscriptionId: ledgerEntries.subscriptionId,
       usageMeter: usageMeters,
+      balance: balanceExpression,
     })
     .from(ledgerEntries)
+    // Join usage meter metadata so each aggregate row includes the related meter.
     .innerJoin(
       usageMeters,
       eq(ledgerEntries.usageMeterId, usageMeters.id)
@@ -214,34 +221,50 @@ export const selectUsageMeterBalancesForSubscriptions = async (
         )
       )
     )
-
-  // Step 2: Group entries by ledger account for balance calculation
-  // This allows us to calculate the total balance for each account
-  const entriesByAccount = core.groupBy(
-    (item) => item.ledgerEntry.ledgerAccountId,
-    entries.map((item) => ({
-      usageMeter: usageMetersSelectSchema.parse(item.usageMeter),
-      ledgerEntry: ledgerEntriesSelectSchema.parse(item.ledgerEntry),
-    }))
-  )
-
-  // Step 3: Calculate balances for each account
-  // Returns the usage meter balance along with its subscription ID
-  return Object.values(entriesByAccount).map((accountEntries) => {
-    const firstEntry = accountEntries[0]
-    const balance = balanceFromEntries(
-      accountEntries.map((item) => item.ledgerEntry)
+    .groupBy(
+      // Group by all non-aggregated columns required by SQL.
+      ledgerEntries.ledgerAccountId,
+      ledgerEntries.subscriptionId,
+      usageMeters.id,
+      usageMeters.organizationId,
+      usageMeters.name,
+      usageMeters.pricingModelId,
+      usageMeters.slug,
+      usageMeters.aggregationType,
+      usageMeters.createdAt,
+      usageMeters.updatedAt,
+      usageMeters.createdByCommit,
+      usageMeters.updatedByCommit,
+      usageMeters.livemode,
+      usageMeters.position
     )
 
-    return {
-      usageMeterBalance: {
-        ...usageMetersClientSelectSchema.parse(firstEntry.usageMeter),
-        subscriptionId: firstEntry.ledgerEntry.subscriptionId!,
-        availableBalance: balance,
-      },
-      subscriptionId: firstEntry.ledgerEntry.subscriptionId!,
-    }
-  })
+  // Transform the aggregated rows into the expected usage meter balance shape.
+  return results
+    .filter((result) => Boolean(result.subscriptionId))
+    .map((result) => {
+      // Parse the raw usage meter row with server-side schema validation.
+      const usageMeterRecord = usageMetersSelectSchema.parse(
+        result.usageMeter
+      )
+
+      // Normalize the balance coming back from SQL (strings) into a number.
+      const availableBalance = parseInt(`${result.balance ?? 0}`, 10)
+
+      // Convert the usage meter to its client-facing schema.
+      const usageMeterClientRecord =
+        usageMetersClientSelectSchema.parse(usageMeterRecord)
+
+      // Return the usage meter balance with the computed available balance.
+      return {
+        usageMeterBalance: {
+          ...usageMeterClientRecord,
+          subscriptionId: result.subscriptionId!,
+          availableBalance,
+        },
+        subscriptionId: result.subscriptionId!,
+      }
+    })
 }
 
 /**
