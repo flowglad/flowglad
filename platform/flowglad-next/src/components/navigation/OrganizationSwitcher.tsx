@@ -133,9 +133,9 @@ const OrganizationSwitcher = () => {
                       setIsCreateOrganizationModalOpen(true)
                     }}
                   >
-                    <div className="flex h-4 w-4 items-center justify-center rounded-full border border-dashed border-muted-foreground/40">
+                    <span className="flex h-4 w-4 items-center justify-center">
                       <Plus className="h-3 w-3" />
-                    </div>
+                    </span>
                     <span className="truncate">
                       Create New Organization
                     </span>
