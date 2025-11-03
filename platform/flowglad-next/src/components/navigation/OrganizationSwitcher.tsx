@@ -73,8 +73,8 @@ const OrganizationSwitcher = () => {
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-64 p-0 pointer-events-auto"
-          align="start"
+          className="w-64 p-0.5 pointer-events-auto"
+          align="end"
           container={sheetContainer}
           onInteractOutside={(e) => {
             // Prevent closing when clicking on Sheet overlay, but allow normal outside clicks
@@ -84,12 +84,8 @@ const OrganizationSwitcher = () => {
             }
           }}
         >
-          <div className="flex flex-col">
+          <div className="flex flex-col rounded-md overflow-hidden">
             <Command>
-              <CommandInput
-                placeholder="Search organizations..."
-                className="border-none focus:border-none focus:ring-0"
-              />
               <CommandList className="max-h-64 overflow-auto">
                 <CommandEmpty>No organizations found.</CommandEmpty>
                 <CommandGroup>
@@ -98,6 +94,7 @@ const OrganizationSwitcher = () => {
                       key={org.id}
                       value={`${org.id} ${org.name}`}
                       keywords={[org.name]}
+                      className="cursor-pointer px-2 py-2 rounded-sm data-[selected=true]:bg-accent"
                       onSelect={async () => {
                         if (org.id !== organization?.id) {
                           await updateFocusedMembership.mutateAsync({
@@ -122,28 +119,31 @@ const OrganizationSwitcher = () => {
                       <Check
                         className={
                           organization?.id === org.id
-                            ? 'ml-auto opacity-100'
-                            : 'ml-auto opacity-0'
+                            ? 'ml-auto opacity-100 h-4 w-4'
+                            : 'ml-auto opacity-0 h-4 w-4'
                         }
                       />
                     </CommandItem>
                   ))}
+                  <CommandItem
+                    value="create-organization"
+                    className="cursor-pointer px-2 py-2 rounded-sm data-[selected=true]:bg-accent"
+                    onSelect={() => {
+                      setIsOrgMenuOpen(false)
+                      setIsCreateOrganizationModalOpen(true)
+                    }}
+                  >
+                    <div className="flex h-4 w-4 items-center justify-center rounded-full border border-dashed border-muted-foreground/40">
+                      <Plus className="h-3 w-3" />
+                    </div>
+                    <span className="truncate">
+                      Create New Organization
+                    </span>
+                    <Check className="ml-auto h-4 w-4 opacity-0" />
+                  </CommandItem>
                 </CommandGroup>
               </CommandList>
             </Command>
-            <div className="border-t flex justify-center">
-              <Button
-                variant="ghost"
-                className="w-max-content"
-                onClick={() => {
-                  setIsOrgMenuOpen(false)
-                  setIsCreateOrganizationModalOpen(true)
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Organization
-              </Button>
-            </div>
           </div>
         </PopoverContent>
       </Popover>
