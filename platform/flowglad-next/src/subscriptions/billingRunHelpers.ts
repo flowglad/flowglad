@@ -810,7 +810,7 @@ export const executeBillingRun = async (billingRunId: string) => {
             )
             await safelyUpdateInvoiceStatus(
               resultFromSteps.invoice,
-              InvoiceStatus.AwaitingPaymentConfirmation,
+              InvoiceStatus.Open,
               transaction
             )
             await updateBillingRun(
