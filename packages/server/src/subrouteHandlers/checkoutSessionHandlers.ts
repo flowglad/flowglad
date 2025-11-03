@@ -118,10 +118,11 @@ const createActivateSubscriptionCheckoutSession: SubRouteHandler<
       error,
     }
   }
+const parsedParams = createActivateSubscriptionCheckoutSessionSchema.parse(params.data)
   try {
     const checkoutSession =
       await flowgladServer.createActivateSubscriptionCheckoutSession(
-        params.data
+        parsedParams
       )
     data = checkoutSession
     status = 200
