@@ -77,9 +77,9 @@ const createAddPaymentMethodCheckoutSession: SubRouteHandler<
       error,
     }
   }
-  const parsedParams =
-    createAddPaymentMethodCheckoutSessionSchema.parse(params.data)
   try {
+    const parsedParams =
+      createAddPaymentMethodCheckoutSessionSchema.parse(params.data)
     const checkoutSession =
       await flowgladServer.createAddPaymentMethodCheckoutSession(
         parsedParams
@@ -125,9 +125,11 @@ const createActivateSubscriptionCheckoutSession: SubRouteHandler<
       error,
     }
   }
-  const parsedParams =
-    createActivateSubscriptionCheckoutSessionSchema.parse(params.data)
   try {
+    const parsedParams =
+      createActivateSubscriptionCheckoutSessionSchema.parse(
+        params.data
+      )
     const checkoutSession =
       await flowgladServer.createActivateSubscriptionCheckoutSession(
         parsedParams
