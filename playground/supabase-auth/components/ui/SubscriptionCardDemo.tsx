@@ -18,9 +18,9 @@ export const SubscribeButton = () => {
       onClick={() =>
         createCheckoutSession({
           autoRedirect: true,
-          priceSlug:
+          priceId:
             catalog.products.find((product) => !product.default)?.defaultPrice
-              .slug || '',
+              .id || '',
           successUrl: `${window.location.origin}/success`,
           cancelUrl: `${window.location.origin}/cancel`
         })

@@ -3,6 +3,7 @@ import {
   HTTPMethod,
   createAddPaymentMethodCheckoutSessionSchema,
   createActivateSubscriptionCheckoutSessionSchema,
+  createProductCheckoutSessionSchema,
 } from '@flowglad/shared'
 import {
   InferRouteHandlerParams,
@@ -34,8 +35,11 @@ const createCheckoutSession: SubRouteHandler<
     }
   }
   try {
+    const parsedParams = createProductCheckoutSessionSchema.parse(
+      params.data
+    )
     const checkoutSession =
-      await flowgladServer.createCheckoutSession(params.data)
+      await flowgladServer.createCheckoutSession(parsedParams)
     data = checkoutSession
     status = 200
   } catch (e) {
