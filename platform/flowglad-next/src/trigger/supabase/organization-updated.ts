@@ -24,9 +24,19 @@ export const organizationUpdatedTask = task({
     payload: SupabaseUpdatePayload<Organization.Record>,
     { ctx }
   ) => {
-    logger.log(JSON.stringify({ payload, ctx }, null, 2))
-
     const { old_record: oldRecord, record: newRecord } = payload
+    
+    logger.log(
+      JSON.stringify(
+        {
+          organizationId: newRecord.id,
+          organizationName: newRecord.name,
+          ctx,
+        },
+        null,
+        2
+      )
+    )
 
     if (payoutsEnabledChanged({ oldRecord, newRecord })) {
       logger.info(
