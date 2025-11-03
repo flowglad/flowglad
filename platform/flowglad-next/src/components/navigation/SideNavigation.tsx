@@ -6,7 +6,6 @@ import {
   Users,
   CircleDollarSign,
   BookOpen,
-  Loader2,
   LogOut,
   TriangleRight,
   type LucideIcon,
@@ -30,12 +29,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Button } from '@/components/ui/button'
-import { signOut } from '@/utils/authClient'
+import OrganizationSwitcher from '@/components/navigation/OrganizationSwitcher'
 
 // Official Shadcn navigation interfaces
 type StandaloneNavItem = {
@@ -58,7 +55,7 @@ type MainNavItem = {
 
 export const SideNavigation = () => {
   const pathname = usePathname()
-  const { user, organization } = useAuthContext()
+  const { organization } = useAuthContext()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
     onSuccess: async () => {
       await invalidateTRPC()
@@ -239,19 +236,20 @@ export const SideNavigation = () => {
               : 'max-w-lg opacity-100 flex-1'
           )}
         >
-          <div className="flex items-center gap-3 rounded-md">
-            {maybeLogo}
-            <div className="flex flex-col justify-center gap-0.5 whitespace-nowrap">
-              <div className="text-sm font-semibold text-foreground truncate">
-                {organization?.name}
-              </div>
-              <div className="text-xs font-medium text-muted-foreground truncate">
-                {organization?.tagline}
+          <div className="flex items-center gap-3 rounded-md min-w-0">
+            <div className="flex flex-1 items-center gap-2 min-w-0">
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-semibold text-foreground truncate">
+                  {organization?.name}
+                </span>
               </div>
             </div>
           </div>
         </div>
-        <SidebarTrigger className="flex-shrink-0 text-muted-foreground" />
+        <div className="flex items-center gap-1 text-muted-foreground">
+          {!isCollapsed && <OrganizationSwitcher />}
+          <SidebarTrigger className="flex-shrink-0" />
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="pt-3 bg-sidebar">

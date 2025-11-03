@@ -15,13 +15,21 @@ const PopoverClose = PopoverPrimitive.Close
 
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & {
+    container?: HTMLElement
+  }
 >(
   (
-    { className, align = 'center', sideOffset = 4, ...props },
+    {
+      className,
+      align = 'center',
+      sideOffset = 4,
+      container,
+      ...props
+    },
     ref
   ) => (
-    <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Portal container={container}>
       <PopoverPrimitive.Content
         ref={ref}
         align={align}

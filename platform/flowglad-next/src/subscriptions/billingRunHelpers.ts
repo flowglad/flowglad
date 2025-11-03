@@ -325,9 +325,7 @@ export const billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts =
         ledgerAccountId: usageOverage!.ledgerAccountId,
         livemode: usageOverage.livemode,
         price: usageOverage.unitPrice,
-        description: `${usageOverage.name ?? ''} ${
-          usageOverage.description && ` - ${usageOverage.description}`
-        }`,
+        description: `${usageOverage.name ?? ''}`,
       }
       return insert
     })
@@ -810,7 +808,7 @@ export const executeBillingRun = async (billingRunId: string) => {
             )
             await safelyUpdateInvoiceStatus(
               resultFromSteps.invoice,
-              InvoiceStatus.AwaitingPaymentConfirmation,
+              InvoiceStatus.Open,
               transaction
             )
             await updateBillingRun(
