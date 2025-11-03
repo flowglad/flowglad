@@ -6,7 +6,7 @@ import { CurrencyCode } from '@/types'
 describe('PaymentFailedEmail', () => {
   // Use a fixed date to avoid timezone issues
   const testDate = new Date('2024-03-19T12:00:00.000Z') // Noon UTC to avoid timezone edge cases
-  
+
   const mockProps = {
     invoiceNumber: 'INV-123',
     orderDate: testDate,
@@ -31,12 +31,17 @@ describe('PaymentFailedEmail', () => {
     ],
     failureReason: 'Insufficient funds',
     customerPortalUrl: 'https://example.com/portal',
+    livemode: false,
   }
 
   it('should render the payment failed email with all components', () => {
-    const { getByTestId, getByAltText, queryByTestId, getByText, getByRole } = render(
-      <PaymentFailedEmail {...mockProps} />
-    )
+    const {
+      getByTestId,
+      getByAltText,
+      queryByTestId,
+      getByText,
+      getByRole,
+    } = render(<PaymentFailedEmail {...mockProps} />)
 
     // Check header content
     expect(getByTestId('email-title')).toHaveTextContent(
@@ -48,14 +53,26 @@ describe('PaymentFailedEmail', () => {
     )
 
     // Check failure reason - the text is in the paragraph elements
-    expect(getByText(/We were unable to process your payment for the order below/)).toBeInTheDocument()
+    expect(
+      getByText(
+        /We were unable to process your payment for the order below/
+      )
+    ).toBeInTheDocument()
     expect(getByText(/Reason:/)).toBeInTheDocument()
     expect(getByText(/Insufficient funds/)).toBeInTheDocument()
 
     // Check order details - these are in paragraph elements without specific test IDs
-    expect(getByText(`Invoice #: ${mockProps.invoiceNumber}`)).toBeInTheDocument()
+    expect(
+      getByText(`Invoice #: ${mockProps.invoiceNumber}`)
+    ).toBeInTheDocument()
     // Use dynamic date formatting instead of hardcoded dates
-    expect(getByText(new RegExp(`Date: ${testDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`))).toBeInTheDocument()
+    expect(
+      getByText(
+        new RegExp(
+          `Date: ${testDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+        )
+      )
+    ).toBeInTheDocument()
     expect(getByText('Amount: $60.00')).toBeInTheDocument()
 
     // Check line items
@@ -74,8 +91,13 @@ describe('PaymentFailedEmail', () => {
     expect(getByTestId('total-amount')).toHaveTextContent('$60.00')
 
     // Check customer portal button
-    const updateButton = getByRole('link', { name: 'Update Payment Method' })
-    expect(updateButton).toHaveAttribute('href', mockProps.customerPortalUrl)
+    const updateButton = getByRole('link', {
+      name: 'Update Payment Method',
+    })
+    expect(updateButton).toHaveAttribute(
+      'href',
+      mockProps.customerPortalUrl
+    )
 
     // Check signature
     expect(getByText('Best,')).toBeInTheDocument()
@@ -261,8 +283,20 @@ describe('PaymentFailedEmail', () => {
 
       expect(getByText(/We will retry on/)).toBeInTheDocument()
       // Use dynamic date formatting instead of hardcoded dates
-      expect(getByText(new RegExp(retryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })))).toBeInTheDocument()
-      expect(getByText(/with the same payment method/)).toBeInTheDocument()
+      expect(
+        getByText(
+          new RegExp(
+            retryDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          )
+        )
+      ).toBeInTheDocument()
+      expect(
+        getByText(/with the same payment method/)
+      ).toBeInTheDocument()
     })
 
     it('should show no retry message when retryDate is not provided', () => {
@@ -270,7 +304,11 @@ describe('PaymentFailedEmail', () => {
         <PaymentFailedEmail {...mockProps} />
       )
 
-      expect(getByText('We will no longer attempt to retry the payment. Please reach out to us to get this sorted.')).toBeInTheDocument()
+      expect(
+        getByText(
+          'We will no longer attempt to retry the payment. Please reach out to us to get this sorted.'
+        )
+      ).toBeInTheDocument()
     })
   })
 
@@ -295,7 +333,9 @@ describe('PaymentFailedEmail', () => {
     expect(queryByText('Reason:')).not.toBeInTheDocument()
 
     // Should not show customer portal button
-    expect(queryByTestId('update-payment-button')).not.toBeInTheDocument()
+    expect(
+      queryByTestId('update-payment-button')
+    ).not.toBeInTheDocument()
 
     // Should not show discount elements
     expect(queryByTestId('original-amount')).not.toBeInTheDocument()

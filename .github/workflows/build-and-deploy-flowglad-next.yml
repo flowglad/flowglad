@@ -45,6 +45,7 @@ jobs:
       - name: Get pnpm store directory
         shell: bash
         run: |
+          set -euo pipefail
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
       
       - name: Setup pnpm cache
@@ -64,6 +65,7 @@ jobs:
         
       - name: Pull Vercel Environment Variables
         run: |
+          set -euo pipefail
           vercel pull --yes --environment=${{ inputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
           cp .vercel/.env.${{ inputs.environment }}.local .env.local
           cp .vercel/.env.${{ inputs.environment }}.local platform/flowglad-next/.env.local
@@ -98,6 +100,7 @@ jobs:
       - name: Trigger Update API Reference in Mintlify
         if: ${{ inputs.environment == 'production' }}
         run: |
+          set -euo pipefail
           curl --fail-with-body --request POST \
             --url https://api.mintlify.com/v1/project/update/${{ secrets.MINTLIFY_PROJECT_ID }} \
             --header 'Authorization: Bearer ${{ secrets.MINTLIFY_API_KEY }}'

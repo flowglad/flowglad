@@ -48,7 +48,9 @@ export const safelyInsertBillingRun = async (
     transaction
   )
   if (subscription.status === SubscriptionStatus.Canceled) {
-    throw new Error('Cannot create billing run for canceled subscription')
+    throw new Error(
+      'Cannot create billing run for canceled subscription'
+    )
   }
   return dangerouslyInsertBillingRun(insert, transaction)
 }

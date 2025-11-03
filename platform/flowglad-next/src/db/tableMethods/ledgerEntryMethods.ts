@@ -22,17 +22,7 @@ import {
   LedgerEntryType,
   UsageBillingInfo,
 } from '@/types'
-import {
-  and,
-  asc,
-  eq,
-  inArray,
-  lt,
-  not,
-  or,
-  sql,
-  sum,
-} from 'drizzle-orm'
+import { and, asc, eq, inArray, lt, not, or, sql } from 'drizzle-orm'
 import { createDateNotPassedFilter } from '../tableUtils'
 import { selectUsageCredits } from './usageCreditMethods'
 import { usageCredits } from '../schema/usageCredits'
@@ -120,6 +110,17 @@ export const balanceFromEntries = (entries: LedgerEntry.Record[]) => {
   }, 0)
 }
 
+/**
+ * Aggregates the signed ledger balance for an account directly in SQL.
+ * The query filters entries according to the provided scope, applies the
+ * appropriate balance type rules, and sums credits minus debits so only a
+ * single aggregated value is returned from the database.
+ *
+ * @param scopedWhere - Partial ledger entry filters scoped to a ledger account
+ * @param balanceType - Determines which ledger entries contribute to the sum
+ * @param transaction - Database transaction used to execute the aggregation
+ * @returns The aggregated balance for the scoped ledger account
+ */
 export const aggregateBalanceForLedgerAccountFromEntries = async (
   scopedWhere: Pick<
     LedgerEntry.Where,
@@ -135,8 +136,22 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
   balanceType: 'pending' | 'posted' | 'available',
   transaction: DbTransaction
 ) => {
+  // CASE statement computes signed amounts where credits add and debits subtract.
+  const balanceExpression = sql<number>`
+    SUM(
+      CASE 
+        WHEN ${ledgerEntries.direction} = ${LedgerEntryDirection.Credit}
+        THEN ${ledgerEntries.amount}
+        ELSE -${ledgerEntries.amount}
+      END
+    )
+  `
+
+  // Execute the aggregation against ledger entries using scoped filters.
   const result = await transaction
-    .select()
+    .select({
+      balance: balanceExpression,
+    })
     .from(ledgerEntries)
     .where(
       and(
@@ -145,10 +160,9 @@ export const aggregateBalanceForLedgerAccountFromEntries = async (
         balanceTypeWhereStatement(balanceType)
       )
     )
-    .orderBy(asc(ledgerEntries.position))
-  return balanceFromEntries(
-    result.map((item) => ledgerEntriesSelectSchema.parse(item))
-  )
+
+  // Convert the aggregated SQL result into a numeric balance (default to zero).
+  return parseInt(`${result[0]?.balance ?? 0}`, 10)
 }
 
 /**
@@ -239,8 +253,6 @@ export const selectUsageMeterBalancesForSubscriptions = async (
  * 2. Joining with usage_credits to get expiresAt in a single query
  * 3. Only transferring aggregated results instead of all individual entries
  *
- * Use this version when dealing with large numbers of ledger entries to minimize
- * data transfer costs.
  */
 export const aggregateAvailableBalanceForUsageCredit = async (
   scopedWhere: Pick<

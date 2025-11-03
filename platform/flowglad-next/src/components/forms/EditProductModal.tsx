@@ -39,6 +39,9 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       }),
     })
   const prices = pricesData?.data
+  const defaultActivePrice = prices?.find(
+    (p) => p.isDefault === true && p.active === true
+  )
   const { organization } = useAuthenticatedContext()
 
   // Don't render modal if organization is not loaded yet
@@ -54,15 +57,26 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       formSchema={editProductFormSchema}
       defaultValues={{
         product,
-        price: prices?.[0],
+        price: defaultActivePrice ?? prices?.[0],
         id: product.id,
         __rawPriceString: countableCurrencyAmountToRawStringAmount(
           organization.defaultCurrency,
-          prices?.[0]?.unitPrice!
+          defaultActivePrice?.unitPrice! ?? prices?.[0]?.unitPrice!
         ),
       }}
       onSubmit={async (input) => {
-        await editProduct.mutateAsync(input)
+        await editProduct.mutateAsync({
+          ...input,
+          price: input.price
+            ? {
+                ...input.price,
+                unitPrice: rawStringAmountToCountableCurrencyAmount(
+                  organization.defaultCurrency,
+                  input.__rawPriceString
+                ),
+              }
+            : undefined,
+        })
       }}
       key={`${product.id}-${pricesLoading}`}
       mode="drawer"

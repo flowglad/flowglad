@@ -1,6 +1,5 @@
-import { CurrencyCode, DiscountAmountType } from '@/types'
+import { CurrencyCode } from '@/types'
 import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
 import core from '@/utils/core'
@@ -14,6 +13,7 @@ import {
   Signature,
   Paragraph,
 } from './components/themed'
+import TestModeBanner from './components/TestBanner'
 
 export const OrderReceiptEmail = ({
   invoiceNumber,
@@ -25,6 +25,7 @@ export const OrderReceiptEmail = ({
   organizationId,
   customerId,
   discountInfo,
+  livemode,
 }: {
   invoiceNumber: string
   orderDate: string
@@ -48,11 +49,17 @@ export const OrderReceiptEmail = ({
     discountAmount: number
     discountAmountType: string
   } | null
+  livemode: boolean
 }) => {
-  const totals = calculateInvoiceTotalsWithDiscounts(lineItems, invoice, discountInfo)
+  const totals = calculateInvoiceTotalsWithDiscounts(
+    lineItems,
+    invoice,
+    discountInfo
+  )
 
   return (
     <EmailLayout previewText="Thanks for your order!">
+      <TestModeBanner livemode={livemode} />
       <Header
         title="Thanks for your order!"
         organizationLogoUrl={organizationLogoUrl}

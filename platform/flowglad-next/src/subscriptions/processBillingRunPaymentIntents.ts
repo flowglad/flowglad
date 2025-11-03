@@ -125,6 +125,7 @@ const processSucceededNotifications = async (
     currency: params.invoice.currency,
     customerName: params.customer.name,
     customerEmail: params.customer.email,
+    livemode: params.invoice.livemode,
   })
 }
 
@@ -161,6 +162,7 @@ const processFailedNotifications = async (
     })),
     retryDate: params.retryDate,
     discountInfo,
+    livemode: params.invoice.livemode,
   })
 
   await sendOrganizationPaymentFailedNotificationEmail({
@@ -174,6 +176,7 @@ const processFailedNotifications = async (
     amount: params.invoiceLineItems.reduce((acc, item) => {
       return item.price * item.quantity + acc
     }, 0),
+    livemode: params.invoice.livemode,
   })
 }
 
@@ -188,11 +191,13 @@ const processAwaitingPaymentConfirmationNotifications = async (
     organizationName: params.organization.name,
     amount: params.payment.amount,
     customerId: params.customer.id,
-    to: [params.customer.email],
-    orderDate: params.invoice.invoiceDate,
+    to: params.organizationMemberUsers
+      .filter((user) => user.email)
+      .map((user) => user.email!),
     invoiceNumber: params.invoice.invoiceNumber,
     currency: params.invoice.currency,
     customerName: params.customer.name,
+    livemode: params.invoice.livemode,
   })
 }
 
@@ -440,9 +445,10 @@ export const processPaymentIntentEventForBillingRun = async (
       } as Invoice.Update,
       transaction
     )
-    await processAwaitingPaymentConfirmationNotifications(
-      notificationParams
-    )
+    await processAwaitingPaymentConfirmationNotifications({
+      ...notificationParams,
+      invoice, // Use the updated invoice
+    })
   }
 
   const invoiceLedgerCommand:

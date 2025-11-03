@@ -13,6 +13,7 @@ import {
   TotalSection,
 } from './components/themed'
 import { emailBaseUrl } from '@/utils/core'
+import TestModeBanner from './components/TestBanner'
 
 export const InvoiceNotificationEmail = ({
   invoice,
@@ -20,6 +21,7 @@ export const InvoiceNotificationEmail = ({
   organizationLogoUrl,
   organizationName,
   discountInfo,
+  livemode,
 }: {
   invoice: Invoice.Record
   invoiceLineItems: InvoiceLineItem.Record[]
@@ -31,6 +33,7 @@ export const InvoiceNotificationEmail = ({
     discountAmount: number
     discountAmountType: string
   } | null
+  livemode: boolean
 }) => {
   const { originalAmount, subtotalAmount, taxAmount, totalAmount } =
     calculateInvoiceTotalsFromLineItems(
@@ -49,6 +52,7 @@ export const InvoiceNotificationEmail = ({
 
   return (
     <EmailLayout previewText={`New Invoice from ${organizationName}`}>
+      <TestModeBanner livemode={livemode} />
       <Header
         title="New Invoice"
         organizationLogoUrl={organizationLogoUrl}

@@ -35,9 +35,6 @@ import {
 } from '@/db/tableUtils'
 import { PriceType } from '@/types'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { SelectConditions } from '@/db/tableUtils'
-import { prices } from '@/db/schema/prices'
-import { DbTransaction } from '@/db/types'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Price',
@@ -95,18 +92,6 @@ export const createPrice = protectedProcedure
           })
         }
 
-        // If we're setting this price as default, ensure no other prices are default
-        const defaultPrices = [...existingPrices, price].filter(
-          (v) => v.isDefault
-        )
-        if (defaultPrices.length > 1) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'There must be exactly one default price per product',
-          })
-        }
-
         // Validate that default prices on default products must have unitPrice = 0
         if (
           price.isDefault &&
@@ -123,14 +108,10 @@ export const createPrice = protectedProcedure
           ctx.organizationId!,
           transaction
         )
-        const existingProductHasNoDefaultPrice =
-          existingPrices.length === 0
         const newPrice = await safelyInsertPrice(
           {
             ...price,
-            isDefault:
-              existingProductHasNoDefaultPrice ||
-              input.price.isDefault,
+            // for now, created prices have default = true and active = true
             livemode: ctx.livemode,
             currency: organization.defaultCurrency,
             externalId: null,
@@ -219,6 +200,34 @@ export const updatePrice = protectedProcedure
     )
   })
 
+export const getPrice = protectedProcedure
+  .meta(openApiMetas.GET)
+  .input(idInputSchema)
+  .output(z.object({ price: pricesClientSelectSchema }))
+  .query(async ({ input, ctx }) => {
+    const price = await authenticatedTransaction(
+      async ({ transaction }) => {
+        try {
+          return await selectPriceById(input.id, transaction)
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.message.includes('No prices found with id') ||
+              error.message.includes('Failed to select prices by id'))
+          ) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'Price not found',
+            })
+          }
+          throw error
+        }
+      },
+      { apiKey: ctx.apiKey }
+    )
+    return { price }
+  })
+
 export const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
@@ -295,4 +304,5 @@ export const pricesRouter = router({
   listUsagePricesForProduct,
   setAsDefault: setPriceAsDefault,
   archive: archivePrice,
+  get: getPrice,
 })

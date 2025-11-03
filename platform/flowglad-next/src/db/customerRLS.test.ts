@@ -11,7 +11,10 @@ import {
   setupPayment,
   setupPrice,
 } from '@/../seedDatabase'
-import { insertPricingModel, selectPricingModelForCustomer } from './tableMethods/pricingModelMethods'
+import {
+  insertPricingModel,
+  selectPricingModelForCustomer,
+} from './tableMethods/pricingModelMethods'
 import { insertProduct } from './tableMethods/productMethods'
 import { insertPrice } from './tableMethods/priceMethods'
 import { sql } from 'drizzle-orm'

@@ -43,11 +43,13 @@ jobs:
 
       - name: Configure Git
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Rebase stable onto main
         run: |
+          set -euo pipefail
           git fetch origin stable
           git checkout stable
           git pull origin stable

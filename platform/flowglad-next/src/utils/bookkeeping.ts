@@ -31,7 +31,7 @@ import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMe
 import { Customer } from '@/db/schema/customers'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { Payment } from '@/db/schema/payments'
-import {  selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import {
   selectDefaultPricingModel,

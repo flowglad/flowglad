@@ -11,6 +11,9 @@ export const confirmCheckoutSession = publicProcedure
   .input(idInputSchema)
   .mutation(async ({ input }) => {
     return comprehensiveAdminTransaction(async ({ transaction }) => {
-      return await confirmCheckoutSessionTransaction(input, transaction)
+      return await confirmCheckoutSessionTransaction(
+        input,
+        transaction
+      )
     })
   })

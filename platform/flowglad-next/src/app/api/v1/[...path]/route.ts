@@ -19,6 +19,7 @@ import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsR
 import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
 import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
 import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
+import { invoiceLineItemsRouteConfigs } from '@/server/routers/invoiceLineItemsRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
 import { purchasesRouteConfigs } from '@/server/routers/purchasesRouter'
 import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
@@ -73,6 +74,7 @@ const routeConfigs = [
   ...checkoutSessionsRouteConfigs,
   ...pricesRouteConfigs,
   ...invoicesRouteConfigs,
+  ...invoiceLineItemsRouteConfigs,
   ...paymentMethodsRouteConfigs,
   ...paymentsRouteConfigs,
   ...purchasesRouteConfigs,
@@ -142,8 +144,9 @@ const innerHandler = async (
     { kind: SpanKind.SERVER },
     async (parentSpan) => {
       // Extract SDK version from headers
-      const sdkVersion = req.headers.get('X-Stainless-Package-Version') || undefined
-      
+      const sdkVersion =
+        req.headers.get('X-Stainless-Package-Version') || undefined
+
       try {
         // Track request body size for POST/PUT
         let requestBodySize = 0
@@ -202,7 +205,7 @@ const innerHandler = async (
           'user.id': userId,
           'api.environment': req.unkey?.environment || 'unknown',
           'api.key_type': apiKeyType,
-          'rest_sdk_version': sdkVersion,
+          rest_sdk_version: sdkVersion,
         })
 
         logger.info(`[${requestId}] REST API Request Started`, {

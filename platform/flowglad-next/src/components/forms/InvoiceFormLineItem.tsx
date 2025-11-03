@@ -68,7 +68,7 @@ const InvoiceFormLineItem = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'w-full flex items-center gap-8 bg-background pb-2 border border-transparent z-0',
+        'w-full flex items-center gap-2 bg-background pb-2 border border-transparent z-0',
         isDragging && 'z-20  border-muted rounded-md'
       )}
     >
@@ -98,7 +98,7 @@ const InvoiceFormLineItem = ({
         control={form.control}
         render={({ field }) => {
           return (
-            <FormItem className="w-20">
+            <FormItem className="w-20 min-w-20">
               <FormControl>
                 <Input
                   type="number"
@@ -125,7 +125,7 @@ const InvoiceFormLineItem = ({
         name={`invoiceLineItems.${index}.price`}
         control={form.control}
         render={({ field }) => (
-          <FormItem className="flex-1">
+          <FormItem className="flex-1 min-w-32">
             <FormLabel>Price</FormLabel>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">

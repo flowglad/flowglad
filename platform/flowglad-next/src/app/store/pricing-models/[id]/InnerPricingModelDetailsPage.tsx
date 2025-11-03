@@ -6,7 +6,7 @@ import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
-import { Pencil, Plus } from 'lucide-react'
+import { Pencil, Plus, Ellipsis } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { CustomersDataTable } from '@/app/customers/data-table'
 import { TableHeader } from '@/components/ui/table-header'
@@ -17,6 +17,16 @@ import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import DefaultBadge from '@/components/DefaultBadge'
 import { UsageMetersDataTable } from '@/app/store/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import PopoverMenu, {
+  PopoverMenuItem,
+} from '@/components/PopoverMenu'
+import { trpc } from '@/app/_trpc/client'
+import { toast } from 'sonner'
 
 export type InnerPricingModelDetailsPageProps = {
   pricingModel: PricingModel.ClientRecord
@@ -38,6 +48,18 @@ function InnerPricingModelDetailsPage({
   ] = useState(false)
   const [activeProductFilter, setActiveProductFilter] =
     useState<string>('all')
+  const {
+    data: exportPricingModelData,
+    refetch,
+    isFetching,
+  } = trpc.pricingModels.export.useQuery(
+    {
+      id: pricingModel.id,
+    },
+    {
+      enabled: false, // Only fetch when user clicks export
+    }
+  )
 
   // Filter options for the button group
   const productFilterOptions = [
@@ -59,6 +81,32 @@ function InnerPricingModelDetailsPage({
     }
   }
 
+  const exportPricingModelHandler = async () => {
+    const result = await refetch()
+    const pricingModelYAML = result.data?.pricingModelYAML
+
+    if (pricingModelYAML) {
+      const blob = new Blob([pricingModelYAML], { type: 'text/yaml' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `pricing-${pricingModel.id}.yaml`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Pricing model exported successfully')
+    } else {
+      toast.error('Failed to export pricing model')
+    }
+  }
+
+  const moreMenuItems: PopoverMenuItem[] = [
+    {
+      label: 'Export',
+      handler: () => exportPricingModelHandler(),
+      helperText: 'Export pricing model as YAML file',
+    },
+  ]
+
   return (
     <InternalPageContainer>
       <div className="w-full flex flex-col gap-6">
@@ -77,6 +125,22 @@ function InnerPricingModelDetailsPage({
                 <Pencil className="w-4 h-4 mr-2" />
                 Edit
               </Button>
+              <Popover>
+                <PopoverTrigger className="flex">
+                  <Button
+                    className="flex justify-center items-center border-primary"
+                    variant="outline"
+                    asChild
+                  >
+                    <span>
+                      <Ellipsis className="rotate-90 w-4 h-6" />
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-fit" align="end">
+                  <PopoverMenu items={moreMenuItems} />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
