@@ -1,4 +1,9 @@
-import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
+import {
+  FlowgladActionKey,
+  HTTPMethod,
+  createAddPaymentMethodCheckoutSessionSchema,
+  createActivateSubscriptionCheckoutSessionSchema,
+} from '@flowglad/shared'
 import {
   InferRouteHandlerParams,
   SubRouteHandler,
@@ -72,7 +77,8 @@ const createAddPaymentMethodCheckoutSession: SubRouteHandler<
       error,
     }
   }
-const parsedParams = createAddPaymentMethodCheckoutSessionSchema.parse(params.data)
+  const parsedParams =
+    createAddPaymentMethodCheckoutSessionSchema.parse(params.data)
   try {
     const checkoutSession =
       await flowgladServer.createAddPaymentMethodCheckoutSession(
@@ -119,7 +125,8 @@ const createActivateSubscriptionCheckoutSession: SubRouteHandler<
       error,
     }
   }
-const parsedParams = createActivateSubscriptionCheckoutSessionSchema.parse(params.data)
+  const parsedParams =
+    createActivateSubscriptionCheckoutSessionSchema.parse(params.data)
   try {
     const checkoutSession =
       await flowgladServer.createActivateSubscriptionCheckoutSession(

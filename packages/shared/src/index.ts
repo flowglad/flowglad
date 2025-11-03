@@ -10,6 +10,7 @@ export {
 export {
   createProductCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
+  createActivateSubscriptionCheckoutSessionSchema,
   cancelSubscriptionSchema,
   flowgladActionValidators,
   createUsageEventSchema,
