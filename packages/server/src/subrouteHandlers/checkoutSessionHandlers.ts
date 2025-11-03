@@ -72,10 +72,11 @@ const createAddPaymentMethodCheckoutSession: SubRouteHandler<
       error,
     }
   }
+const parsedParams = createAddPaymentMethodCheckoutSessionSchema.parse(params.data)
   try {
     const checkoutSession =
       await flowgladServer.createAddPaymentMethodCheckoutSession(
-        params.data
+        parsedParams
       )
     data = checkoutSession
     status = 200
