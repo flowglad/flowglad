@@ -5,14 +5,14 @@ import { CurrencyCode } from '@/types'
 import { format } from 'date-fns'
 
 const CSV_HEADERS = [
-  'Name',
-  'Email',
-  'Total Spend',
-  'Payments',
-  'Created Date',
-  'Customer ID',
-  'External ID',
-  'Status',
+  'name',
+  'email',
+  'total_spend',
+  'payments',
+  'created_date',
+  'customer_id',
+  'external_id',
+  'status',
 ] as const
 
 const escapeCsvValue = (

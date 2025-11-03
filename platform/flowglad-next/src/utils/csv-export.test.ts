@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { createCustomersCsv } from '@/utils/csv-export'
 import {
   CustomerTableRowData,
@@ -11,30 +11,11 @@ import {
   createCustomersWithAllStatuses,
 } from '@/test/helpers/customerMocks'
 
-// Mock the stripe currency function
-vi.mock('@/utils/stripe', () => ({
-  stripeCurrencyAmountToHumanReadableCurrencyAmount: vi.fn(
-    (currency: CurrencyCode, amount: number) => {
-      // Simple mock that returns formatted currency like $10.50
-      const formatted = (amount / 100).toFixed(2)
-      const symbol =
-        currency === CurrencyCode.USD
-          ? '$'
-          : currency === CurrencyCode.EUR
-            ? '€'
-            : currency
-      return `${symbol}${formatted}`
-    }
-  ),
-}))
-
 describe('createCustomersCsv', () => {
   let mockCustomerTableRowData: CustomerTableRowData[]
   let fixedDate: Date
 
   beforeEach(() => {
-    vi.clearAllMocks()
-
     // Use a fixed date for consistent test results
     fixedDate = new Date('2024-01-15T12:00:00.000Z')
 
@@ -71,61 +52,38 @@ describe('createCustomersCsv', () => {
   })
 
   describe('Basic Functionality', () => {
-    it('should generate CSV with correct headers', () => {
+    it('should generate CSV with correct format, headers, data, and filename', () => {
       const result = createCustomersCsv(
         mockCustomerTableRowData,
         CurrencyCode.USD,
         fixedDate
       )
 
+      // Assert return structure
+      expect(result).toHaveProperty('csv')
+      expect(result).toHaveProperty('filename')
+      expect(typeof result.csv).toBe('string')
+      expect(typeof result.filename).toBe('string')
+
+      // Assert filename format
+      expect(result.filename).toBe('customers_2024-01-15.csv')
+
+      // Assert CSV headers (snake_case)
       const lines = result.csv.split('\n')
       const headers = lines[0]
-
       expect(headers).toBe(
-        '"Name","Email","Total Spend","Payments","Created Date","Customer ID","External ID","Status"'
-      )
-    })
-
-    it('should generate correct filename with timestamp', () => {
-      const result = createCustomersCsv(
-        mockCustomerTableRowData,
-        CurrencyCode.USD,
-        fixedDate
+        '"name","email","total_spend","payments","created_date","customer_id","external_id","status"'
       )
 
-      expect(result.filename).toBe('customers_2024-01-15.csv')
-    })
-
-    it('should format customer data correctly in CSV rows', () => {
-      const result = createCustomersCsv(
-        mockCustomerTableRowData,
-        CurrencyCode.USD,
-        fixedDate
-      )
-
-      const lines = result.csv.split('\n')
+      // Assert CSV data rows are formatted correctly
       const firstDataRow = lines[1]
       const secondDataRow = lines[2]
-
       expect(firstDataRow).toBe(
         '"Customer 1","customer1@example.com","$125.00","3","2024-01-01","cust_1","ext_customer_1","Active"'
       )
       expect(secondDataRow).toBe(
         '"Customer 2","customer2@example.com","$0.00","0","2024-01-02","cust_2","ext_customer_2","Archived"'
       )
-    })
-
-    it('should return both csv content and filename', () => {
-      const result = createCustomersCsv(
-        mockCustomerTableRowData,
-        CurrencyCode.USD,
-        fixedDate
-      )
-
-      expect(result).toHaveProperty('csv')
-      expect(result).toHaveProperty('filename')
-      expect(typeof result.csv).toBe('string')
-      expect(typeof result.filename).toBe('string')
     })
   })
 
@@ -140,58 +98,47 @@ describe('createCustomersCsv', () => {
       const lines = result.csv.split('\n')
       expect(lines).toHaveLength(1) // Only headers
       expect(lines[0]).toBe(
-        '"Name","Email","Total Spend","Payments","Created Date","Customer ID","External ID","Status"'
+        '"name","email","total_spend","payments","created_date","customer_id","external_id","status"'
       )
     })
 
-    it('should handle customers with null/undefined values', () => {
+    it('should handle all edge cases: null/undefined values, quote escaping, and commas', () => {
       const customerWithNulls =
         customerTestScenarios.withUndefinedValues()
+      const customerWithQuotes = customerTestScenarios.withQuotes()
+      const customerWithCommas = customerTestScenarios.withCommas()
 
-      const result = createCustomersCsv(
+      // Test null/undefined values
+      const nullsResult = createCustomersCsv(
         [customerWithNulls],
         CurrencyCode.USD,
         fixedDate
       )
+      const nullsLines = nullsResult.csv.split('\n')
+      const nullsDataRow = nullsLines[1]
+      expect(nullsDataRow).toContain('"$0.00"') // totalSpend should default to 0
+      expect(nullsDataRow).toContain('"0"') // payments should default to 0
 
-      const lines = result.csv.split('\n')
-      const dataRow = lines[1]
-
-      expect(dataRow).toContain('"$0.00"') // totalSpend should default to 0
-      expect(dataRow).toContain('"0"') // payments should default to 0
-    })
-
-    it('should properly escape CSV values containing quotes', () => {
-      const customerWithQuotes = customerTestScenarios.withQuotes()
-
-      const result = createCustomersCsv(
+      // Test quote escaping
+      const quotesResult = createCustomersCsv(
         [customerWithQuotes],
         CurrencyCode.USD,
         fixedDate
       )
+      const quotesLines = quotesResult.csv.split('\n')
+      const quotesDataRow = quotesLines[1]
+      expect(quotesDataRow).toContain('"Company ""Name"" Ltd."') // Quotes should be escaped as double quotes
+      expect(quotesDataRow).toContain('"ext_""quotes"""')
 
-      const lines = result.csv.split('\n')
-      const dataRow = lines[1]
-
-      // Quotes should be escaped as double quotes
-      expect(dataRow).toContain('"Company ""Name"" Ltd."')
-      expect(dataRow).toContain('"ext_""quotes"""')
-    })
-
-    it('should handle customers with commas in names', () => {
-      const customerWithCommas = customerTestScenarios.withCommas()
-
-      const result = createCustomersCsv(
+      // Test comma handling
+      const commasResult = createCustomersCsv(
         [customerWithCommas],
         CurrencyCode.USD,
         fixedDate
       )
-
-      const lines = result.csv.split('\n')
-      const dataRow = lines[1]
-
-      // Commas should be properly escaped within quotes
-      expect(dataRow).toContain('"Smith, John Jr."')
+      const commasLines = commasResult.csv.split('\n')
+      const commasDataRow = commasLines[1]
+      expect(commasDataRow).toContain('"Smith, John Jr."') // Commas should be properly escaped within quotes
     })
   })
 
@@ -248,7 +195,7 @@ describe('createCustomersCsv', () => {
       const lines = result.csv.split('\n')
       const dataRow = lines[1]
 
-      expect(dataRow).toContain('"$9999999.99"')
+      expect(dataRow).toContain('"$9,999,999.99"')
     })
   })
 
