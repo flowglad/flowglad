@@ -237,7 +237,6 @@ export const SideNavigation = () => {
           )}
         >
           <div className="flex items-center gap-3 rounded-md min-w-0">
-            <div className="flex flex-1 items-center gap-2 min-w-0">
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-semibold text-foreground truncate">
                   {organization?.name}
