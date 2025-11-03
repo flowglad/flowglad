@@ -2,7 +2,7 @@
 
 /* 
 run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/createRetryBillingRun.ts billing_period_id=billing_period_....
+NODE_ENV=production bunx tsx src/scripts/createRetryBillingRun.ts billing_period_id=billing_period_....
 */
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'

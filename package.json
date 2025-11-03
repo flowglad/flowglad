@@ -5,22 +5,22 @@
   "version": "0.0.0",
   "scripts": {
     "randombytes": "tsx scripts/randomBytes.ts",
-    "test": "pnpm -r test",
-    "yalc:publish": "pnpm -r yalc:publish",
+    "test": "bun run package-scripts/test.ts",
+    "yalc:publish": "bun run package-scripts/yalc-publish.ts",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "dev": "tsx scripts/dev.ts",
-    "dev:react": "pnpm --filter @flowglad/react dev",
-    "dev:next": "pnpm --filter @flowglad/nextjs dev",
-    "dev:server": "pnpm --filter @flowglad/server dev",
-    "check": "pnpm -r check",
-    "clean": "pnpm -r clean",
-    "changeset:empty": "pnpm changeset --empty",
-    "preinstall": "npx only-allow pnpm",
-    "build": "pnpm -r build",
-    "build:declarations": "pnpm -r build:declarations",
+    "dev:react": "bun run --filter @flowglad/react dev",
+    "dev:next": "bun run --filter @flowglad/nextjs dev",
+    "dev:server": "bun run --filter @flowglad/server dev",
+    "check": "bun run package-scripts/check.ts",
+    "clean": "bun run package-scripts/clean.ts",
+    "changeset:empty": "bunx changeset --empty",
+    "preinstall": "bunx --bun only-allow bun",
+    "build": "bun run package-scripts/build.ts",
+    "build:declarations": "bun run package-scripts/build-declarations.ts",
     "packages:changeset": "changeset",
     "packages:version": "changeset version",
-    "packages:publish": "pnpm build:declarations && pnpm build && changeset publish",
+    "packages:publish": "bun run build:declarations && bun run build && bunx changeset publish",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -40,8 +40,11 @@
     "react-dom": "19.0.0",
     "tsup": "8.3.6",
     "tsx": "4.17.0",
-    "turbo": "^2.4.4",
     "typescript": "5.8.2",
     "zx": "^8.3.2"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "packageManager": "bun@1.2.14"
 }
