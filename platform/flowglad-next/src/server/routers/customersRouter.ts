@@ -51,8 +51,8 @@ import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 import { organizationBillingPortalURL } from '@/utils/core'
 import { createCustomersCsv } from '@/utils/csv-export'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
-import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
 import { generateCsvExportTask } from '@/trigger/exports/generate-csv-export'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'customer',
@@ -379,7 +379,6 @@ const exportCsvProcedure = protectedProcedure
       csv: z.string().optional(),
       filename: z.string().optional(),
       totalCustomers: z.number(),
-      exceedsLimit: z.boolean(),
       asyncExportStarted: z.boolean().optional(),
     })
   )
@@ -387,7 +386,8 @@ const exportCsvProcedure = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transaction, userId, organizationId }) => {
         const { filters, searchQuery } = input
-        const CUSTOMER_LIMIT = CSV_EXPORT_LIMITS.CUSTOMER_LIMIT
+        // Maximum number of customers that can be exported via CSV without async export
+        const CUSTOMER_LIMIT = 1000
         const PAGE_SIZE = 100
         if (!userId) {
           throw new TRPCError({
@@ -417,17 +417,23 @@ const exportCsvProcedure = protectedProcedure
         const totalCustomers = countCheckResponse.total || 0
 
         // Early return if over limit - no additional DB operations
-        if (totalCustomers < CUSTOMER_LIMIT) {
-          await generateCsvExportTask.trigger({
-            userId,
-            organizationId,
-            filters,
-            searchQuery,
-          })
+        if (totalCustomers > CUSTOMER_LIMIT) {
+          await generateCsvExportTask.trigger(
+            {
+              userId,
+              organizationId,
+              filters,
+              searchQuery,
+            },
+            {
+              idempotencyKey: await createTriggerIdempotencyKey(
+                `generate-csv-export-${organizationId}-${userId}-${Date.now()}`
+              ),
+            }
+          )
 
           return {
             totalCustomers,
-            exceedsLimit: true,
             asyncExportStarted: true,
           }
         }
@@ -480,7 +486,6 @@ const exportCsvProcedure = protectedProcedure
           csv,
           filename,
           totalCustomers,
-          exceedsLimit: false,
           asyncExportStarted: false,
         }
       }

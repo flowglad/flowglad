@@ -9,7 +9,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
@@ -32,8 +31,6 @@ import { trpc } from '@/app/_trpc/client'
 import { CustomerTableRowData } from '@/db/schema/customers'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
-import { ExportLimitModal } from '@/components/ui/export-limit-modal'
-import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
 import { toast } from 'sonner'
 
 export interface CustomersTableFilters {
@@ -105,9 +102,6 @@ export function CustomersDataTable({
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
   const [isExporting, setIsExporting] = React.useState(false)
-  const [showExportLimitModal, setShowExportLimitModal] =
-    React.useState(false)
-  const [customerCount, setCustomerCount] = React.useState(0)
 
   const table = useReactTable({
     data: data?.items || [],
@@ -171,15 +165,8 @@ export function CustomersDataTable({
 
       if (result.asyncExportStarted) {
         toast.success(
-          'CSV export started! We’ll email you when it’s ready.'
+          "CSV export started! We'll email you when it's ready."
         )
-        setShowExportLimitModal(false)
-        return
-      }
-
-      if (result.exceedsLimit) {
-        setCustomerCount(result.totalCustomers)
-        setShowExportLimitModal(true)
         return
       }
 
@@ -330,14 +317,6 @@ export function CustomersDataTable({
           exportLoading={isExporting}
         />
       </div>
-
-      {/* Export limit modal */}
-      <ExportLimitModal
-        open={showExportLimitModal}
-        onOpenChange={setShowExportLimitModal}
-        customerCount={customerCount}
-        customerLimit={CSV_EXPORT_LIMITS.CUSTOMER_LIMIT}
-      />
     </div>
   )
 }

@@ -6,10 +6,8 @@ import type {
   CustomerTableRowData,
   CustomersPaginatedTableRowInput,
 } from '@/db/schema/customers'
-import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
 import { createCustomersCsv } from '@/utils/csv-export'
-import { safeSend } from '@/utils/email'
-import { CustomersCsvExportReadyEmail } from '@/email-templates/organization/customers-csv-export-ready'
+import { sendCustomersCsvExportReadyEmail } from '@/utils/email'
 import { logger, task } from '@trigger.dev/sdk'
 import { format } from 'date-fns'
 
@@ -52,7 +50,6 @@ export const generateCsvExportTask = task({
         organizationCurrency,
         organizationName,
         userEmail,
-        exceedsLimit,
       } = await adminTransaction(async ({ transaction }) => {
         const normalizedFilters: CustomerTableFilters = {
           ...(filters ?? {}),
@@ -70,17 +67,6 @@ export const generateCsvExportTask = task({
           })
 
         const total = initialResponse.total ?? 0
-
-        if (total > CSV_EXPORT_LIMITS.CUSTOMER_LIMIT) {
-          return {
-            rows: [] as CustomerTableRowData[],
-            totalCustomers: total,
-            organizationCurrency: undefined,
-            organizationName: undefined,
-            userEmail: undefined,
-            exceedsLimit: true,
-          }
-        }
 
         const organization = await selectOrganizationById(
           organizationId,
@@ -118,20 +104,8 @@ export const generateCsvExportTask = task({
           organizationCurrency: organization.defaultCurrency,
           organizationName: organization.name,
           userEmail: user.email,
-          exceedsLimit: false,
         }
       })
-
-      if (exceedsLimit) {
-        const limit = CSV_EXPORT_LIMITS.CUSTOMER_LIMIT
-        logger.error('CSV export exceeds allowed limit', {
-          limit,
-          totalCustomers,
-        })
-        throw new Error(
-          `CSV export exceeds the limit of ${limit} customers`
-        )
-      }
 
       if (!userEmail || !organizationName) {
         logger.error(
@@ -155,22 +129,11 @@ export const generateCsvExportTask = task({
         generationTimestamp,
         'yyyy-MM-dd_HH-mm-ss'
       )}.csv`
-      const emailResult = await safeSend({
-        from: 'Flowglad <notifications@flowglad.com>',
+      const emailResult = await sendCustomersCsvExportReadyEmail({
         to: [userEmail],
-        subject: 'Your customers CSV export is ready',
-        react: await CustomersCsvExportReadyEmail({
-          organizationName,
-          totalCustomers: rows.length,
-          filename: attachmentFilename,
-        }),
-        attachments: [
-          {
-            filename: attachmentFilename,
-            content: Buffer.from(csv, 'utf-8'),
-            contentType: 'text/csv',
-          },
-        ],
+        organizationName,
+        csvContent: csv,
+        filename: attachmentFilename,
       })
 
       if (emailResult?.error) {
@@ -183,13 +146,13 @@ export const generateCsvExportTask = task({
 
       logger.log('CSV export email sent successfully', {
         filename: attachmentFilename,
-        totalCustomers: rows.length,
+        totalCustomers,
       })
 
       return {
         message: 'CSV export email sent successfully',
         filename: attachmentFilename,
-        totalCustomers: rows.length,
+        totalCustomers,
       }
     } catch (error) {
       logger.error('generateCsvExportTask failed', {
