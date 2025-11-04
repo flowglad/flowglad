@@ -1,0 +1,92 @@
+---
+title: 'Data Model'
+description: 'The Core Concepts in the Flowglad data model.'
+---
+
+Flowglad acts as the source of truth for your customers' billing state, including giving you feature access and realtime usage balances. This page outlines how Flowglad models this state, including the key concepts and invariants. 
+
+## Pricing Models
+
+Pricing models describe a grouping of products, features, usage meters, and prices. A pricing model can have many:
+- usage meters, which measure how much of a resource in your product your customers have consumed
+- features, which describe either access to a service or functionality in your product or usage credits for specific usage meters
+- products, which group together features into offers that your customers can buy
+- customers, whose checkout options are restricted to that pricing model
+
+## Products
+
+Products are a group of features that your customers can buy. All products belong to a pricing model. 
+
+### Free Products
+
+Free products are a special type of product reserved by Flowglad, created in every pricing model. They exist to describe the billing null state for a customer. The `free` product slug is reserved for them.
+
+If your product offers limited features or grants a usage credits on its free plan, the free product allows you to model this through feature associations. On customer creation, Flowglad will grant them the features on the free product of your default pricing model, or of the pricing model that you specify.
+
+If your product does not offer any features or usage credits on its free plan, simply remove all features attached to your free product. This will make it so that customers will not be granted any features when they are created in Flowglad.
+
+## Prices
+
+Prices describe what a customer pays for a given product. Prices can be of 3 types:
+1. Single payment
+2. Subscription
+3. Usage
+
+All prices belong to a product. A product can have many prices, but only one price is active at a time. Once you create a product's first price, you cannot create a new price of a different type. In order to create a price of a different type, you must create a new product. 
+
+While described as "Edit" in the UI, prices are immutable. Once created their properties cannot be edited.
+
+#### Single Payment Prices
+
+Single payment prices are charged once. Customers can subscribe to a single payment price. The subscription in this case will not renew, or have any billing periods. This models pay as you go subscriptions.
+
+#### Subscription Prices
+
+Subscription prices are charged at a billing interval specified in their `intervalUnit` and `intervalCount` properties. Subscriptions created from a subscription price will renew at the specified intervalUnit and intervalCount.
+
+#### Usage Prices
+
+Usage prices denominate how much a customer should pay for usage events for a given usage meter. Usage prices describe how many usage events correspond to a unit price, via `usageEventsPerUnit`. For example, to model 1,000,000 serverless invocations per $0.10, you would create a usage price with `{ usageEventsPerUnit: 1000000, unitPrice: 10 }`.
+
+Usage prices are not subscribable and cannot be checked out, meaning attempts to create a subscription or a checkout session with a usage price will fail. Instead, usage prices describe explicitly what the cost should be for a usage event. They clarify to settle overrages for a usage meter in the case that a customer runs an overrage.
+
+Usage prices are currently required when creating a usage event. If you do not intend to charge for usage, you should create a usage price of `unitPrice: 0`. 
+
+## Usage Meters
+
+Usage meters measure consumption of resources in your product. Products will have usage meters for aspects of their products with variable costs, such as bandwidth, storage, or tokens. Usage meters have an `aggregationType` that specifies how to aggregate usage events for billing purposes. By default, usage meters aggregate by `sum` which is a simple count of usage meters. If you wish to aggregate by distinct event types, use the `count_distinct_properties` aggregationType.
+
+## Usage Credits
+
+Usage credits give your customers balance on their usage meter. Every usage credit is associated with a subscription and a usage meter. Flowglad grants your customers usage credits based on the products that they purchase.
+
+## Usage Events
+
+Usage events record a consumption of an event to a usage meter. Every usage event belongs to a usage meter and a subscription. Usage events that have not been covered by usage credits
+
+## Features
+
+Features describe what your customer receives, either as `boolean` access to a capability or as a `usage_credit_grant` that provides credits for a usage meter. For usage credit grant features, you can configure the grant to be either one-time (issued immediately upon purchase or subscription creation) or recurring (granted at the start of each billing period).
+
+Features are independent resources in the Flowglad data model. Products can have multiple features, and individual features can be associated with multiple products simultaneously. The relationship between products and features (product < > feature) is how Flowglad determines which features are assigned to customers when they purchase or subscribe.
+
+## Customers
+
+Customers are the users of your product. Every user of your product should have a corresponding Flowglad customer, regardless of whether they've paid for your product yet.
+
+## Subscriptions
+
+Subscriptions describe persistent billing relationships between your customers and your product. All customers have an active subscription at all times in Flowglad. Even if the customer isn't paying, they will be subscribed to the free product for the pricing model they belong to.
+
+### Renewing vs Non-Renewing
+
+Subscriptions can either `renew` or not. Subscriptions created from a `subscription` price type will renew. Renewing subscriptions have billing periods, and can optionally have a trial period at the start of the subscription. When a renewing subscription transitions to the next billing period, by default it will charge:
+- the amount due according to the renewing price(s) associated with the subscription for the forthcoming billing period
+- the amount due for all unsettled usage balances accrued during the previous billing period - based on the usage prices associated with each usage event
+
+## Invariants
+At all times, all customers are on a subscription. If they are not currently paying for your product, they are subscribed to the default product. This allows you to read customers' feature access and usage balances from Flowglad, even if they aren't currently paying for anything.
+
+All customers are associated with a pricing model. This allows you to control at a granular level what prices each customer sees, and make explicit how to migrate customers to new pricing models as you release them.
+
+Checkout sessions and subscriptions can only be created from single payment or subscription prices.
