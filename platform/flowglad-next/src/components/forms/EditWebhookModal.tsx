@@ -25,7 +25,6 @@ const EditWebhookModal: React.FC<EditWebhookModalProps> = ({
       formSchema={editWebhookInputSchema}
       defaultValues={{ id: webhook.id, webhook }}
       onSubmit={editWebhook.mutateAsync}
-      allowContentOverflow={true}
     >
       <WebhookFormFields edit={true} />
     </FormModal>

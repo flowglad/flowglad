@@ -12,6 +12,7 @@ import {
   DetailValue,
 } from '../components/themed'
 import { emailBaseUrl } from '@/utils/core'
+import TestModeBanner from '../components/TestBanner'
 
 export interface OrganizationPaymentFailedNotificationEmailProps {
   organizationName: string
@@ -21,6 +22,7 @@ export interface OrganizationPaymentFailedNotificationEmailProps {
   customerId: string
   customerName: string
   failureReason?: string
+  livemode: boolean
 }
 
 export const OrganizationPaymentFailedNotificationEmail = ({
@@ -31,6 +33,7 @@ export const OrganizationPaymentFailedNotificationEmail = ({
   customerId,
   customerName,
   failureReason,
+  livemode,
 }: OrganizationPaymentFailedNotificationEmailProps) => {
   const humanReadableAmount =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -42,6 +45,7 @@ export const OrganizationPaymentFailedNotificationEmail = ({
       previewText="Payment Failed - Action Required"
       variant="organization"
     >
+      <TestModeBanner livemode={livemode} />
       <Img
         src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
         width="540"

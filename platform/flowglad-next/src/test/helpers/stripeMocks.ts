@@ -88,25 +88,26 @@ export const createMockPaymentIntent = (
 
 export const createMockConfirmationResult = (
   paymentIntentId: string
-): Stripe.Response<Stripe.PaymentIntent> => ({
-  id: paymentIntentId,
-  status: 'succeeded',
-  latest_charge: {
-    id: `ch_test_${core.nanoid()}`,
-    object: 'charge',
-    amount: 1000,
-    currency: 'usd',
+): Stripe.Response<Stripe.PaymentIntent> =>
+  ({
+    id: paymentIntentId,
     status: 'succeeded',
-  } as Stripe.Charge,
-  object: 'payment_intent',
-  created: Date.now(),
-  livemode: false,
-  lastResponse: {
-    headers: {},
-    requestId: 'req_test_123',
-    statusCode: 200,
-  },
-} as Stripe.Response<Stripe.PaymentIntent>)
+    latest_charge: {
+      id: `ch_test_${core.nanoid()}`,
+      object: 'charge',
+      amount: 1000,
+      currency: 'usd',
+      status: 'succeeded',
+    } as Stripe.Charge,
+    object: 'payment_intent',
+    created: Date.now(),
+    livemode: false,
+    lastResponse: {
+      headers: {},
+      requestId: 'req_test_123',
+      statusCode: 200,
+    },
+  }) as Stripe.Response<Stripe.PaymentIntent>
 
 export const createMockStripeCharge = (
   overrides: Partial<Stripe.Charge> = {}
@@ -207,4 +208,3 @@ export const createMockCustomer = (
     ...overrides,
   } as Stripe.Response<Stripe.Customer>
 }
-

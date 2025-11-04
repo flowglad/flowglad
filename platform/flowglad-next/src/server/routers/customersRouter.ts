@@ -23,6 +23,7 @@ import {
   customersPaginatedListSchema,
   customersPaginatedTableRowOutputSchema,
   customersPaginatedTableRowInputSchema,
+  Customer,
 } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
@@ -48,6 +49,9 @@ import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 import { organizationBillingPortalURL } from '@/utils/core'
+import { createCustomersCsv } from '@/utils/csv-export'
+import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
+import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'customer',
@@ -357,6 +361,123 @@ const getTableRowsProcedure = protectedProcedure
     )
   )
 
+const exportCsvProcedure = protectedProcedure
+  .input(
+    z.object({
+      filters: z
+        .object({
+          archived: z.boolean().optional(),
+          pricingModelId: z.string().optional(),
+        })
+        .optional(),
+      searchQuery: z.string().optional(),
+    })
+  )
+  .output(
+    z.object({
+      csv: z.string().optional(),
+      filename: z.string().optional(),
+      totalCustomers: z.number(),
+      exceedsLimit: z.boolean(),
+    })
+  )
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction, userId, organizationId }) => {
+        const { filters, searchQuery } = input
+        const CUSTOMER_LIMIT = CSV_EXPORT_LIMITS.CUSTOMER_LIMIT
+        const PAGE_SIZE = 100
+        if (!userId) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'User ID is required',
+          })
+        }
+
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Organization ID is required',
+          })
+        }
+
+        // Get first page to check total count with minimal data transfer
+        const countCheckResponse =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 1, // Minimal page size for count check
+              filters,
+              searchQuery,
+            },
+            transaction,
+          })
+
+        const totalCustomers = countCheckResponse.total || 0
+
+        // Early return if over limit - no additional DB operations
+        if (totalCustomers > CUSTOMER_LIMIT) {
+          return {
+            totalCustomers,
+            exceedsLimit: true,
+          }
+        }
+
+        // Only if under limit, get user's organization and proceed with full export
+        const focusedMembership =
+          await selectFocusedMembershipAndOrganization(
+            userId,
+            transaction
+          )
+
+        if (!focusedMembership) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'No focused membership found',
+          })
+        }
+
+        // Start with the first page we already fetched
+        const rows = [...countCheckResponse.items]
+
+        let pageAfter = countCheckResponse.endCursor
+
+        // Continue fetching remaining pages if there are more
+        while (countCheckResponse.hasNextPage && pageAfter) {
+          const response =
+            await selectCustomersCursorPaginatedWithTableRowData({
+              input: {
+                pageAfter,
+                pageSize: PAGE_SIZE,
+                filters,
+                searchQuery,
+              },
+              transaction,
+            })
+
+          rows.push(...response.items)
+
+          if (!response.hasNextPage || !response.endCursor) {
+            break
+          }
+
+          pageAfter = response.endCursor
+        }
+
+        const { csv, filename } = createCustomersCsv(
+          rows,
+          focusedMembership.organization.defaultCurrency
+        )
+
+        return {
+          csv,
+          filename,
+          totalCustomers,
+          exceedsLimit: false,
+        }
+      }
+    )
+  )
+
 export const customersRouter = router({
   create: createCustomerProcedure,
   /**
@@ -368,4 +489,5 @@ export const customersRouter = router({
   internal__getById: getCustomerById,
   list: listCustomersProcedure,
   getTableRows: getTableRowsProcedure,
+  exportCsv: exportCsvProcedure,
 })

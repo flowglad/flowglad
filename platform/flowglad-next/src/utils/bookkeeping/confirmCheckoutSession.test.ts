@@ -195,10 +195,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          const confirmResult = await confirmCheckoutSessionTransaction(
-            { id: addPaymentMethodCheckoutSession.id },
-            transaction
-          )
+          const confirmResult =
+            await confirmCheckoutSessionTransaction(
+              { id: addPaymentMethodCheckoutSession.id },
+              transaction
+            )
           const feeCalculations = await selectFeeCalculations(
             { checkoutSessionId: addPaymentMethodCheckoutSession.id },
             transaction
@@ -215,19 +216,20 @@ describe('confirmCheckoutSessionTransaction', () => {
     })
 
     it('should use existing fee calculation when one is already present', async () => {
-      const checkoutFeeCalculations = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          await confirmCheckoutSessionTransaction(
-            { id: checkoutSession.id },
-            transaction
-          )
-          const feeCalculations = await selectFeeCalculations(
-            { checkoutSessionId: checkoutSession.id },
-            transaction
-          )
-          return { result: feeCalculations }
-        }
-      )
+      const checkoutFeeCalculations =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            await confirmCheckoutSessionTransaction(
+              { id: checkoutSession.id },
+              transaction
+            )
+            const feeCalculations = await selectFeeCalculations(
+              { checkoutSessionId: checkoutSession.id },
+              transaction
+            )
+            return { result: feeCalculations }
+          }
+        )
 
       expect(checkoutFeeCalculations.length).toBe(1)
     })
@@ -294,7 +296,9 @@ describe('confirmCheckoutSessionTransaction', () => {
         email: 'newcustomer@example.com',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(mockStripeCustomer)
+      vi.mocked(createStripeCustomer).mockResolvedValue(
+        mockStripeCustomer
+      )
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -347,7 +351,9 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(mockStripeCustomer)
+      vi.mocked(createStripeCustomer).mockResolvedValue(
+        mockStripeCustomer
+      )
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -362,7 +368,9 @@ describe('confirmCheckoutSessionTransaction', () => {
       expect(result.customer).toBeDefined()
       expect(result.customer.email).toEqual('newcustomer@example.com')
       expect(result.customer.name).toEqual('Test Customer')
-      expect(result.customer.stripeCustomerId).toEqual(mockStripeCustomer.id)
+      expect(result.customer.stripeCustomerId).toEqual(
+        mockStripeCustomer.id
+      )
       expect(result.customer.billingAddress).toEqual({
         address: {
           name: 'Test Customer',
@@ -381,16 +389,24 @@ describe('confirmCheckoutSessionTransaction', () => {
 
     it('should create free subscription when default product exists', async () => {
       // Ensure there is a free default price for this pricing model by creating one on the default product
-      const defaultProductId = await adminTransaction(async ({ transaction }) => {
-        const results = await selectPricesProductsAndPricingModelsForOrganization(
-          { isDefault: true, livemode: true },
-          organization.id,
-          transaction
-        )
-        const match = results.find((r) => r.pricingModel.id === pricingModel.id)
-        if (!match) throw new Error('No default price found for pricing model')
-        return match.product.id
-      })
+      const defaultProductId = await adminTransaction(
+        async ({ transaction }) => {
+          const results =
+            await selectPricesProductsAndPricingModelsForOrganization(
+              { isDefault: true, livemode: true },
+              organization.id,
+              transaction
+            )
+          const match = results.find(
+            (r) => r.pricingModel.id === pricingModel.id
+          )
+          if (!match)
+            throw new Error(
+              'No default price found for pricing model'
+            )
+          return match.product.id
+        }
+      )
       const freeDefaultPrice = await setupPrice({
         productId: defaultProductId,
         name: 'Free Plan',
@@ -402,7 +418,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         isDefault: true,
       })
       const defaultPriceId = freeDefaultPrice.id
-      
+
       // Update checkout session to have no customerId or purchaseId but have customerEmail
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         await updateCheckoutSession(
@@ -424,7 +440,9 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(mockStripeCustomer)
+      vi.mocked(createStripeCustomer).mockResolvedValue(
+        mockStripeCustomer
+      )
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -438,37 +456,54 @@ describe('confirmCheckoutSessionTransaction', () => {
       // Verify customer was created
       expect(result.customer).toBeDefined()
       expect(result.customer.email).toEqual('newcustomer@example.com')
-      
+
       // Check for events in the database
-      const dbEvents = await adminTransaction(async ({ transaction }) => {
-        return selectEventsByCustomer(
-          result.customer.id,
-          organization.id,
-          transaction
-        )
-      })
-      
+      const dbEvents = await adminTransaction(
+        async ({ transaction }) => {
+          return selectEventsByCustomer(
+            result.customer.id,
+            organization.id,
+            transaction
+          )
+        }
+      )
+
       // Verify CustomerCreated event was created
-      const customerCreatedEvent = dbEvents.find(e => e.type === FlowgladEventType.CustomerCreated)
+      const customerCreatedEvent = dbEvents.find(
+        (e) => e.type === FlowgladEventType.CustomerCreated
+      )
       expect(customerCreatedEvent).toBeDefined()
       expect(customerCreatedEvent!.payload.object).toEqual('customer')
       expect(customerCreatedEvent!.payload.customer).toBeDefined()
-      
+
       // Assert customer payload details
       const customerPayload = customerCreatedEvent!.payload.customer!
       expect(customerPayload.id).toEqual(result.customer.id)
-      expect(customerPayload.externalId).toEqual(result.customer.externalId)
-      
+      expect(customerPayload.externalId).toEqual(
+        result.customer.externalId
+      )
+
       // Check for subscription-related events (if default product exists)
-      const subscriptionCreatedEvent = dbEvents.find(e => e.type === FlowgladEventType.SubscriptionCreated)
+      const subscriptionCreatedEvent = dbEvents.find(
+        (e) => e.type === FlowgladEventType.SubscriptionCreated
+      )
       expect(subscriptionCreatedEvent).toBeDefined()
-      expect(subscriptionCreatedEvent?.payload.object).toEqual('subscription')
-      expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(result.customer.id)
+      expect(subscriptionCreatedEvent?.payload.object).toEqual(
+        'subscription'
+      )
+      expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(
+        result.customer.id
+      )
 
       // Verify a subscription record exists and is a free plan linked to the free default price
-      const subscriptions = await adminTransaction(async ({ transaction }) => {
-        return selectSubscriptions({ customerId: result.customer.id }, transaction)
-      })
+      const subscriptions = await adminTransaction(
+        async ({ transaction }) => {
+          return selectSubscriptions(
+            { customerId: result.customer.id },
+            transaction
+          )
+        }
+      )
       expect(subscriptions).toHaveLength(1)
       expect(subscriptions[0].isFreePlan).toBe(true)
       expect(subscriptions[0].priceId).toEqual(defaultPriceId)
@@ -496,7 +531,9 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(mockStripeCustomer)
+      vi.mocked(createStripeCustomer).mockResolvedValue(
+        mockStripeCustomer
+      )
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -509,7 +546,9 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       // Verify customer was created with Stripe customer ID
       expect(result.customer).toBeDefined()
-      expect(result.customer.stripeCustomerId).toEqual(mockStripeCustomer.id)
+      expect(result.customer.stripeCustomerId).toEqual(
+        mockStripeCustomer.id
+      )
       expect(result.customer.email).toEqual('newcustomer@example.com')
 
       // Verify createStripeCustomer was called
@@ -556,7 +595,9 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(mockStripeCustomer)
+      vi.mocked(createStripeCustomer).mockResolvedValue(
+        mockStripeCustomer
+      )
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -569,7 +610,9 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       // Verify customer was created with correct billing address
       expect(result.customer).toBeDefined()
-      expect(result.customer.billingAddress).toEqual(testBillingAddress)
+      expect(result.customer.billingAddress).toEqual(
+        testBillingAddress
+      )
       expect(result.customer.email).toEqual('newcustomer@example.com')
       expect(result.customer.name).toEqual('Test Customer')
     })
@@ -613,10 +656,11 @@ describe('confirmCheckoutSessionTransaction', () => {
             { ...checkoutSession, customerId: customer.id },
             transaction
           )
-          const confirmResult = await confirmCheckoutSessionTransaction(
-            { id: checkoutSession.id },
-            transaction
-          )
+          const confirmResult =
+            await confirmCheckoutSessionTransaction(
+              { id: checkoutSession.id },
+              transaction
+            )
           return {
             result: { confirmResult, updatedCustomer },
           }
@@ -624,9 +668,9 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
 
       expect(result.confirmResult.result.customer).toBeDefined()
-      expect(result.confirmResult.result.customer?.stripeCustomerId).toEqual(
-        result.updatedCustomer.stripeCustomerId
-      )
+      expect(
+        result.confirmResult.result.customer?.stripeCustomerId
+      ).toEqual(result.updatedCustomer.stripeCustomerId)
       // Verify that createStripeCustomer was not called
       expect(createStripeCustomer).not.toHaveBeenCalled()
     })
@@ -646,7 +690,9 @@ describe('confirmCheckoutSessionTransaction', () => {
         email: 'newcustomer@example.com',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(mockStripeCustomer)
+      vi.mocked(createStripeCustomer).mockResolvedValue(
+        mockStripeCustomer
+      )
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -698,18 +744,19 @@ describe('confirmCheckoutSessionTransaction', () => {
   describe('Setup Intent Handling', () => {
     it('should update setup intent when stripeSetupIntentId is set and fetched setup intent has no customer', async () => {
       // Update checkout session to have stripeSetupIntentId
-      const updatedCheckoutSession = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          const result = await updateCheckoutSession(
-            {
-              ...checkoutSession,
-              stripeSetupIntentId: `seti_${core.nanoid()}`,
-            },
-            transaction
-          )
-          return { result }
-        }
-      )
+      const updatedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await updateCheckoutSession(
+              {
+                ...checkoutSession,
+                stripeSetupIntentId: `seti_${core.nanoid()}`,
+              },
+              transaction
+            )
+            return { result }
+          }
+        )
 
       // Mock getSetupIntent to return a setup intent with no customer
       const mockSetupIntent = {
@@ -769,18 +816,19 @@ describe('confirmCheckoutSessionTransaction', () => {
 
     it('should not update setup intent when it already has a customer', async () => {
       // Update checkout session to have stripeSetupIntentId
-      const updatedCheckoutSession = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          const result = await updateCheckoutSession(
-            {
-              ...checkoutSession,
-              stripeSetupIntentId: `seti_${core.nanoid()}`,
-            },
-            transaction
-          )
-          return { result }
-        }
-      )
+      const updatedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await updateCheckoutSession(
+              {
+                ...checkoutSession,
+                stripeSetupIntentId: `seti_${core.nanoid()}`,
+              },
+              transaction
+            )
+            return { result }
+          }
+        )
 
       // Mock getSetupIntent to return a setup intent with a customer
       const mockSetupIntent = {
@@ -838,20 +886,21 @@ describe('confirmCheckoutSessionTransaction', () => {
   describe('Payment Intent Handling', () => {
     it('should update payment intent with customer ID, amount, and application fee when applicable', async () => {
       // Update checkout session to have stripePaymentIntentId
-      const updatedCheckoutSession = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          const result = await updateCheckoutSession(
-            {
-              ...checkoutSession,
-              stripePaymentIntentId: `pi_${core.nanoid()}`,
-              type: CheckoutSessionType.Product,
-              invoiceId: null,
-            } as CheckoutSession.Update,
-            transaction
-          )
-          return { result }
-        }
-      )
+      const updatedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await updateCheckoutSession(
+              {
+                ...checkoutSession,
+                stripePaymentIntentId: `pi_${core.nanoid()}`,
+                type: CheckoutSessionType.Product,
+                invoiceId: null,
+              } as CheckoutSession.Update,
+              transaction
+            )
+            return { result }
+          }
+        )
 
       // Mock calculateTotalFeeAmount and calculateTotalDueAmount
 
@@ -879,18 +928,19 @@ describe('confirmCheckoutSessionTransaction', () => {
 
     it('should update payment intent with amount only (no application fee) when total amount due is zero', async () => {
       // Update checkout session to have stripePaymentIntentId
-      const updatedCheckoutSession = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          const result = await updateCheckoutSession(
-            {
-              ...checkoutSession,
-              stripePaymentIntentId: `pi_${core.nanoid()}`,
-            } as CheckoutSession.Update,
-            transaction
-          )
-          return { result }
-        }
-      )
+      const updatedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await updateCheckoutSession(
+              {
+                ...checkoutSession,
+                stripePaymentIntentId: `pi_${core.nanoid()}`,
+              } as CheckoutSession.Update,
+              transaction
+            )
+            return { result }
+          }
+        )
 
       // Mock calculateTotalFeeAmount and calculateTotalDueAmount
       const mockFinalFeeAmount = 100
@@ -920,21 +970,22 @@ describe('confirmCheckoutSessionTransaction', () => {
 
     it('should not update payment intent when session type is AddPaymentMethod', async () => {
       // Update checkout session to have stripePaymentIntentId and type AddPaymentMethod
-      const updatedCheckoutSession = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          const result = await updateCheckoutSession(
-            {
-              ...checkoutSession,
-              stripePaymentIntentId: `pi_${core.nanoid()}`,
-              type: CheckoutSessionType.AddPaymentMethod,
-              customerId: customer.id,
-              automaticallyUpdateSubscriptions: false,
-            },
-            transaction
-          )
-          return { result }
-        }
-      )
+      const updatedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await updateCheckoutSession(
+              {
+                ...checkoutSession,
+                stripePaymentIntentId: `pi_${core.nanoid()}`,
+                type: CheckoutSessionType.AddPaymentMethod,
+                customerId: customer.id,
+                automaticallyUpdateSubscriptions: false,
+              },
+              transaction
+            )
+            return { result }
+          }
+        )
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -954,19 +1005,20 @@ describe('confirmCheckoutSessionTransaction', () => {
   describe('Edge Cases', () => {
     it('should handle checkout session with both purchaseId and customerId (prioritizing customerId)', async () => {
       // Update checkout session to have both customerId and purchaseId
-      const updatedCheckoutSession = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          const result = await updateCheckoutSession(
-            {
-              ...checkoutSession,
-              customerId: customer.id,
-              purchaseId: purchase.id,
-            } as CheckoutSession.Update,
-            transaction
-          )
-          return { result }
-        }
-      )
+      const updatedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await updateCheckoutSession(
+              {
+                ...checkoutSession,
+                customerId: customer.id,
+                purchaseId: purchase.id,
+              } as CheckoutSession.Update,
+              transaction
+            )
+            return { result }
+          }
+        )
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -983,19 +1035,20 @@ describe('confirmCheckoutSessionTransaction', () => {
 
     it('should handle checkout sessions with no payment intent or setup intent', async () => {
       // Update checkout session to have no payment intent or setup intent
-      const updatedCheckoutSession = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          const result = await updateCheckoutSession(
-            {
-              ...checkoutSession,
-              stripePaymentIntentId: null,
-              stripeSetupIntentId: null,
-            },
-            transaction
-          )
-          return { result }
-        }
-      )
+      const updatedCheckoutSession =
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            const result = await updateCheckoutSession(
+              {
+                ...checkoutSession,
+                stripePaymentIntentId: null,
+                stripeSetupIntentId: null,
+              },
+              transaction
+            )
+            return { result }
+          }
+        )
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {

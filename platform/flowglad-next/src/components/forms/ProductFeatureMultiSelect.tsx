@@ -71,8 +71,8 @@ export const ProductFeatureMultiSelect = ({
       'featureIds',
       activeProductFeatures.map((pf) => pf.featureId)
     )
-  // FIXME(FG-384): Fix this warning:
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // FIXME(FG-384): Fix this warning:
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productFeaturesHash])
 
   const loading = productFeaturesLoading || featuresLoading

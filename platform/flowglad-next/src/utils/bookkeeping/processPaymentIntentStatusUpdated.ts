@@ -39,10 +39,6 @@ import { Payment } from '@/db/schema/payments'
 import { updateInvoiceStatusToReflectLatestPayment } from '../bookkeeping'
 import { updatePurchaseStatusToReflectLatestPayment } from '../bookkeeping'
 import {
-  commitPaymentCanceledEvent,
-  commitPaymentSucceededEvent,
-} from '../events'
-import {
   selectCurrentSubscriptionForCustomer,
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
@@ -65,10 +61,7 @@ import {
   LedgerCommand,
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import { UsageCredit } from '@/db/schema/usageCredits'
-import {
-  bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter,
-  insertUsageCredit,
-} from '@/db/tableMethods/usageCreditMethods'
+import { bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter } from '@/db/tableMethods/usageCreditMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
 export const chargeStatusToPaymentStatus = (
@@ -92,7 +85,10 @@ export const upsertPaymentForStripeCharge = async (
     paymentIntentMetadata: StripeIntentMetadata
   },
   transaction: DbTransaction
-): Promise<{ payment: Payment.Record; eventsToInsert: Event.Insert[] }> => {
+): Promise<{
+  payment: Payment.Record
+  eventsToInsert: Event.Insert[]
+}> => {
   const paymentIntentId = charge.payment_intent
     ? stripeIdFromObjectOrId(charge.payment_intent)
     : null
@@ -147,11 +143,7 @@ export const upsertPaymentForStripeCharge = async (
     paymentIntentMetadata.type === IntentMetadataType.CheckoutSession
   ) {
     const {
-      result: {
-        checkoutSession,
-        purchase: updatedPurchase,
-        invoice,
-      },
+      result: { checkoutSession, purchase: updatedPurchase, invoice },
       eventsToInsert: eventsFromCheckoutSession = [],
     } = await processStripeChargeForCheckoutSession(
       {
@@ -278,7 +270,10 @@ export const upsertPaymentForStripeCharge = async (
       charge,
       transaction
     )
-  return { payment: latestPayment, eventsToInsert: checkoutSessionEvents }
+  return {
+    payment: latestPayment,
+    eventsToInsert: checkoutSessionEvents,
+  }
 }
 
 /**
@@ -304,7 +299,10 @@ export const updatePaymentToReflectLatestChargeStatus = async (
   )
   // Only send notifications when payment status actually changes to Failed
   // (prevents duplicate notifications on webhook retries for already-failed payments)
-  if (newPaymentStatus === PaymentStatus.Failed && payment.status !== newPaymentStatus) {
+  if (
+    newPaymentStatus === PaymentStatus.Failed &&
+    payment.status !== newPaymentStatus
+  ) {
     updatedPayment = await updatePayment(
       {
         id: payment.id,
@@ -326,6 +324,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
         updatedPayment.failureMessage ||
         updatedPayment.failureCode ||
         undefined,
+      livemode: updatedPayment.livemode,
     })
   }
   /**
@@ -474,15 +473,16 @@ export const processPaymentIntentStatusUpdated = async (
       `No charge found for payment intent ${paymentIntent.id}`
     )
   }
-  const { payment, eventsToInsert: checkoutSessionEvents } = await upsertPaymentForStripeCharge(
-    {
-      charge: latestCharge,
-      paymentIntentMetadata: stripeIntentMetadataSchema.parse(
-        paymentIntent.metadata
-      ),
-    },
-    transaction
-  )
+  const { payment, eventsToInsert: checkoutSessionEvents } =
+    await upsertPaymentForStripeCharge(
+      {
+        charge: latestCharge,
+        paymentIntentMetadata: stripeIntentMetadataSchema.parse(
+          paymentIntent.metadata
+        ),
+      },
+      transaction
+    )
   // Fetch customer data for event payload
   // Re-fetch purchase after update to get the latest status
   const purchase = payment.purchaseId

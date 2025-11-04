@@ -1,17 +1,19 @@
 import {
   type CancelSubscriptionParams,
-  type CreateCheckoutSessionParams,
   type CreateSubscriptionParams,
   type CreateUsageEventParams,
   createUsageEventSchema,
   constructCheckFeatureAccess,
   constructCheckUsageBalance,
   type CreateAddPaymentMethodCheckoutSessionParams,
-  type CreateProductCheckoutSessionParams,
   type BillingWithChecks,
   SubscriptionExperimentalFields,
   constructGetProduct,
   constructGetPrice,
+  CreateActivateSubscriptionCheckoutSessionParams,
+  createActivateSubscriptionCheckoutSessionSchema,
+  createAddPaymentMethodCheckoutSessionSchema,
+  createProductCheckoutSessionSchema,
 } from '@flowglad/shared'
 import {
   type ClerkFlowgladServerSessionParams,
@@ -21,6 +23,7 @@ import {
   type SupabaseFlowgladServerSessionParams,
 } from './types'
 import { z } from 'zod'
+import type { CreateProductCheckoutSessionParams } from '@flowglad/types'
 import { Flowglad as FlowgladNode } from '@flowglad/node'
 
 const getSessionFromNextAuth = async (
@@ -118,7 +121,7 @@ const getSessionFromParams = async (
 
   const customerSchema = z.object({
     externalId: z.string().min(1),
-    name: z.string().min(1),
+    name: z.string(),
     email: z.email(),
   })
   const parsedCustomer = customerSchema.safeParse(coreCustomerUser)
@@ -242,8 +245,9 @@ export class FlowgladServer {
   ): Promise<FlowgladNode.Customers.CustomerCreateResponse> => {
     return await this.flowgladNode.customers.create(params)
   }
+
   public createCheckoutSession = async (
-    params: CreateCheckoutSessionParams
+    params: CreateProductCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
     const session = await getSessionFromParams(
       this.createHandlerParams
@@ -251,9 +255,31 @@ export class FlowgladServer {
     if (!session) {
       throw new Error('User not authenticated')
     }
+    let priceId: string
+    if (params.priceId) {
+      priceId = params.priceId
+    } else if (params.priceSlug) {
+      const billing = await this.getBilling()
+      const price = billing.getPrice(params.priceSlug)
+      if (!price) {
+        throw new Error('Price not found')
+      }
+      priceId = price.id
+    } else {
+      throw new Error('Price ID or price slug must be provided')
+    }
+    const parsedParams = createProductCheckoutSessionSchema.parse({
+      ...params,
+      type: 'product',
+      priceId,
+      customerExternalId: session.externalId,
+    })
     return this.flowgladNode.checkoutSessions.create({
       checkoutSession: {
-        ...params,
+        ...parsedParams,
+        // FIXME: need to hard code these to make types pass
+        type: 'product',
+        priceId,
         customerExternalId: session.externalId,
       },
     })
@@ -277,16 +303,42 @@ export class FlowgladServer {
   public createAddPaymentMethodCheckoutSession = async (
     params: CreateAddPaymentMethodCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
-    return this.createCheckoutSession({
-      ...params,
-      type: 'add_payment_method',
+    const session = await getSessionFromParams(
+      this.createHandlerParams
+    )
+    if (!session) {
+      throw new Error('User not authenticated')
+    }
+    const parsedParams =
+      createAddPaymentMethodCheckoutSessionSchema.parse(params)
+    return await this.flowgladNode.checkoutSessions.create({
+      checkoutSession: {
+        ...parsedParams,
+        type: 'add_payment_method',
+        customerExternalId: session.externalId,
+      },
     })
   }
 
-  public createProductCheckoutSession = async (
-    params: CreateProductCheckoutSessionParams
+  public createActivateSubscriptionCheckoutSession = async (
+    params: CreateActivateSubscriptionCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
-    return this.createCheckoutSession({ ...params, type: 'product' })
+    const session = await getSessionFromParams(
+      this.createHandlerParams
+    )
+    if (!session) {
+      throw new Error('User not authenticated')
+    }
+    const parsedParams =
+      createActivateSubscriptionCheckoutSessionSchema.parse(params)
+
+    return await this.flowgladNode.checkoutSessions.create({
+      checkoutSession: {
+        ...parsedParams,
+        type: 'activate_subscription',
+        customerExternalId: session.externalId,
+      },
+    })
   }
 
   public cancelSubscription = async (
@@ -336,15 +388,16 @@ export class FlowgladServer {
     return this.flowgladNode.usageEvents.create({
       usageEvent: {
         ...parsedParams,
+        properties: parsedParams.properties ?? undefined,
         usageDate: parsedParams.usageDate || undefined,
       },
     })
   }
 
-  public getCatalog = async (): Promise<{
-    catalog: FlowgladNode.PricingModels.PricingModelRetrieveResponse['pricingModel']
+  public getPricingModel = async (): Promise<{
+    pricingModel: FlowgladNode.PricingModels.PricingModelRetrieveResponse['pricingModel']
   }> => {
     const billing = await this.getBilling()
-    return { catalog: billing.pricingModel }
+    return { pricingModel: billing.pricingModel }
   }
 }

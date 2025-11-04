@@ -41,6 +41,7 @@ function EditInvoiceModal({
       onSubmit={updateInvoice.mutateAsync}
       defaultValues={defaultValues}
       wide
+      allowContentOverflow={false}
     >
       <InvoiceFormFields customer={customerData.customer} editMode />
     </FormModal>

@@ -46,11 +46,17 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
 
   // Build the magic link URL with OTP
   // Send the magic link email
+  if (!organization) {
+    throw new Error(
+      `Organization not found for id: ${organizationId}`
+    )
+  }
   await sendCustomerBillingPortalMagicLink({
     to: [email],
     url,
     customerName: customer?.name || undefined,
-    organizationName: organization?.name || undefined,
+    organizationName: organization.name,
+    livemode: customer?.livemode ?? false,
   })
 }
 

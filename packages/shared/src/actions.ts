@@ -18,32 +18,20 @@ const createCoreCheckoutSessionSchema = z.object({
 
 export const createProductCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
-    type: z.literal('product'),
     priceId: z.string(),
     quantity: z.number().optional().default(1),
   })
 
 export const createAddPaymentMethodCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
-    type: z.literal('add_payment_method'),
     targetSubscriptionId: z.string().optional(),
   })
 
 export const createActivateSubscriptionCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
-    type: z.literal('activate_subscription'),
     targetSubscriptionId: z.string(),
     priceId: z.string(),
   })
-
-export const createCheckoutSessionSchema = z.discriminatedUnion(
-  'type',
-  [
-    createProductCheckoutSessionSchema,
-    createAddPaymentMethodCheckoutSessionSchema,
-    createActivateSubscriptionCheckoutSessionSchema,
-  ]
-)
 
 export type CreateProductCheckoutSessionParams = z.infer<
   typeof createProductCheckoutSessionSchema
@@ -53,9 +41,6 @@ export type CreateAddPaymentMethodCheckoutSessionParams = z.infer<
 >
 export type CreateActivateSubscriptionCheckoutSessionParams = z.infer<
   typeof createActivateSubscriptionCheckoutSessionSchema
->
-export type CreateCheckoutSessionParams = z.infer<
-  typeof createCheckoutSessionSchema
 >
 
 export type SubscriptionCancellationArrangement =
@@ -174,9 +159,17 @@ export const flowgladActionValidators = {
       externalId: z.string(),
     }),
   },
+  [FlowgladActionKey.CreateAddPaymentMethodCheckoutSession]: {
+    method: HTTPMethod.POST,
+    inputValidator: createAddPaymentMethodCheckoutSessionSchema,
+  },
+  [FlowgladActionKey.CreateActivateSubscriptionCheckoutSession]: {
+    method: HTTPMethod.POST,
+    inputValidator: createActivateSubscriptionCheckoutSessionSchema,
+  },
   [FlowgladActionKey.CreateCheckoutSession]: {
     method: HTTPMethod.POST,
-    inputValidator: createCheckoutSessionSchema,
+    inputValidator: createProductCheckoutSessionSchema,
   },
   [FlowgladActionKey.CancelSubscription]: {
     method: HTTPMethod.POST,

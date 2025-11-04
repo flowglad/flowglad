@@ -76,6 +76,7 @@ function CreateInvoiceModal({
       onSubmit={createInvoice.mutateAsync}
       defaultValues={defaultValues}
       wide
+      allowContentOverflow={false}
     >
       <InvoiceFormFields customer={customer} />
     </FormModal>
