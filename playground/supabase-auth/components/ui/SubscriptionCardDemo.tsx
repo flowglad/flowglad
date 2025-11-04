@@ -1,30 +1,77 @@
 import { useBilling } from '@flowglad/nextjs';
 
-const SubscribeButton = () => {
+export const SubscribeButton = ({
+  usePriceSlug = false
+}: {
+  usePriceSlug?: boolean;
+}) => {
   const billing = useBilling();
-  if (!billing.loaded) {
-    return <div>Loading...</div>;
-  } else if (billing.errors) {
+  const { createCheckoutSession, catalog } = billing;
+  if (billing.errors && billing.errors.length > 0) {
     return (
       <div>
         Error: {billing.errors.map((error) => error.message).join(', ')}
       </div>
     );
   }
-  const { createCheckoutSession, catalog } = billing;
+  if (!billing.loaded || !createCheckoutSession || !catalog) {
+    return <div>Loading...</div>;
+  }
+  return (
+    <button
+      onClick={() => {
+        if (usePriceSlug) {
+          createCheckoutSession({
+            autoRedirect: true,
+            priceSlug:
+              catalog.products.find((product) => !product.default)?.defaultPrice
+                .slug || '',
+            successUrl: `${window.location.origin}/success`,
+            cancelUrl: `${window.location.origin}/cancel`
+          });
+        } else {
+          createCheckoutSession({
+            autoRedirect: true,
+            priceId:
+              catalog.products.find((product) => !product.default)?.defaultPrice
+                .id || '',
+            successUrl: `${window.location.origin}/success`,
+            cancelUrl: `${window.location.origin}/cancel`
+          });
+        }
+      }}
+      className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-200"
+    >
+      Subscribe ({usePriceSlug ? 'Price Slug' : 'Price ID'})
+    </button>
+  );
+};
+
+export const AddPaymentMethodButton = () => {
+  const billing = useBilling();
+  const { createAddPaymentMethodCheckoutSession } = billing;
+  if (billing.errors && billing.errors.length > 0) {
+    return (
+      <div>
+        Error: {billing.errors.map((error) => error.message).join(', ')}
+      </div>
+    );
+  }
+  if (!billing.loaded || !createAddPaymentMethodCheckoutSession) {
+    return <div>Loading...</div>;
+  }
   return (
     <button
       onClick={() =>
-        createCheckoutSession({
+        createAddPaymentMethodCheckoutSession({
           autoRedirect: true,
-          priceId: catalog.products[0].variants[0].id,
           successUrl: `${window.location.origin}/success`,
           cancelUrl: `${window.location.origin}/cancel`
         })
       }
       className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-200"
     >
-      Subscribe
+      Add Payment Method
     </button>
   );
 };
