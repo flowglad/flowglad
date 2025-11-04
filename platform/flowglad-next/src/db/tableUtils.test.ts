@@ -1,7 +1,9 @@
-import * as R from 'ramda'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomersCursorPaginatedWithTableRowData } from './tableMethods/customerMethods'
+import {
+  selectCustomersCursorPaginatedWithTableRowData,
+  selectCustomersPaginated,
+} from './tableMethods/customerMethods'
 import {
   setupOrg,
   setupCustomer,
@@ -9,13 +11,11 @@ import {
 } from '@/../seedDatabase'
 import { core } from '@/utils/core'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { nulledPriceColumns, Price, prices } from '@/db/schema/prices'
-import { PriceType, CurrencyCode, FlowgladApiKeyType } from '@/types'
-import { eq, and as drizzleAnd } from 'drizzle-orm'
+import { nulledPriceColumns, Price } from '@/db/schema/prices'
+import { PriceType, CurrencyCode } from '@/types'
+import { eq, and as drizzleAnd, inArray, sql } from 'drizzle-orm'
 import { pgTable, text, integer, boolean } from 'drizzle-orm/pg-core'
-import { ApiKey, apiKeys } from '@/db/schema/apiKeys'
-import { users } from '@/db/schema/users'
-import { memberships } from '@/db/schema/memberships'
+import { ApiKey } from '@/db/schema/apiKeys'
 import { PricingModel, pricingModels } from './schema/pricingModels'
 import { Product } from './schema/products'
 import {
@@ -23,7 +23,13 @@ import {
   updateProduct,
 } from './tableMethods/productMethods'
 import { insertPrice, updatePrice } from './tableMethods/priceMethods'
-import { metadataSchema, whereClauseFromObject } from './tableUtils'
+import {
+  metadataSchema,
+  whereClauseFromObject,
+  encodeCursor,
+  decodeCursor,
+} from './tableUtils'
+import { customers } from './schema/customers'
 
 describe('createCursorPaginatedSelectFunction', () => {
   let organizationId: string
@@ -1422,6 +1428,485 @@ describe('whereClauseFromObject', () => {
       expect(result1).toBeDefined()
       expect(result2).toBeDefined()
     })
+  })
+})
+
+describe('createPaginatedSelectFunction', () => {
+  let organizationId: string
+  let customerIds: string[] = []
+
+  beforeEach(async () => {
+    const { organization } = await setupOrg()
+    organizationId = organization.id
+    customerIds = []
+
+    // Create 25 customers for pagination testing
+    for (let i = 0; i < 25; i++) {
+      const customer = await setupCustomer({
+        organizationId,
+        email: `paginated-test${i}-${core.nanoid()}@example.com`,
+        livemode: i % 3 === 0, // Every third customer is livemode
+      })
+      customerIds.push(customer.id)
+    }
+  })
+
+  it('should return first page with default limit', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersPaginated(
+        {
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBe(10)
+    expect(result.hasMore).toBe(true)
+    expect(result.nextCursor).toBeDefined()
+    expect(result.currentCursor).toBeUndefined()
+    expect(result.total).toBeGreaterThanOrEqual(25)
+  })
+
+  it('should return correct page with custom limit', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersPaginated(
+        {
+          limit: 5,
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBe(5)
+    expect(result.hasMore).toBe(true)
+  })
+
+  it('paginates forward across pages with stable order, cursor continuity, and no overlap', async () => {
+    // Page 1 from start (filtered by organization)
+    const page1 = await adminTransaction(async ({ transaction }) => {
+      const initialCursor = encodeCursor({
+        parameters: { organizationId },
+        direction: 'forward',
+      })
+      return selectCustomersPaginated(
+        {
+          cursor: initialCursor,
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    expect(page1.data.length).toBeGreaterThan(0)
+    expect(page1.hasMore).toBe(true)
+    expect(page1.nextCursor).toBeDefined()
+
+    // nextCursor must contain id and direction
+    const decoded1 = decodeCursor(page1.nextCursor!)
+    expect(decoded1.id).toBeDefined()
+    expect(decoded1.direction).toBe('forward')
+
+    // Page 2 using nextCursor
+    const page2 = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersPaginated(
+        {
+          cursor: page1.nextCursor!,
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    // Cursor continuity
+    expect(page2.currentCursor).toBe(page1.nextCursor)
+
+    // No overlap across pages
+    const set1 = new Set(page1.data.map((c) => c.id))
+    const set2 = new Set(page2.data.map((c) => c.id))
+    const overlap = [...set1].filter((id) => set2.has(id))
+    expect(overlap.length).toBe(0)
+
+    // Combined ordering check: ascending by (createdAt, id)
+    const combined = [...page1.data, ...page2.data]
+    for (let i = 0; i < combined.length - 1; i++) {
+      const a = combined[i]
+      const b = combined[i + 1]
+      const ta = new Date(a.createdAt).getTime()
+      const tb = new Date(b.createdAt).getTime()
+      expect(ta <= tb || (ta === tb && a.id <= b.id)).toBe(true)
+    }
+  })
+
+  it('should enforce maximum limit of 100', async () => {
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        return selectCustomersPaginated(
+          {
+            limit: 101,
+          },
+          transaction
+        )
+      })
+    ).rejects.toThrow('limit must be less than or equal to 100')
+  })
+
+  it('should return hasMore=false when on last page', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const initialCursor = encodeCursor({
+        parameters: { organizationId }, // Required in tests (bypasses auth flow)
+        direction: 'forward',
+      })
+      return selectCustomersPaginated(
+        {
+          cursor: initialCursor,
+          limit: 100,
+        },
+        transaction
+      )
+    })
+
+    // If we request more items than exist, hasMore should be false
+    expect(result.hasMore).toBe(false)
+    expect(result.nextCursor).toBeUndefined()
+  })
+
+  it('should handle empty result set', async () => {
+    // Since createPaginatedSelectFunction uses createdAt for cursor filtering,
+    // not parameter filtering in the cursor, we'll test with a far future date
+    const result = await adminTransaction(async ({ transaction }) => {
+      // Use a future date that won't match any records
+      const cursor = encodeCursor({
+        parameters: {},
+        createdAt: new Date('2099-01-01'),
+        id: '0',
+        direction: 'forward',
+      })
+      return selectCustomersPaginated(
+        {
+          cursor,
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBe(0)
+    expect(result.hasMore).toBe(false)
+    expect(result.nextCursor).toBeUndefined()
+  })
+
+  it('should paginate deterministically when many rows share identical createdAt', async () => {
+    const fixed = new Date('2020-01-01T00:00:00Z')
+    const result = await adminTransaction(async ({ transaction }) => {
+      // Force identical createdAt for at least 20 existing rows
+      const page = await selectCustomersPaginated(
+        { limit: 20 },
+        transaction
+      )
+      const ids = page.data.map((c) => c.id)
+      if (ids.length > 0) {
+        await transaction
+          .update(customers)
+          .set({
+            createdAt: sql`${fixed.toISOString()}::timestamptz`,
+          })
+          .where(inArray(customers.id, ids))
+      }
+
+      const page1 = await selectCustomersPaginated(
+        { limit: 10 },
+        transaction
+      )
+      const page2 = await selectCustomersPaginated(
+        { limit: 10, cursor: page1.nextCursor! },
+        transaction
+      )
+
+      // zero overlap due to (createdAt, id) keyset pagination
+      const set1 = new Set(page1.data.map((c) => c.id))
+      const set2 = new Set(page2.data.map((c) => c.id))
+      const overlap = [...set1].filter((id) => set2.has(id))
+      expect(overlap.length).toBe(0)
+
+      // ordering by (createdAt, id) ascending in forward
+      const all = [...page1.data, ...page2.data]
+      for (let i = 0; i < all.length - 1; i++) {
+        const a = all[i]
+        const b = all[i + 1]
+        const ta = new Date(a.createdAt).getTime()
+        const tb = new Date(b.createdAt).getTime()
+        expect(ta <= tb || (ta === tb && a.id <= b.id)).toBe(true)
+      }
+      return true
+    })
+    expect(result).toBe(true)
+  })
+
+
+  it('should handle backward pagination boundary with identical createdAt deterministically', async () => {
+    const fixed = new Date('2020-01-02T00:00:00Z')
+    await adminTransaction(async ({ transaction }) => {
+      // Force many rows to share the same timestamp for a robust boundary test
+      const firstPage = await selectCustomersPaginated(
+        { limit: 20 },
+        transaction
+      )
+      const ids = firstPage.data.map((c) => c.id)
+      if (ids.length > 0) {
+        await transaction
+          .update(customers)
+          .set({
+            createdAt: sql`${fixed.toISOString()}::timestamptz`,
+          })
+          .where(inArray(customers.id, ids))
+      }
+
+      // Start from just after the fixed timestamp, direction backward
+      const cursor = encodeCursor({
+        parameters: {},
+        createdAt: new Date('2020-01-03T00:00:00Z'),
+        id: 'zzzzzzzz',
+        direction: 'backward',
+      })
+      const page1 = await selectCustomersPaginated(
+        { limit: 10, cursor },
+        transaction
+      )
+      const page2 = await selectCustomersPaginated(
+        { limit: 10, cursor: page1.nextCursor! },
+        transaction
+      )
+
+      // zero overlap across backward pages
+      const set1 = new Set(page1.data.map((c) => c.id))
+      const set2 = new Set(page2.data.map((c) => c.id))
+      const overlap = [...set1].filter((id) => set2.has(id))
+      expect(overlap.length).toBe(0)
+
+      // ordering by (createdAt desc, id desc) in backward
+      const all = [...page1.data, ...page2.data]
+      for (let i = 0; i < all.length - 1; i++) {
+        const a = all[i]
+        const b = all[i + 1]
+        const ta = new Date(a.createdAt).getTime()
+        const tb = new Date(b.createdAt).getTime()
+        expect(ta >= tb || (ta === tb && a.id >= b.id)).toBe(true)
+      }
+    })
+  })
+
+  it('accepts legacy cursor without id and continues pagination (createdAt-only fallback)', async () => {
+    // Get a first page to establish an anchor
+    const firstPage = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersPaginated(
+        {
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    expect(firstPage.data.length).toBeGreaterThan(0)
+    const anchor = firstPage.data[firstPage.data.length - 1]
+
+    // Construct a legacy cursor (no id) anchored at last item createdAt
+    const legacyCursor = encodeCursor({
+      parameters: {},
+      createdAt: new Date(anchor.createdAt as number),
+      // intentionally omit id
+      direction: 'forward',
+    })
+
+    const secondPage = await adminTransaction(async ({ transaction }) => {
+      return selectCustomersPaginated(
+        {
+          cursor: legacyCursor,
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    // Ensure we advanced and did not overlap with the first page
+    const firstIds = new Set(firstPage.data.map((c) => c.id))
+    const secondIds = new Set(secondPage.data.map((c) => c.id))
+    const overlap = [...firstIds].filter((id) => secondIds.has(id))
+    expect(overlap.length).toBe(0)
+
+    // Next cursor should be produced as a modern cursor (with id)
+    if (secondPage.nextCursor) {
+      const decoded = decodeCursor(secondPage.nextCursor)
+      expect(decoded.id).toBeDefined()
+      expect(decoded.direction).toBe('forward')
+    }
+  })  
+
+  it('should handle backward pagination direction', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      // Create cursor with backward direction
+      const cursor = encodeCursor({
+        parameters: {},
+        createdAt: new Date(), // Start from now
+        direction: 'backward',
+      })
+
+      return selectCustomersPaginated(
+        {
+          cursor,
+          limit: 10,
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBeGreaterThan(0)
+
+    // Verify records are ordered by creation date descending (newest first in backward direction)
+    for (let i = 0; i < result.data.length - 1; i++) {
+      expect(
+        new Date(result.data[i].createdAt).getTime()
+      ).toBeGreaterThanOrEqual(
+        new Date(result.data[i + 1].createdAt).getTime()
+      )
+    }
+  })
+
+  it('should return consistent results across multiple fetches without cursor', async () => {
+    const firstFetch = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersPaginated(
+          {
+            limit: 5,
+          },
+          transaction
+        )
+      }
+    )
+
+    const secondFetch = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersPaginated(
+          {
+            limit: 5,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Without new data, the first page should be the same
+    expect(firstFetch.data.map((c) => c.id)).toEqual(
+      secondFetch.data.map((c) => c.id)
+    )
+  })
+
+  it('should handle limit at exact boundary of available records', async () => {
+    // Get total count first
+    const totalResult = await adminTransaction(
+      async ({ transaction }) => {
+        const cursor = encodeCursor({
+          parameters: { organizationId }, // Required in tests (bypasses auth flow)
+          createdAt: new Date(0),
+          direction: 'forward',
+        })
+        return selectCustomersPaginated(
+          {
+            cursor,
+            limit: 100,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Request exactly the number of records that exist
+    const result = await adminTransaction(async ({ transaction }) => {
+      const cursor = encodeCursor({
+        parameters: { organizationId }, // Required in tests (bypasses auth flow)
+        createdAt: new Date(0),
+        direction: 'forward',
+      })
+      return selectCustomersPaginated(
+        {
+          cursor,
+          limit: Math.min(totalResult.data.length, 100),
+        },
+        transaction
+      )
+    })
+
+    expect(result.data.length).toBe(
+      Math.min(totalResult.data.length, 100)
+    )
+  })
+})
+
+describe('createPaginatedSelectFunction (deterministic assertions)', () => {
+  let organizationId: string
+
+  beforeEach(async () => {
+    const { organization } = await setupOrg()
+    organizationId = organization.id
+
+    // Seed 12 customers with deterministic names in creation order
+    for (let i = 1; i <= 12; i++) {
+      const index = String(i).padStart(4, '0')
+      await setupCustomer({
+        organizationId,
+        name: `cust-${index}`,
+        email: `cust-${index}@example.com`,
+        livemode: true,
+      })
+    }
+  })
+
+  it('asserts every item by name across forward pages (no gaps, no dupes)', async () => {
+    const expectedNames = Array.from({ length: 12 }, (_, i) =>
+      `cust-${String(i + 1).padStart(4, '0')}`
+    )
+
+    const pageSize = 5
+    let currentCursor: string | undefined = encodeCursor({
+      parameters: { organizationId },
+      direction: 'forward',
+    })
+    const seenNames: string[] = []
+
+    // Walk pages until exhaustion
+    // Collect names to assert full ordering and content
+    while (true) {
+      const page = await adminTransaction(async ({ transaction }) =>
+        selectCustomersPaginated({ cursor: currentCursor, limit: pageSize }, transaction)
+      )
+      seenNames.push(...page.data.map((c) => c.name))
+      if (!page.nextCursor) break
+      currentCursor = page.nextCursor
+    }
+
+    // Ensure exactly our 12 seeded customers were returned in order
+    expect(seenNames).toEqual(expectedNames)
+
+    // Verify per-page boundaries explicitly
+    const chunk = (arr: string[], size: number) =>
+      Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+        arr.slice(i * size, i * size + size)
+      )
+    const pages = chunk(seenNames, pageSize)
+    expect(pages[0]).toEqual(expectedNames.slice(0, 5))
+    expect(pages[1]).toEqual(expectedNames.slice(5, 10))
+    expect(pages[2]).toEqual(expectedNames.slice(10, 12))
+  })
+  
+  it('counts total records deterministically for organization', async () => {
+    const cursor = encodeCursor({
+      parameters: { organizationId },
+      direction: 'forward',
+    })
+    const result = await adminTransaction(async ({ transaction }) =>
+      selectCustomersPaginated({ cursor, limit: 3 }, transaction)
+    )
+    expect(result.total).toBe(12)
   })
 })
 

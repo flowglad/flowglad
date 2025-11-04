@@ -16,6 +16,7 @@ import {
   or,
   isNull,
   Table,
+  ne,
 } from 'drizzle-orm'
 import { PgTimestampColumn } from './types'
 import { timestamptzMs } from './timestampMs'
@@ -1084,26 +1085,36 @@ type PaginationDirection = 'forward' | 'backward'
 export const encodeCursor = <T extends PgTableWithId>({
   parameters,
   createdAt = new Date(0),
+  id,
   direction = 'forward',
 }: {
   parameters: SelectConditions<T>
   createdAt?: Date
+  id?: string
   direction?: PaginationDirection
 }) => {
   return Buffer.from(
-    `${JSON.stringify({ parameters, createdAt, direction })}`
+    `${JSON.stringify({
+      parameters,
+      createdAt: createdAt.getTime(),
+      id,
+      direction,
+    })}`
   ).toString('base64')
 }
 
 /**
  *
- * @param cursor a string of the form `{"parameters": {...}, "createdAt": "2024-01-01T00:00:00.000Z"}`
+ * @param cursor a string of the form `{"parameters": {...}, "createdAt": 1704067200000, "id": "abc123", "direction": "forward"}`
  */
 export const decodeCursor = (cursor: string) => {
   const decoded = JSON.parse(Buffer.from(cursor, 'base64').toString())
   return {
     parameters: decoded.parameters,
-    createdAt: new Date(decoded.createdAt),
+    createdAt: decoded.createdAt
+      ? new Date(decoded.createdAt)
+      : undefined,
+    id: decoded.id,
     direction: decoded.direction,
   }
 }
@@ -1141,35 +1152,70 @@ export const createPaginatedSelectFunction = <
             limit
         )
       }
-      const { parameters, createdAt, direction } = cursor
+      const {
+        parameters,
+        createdAt,
+        id,
+        direction,
+      }: {
+        parameters: SelectConditions<T>
+        createdAt: Date | undefined
+        id: string | undefined
+        direction: PaginationDirection
+      } = cursor
         ? decodeCursor(cursor)
         : {
-            parameters: {},
-            createdAt: new Date(),
+            parameters: {} as SelectConditions<T>,
+            createdAt: undefined,
+            id: undefined,
             direction: 'forward',
           }
       let query = transaction
         .select()
         .from(table as SelectTable)
         .$dynamic()
-      if (Object.keys(parameters).length > 0) {
-        query = query.where(
-          and(
-            whereClauseFromObject(table, parameters),
+      const baseWhere =
+        Object.keys(parameters).length > 0
+          ? whereClauseFromObject(table, parameters)
+          : undefined
+
+      if (createdAt) {
+        // Force epoch-ms number for custom timestamptzMs column to ensure consistent toDriver
+        const createdAtMs = createdAt.valueOf()
+        if (id) {
+          // Preferred: composite keyset with tie-breaker on id
+          const keyset =
             direction === 'forward'
-              ? gt(table.createdAt, createdAt)
-              : lt(table.createdAt, createdAt)
-          )
-        )
+              ? or(
+                  gt(table.createdAt, createdAtMs),
+                  and(eq(table.createdAt, createdAtMs), gt(table.id, id))
+                )
+              : or(
+                  lt(table.createdAt, createdAtMs),
+                  and(eq(table.createdAt, createdAtMs), lt(table.id, id))
+                )
+          // Exclude anchor row to avoid boundary duplication, combine with base filter
+          const boundary = and(ne(table.id, id), keyset)
+          query = query.where(and(baseWhere, boundary))
+        } else {
+          // Legacy fallback: apply createdAt-only boundary when id is absent
+          const keyset =
+            direction === 'forward'
+              ? gt(table.createdAt, createdAtMs)
+              : lt(table.createdAt, createdAtMs)
+          query = query.where(and(baseWhere, keyset))
+        }
+      }
+      // If no cursor boundary was applied, apply base filter (if any)
+      if (!createdAt && baseWhere) {
+        query = query.where(baseWhere)
       }
       const queryLimit = limit + 1
-      query = query
-        .orderBy(
-          direction === 'forward'
-            ? asc(table.createdAt)
-            : desc(table.createdAt)
-        )
-        .limit(queryLimit)
+      const orderings =
+        direction === 'forward'
+          ? [asc(table.createdAt), asc(table.id)]
+          : [desc(table.createdAt), desc(table.id)]
+      query = query.orderBy(...orderings).limit(queryLimit)
       const result = await query
 
       // Check if we got an extra item
@@ -1192,7 +1238,10 @@ export const createPaginatedSelectFunction = <
         nextCursor: hasMore
           ? encodeCursor({
               parameters,
-              createdAt: data[data.length - 1].createdAt as Date,
+              createdAt: new Date(
+                data[data.length - 1].createdAt as number
+              ),
+              id: data[data.length - 1].id as string,
               direction,
             })
           : undefined,
