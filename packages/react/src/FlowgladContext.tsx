@@ -6,7 +6,6 @@ import {
   FlowgladActionKey,
   flowgladActionValidators,
   type CancelSubscriptionParams,
-  type CreateCheckoutSessionParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
   constructCheckFeatureAccess,
@@ -17,17 +16,15 @@ import {
 } from '@flowglad/shared'
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
-import { CustomerBillingDetails } from '@flowglad/types'
+import type {
+  CreateProductCheckoutSessionParams,
+  CustomerBillingDetails,
+} from '@flowglad/types'
 import { devError } from './lib/utils'
 
-export type FrontendCreateCheckoutSessionParams =
-  CreateCheckoutSessionParams & {
+export type FrontendProductCreateCheckoutSessionParams =
+  CreateProductCheckoutSessionParams & {
     autoRedirect?: boolean
-    /**
-     * the type of checkout session to create. If not provided, defaults to 'product'.
-     * One of 'product', 'add_payment_method', 'subscription', 'subscription_cancellation'
-     */
-    type?: CreateCheckoutSessionParams['type']
   }
 
 export type FrontendCreateAddPaymentMethodCheckoutSessionParams =
@@ -55,7 +52,7 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
     subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
   }>
   createCheckoutSession: (
-    params: FrontendCreateCheckoutSessionParams
+    params: FrontendProductCreateCheckoutSessionParams
   ) => Promise<CreateCheckoutSessionResponse>
   createAddPaymentMethodCheckoutSession: (
     params: FrontendCreateAddPaymentMethodCheckoutSessionParams
@@ -74,6 +71,8 @@ export interface NonPresentContextValues {
   createActivateSubscriptionCheckoutSession: null
   checkFeatureAccess: null
   checkUsageBalance: null
+  pricingModel: null
+  billingPortalUrl: null
   reload: null
   catalog: null
   invoices: []
@@ -118,6 +117,8 @@ const notPresentContextValues: NonPresentContextValues = {
   createActivateSubscriptionCheckoutSession: null,
   checkFeatureAccess: null,
   checkUsageBalance: null,
+  pricingModel: null,
+  billingPortalUrl: null,
   reload: null,
   catalog: null,
   invoices: [],
@@ -134,35 +135,40 @@ const FlowgladContext = createContext<FlowgladContextValues>({
   ...notPresentContextValues,
 })
 
-interface ConstructCreateCheckoutSessionParams {
-  flowgladRoute: string
-  requestConfig?: RequestConfig
-  typeOverride?: CreateCheckoutSessionParams['type']
-}
+type CheckoutSessionParamsBase = {
+  successUrl: string
+  cancelUrl: string
+  autoRedirect?: boolean
+} & Record<string, unknown>
 
-const makeCreateCheckoutSession =
-  <
-    TParams extends {
-      successUrl: string
-      cancelUrl: string
-      autoRedirect?: boolean
-    },
-  >(
+// Builds a context-facing helper that hits a specific checkout session subroute,
+// while reusing shared validation, axios plumbing, and optional payload shaping.
+const constructCheckoutSessionCreator =
+  <TParams extends CheckoutSessionParamsBase>(
+    actionKey: FlowgladActionKey,
     flowgladRoute: string,
     requestConfig?: RequestConfig,
-    typeOverride?: CreateCheckoutSessionParams['type']
+    mapPayload?: (
+      params: TParams,
+      basePayload: Omit<TParams, 'autoRedirect'>
+    ) => Record<string, unknown>
   ) =>
   async (params: TParams): Promise<CreateCheckoutSessionResponse> => {
     validateUrl(params.successUrl, 'successUrl')
     validateUrl(params.cancelUrl, 'cancelUrl')
     validateUrl(flowgladRoute, 'flowgladRoute', true)
+
     const headers = requestConfig?.headers
+    const { autoRedirect, ...basePayload } = params
+    // The mapPayload hook lets each caller tweak the server payload without
+    // duplicating the core request logic.
+    const payload =
+      mapPayload?.(params, basePayload) ??
+      (basePayload as Record<string, unknown>)
+
     const response = await axios.post(
-      `${flowgladRoute}/${FlowgladActionKey.CreateCheckoutSession}`,
-      {
-        ...params,
-        type: typeOverride ?? (params as any).type ?? 'product',
-      },
+      `${flowgladRoute}/${actionKey}`,
+      payload,
       { headers }
     )
     const json: {
@@ -175,9 +181,9 @@ const makeCreateCheckoutSession =
         'FlowgladContext: Checkout session creation failed',
         json
       )
-      return { error: json.error! }
+      return { error: json.error }
     }
-    if (params.autoRedirect) {
+    if (autoRedirect) {
       window.location.href = data.url
     }
     return { id: data.checkoutSession.id, url: data.url }
@@ -359,24 +365,31 @@ export const FlowgladContextProvider = (
   } = props as CoreFlowgladContextProviderProps
   const serverRoute = serverRouteProp ?? '/api/flowglad'
   const loadBilling = loadBillingProp ?? false
+  // Each handler below gets its own Flowglad subroute, but still funnels through
+  // the shared creator for validation and redirect behavior.
   const createCheckoutSession =
-    makeCreateCheckoutSession<FrontendCreateCheckoutSessionParams>(
+    constructCheckoutSessionCreator<FrontendProductCreateCheckoutSessionParams>(
+      FlowgladActionKey.CreateCheckoutSession,
+      serverRoute,
+      requestConfig,
+      (_, basePayload) => ({
+        ...basePayload,
+        type: 'product',
+      })
+    )
+
+  const createAddPaymentMethodCheckoutSession =
+    constructCheckoutSessionCreator<FrontendCreateAddPaymentMethodCheckoutSessionParams>(
+      FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
       serverRoute,
       requestConfig
     )
 
-  const createAddPaymentMethodCheckoutSession =
-    makeCreateCheckoutSession<FrontendCreateAddPaymentMethodCheckoutSessionParams>(
-      serverRoute,
-      requestConfig,
-      'add_payment_method'
-    )
-
   const createActivateSubscriptionCheckoutSession =
-    makeCreateCheckoutSession<FrontendCreateActivateSubscriptionCheckoutSessionParams>(
+    constructCheckoutSessionCreator<FrontendCreateActivateSubscriptionCheckoutSessionParams>(
+      FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
       serverRoute,
-      requestConfig,
-      'activate_subscription'
+      requestConfig
     )
 
   const cancelSubscription = constructCancelSubscription({

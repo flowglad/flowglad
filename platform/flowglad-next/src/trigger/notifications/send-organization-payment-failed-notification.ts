@@ -19,6 +19,7 @@ interface PaymentFailedNotificationData {
   currency: CurrencyCode
   invoiceNumber?: string
   failureReason?: string
+  livemode: boolean
 }
 
 export const sendOrganizationPaymentFailedNotificationTask = task({
@@ -78,6 +79,7 @@ export const sendOrganizationPaymentFailedNotificationTask = task({
         customerId: customer.id,
         customerName: customer.name,
         failureReason: paymentData.failureReason,
+        livemode: paymentData.livemode,
       }),
     })
 

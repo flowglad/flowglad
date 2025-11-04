@@ -1,4 +1,3 @@
-// @ts-ignore - react-currency-input-field doesn't have types
 import InnerCurrencyInput from 'react-currency-input-field'
 
 import { cn } from '@/lib/utils'
@@ -28,6 +27,8 @@ export const CurrencyInput = ({
         error ? 'border-destructive' : '',
         className
       )}
+      min={0}
+      allowNegativeValue={false}
       onValueChange={onValueChange}
       allowDecimals={allowDecimals}
       {...props}

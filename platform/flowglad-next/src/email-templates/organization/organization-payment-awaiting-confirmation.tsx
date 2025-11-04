@@ -12,6 +12,7 @@ import {
   DetailValue,
 } from '../components/themed'
 import { emailBaseUrl } from '@/utils/core'
+import TestModeBanner from '../components/TestBanner'
 
 export interface OrganizationPaymentConfirmationEmailProps {
   organizationName: string
@@ -20,6 +21,7 @@ export interface OrganizationPaymentConfirmationEmailProps {
   customerId: string
   currency: CurrencyCode
   customerName: string
+  livemode: boolean
 }
 
 export const OrganizationPaymentConfirmationEmail = ({
@@ -29,6 +31,7 @@ export const OrganizationPaymentConfirmationEmail = ({
   customerId,
   currency,
   customerName,
+  livemode,
 }: OrganizationPaymentConfirmationEmailProps) => {
   const humanReadableAmount =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -40,6 +43,7 @@ export const OrganizationPaymentConfirmationEmail = ({
       previewText="Awaiting Confirmation for Payment"
       variant="organization"
     >
+      <TestModeBanner livemode={livemode} />
       <Img
         src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
         width="540"

@@ -7,7 +7,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import { sendPaymentFailedEmail } from '@/utils/email'
-import { idempotencyKeys, logger, task } from '@trigger.dev/sdk'
+import { logger, task } from '@trigger.dev/sdk'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { generateInvoicePdfTask } from '../generate-invoice-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
@@ -109,6 +109,7 @@ export const sendCustomerPaymentFailedNotificationTask = task({
       discountInfo,
       failureReason,
       customerPortalUrl,
+      livemode: mostUpToDateInvoice.livemode,
     })
 
     if (result?.error) {
