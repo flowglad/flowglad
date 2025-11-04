@@ -66,9 +66,9 @@ Usage events record a consumption of an event to a usage meter. Every usage even
 
 ## Features
 
-Features describe what your customer gets, in terms of `boolean` access to functionality, or a `usage_credit_grant` that grants access to a usage meter. For usage credit grant features, you can specify whether the grant is one time, granted immediately at the time of purchase or subscription creation. Or whether the grant recurs every billing period.
+Features describe what your customer receives, either as `boolean` access to a capability or as a `usage_credit_grant` that provides credits for a usage meter. For usage credit grant features, you can configure the grant to be either one-time (issued immediately upon purchase or subscription creation) or recurring (granted at the start of each billing period).
 
-Features are standalone resources in the Flowglad data model. Products can have many features, and features can belong to many products simultaneously. The product <> feature relationship is how Flowglad determines which features to grant customers when they purchase.
+Features are independent resources in the Flowglad data model. Products can have multiple features, and individual features can be associated with multiple products simultaneously. The relationship between products and features (product < > feature) is how Flowglad determines which features are assigned to customers when they purchase or subscribe.
 
 ## Customers
 
