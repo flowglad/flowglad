@@ -4,6 +4,7 @@ on:
   pull_request:
   merge_group:
   workflow_call:
+  workflow_dispatch:
 
 permissions: read-all
 
