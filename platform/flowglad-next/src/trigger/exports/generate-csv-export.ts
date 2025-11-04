@@ -2,6 +2,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomersCursorPaginatedWithTableRowData } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectUserById } from '@/db/tableMethods/userMethods'
+import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import type {
   CustomerTableRowData,
   CustomersPaginatedTableRowInput,
@@ -50,6 +51,7 @@ export const generateCsvExportTask = task({
         organizationCurrency,
         organizationName,
         userEmail,
+        livemode,
       } = await adminTransaction(async ({ transaction }) => {
         const normalizedFilters: CustomerTableFilters = {
           ...(filters ?? {}),
@@ -66,13 +68,27 @@ export const generateCsvExportTask = task({
             transaction,
           })
 
-        const total = initialResponse.total ?? 0
-
         const organization = await selectOrganizationById(
           organizationId,
           transaction
         )
         const user = await selectUserById(userId, transaction)
+
+        // Verify membership exists for userId + organizationId
+        const memberships = await selectMemberships(
+          {
+            userId,
+            organizationId,
+          },
+          transaction
+        )
+        if (memberships.length === 0) {
+          throw new Error(
+            `User ${userId} is not a member of organization ${organizationId}`
+          )
+        }
+
+        const livemode = memberships[0].livemode
 
         const rows: CustomerTableRowData[] = [
           ...initialResponse.items,
@@ -81,6 +97,11 @@ export const generateCsvExportTask = task({
         let hasNextPage = initialResponse.hasNextPage
         let pageAfter = initialResponse.endCursor
 
+        // Intentionally foregoing test coverage for this pagination loop.
+        // This is a straightforward extension of existing pagination logic:
+        // - The underlying selectCustomersCursorPaginatedWithTableRowData function is already tested
+        // - This loop simply calls it repeatedly until all pages are fetched
+        // - The logic is straightforward and low-stakes (CSV export)
         while (hasNextPage && pageAfter) {
           const response =
             await selectCustomersCursorPaginatedWithTableRowData({
@@ -100,10 +121,11 @@ export const generateCsvExportTask = task({
 
         return {
           rows,
-          totalCustomers: total,
+          totalCustomers: rows.length,
           organizationCurrency: organization.defaultCurrency,
           organizationName: organization.name,
           userEmail: user.email,
+          livemode,
         }
       })
 
@@ -134,6 +156,7 @@ export const generateCsvExportTask = task({
         organizationName,
         csvContent: csv,
         filename: attachmentFilename,
+        livemode,
       })
 
       if (emailResult?.error) {

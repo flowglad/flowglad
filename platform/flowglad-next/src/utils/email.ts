@@ -487,11 +487,13 @@ export const sendCustomersCsvExportReadyEmail = async ({
   organizationName,
   csvContent,
   filename,
+  livemode,
 }: {
   to: string[]
   organizationName: string
   csvContent: string
   filename: string
+  livemode: boolean
 }) => {
   return safeSend({
     from: 'Flowglad <notifications@flowglad.com>',
@@ -499,6 +501,7 @@ export const sendCustomersCsvExportReadyEmail = async ({
     subject: 'Your customers CSV export is ready',
     react: await CustomersCsvExportReadyEmail({
       organizationName,
+      livemode,
     }),
     attachments: [
       {

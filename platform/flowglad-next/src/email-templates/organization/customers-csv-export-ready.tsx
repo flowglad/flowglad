@@ -5,19 +5,23 @@ import {
   Header,
   Paragraph,
 } from '../components/themed'
+import TestModeBanner from '../components/TestBanner'
 
 export interface CustomersCsvExportReadyEmailProps {
   organizationName: string
+  livemode: boolean
 }
 
 export const CustomersCsvExportReadyEmail = ({
-  organizationName
+  organizationName,
+  livemode,
 }: CustomersCsvExportReadyEmailProps) => {
   return (
     <EmailLayout
       previewText={`Your customers CSV export for ${organizationName} is ready`}
       variant="organization"
     >
+      <TestModeBanner livemode={livemode} />
       <Img
         src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
         width="540"
