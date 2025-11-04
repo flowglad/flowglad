@@ -1,6 +1,5 @@
-import { Img, Section, Text } from '@react-email/components'
+import { Img } from '@react-email/components'
 import * as React from 'react'
-import { EmailButton } from '../components/EmailButton'
 import {
   EmailLayout,
   Header,
@@ -15,14 +14,12 @@ export interface CustomersCsvExportReadyEmailProps {
   organizationName: string
   totalCustomers: number
   filename: string
-  downloadUrl: string
 }
 
 export const CustomersCsvExportReadyEmail = ({
   organizationName,
   totalCustomers,
   filename,
-  downloadUrl,
 }: CustomersCsvExportReadyEmailProps) => {
   return (
     <EmailLayout
@@ -41,9 +38,9 @@ export const CustomersCsvExportReadyEmail = ({
         variant="organization"
       />
       <Paragraph variant="organization">
-        We have successfully generated your customers CSV export. Use
-        the button below to open it instantly whenever you&apos;re
-        ready.
+        We have successfully generated your customers CSV export.
+        You&apos;ll find the file attached so you can download it
+        right away.
       </Paragraph>
 
       <DetailSection>
@@ -58,12 +55,6 @@ export const CustomersCsvExportReadyEmail = ({
         <DetailItem variant="organization">File Name</DetailItem>
         <DetailValue>{filename}</DetailValue>
       </DetailSection>
-
-      <Section
-        style={{ textAlign: 'center' as const, marginTop: '32px' }}
-      >
-        <EmailButton href={downloadUrl}>Open CSV Export</EmailButton>
-      </Section>
 
       <Paragraph variant="organization" style={{ marginTop: '24px' }}>
         Need a fresh export later? You can generate a new file anytime

@@ -10,8 +10,6 @@ import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
 import { createCustomersCsv } from '@/utils/csv-export'
 import { safeSend } from '@/utils/email'
 import { CustomersCsvExportReadyEmail } from '@/email-templates/organization/customers-csv-export-ready'
-import cloudflareMethods from '@/utils/cloudflare'
-import core from '@/utils/core'
 import { logger, task } from '@trigger.dev/sdk'
 import { format } from 'date-fns'
 
@@ -153,20 +151,10 @@ export const generateCsvExportTask = task({
         generationTimestamp
       )
 
-      const downloadFilename = `customers_${format(
+      const attachmentFilename = `customers_${format(
         generationTimestamp,
         'yyyy-MM-dd_HH-mm-ss'
       )}.csv`
-      const csvKey = `exports/customers/${organizationId}/${downloadFilename}`
-      await cloudflareMethods.putCsv({
-        body: csv,
-        key: csvKey,
-      })
-      const downloadUrl = core.safeUrl(
-        csvKey,
-        cloudflareMethods.BUCKET_PUBLIC_URL
-      )
-
       const emailResult = await safeSend({
         from: 'Flowglad <notifications@flowglad.com>',
         to: [userEmail],
@@ -174,30 +162,34 @@ export const generateCsvExportTask = task({
         react: await CustomersCsvExportReadyEmail({
           organizationName,
           totalCustomers: rows.length,
-          filename: downloadFilename,
-          downloadUrl,
+          filename: attachmentFilename,
         }),
+        attachments: [
+          {
+            filename: attachmentFilename,
+            content: Buffer.from(csv, 'utf-8'),
+            contentType: 'text/csv',
+          },
+        ],
       })
 
       if (emailResult?.error) {
         logger.error('Error sending CSV export email', {
           error: emailResult.error,
-          filename: downloadFilename,
+          filename: attachmentFilename,
         })
         throw new Error('Failed to send CSV export email')
       }
 
       logger.log('CSV export email sent successfully', {
-        filename: downloadFilename,
+        filename: attachmentFilename,
         totalCustomers: rows.length,
-        downloadUrl,
       })
 
       return {
         message: 'CSV export email sent successfully',
-        filename: downloadFilename,
+        filename: attachmentFilename,
         totalCustomers: rows.length,
-        downloadUrl,
       }
     } catch (error) {
       logger.error('generateCsvExportTask failed', {
