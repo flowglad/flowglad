@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "xmcp dev & next dev & wait",
+    "dev": "next dev",
     "prebuild": "dotenvx run -f .env.local -- pnpm tsx src/scripts/removeDevRoutes.ts && pnpm build:preview-css",
     "build": "pnpm check && next build",
     "build:preview-css": "tsx src/scripts/build-preview-css.ts",
@@ -118,7 +118,6 @@
     "@unkey/api": "^0.31.0",
     "@unkey/nextjs": "^0.18.5",
     "@upstash/redis": "^1.35.3",
-    "@vercel/mcp-adapter": "^0.11.1",
     "@vercel/otel": "^1.10.4",
     "ai": "^4.0.21",
     "axios": "1.12.0",
@@ -141,6 +140,7 @@
     "jszip": "^3.10.1",
     "loops": "^5.0.0",
     "lucide-react": "0.479.0",
+    "mcp-handler": "^1.0.3",
     "nanoid": "^5.0.7",
     "next": "15.2.3",
     "next-themes": "^0.4.6",
@@ -181,7 +181,6 @@
     "trpc-to-openapi": "3.0.1",
     "tsx": "^4.17.0",
     "vaul": "1.1.2",
-    "xmcp": "^0.3.5",
     "yaml": "^2.8.1",
     "zod": "4.1.5",
     "zod-openapi": "5.4.0"
@@ -218,7 +217,9 @@
     "jsdom": "26.1.0",
     "msw": "^2.7.0",
     "node-loader": "^2.1.0",
+    "patch-package": "^8.0.1",
     "postcss": "^8",
+    "postinstall-postinstall": "^2.1.0",
     "require-in-the-middle": "7.4.0",
     "tailwindcss": "^3.4.1",
     "typescript": "5.5.4",
@@ -229,7 +230,9 @@
     "overrides": {
       "esbuild": "0.25.0",
       "chromium-bidi": "2.1.2",
-      "@react-email/render": "0.0.17"
+      "@react-email/render": "0.0.17",
+      "zod": "4.1.5",
+      "mcp-handler>zod": "4.1.5"
     }
   },
   "packageManager": "pnpm@9.14.4+sha512.c8180b3fbe4e4bca02c94234717896b5529740a6cbadf19fa78254270403ea2f27d4e1d46a08a0f56c89b63dc8ebfd3ee53326da720273794e6200fcf0d184ab"

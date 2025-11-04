@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { createMcpHandler } from '@vercel/mcp-adapter'
+import { createMcpHandler } from 'mcp-handler'
 
 export type McpHandler = typeof createMcpHandler
 
@@ -27,10 +27,21 @@ export function toolWrap<T extends z.ZodRawShape>(
   apiKey: string
 ): ServerTool<T> {
   const { name, description, schema, callbackConstructor } = tool
-  server.tool(name, description, schema, async (args) => {
-    // @ts-expect-error - zod types are not compatible with the mcp types
-    return await callbackConstructor(apiKey)(args)
-  })
+
+  // mcp-handler expects a Zod object schema
+  // Wrap the raw shape with z.object() to create proper JSON Schema with type: "object"
+  const zodSchema = z.object(schema)
+
+  server.tool(
+    name,
+    description,
+    zodSchema, // Pass as z.object() so it generates proper JSON Schema
+    async (args: any, extra?: { authInfo?: { token?: string } }) => {
+      // Extract API key from authInfo if available, otherwise use the passed apiKey
+      const key = extra?.authInfo?.token || apiKey
+      return await callbackConstructor(key)(args)
+    }
+  )
 
   return tool
 }
