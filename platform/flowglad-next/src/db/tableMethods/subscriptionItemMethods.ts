@@ -294,7 +294,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
 
   // Step 4: Fetch related data in parallel for better performance
   // Gets features and meter balances in a single Promise.all call
-  const [subscriptionItemFeatures, usageMeterBalances] =
+  const [allSubscriptionItemFeatures, usageMeterBalances] =
     await Promise.all([
       selectSubscriptionItemFeaturesWithFeatureSlug(
         {
@@ -309,6 +309,10 @@ export const selectRichSubscriptionsAndActiveItems = async (
         transaction
       ),
     ])
+  // Filter out expired subscription item features
+  const subscriptionItemFeatures = allSubscriptionItemFeatures.filter(
+    (f) => !f.expiredAt || f.expiredAt > Date.now()
+  )
 
   // Step 5: Group features by subscription ID
   // Creates lookup maps for efficient data access
