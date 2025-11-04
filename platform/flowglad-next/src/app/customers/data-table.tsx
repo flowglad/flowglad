@@ -34,6 +34,7 @@ import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { ExportLimitModal } from '@/components/ui/export-limit-modal'
 import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
+import { toast } from 'sonner'
 
 export interface CustomersTableFilters {
   archived?: boolean
@@ -168,14 +169,20 @@ export function CustomersDataTable({
         searchQuery: trimmedSearch || undefined,
       })
 
-      // Check if export exceeds limit
+      if (result.asyncExportStarted) {
+        toast.success(
+          'CSV export started! We’ll email you when it’s ready.'
+        )
+        setShowExportLimitModal(false)
+        return
+      }
+
       if (result.exceedsLimit) {
         setCustomerCount(result.totalCustomers)
         setShowExportLimitModal(true)
         return
       }
 
-      // Proceed with normal export
       if (result.csv && result.filename) {
         const blob = new Blob([result.csv], {
           type: 'text/csv;charset=utf-8',
@@ -193,6 +200,9 @@ export function CustomersDataTable({
       }
     } catch (error) {
       console.error('Failed to export customers', error)
+      toast.error(
+        'Failed to export customers. Please try again later.'
+      )
     } finally {
       setIsExporting(false)
     }
@@ -200,14 +210,11 @@ export function CustomersDataTable({
 
   return (
     <div className="w-full">
-      {/* Enhanced toolbar with all improvements */}
       <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title on the left (for detail pages) */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && <h3 className="text-lg truncate">{title}</h3>}
         </div>
 
-        {/* Controls on the right */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <CollapsibleSearch
             value={inputValue}
