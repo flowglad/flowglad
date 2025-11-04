@@ -32,6 +32,7 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form'
+import FileInput from '@/components/FileInput'
 
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
@@ -44,6 +45,7 @@ const BusinessDetails = () => {
     defaultValues: {
       organization: {
         name: '',
+        logoURL: undefined,
       },
     },
   })
@@ -107,6 +109,44 @@ const BusinessDetails = () => {
                           className="w-full"
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="organization.logoURL"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company logo</FormLabel>
+                      <FormControl>
+                        <FileInput
+                          directory="organizations"
+                          singleOnly
+                          id="organization-logo-upload"
+                          fileTypes={[
+                            'png',
+                            'jpeg',
+                            'jpg',
+                            'gif',
+                            'webp',
+                            'svg',
+                            'avif',
+                          ]}
+                          initialURL={field.value ?? undefined}
+                          onUploadComplete={({ publicURL }) =>
+                            field.onChange(publicURL)
+                          }
+                          onUploadDeleted={() =>
+                            field.onChange(undefined)
+                          }
+                          hint="Recommended square image. Max size 2MB."
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        This logo appears in your dashboard navigation
+                        and customer-facing invoices.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

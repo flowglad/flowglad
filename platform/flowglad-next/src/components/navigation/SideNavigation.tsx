@@ -8,6 +8,8 @@ import {
   BookOpen,
   LogOut,
   TriangleRight,
+  PanelLeft,
+  ChevronRight,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuthContext } from '@/contexts/authContext'
@@ -29,12 +31,13 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar'
-import OrganizationSwitcher from '@/components/navigation/OrganizationSwitcher'
+import { Button } from '@/components/ui/button'
+import { signOut } from '@/utils/authClient'
+import { Organization } from '@clerk/nextjs/server'
+import OrganizationSwitcher from './OrganizationSwitcher'
 
-// Official Shadcn navigation interfaces
 type StandaloneNavItem = {
   title: string
   url: string
@@ -55,7 +58,7 @@ type MainNavItem = {
 
 export const SideNavigation = () => {
   const pathname = usePathname()
-  const { organization } = useAuthContext()
+  const { user, organization } = useAuthContext()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
     onSuccess: async () => {
       await invalidateTRPC()
@@ -87,21 +90,56 @@ export const SideNavigation = () => {
   }, [focusedMembershipData])
   const livemode = focusedMembership.data?.membership.livemode
   const router = useRouter()
-  const { state } = useSidebar()
+  const { state, toggleSidebar } = useSidebar()
   const isCollapsed = state === 'collapsed'
 
-  const maybeLogo = organization?.logoURL ? (
-    /* eslint-disable-next-line @next/next/no-img-element */
+  const fallbackInitials = (() => {
+    const rawName = organization?.name?.trim()
+    if (!rawName) {
+      return 'FG'
+    }
+    const initials = rawName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((segment) => segment[0]?.toUpperCase() ?? '')
+      .join('')
+    return initials || rawName[0]?.toUpperCase() || 'FG'
+  })()
+
+  const logoSize = isCollapsed ? 32 : 40
+
+  const organizationLogo = organization?.logoURL ? (
     <Image
-      className="rounded-full object-cover h-10 w-10 bg-white"
-      alt={organization?.name}
-      src={organization?.logoURL}
-      width={40}
-      height={40}
+      className={cn(
+        'rounded-full object-cover bg-white border border-border',
+        isCollapsed ? 'h-8 w-8' : 'h-10 w-10'
+      )}
+      alt={organization?.name ?? 'Organization logo'}
+      src={organization.logoURL}
+      width={logoSize}
+      height={logoSize}
     />
   ) : (
-    <></>
+    <div
+      className={cn(
+        'flex items-center justify-center rounded-full border border-border bg-primary/10 text-primary font-semibold uppercase',
+        isCollapsed ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm'
+      )}
+    >
+      {fallbackInitials}
+    </div>
   )
+
+  const sidebarToggleLabel = isCollapsed
+    ? 'Expand sidebar'
+    : 'Collapse sidebar'
+
+  const handleBrandClick = () => {
+    if (isCollapsed) {
+      toggleSidebar()
+    }
+  }
 
   // Helper function to check if a path is active
   const isActive = (url: string) => {
@@ -221,35 +259,54 @@ export const SideNavigation = () => {
     <>
       <SidebarHeader
         className={cn(
-          'w-full flex flex-row items-center py-3 bg-sidebar',
-          isCollapsed
-            ? 'justify-center px-1 gap-0 p-2'
-            : 'justify-between px-1 gap-2.5 p-2'
+          'w-full flex flex-row items-center bg-sidebar py-3 px-3 gap-3 transition-all duration-300',
+          'justify-between'
         )}
       >
-        <div
+        <button
+          type="button"
+          onClick={handleBrandClick}
           className={cn(
-            'flex items-center',
-            'overflow-hidden',
+            'flex items-center gap-3 min-w-0 flex-1 rounded-md bg-transparent p-0 text-left transition-colors',
             isCollapsed
-              ? 'max-w-0 opacity-0'
-              : 'max-w-lg opacity-100 flex-1'
+              ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+              : 'cursor-default'
           )}
+          aria-label={isCollapsed ? sidebarToggleLabel : undefined}
+          tabIndex={isCollapsed ? 0 : -1}
         >
-          <div className="flex items-center gap-3 rounded-md min-w-0">
-            <div className="flex flex-1 items-center gap-2 min-w-0">
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-foreground truncate">
-                  {organization?.name}
-                </span>
-              </div>
+          <div className="flex-shrink-0">{organizationLogo}</div>
+          <div
+            className={cn(
+              'flex flex-col justify-center gap-0.5 whitespace-nowrap transition-all duration-300 min-w-0',
+              isCollapsed
+                ? 'opacity-0 max-w-0'
+                : 'opacity-100 max-w-xs'
+            )}
+          >
+            <div className="text-sm font-semibold text-foreground truncate">
+              {organization?.name}
+            </div>
+            <div className="text-xs font-medium text-muted-foreground truncate">
+              {organization?.tagline}
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-1 text-muted-foreground">
-          {!isCollapsed && <OrganizationSwitcher />}
-          <SidebarTrigger className="flex-shrink-0" />
-        </div>
+        </button>
+        {!isCollapsed && (
+          <div className="flex items-center gap-0">
+            <OrganizationSwitcher />
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={() => toggleSidebar()}
+              aria-label={sidebarToggleLabel}
+            >
+              <PanelLeft></PanelLeft>
+            </Button>
+          </div>
+        )}
       </SidebarHeader>
 
       <SidebarContent className="pt-3 bg-sidebar">
