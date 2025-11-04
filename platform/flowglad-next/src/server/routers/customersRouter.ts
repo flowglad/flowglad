@@ -417,7 +417,7 @@ const exportCsvProcedure = protectedProcedure
         const totalCustomers = countCheckResponse.total || 0
 
         // Early return if over limit - no additional DB operations
-        if (totalCustomers < CUSTOMER_LIMIT) {
+        if (totalCustomers > CUSTOMER_LIMIT) {
           await generateCsvExportTask.trigger({
             userId,
             organizationId,
