@@ -102,7 +102,6 @@ const nextConfig = {
       )
     }
 
-
     return config
   },
 }

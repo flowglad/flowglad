@@ -1,6 +1,7 @@
 import { createMcpHandler, withMcpAuth } from 'mcp-handler'
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
 import { toolSet } from '@/mcp/toolSet'
+import core from '@/utils/core'
 
 // Create MCP handler with tools
 const handler = createMcpHandler(
@@ -83,8 +84,9 @@ export async function POST(req: Request) {
   try {
     // Log incoming headers for debugging
     const authHeader = req.headers.get('Authorization')
-    const allHeaders = Object.fromEntries(req.headers.entries())
-
+    if (core.IS_PROD) {
+      throw Error('Unauthorized: MCP not enabled')
+    }
     // Verify authentication first - if undefined, return error immediately and stop
     const authInfo = await verifyToken(req)
     if (!authInfo) {
