@@ -29,6 +29,7 @@ import {
   FeatureType,
   FeatureUsageGrantFrequency,
 } from '@/types'
+import { updateFeature } from './featureMethods'
 
 describe('subscriptionItemFeatureMethods', () => {
   let organization: any
@@ -382,6 +383,45 @@ describe('subscriptionItemFeatureMethods', () => {
           )
         expect(joined.length).toBe(1)
         expect((joined[0] as any).slug).toBe(toggleFeature.slug)
+      })
+    })
+
+    it('does not return inactive features', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // First, insert a subscription item feature
+        await insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Toggle,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            productFeatureId: toggleProductFeature.id,
+            usageMeterId: null,
+            amount: null,
+            renewalFrequency: null,
+            livemode: true,
+          },
+          transaction
+        )
+
+        // Mark the feature as inactive
+        await updateFeature(
+          {
+            id: toggleFeature.id,
+            type: FeatureType.Toggle,
+            active: false,
+          },
+          transaction
+        )
+
+        // Query for subscription item features
+        const results =
+          await selectSubscriptionItemFeaturesWithFeatureSlug(
+            { subscriptionItemId: subscriptionItem.id },
+            transaction
+          )
+
+        // The inactive feature should not be returned
+        expect(results.length).toBe(0)
       })
     })
   })

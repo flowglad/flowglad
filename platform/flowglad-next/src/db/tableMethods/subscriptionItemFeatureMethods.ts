@@ -20,7 +20,7 @@ import {
   SubscriptionItem,
   subscriptionItems,
 } from '../schema/subscriptionItems'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { productFeatures } from '../schema/productFeatures'
 import { features } from '../schema/features'
 
@@ -104,7 +104,7 @@ export const selectSubscriptionItemFeaturesWithFeatureSlug = async (
       features,
       eq(subscriptionItemFeatures.featureId, features.id)
     )
-    .where(whereClause)
+    .where(and(whereClause, eq(features.active, true)))
   return result.map((row) => {
     const subscriptionItemFeature =
       subscriptionItemFeaturesSelectSchema.parse(
