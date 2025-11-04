@@ -10,18 +10,19 @@ import {
   DetailValue,
 } from '../components/themed'
 import { emailBaseUrl } from '@/utils/core'
-import TestModeBanner from '../components/TestBanner'
 
 export interface CustomersCsvExportReadyEmailProps {
   organizationName: string
   totalCustomers: number
   filename: string
+  downloadUrl: string
 }
 
 export const CustomersCsvExportReadyEmail = ({
   organizationName,
   totalCustomers,
   filename,
+  downloadUrl,
 }: CustomersCsvExportReadyEmailProps) => {
   return (
     <EmailLayout
@@ -40,9 +41,9 @@ export const CustomersCsvExportReadyEmail = ({
         variant="organization"
       />
       <Paragraph variant="organization">
-        We have successfully generated your customers CSV export. The
-        file is attached to this email and contains all the customer
-        data you requested.
+        We have successfully generated your customers CSV export. Use
+        the button below to open it instantly whenever you&apos;re
+        ready.
       </Paragraph>
 
       <DetailSection>
@@ -61,14 +62,12 @@ export const CustomersCsvExportReadyEmail = ({
       <Section
         style={{ textAlign: 'center' as const, marginTop: '32px' }}
       >
-        <EmailButton href={`${emailBaseUrl}/customers`}>
-          View Customers Dashboard
-        </EmailButton>
+        <EmailButton href={downloadUrl}>Open CSV Export</EmailButton>
       </Section>
 
       <Paragraph variant="organization" style={{ marginTop: '24px' }}>
-        You can always access the latest customer data in your
-        Flowglad dashboard.
+        Need a fresh export later? You can generate a new file anytime
+        from the Flowglad customers dashboard.
       </Paragraph>
     </EmailLayout>
   )
