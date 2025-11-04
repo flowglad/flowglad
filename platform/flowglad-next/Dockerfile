@@ -8,23 +8,25 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
+# Install system deps that are commonly needed by Next.js tooling and node-gyp
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
+  ca-certificates \
+  curl \
+  git \
+  python3 \
+  build-essential && \
+  rm -rf /var/lib/apt/lists/*
+
 # Install Bun
 ENV BUN_INSTALL=/root/.bun
-RUN curl -fsSL https://bun.sh/install | bash
+RUN curl -fsSL https://bun.sh/install | bash && \
+  ln -sf /root/.bun/bin/bun /usr/local/bin/bun
 ENV PATH="${BUN_INSTALL}/bin:${PATH}"
 
 # Increase Node.js heap for build to avoid OOM
 ARG NODE_OPTIONS=--max-old-space-size=6144
 ENV NODE_OPTIONS=${NODE_OPTIONS}
-
-# Install system deps that are commonly needed by Next.js tooling and node-gyp
-RUN apt-get update && \
-  apt-get install -y --no-install-recommends \
-  ca-certificates \
-  git \
-  python3 \
-  build-essential && \
-  rm -rf /var/lib/apt/lists/*
 
 # Pre-copy manifest and config files to maximize cache
 COPY package.json bun.lock next.config.mjs bunfig.toml ./
@@ -33,7 +35,7 @@ COPY package.json bun.lock next.config.mjs bunfig.toml ./
 RUN touch .env.local
 
 # Install dependencies (full deps for build)
-RUN bun install --frozen-lockfile
+RUN /root/.bun/bin/bun install --frozen-lockfile
 
 # Copy the rest of the source
 COPY . .
