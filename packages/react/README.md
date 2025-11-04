@@ -56,8 +56,11 @@ import { useBilling } from '@flowglad/react';
 
 export default function Billing() {
   const { checkFeatureAccess } = useBilling()
+  if (!checkFeatureAccess) {
+    return <div>Loading ...</div>  
+  }
   if (checkFeatureAccess("my_feature")) {
-    return <div>You have access</div>
+    return <div>You have access!</div>
   } else {
     return <div>Please upgrade</div>
   }

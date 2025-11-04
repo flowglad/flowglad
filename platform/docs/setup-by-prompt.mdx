@@ -250,6 +250,9 @@ import { useBilling } from '@flowglad/nextjs'
 
 export default function Billing() {
   const { checkFeatureAccess } = useBilling()
+  if (!checkFeatureAccess) {
+    return <div>Loading ...</div>  
+  }
   if (checkFeatureAccess("my_feature")) {
     return <div>You have access!</div>
   } else {
