@@ -52,6 +52,7 @@ import { organizationBillingPortalURL } from '@/utils/core'
 import { createCustomersCsv } from '@/utils/csv-export'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
+import { generateCsvExportTask } from '@/trigger/exports/generate-csv-export'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'customer',
@@ -379,6 +380,7 @@ const exportCsvProcedure = protectedProcedure
       filename: z.string().optional(),
       totalCustomers: z.number(),
       exceedsLimit: z.boolean(),
+      asyncExportStarted: z.boolean().optional(),
     })
   )
   .mutation(
@@ -416,13 +418,19 @@ const exportCsvProcedure = protectedProcedure
 
         // Early return if over limit - no additional DB operations
         if (totalCustomers > CUSTOMER_LIMIT) {
+          await generateCsvExportTask.trigger({
+            userId,
+            organizationId,
+            filters,
+            searchQuery,
+          })
+
           return {
             totalCustomers,
             exceedsLimit: true,
+            asyncExportStarted: true,
           }
         }
-
-        // Only if under limit, get user's organization and proceed with full export
         const focusedMembership =
           await selectFocusedMembershipAndOrganization(
             userId,
@@ -473,6 +481,7 @@ const exportCsvProcedure = protectedProcedure
           filename,
           totalCustomers,
           exceedsLimit: false,
+          asyncExportStarted: false,
         }
       }
     )
