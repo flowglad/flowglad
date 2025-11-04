@@ -1,13 +1,17 @@
 {
     "$schema": "https://turbo.build/schema.json",
     "tasks": {
-      "build:declarations": {
-        "dependsOn": ["^build:declarations"],
-        "outputs": ["dist/types/**"]
+      "build": {
+        "dependsOn": ["^build", "build:declarations"],
+        "outputs": ["dist/**"]
       },
       "check": {
         "dependsOn": ["^check"],
         "outputs": []
+      },
+      "build:declarations": {
+        "dependsOn": ["^build:declarations"],
+        "outputs": ["dist/types/**"]
       },
       "lint": {
         "dependsOn": ["^lint"],
