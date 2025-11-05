@@ -127,6 +127,19 @@ describe('getPricingModelSetupData', () => {
               usageEventsPerUnit: 100,
               trialPeriodDays: null,
             },
+            {
+              type: PriceType.Usage,
+              name: 'Storage Overages',
+              slug: 'pro-storage-usage',
+              unitPrice: 5,
+              isDefault: false,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterSlug: 'storage',
+              usageEventsPerUnit: 50,
+              trialPeriodDays: null,
+            },
           ],
           features: ['basic-feature', 'api-credits'],
         },
@@ -245,16 +258,31 @@ describe('getPricingModelSetupData', () => {
       (p) => p.product.slug === 'pro'
     )
     expect(proProduct).toBeDefined()
-    expect(proProduct?.prices).toHaveLength(2)
+    expect(proProduct?.prices).toHaveLength(3)
 
-    const usagePrice = proProduct?.prices.find(
-      (p) => p.type === PriceType.Usage
+    const usagePrices =
+      proProduct?.prices.filter((p) => p.type === PriceType.Usage) ??
+      []
+    expect(usagePrices).toHaveLength(2)
+
+    const apiUsagePrice = usagePrices.find(
+      (p) => p.slug === 'pro-api-usage'
     )
-    expect(usagePrice).toBeDefined()
-    if (usagePrice?.type === PriceType.Usage) {
-      expect(usagePrice.usageMeterSlug).toBe('api-calls')
-      expect(usagePrice.usageEventsPerUnit).toBe(100)
-      expect(usagePrice.trialPeriodDays).toBe(null)
+    expect(apiUsagePrice).toBeDefined()
+    if (apiUsagePrice?.type === PriceType.Usage) {
+      expect(apiUsagePrice.usageMeterSlug).toBe('api-calls')
+      expect(apiUsagePrice.usageEventsPerUnit).toBe(100)
+      expect(apiUsagePrice.trialPeriodDays).toBe(null)
+    }
+
+    const storageUsagePrice = usagePrices.find(
+      (p) => p.slug === 'pro-storage-usage'
+    )
+    expect(storageUsagePrice).toBeDefined()
+    if (storageUsagePrice?.type === PriceType.Usage) {
+      expect(storageUsagePrice.usageMeterSlug).toBe('storage')
+      expect(storageUsagePrice.usageEventsPerUnit).toBe(50)
+      expect(storageUsagePrice.trialPeriodDays).toBe(null)
     }
 
     // Verify single payment product

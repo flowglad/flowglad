@@ -47,7 +47,7 @@ const OnboardingStatusRow = ({
 }: OnboardingStatusRowProps) => {
   return (
     <>
-      <div className="flex flex-col gap-6 border border-border rounded-[28px] bg-card p-6 shadow-medium">
+      <div className="flex flex-col gap-6 border border-border rounded-[4px] bg-card p-6">
         <div className="flex flex-col justify-start w-full gap-3">
           <div className="flex flex-col gap-1">
             <div className="w-6 h-6 bg-secondary rounded-full flex items-center justify-center">
@@ -97,7 +97,7 @@ const OnboardingCodeblock = ({
 }) => {
   return (
     <div className="flex flex-col gap-2 w-full">
-      <div className="flex flex-row items-center gap-1 text-sm font-mono bg-card border border-border h-10 pl-4 pr-[1px] rounded-full w-full justify-between">
+      <div className="flex flex-row items-center gap-1 text-sm font-mono bg-card border border-border h-10 pl-4 pr-[1px] rounded-[4px] w-full justify-between">
         <Markdown className={'flex-1 overflow-x-auto'}>
           {markdownText}
         </Markdown>
@@ -138,7 +138,7 @@ const CodeblockGroup = ({
             onClick={() => setSelectedSection(section.title)}
             className={cn(
               // Base styling
-              'px-3 py-1 text-sm transition-all duration-200 rounded-full',
+              'px-3 py-1 text-sm transition-all duration-200 rounded-[4px]',
               // Active/inactive styling
               selectedSection === section.title
                 ? 'bg-accent text-foreground' // Active state

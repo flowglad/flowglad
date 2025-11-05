@@ -15,7 +15,7 @@ const ChartContainer = ({
   children: React.ReactNode
 }) => {
   return (
-    <div className="bg-card w-full relative flex flex-col p-8 rounded-3xl border">
+    <div className="bg-card w-full relative flex flex-col p-8 rounded border">
       {children}
     </div>
   )

@@ -49,7 +49,7 @@ export function FilterButtonGroup({
               // Selected state styling
               'data-[state=on]:bg-accent data-[state=on]:text-foreground',
               // Base styling - added flex-shrink-0 to prevent buttons from shrinking
-              'px-3 py-1 text-sm font-medium transition-all rounded-full duration-200 flex-shrink-0'
+              'px-3 py-1 text-sm font-medium transition-all rounded duration-200 flex-shrink-0'
             )}
           >
             <span>{option.label}</span>

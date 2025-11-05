@@ -261,6 +261,7 @@ export function TemplatePreviewModal({
                 variant="secondary"
                 size="icon"
                 onClick={() => setIsOpen(false)}
+                className="rounded-[4px]"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
@@ -268,6 +269,7 @@ export function TemplatePreviewModal({
                 onClick={onConfirm}
                 disabled={isCreating}
                 variant="default"
+                className="rounded-[4px]"
               >
                 {isCreating ? (
                   <>
