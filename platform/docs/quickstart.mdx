@@ -243,17 +243,26 @@ export default async function RootLayout({
   using `/path/to/your/route`.
 </Info>
 
-## 6. Add the Billing Page
+## 6. `useBilling`
 
-Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
+Use the `useBilling` hook to get billing data on your customer's frontend.
 
 <CodeGroup>
 
 ```tsx Next
-import { BillingPage } from '@flowglad/nextjs'
+'use client'
+import { useBilling } from '@flowglad/nextjs'
 
 export default function Billing() {
-  return <BillingPage />
+  const { checkFeatureAccess } = useBilling()
+  if (!checkFeatureAccess) {
+    return <div>Loading ...</div>  
+  }
+  if (checkFeatureAccess("my_feature")) {
+    return <div>You have access!</div>
+  } else {
+    return <div>Please upgrade</div>
+  }
 }
 ```
 </CodeGroup>

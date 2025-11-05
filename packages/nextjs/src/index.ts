@@ -3,11 +3,6 @@
 // Otherwise consumers will import from this file into their server-only code
 // which will cause client modules to be included in the server bundle,
 // and will break their server code.
-import {
-  FlowgladProvider,
-  useBilling,
-  BillingPage,
-  PricingTable,
-} from '@flowglad/react'
+import { FlowgladProvider, useBilling } from '@flowglad/react'
 
-export { FlowgladProvider, useBilling, BillingPage, PricingTable }
+export { FlowgladProvider, useBilling }

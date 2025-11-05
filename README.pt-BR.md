@@ -141,16 +141,6 @@ return (
   {/* ... JSX do layout existente ... */}
 </FlowgladProvider>
 ) `
-
-4. Crie uma rota `/billing` no seu aplicativo e monte o componente `BillingPage` do Flowglad:
-
-`tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
-
-export default function Billing() {
-  return <BillingPage />
-}
-`
 ```
 </details>
 <details>
@@ -230,15 +220,6 @@ return (
 </FlowgladProvider>
 )
 `
-
-4. Crie uma rota `/billing` no seu aplicativo e monte o componente `BillingPage` do Flowglad:
-
-`tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
-
-export default function Billing() {
-  return <BillingPage />
-}
 ```
 </details>
 <details>
@@ -324,15 +305,6 @@ return (
   </FlowgladProvider>
 </SessionProvider>
 ) `
-
-4. Crie uma rota `/billing` no seu aplicativo e monte o componente `BillingPage` do Flowglad:
-
-`tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
-export default function Billing() {
-return <BillingPage />
-}
-`
 ```
 </details>
 

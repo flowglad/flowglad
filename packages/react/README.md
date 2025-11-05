@@ -49,27 +49,28 @@ export default function RootLayout({ children }) {
 }
 ```
 
-2. Use the billing page component:
+2. Use the `useBilling` hook:
 
 ```tsx
-import { BillingPage } from '@flowglad/react';
+import { useBilling } from '@flowglad/react';
 
 export default function Billing() {
-  return (
-    <BillingPage 
-      className="custom-class" 
-      darkMode={true}
-    />
-  );
+  const { checkFeatureAccess } = useBilling()
+  if (!checkFeatureAccess) {
+    return <div>Loading ...</div>  
+  }
+  if (checkFeatureAccess("my_feature")) {
+    return <div>You have access!</div>
+  } else {
+    return <div>Please upgrade</div>
+  }
 }
 ```
 
 ## Features
 
-- Complete billing management UI components
-- Customizable themes with dark mode support
 - Type-safe hooks for accessing billing data
-- Integration with FlowGlad's server SDK
+- Integration with Flowglad's server SDK
 - Support for subscriptions, payment methods, and invoices
 
 ## API Reference
@@ -78,7 +79,7 @@ export default function Billing() {
 
 #### FlowgladProvider
 
-The main provider component that must wrap your application to enable FlowGlad functionality.
+The main provider component that must wrap your application to enable Flowglad functionality.
 
 ```tsx
 <FlowgladProvider
@@ -99,25 +100,7 @@ The main provider component that must wrap your application to enable FlowGlad f
 </FlowgladProvider>
 ```
 
-#### BillingPage
-
-A complete billing management page component that includes:
-- Current subscription display
-- Pricing table for new subscriptions
-- Payment method management
-- Billing details
-- Invoice history
-
-```tsx
-<BillingPage
-  className?: string
-  darkMode?: boolean
-/>
-```
-
-### Hooks
-
-#### useBilling
+### useBilling
 
 Access billing data and functions throughout your application:
 
@@ -142,35 +125,9 @@ function MyComponent() {
 }
 ```
 
-## Theme Customization
-
-The FlowGladProvider accepts a theme configuration object that allows you to customize the appearance of all FlowGlad components:
-
-```tsx
-<FlowgladProvider
-  theme={{
-    mode: 'dark',
-    dark: {
-      background: '#1b1b1b',
-      card: 'rgb(35 35 35)',
-      // Add more theme properties as needed
-    }
-  }}
->
-  {children}
-</FlowgladProvider>
-```
-
 ## Server Integration
 
 This package is designed to work with the `@flowglad/server` package. Make sure you have set up the server routes in your backend application. The server package provides the necessary API endpoints that this React package communicates with.
-
-## Development
-
-This package is built using:
-- TypeScript
-- React
-- Tailwind CSS for styling
 
 ## License
 
