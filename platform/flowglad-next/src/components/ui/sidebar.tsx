@@ -284,10 +284,20 @@ const Sidebar = React.forwardRef<
         >
           <div
             data-sidebar="sidebar"
-            className="flex h-full w-full flex-col py-3 px-3 bg-sidebar border-r border-sidebar-border group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
+            className={cn(
+              'flex h-full w-full flex-col py-3 px-3 bg-sidebar border-sidebar-border group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow',
+              side === 'left' ? 'border-r' : 'border-l'
+            )}
             style={{
-              borderRightStyle: 'dashed',
-              borderRightWidth: '1px',
+              ...(side === 'left'
+                ? {
+                    borderRightStyle: 'dashed',
+                    borderRightWidth: '1px',
+                  }
+                : {
+                    borderLeftStyle: 'dashed',
+                    borderLeftWidth: '1px',
+                  }),
               borderImageSlice: 1,
               borderImageRepeat: 'round',
               borderImageSource:
