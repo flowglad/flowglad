@@ -394,24 +394,8 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       name: 'Unlimited Usage Subscription',
       isDefault: false,
 
-      // Usage Meters
-      usageMeters: [
-        {
-          slug: 'gpt_5_thinking_messages',
-          name: 'GPT-5 Thinking Messages',
-        },
-        { slug: 'o3_messages', name: 'o3 Messages' },
-        { slug: 'o4_mini_messages', name: 'o4-mini Messages' },
-        {
-          slug: 'o4_mini_high_messages',
-          name: 'o4-mini-high Messages',
-        },
-        { slug: 'agent_messages', name: 'Agent Mode Messages' },
-        {
-          slug: 'deep_research_requests',
-          name: 'Deep Research Requests',
-        },
-      ],
+      // Usage Meters - None needed for feature-gated subscription model
+      usageMeters: [],
 
       // Features
       features: [
@@ -432,15 +416,11 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           active: true,
         },
         {
-          type: FeatureType.UsageCreditGrant,
+          type: FeatureType.Toggle,
           slug: 'gpt_5_thinking_plus_limit',
           name: '3,000 GPT-5 Thinking Messages/Week',
           description:
             '3,000 GPT-5 Thinking messages per week (manual selection only)',
-          usageMeterSlug: 'gpt_5_thinking_messages',
-          amount: 3000,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
         },
         {
@@ -451,14 +431,10 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           active: true,
         },
         {
-          type: FeatureType.UsageCreditGrant,
+          type: FeatureType.Toggle,
           slug: 'o3_limit',
           name: '100 o3 Messages/Week',
           description: '100 o3 messages per week',
-          usageMeterSlug: 'o3_messages',
-          amount: 100,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
         },
         {
@@ -469,14 +445,10 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           active: true,
         },
         {
-          type: FeatureType.UsageCreditGrant,
+          type: FeatureType.Toggle,
           slug: 'o4_mini_limit',
           name: '300 o4-mini Messages/Day',
           description: '300 o4-mini messages per day',
-          usageMeterSlug: 'o4_mini_messages',
-          amount: 300,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
         },
         {
@@ -487,14 +459,10 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           active: true,
         },
         {
-          type: FeatureType.UsageCreditGrant,
+          type: FeatureType.Toggle,
           slug: 'o4_mini_high_limit',
           name: '100 o4-mini-high Messages/Day',
           description: '100 o4-mini-high messages per day',
-          usageMeterSlug: 'o4_mini_high_messages',
-          amount: 100,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
         },
         {
@@ -578,25 +546,17 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           active: true,
         },
         {
-          type: FeatureType.UsageCreditGrant,
+          type: FeatureType.Toggle,
           slug: 'agent_limit_standard',
           name: '40 Agent Messages/Month',
           description: '40 agent mode messages per month',
-          usageMeterSlug: 'agent_messages',
-          amount: 40,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
         },
         {
-          type: FeatureType.UsageCreditGrant,
+          type: FeatureType.Toggle,
           slug: 'agent_limit_pro',
           name: '400 Agent Messages/Month',
           description: '400 agent mode messages per month',
-          usageMeterSlug: 'agent_messages',
-          amount: 400,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
         },
         {
@@ -607,14 +567,10 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           active: true,
         },
         {
-          type: FeatureType.UsageCreditGrant,
+          type: FeatureType.Toggle,
           slug: 'deep_research_limit',
           name: '25 Deep Research Requests/Month',
           description: '25 deep research requests per month',
-          usageMeterSlug: 'deep_research_requests',
-          amount: 25,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
         },
         {
@@ -1371,6 +1327,64 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           ],
           displayGroup: 'mega',
           displayOrder: 2,
+        },
+        {
+          product: {
+            name: 'Fast Generations Overages',
+            default: false,
+            description:
+              'Additional fast generations billed at cost after included credits exhausted',
+            slug: 'fast_generations_overages',
+            active: true,
+            imageURL: null,
+            singularQuantityLabel: 'generation',
+            pluralQuantityLabel: 'generations',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'fast_generation_overage',
+              isDefault: true,
+              name: 'Fast Generation Overage',
+              usageMeterSlug: 'fast_generations',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 10,
+            },
+          ],
+          features: [],
+        },
+        {
+          product: {
+            name: 'HD Video Overages',
+            default: false,
+            description:
+              'Additional HD video minutes billed at cost after included credits exhausted',
+            slug: 'hd_video_overages',
+            active: true,
+            imageURL: null,
+            singularQuantityLabel: 'minute',
+            pluralQuantityLabel: 'minutes',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'hd_video_overage',
+              isDefault: true,
+              name: 'HD Video Overage',
+              usageMeterSlug: 'hd_video_minutes',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 50,
+            },
+          ],
+          features: [],
         },
       ],
     },

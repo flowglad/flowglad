@@ -4,6 +4,7 @@ import {
   getTemplateById,
 } from './pricingModelTemplates'
 import { validateSetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
+import { PriceType } from '@/types'
 
 describe('Pricing Model Templates', () => {
   describe('Template Input Validation', () => {
@@ -38,6 +39,44 @@ describe('Pricing Model Templates', () => {
     it('should return undefined for non-existent template', () => {
       const template = getTemplateById('non-existent')
       expect(template).toBeUndefined()
+    })
+  })
+
+  describe('Usage Meters and Pricing', () => {
+    it('should have at least one usage type price for each usage meter', () => {
+      PRICING_MODEL_TEMPLATES.forEach((template) => {
+        const { usageMeters, products } = template.input
+
+        // Only validate templates that have usage meters
+        if (usageMeters.length === 0) {
+          return
+        }
+
+        // Get all usage meter slugs
+        const usageMeterSlugs = new Set(
+          usageMeters.map((meter) => meter.slug)
+        )
+
+        // Get all prices from all products
+        const allPrices = products.flatMap(
+          (product) => product.prices
+        )
+
+        // For each usage meter, verify at least one usage type price exists
+        usageMeterSlugs.forEach((meterSlug) => {
+          const usagePricesForMeter = allPrices.filter(
+            (price) =>
+              price.type === PriceType.Usage &&
+              'usageMeterSlug' in price &&
+              price.usageMeterSlug === meterSlug
+          )
+
+          expect(
+            usagePricesForMeter.length,
+            `Template "${template.metadata.id}" has usage meter "${meterSlug}" but no usage type prices associated with it`
+          ).toBeGreaterThan(0)
+        })
+      })
     })
   })
 })

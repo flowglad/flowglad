@@ -229,6 +229,7 @@ export const validateSetupPricingModelInput = (
     R.propOr(null, 'slug'),
     parsed.products.flatMap((p) => p.prices)
   )
+  const usagePriceMeterSlugs = new Set<string>()
   parsed.products.forEach((product) => {
     // Validate features
     product.features.forEach((featureSlug) => {
@@ -268,6 +269,7 @@ export const validateSetupPricingModelInput = (
             `Usage meter with slug ${price.usageMeterSlug} does not exist`
           )
         }
+        usagePriceMeterSlugs.add(price.usageMeterSlug)
       }
       const priceSlugs = pricesBySlug[price.slug]
       if (priceSlugs && priceSlugs.length > 1) {
@@ -276,6 +278,13 @@ export const validateSetupPricingModelInput = (
         )
       }
     })
+  })
+  usageMeterSlugs.forEach((slug) => {
+    if (!usagePriceMeterSlugs.has(slug)) {
+      throw new Error(
+        `Usage meter with slug ${slug} must have at least one usage price associated with it`
+      )
+    }
   })
   return parsed
 }

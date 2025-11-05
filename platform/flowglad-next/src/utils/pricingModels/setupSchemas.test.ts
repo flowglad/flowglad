@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizedStringSchema } from './setupSchemas'
+import {
+  sanitizedStringSchema,
+  validateSetupPricingModelInput,
+} from './setupSchemas'
+import { PRICING_MODEL_TEMPLATES } from '@/constants/pricingModelTemplates'
+import { PriceType } from '@/types'
 
 describe('sanitizedStringSchema', () => {
   it('should validate basic string requirements', () => {
@@ -56,5 +61,38 @@ describe('sanitizedStringSchema', () => {
     if (result.success) {
       expect(result.data).toBe('Hello@World#123') // Note: special chars are preserved
     }
+  })
+})
+
+describe('validateSetupPricingModelInput', () => {
+  it('should throw if a usage meter has no associated usage price', () => {
+    const templateWithUsageMeter = PRICING_MODEL_TEMPLATES.find(
+      (template) => template.input.usageMeters.length > 0
+    )
+
+    if (!templateWithUsageMeter) {
+      throw new Error(
+        'Expected at least one template with a usage meter for this test'
+      )
+    }
+
+    const invalidInput = JSON.parse(
+      JSON.stringify(templateWithUsageMeter.input)
+    )
+
+    invalidInput.products = invalidInput.products.map(
+      (product: any) => ({
+        ...product,
+        prices: product.prices.filter(
+          (price: any) => price.type !== PriceType.Usage
+        ),
+      })
+    )
+
+    expect(() =>
+      validateSetupPricingModelInput(invalidInput)
+    ).toThrow(
+      /Usage meter with slug .+ must have at least one usage price associated with it/
+    )
   })
 })
