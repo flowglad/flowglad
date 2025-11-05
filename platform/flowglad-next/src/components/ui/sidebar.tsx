@@ -284,7 +284,15 @@ const Sidebar = React.forwardRef<
         >
           <div
             data-sidebar="sidebar"
-            className="flex h-full w-full flex-col py-3 px-3 bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
+            className="flex h-full w-full flex-col py-3 px-3 bg-sidebar border-r border-sidebar-border group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
+            style={{
+              borderRightStyle: 'dashed',
+              borderRightWidth: '1px',
+              borderImageSlice: 1,
+              borderImageRepeat: 'round',
+              borderImageSource:
+                'repeating-linear-gradient(to bottom, hsl(var(--sidebar-border)) 0, hsl(var(--sidebar-border)) 4px, transparent 4px, transparent 8px)',
+            }}
           >
             {children}
           </div>
@@ -627,6 +635,7 @@ const SidebarMenuButton = React.forwardRef<
           side="right"
           align="center"
           hidden={state !== 'collapsed' || isMobile}
+          className="rounded-[4px]"
           {...tooltip}
         />
       </Tooltip>
