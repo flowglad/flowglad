@@ -2,15 +2,16 @@ import { Heading, Section } from '@react-email/components'
 import * as React from 'react'
 
 const bannerStyle: React.CSSProperties = {
-  backgroundColor: '#eab308',
+  backgroundColor: '#F0EAE5',
   padding: '8px',
   margin: 0,
   textAlign: 'center',
+  borderRadius: '4px',
 }
 
 const headingStyle: React.CSSProperties = {
-  color: '#000000',
-  fontSize: '30px',
+  color: '#DF7A20',
+  fontSize: '18px',
   margin: 0,
   padding: 0,
 }
@@ -25,7 +26,7 @@ export default function TestModeBanner({
   return (
     <Section style={bannerStyle}>
       <Heading style={headingStyle} as="h2">
-        TEST MODE
+        Test mode
       </Heading>
     </Section>
   )
