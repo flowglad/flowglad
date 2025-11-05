@@ -63,6 +63,7 @@ export const requestPurchaseAccessSession = publicProcedure
         to: [customer.email!],
         magicLink: verificationURL,
         replyTo: orgAndFirstMember?.user.email,
+        livemode: purchase.livemode,
       })
 
       return {

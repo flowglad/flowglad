@@ -2,9 +2,11 @@ import { customAlphabet, nanoid } from 'nanoid'
 import {
   insertOrDoNothingOrganizationByExternalId,
   selectOrganizations,
-  updateOrganization,
 } from '@/db/tableMethods/organizationMethods'
-import { insertMembership } from '@/db/tableMethods/membershipMethods'
+import {
+  insertMembership,
+  unfocusMembershipsForUser,
+} from '@/db/tableMethods/membershipMethods'
 import {
   BusinessOnboardingStatus,
   FeatureFlag,
@@ -22,7 +24,6 @@ import {
   Organization,
   organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
-import { insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { findOrCreateSvixApplication } from './svix'
 
 const generateSubdomainSlug = (name: string) => {
@@ -104,6 +105,7 @@ export const createOrganizationTransaction = async (
       transaction
     )
   const organizationId = organizationRecord.id
+  await unfocusMembershipsForUser(user.id, transaction)
   await insertMembership(
     {
       organizationId,

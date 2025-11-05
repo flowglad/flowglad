@@ -34,7 +34,6 @@
               "features/pricing-models",
               "features/subscriptions",
               "features/checkout-sessions",
-              "features/billing-ui",
               "features/invoices",
               "features/usage",
               "features/webhooks"
@@ -44,6 +43,7 @@
             "group": "Concepts",
             "pages": [
               "principles",
+              "data-model",
               "countries"
             ]
           }
