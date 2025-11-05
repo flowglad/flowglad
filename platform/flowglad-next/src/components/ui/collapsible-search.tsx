@@ -122,7 +122,7 @@ function CollapsibleSearch({
           onClick={handleExpand}
           className={cn(
             buttonSizeVariants[currentSize],
-            'p-0 rounded-full hover:bg-muted'
+            'p-0 rounded hover:bg-muted'
           )}
           disabled={disabled}
           aria-label="Open search"
@@ -146,7 +146,7 @@ function CollapsibleSearch({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               className={cn(
-                'max-w-sm rounded-full',
+                'max-w-sm rounded',
                 inputSizeVariants[currentSize],
                 inputClassName
               )}
@@ -171,7 +171,7 @@ function CollapsibleSearch({
               variant="ghost"
               onClick={handleCollapse}
               className={cn(
-                'absolute top-1/2 -translate-y-1/2 p-0 rounded-full hover:bg-muted',
+                'absolute top-1/2 -translate-y-1/2 p-0 rounded hover:bg-muted',
                 closeButtonSizeVariants[currentSize]
               )}
               aria-label="Clear search"

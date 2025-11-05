@@ -553,7 +553,7 @@ const MultipleSelector = React.forwardRef<
         >
           <div
             className={cn(
-              'flex items-center w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground transition-colors min-h-10 h-auto overflow-hidden',
+              'flex items-center w-full rounded border border-input bg-card px-3 py-2 text-sm text-foreground transition-colors min-h-10 h-auto overflow-hidden',
               {
                 'focus-within:outline-none focus-within:ring-2 focus-within:ring-foreground/20 focus-within:border-foreground cursor-text':
                   !disabled && !resolvedError,
@@ -575,7 +575,7 @@ const MultipleSelector = React.forwardRef<
                   <Badge
                     key={option.value}
                     className={cn(
-                      'py-1 rounded-full bg-accent text-foreground border-transparent hover:bg-accent/80 shadow-none',
+                      'py-1 rounded bg-accent text-foreground border-transparent hover:bg-accent/80 shadow-none',
                       'data-[disabled]:bg-muted-foreground data-[disabled]:text-muted data-[disabled]:hover:bg-muted-foreground',
                       'data-[fixed]:bg-muted-foreground data-[fixed]:text-muted data-[fixed]:hover:bg-muted-foreground',
                       badgeClassName
@@ -587,7 +587,7 @@ const MultipleSelector = React.forwardRef<
                     <button
                       type="button"
                       className={cn(
-                        'ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                        'ml-1 rounded outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2',
                         (disabled || option.fixed) && 'hidden'
                       )}
                       onKeyDown={(e) => {
@@ -668,7 +668,7 @@ const MultipleSelector = React.forwardRef<
           <div className="relative">
             {open && (
               <CommandList
-                className="absolute top-1 z-10 w-full rounded-xl border bg-popover p-1 text-popover-foreground shadow-md outline-none animate-in"
+                className="absolute top-1 z-10 w-full rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none animate-in"
                 onMouseLeave={() => {
                   setOnScrollbar(false)
                 }}
