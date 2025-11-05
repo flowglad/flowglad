@@ -80,6 +80,28 @@ const nextConfig = {
         'chromium-bidi/lib/esm/protocol/protocol.js',
     }
 
+    // Use Zod subpath versioning for trigger.dev compatibility
+    // trigger.dev expects Zod 3, but we're using Zod 4
+    // Redirect trigger.dev's zod imports to zod/v3
+    if (isServer) {
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+          /^zod$/,
+          (resource) => {
+            // Check if this import is from trigger.dev
+            const context = resource.context || ''
+            if (
+              context.includes('@trigger.dev') ||
+              context.includes('trigger.dev')
+            ) {
+              // Use zod/v3 for trigger.dev compatibility
+              resource.request = 'zod/v3'
+            }
+          }
+        )
+      )
+    }
+
     return config
   },
 }

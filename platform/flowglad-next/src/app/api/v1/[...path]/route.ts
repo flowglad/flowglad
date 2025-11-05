@@ -48,6 +48,13 @@ import { productFeaturesRouteConfigs } from '@/server/routers/productFeaturesRou
 import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
 import { headers } from 'next/headers'
 import {
+  parsePaginationParams,
+  parseAndValidateCursor,
+  parseAndValidateLegacyCursor,
+  type PaginationParams,
+} from '@/utils/pagination'
+import { searchParamsToObject } from '@/utils/url'
+import {
   trackSecurityEvent,
   trackFailedAuth,
   checkForExpiredKeyUsage,
@@ -339,6 +346,7 @@ const innerHandler = async (
 
         // Map URL parameters and body to tRPC input
         const input = route.mapParams(matches, body)
+
         const paramExtractionDuration =
           Date.now() - paramExtractionStartTime
 
@@ -351,28 +359,110 @@ const innerHandler = async (
         const newUrl = new URL(req.url)
         newUrl.pathname = `/api/v1/trpc/${route.procedure}`
 
-        let newReq: Request
-        // If we have input, add it as a query parameter
-        if (input && req.method === 'GET') {
-          newUrl.searchParams.set(
-            'input',
-            JSON.stringify({ json: input })
+        /**
+         * Pagination query parsing and validation (GET only)
+         *
+         * Single-value semantics:
+         * - Reject duplicate values for pagination params (`limit`, `cursor`) via `singleOrError`
+         *   to avoid ambiguity and request smuggling.
+         *
+         * Cursor format and validation:
+         * - `cursor` is an opaque base64-encoded JSON string.
+         * - Primary path: `parseAndValidateCursor` requires `id` (optional `createdAt`, `direction`)
+         *   to ensure stable keyset pagination with a `(createdAt, id)` tie-breaker.
+         * - Legacy path (currently tolerated): if validation fails but the decoded payload lacks
+         *   `id`, we accept it as a legacy cursor, set `pagination.legacy_cursor=true`, and log a
+         *   deprecation warning. The DB layer then applies a createdAt-only boundary fallback.
+         *
+         * Telemetry and behavior:
+         * - On success, parsed pagination params are merged into the tRPC input (via `input=json`)
+         *   and traced as part of the request execution.
+         * - On validation failure (non-legacy), we emit structured telemetry with the
+         *   `VALIDATION_ERROR` category and return a 400 JSON error response.
+         */
+        if (req.method === 'GET') {
+          const queryParamsObject = searchParamsToObject(
+            new URL(req.url).searchParams
           )
-        } else if (req.method === 'GET') {
-          newUrl.searchParams.set(
-            'input',
-            JSON.stringify({ json: {} })
-          )
+          try {
+            const parsedPaginationParams: PaginationParams =
+              parsePaginationParams(queryParamsObject)
+            if (parsedPaginationParams.cursor) {
+              try {
+                parseAndValidateCursor(parsedPaginationParams.cursor)
+              } catch (e) {
+                // Legacy cursor path: explicit validation without `id`
+                try {
+                  parseAndValidateLegacyCursor(
+                    parsedPaginationParams.cursor
+                  )
+                  parentSpan.setAttributes({
+                    'pagination.legacy_cursor': true,
+                  })
+                  logger.warn(
+                    `[${requestId}] Accepting legacy cursor without id`,
+                    {
+                      service: 'api',
+                      request_id: requestId,
+                      route_pattern: routeKey,
+                    }
+                  )
+                  // Proceed: DB layer applies createdAt-only boundary fallback
+                } catch (_inner) {
+                  // Not a valid legacy cursor; rethrow original error
+                  throw e
+                }
+              }
+            }
+            // Merge validated pagination params into mapped route input
+            const mergedInput = {
+              ...(input ?? {}),
+              ...parsedPaginationParams,
+            }
+            newUrl.searchParams.set(
+              'input',
+              JSON.stringify({ json: mergedInput })
+            )
+          } catch (error) {
+            // Emit validation telemetry and surface a 400 with a clear message
+            parentSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: 'Invalid pagination parameters',
+            })
+            parentSpan.setAttributes({
+              'error.type': 'VALIDATION_ERROR',
+              'error.category': 'VALIDATION_ERROR',
+              'error.message': (error as Error).message,
+              'http.status_code': 400,
+            })
+
+            logger.error(
+              `[${requestId}] Invalid pagination parameters`,
+              {
+                service: 'api',
+                apiEnvironment: req.unkey
+                  ?.environment as ApiEnvironment,
+                request_id: requestId,
+                error: error as Error,
+                queryParams: queryParamsObject,
+              }
+            )
+
+            return NextResponse.json(
+              { error: (error as Error).message },
+              { status: 400 }
+            )
+          }
         }
+
+        let newReq: Request
+
         /**
          * TRPC expects a POST requests for all mutations.
          * So even if we have a PUT in the OpenAPI spec, we need to convert it to a POST
          * when mapping to TRPC.
          */
-        if (
-          (input && req.method === 'POST') ||
-          req.method === 'PUT'
-        ) {
+        if (req.method === 'POST' || req.method === 'PUT') {
           newReq = new Request(newUrl, {
             headers: req.headers,
             method: 'POST',

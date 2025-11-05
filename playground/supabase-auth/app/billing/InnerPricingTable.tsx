@@ -1,17 +1,16 @@
 'use client';
 import Button from '@/components/ui/Button';
-import { BillingPage, PricingTable, useBilling } from '@flowglad/nextjs';
+import { useBilling } from '@flowglad/nextjs';
 
 const InnerPricingTable = () => {
   const billing = useBilling();
   if (!billing.catalog) {
     return null;
   }
-  const { createCheckoutSession, reload } = billing;
+  const { reload } = billing;
   return (
     <>
       <Button onClick={reload}>Reload</Button>
-      <BillingPage darkMode={true} />
     </>
   );
 };

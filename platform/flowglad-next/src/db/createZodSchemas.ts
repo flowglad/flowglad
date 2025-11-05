@@ -93,7 +93,9 @@ function epochRefineForUpdate<TTable extends PgTable>(
     }
     if (col.getSQLType() === 'timestamptz') {
       // @ts-expect-error - zodPipe not expected to be in refine
-      out[k] = zodEpochMs.optional()
+      out[k] = col.notNull
+        ? zodEpochMs.optional()
+        : zodEpochMs.nullish()
     }
   }
   return out

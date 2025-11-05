@@ -114,7 +114,7 @@ description: "Create and manage payment flows with one component"
 - When mentioning files or directories, wrap names in backticks (e.g., `app/flowglad.ts`)
 
 Terminology:
-- Use component names literally in code: `FlowgladProvider`, `BillingPage`
+- Use component names literally in code: `FlowgladProvider`
 - Use "server route" for the `/api/flowglad/[...path]` handler
 
 ---

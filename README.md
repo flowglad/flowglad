@@ -143,16 +143,6 @@ return (
   {/* ... existing layout JSX ... */}
 </FlowgladProvider>
 ) `
-
-4. Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
-
-`tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
-
-export default function Billing() {
-  return <BillingPage />
-}
-`
 ```
 </details>
 <details>
@@ -233,15 +223,6 @@ return (
 </FlowgladProvider>
 )
 `
-
-4. Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
-
-`tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
-
-export default function Billing() {
-  return <BillingPage />
-}
 ```
 </details>
 <details>
@@ -326,16 +307,6 @@ return (
   </FlowgladProvider>
 </SessionProvider>
 ) `
-
-4. Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
-
-`tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
-
-export default function Billing() {
-  return <BillingPage />
-}
-`
 ```
 </details>
 
