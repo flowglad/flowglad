@@ -122,10 +122,13 @@ describe('CurrencyInput Component', () => {
       expect(onValueChange).toHaveBeenCalledWith(
         undefined,
         undefined,
-        expect.objectContaining({ float: null, formatted: '', value: '' })
+        expect.objectContaining({
+          float: null,
+          formatted: '',
+          value: '',
+        })
       )
     })
-
 
     it('should only accept valid positive numbers', () => {
       const onValueChange = vi.fn()
@@ -165,10 +168,13 @@ describe('CurrencyInput Component', () => {
       expect(onValueChange).toHaveBeenCalledWith(
         undefined,
         undefined,
-        expect.objectContaining({ float: null, formatted: '', value: '' })
+        expect.objectContaining({
+          float: null,
+          formatted: '',
+          value: '',
+        })
       )
     })
-
   })
 
   describe('Props and Styling', () => {
@@ -204,7 +210,12 @@ describe('CurrencyInput Component', () => {
 
     it('should handle allowDecimals prop', () => {
       const onValueChange = vi.fn()
-      render(<CurrencyInput allowDecimals={false} onValueChange={onValueChange} />)
+      render(
+        <CurrencyInput
+          allowDecimals={false}
+          onValueChange={onValueChange}
+        />
+      )
 
       const input = screen.getByRole('textbox')
 
@@ -212,7 +223,8 @@ describe('CurrencyInput Component', () => {
       fireEvent.change(input, { target: { value: '12.34' } })
 
       expect(onValueChange).toHaveBeenCalled()
-      const lastCall = onValueChange.mock.calls[onValueChange.mock.calls.length - 1]
+      const lastCall =
+        onValueChange.mock.calls[onValueChange.mock.calls.length - 1]
       expect(lastCall[0]).not.toMatch(/\./)
     })
   })

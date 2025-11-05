@@ -5,7 +5,7 @@
       "name": "Build: debug",
       "type": "node-terminal",
       "request": "launch",
-      "command": "pnpm dev",
+      "command": "bun dev",
       "cwd": "${workspaceFolder}/platform/flowglad-next",
       "sourceMapPathOverrides": {
         "webpack://_N_E/*": "${workspaceFolder}/platform/flowglad-next/*"
@@ -15,7 +15,7 @@
       "name": "Next.js: debug server-side",
       "type": "node-terminal",
       "request": "launch",
-      "command": "pnpm dev",
+      "command": "bun dev",
       "cwd": "${workspaceFolder}/platform/flowglad-next"
     },
     {
@@ -59,7 +59,7 @@
       "name": "Debug Tests",
       "type": "node-terminal",
       "request": "launch",
-      "command": "pnpm test",
+      "command": "bun run test",
       "cwd": "${workspaceFolder}/platform/flowglad-next",
       "skipFiles": ["<node_internals>/**"],
       "console": "integratedTerminal"
@@ -68,7 +68,7 @@
       "name": "Debug Single Test",
       "type": "node-terminal",
       "request": "launch",
-      "command": "pnpm test ${input:testName}",
+      "command": "bun run test ${input:testName}",
       "cwd": "${workspaceFolder}/platform/flowglad-next",
       "skipFiles": ["<node_internals>/**"],
       "console": "integratedTerminal",
