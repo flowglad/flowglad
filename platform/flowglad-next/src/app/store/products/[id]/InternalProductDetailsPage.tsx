@@ -81,27 +81,21 @@ function InternalProductDetailsPage(
                 className="truncate whitespace-nowrap overflow-hidden text-ellipsis"
               />
             </div>
-            <div className="flex flex-row gap-4 justify-end flex-shrink-0">
+            <div className="flex flex-row gap-2 justify-end flex-shrink-0">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Ellipsis className="rotate-90 w-4 h-6" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-fit p-1" align="end">
+                  <PopoverMenu items={moreMenuItems} />
+                </PopoverContent>
+              </Popover>
               <Button onClick={() => setIsEditOpen(true)}>
                 <Pencil className="w-4 h-4 mr-2" />
                 Edit
               </Button>
-              <Popover>
-                <PopoverTrigger className="flex">
-                  <Button
-                    className="flex justify-center items-center border-primary"
-                    variant="outline"
-                    asChild
-                  >
-                    <span>
-                      <Ellipsis className="rotate-90 w-4 h-6" />
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-fit" align="end">
-                  <PopoverMenu items={moreMenuItems} />
-                </PopoverContent>
-              </Popover>
             </div>
           </div>
         </div>
@@ -113,7 +107,7 @@ function InternalProductDetailsPage(
                   ? new Date(organization.createdAt)
                   : new Date()
               }
-              alignDatePicker="right"
+              alignDatePicker="left"
               productId={product.id}
             />
           </div>
