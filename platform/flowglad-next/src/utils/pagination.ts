@@ -56,7 +56,9 @@ const legacyCursorPayloadSchema = z
   })
   .strict()
 
-export type LegacyCursorPayload = z.infer<typeof legacyCursorPayloadSchema>
+export type LegacyCursorPayload = z.infer<
+  typeof legacyCursorPayloadSchema
+>
 
 export const parseAndValidateLegacyCursor = (
   cursor: string

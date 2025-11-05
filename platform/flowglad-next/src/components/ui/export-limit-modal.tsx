@@ -31,7 +31,7 @@ I need help exporting my customer data. I have ${customerCount.toLocaleString()}
 Thank you for your assistance!
 
 Best regards,`
-    
+
     const mailtoUrl = `mailto:hello@flowglad.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     window.open(mailtoUrl, '_blank')
   }

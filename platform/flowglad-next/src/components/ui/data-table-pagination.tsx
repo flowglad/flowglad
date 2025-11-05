@@ -1,6 +1,11 @@
 import React from 'react'
 import { Table } from '@tanstack/react-table'
-import { ChevronLeft, ChevronRight, Loader2, Download } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Download,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -47,7 +52,8 @@ export function DataTablePagination<TData>({
   }, [isFiltered, filteredCount, totalCount, rows])
 
   const shouldHidePagination = totalRows <= 10
-  const showExportButton = typeof onExport === 'function' && totalRows > 0
+  const showExportButton =
+    typeof onExport === 'function' && totalRows > 0
 
   return (
     <div className="flex items-center justify-between px-2 gap-3">
@@ -63,7 +69,9 @@ export function DataTablePagination<TData>({
               className="h-8"
               onClick={() => onExport()}
               disabled={exportDisabled || exportLoading}
-              aria-label={exportLoading ? 'Exporting...' : exportLabel}
+              aria-label={
+                exportLoading ? 'Exporting...' : exportLabel
+              }
             >
               {exportLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

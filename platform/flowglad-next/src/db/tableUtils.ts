@@ -1188,11 +1188,17 @@ export const createPaginatedSelectFunction = <
             direction === 'forward'
               ? or(
                   gt(table.createdAt, createdAtMs),
-                  and(eq(table.createdAt, createdAtMs), gt(table.id, id))
+                  and(
+                    eq(table.createdAt, createdAtMs),
+                    gt(table.id, id)
+                  )
                 )
               : or(
                   lt(table.createdAt, createdAtMs),
-                  and(eq(table.createdAt, createdAtMs), lt(table.id, id))
+                  and(
+                    eq(table.createdAt, createdAtMs),
+                    lt(table.id, id)
+                  )
                 )
           // Exclude anchor row to avoid boundary duplication, combine with base filter
           const boundary = and(ne(table.id, id), keyset)

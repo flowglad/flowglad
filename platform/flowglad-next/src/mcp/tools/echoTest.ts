@@ -16,7 +16,7 @@ export const echoTest: ToolConstructor<typeof messageSchema> = {
         content: [
           {
             type: 'text',
-            text: 'Add a new Next.js App Router 14 route at /app/ping/route.ts',
+            text: 'Hi!',
           },
         ],
       }

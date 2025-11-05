@@ -1643,7 +1643,6 @@ describe('createPaginatedSelectFunction', () => {
     expect(result).toBe(true)
   })
 
-
   it('should handle backward pagination boundary with identical createdAt deterministically', async () => {
     const fixed = new Date('2020-01-02T00:00:00Z')
     await adminTransaction(async ({ transaction }) => {
@@ -1698,14 +1697,16 @@ describe('createPaginatedSelectFunction', () => {
 
   it('accepts legacy cursor without id and continues pagination (createdAt-only fallback)', async () => {
     // Get a first page to establish an anchor
-    const firstPage = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersPaginated(
-        {
-          limit: 10,
-        },
-        transaction
-      )
-    })
+    const firstPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersPaginated(
+          {
+            limit: 10,
+          },
+          transaction
+        )
+      }
+    )
 
     expect(firstPage.data.length).toBeGreaterThan(0)
     const anchor = firstPage.data[firstPage.data.length - 1]
@@ -1718,15 +1719,17 @@ describe('createPaginatedSelectFunction', () => {
       direction: 'forward',
     })
 
-    const secondPage = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersPaginated(
-        {
-          cursor: legacyCursor,
-          limit: 10,
-        },
-        transaction
-      )
-    })
+    const secondPage = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomersPaginated(
+          {
+            cursor: legacyCursor,
+            limit: 10,
+          },
+          transaction
+        )
+      }
+    )
 
     // Ensure we advanced and did not overlap with the first page
     const firstIds = new Set(firstPage.data.map((c) => c.id))
@@ -1740,7 +1743,7 @@ describe('createPaginatedSelectFunction', () => {
       expect(decoded.id).toBeDefined()
       expect(decoded.direction).toBe('forward')
     }
-  })  
+  })
 
   it('should handle backward pagination direction', async () => {
     const result = await adminTransaction(async ({ transaction }) => {
@@ -1862,8 +1865,9 @@ describe('createPaginatedSelectFunction (deterministic assertions)', () => {
   })
 
   it('asserts every item by name across forward pages (no gaps, no dupes)', async () => {
-    const expectedNames = Array.from({ length: 12 }, (_, i) =>
-      `cust-${String(i + 1).padStart(4, '0')}`
+    const expectedNames = Array.from(
+      { length: 12 },
+      (_, i) => `cust-${String(i + 1).padStart(4, '0')}`
     )
 
     const pageSize = 5
@@ -1877,7 +1881,10 @@ describe('createPaginatedSelectFunction (deterministic assertions)', () => {
     // Collect names to assert full ordering and content
     while (true) {
       const page = await adminTransaction(async ({ transaction }) =>
-        selectCustomersPaginated({ cursor: currentCursor, limit: pageSize }, transaction)
+        selectCustomersPaginated(
+          { cursor: currentCursor, limit: pageSize },
+          transaction
+        )
       )
       seenNames.push(...page.data.map((c) => c.name))
       if (!page.nextCursor) break
@@ -1897,7 +1904,7 @@ describe('createPaginatedSelectFunction (deterministic assertions)', () => {
     expect(pages[1]).toEqual(expectedNames.slice(5, 10))
     expect(pages[2]).toEqual(expectedNames.slice(10, 12))
   })
-  
+
   it('counts total records deterministically for organization', async () => {
     const cursor = encodeCursor({
       parameters: { organizationId },

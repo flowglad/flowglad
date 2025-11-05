@@ -11,10 +11,7 @@ import { isNil } from '@/utils/core'
 
 export const sendOrganizationPayoutsEnabledNotificationTask = task({
   id: 'send-organization-payouts-enabled-notification',
-  run: async (
-    payload: { organizationId: string },
-    { ctx }
-  ) => {
+  run: async (payload: { organizationId: string }, { ctx }) => {
     const { organizationId } = payload
 
     if (!organizationId) {
@@ -24,14 +21,11 @@ export const sendOrganizationPayoutsEnabledNotificationTask = task({
       )
     }
 
-    logger.log(
-      'Sending organization payouts enabled notification',
-      {
-        organizationId,
-        ctx,
-        payload,
-      }
-    )
+    logger.log('Sending organization payouts enabled notification', {
+      organizationId,
+      ctx,
+      payload,
+    })
 
     const { organization, usersAndMemberships } =
       await adminTransaction(async ({ transaction }) => {
@@ -78,18 +72,15 @@ export const sendOrganizationPayoutsEnabledNotificationTask = task({
 })
 
 export const idempotentSendOrganizationPayoutsEnabledNotification =
-  testSafeTriggerInvoker(
-    async (organizationId: string) => {
-      await sendOrganizationPayoutsEnabledNotificationTask.trigger(
-        {
-          organizationId,
-        },
-        {
-          idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-payouts-enabled-notification-${organizationId}`
-          ),
-        }
-      )
-    }
-  )
-
+  testSafeTriggerInvoker(async (organizationId: string) => {
+    await sendOrganizationPayoutsEnabledNotificationTask.trigger(
+      {
+        organizationId,
+      },
+      {
+        idempotencyKey: await createTriggerIdempotencyKey(
+          `send-organization-payouts-enabled-notification-${organizationId}`
+        ),
+      }
+    )
+  })
