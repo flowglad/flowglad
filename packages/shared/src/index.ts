@@ -8,9 +8,9 @@ export {
 } from './types'
 
 export {
-  createCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
+  createActivateSubscriptionCheckoutSessionSchema,
   cancelSubscriptionSchema,
   flowgladActionValidators,
   createUsageEventSchema,
@@ -20,7 +20,6 @@ export {
 
 export type {
   FlowgladActionValidatorMap,
-  CreateCheckoutSessionParams,
   CreateProductCheckoutSessionParams,
   CreateAddPaymentMethodCheckoutSessionParams,
   CancelSubscriptionParams,

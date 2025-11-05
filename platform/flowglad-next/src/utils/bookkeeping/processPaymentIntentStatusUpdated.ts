@@ -39,10 +39,6 @@ import { Payment } from '@/db/schema/payments'
 import { updateInvoiceStatusToReflectLatestPayment } from '../bookkeeping'
 import { updatePurchaseStatusToReflectLatestPayment } from '../bookkeeping'
 import {
-  commitPaymentCanceledEvent,
-  commitPaymentSucceededEvent,
-} from '../events'
-import {
   selectCurrentSubscriptionForCustomer,
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
@@ -65,10 +61,7 @@ import {
   LedgerCommand,
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import { UsageCredit } from '@/db/schema/usageCredits'
-import {
-  bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter,
-  insertUsageCredit,
-} from '@/db/tableMethods/usageCreditMethods'
+import { bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter } from '@/db/tableMethods/usageCreditMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
 export const chargeStatusToPaymentStatus = (
@@ -331,6 +324,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
         updatedPayment.failureMessage ||
         updatedPayment.failureCode ||
         undefined,
+      livemode: updatedPayment.livemode,
     })
   }
   /**

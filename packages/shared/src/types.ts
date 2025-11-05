@@ -5,6 +5,8 @@ export enum FlowgladActionKey {
   GetCustomerBilling = 'customers/billing',
   FindOrCreateCustomer = 'customers/find-or-create',
   CreateCheckoutSession = 'checkout-sessions/create',
+  CreateAddPaymentMethodCheckoutSession = 'checkout-sessions/create-add-payment-method',
+  CreateActivateSubscriptionCheckoutSession = 'checkout-sessions/create-activate-subscription',
   CancelSubscription = 'subscriptions/cancel',
   CreateSubscription = 'subscriptions/create',
   UpdateCustomer = 'customers/update',

@@ -1136,7 +1136,7 @@ describe('billingRunHelpers', async () => {
         expect(payments[0].stripeChargeId).toBeNull() // No charge ID since payment failed
         expect(payments[0].status).toBe(PaymentStatus.Processing) // Payment created but not yet confirmed
 
-        // Verify invoice is still awaiting payment confirmation (not marked as paid)
+        // Verify invoice is still open (not marked as paid)
         const invoices = await adminTransaction(({ transaction }) =>
           selectInvoices(
             { billingPeriodId: billingPeriod.id },
@@ -1144,9 +1144,7 @@ describe('billingRunHelpers', async () => {
           )
         )
         expect(invoices).toHaveLength(1)
-        expect(invoices[0].status).toBe(
-          InvoiceStatus.AwaitingPaymentConfirmation
-        )
+        expect(invoices[0].status).toBe(InvoiceStatus.Open)
       })
 
       it('should handle payment intent creation success but confirmation API failure', async () => {
@@ -1198,7 +1196,7 @@ describe('billingRunHelpers', async () => {
         expect(payments[0].stripeChargeId).toBeNull() // No charge ID since confirmation failed
         expect(payments[0].status).toBe(PaymentStatus.Processing) // Payment created but confirmation failed
 
-        // Verify invoice is still awaiting payment confirmation (not marked as paid)
+        // Verify invoice is still open (not marked as paid)
         const invoices = await adminTransaction(({ transaction }) =>
           selectInvoices(
             { billingPeriodId: billingPeriod.id },
@@ -1206,9 +1204,7 @@ describe('billingRunHelpers', async () => {
           )
         )
         expect(invoices).toHaveLength(1)
-        expect(invoices[0].status).toBe(
-          InvoiceStatus.AwaitingPaymentConfirmation
-        )
+        expect(invoices[0].status).toBe(InvoiceStatus.Open)
       })
 
       it('should rollback when customer ID validation fails', async () => {
@@ -1356,7 +1352,7 @@ describe('billingRunHelpers', async () => {
         )
         expect(invoice).toBeDefined()
         expect(invoice).toMatchObject({
-          status: InvoiceStatus.Paid,
+          status: InvoiceStatus.Open,
           customerId: customer.id,
           organizationId: organization.id,
         })

@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* 
 Run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/clonePricingModel.ts pricing_model_id=pm_... [destination_env=livemode|testmode]
+NODE_ENV=production bunx tsx src/scripts/clonePricingModel.ts pricing_model_id=pm_... [destination_env=livemode|testmode]
 */
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -23,7 +23,7 @@ const clonePricingModel = async (db: PostgresJsDatabase) => {
   if (!pricingModelIdArg) {
     console.error('Error: pricing_model_id argument is required')
     console.error(
-      'Usage: NODE_ENV=production pnpm tsx src/scripts/clonePricingModel.ts pricing_model_id=pm_... [destination_env=livemode|testmode]'
+      'Usage: NODE_ENV=production bunx tsx src/scripts/clonePricingModel.ts pricing_model_id=pm_... [destination_env=livemode|testmode]'
     )
     process.exit(1)
   }

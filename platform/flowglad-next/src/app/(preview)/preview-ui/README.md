@@ -34,7 +34,7 @@ The `(preview)` route group creates a separate routing context that doesn't inhe
 
 ### 2. Build Process
 ```bash
-pnpm build:preview-css
+bun run build:preview-css
 ```
 This command:
 - Reads `/app/(preview)/preview-ui/styles/preview.css`
@@ -86,18 +86,18 @@ import { YourComponent } from '@/registry/new-york/your-component'
 
 The preview CSS is built automatically during the main build process:
 ```bash
-pnpm build
+bun run build
 ```
 
 Or manually build just the preview CSS:
 ```bash
-pnpm build:preview-css
+bun run build:preview-css
 ```
 
 ### Development Workflow
 
 1. Make changes to components in `/src/registry/`
-2. Run `pnpm build:preview-css` to rebuild styles
+2. Run `bun run build:preview-css` to rebuild styles
 3. View changes at `/preview-ui`
 
 ## Configuration
@@ -125,7 +125,7 @@ The preview CSS includes the same CSS variables as the main app to ensure compon
 1. Check if preview CSS is built: `ls public/preview/`
 2. Verify manifest exists: `cat public/preview/manifest.json`
 3. Check browser console for loading errors
-4. Rebuild CSS: `pnpm build:preview-css`
+4. Rebuild CSS: `bun run build:preview-css`
 
 ### Styles Not Applied
 1. Ensure components use Tailwind classes

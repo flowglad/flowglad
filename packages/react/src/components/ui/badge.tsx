@@ -5,7 +5,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../lib/utils'
 
 const badgeVariants = cva(
-  'flowglad-inline-flex flowglad-items-center flowglad-justify-center flowglad-rounded-md flowglad-border flowglad-px-2 flowglad-py-0.5 flowglad-text-xs flowglad-font-medium flowglad-w-fit flowglad-whitespace-nowrap flowglad-shrink-0 [&>svg]:flowglad-size-3 flowglad-gap-1 [&>svg]:flowglad-pointer-events-none flowglad-focus-visible:border-ring flowglad-focus-visible:ring-ring/50 flowglad-focus-visible:ring-[3px] flowglad-aria-invalid:ring-destructive/20 flowglad-dark:aria-invalid:ring-destructive/40 flowglad-aria-invalid:border-destructive flowglad-transition-[color,box-shadow] flowglad-overflow-hidden',
+  'flowglad-inline-flex flowglad-items-center flowglad-justify-center flowglad-rounded flowglad-border flowglad-px-2 flowglad-py-0.5 flowglad-text-xs flowglad-font-medium flowglad-w-fit flowglad-whitespace-nowrap flowglad-shrink-0 [&>svg]:flowglad-size-3 flowglad-gap-1 [&>svg]:flowglad-pointer-events-none flowglad-focus-visible:border-ring flowglad-focus-visible:ring-ring/50 flowglad-focus-visible:ring-[3px] flowglad-aria-invalid:ring-destructive/20 flowglad-dark:aria-invalid:ring-destructive/40 flowglad-aria-invalid:border-destructive flowglad-transition-[color,box-shadow] flowglad-overflow-hidden',
   {
     variants: {
       variant: {
