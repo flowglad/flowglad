@@ -17,7 +17,6 @@ node_modules
 yalc.lock
 
 dist
-.xmcp
 
 generated/styles.ts
 .turbo
