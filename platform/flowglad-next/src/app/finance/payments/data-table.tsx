@@ -2,14 +2,10 @@
 
 import * as React from 'react'
 import {
-  ColumnFiltersState,
   ColumnSizingState,
-  SortingState,
   VisibilityState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
 import {
@@ -23,8 +19,10 @@ import {
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 import { columns } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { trpc } from '@/app/_trpc/client'
 import { Payment } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
@@ -54,6 +52,8 @@ export function PaymentsDataTable({
 }: PaymentsDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(1000)
 
   const {
     pageIndex,
@@ -69,7 +69,7 @@ export function PaymentsDataTable({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
     filters: filters,
-    // ⚠️ NO searchQuery - payments table doesn't have backend search support
+    searchQuery,
     useQuery: trpc.payments.getTableRows.useQuery,
   })
 
@@ -80,10 +80,13 @@ export function PaymentsDataTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
 
-  // Client-side features (Shadcn patterns)
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] =
-    React.useState<ColumnFiltersState>([])
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
+  // Client-side sorting/filtering disabled; server-side only
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [columnSizing, setColumnSizing] =
@@ -99,12 +102,11 @@ export function PaymentsDataTable({
       minSize: 20,
       maxSize: 500,
     },
+    enableSorting: false, // Disable header sorting UI/interactions
     manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
+    manualSorting: true, // Disable client-side sorting
+    manualFiltering: true, // Disable client-side filtering
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
     onPaginationChange: (updater) => {
@@ -124,11 +126,7 @@ export function PaymentsDataTable({
       }
     },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       columnSizing,
       pagination: { pageIndex, pageSize: currentPageSize },
@@ -157,6 +155,12 @@ export function PaymentsDataTable({
 
         {/* View options on the right */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          <CollapsibleSearch
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder="Search payments..."
+            isLoading={isFetching}
+          />
           <DataTableViewOptions table={table} />
         </div>
       </div>

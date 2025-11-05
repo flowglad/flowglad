@@ -17,13 +17,12 @@ import {
 } from '@/db/schema/invoices'
 import { InvoiceStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
-import { and, eq, count, desc } from 'drizzle-orm'
+import { and, or, eq, count, desc, sql } from 'drizzle-orm'
 import { InvoiceLineItem } from '../schema/invoiceLineItems'
-import { z } from 'zod'
 import { createCursorPaginatedSelectFunction } from '@/db/tableUtils'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
-import { Customer } from '@/db/schema/customers'
+import { Customer, customers } from '@/db/schema/customers'
 import { invoicesPaginatedTableRowDataSchema } from '@/db/schema/invoiceLineItems'
 
 const config: ORMMethodCreatorConfig<
@@ -159,5 +158,28 @@ export const selectInvoicesTableRowData =
           invoiceLineItemsByInvoiceId[invoice.id] || [],
         customer: customersById.get(invoice.customerId)!,
       }))
+    },
+    undefined,
+    ({ searchQuery }) => {
+      // FIXME: Consider pattern detection before searching by ID or invoice number.
+      // - ID pattern: ^[a-z]+_[A-Za-z0-9_-]+$ (e.g., 'inv_abc123')
+      // - Invoice number pattern: ^[A-Za-z0-9]+-.*$ (e.g., 'ABC1234-00001', 'INV-prefix-001')
+      // Only include exact match checks when query matches respective patterns to avoid
+      // unnecessary database queries for non-matching patterns.
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+      return trimmedQuery && trimmedQuery !== ''
+        ? or(
+            eq(invoices.id, trimmedQuery),
+            eq(invoices.invoiceNumber, trimmedQuery),
+            sql`exists (
+              select 1 from ${customers} c
+              where c.id = ${invoices.customerId}
+                and c.name ilike ${`%${trimmedQuery}%`}
+            )`
+          )
+        : undefined
     }
   )

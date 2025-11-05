@@ -15,12 +15,6 @@ import {
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import {
-  stringSortingFn,
-  stringFilterFn,
-  dateSortingFn,
-  numberSortingFn,
-} from '@/utils/dataTableColumns'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import { Customer, CustomerTableRowData } from '@/db/schema/customers'
 import { CurrencyCode } from '@/types'
@@ -84,19 +78,16 @@ function CustomerActionsMenu({
 export const columns: ColumnDef<CustomerTableRowData>[] = [
   {
     id: 'name',
-    accessorFn: (row) => row.customer.name?.trim() ?? '',
+    accessorFn: (row) =>
+      row.customer.name?.trim().toLowerCase() ?? '',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Name" />
     ),
-    sortingFn: stringSortingFn,
-    filterFn: stringFilterFn,
     cell: ({ row }) => {
-      const name = row.original.customer.name?.trim()
-      const fallback = row.original.customer.email
-      const display = name && name.length > 0 ? name : fallback
+      const name = row.original.customer.name?.trim() ?? ''
       return (
-        <div className="truncate" title={display}>
-          {display}
+        <div className="truncate" title={name}>
+          {name}
         </div>
       )
     },
@@ -111,8 +102,6 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Email" />
     ),
-    sortingFn: stringSortingFn,
-    filterFn: stringFilterFn,
     cell: ({ row }) => {
       const email = row.original.customer.email
       return (
@@ -135,7 +124,6 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Total Spend" />
     ),
-    sortingFn: numberSortingFn,
     cell: ({ row }) => {
       const rawValue = row.getValue<number | string>('totalSpend')
       const amount =
@@ -158,7 +146,6 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Payments" />
     ),
-    sortingFn: numberSortingFn,
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {row.getValue('payments') || 0}
@@ -174,7 +161,6 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Created" />
     ),
-    sortingFn: dateSortingFn,
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {core.formatDate(row.getValue('createdAt'))}
@@ -190,7 +176,6 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="ID" />
     ),
-    sortingFn: stringSortingFn,
     cell: ({ row }) => (
       <div>
         <DataTableCopyableCell copyText={row.getValue('customerId')}>

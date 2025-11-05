@@ -71,8 +71,6 @@ interface CollapsibleSearchProps
   isLoading?: boolean
   className?: string
   inputClassName?: string
-  onExpand?: () => void
-  onCollapse?: () => void
 }
 
 function CollapsibleSearch({
@@ -84,8 +82,6 @@ function CollapsibleSearch({
   isLoading = false,
   className,
   inputClassName,
-  onExpand,
-  onCollapse,
 }: CollapsibleSearchProps) {
   // Ensure size is never null
   const currentSize = size || 'default'
@@ -95,7 +91,6 @@ function CollapsibleSearch({
   // Handle search expansion
   const handleExpand = () => {
     setIsExpanded(true)
-    onExpand?.()
     // Focus the input after a small delay to ensure it's rendered
     setTimeout(() => {
       inputRef.current?.focus()
@@ -106,7 +101,6 @@ function CollapsibleSearch({
   const handleCollapse = () => {
     setIsExpanded(false)
     onChange('')
-    onCollapse?.()
   }
 
   return (

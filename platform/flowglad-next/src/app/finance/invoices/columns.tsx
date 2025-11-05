@@ -24,13 +24,6 @@ import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/strip
 import SendInvoiceReminderEmailModal from '@/components/forms/SendInvoiceReminderEmailModal'
 import core from '@/utils/core'
 import { sentenceCase } from 'change-case'
-import {
-  stringSortingFn,
-  stringFilterFn,
-  dateSortingFn,
-  numberSortingFn,
-  arrayFilterFn,
-} from '@/utils/dataTableColumns'
 
 export type InvoiceTableRowData = {
   invoice: Invoice.ClientRecord
@@ -140,18 +133,17 @@ function InvoiceActionsMenu({
 export const columns: ColumnDef<InvoiceTableRowData>[] = [
   {
     id: 'customerName',
-    accessorFn: (row) => row.customer.name?.trim() || row.customer.id,
+    accessorFn: (row) => {
+      const name = row.customer.name?.trim() ?? ''
+      return name.toLowerCase() || row.customer.id.toLowerCase()
+    },
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Customer" />
     ),
-    sortingFn: stringSortingFn,
-    filterFn: stringFilterFn,
     cell: ({ row }) => {
       const customer = row.original.customer
-      const displayName =
-        typeof customer.name === 'string' && customer.name.length > 0
-          ? customer.name
-          : customer.id
+      const name = customer.name?.trim() ?? ''
+      const displayName = name || customer.id
       return (
         <div>
           <DataTableLinkableCell href={`/customers/${customer.id}`}>
@@ -166,22 +158,20 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
   },
   {
     id: 'invoiceNumber',
-    accessorFn: (row) => row.invoice.invoiceNumber,
+    accessorFn: (row) => row.invoice.invoiceNumber?.trim() ?? '',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Number" />
     ),
-    sortingFn: stringSortingFn,
-    cell: ({ row }) => (
-      <div>
-        <DataTableCopyableCell
-          copyText={row.getValue('invoiceNumber')}
-        >
-          <span className="font-mono text-sm">
-            {row.getValue('invoiceNumber')}
-          </span>
-        </DataTableCopyableCell>
-      </div>
-    ),
+    cell: ({ row }) => {
+      const invoiceNumber = row.original.invoice.invoiceNumber
+      return (
+        <div>
+          <DataTableCopyableCell copyText={invoiceNumber}>
+            <span className="font-mono text-sm">{invoiceNumber}</span>
+          </DataTableCopyableCell>
+        </div>
+      )
+    },
     size: 175,
     minSize: 170,
     maxSize: 200,
@@ -192,8 +182,6 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
-    sortingFn: stringSortingFn,
-    filterFn: arrayFilterFn,
     cell: ({ row }) => {
       const invoice = row.original.invoice
       return <InvoiceStatusBadge invoice={invoice} />
@@ -213,7 +201,6 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Total" />
     ),
-    sortingFn: numberSortingFn,
     cell: ({ row }) => {
       const total = row.getValue('total') as number
       const formatted =
@@ -237,7 +224,6 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Due Date" />
     ),
-    sortingFn: dateSortingFn,
     cell: ({ row }) => {
       const dueDate = row.getValue('dueDate') as Date | null
       return (
@@ -256,7 +242,6 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Created" />
     ),
-    sortingFn: dateSortingFn,
     cell: ({ row }) => (
       <div className="whitespace-nowrap">
         {core.formatDate(row.getValue('createdAt'))}
@@ -272,7 +257,6 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="ID" />
     ),
-    sortingFn: stringSortingFn,
     cell: ({ row }) => (
       <div>
         <DataTableCopyableCell copyText={row.getValue('invoiceId')}>

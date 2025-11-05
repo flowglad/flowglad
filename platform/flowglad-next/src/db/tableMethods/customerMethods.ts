@@ -414,7 +414,15 @@ export const selectCustomersCursorPaginatedWithTableRowData =
       })
       return customersWithTableRowData
     },
-    [customersTable.email, customersTable.name]
+    // FIXME: The generic constructSearchQueryClause function does not trim whitespace.
+    // When searchQuery contains only whitespace, it will be searched literally
+    // (e.g., '   ' will search for '%   %' which won't match anything).
+    // Consider updating constructSearchQueryClause to trim whitespace or handle empty strings.
+    // FIXME: constructSearchQueryClause includes the ID column in search even when searchQuery
+    // doesn't match the ID pattern (prefix_nanoid format, e.g., 'cust_abc123'). This causes
+    // inefficient ILIKE queries on ID columns. Consider pattern detection to only include ID
+    // column when query matches pattern (e.g., ^[a-z]+_[A-Za-z0-9_-]+$).
+    [customersTable.id, customersTable.email, customersTable.name]
   )
 
 export const selectCustomerAndOrganizationByCustomerWhere = async (

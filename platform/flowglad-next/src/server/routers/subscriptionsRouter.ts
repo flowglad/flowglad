@@ -53,7 +53,10 @@ import {
   selectPaymentMethodById,
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
-import { selectSubscriptionCountsByStatus } from '@/db/tableMethods/subscriptionMethods'
+import {
+  selectSubscriptionCountsByStatus,
+  selectDistinctSubscriptionProductNames,
+} from '@/db/tableMethods/subscriptionMethods'
 import {
   createBillingRunInsert,
   executeBillingRun,
@@ -430,6 +433,7 @@ const getTableRows = protectedProcedure
         status: z.nativeEnum(SubscriptionStatus).optional(),
         customerId: z.string().optional(),
         organizationId: z.string().optional(),
+        productName: z.string().optional(),
       })
     )
   )
@@ -569,6 +573,23 @@ const retryBillingRunProcedure = protectedProcedure
     }
   })
 
+const getProductOptionsProcedure = protectedProcedure
+  .input(z.object({}).optional())
+  .output(z.array(z.string()))
+  .query(async ({ ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction, organizationId }) => {
+        return selectDistinctSubscriptionProductNames(
+          organizationId,
+          transaction
+        )
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
   cancel: cancelSubscriptionProcedure,
@@ -578,5 +599,6 @@ export const subscriptionsRouter = router({
   getCountsByStatus: getCountsByStatusProcedure,
   retryBillingRunProcedure,
   getTableRows,
+  getProductOptions: getProductOptionsProcedure,
   updatePaymentMethod: updatePaymentMethodProcedure,
 })

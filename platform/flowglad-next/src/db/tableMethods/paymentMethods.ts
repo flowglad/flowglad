@@ -15,7 +15,6 @@ import {
   payments,
   paymentsInsertSchema,
   paymentsSelectSchema,
-  paymentsTableRowDataSchema,
   paymentsUpdateSchema,
   RevenueDataItem,
   paymentsPaginatedTableRowDataSchema,
@@ -24,7 +23,7 @@ import { PaymentStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
   and,
-  desc,
+  or,
   eq,
   gte,
   inArray,
@@ -32,7 +31,6 @@ import {
   count,
   lte,
 } from 'drizzle-orm'
-import { invoices } from '../schema/invoices'
 import { GetRevenueDataInput } from '../schema/payments'
 import { customers } from '../schema/customers'
 import { getCurrentMonthStartTimestamp } from '@/utils/core'
@@ -408,6 +406,23 @@ export const selectPaymentsCursorPaginatedWithTableRowData =
         payment,
         customer: customersById.get(payment.customerId)!,
       }))
+    },
+    undefined,
+    ({ searchQuery }) => {
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+      return trimmedQuery && trimmedQuery !== ''
+        ? or(
+            eq(payments.id, trimmedQuery),
+            sql`exists (
+              select 1 from ${customers} c
+              where c.id = ${payments.customerId}
+                and c.name ilike ${`%${trimmedQuery}%`}
+            )`
+          )
+        : undefined
     }
   )
 

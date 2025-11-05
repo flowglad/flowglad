@@ -18,11 +18,14 @@ import {
   CurrencyCode,
 } from '@/types'
 import { nanoid } from '@/utils/core'
+import core from '@/utils/core'
+import { insertCustomer } from './customerMethods'
 import {
   safelyUpdatePaymentForRefund,
   safelyUpdatePaymentStatus,
   selectPaymentById,
   selectRevenueDataForOrganization,
+  selectPaymentsCursorPaginatedWithTableRowData,
 } from './paymentMethods'
 import { Payment, RevenueDataItem } from '../schema/payments'
 import { Organization } from '../schema/organizations'
@@ -1583,6 +1586,783 @@ describe('selectRevenueDataForOrganization', () => {
 
       expect(revenueData).toBeInstanceOf(Array)
       expect(revenueData.length).toBe(0) // Expect an empty array
+    })
+  })
+})
+
+describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
+  let testData: {
+    org1: Awaited<ReturnType<typeof setupOrg>>
+    org2: Awaited<ReturnType<typeof setupOrg>>
+    customers: {
+      johnDoe: Customer.Record
+      janeSmith: Customer.Record
+      otherOrg: Customer.Record
+      specialChars: Customer.Record
+      unicode: Customer.Record
+    }
+    invoices: {
+      johnInvoice1: Invoice.Record
+      johnInvoice2: Invoice.Record
+      janeInvoice1: Invoice.Record
+      specialInvoice: Invoice.Record
+      unicodeInvoice: Invoice.Record
+      otherOrgInvoice: Invoice.Record
+    }
+    payments: {
+      johnPayment1: Payment.Record
+      johnPayment2: Payment.Record
+      janePayment1: Payment.Record
+      specialPayment: Payment.Record
+      unicodePayment: Payment.Record
+      otherOrgPayment: Payment.Record
+    }
+  }
+
+  beforeEach(async () => {
+    // Set up organizations
+    const org1 = await setupOrg()
+    const org2 = await setupOrg()
+
+    // Set up customers with various names
+    const customers = {
+      johnDoe: await adminTransaction(async ({ transaction }) => {
+        const customer = await insertCustomer(
+          {
+            organizationId: org1.organization.id,
+            name: 'John Doe',
+            email: `john+${core.nanoid()}@test.com`,
+            externalId: core.nanoid(),
+            livemode: true,
+          },
+          transaction
+        )
+        return customer
+      }),
+      janeSmith: await adminTransaction(async ({ transaction }) => {
+        const customer = await insertCustomer(
+          {
+            organizationId: org1.organization.id,
+            name: 'Jane Smith',
+            email: `jane+${core.nanoid()}@test.com`,
+            externalId: core.nanoid(),
+            livemode: true,
+          },
+          transaction
+        )
+        return customer
+      }),
+      otherOrg: await adminTransaction(async ({ transaction }) => {
+        const customer = await insertCustomer(
+          {
+            organizationId: org2.organization.id,
+            name: 'Other Org Customer',
+            email: `other+${core.nanoid()}@test.com`,
+            externalId: core.nanoid(),
+            livemode: true,
+          },
+          transaction
+        )
+        return customer
+      }),
+      specialChars: await adminTransaction(
+        async ({ transaction }) => {
+          const customer = await insertCustomer(
+            {
+              organizationId: org1.organization.id,
+              name: "O'Brien-Smith",
+              email: `special+${core.nanoid()}@test.com`,
+              externalId: core.nanoid(),
+              livemode: true,
+            },
+            transaction
+          )
+          return customer
+        }
+      ),
+      unicode: await adminTransaction(async ({ transaction }) => {
+        const customer = await insertCustomer(
+          {
+            organizationId: org1.organization.id,
+            name: '测试 Café',
+            email: `unicode+${core.nanoid()}@test.com`,
+            externalId: core.nanoid(),
+            livemode: true,
+          },
+          transaction
+        )
+        return customer
+      }),
+    }
+
+    // Set up invoices
+    const invoices = {
+      johnInvoice1: await setupInvoice({
+        customerId: customers.johnDoe.id,
+        organizationId: org1.organization.id,
+        priceId: org1.price.id,
+        livemode: true,
+      }),
+      johnInvoice2: await setupInvoice({
+        customerId: customers.johnDoe.id,
+        organizationId: org1.organization.id,
+        priceId: org1.price.id,
+        livemode: true,
+      }),
+      janeInvoice1: await setupInvoice({
+        customerId: customers.janeSmith.id,
+        organizationId: org1.organization.id,
+        priceId: org1.price.id,
+        livemode: true,
+      }),
+      specialInvoice: await setupInvoice({
+        customerId: customers.specialChars.id,
+        organizationId: org1.organization.id,
+        priceId: org1.price.id,
+        livemode: true,
+      }),
+      unicodeInvoice: await setupInvoice({
+        customerId: customers.unicode.id,
+        organizationId: org1.organization.id,
+        priceId: org1.price.id,
+        livemode: true,
+      }),
+      otherOrgInvoice: await setupInvoice({
+        customerId: customers.otherOrg.id,
+        organizationId: org2.organization.id,
+        priceId: org2.price.id,
+        livemode: true,
+      }),
+    }
+
+    // Set up payments
+    const payments = {
+      johnPayment1: await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 1000,
+        livemode: true,
+        customerId: customers.johnDoe.id,
+        organizationId: org1.organization.id,
+        invoiceId: invoices.johnInvoice1.id,
+        paymentMethod: PaymentMethodType.Card,
+      }),
+      johnPayment2: await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 2000,
+        livemode: true,
+        customerId: customers.johnDoe.id,
+        organizationId: org1.organization.id,
+        invoiceId: invoices.johnInvoice2.id,
+        paymentMethod: PaymentMethodType.Card,
+      }),
+      janePayment1: await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 1500,
+        livemode: true,
+        customerId: customers.janeSmith.id,
+        organizationId: org1.organization.id,
+        invoiceId: invoices.janeInvoice1.id,
+        paymentMethod: PaymentMethodType.Card,
+      }),
+      specialPayment: await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 2500,
+        livemode: true,
+        customerId: customers.specialChars.id,
+        organizationId: org1.organization.id,
+        invoiceId: invoices.specialInvoice.id,
+        paymentMethod: PaymentMethodType.Card,
+      }),
+      unicodePayment: await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 3000,
+        livemode: true,
+        customerId: customers.unicode.id,
+        organizationId: org1.organization.id,
+        invoiceId: invoices.unicodeInvoice.id,
+        paymentMethod: PaymentMethodType.Card,
+      }),
+      otherOrgPayment: await setupPayment({
+        stripeChargeId: `ch_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: 5000,
+        livemode: true,
+        customerId: customers.otherOrg.id,
+        organizationId: org2.organization.id,
+        invoiceId: invoices.otherOrgInvoice.id,
+        paymentMethod: PaymentMethodType.Card,
+      }),
+    }
+
+    testData = {
+      org1,
+      org2,
+      customers,
+      invoices,
+      payments,
+    }
+  })
+
+  describe('Search functionality', () => {
+    it('should search by payment ID (exact match only)', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: testData.payments.johnPayment1.id,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      expect(result.items.length).toBe(1)
+      expect(result.items[0].payment.id).toBe(
+        testData.payments.johnPayment1.id
+      )
+
+      // Partial ID should not match
+      const partialId = testData.payments.johnPayment1.id.substring(
+        0,
+        testData.payments.johnPayment1.id.length / 2
+      )
+      const partialResult = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: partialId,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        partialResult.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment1.id
+        )
+      ).toBe(false)
+
+      // Non-existent ID should return empty
+      const nonExistentId = `pay_${core.nanoid()}`
+      const emptyResult = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: nonExistentId,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(emptyResult.items.length).toBe(0)
+      expect(emptyResult.total).toBe(0)
+    })
+
+    it('should search by customer name (partial, case-insensitive)', async () => {
+      // Search for "John" - should match John Doe
+      const resultJohn = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultJohn.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment1.id
+        )
+      ).toBe(true)
+      expect(
+        resultJohn.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment2.id
+        )
+      ).toBe(true)
+
+      // Search for "Doe" - should match John Doe
+      const resultDoe = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'Doe',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultDoe.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment1.id
+        )
+      ).toBe(true)
+
+      // Case-insensitive search
+      const resultLower = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'john',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultLower.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment1.id
+        )
+      ).toBe(true)
+
+      const resultUpper = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'JOHN',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultUpper.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment1.id
+        )
+      ).toBe(true)
+
+      // Search for "J" should match both John and Jane
+      const resultJ = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'J',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultJ.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment1.id
+        )
+      ).toBe(true)
+      expect(
+        resultJ.items.some(
+          (item) =>
+            item.payment.id === testData.payments.janePayment1.id
+        )
+      ).toBe(true)
+    })
+
+    it('should return multiple payments for same customer', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      const johnPaymentIds = new Set(
+        result.items
+          .filter(
+            (item) =>
+              item.customer.id === testData.customers.johnDoe.id
+          )
+          .map((item) => item.payment.id)
+      )
+      expect(
+        johnPaymentIds.has(testData.payments.johnPayment1.id)
+      ).toBe(true)
+      expect(
+        johnPaymentIds.has(testData.payments.johnPayment2.id)
+      ).toBe(true)
+    })
+
+    it('should handle special characters and unicode in customer names', async () => {
+      // Special characters
+      const resultSpecial = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: "O'Brien",
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultSpecial.items.some(
+          (item) =>
+            item.payment.id === testData.payments.specialPayment.id
+        )
+      ).toBe(true)
+
+      // Unicode characters
+      const resultUnicode = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '测试',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultUnicode.items.some(
+          (item) =>
+            item.payment.id === testData.payments.unicodePayment.id
+        )
+      ).toBe(true)
+    })
+
+    it('should handle empty, undefined, whitespace, and null search queries', async () => {
+      // Empty string
+      const resultEmpty = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(resultEmpty.items.length).toBeGreaterThanOrEqual(2)
+
+      // Undefined
+      const resultUndefined = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(resultUndefined.items.length).toBeGreaterThanOrEqual(2)
+
+      // Whitespace only should return all payments (whitespace is trimmed)
+      const resultWhitespace = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '   ',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(resultWhitespace.items.length).toBeGreaterThan(0)
+
+      // Null
+      const resultNull = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: null as any,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(resultNull.items.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('should paginate correctly with search applied', async () => {
+      const firstPage = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 1,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      expect(firstPage.items.length).toBe(1)
+      expect(firstPage.hasNextPage).toBe(true)
+
+      const secondPage = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 1,
+              pageAfter: firstPage.endCursor!,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      expect(secondPage.items.length).toBeGreaterThanOrEqual(1)
+      // Verify no overlap
+      const firstPageIds = new Set(
+        firstPage.items.map((item) => item.payment.id)
+      )
+      const secondPageIds = new Set(
+        secondPage.items.map((item) => item.payment.id)
+      )
+      const intersection = new Set(
+        [...firstPageIds].filter((id) => secondPageIds.has(id))
+      )
+      expect(intersection.size).toBe(0)
+
+      // Verify all items are for John
+      expect(
+        firstPage.items.every((item) =>
+          item.customer.name.toLowerCase().includes('john')
+        )
+      ).toBe(true)
+      expect(
+        secondPage.items.every((item) =>
+          item.customer.name.toLowerCase().includes('john')
+        )
+      ).toBe(true)
+    })
+
+    it('should return correct total count with search applied', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      expect(result.total).toBeGreaterThanOrEqual(2)
+      expect(
+        result.items.every((item) =>
+          item.customer.name.toLowerCase().includes('john')
+        )
+      ).toBe(true)
+    })
+
+    it('should only return results from the authenticated organization', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      // Should only contain payments from org1
+      expect(
+        result.items.every(
+          (item) =>
+            item.payment.organizationId ===
+            testData.org1.organization.id
+        )
+      ).toBe(true)
+      expect(
+        result.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment1.id
+        )
+      ).toBe(true)
+      expect(
+        result.items.some(
+          (item) =>
+            item.payment.id === testData.payments.janePayment1.id
+        )
+      ).toBe(true)
+      // Should not contain payment from org2
+      expect(
+        result.items.some(
+          (item) =>
+            item.payment.id === testData.payments.otherOrgPayment.id
+        )
+      ).toBe(false)
+    })
+
+    it('should be case-insensitive for customer name search', async () => {
+      // Test various case combinations
+      const testCases = ['john', 'JOHN', 'John', 'jOhN']
+
+      for (const searchQuery of testCases) {
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return selectPaymentsCursorPaginatedWithTableRowData({
+              input: {
+                pageSize: 10,
+                searchQuery,
+                filters: {
+                  organizationId: testData.org1.organization.id,
+                },
+              },
+              transaction,
+            })
+          }
+        )
+
+        // All case variations should return the same results
+        expect(
+          result.items.some(
+            (item) =>
+              item.payment.id === testData.payments.johnPayment1.id
+          )
+        ).toBe(true)
+        expect(
+          result.items.some(
+            (item) =>
+              item.payment.id === testData.payments.johnPayment2.id
+          )
+        ).toBe(true)
+      }
+    })
+  })
+
+  describe('Combined Search', () => {
+    it('should return payment matching either payment ID or customer name', async () => {
+      // Search by payment ID
+      const resultById = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: testData.payments.johnPayment1.id,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultById.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment1.id
+        )
+      ).toBe(true)
+
+      // Search by customer name (should match multiple payments)
+      const resultByName = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultByName.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment1.id
+        )
+      ).toBe(true)
+      expect(
+        resultByName.items.some(
+          (item) =>
+            item.payment.id === testData.payments.johnPayment2.id
+        )
+      ).toBe(true)
     })
   })
 })

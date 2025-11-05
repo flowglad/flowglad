@@ -126,12 +126,16 @@ export const columns: ColumnDef<Payment.TableRowData>[] = [
   },
   {
     id: 'customerName',
-    accessorFn: (row) => row.customer.name || row.customer.email,
+    accessorFn: (row) => {
+      const name = row.customer.name?.trim() ?? ''
+      const email = row.customer.email?.trim() ?? ''
+      return name.toLowerCase() || email.toLowerCase()
+    },
     header: 'Customer',
     cell: ({ row }) => {
       const customer = row.original.customer
-      const displayName =
-        customer.name.length === 0 ? customer.email : customer.name
+      const name = customer.name?.trim() ?? ''
+      const displayName = name || customer.email
       return (
         <div onClick={(e) => e.stopPropagation()}>
           <DataTableLinkableCell href={`/customers/${customer.id}`}>

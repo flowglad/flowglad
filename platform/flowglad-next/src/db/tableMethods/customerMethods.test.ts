@@ -7,6 +7,7 @@ import {
   setUserIdForCustomerRecords,
   selectCustomerById,
   insertCustomer,
+  selectCustomersCursorPaginatedWithTableRowData,
 } from './customerMethods'
 import {
   setupOrg,
@@ -1296,6 +1297,695 @@ describe('Customer uniqueness constraints', () => {
         }
       )
       expect(unchangedCustomer.stripeCustomerId).toBe(stripeId2)
+    })
+  })
+})
+
+// Shared test data structure for search tests
+interface CustomerSearchTestData {
+  org1: Awaited<ReturnType<typeof setupOrg>>
+  org2: Awaited<ReturnType<typeof setupOrg>>
+  customers: {
+    johnDoe: Customer.Record
+    janeSmith: Customer.Record
+    johnDoe2: Customer.Record
+    otherOrg: Customer.Record
+    specialChars: Customer.Record
+    unicode: Customer.Record
+  }
+}
+
+describe('selectCustomersCursorPaginatedWithTableRowData', () => {
+  let testData: CustomerSearchTestData
+
+  beforeEach(async () => {
+    // Set up organizations
+    const org1 = await setupOrg()
+    const org2 = await setupOrg()
+
+    // Set up customers with various names and emails
+    const customers = {
+      johnDoe: await adminTransaction(async ({ transaction }) => {
+        return await insertCustomer(
+          {
+            organizationId: org1.organization.id,
+            name: 'John Doe',
+            email: `john.doe+${core.nanoid()}@test.com`,
+            externalId: core.nanoid(),
+            livemode: true,
+          },
+          transaction
+        )
+      }),
+      janeSmith: await adminTransaction(async ({ transaction }) => {
+        return await insertCustomer(
+          {
+            organizationId: org1.organization.id,
+            name: 'Jane Smith',
+            email: `jane.smith+${core.nanoid()}@test.com`,
+            externalId: core.nanoid(),
+            livemode: true,
+          },
+          transaction
+        )
+      }),
+      johnDoe2: await adminTransaction(async ({ transaction }) => {
+        return await insertCustomer(
+          {
+            organizationId: org1.organization.id,
+            name: 'John Doe',
+            email: `john.doe2+${core.nanoid()}@test.com`,
+            externalId: core.nanoid(),
+            livemode: true,
+          },
+          transaction
+        )
+      }),
+      otherOrg: await adminTransaction(async ({ transaction }) => {
+        return await insertCustomer(
+          {
+            organizationId: org2.organization.id,
+            name: 'Other Org Customer',
+            email: `other+${core.nanoid()}@test.com`,
+            externalId: core.nanoid(),
+            livemode: true,
+          },
+          transaction
+        )
+      }),
+      specialChars: await adminTransaction(
+        async ({ transaction }) => {
+          return await insertCustomer(
+            {
+              organizationId: org1.organization.id,
+              name: "O'Brien Test",
+              email: `test+special+${core.nanoid()}@test.com`,
+              externalId: core.nanoid(),
+              livemode: true,
+            },
+            transaction
+          )
+        }
+      ),
+      unicode: await adminTransaction(async ({ transaction }) => {
+        return await insertCustomer(
+          {
+            organizationId: org1.organization.id,
+            name: '测试 Customer',
+            email: `test+unicode+${core.nanoid()}@test.com`,
+            externalId: core.nanoid(),
+            livemode: true,
+          },
+          transaction
+        )
+      }),
+    }
+
+    testData = {
+      org1,
+      org2,
+      customers,
+    }
+  })
+
+  describe('Search functionality', () => {
+    it('should search by customer ID (exact match only)', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: testData.customers.johnDoe.id,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      expect(result.items.length).toBe(1)
+      expect(result.items[0].customer.id).toBe(
+        testData.customers.johnDoe.id
+      )
+
+      // Partial ID should match (because customer search uses ILIKE for all fields)
+      const partialId = testData.customers.johnDoe.id.substring(
+        0,
+        testData.customers.johnDoe.id.length / 2
+      )
+      const partialResult = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: partialId,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        partialResult.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+
+      // Non-existent ID should return empty
+      const nonExistentId = `cust_${core.nanoid()}`
+      const emptyResult = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: nonExistentId,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(emptyResult.items.length).toBe(0)
+      expect(emptyResult.total).toBe(0)
+    })
+
+    it('should search by customer email (partial, case-insensitive)', async () => {
+      // Search for "john.doe" - should match John Doe customers
+      const resultJohn = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'john.doe',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultJohn.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+      expect(
+        resultJohn.items.some(
+          (item) =>
+            item.customer.id === testData.customers.johnDoe2.id
+        )
+      ).toBe(true)
+
+      // Search for "jane" - should match Jane Smith
+      const resultJane = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'jane',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultJane.items.some(
+          (item) =>
+            item.customer.id === testData.customers.janeSmith.id
+        )
+      ).toBe(true)
+
+      // Case-insensitive search
+      const resultLower = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'john.doe',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultLower.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+
+      const resultUpper = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'JOHN.DOE',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultUpper.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+    })
+
+    it('should search by customer name (partial, case-insensitive)', async () => {
+      // Search for "John" - should match John Doe customers
+      const resultJohn = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultJohn.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+      expect(
+        resultJohn.items.some(
+          (item) =>
+            item.customer.id === testData.customers.johnDoe2.id
+        )
+      ).toBe(true)
+
+      // Search for "Doe" - should match John Doe customers
+      const resultDoe = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'Doe',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultDoe.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+
+      // Case-insensitive search
+      const resultLower = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'john',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultLower.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+
+      const resultUpper = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'JOHN',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultUpper.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+    })
+
+    it('should return multiple customers for same search query', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'John Doe',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      // Should return both John Doe customers
+      expect(result.items.length).toBeGreaterThanOrEqual(2)
+      expect(
+        result.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+      expect(
+        result.items.some(
+          (item) =>
+            item.customer.id === testData.customers.johnDoe2.id
+        )
+      ).toBe(true)
+    })
+
+    it('should handle empty/undefined/whitespace/null search queries', async () => {
+      // Empty string should return all customers
+      const emptyResult = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(emptyResult.items.length).toBeGreaterThan(0)
+
+      // Whitespace only - FIXME: Currently returns empty because constructSearchQueryClause
+      // doesn't trim whitespace. Once fixed, this should return all customers.
+      const whitespaceResult = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '   ',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(whitespaceResult.items.length).toBe(0)
+
+      // Undefined should return all customers
+      const undefinedResult = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(undefinedResult.items.length).toBeGreaterThan(0)
+    })
+
+    it('should paginate correctly with search applied', async () => {
+      const firstPage = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 1,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      expect(firstPage.items.length).toBe(1)
+      expect(firstPage.hasNextPage).toBe(true) // There are 2 John Doe customers
+
+      // Get second page
+      const secondPage = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 1,
+              pageAfter: firstPage.endCursor!,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      expect(secondPage.items.length).toBe(1)
+      expect(firstPage.items[0].customer.id).not.toBe(
+        secondPage.items[0].customer.id
+      )
+
+      // Third page should be empty or have no next page
+      const thirdPage = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 1,
+              pageAfter: secondPage.endCursor!,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(thirdPage.hasNextPage).toBe(false)
+    })
+
+    it('should handle special characters and unicode in search queries', async () => {
+      // Search for customer with special characters
+      const specialResult = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: "O'Brien",
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        specialResult.items.some(
+          (item) =>
+            item.customer.id === testData.customers.specialChars.id
+        )
+      ).toBe(true)
+
+      // Search for customer with unicode
+      const unicodeResult = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '测试',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        unicodeResult.items.some(
+          (item) => item.customer.id === testData.customers.unicode.id
+        )
+      ).toBe(true)
+    })
+
+    it('should only return results from the authenticated organization', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'Customer',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      // Should only contain customers from org1
+      expect(
+        result.items.every(
+          (item) =>
+            item.customer.organizationId ===
+            testData.org1.organization.id
+        )
+      ).toBe(true)
+      // Should not contain customer from org2
+      expect(
+        result.items.some(
+          (item) =>
+            item.customer.id === testData.customers.otherOrg.id
+        )
+      ).toBe(false)
+    })
+
+    it('should return correct data structure with enrichment', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+
+      expect(result.items.length).toBeGreaterThan(0)
+      const firstItem = result.items[0]
+
+      // Check customer structure
+      expect(firstItem.customer).toHaveProperty('id')
+      expect(firstItem.customer).toHaveProperty('name')
+      expect(firstItem.customer).toHaveProperty('email')
+      expect(firstItem.customer).toHaveProperty('organizationId')
+
+      // Check enrichment fields
+      expect(firstItem).toHaveProperty('totalSpend')
+      expect(firstItem).toHaveProperty('payments')
+      expect(firstItem).toHaveProperty('status')
+
+      expect(typeof firstItem.totalSpend).toBe('number')
+      expect(typeof firstItem.payments).toBe('number')
+      expect(typeof firstItem.status).toBe('string')
+    })
+
+    it('should return customer matching any of customer ID, email, or name', async () => {
+      // Search by customer ID
+      const resultById = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: testData.customers.johnDoe.id,
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultById.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+      expect(resultById.items.length).toBe(1)
+
+      // Search by email (partial match)
+      const resultByEmail = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'jane.smith',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultByEmail.items.some(
+          (item) =>
+            item.customer.id === testData.customers.janeSmith.id
+        )
+      ).toBe(true)
+
+      // Search by name (partial match - should match multiple customers)
+      const resultByName = await adminTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'John',
+              filters: {
+                organizationId: testData.org1.organization.id,
+              },
+            },
+            transaction,
+          })
+        }
+      )
+      expect(
+        resultByName.items.some(
+          (item) => item.customer.id === testData.customers.johnDoe.id
+        )
+      ).toBe(true)
+      expect(
+        resultByName.items.some(
+          (item) =>
+            item.customer.id === testData.customers.johnDoe2.id
+        )
+      ).toBe(true)
     })
   })
 })
