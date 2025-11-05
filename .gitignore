@@ -27,6 +27,7 @@ generated/styles.ts
 .ion-target
 .vercel
 
-# Package managers - ALWAYS use pnpm in this project
+# Package managers - ALWAYS use bun in this project
 package-lock.json
 yarn.lock
+pnpm-lock.yaml

@@ -1,6 +1,6 @@
 /* 
 run the following in the terminal
-pnpm tsx src/scripts/example.ts organization_id=<ORG_ID> feature_flags=<'JSON GOES HERE'> overwrite=True(optional)
+bun tsx src/scripts/addFeatureFlags.ts organization_id=<ORG_ID> feature_flags=<'JSON GOES HERE'> overwrite=True(optional)
 
 ---WARNING---
 Setting overwrite to true will completely overwrite the feature flags for the existing organization
