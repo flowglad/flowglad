@@ -13,6 +13,7 @@ import {
   InvoiceStatus,
   LedgerTransactionType,
   SubscriptionStatus,
+  FeatureType,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import {
@@ -62,8 +63,16 @@ import {
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  SettleInvoiceUsageCostsLedgerCommand,
+  BillingPeriodTransitionLedgerCommand,
+} from '@/db/ledgerManager/ledgerManagerTypes'
 import { Event } from '@/db/schema/events'
+import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { processBillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/billingPeriodTransitionLedgerCommand'
+import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -196,9 +205,28 @@ const processAwaitingPaymentConfirmationNotifications = async (
   })
 }
 
+// Wrapper to handle PaymentIntentEvents from webhook handler
 export const processPaymentIntentEventForBillingRun = async (
   event: PaymentIntentEvent,
   transaction: DbTransaction
+) => {
+  return processPaymentIntentForBillingRun(
+    event.data.object,
+    transaction,
+    {
+      // Use event timestamp for webhook deduplication (handles out-of-order events)
+      eventTimestamp: event.created,
+    }
+  )
+}
+export const processPaymentIntentForBillingRun = async (
+  paymentIntent: Stripe.PaymentIntent,
+  transaction: DbTransaction,
+  options?: {
+    // Optional: use event timestamp for webhook deduplication.
+    // For synchronous calls, this can be omitted (will use paymentIntent.created)
+    eventTimestamp?: number
+  }
 ): Promise<
   TransactionOutput<{
     invoice: Invoice.Record
@@ -209,7 +237,7 @@ export const processPaymentIntentEventForBillingRun = async (
   }>
 > => {
   const metadata = billingRunIntentMetadataSchema.parse(
-    event.data.object.metadata
+    paymentIntent.metadata
   )
 
   let billingRun = await selectBillingRunById(
@@ -217,7 +245,10 @@ export const processPaymentIntentEventForBillingRun = async (
     transaction
   )
 
-  const eventTimestamp = dateFromStripeTimestamp(event.created)
+  // Use provided event timestamp (for webhooks) or fall back to payment intent created time
+  const eventTimestamp = options?.eventTimestamp
+    ? dateFromStripeTimestamp(options.eventTimestamp)
+    : dateFromStripeTimestamp(paymentIntent.created)
   const eventPrecedesLastPaymentIntentEvent =
     billingRun.lastPaymentIntentEventTimestamp &&
     billingRun.lastPaymentIntentEventTimestamp >=
@@ -238,9 +269,9 @@ export const processPaymentIntentEventForBillingRun = async (
       )
     const [payment] = await selectPayments(
       {
-        stripePaymentIntentId: event.data.object.id,
+        stripePaymentIntentId: paymentIntent.id,
         stripeChargeId: stripeIdFromObjectOrId(
-          event.data.object.latest_charge!
+          paymentIntent.latest_charge!
         ),
       },
       transaction
@@ -275,7 +306,7 @@ export const processPaymentIntentEventForBillingRun = async (
     )
 
   const billingRunStatus =
-    paymentIntentStatusToBillingRunStatus[event.data.object.status]
+    paymentIntentStatusToBillingRunStatus[paymentIntent.status]
   billingRun = await updateBillingRun(
     {
       id: billingRun.id,
@@ -301,17 +332,17 @@ export const processPaymentIntentEventForBillingRun = async (
     result: { payment },
     eventsToInsert: childeventsToInsert,
   } = await processPaymentIntentStatusUpdated(
-    event.data.object,
+    paymentIntent,
     transaction
   )
 
-  const invoiceStatus =
-    billingRunStatusToInvoiceStatus[billingRunStatus]
-  invoice = await safelyUpdateInvoiceStatus(
-    invoice,
-    invoiceStatus,
+  const invoices = await selectInvoices(
+    {
+      id: invoice.id,
+    },
     transaction
   )
+  invoice = invoices[0]
 
   const invoiceLineItems = await selectInvoiceLineItems(
     {
@@ -443,6 +474,88 @@ export const processPaymentIntentEventForBillingRun = async (
     await processAwaitingPaymentConfirmationNotifications(
       notificationParams
     )
+  }
+
+  // Execute billing period transition ledger command if payment succeeded and invoice is paid
+  // This grants usage credits after payment confirmation
+  if (
+    invoice.status === InvoiceStatus.Paid &&
+    billingRunStatus === BillingRunStatus.Succeeded
+  ) {
+    // Check if billing period transition command has already been executed
+    const existingTransitionTransactions =
+      await selectLedgerTransactions(
+        {
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.BillingPeriodTransition,
+          // Check by initiatingSourceId matching billingPeriod.id
+        },
+        transaction
+      )
+
+    // Filter to find transitions for this specific billing period
+    const transitionForThisBillingPeriod =
+      existingTransitionTransactions.find(
+        (tx) => tx.initiatingSourceId === billingPeriod.id
+      )
+
+    if (!transitionForThisBillingPeriod) {
+      // This is the first successful payment for this billing period
+      // Get subscription feature items for entitlement grants
+      const activeSubscriptionItems =
+        await selectCurrentlyActiveSubscriptionItems(
+          { subscriptionId: subscription.id },
+          billingPeriod.startDate,
+          transaction
+        )
+
+      const subscriptionItemFeatures =
+        await selectSubscriptionItemFeatures(
+          {
+            subscriptionItemId: activeSubscriptionItems.map(
+              (item) => item.id
+            ),
+            type: FeatureType.UsageCreditGrant,
+          },
+          transaction
+        )
+
+      // Find previous billing period (if any)
+      const allBillingPeriods = await selectBillingPeriods(
+        { subscriptionId: subscription.id },
+        transaction
+      )
+
+      // Find the billing period that comes before this one (by startDate)
+      const previousBillingPeriod =
+        allBillingPeriods
+          .filter((bp) => bp.startDate < billingPeriod.startDate)
+          .sort((a, b) => b.startDate - a.startDate)[0] || null
+
+      // Construct and execute the billing period transition command
+      const billingPeriodTransitionCommand: BillingPeriodTransitionLedgerCommand =
+        {
+          type: LedgerTransactionType.BillingPeriodTransition,
+          organizationId: organization.id,
+          subscriptionId: subscription.id,
+          livemode: billingPeriod.livemode,
+          payload: {
+            type: 'standard',
+            subscription,
+            previousBillingPeriod,
+            newBillingPeriod: billingPeriod,
+            subscriptionFeatureItems: subscriptionItemFeatures.filter(
+              (item) => item.type === FeatureType.UsageCreditGrant
+            ),
+          },
+        }
+
+      // Execute directly in the same transaction
+      await processBillingPeriodTransitionLedgerCommand(
+        billingPeriodTransitionCommand,
+        transaction
+      )
+    }
   }
 
   const invoiceLedgerCommand:

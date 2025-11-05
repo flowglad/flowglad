@@ -2328,4 +2328,237 @@ describe('Process payment intent status updated', async () => {
       expect(customerCreatedEvent?.payload.customer).toBeDefined()
     })
   })
+
+  describe('processPaymentIntentStatusUpdated - Checkout Session Payments with Ledger Commands', () => {
+    let organization: Organization.Record
+    let product: Product.Record
+    let singlePaymentPrice: Price.Record
+    let customer: Customer.Record
+    let paymentMethod: PaymentMethod.Record
+    let subscription: import('@/db/schema/subscriptions').Subscription.Record
+
+    beforeEach(async () => {
+      const orgData = await setupOrg()
+      organization = orgData.organization
+      product = orgData.product
+
+      customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: orgData.price.id,
+      })
+
+      singlePaymentPrice = await setupPrice({
+        productId: product.id,
+        name: 'Single Payment Test Price',
+        type: PriceType.SinglePayment,
+        unitPrice: 2000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+      })
+    })
+
+    it('should create CreditGrantRecognized ledger command for succeeded checkout session payment', async () => {
+      await setupTestFeaturesAndProductFeatures({
+        organizationId: organization.id,
+        productId: product.id,
+        livemode: true,
+        featureSpecs: [
+          {
+            name: 'Grant A',
+            type: FeatureType.UsageCreditGrant,
+            amount: 777,
+            usageMeterName: 'UM-A',
+          },
+        ],
+      })
+
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: singlePaymentPrice.id,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: singlePaymentPrice.id,
+        livemode: true,
+      })
+
+      const chargeId = `ch_test_${core.nanoid()}`
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
+      const stripeCharge = createMockStripeCharge({
+        id: chargeId,
+        payment_intent: paymentIntentId,
+        amount: 2000,
+        status: 'succeeded',
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
+        } as any,
+        billing_details: { address: { country: 'US' } } as any,
+      })
+
+      vi.mocked(getStripeCharge).mockResolvedValue(stripeCharge)
+
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
+      const paymentIntent: any = {
+        id: paymentIntentId,
+        object: 'payment_intent',
+        amount: 2000,
+        status: 'succeeded' as const,
+        latest_charge: chargeId,
+        metadata,
+      }
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.ledgerCommand).toBeDefined()
+      expect(result.ledgerCommand?.type).toBe(
+        LedgerTransactionType.CreditGrantRecognized
+      )
+      expect(result.result.payment.status).toBe(
+        PaymentStatus.Succeeded
+      )
+
+      const usageCredits = await adminTransaction(
+        async ({ transaction }) =>
+          selectUsageCredits(
+            { paymentId: result.result.payment.id },
+            transaction
+          )
+      )
+      expect(usageCredits.length).toBe(1)
+      expect(usageCredits[0].issuedAmount).toBe(777)
+    })
+
+    it('should NOT create ledger command for checkout session payment when payment intent is canceled', async () => {
+      await setupTestFeaturesAndProductFeatures({
+        organizationId: organization.id,
+        productId: product.id,
+        livemode: true,
+        featureSpecs: [
+          {
+            name: 'Grant A',
+            type: FeatureType.UsageCreditGrant,
+            amount: 777,
+            usageMeterName: 'UM-A',
+          },
+        ],
+      })
+
+      // Create invoice upfront for Invoice type checkout session
+      const invoice = await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: singlePaymentPrice.id,
+        status: InvoiceStatus.Open,
+        livemode: true,
+      })
+
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: singlePaymentPrice.id,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Invoice,
+        quantity: 1,
+        livemode: true,
+        invoiceId: invoice.id,
+      })
+
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: singlePaymentPrice.id,
+        livemode: true,
+      })
+
+      const chargeId = `ch_test_${core.nanoid()}`
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
+      const stripeCharge = createMockStripeCharge({
+        id: chargeId,
+        payment_intent: paymentIntentId,
+        amount: 2000,
+        status: 'failed',
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
+        } as any,
+        billing_details: { address: { country: 'US' } } as any,
+      })
+
+      vi.mocked(getStripeCharge).mockResolvedValue(stripeCharge)
+
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
+      const paymentIntent: any = {
+        id: paymentIntentId,
+        object: 'payment_intent',
+        amount: 2000,
+        status: 'canceled' as const,
+        latest_charge: chargeId,
+        metadata,
+      }
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.ledgerCommand).toBeUndefined()
+      expect(result.result.payment.status).toBe(PaymentStatus.Failed)
+
+      const usageCredits = await adminTransaction(
+        async ({ transaction }) =>
+          selectUsageCredits(
+            { paymentId: result.result.payment.id },
+            transaction
+          )
+      )
+      expect(usageCredits.length).toBe(0)
+    })
+  })
 })

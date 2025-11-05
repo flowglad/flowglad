@@ -73,6 +73,7 @@ import {
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 import { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
+import { processPaymentIntentForBillingRun } from './processBillingRunPaymentIntents'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
@@ -869,6 +870,24 @@ export const executeBillingRun = async (billingRunId: string) => {
                   )
                 : null,
             },
+            transaction
+          )
+        },
+        {
+          livemode: billingRun.livemode,
+        }
+      )
+    }
+
+    // Process payment intent in comprehensive transaction if payment intent in terminal state
+    if (
+      confirmationResult.status === 'succeeded' ||
+      confirmationResult.status === 'requires_payment_method'
+    ) {
+      await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentForBillingRun(
+            confirmationResult,
             transaction
           )
         },

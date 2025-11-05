@@ -32,6 +32,7 @@ import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerM
 import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
+import { updateCheckoutSessionAutomaticallyUpdateSubscriptions } from '@/db/tableMethods/checkoutSessionMethods'
 
 /**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
@@ -186,24 +187,31 @@ export const createSubscriptionWorkflow = async (
       processedAt: null,
     },
   ]
-  const ledgerCommand:
+
+  let ledgerCommand:
     | BillingPeriodTransitionLedgerCommand
-    | undefined =
-    updatedSubscription.status === SubscriptionStatus.Incomplete
-      ? undefined
-      : {
-          organizationId: updatedSubscription.organizationId,
-          subscriptionId: updatedSubscription.id,
-          livemode: updatedSubscription.livemode,
-          type: LedgerTransactionType.BillingPeriodTransition,
-          payload: ledgerCommandPayload({
-            subscription: updatedSubscription,
-            subscriptionItemFeatures,
-            billingPeriod,
-            billingPeriodItems,
-            billingRun,
-          }),
-        }
+    | undefined = undefined
+
+  if (
+    updatedSubscription.status !== SubscriptionStatus.Incomplete &&
+    (updatedSubscription.renews === false ||
+      updatedSubscription.isFreePlan === true)
+  ) {
+    ledgerCommand = {
+      organizationId: updatedSubscription.organizationId,
+      subscriptionId: updatedSubscription.id,
+      livemode: updatedSubscription.livemode,
+      type: LedgerTransactionType.BillingPeriodTransition,
+      payload: ledgerCommandPayload({
+        subscription: updatedSubscription,
+        subscriptionItemFeatures,
+        billingPeriod,
+        billingPeriodItems,
+        billingRun,
+      }),
+    }
+  }
+
   const transactionResult:
     | StandardCreateSubscriptionResult
     | NonRenewingCreateSubscriptionResult =

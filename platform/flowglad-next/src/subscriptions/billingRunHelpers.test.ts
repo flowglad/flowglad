@@ -1294,12 +1294,13 @@ describe('billingRunHelpers', async () => {
           payment_method: paymentMethod.stripePaymentMethodId!,
           metadata: {
             billingRunId: billingRun.id,
-            type: 'BillingRun',
+            type: 'billing_run',
             billingPeriodId: billingPeriod.id,
           },
         })
         const mockConfirmationResult = createMockConfirmationResult(
-          mockPaymentIntent.id
+          mockPaymentIntent.id,
+          { metadata: mockPaymentIntent.metadata }
         )
 
         vi.mocked(
@@ -1311,13 +1312,13 @@ describe('billingRunHelpers', async () => {
 
         await executeBillingRun(billingRun.id)
 
-        // Verify billing run is awaiting payment confirmation
+        // Verify billing run is succeeded
         const updatedBillingRun = await adminTransaction(
           ({ transaction }) =>
             selectBillingRunById(billingRun.id, transaction)
         )
         expect(updatedBillingRun.status).toBe(
-          BillingRunStatus.AwaitingPaymentConfirmation
+          BillingRunStatus.Succeeded
         )
 
         // Verify payment record was created with correct properties
@@ -1340,7 +1341,7 @@ describe('billingRunHelpers', async () => {
               )
             : undefined,
           billingPeriodId: billingRun.billingPeriodId,
-          status: PaymentStatus.Processing,
+          status: PaymentStatus.Succeeded,
         })
 
         // Verify invoice was created/updated
@@ -1355,7 +1356,7 @@ describe('billingRunHelpers', async () => {
         )
         expect(invoice).toBeDefined()
         expect(invoice).toMatchObject({
-          status: InvoiceStatus.AwaitingPaymentConfirmation,
+          status: InvoiceStatus.Paid,
           customerId: customer.id,
           organizationId: organization.id,
         })
