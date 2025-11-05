@@ -1352,7 +1352,7 @@ describe('billingRunHelpers', async () => {
         )
         expect(invoice).toBeDefined()
         expect(invoice).toMatchObject({
-          status: InvoiceStatus.Open,
+          status: InvoiceStatus.Paid,
           customerId: customer.id,
           organizationId: organization.id,
         })
