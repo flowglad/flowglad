@@ -20,10 +20,12 @@ describe('Pricing Model Templates', () => {
   describe('Template Lookup', () => {
     it('should find all templates by their IDs', () => {
       const templateIds = [
-        'usage-limit-subscription',
-        'unlimited-usage-subscription',
-        'credits-subscription',
-        'ai-image-generation-subscription',
+        'usage_limit_subscription',
+        'unlimited_usage_subscription',
+        'ai_image_generation_subscription',
+        'seat_based_subscription',
+        'ai_meeting_notes_subscription',
+        'ai_token_usage',
       ]
 
       templateIds.forEach((id) => {
