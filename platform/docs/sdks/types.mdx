@@ -1,0 +1,463 @@
+---
+title: "@flowglad/types"
+description: "TypeScript type definitions for Flowglad's data structures"
+---
+
+<Info>
+  NPM Package: [@flowglad/types](https://www.npmjs.com/package/@flowglad/types)
+</Info>
+
+## Overview
+
+The Types SDK provides comprehensive TypeScript type definitions for all Flowglad data structures. This package ensures type safety when working with Flowglad's API and SDKs.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/types
+```
+
+```bash yarn
+yarn add @flowglad/types
+```
+
+```bash bun
+bun add @flowglad/types
+```
+
+</CodeGroup>
+
+## Key Features
+
+- **Comprehensive Type Coverage**: Types for all Flowglad entities
+- **Enum Definitions**: Type-safe enums for statuses and categories
+- **Interface Exports**: Clean interfaces for data structures
+- **Zero Dependencies**: Lightweight type-only package
+- **IDE Autocomplete**: Enhanced developer experience with IntelliSense
+
+## Usage
+
+### Importing Types
+
+```typescript
+import type {
+  Customer,
+  Subscription,
+  Payment,
+  Invoice,
+  PaymentMethod,
+  Product,
+  Price,
+  CheckoutSession
+} from '@flowglad/types'
+```
+
+### Importing Enums
+
+```typescript
+import {
+  SubscriptionStatus,
+  PaymentStatus,
+  InvoiceStatus,
+  Currency
+} from '@flowglad/types'
+```
+
+## API Reference
+
+### Customer Types
+
+```typescript
+import type { Customer } from '@flowglad/types'
+
+interface Customer {
+  id: string
+  externalId: string
+  name: string
+  email: string
+  organizationId: string
+  pricingModelId: string | null
+  metadata?: Record<string, any>
+  createdAt: string
+  updatedAt: string
+}
+```
+
+### Subscription Types
+
+```typescript
+import type { Subscription } from '@flowglad/types'
+import { SubscriptionStatus } from '@flowglad/types'
+
+interface Subscription {
+  id: string
+  customerId: string
+  priceId: string
+  status: SubscriptionStatus
+  currentPeriodStart: string
+  currentPeriodEnd: string
+  canceledAt?: string | null
+  cancelAtPeriodEnd: boolean
+  quantity: number
+  metadata?: Record<string, any>
+  createdAt: string
+  updatedAt: string
+}
+
+enum SubscriptionStatus {
+  Active = 'active',
+  Canceled = 'canceled',
+  Incomplete = 'incomplete',
+  IncompleteExpired = 'incomplete_expired',
+  PastDue = 'past_due',
+  Paused = 'paused',
+  Trialing = 'trialing',
+  Unpaid = 'unpaid'
+}
+```
+
+### Payment Types
+
+```typescript
+import type { Payment } from '@flowglad/types'
+import { PaymentStatus } from '@flowglad/types'
+
+interface Payment {
+  id: string
+  customerId: string
+  amount: number
+  currency: Currency
+  status: PaymentStatus
+  invoiceId?: string | null
+  paymentMethodId?: string | null
+  metadata?: Record<string, any>
+  createdAt: string
+  updatedAt: string
+}
+
+enum PaymentStatus {
+  Succeeded = 'succeeded',
+  Processing = 'processing',
+  RequiresAction = 'requires_action',
+  RequiresPaymentMethod = 'requires_payment_method',
+  Canceled = 'canceled',
+  Failed = 'failed'
+}
+```
+
+### Invoice Types
+
+```typescript
+import type { Invoice } from '@flowglad/types'
+import { InvoiceStatus } from '@flowglad/types'
+
+interface Invoice {
+  id: string
+  customerId: string
+  subscriptionId?: string | null
+  amount: number
+  currency: Currency
+  status: InvoiceStatus
+  dueDate?: string | null
+  paidAt?: string | null
+  metadata?: Record<string, any>
+  createdAt: string
+  updatedAt: string
+}
+
+enum InvoiceStatus {
+  Draft = 'draft',
+  Open = 'open',
+  Paid = 'paid',
+  Uncollectible = 'uncollectible',
+  Void = 'void'
+}
+```
+
+### Payment Method Types
+
+```typescript
+import type { PaymentMethod } from '@flowglad/types'
+
+interface PaymentMethod {
+  id: string
+  customerId: string
+  type: 'card' | 'bank_account'
+  card?: {
+    brand: string
+    last4: string
+    expMonth: number
+    expYear: number
+  }
+  bankAccount?: {
+    accountHolderName: string
+    accountHolderType: 'individual' | 'company'
+    last4: string
+    routingNumber: string
+  }
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+```
+
+### Catalog Types
+
+```typescript
+import type { Product, Price } from '@flowglad/types'
+import { Currency } from '@flowglad/types'
+
+interface Product {
+  id: string
+  name: string
+  description?: string | null
+  imageUrl?: string | null
+  active: boolean
+  metadata?: Record<string, any>
+  createdAt: string
+  updatedAt: string
+}
+
+interface Price {
+  id: string
+  productId: string
+  amount: number
+  currency: Currency
+  interval?: 'day' | 'week' | 'month' | 'year'
+  intervalCount?: number
+  type: 'one_time' | 'recurring' | 'usage'
+  active: boolean
+  metadata?: Record<string, any>
+  createdAt: string
+  updatedAt: string
+}
+
+enum Currency {
+  USD = 'usd',
+  EUR = 'eur',
+  GBP = 'gbp',
+  CAD = 'cad',
+  AUD = 'aud',
+  JPY = 'jpy',
+  // ... more currencies
+}
+```
+
+### Checkout Session Types
+
+```typescript
+import type { CheckoutSession } from '@flowglad/types'
+
+interface CheckoutSession {
+  id: string
+  customerId: string
+  url: string
+  successUrl: string
+  cancelUrl: string
+  priceId: string
+  quantity: number
+  expiresAt: string
+  status: 'open' | 'complete' | 'expired'
+  metadata?: Record<string, any>
+  createdAt: string
+  updatedAt: string
+}
+```
+
+### Usage Tracking Types
+
+```typescript
+import type { UsageEvent } from '@flowglad/types'
+
+interface UsageEvent {
+  id: string
+  customerId: string
+  featureId: string
+  quantity: number
+  usageDate: string
+  metadata?: Record<string, any>
+  createdAt: string
+}
+```
+
+## Common Patterns
+
+### Type-Safe Function Parameters
+
+```typescript
+import type { Subscription, SubscriptionStatus } from '@flowglad/types'
+
+function filterActiveSubscriptions(
+  subscriptions: Subscription[]
+): Subscription[] {
+  return subscriptions.filter(
+    (sub) => sub.status === SubscriptionStatus.Active
+  )
+}
+```
+
+### Type Guards
+
+```typescript
+import type { Payment } from '@flowglad/types'
+import { PaymentStatus } from '@flowglad/types'
+
+function isPaymentSuccessful(payment: Payment): boolean {
+  return (
+    payment.status === PaymentStatus.Succeeded ||
+    payment.status === PaymentStatus.Processing
+  )
+}
+
+function getSuccessfulPayments(payments: Payment[]): Payment[] {
+  return payments.filter(isPaymentSuccessful)
+}
+```
+
+### Custom Type Composition
+
+```typescript
+import type { Customer, Subscription, PaymentMethod } from '@flowglad/types'
+
+interface CustomerBillingInfo {
+  customer: Customer
+  activeSubscriptions: Subscription[]
+  paymentMethods: PaymentMethod[]
+  totalSpent: number
+}
+
+function createBillingInfo(
+  customer: Customer,
+  subscriptions: Subscription[],
+  paymentMethods: PaymentMethod[],
+  totalSpent: number
+): CustomerBillingInfo {
+  return {
+    customer,
+    activeSubscriptions: subscriptions.filter(
+      (sub) => sub.status === 'active'
+    ),
+    paymentMethods,
+    totalSpent,
+  }
+}
+```
+
+### API Response Typing
+
+```typescript
+import type { Subscription, Payment, Invoice } from '@flowglad/types'
+
+interface BillingDashboardData {
+  subscriptions: Subscription[]
+  recentPayments: Payment[]
+  unpaidInvoices: Invoice[]
+  monthlyRevenue: number
+}
+
+async function fetchBillingDashboard(): Promise<BillingDashboardData> {
+  const response = await fetch('/api/billing/dashboard')
+  const data: BillingDashboardData = await response.json()
+  return data
+}
+```
+
+### Type-Safe State Management
+
+```typescript
+import type { Customer, Subscription } from '@flowglad/types'
+import { create } from 'zustand'
+
+interface BillingStore {
+  customer: Customer | null
+  subscriptions: Subscription[]
+  setCustomer: (customer: Customer) => void
+  setSubscriptions: (subscriptions: Subscription[]) => void
+}
+
+export const useBillingStore = create<BillingStore>((set) => ({
+  customer: null,
+  subscriptions: [],
+  setCustomer: (customer) => set({ customer }),
+  setSubscriptions: (subscriptions) => set({ subscriptions }),
+}))
+```
+
+## Enum Reference
+
+### Currency
+
+```typescript
+enum Currency {
+  USD = 'usd',
+  EUR = 'eur',
+  GBP = 'gbp',
+  CAD = 'cad',
+  AUD = 'aud',
+  JPY = 'jpy',
+  // ... more supported currencies
+}
+```
+
+### SubscriptionStatus
+
+```typescript
+enum SubscriptionStatus {
+  Active = 'active',
+  Canceled = 'canceled',
+  Incomplete = 'incomplete',
+  IncompleteExpired = 'incomplete_expired',
+  PastDue = 'past_due',
+  Paused = 'paused',
+  Trialing = 'trialing',
+  Unpaid = 'unpaid'
+}
+```
+
+### PaymentStatus
+
+```typescript
+enum PaymentStatus {
+  Succeeded = 'succeeded',
+  Processing = 'processing',
+  RequiresAction = 'requires_action',
+  RequiresPaymentMethod = 'requires_payment_method',
+  Canceled = 'canceled',
+  Failed = 'failed'
+}
+```
+
+### InvoiceStatus
+
+```typescript
+enum InvoiceStatus {
+  Draft = 'draft',
+  Open = 'open',
+  Paid = 'paid',
+  Uncollectible = 'uncollectible',
+  Void = 'void'
+}
+```
+
+## When to Use This Package
+
+- ✅ When building custom integrations
+- ✅ When you need standalone type definitions
+- ✅ For type-checking API responses
+- ✅ For documentation and contracts
+
+- ❌ For most applications, types are included in other Flowglad SDKs
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Shared SDK" icon="box" href="/sdks/shared">
+    Explore shared utilities and schemas
+  </Card>
+  <Card title="Server SDK" icon="server" href="/sdks/server">
+    Use types with the Server SDK
+  </Card>
+</CardGroup>
+

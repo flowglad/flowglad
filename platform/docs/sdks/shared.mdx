@@ -1,0 +1,301 @@
+---
+title: "@flowglad/shared"
+description: "Shared types, schemas, and utilities for Flowglad projects"
+---
+
+<Info>
+  NPM Package: [@flowglad/shared](https://www.npmjs.com/package/@flowglad/shared)
+</Info>
+
+## Overview
+
+The Shared SDK provides common TypeScript types, Zod schemas, and utility functions used across the Flowglad ecosystem. This package serves as the central source of truth for type definitions and validation schemas.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/shared
+```
+
+```bash yarn
+yarn add @flowglad/shared
+```
+
+```bash bun
+bun add @flowglad/shared
+```
+
+</CodeGroup>
+
+## Key Features
+
+- **TypeScript Type Definitions**: Comprehensive types for Flowglad's data structures
+- **Zod Schemas**: Runtime type validation schemas
+- **Shared Utilities**: Common functions used across packages
+- **Action Types**: Type-safe action definitions
+- **Environment-Aware Configuration**: Utilities for development and production
+
+## Usage
+
+### Importing Types
+
+```typescript
+import type { 
+  CreateProductCheckoutSessionParams,
+  Customer,
+  Subscription,
+  Invoice
+} from '@flowglad/shared'
+```
+
+### Importing Schemas
+
+```typescript
+import { 
+  createCheckoutSessionSchema,
+  customerSchema,
+  subscriptionSchema
+} from '@flowglad/shared'
+
+// Validate data at runtime
+const result = createCheckoutSessionSchema.safeParse(data)
+
+if (result.success) {
+  // data is valid
+  console.log(result.data)
+} else {
+  // validation errors
+  console.error(result.error)
+}
+```
+
+### Using Utilities
+
+```typescript
+import { getBaseURL } from '@flowglad/shared'
+
+// Get the Flowglad API base URL
+// Automatically uses development URL when NODE_ENV is 'development'
+const apiUrl = getBaseURL()
+```
+
+## API Reference
+
+### Utilities
+
+#### `getBaseURL()`
+
+Returns the base URL for the Flowglad API based on the environment.
+
+```typescript
+function getBaseURL(): string
+```
+
+**Example:**
+
+```typescript
+import { getBaseURL } from '@flowglad/shared'
+
+// In production: returns 'https://app.flowglad.com'
+// In development: returns 'http://localhost:3000' (or your dev URL)
+const baseURL = getBaseURL()
+```
+
+### Common Types
+
+The package exports various TypeScript types for Flowglad's data structures:
+
+#### Checkout Session Types
+
+```typescript
+import type {
+  CreateProductCheckoutSessionParams,
+  CreateSubscriptionCheckoutSessionParams,
+  CheckoutSession
+} from '@flowglad/shared'
+```
+
+#### Customer Types
+
+```typescript
+import type {
+  Customer,
+  CustomerCreateParams,
+  CustomerUpdateParams
+} from '@flowglad/shared'
+```
+
+#### Subscription Types
+
+```typescript
+import type {
+  Subscription,
+  SubscriptionStatus,
+  CreateSubscriptionParams,
+  UpdateSubscriptionParams
+} from '@flowglad/shared'
+```
+
+#### Payment Types
+
+```typescript
+import type {
+  Payment,
+  PaymentStatus,
+  PaymentMethod
+} from '@flowglad/shared'
+```
+
+#### Invoice Types
+
+```typescript
+import type {
+  Invoice,
+  InvoiceStatus,
+  InvoiceLineItem
+} from '@flowglad/shared'
+```
+
+### Zod Schemas
+
+The package includes Zod schemas for runtime validation:
+
+```typescript
+import {
+  createCheckoutSessionSchema,
+  customerSchema,
+  subscriptionSchema,
+  paymentSchema,
+  invoiceSchema
+} from '@flowglad/shared'
+```
+
+**Example Usage:**
+
+```typescript
+import { createCheckoutSessionSchema } from '@flowglad/shared'
+
+function validateCheckoutData(data: unknown) {
+  const result = createCheckoutSessionSchema.safeParse(data)
+
+  if (!result.success) {
+    throw new Error(`Invalid checkout data: ${result.error.message}`)
+  }
+
+  return result.data
+}
+```
+
+## Common Patterns
+
+### Type-Safe API Requests
+
+```typescript
+import type { CreateSubscriptionParams } from '@flowglad/shared'
+import { subscriptionSchema } from '@flowglad/shared'
+
+async function createSubscription(
+  params: CreateSubscriptionParams
+) {
+  const response = await fetch('/api/subscriptions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+
+  const data = await response.json()
+
+  // Validate response
+  const subscription = subscriptionSchema.parse(data)
+
+  return subscription
+}
+```
+
+### Form Validation
+
+```typescript
+import { createCheckoutSessionSchema } from '@flowglad/shared'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+
+function CheckoutForm() {
+  const form = useForm({
+    resolver: zodResolver(createCheckoutSessionSchema),
+    defaultValues: {
+      priceId: '',
+      successUrl: '',
+      cancelUrl: '',
+    },
+  })
+
+  const onSubmit = form.handleSubmit(async (data) => {
+    // data is type-safe and validated
+    await createCheckout(data)
+  })
+
+  return <form onSubmit={onSubmit}>...</form>
+}
+```
+
+### Environment-Specific Configuration
+
+```typescript
+import { getBaseURL } from '@flowglad/shared'
+
+export const config = {
+  apiUrl: getBaseURL(),
+  // Other config...
+}
+
+// Or create custom environment utilities
+export function getApiUrl(path: string): string {
+  const baseURL = getBaseURL()
+  return `${baseURL}${path}`
+}
+```
+
+## Action Types
+
+The package includes type-safe action definitions:
+
+```typescript
+import type {
+  FlowgladAction,
+  GetBillingAction,
+  CreateCheckoutSessionAction,
+  CancelSubscriptionAction
+} from '@flowglad/shared'
+```
+
+These are used internally by Flowglad SDKs for type-safe communication between client and server.
+
+## Development
+
+This package is built using:
+- **TypeScript**: For type definitions
+- **Zod**: For schema validation
+- **tsup**: For building and bundling
+
+## When to Use This Package
+
+- ✅ When you need TypeScript types for Flowglad data structures
+- ✅ When you need runtime validation with Zod
+- ✅ When building custom integrations or tools
+- ✅ When you need to share types across your frontend and backend
+
+- ❌ For most applications, you won't need to install this directly - it's included as a dependency of other Flowglad SDKs
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Types SDK" icon="code" href="/sdks/types">
+    Explore additional type definitions
+  </Card>
+  <Card title="Server SDK" icon="server" href="/sdks/server">
+    Use types with the Server SDK
+  </Card>
+</CardGroup>
+

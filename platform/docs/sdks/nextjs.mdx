@@ -1,0 +1,282 @@
+---
+title: "@flowglad/nextjs"
+description: "Official Next.js SDK for Flowglad with App Router and Pages Router support"
+---
+
+<Info>
+  NPM Package: [@flowglad/nextjs](https://www.npmjs.com/package/@flowglad/nextjs)
+</Info>
+
+## Overview
+
+The Next.js SDK provides a complete integration for both App Router and Pages Router, including server-side utilities and client-side components.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/nextjs
+```
+
+```bash yarn
+yarn add @flowglad/nextjs
+```
+
+```bash bun
+bun add @flowglad/nextjs
+```
+
+</CodeGroup>
+
+## Requirements
+
+- React 18 or 19
+- Next.js 14 or 15
+
+## Quick Start
+
+### 1. Set Up Environment Variables
+
+Add your Flowglad API key to your environment:
+
+```bash .env
+FLOWGLAD_SECRET_KEY="sk_test_..."
+```
+
+### 2. Create Server Client
+
+Create a Flowglad server instance in a shared file:
+
+<CodeGroup>
+
+```ts app/lib/flowglad.ts (App Router)
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    // Return customer information based on your auth
+    return {
+      externalId: 'user-123',
+      name: 'John Doe',
+      email: 'john@example.com',
+    }
+  },
+})
+```
+
+```ts lib/flowglad.ts (Pages Router)
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    // Return customer information based on your auth
+    return {
+      externalId: 'user-123',
+      name: 'John Doe',
+      email: 'john@example.com',
+    }
+  },
+})
+```
+
+</CodeGroup>
+
+### 3. Create API Route Handler
+
+<CodeGroup>
+
+```ts app/api/flowglad/[...path]/route.ts (App Router)
+import { flowgladServer } from '@/app/lib/flowglad'
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
+
+const { GET, POST } = createAppRouterRouteHandler({ flowgladServer })
+
+export { GET, POST }
+```
+
+```ts pages/api/flowglad/[...path].ts (Pages Router)
+import { flowgladServer } from '@/lib/flowglad'
+import { createPagesRouterRouteHandler } from '@flowglad/nextjs/server'
+
+export default createPagesRouterRouteHandler({ flowgladServer })
+```
+
+</CodeGroup>
+
+### 4. Wrap Your App with FlowgladProvider
+
+<CodeGroup>
+
+```tsx app/layout.tsx (App Router)
+import { FlowgladProvider } from '@flowglad/nextjs'
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <FlowgladProvider loadBilling={true}>
+          {children}
+        </FlowgladProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+```tsx pages/_app.tsx (Pages Router)
+import { FlowgladProvider } from '@flowglad/nextjs'
+
+export default function App({ Component, pageProps }) {
+  return (
+    <FlowgladProvider loadBilling={true}>
+      <Component {...pageProps} />
+    </FlowgladProvider>
+  )
+}
+```
+
+</CodeGroup>
+
+### 5. Use the Billing Hook
+
+```tsx
+import { useBilling } from '@flowglad/nextjs'
+
+export default function BillingPage() {
+  const { checkFeatureAccess, createCheckoutSession } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return <div>Loading...</div>
+  }
+
+  if (checkFeatureAccess('premium_feature')) {
+    return <div>You have access to premium features!</div>
+  }
+
+  return (
+    <button
+      onClick={() =>
+        createCheckoutSession({
+          priceId: 'price_123',
+          successUrl: window.location.href,
+          cancelUrl: window.location.href,
+          autoRedirect: true,
+        })
+      }
+    >
+      Upgrade to Premium
+    </button>
+  )
+}
+```
+
+## Key Features
+
+- **App Router Support**: First-class support for Next.js App Router with Server Components
+- **Pages Router Support**: Full compatibility with Pages Router
+- **Type-safe Route Handlers**: Automatic type inference for API routes
+- **Server-side Utilities**: Access billing data in Server Components and API routes
+- **Client Components**: Pre-built components for subscriptions and billing
+- **React Context**: Global billing state management
+
+## API Reference
+
+### Server Exports
+
+Import from `@flowglad/nextjs/server`:
+
+#### `FlowgladServer`
+
+The main server class for backend operations. See the [Server SDK documentation](/sdks/server) for full details.
+
+#### `createAppRouterRouteHandler({ flowgladServer })`
+
+Creates GET and POST handlers for App Router:
+
+```ts
+const { GET, POST } = createAppRouterRouteHandler({ flowgladServer })
+export { GET, POST }
+```
+
+#### `createPagesRouterRouteHandler({ flowgladServer })`
+
+Creates a single handler for Pages Router:
+
+```ts
+export default createPagesRouterRouteHandler({ flowgladServer })
+```
+
+### Client Exports
+
+Import from `@flowglad/nextjs`:
+
+#### `FlowgladProvider`
+
+The main provider component. See the [React SDK documentation](/sdks/react) for full details on props and usage.
+
+#### `useBilling()`
+
+Access billing data and functions. See the [React SDK documentation](/sdks/react) for full API reference.
+
+## Integration with Authentication
+
+### Supabase Auth Example
+
+```ts app/lib/flowglad.ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+import { createClient } from '@/utils/supabase/server'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) return null
+
+    return {
+      externalId: user.id,
+      name: user.user_metadata.full_name,
+      email: user.email!,
+    }
+  },
+})
+```
+
+### NextAuth Example
+
+```ts app/lib/flowglad.ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user) return null
+
+    return {
+      externalId: session.user.id,
+      name: session.user.name!,
+      email: session.user.email!,
+    }
+  },
+})
+```
+
+## Complete Example
+
+For a full working example, see our [Supabase Auth playground project](https://github.com/flowglad/flowglad/tree/main/playground/supabase-auth).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="React SDK" icon="react" href="/sdks/react">
+    Learn about React components and hooks
+  </Card>
+  <Card title="Server SDK" icon="server" href="/sdks/server">
+    Explore server-side capabilities
+  </Card>
+</CardGroup>
+

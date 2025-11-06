@@ -1,0 +1,430 @@
+---
+title: "@flowglad/react"
+description: "React components and hooks for Flowglad billing and subscription management"
+---
+
+<Info>
+  NPM Package: [@flowglad/react](https://www.npmjs.com/package/@flowglad/react)
+</Info>
+
+## Overview
+
+The React SDK provides components, hooks, and context for managing billing and subscriptions in your React applications. It works with any React framework and requires a backend server running the Flowglad Server SDK.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/react @flowglad/server
+```
+
+```bash yarn
+yarn add @flowglad/react @flowglad/server
+```
+
+```bash bun
+bun add @flowglad/react @flowglad/server
+```
+
+</CodeGroup>
+
+<Note>
+  **Note:** This package requires `@flowglad/server` to be set up on your backend. See the [Server SDK documentation](/sdks/server) for setup instructions.
+</Note>
+
+## Quick Start
+
+### 1. Wrap Your App with FlowgladProvider
+
+```tsx
+import { FlowgladProvider } from '@flowglad/react'
+
+export default function App({ children }) {
+  return (
+    <FlowgladProvider
+      loadBilling={true}
+      requestConfig={{
+        headers: {
+          // Add custom headers if needed
+        },
+      }}
+      theme={{
+        mode: 'dark',
+        dark: {
+          background: '#1b1b1b',
+          card: 'rgb(35 35 35)',
+        },
+      }}
+    >
+      {children}
+    </FlowgladProvider>
+  )
+}
+```
+
+### 2. Use the useBilling Hook
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+export default function BillingPage() {
+  const { checkFeatureAccess, customer, paymentMethods } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return <div>Loading...</div>
+  }
+
+  if (checkFeatureAccess('premium_feature')) {
+    return <div>You have access!</div>
+  }
+
+  return <div>Please upgrade</div>
+}
+```
+
+## Key Features
+
+- **Type-safe Hooks**: Access billing data with full TypeScript support
+- **React Context**: Global state management for billing information
+- **Feature Access Control**: Check user access to features
+- **Checkout Sessions**: Create and manage payment flows
+- **Subscription Management**: Handle subscription lifecycles
+- **Themeable Components**: Customize appearance to match your app
+
+## API Reference
+
+### FlowgladProvider
+
+The main provider component that wraps your application.
+
+#### Props
+
+```typescript
+interface FlowgladProviderProps {
+  loadBilling?: boolean
+  requestConfig?: {
+    headers?: Record<string, string>
+  }
+  theme?: {
+    mode?: 'light' | 'dark'
+    dark?: {
+      background?: string
+      card?: string
+      foreground?: string
+      border?: string
+      primary?: string
+      primaryForeground?: string
+      muted?: string
+      mutedForeground?: string
+      accent?: string
+      accentForeground?: string
+    }
+    light?: {
+      // Same properties as dark
+    }
+  }
+  children: React.ReactNode
+}
+```
+
+#### Example
+
+```tsx
+<FlowgladProvider
+  loadBilling={true}
+  requestConfig={{
+    headers: {
+      'X-Custom-Header': 'value',
+    },
+  }}
+  theme={{
+    mode: 'dark',
+    dark: {
+      background: '#000000',
+      primary: '#1e90ff',
+    },
+  }}
+>
+  {children}
+</FlowgladProvider>
+```
+
+### useBilling Hook
+
+Access billing data and functions throughout your application.
+
+#### Return Value
+
+```typescript
+interface BillingContext {
+  // Customer data
+  customer: Customer | null
+  
+  // Payment methods
+  paymentMethods: PaymentMethod[]
+  
+  // Subscriptions
+  subscriptions: Subscription[]
+  
+  // Invoices
+  invoices: Invoice[]
+  
+  // Feature access
+  checkFeatureAccess: (featureId: string) => boolean
+  
+  // Checkout
+  createCheckoutSession: (params: CheckoutSessionParams) => Promise<void>
+  
+  // Subscription management
+  cancelSubscription: (subscriptionId: string) => Promise<void>
+  updateSubscription: (params: UpdateSubscriptionParams) => Promise<void>
+  
+  // Loading states
+  isLoading: boolean
+  error: Error | null
+  
+  // Refresh data
+  refetch: () => Promise<void>
+}
+```
+
+#### Example Usage
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+function FeatureGate({ featureId, children }) {
+  const { checkFeatureAccess, createCheckoutSession } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return <div>Loading...</div>
+  }
+
+  if (!checkFeatureAccess(featureId)) {
+    return (
+      <div>
+        <p>Upgrade to access this feature</p>
+        <button
+          onClick={() =>
+            createCheckoutSession({
+              priceId: 'price_123',
+              successUrl: window.location.href,
+              cancelUrl: window.location.href,
+              autoRedirect: true,
+            })
+          }
+        >
+          Upgrade Now
+        </button>
+      </div>
+    )
+  }
+
+  return <>{children}</>
+}
+```
+
+### createCheckoutSession
+
+Create a new checkout session for subscriptions or one-time payments.
+
+#### Parameters
+
+```typescript
+interface CheckoutSessionParams {
+  priceId: string
+  successUrl: string
+  cancelUrl: string
+  autoRedirect?: boolean
+  quantity?: number
+  metadata?: Record<string, string>
+}
+```
+
+#### Example
+
+```tsx
+const handleUpgrade = async () => {
+  await createCheckoutSession({
+    priceId: 'price_premium_monthly',
+    successUrl: `${window.location.origin}/billing/success`,
+    cancelUrl: `${window.location.origin}/billing`,
+    autoRedirect: true,
+    quantity: 1,
+    metadata: {
+      source: 'upgrade_button',
+    },
+  })
+}
+```
+
+### checkFeatureAccess
+
+Check if the current customer has access to a specific feature.
+
+#### Parameters
+
+- `featureId: string` - The ID of the feature to check
+
+#### Returns
+
+- `boolean` - `true` if the customer has access, `false` otherwise
+
+#### Example
+
+```tsx
+const hasAdvancedAnalytics = checkFeatureAccess('advanced_analytics')
+
+if (hasAdvancedAnalytics) {
+  return <AdvancedAnalytics />
+}
+
+return <BasicAnalytics />
+```
+
+## Common Patterns
+
+### Feature Gating Component
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+export function FeatureGate({ 
+  featureId, 
+  fallback, 
+  children 
+}: {
+  featureId: string
+  fallback?: React.ReactNode
+  children: React.ReactNode
+}) {
+  const { checkFeatureAccess } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return null
+  }
+
+  if (!checkFeatureAccess(featureId)) {
+    return fallback || <div>Access denied</div>
+  }
+
+  return <>{children}</>
+}
+
+// Usage
+<FeatureGate 
+  featureId="premium_feature"
+  fallback={<UpgradePrompt />}
+>
+  <PremiumFeature />
+</FeatureGate>
+```
+
+### Subscription Status Display
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+export function SubscriptionStatus() {
+  const { subscriptions, customer } = useBilling()
+
+  if (!subscriptions || subscriptions.length === 0) {
+    return <div>No active subscriptions</div>
+  }
+
+  const activeSubscription = subscriptions.find(s => s.status === 'active')
+
+  if (!activeSubscription) {
+    return <div>No active subscriptions</div>
+  }
+
+  return (
+    <div>
+      <h3>Current Plan</h3>
+      <p>Status: {activeSubscription.status}</p>
+      <p>Renews: {new Date(activeSubscription.currentPeriodEnd).toLocaleDateString()}</p>
+    </div>
+  )
+}
+```
+
+### Custom Upgrade Button
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+export function UpgradeButton({ priceId }: { priceId: string }) {
+  const { createCheckoutSession } = useBilling()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleUpgrade = async () => {
+    setIsLoading(true)
+    try {
+      await createCheckoutSession({
+        priceId,
+        successUrl: `${window.location.origin}/success`,
+        cancelUrl: window.location.href,
+        autoRedirect: true,
+      })
+    } catch (error) {
+      console.error('Checkout failed:', error)
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <button onClick={handleUpgrade} disabled={isLoading}>
+      {isLoading ? 'Loading...' : 'Upgrade'}
+    </button>
+  )
+}
+```
+
+## Server Integration
+
+This package requires a backend server running the Flowglad Server SDK. The provider automatically makes requests to `/api/flowglad` by default.
+
+Make sure you have set up the server routes:
+- See [Next.js SDK](/sdks/nextjs) for Next.js setup
+- See [Express SDK](/sdks/express) for Express setup  
+- See [Server SDK](/sdks/server) for custom integrations
+
+## Theming
+
+Customize the appearance of Flowglad components to match your application:
+
+```tsx
+<FlowgladProvider
+  theme={{
+    mode: 'dark',
+    dark: {
+      background: '#0a0a0a',
+      foreground: '#ffffff',
+      card: '#1a1a1a',
+      cardForeground: '#ffffff',
+      border: '#2a2a2a',
+      primary: '#1e90ff',
+      primaryForeground: '#ffffff',
+      muted: '#2a2a2a',
+      mutedForeground: '#888888',
+      accent: '#2a2a2a',
+      accentForeground: '#ffffff',
+    },
+  }}
+>
+  {children}
+</FlowgladProvider>
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Server SDK" icon="server" href="/sdks/server">
+    Set up your backend server
+  </Card>
+  <Card title="Examples" icon="code" href="/sdks/examples">
+    See complete code examples
+  </Card>
+</CardGroup>
+

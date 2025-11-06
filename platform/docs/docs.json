@@ -50,6 +50,39 @@
         ]
       },
       {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "sdks/introduction"
+            ]
+          },
+          {
+            "group": "Framework SDKs",
+            "pages": [
+              "sdks/nextjs",
+              "sdks/react",
+              "sdks/express"
+            ]
+          },
+          {
+            "group": "Core SDKs",
+            "pages": [
+              "sdks/server",
+              "sdks/shared",
+              "sdks/types"
+            ]
+          },
+          {
+            "group": "Additional Resources",
+            "pages": [
+              "sdks/examples"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "API Reference",
         "openapi": {
           "source": "https://app.flowglad.com/api/openapi",

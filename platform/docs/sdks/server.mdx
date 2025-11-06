@@ -1,0 +1,511 @@
+---
+title: "@flowglad/server"
+description: "Core server-side SDK for Flowglad integration in Node.js applications"
+---
+
+<Info>
+  NPM Package: [@flowglad/server](https://www.npmjs.com/package/@flowglad/server)
+</Info>
+
+## Overview
+
+The Server SDK is the core package for server-side Flowglad integration. It provides the `FlowgladServer` class that handles all billing operations, customer management, and API communication with Flowglad.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/server
+```
+
+```bash yarn
+yarn add @flowglad/server
+```
+
+```bash bun
+bun add @flowglad/server
+```
+
+</CodeGroup>
+
+## Quick Start
+
+### 1. Set Up Environment Variables
+
+```bash .env
+FLOWGLAD_SECRET_KEY="sk_test_..."
+```
+
+### 2. Create a FlowgladServer Instance
+
+```typescript
+import { FlowgladServer } from '@flowglad/server'
+
+const flowgladServer = new FlowgladServer({
+  // Optional - reads from FLOWGLAD_SECRET_KEY by default
+  apiKey: 'your-api-key',
+  
+  // Optional - defaults to https://app.flowglad.com
+  baseURL: 'https://app.flowglad.com',
+  
+  // Required - function to get the current customer
+  getRequestingCustomer: async () => {
+    // Return customer info based on your auth system
+    return {
+      externalId: 'user-123',
+      name: 'John Doe',
+      email: 'john@example.com',
+    }
+  },
+})
+```
+
+### 3. Use the Server Instance
+
+```typescript
+// Get customer billing information
+const billing = await flowgladServer.getBilling()
+
+// Create a checkout session
+const checkoutSession = await flowgladServer.createCheckoutSession({
+  type: 'subscription',
+  priceId: 'price_123',
+  successUrl: 'https://example.com/success',
+  cancelUrl: 'https://example.com/cancel',
+})
+
+// Check feature access
+const hasAccess = await flowgladServer.checkFeatureAccess('premium_feature')
+```
+
+## Key Features
+
+- **Customer Management**: Find or create customers automatically
+- **Subscriptions**: Create, update, and cancel subscriptions
+- **Checkout Sessions**: Generate checkout URLs for payments
+- **Feature Access**: Check customer access to features
+- **Usage Tracking**: Record usage events for metered billing
+- **Invoices**: Retrieve and manage invoices
+- **Payment Methods**: Handle customer payment methods
+- **Catalog**: Access your product catalog
+
+## API Reference
+
+### Constructor
+
+```typescript
+new FlowgladServer(options: FlowgladServerOptions)
+```
+
+#### Options
+
+```typescript
+interface FlowgladServerOptions {
+  apiKey?: string // Defaults to FLOWGLAD_SECRET_KEY env var
+  baseURL?: string // Defaults to https://app.flowglad.com
+  getRequestingCustomer: () => Promise<CustomerInfo | null>
+}
+
+interface CustomerInfo {
+  externalId: string
+  name: string
+  email: string
+  metadata?: Record<string, any>
+}
+```
+
+### Customer Methods
+
+#### `getRequestingCustomerId()`
+
+Get the ID of the current customer.
+
+```typescript
+const customerId = await flowgladServer.getRequestingCustomerId()
+```
+
+#### `findOrCreateCustomer()`
+
+Find an existing customer or create a new one.
+
+```typescript
+const customer = await flowgladServer.findOrCreateCustomer()
+```
+
+#### `getSession()`
+
+Get the full customer session including billing information.
+
+```typescript
+const session = await flowgladServer.getSession()
+// Returns: { customer, subscriptions, paymentMethods, invoices }
+```
+
+### Billing Methods
+
+#### `getBilling()`
+
+Get comprehensive billing information for the customer.
+
+```typescript
+const billing = await flowgladServer.getBilling()
+// Returns customer, subscriptions, payment methods, invoices, and features
+```
+
+#### `getCatalog()`
+
+Get the product catalog with prices and features.
+
+```typescript
+const catalog = await flowgladServer.getCatalog()
+// Returns products, prices, and features available for purchase
+```
+
+### Subscription Methods
+
+#### `createSubscription(params)`
+
+Create a new subscription for the customer.
+
+```typescript
+const subscription = await flowgladServer.createSubscription({
+  priceId: 'price_123',
+  quantity: 1,
+  metadata: {
+    source: 'upgrade_flow',
+  },
+})
+```
+
+**Parameters:**
+
+```typescript
+interface CreateSubscriptionParams {
+  priceId: string
+  quantity?: number
+  metadata?: Record<string, string>
+}
+```
+
+#### `cancelSubscription(params)`
+
+Cancel an existing subscription.
+
+```typescript
+const canceledSubscription = await flowgladServer.cancelSubscription({
+  subscriptionId: 'sub_123',
+  reason: 'customer-requested',
+  cancelAt?: 'period_end' | 'now', // Defaults to 'period_end'
+})
+```
+
+**Parameters:**
+
+```typescript
+interface CancelSubscriptionParams {
+  subscriptionId: string
+  reason?: string
+  cancelAt?: 'period_end' | 'now'
+}
+```
+
+#### `updateSubscription(params)`
+
+Update an existing subscription.
+
+```typescript
+const updatedSubscription = await flowgladServer.updateSubscription({
+  subscriptionId: 'sub_123',
+  priceId: 'price_456', // Change plan
+  quantity: 2, // Update quantity
+})
+```
+
+### Checkout Methods
+
+#### `createCheckoutSession(params)`
+
+Create a checkout session for payments.
+
+```typescript
+const checkoutSession = await flowgladServer.createCheckoutSession({
+  type: 'subscription', // or 'one_time'
+  priceId: 'price_123',
+  successUrl: 'https://example.com/success',
+  cancelUrl: 'https://example.com/cancel',
+  quantity: 1,
+  metadata: {
+    campaign: 'summer_sale',
+  },
+})
+
+// Redirect user to checkoutSession.url
+```
+
+**Parameters:**
+
+```typescript
+interface CreateCheckoutSessionParams {
+  type: 'subscription' | 'one_time'
+  priceId: string
+  successUrl: string
+  cancelUrl: string
+  quantity?: number
+  metadata?: Record<string, string>
+}
+```
+
+### Feature Access Methods
+
+#### `checkFeatureAccess(featureId)`
+
+Check if the customer has access to a specific feature.
+
+```typescript
+const hasAccess = await flowgladServer.checkFeatureAccess('advanced_analytics')
+
+if (hasAccess) {
+  // Grant access to feature
+}
+```
+
+### Usage Tracking Methods
+
+#### `createUsageEvent(params)`
+
+Record a usage event for metered billing.
+
+```typescript
+const usageEvent = await flowgladServer.createUsageEvent({
+  featureId: 'api_calls',
+  quantity: 100,
+  usageDate: new Date().toISOString(),
+  metadata: {
+    endpoint: '/api/data',
+  },
+})
+```
+
+**Parameters:**
+
+```typescript
+interface CreateUsageEventParams {
+  featureId: string
+  quantity: number
+  usageDate: string // ISO 8601 date string
+  metadata?: Record<string, string>
+}
+```
+
+## Common Patterns
+
+### Feature Gating Middleware
+
+```typescript
+import { FlowgladServer } from '@flowglad/server'
+
+export function requireFeature(featureId: string) {
+  return async (req, res, next) => {
+    const hasAccess = await flowgladServer.checkFeatureAccess(featureId)
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        error: 'Feature not available',
+        message: 'Please upgrade your plan to access this feature',
+      })
+    }
+
+    next()
+  }
+}
+
+// Usage
+app.get('/api/premium-endpoint', requireFeature('premium_feature'), (req, res) => {
+  res.json({ data: 'premium data' })
+})
+```
+
+### Usage Metering
+
+```typescript
+export async function trackAPIUsage(endpoint: string) {
+  await flowgladServer.createUsageEvent({
+    featureId: 'api_calls',
+    quantity: 1,
+    usageDate: new Date().toISOString(),
+    metadata: {
+      endpoint,
+    },
+  })
+}
+
+// Usage
+app.get('/api/data', async (req, res) => {
+  await trackAPIUsage('/api/data')
+  res.json({ data: 'response' })
+})
+```
+
+### Subscription Upgrade Flow
+
+```typescript
+export async function upgradeSubscription(
+  currentSubscriptionId: string,
+  newPriceId: string
+) {
+  try {
+    // Cancel current subscription
+    await flowgladServer.cancelSubscription({
+      subscriptionId: currentSubscriptionId,
+      cancelAt: 'now',
+    })
+
+    // Create new subscription
+    const newSubscription = await flowgladServer.createSubscription({
+      priceId: newPriceId,
+    })
+
+    return newSubscription
+  } catch (error) {
+    console.error('Upgrade failed:', error)
+    throw error
+  }
+}
+```
+
+### Customer Portal Generation
+
+```typescript
+export async function getCustomerPortalData() {
+  const billing = await flowgladServer.getBilling()
+
+  return {
+    customer: billing.customer,
+    activeSubscriptions: billing.subscriptions.filter(
+      (s) => s.status === 'active'
+    ),
+    paymentMethods: billing.paymentMethods,
+    recentInvoices: billing.invoices.slice(0, 10),
+    features: billing.features,
+  }
+}
+```
+
+## Integration Examples
+
+### With Supabase Auth
+
+```typescript
+import { FlowgladServer } from '@flowglad/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!
+)
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return null
+
+    return {
+      externalId: user.id,
+      name: user.user_metadata.full_name || user.email!,
+      email: user.email!,
+    }
+  },
+})
+```
+
+### With Firebase Auth
+
+```typescript
+import { FlowgladServer } from '@flowglad/server'
+import admin from 'firebase-admin'
+
+admin.initializeApp()
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async (context) => {
+    const token = context?.req?.headers.authorization?.replace('Bearer ', '')
+
+    if (!token) return null
+
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(token)
+
+      return {
+        externalId: decodedToken.uid,
+        name: decodedToken.name || decodedToken.email!,
+        email: decodedToken.email!,
+      }
+    } catch (error) {
+      return null
+    }
+  },
+})
+```
+
+### With Clerk
+
+```typescript
+import { FlowgladServer } from '@flowglad/server'
+import { clerkClient } from '@clerk/clerk-sdk-node'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async (context) => {
+    const sessionId = context?.req?.cookies.get('__session')
+
+    if (!sessionId) return null
+
+    try {
+      const session = await clerkClient.sessions.getSession(sessionId)
+      const user = await clerkClient.users.getUser(session.userId)
+
+      return {
+        externalId: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.emailAddresses[0].emailAddress,
+      }
+    } catch (error) {
+      return null
+    }
+  },
+})
+```
+
+## Error Handling
+
+The SDK throws errors that you should handle appropriately:
+
+```typescript
+try {
+  const subscription = await flowgladServer.createSubscription({
+    priceId: 'price_123',
+  })
+} catch (error) {
+  if (error.code === 'CUSTOMER_NOT_FOUND') {
+    // Handle customer not found
+  } else if (error.code === 'PAYMENT_REQUIRED') {
+    // Handle payment required
+  } else {
+    // Handle other errors
+    console.error('Unexpected error:', error)
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Next.js SDK" icon="react" href="/sdks/nextjs">
+    Use with Next.js applications
+  </Card>
+  <Card title="Express SDK" icon="node" href="/sdks/express">
+    Use with Express applications
+  </Card>
+</CardGroup>
+
