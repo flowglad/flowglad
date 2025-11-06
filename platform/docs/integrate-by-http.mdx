@@ -98,7 +98,7 @@ When you are not using our SDKs, replicate the same logic in your middleware:
 Once you have the customer, you can reuse the helper functions above to translate frontend requests into Flowglad API calls.
 
 #### Implement the Sub-routes
-Expose a single authenticated route such as `/api/flowglad/:subroute`. Each subroute matches a `FlowgladActionKey` (see `packages/shared/src/types.ts`) and **must** accept a `POST`, even for reads—the React SDK always sends `POST` requests and expects `{ data, error? }` in the response body.
+Expose a single authenticated route such as `/api/flowglad/:subroute`. Each subroute matches a `FlowgladActionKey` (see [`packages/shared/src/types.ts`](https://github.com/flowglad/flowglad/blob/main/packages/shared/src/types.ts)) and **must** accept a `POST`, even for reads—the React SDK always sends `POST` requests and expects `{ data, error? }` in the response body.
 
 **POST /customers/billing**
 - use your authentication logic to derive the customer making the request from your frontend `{ name: string, externalId: string, email: string }`, where the `email` is the email address associated with the owner of the account and `externalId` is the id of the customer in your system
