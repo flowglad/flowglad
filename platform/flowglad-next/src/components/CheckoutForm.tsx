@@ -142,7 +142,7 @@ function CheckoutForm() {
               // === TYPOGRAPHY VARIABLES ===
               // Currently using:
               fontFamily:
-                'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                'SF Pro, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               fontSizeBase: '14px', // Base font size for all text
               fontLineHeight: '1.3', // Line height multiplier
 

@@ -10,11 +10,13 @@ const nextConfig = {
     registry: ['./src/registry/**/*'],
   },
   serverExternalPackages: [
+    'puppeteer',
     'puppeteer-core',
     '@sparticuz/chromium',
     '@aws-sdk/client-s3',
     '@aws-sdk/s3-request-presigner',
     'chromium-bidi',
+    'ws',
   ],
   images: {
     remotePatterns: process.env.NEXT_PUBLIC_CDN_URL
