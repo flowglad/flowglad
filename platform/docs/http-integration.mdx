@@ -81,17 +81,92 @@ Implementing Flowglad on your backend will consist of 3 steps (feel free to feed
         - returns `{ availableBalance: number }` if the usageMeterBalance is found, using `usageMeterBalance.availableBalance`
         - returns `null` if not found
 
-#### Implement the Sub-routes
-In your server's Flowglad route handler (at `/api/flowglad/:subroute`), implement the subroute handlers.
+### Authenticate and Derive the Requesting Customer
 
-**GET /customers/billing**
+Every server-originated Flowglad call needs the customer scoped using your ids. The `FlowgladServer` class (`packages/server/src/FlowgladServer.ts`) shows the contract we enforce in the SDKs:
+
+- derive a `{ externalId, name, email }` triple either from your auth provider (NextAuth, Supabase, Clerk) or a custom `getRequestingCustomer`.
+- only one auth provider can populate a request. If you support multiple providers, branch before instantiating your handler.
+- validate the triple: `externalId` must be a non-empty string and `email` must be present, otherwise the request should fail fast with a helpful error because the React SDK expects authenticated users.
+
+When you are not using our SDKs, replicate the same logic in your middleware:
+
+1. Run your normal authentication, error out with `401` if no session.
+2. Map the session object to Flowglad's customer shape.
+3. Pass that shape into every helper that talks to Flowglad's API.
+
+Once you have the customer, you can reuse the helper functions above to translate frontend requests into Flowglad API calls.
+
+#### Implement the Sub-routes
+Expose a single authenticated route such as `/api/flowglad/:subroute`. Each subroute matches a `FlowgladActionKey` (see `packages/shared/src/types.ts`) and **must** accept a `POST`, even for reads—the React SDK always sends `POST` requests and expects `{ data, error? }` in the response body.
+
+**POST /customers/billing**
 - use your authentication logic to derive the customer making the request from your frontend `{ name: string, externalId: string, email: string }`, where the `email` is the email address associated with the owner of the account and `externalId` is the id of the customer in your system
-- use the `findOrCreateCustomerBilling` helper to get the customer billing data, and return
+- use the `findOrCreateCustomerBilling` helper to get the customer billing data, return it inside `{ data: billing }`, and optionally include the computed helpers (`checkFeatureAccess`, `checkUsageBalance`, `getProduct`, `getPrice`) before sending the JSON back to the client.
+
+**POST /customers/find-or-create**
+- rely on the requesting customer id to try `GET /customers/:externalId`.
+- if Flowglad returns `404`, immediately create the customer via `POST /customers`.
+- respond with the Flowglad customer record so the React SDK can cache the value.
+
+**POST /customers/update**
+- expect a payload with `{ customer: { name?, email?, phone?, billingAddress? }, externalId }` exactly as described in `packages/shared/src/actions.ts`.
+- call [PATCH /customers/:externalId](https://docs.flowglad.com/api-reference/customer/update-customer) (or `PUT` if your HTTP client prefers) and forward the response body.
 
 **POST /checkout-sessions/create**
+- accept `{ successUrl, cancelUrl, outputMetadata?, outputName?, quantity?, priceId? | priceSlug? }`.
+- if the frontend sent a `priceSlug`, look it up from the catalog you received in `/customers/billing` and substitute the resolved `priceId` before calling [POST /checkout-sessions](https://docs.flowglad.com/api-reference/checkout/create-checkout-session).
+- always include `customerExternalId` (your id) in the request body so Flowglad scopes the checkout correctly.
 
-**/checkout-sessions/create-add-payment-method**
+**POST /checkout-sessions/create-add-payment-method**
+- payload mirrors the create endpoint but without price fields, plus an optional `targetSubscriptionId`.
+- send `type: "add_payment_method"` to [POST /checkout-sessions].
+- respond with the `{ checkoutSession: { id, url } }` object from Flowglad. The React SDK will optionally redirect using the `url`.
 
-**/checkout-sessions/create-activate-subscription**
+**POST /checkout-sessions/create-activate-subscription**
+- requires `{ targetSubscriptionId, priceId, successUrl, cancelUrl }`.
+- send `type: "activate_subscription"` to [POST /checkout-sessions] so the Flowglad dashboard knows to attach the subscription after payment.
 
+**POST /subscriptions/cancel**
+- expect `{ id, cancellation }` where `cancellation` is one of:
+  - `{ timing: "at_end_of_current_billing_period" }`
+  - `{ timing: "at_future_date", endDate }`
+  - `{ timing: "immediately" }`
+- fetch the subscription first and confirm that `subscription.customerId` matches the requesting customer's Flowglad id before calling [POST /subscriptions/:id/cancel](https://docs.flowglad.com/api-reference/subscriptions/cancel-subscription). If they do not match, return `403`.
 
+**POST /subscriptions/create** (optional)
+- Flowglad currently ships this action as experimental. If you implement it yourself, accept `{ priceId, quantity?, startDate?, trialEnd?, metadata? }`, append your Flowglad `customerId`, and call [POST /subscriptions](https://docs.flowglad.com/api-reference/subscriptions/create-subscription).
+
+#### Example: Next.js Route Backed by Supabase Auth
+The `playground/supabase-auth` folder shows how our SDK wires a single handler in Next.js App Router:
+
+```ts
+// app/api/flowglad/[...path]/route.ts
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server';
+import { flowgladServer } from '@/utils/flowglad';
+const handler = createAppRouterRouteHandler(flowgladServer);
+export const GET = handler;
+export const POST = handler;
+```
+
+```ts
+// utils/flowglad.ts
+import { FlowgladServer } from '@flowglad/nextjs/server';
+import { createClient } from '@/utils/supabase/server';
+export const flowgladServer = new FlowgladServer({
+  supabaseAuth: { client: createClient },
+  baseURL: process.env.NEXT_PUBLIC_FLOWGLAD_BASE_URL ?? 'http://localhost:3000'
+});
+```
+
+Even if you are using another framework, the pattern is the same:
+
+1. Secure the route using your auth system (Supabase here).
+2. Provide a factory that returns the current authenticated user with the `{ externalId, name, email }` triple.
+3. Proxy the subroute to Flowglad's REST API.
+
+If you cannot import our SDK, replace `FlowgladServer` with lightweight utilities that:
+
+- instantiate an HTTP client with your Flowglad secret key.
+- expose helpers mirroring `findOrCreateCustomer`, `createCheckoutSession`, `createAddPaymentMethodCheckoutSession`, `createActivateSubscriptionCheckoutSession`, and `cancelSubscription`.
+- reuse the same `POST /api/flowglad/:action` contract so your frontend stays unchanged.
