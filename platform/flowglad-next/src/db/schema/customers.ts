@@ -249,6 +249,7 @@ export const customersPaginatedTableRowInputSchema =
       archived: z.boolean().optional(),
       organizationId: z.string().optional(),
       pricingModelId: z.string().optional(),
+      livemode: z.boolean().optional(),
     })
   )
 

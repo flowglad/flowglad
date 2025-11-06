@@ -384,7 +384,13 @@ const exportCsvProcedure = protectedProcedure
   )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, organizationId }) => {
+      async ({
+        input,
+        transaction,
+        userId,
+        organizationId,
+        livemode,
+      }) => {
         const { filters, searchQuery } = input
         // Maximum number of customers that can be exported via CSV without async export
         const CUSTOMER_LIMIT = 1000
@@ -424,6 +430,7 @@ const exportCsvProcedure = protectedProcedure
               organizationId,
               filters,
               searchQuery,
+              livemode,
             },
             {
               idempotencyKey: await createTriggerIdempotencyKey(

@@ -21,12 +21,14 @@ interface GenerateCsvExportPayload {
   organizationId: string
   filters?: CustomerTableFilters
   searchQuery?: string
+  livemode: boolean
 }
 
 export const generateCsvExportTask = task({
   id: 'generate-csv-export',
   run: async (payload: GenerateCsvExportPayload, { ctx }) => {
-    const { userId, organizationId, filters, searchQuery } = payload
+    const { userId, organizationId, filters, searchQuery, livemode } =
+      payload
 
     logger.log('Starting generateCsvExportTask', {
       organizationId,
@@ -51,11 +53,11 @@ export const generateCsvExportTask = task({
         organizationCurrency,
         organizationName,
         userEmail,
-        livemode,
       } = await adminTransaction(async ({ transaction }) => {
         const normalizedFilters: CustomerTableFilters = {
           ...(filters ?? {}),
           organizationId,
+          livemode,
         }
 
         const initialResponse =
@@ -87,8 +89,6 @@ export const generateCsvExportTask = task({
             `User ${userId} is not a member of organization ${organizationId}`
           )
         }
-
-        const livemode = memberships[0].livemode
 
         const rows: CustomerTableRowData[] = [
           ...initialResponse.items,
@@ -125,7 +125,6 @@ export const generateCsvExportTask = task({
           organizationCurrency: organization.defaultCurrency,
           organizationName: organization.name,
           userEmail: user.email,
-          livemode,
         }
       })
 
