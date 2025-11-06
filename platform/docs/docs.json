@@ -22,8 +22,8 @@
             "group": "Get Started",
             "pages": [
               "quickstart",
-              "setup-by-prompt",
-              "http-integration"
+              "integrate-by-prompt",
+              "integrate-by-http"
             ]
           },
           {
