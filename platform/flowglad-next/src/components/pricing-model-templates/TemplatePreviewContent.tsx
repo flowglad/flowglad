@@ -119,7 +119,7 @@ export function TemplatePreviewContent({
       <div className="flex flex-col gap-4 items-start w-full overflow-y-auto min-h-0 z-[2]">
         {/* Header */}
         <div className="flex flex-col gap-1.5 items-start px-3 pt-2 pb-0 w-full">
-          <h2 className="text-lg font-semibold" aria-hidden="true">
+          <h2 className="text-lg" aria-hidden="true">
             {template.metadata.title}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -149,7 +149,7 @@ export function TemplatePreviewContent({
                     <div className="flex items-center gap-2">
                       {/* Product Name */}
                       <div className="flex gap-2 items-center px-2 py-0">
-                        <h3 className="text-md font-semibold whitespace-nowrap">
+                        <h3 className="text-md whitespace-nowrap">
                           {group.displayName}
                         </h3>
                       </div>

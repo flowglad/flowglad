@@ -38,7 +38,7 @@ export function BillingPortalHeader({
       <div className="container mx-auto px-4 py-4 max-w-6xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-semibold">Billing Portal</h1>
+            <h1 className="text-xl">Billing Portal</h1>
             {loading ? (
               <div className="h-8 w-48 bg-muted/10 rounded animate-pulse" />
             ) : customer?.organizationName ? (
