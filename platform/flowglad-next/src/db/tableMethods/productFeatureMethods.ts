@@ -49,7 +49,7 @@ export const insertProductFeature = createInsertFunction(
 /**
  * No need to "update" a product feature in our business logic,
  */
-const updateProductFeature = createUpdateFunction(
+export const updateProductFeature = createUpdateFunction(
   productFeatures,
   config
 )

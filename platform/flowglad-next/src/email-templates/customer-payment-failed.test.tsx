@@ -31,6 +31,7 @@ describe('PaymentFailedEmail', () => {
     ],
     failureReason: 'Insufficient funds',
     customerPortalUrl: 'https://example.com/portal',
+    livemode: false,
   }
 
   it('should render the payment failed email with all components', () => {

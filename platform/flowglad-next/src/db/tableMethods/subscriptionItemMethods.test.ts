@@ -676,6 +676,98 @@ describe('subscriptionItemMethods', async () => {
       })
     })
 
+    it('should only include unexpired subscriptionItemFeatures', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const pastDate = now - 1000 * 60 * 60 * 24 // 1 day ago
+
+        // Expire the subscription item from beforeEach to avoid interference
+        await updateSubscriptionItem(
+          {
+            id: subscriptionItem.id,
+            expiredAt: pastDate,
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+
+        // Create a feature setup with a product and feature
+        const featureSetup =
+          await setupTestFeaturesAndProductFeatures({
+            organizationId: organization.id,
+            productId: price.productId,
+            livemode: true,
+            featureSpecs: [
+              {
+                name: 'Active Feature',
+                type: FeatureType.Toggle,
+              },
+              {
+                name: 'Expired Feature',
+                type: FeatureType.Toggle,
+              },
+            ],
+          })
+
+        // Create an active subscription item
+        const activeItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Active Item',
+          quantity: 1,
+          unitPrice: 100,
+          priceId: price.id,
+        })
+
+        // Create an unexpired feature for the active item (no expiredAt)
+        const activeFeature = await insertSubscriptionItemFeature(
+          subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+            activeItem,
+            featureSetup[0].productFeature,
+            featureSetup[0].feature
+          ),
+          transaction
+        )
+
+        // Create an expired feature for the active item
+        const expiredFeature = await insertSubscriptionItemFeature(
+          {
+            ...subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+              activeItem,
+              featureSetup[1].productFeature,
+              featureSetup[1].feature
+            ),
+            expiredAt: pastDate, // Expired
+          },
+          transaction
+        )
+
+        const richSubscriptions =
+          await selectRichSubscriptionsAndActiveItems(
+            { organizationId: organization.id },
+            transaction
+          )
+
+        expect(richSubscriptions.length).toBe(1)
+        const subWithItems = richSubscriptions[0]
+
+        // Verify active item is included
+        expect(subWithItems.subscriptionItems.length).toBe(1)
+        expect(subWithItems.subscriptionItems[0].id).toBe(
+          activeItem.id
+        )
+
+        // Verify only unexpired features are included
+        expect(subWithItems.experimental?.featureItems.length).toBe(1)
+        expect(subWithItems.experimental?.featureItems[0].id).toBe(
+          activeFeature.id
+        )
+        // Verify expired feature is NOT included
+        const featureIds =
+          subWithItems.experimental?.featureItems.map((f) => f.id)
+        expect(featureIds).not.toContain(expiredFeature.id)
+      })
+    })
+
     it('should include all meter balances for the subscription regardless of subscription item association', async () => {
       // Setup first usage meter scenario with a subscription item
       const scenario1 = await setupUsageLedgerScenario({

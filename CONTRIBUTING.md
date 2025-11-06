@@ -114,7 +114,7 @@ description: "Create and manage payment flows with one component"
 - When mentioning files or directories, wrap names in backticks (e.g., `app/flowglad.ts`)
 
 Terminology:
-- Use component names literally in code: `FlowgladProvider`, `BillingPage`
+- Use component names literally in code: `FlowgladProvider`
 - Use "server route" for the `/api/flowglad/[...path]` handler
 
 ---
@@ -162,7 +162,7 @@ The API Reference is sourced from `https://app.flowglad.com/api/openapi` into `p
 Thanks for your interest in contributing to Flowglad’s backend. This section focuses on the Next.js app in `platform/flowglad-next`.
 
 Prerequisites:
-- pnpm installed
+- bun installed
 - Docker running (used for the test database via docker-compose)
 
 Setup steps:
@@ -173,7 +173,7 @@ cd platform/flowglad-next
 
 2) Install dependencies
 ```
-pnpm install-packages
+bun run install-packages
 ```
 
 3) Create your local env file from the example
@@ -183,12 +183,12 @@ cp .env.example .env.local
 
 4) Start the test database and run migrations
 ```
-pnpm test:setup
+bun run test:setup
 ```
 
 5) Run the test suite
 ```
-pnpm test
+bun run test
 ```
 
 ### Adding tests (backend)
@@ -203,4 +203,4 @@ Guidelines:
 - Do not mock the database. Tests use the local Postgres test instance (Docker) with real reads/writes.
 - Use the seeding helpers in `platform/flowglad-next/seedDatabase.ts` to create state; avoid ad‑hoc inserts.
 - When asserting existence or absence, fetch and compare primary keys (ids) rather than relying solely on list lengths.
-- Useful commands: `pnpm test` (CI run), `pnpm test:watch` (local TDD), `pnpm test:setup` (reset DB), `pnpm test:teardown` (stop DB).
+- Useful commands: `bun run test` (CI run), `bun run test:watch` (local TDD), `bun run test:setup` (reset DB), `bun run test:teardown` (stop DB).

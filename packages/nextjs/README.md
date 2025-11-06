@@ -9,7 +9,7 @@ npm install @flowglad/nextjs
 # or
 yarn add @flowglad/nextjs
 # or
-pnpm add @flowglad/nextjs
+bun add @flowglad/nextjs
 ```
 
 ## Requirements

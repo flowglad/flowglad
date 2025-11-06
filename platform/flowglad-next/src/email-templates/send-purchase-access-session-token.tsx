@@ -13,18 +13,22 @@ import {
 } from '@react-email/components'
 import * as React from 'react'
 import { emailBaseUrl } from '@/utils/core'
+import TestModeBanner from './components/TestBanner'
 
 interface SendPurchaseAccessSessionTokenEmailProps {
   magicLink?: string
+  livemode: boolean
 }
 
 export const SendPurchaseAccessSessionTokenEmail = ({
   magicLink,
+  livemode,
 }: SendPurchaseAccessSessionTokenEmailProps) => (
   <Html>
     <Head />
     <Preview>Access your order with this magic link.</Preview>
     <Body style={main}>
+      <TestModeBanner livemode={livemode} />
       <Container style={container}>
         <Img
           src={`${emailBaseUrl}/static/flowglad-logo.png`}
