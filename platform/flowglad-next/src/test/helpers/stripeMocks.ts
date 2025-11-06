@@ -24,6 +24,7 @@ export const createMockPaymentIntentResponse = (
       billingPeriodId: `bp_${core.nanoid()}`,
     },
     object: 'payment_intent',
+    // Stripe responds with timestamp in seconds
     created: Math.floor(Date.now() / 1000),
     livemode: false,
     lastResponse: {
@@ -56,7 +57,7 @@ export const createMockPaymentIntent = (
     capture_method: 'automatic',
     client_secret: `pi_secret_${id}`,
     confirmation_method: 'automatic',
-    created: 1234567890,
+    created: Math.floor(Date.now() / 100),
     currency: 'usd',
     customer: null,
     description: null,
@@ -101,6 +102,7 @@ export const createMockConfirmationResult = (
       status: 'succeeded',
     } as Stripe.Charge,
     object: 'payment_intent',
+    // Stripe responds with timestamp in seconds
     created: Math.floor(Date.now() / 1000),
     livemode: false,
     lastResponse: {
@@ -209,4 +211,73 @@ export const createMockCustomer = (
     },
     ...overrides,
   } as Stripe.Response<Stripe.Customer>
+}
+
+// Mock for a stripe payment intent which is basically just a wrapper
+// of a typical payment intent response with extra attributes
+export const createMockPaymentIntentEventResponse = (
+  status:
+    | 'succeeded'
+    | 'requires_payment_method'
+    | 'canceled'
+    | 'processing'
+    | 'requires_action',
+  paymentIntentOverrides: Partial<Stripe.PaymentIntent> = {},
+  eventOverrides: Partial<{
+    created: number
+    livemode: boolean
+    pending_webhooks: number
+    request: { id: string | null; idempotency_key: string | null }
+    data: { previous_attributes: Record<string, any> }
+  }> = {}
+):
+  | Stripe.PaymentIntentSucceededEvent
+  | Stripe.PaymentIntentPaymentFailedEvent
+  | Stripe.PaymentIntentCanceledEvent
+  | Stripe.PaymentIntentProcessingEvent
+  | Stripe.PaymentIntentRequiresActionEvent => {
+  // Map status to event type
+  const eventType =
+    status === 'succeeded'
+      ? 'payment_intent.succeeded'
+      : status === 'requires_payment_method'
+        ? 'payment_intent.payment_failed'
+        : status === 'canceled'
+          ? 'payment_intent.canceled'
+          : status === 'processing'
+            ? 'payment_intent.processing'
+            : 'payment_intent.requires_action'
+
+  const paymentIntent = createMockPaymentIntent({
+    status,
+    ...paymentIntentOverrides,
+  })
+
+  const event = {
+    created: eventOverrides.created ?? Math.floor(Date.now() / 1000),
+    type: eventType,
+    data: {
+      object: paymentIntent,
+      previous_attributes:
+        eventOverrides.data?.previous_attributes ?? {},
+    },
+    livemode: eventOverrides.livemode ?? false,
+    pending_webhooks: eventOverrides.pending_webhooks ?? 0,
+    request: eventOverrides.request ?? {
+      id: null,
+      idempotency_key: null,
+    },
+  }
+
+  if (status === 'succeeded') {
+    return event as Stripe.PaymentIntentSucceededEvent
+  } else if (status === 'requires_payment_method') {
+    return event as Stripe.PaymentIntentPaymentFailedEvent
+  } else if (status === 'canceled') {
+    return event as Stripe.PaymentIntentCanceledEvent
+  } else if (status === 'processing') {
+    return event as Stripe.PaymentIntentProcessingEvent
+  } else {
+    return event as Stripe.PaymentIntentRequiresActionEvent
+  }
 }

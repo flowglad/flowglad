@@ -192,10 +192,20 @@ export const createSubscriptionWorkflow = async (
     | BillingPeriodTransitionLedgerCommand
     | undefined = undefined
 
+  /* 
+    Create the ledger command here if we are not expecting a payment intent
+    Cases:
+      - Subscription status must not be incomplete
+      - Subscription is non-renewing
+        - This is derviative for a usage-based subscriptions (pay as you go)
+      - Free plans should be a right of passage because we they will not have payments
+      - Trial periods do not have payments either
+   */
   if (
     updatedSubscription.status !== SubscriptionStatus.Incomplete &&
     (updatedSubscription.renews === false ||
-      updatedSubscription.isFreePlan === true)
+      updatedSubscription.isFreePlan === true ||
+      updatedSubscription.status === SubscriptionStatus.Trialing)
   ) {
     ledgerCommand = {
       organizationId: updatedSubscription.organizationId,

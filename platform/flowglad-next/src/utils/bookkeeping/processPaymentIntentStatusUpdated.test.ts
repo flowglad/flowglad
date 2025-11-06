@@ -1583,17 +1583,16 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const paymentIntent: any = {
+      const paymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
-        object: 'payment_intent',
         amount: 1000,
         amount_capturable: 0,
         amount_received: 1000,
         currency: 'usd',
-        status: 'succeeded' as const,
+        status: 'succeeded',
         latest_charge: chargeId,
         metadata,
-      }
+      })
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -1728,17 +1727,16 @@ describe('Process payment intent status updated', async () => {
         billingPeriodId: billingPeriod.id,
         type: IntentMetadataType.BillingRun,
       }
-      const paymentIntent: any = {
+      const paymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
-        object: 'payment_intent',
         amount: 1000,
         amount_capturable: 0,
         amount_received: 1000,
         currency: 'usd',
-        status: 'succeeded' as const,
+        status: 'succeeded',
         latest_charge: chargeId,
         metadata: brMetadata,
-      }
+      })
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -1814,17 +1812,17 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const paymentIntent: any = {
+
+      const paymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
-        object: 'payment_intent',
         amount: 1000,
         amount_capturable: 1000,
         amount_received: 0,
         currency: 'usd',
-        status: 'processing' as const,
+        status: 'processing',
         latest_charge: chargeId,
         metadata: processingMetadata,
-      }
+      })
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -1898,17 +1896,17 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const paymentIntent: any = {
+
+      const paymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
-        object: 'payment_intent',
         amount: 1000,
         amount_capturable: 0,
         amount_received: 1000,
         currency: 'usd',
-        status: 'succeeded' as const,
+        status: 'succeeded',
         latest_charge: chargeId,
         metadata: successMetadata,
-      }
+      })
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -2427,14 +2425,13 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const paymentIntent: any = {
+      const paymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
-        object: 'payment_intent',
         amount: 2000,
-        status: 'succeeded' as const,
+        status: 'succeeded',
         latest_charge: chargeId,
         metadata,
-      }
+      })
 
       const result = await adminTransaction(
         async ({ transaction }) => {
@@ -2530,14 +2527,13 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const paymentIntent: any = {
+      const paymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
-        object: 'payment_intent',
         amount: 2000,
-        status: 'canceled' as const,
+        status: 'canceled',
         latest_charge: chargeId,
         metadata,
-      }
+      })
 
       const result = await adminTransaction(
         async ({ transaction }) => {

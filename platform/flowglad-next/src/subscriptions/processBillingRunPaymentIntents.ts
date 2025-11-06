@@ -70,9 +70,9 @@ import {
 import { Event } from '@/db/schema/events'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { processBillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/billingPeriodTransitionLedgerCommand'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { processLedgerCommand } from '@/db/ledgerManager/ledgerManager'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -483,20 +483,14 @@ export const processPaymentIntentForBillingRun = async (
     billingRunStatus === BillingRunStatus.Succeeded
   ) {
     // Check if billing period transition command has already been executed
-    const existingTransitionTransactions =
+    const [transitionForThisBillingPeriod] =
       await selectLedgerTransactions(
         {
           subscriptionId: subscription.id,
           type: LedgerTransactionType.BillingPeriodTransition,
-          // Check by initiatingSourceId matching billingPeriod.id
+          initiatingSourceId: billingPeriod.id,
         },
         transaction
-      )
-
-    // Filter to find transitions for this specific billing period
-    const transitionForThisBillingPeriod =
-      existingTransitionTransactions.find(
-        (tx) => tx.initiatingSourceId === billingPeriod.id
       )
 
     if (!transitionForThisBillingPeriod) {
@@ -551,7 +545,9 @@ export const processPaymentIntentForBillingRun = async (
         }
 
       // Execute directly in the same transaction
-      await processBillingPeriodTransitionLedgerCommand(
+      // FIXME: Create Single Ledger Command For Payment Intent Success
+      // combining the settleInvoiceUsageCostsCommand and billingPeriodTransitionCommand
+      await processLedgerCommand(
         billingPeriodTransitionCommand,
         transaction
       )
