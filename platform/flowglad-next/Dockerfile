@@ -8,39 +8,44 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
-# Enable corepack and ensure pnpm is available (uses version from package.json)
-RUN corepack enable
-
-# Increase Node.js heap for build to avoid OOM
-ARG NODE_OPTIONS=--max-old-space-size=6144
-ENV NODE_OPTIONS=${NODE_OPTIONS}
-
 # Install system deps that are commonly needed by Next.js tooling and node-gyp
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
   ca-certificates \
+  curl \
+  unzip \
   git \
   python3 \
   build-essential && \
   rm -rf /var/lib/apt/lists/*
 
+# Install Bun
+ENV BUN_INSTALL=/root/.bun
+RUN curl -fsSL https://bun.sh/install | bash && \
+  ln -sf /root/.bun/bin/bun /usr/local/bin/bun
+ENV PATH="${BUN_INSTALL}/bin:${PATH}"
+
+# Increase Node.js heap for build to avoid OOM
+ARG NODE_OPTIONS=--max-old-space-size=6144
+ENV NODE_OPTIONS=${NODE_OPTIONS}
+
 # Pre-copy manifest and config files to maximize cache
-COPY package.json pnpm-lock.yaml next.config.mjs ./
+COPY package.json bun.lock next.config.mjs bunfig.toml ./
 
 # Prepare a minimal env file so prebuild step using dotenvx doesn't fail
 RUN touch .env.local
 
 # Install dependencies (full deps for build)
-RUN pnpm install --frozen-lockfile
+RUN /root/.bun/bin/bun install --frozen-lockfile
 
 # Copy the rest of the source
 COPY . .
 
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+RUN --mount=type=cache,id=bun-install-cache,target=/root/.bun/install/cache \
   --mount=type=cache,id=tool-cache,target=/app/node_modules/.cache \
   --mount=type=cache,id=vite-cache,target=/app/node_modules/.vite \
   --mount=type=cache,id=next-cache,target=/app/.next/cache \
-  pnpm build
+  bun run build
 
 ###############################################
 # Runtime stage

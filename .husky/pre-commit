@@ -13,7 +13,7 @@ git diff --cached --name-only -z --diff-filter=ACMR -- '*.ts' '*.tsx' > "$STAGED
 
 if [ -s "$STAGED_TS_FILES_NUL" ]; then
   echo "🪄 Running Prettier on staged TypeScript files..."
-  xargs -0 pnpm prettier --write < "$STAGED_TS_FILES_NUL"
+  xargs -0 bunx prettier --write < "$STAGED_TS_FILES_NUL"
   PRETTIER_STATUS=$?
   if [ $PRETTIER_STATUS -ne 0 ]; then
     echo "❌ Prettier formatting failed. Please fix errors before committing."
@@ -26,11 +26,11 @@ fi
 rm -f "$STAGED_TS_FILES_NUL"
 
 # Run linting and typechecking in parallel for all packages
-pnpm --parallel --filter "./packages/**" lint &
+bun run --if-present --filter @flowglad/* check &
 PID1=$!
 
 # Run linting and typechecking for platform/flowglad-next
-cd "$ROOT_DIR/platform/flowglad-next" && pnpm check &
+cd "$ROOT_DIR/platform/flowglad-next" && bun run check &
 PID2=$!
 
 # Wait for each process and capture exit status

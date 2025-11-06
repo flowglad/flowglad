@@ -64,5 +64,4 @@ describe('parsePaginationParams (strict single values)', () => {
       /Multiple 'cursor' values/i
     )
   })
-
 })

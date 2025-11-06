@@ -385,20 +385,28 @@ const innerHandler = async (
             new URL(req.url).searchParams
           )
           try {
-            const parsedPaginationParams: PaginationParams = parsePaginationParams(queryParamsObject)
+            const parsedPaginationParams: PaginationParams =
+              parsePaginationParams(queryParamsObject)
             if (parsedPaginationParams.cursor) {
               try {
                 parseAndValidateCursor(parsedPaginationParams.cursor)
               } catch (e) {
                 // Legacy cursor path: explicit validation without `id`
                 try {
-                  parseAndValidateLegacyCursor(parsedPaginationParams.cursor)
-                  parentSpan.setAttributes({ 'pagination.legacy_cursor': true })
-                  logger.warn(`[${requestId}] Accepting legacy cursor without id`, {
-                    service: 'api',
-                    request_id: requestId,
-                    route_pattern: routeKey,
+                  parseAndValidateLegacyCursor(
+                    parsedPaginationParams.cursor
+                  )
+                  parentSpan.setAttributes({
+                    'pagination.legacy_cursor': true,
                   })
+                  logger.warn(
+                    `[${requestId}] Accepting legacy cursor without id`,
+                    {
+                      service: 'api',
+                      request_id: requestId,
+                      route_pattern: routeKey,
+                    }
+                  )
                   // Proceed: DB layer applies createdAt-only boundary fallback
                 } catch (_inner) {
                   // Not a valid legacy cursor; rethrow original error
@@ -407,7 +415,10 @@ const innerHandler = async (
               }
             }
             // Merge validated pagination params into mapped route input
-            const mergedInput = { ...(input ?? {}), ...parsedPaginationParams }
+            const mergedInput = {
+              ...(input ?? {}),
+              ...parsedPaginationParams,
+            }
             newUrl.searchParams.set(
               'input',
               JSON.stringify({ json: mergedInput })

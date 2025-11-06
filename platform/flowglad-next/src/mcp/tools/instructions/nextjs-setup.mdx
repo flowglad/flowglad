@@ -66,12 +66,21 @@ return (
 </FlowgladProvider>
 ) `
 
-4. Create a `/billing` route in your app and mount the `BillingPage` component from Flowglad:
+4. Create a `/billing` page in your app and use the `useBilling` hook to load customer billing state:
 
 `tsx /billing/page.tsx
-import { BillingPage } from '@flowglad/nextjs'
+'use client'
+import { useBilling } from '@flowglad/nextjs'
 
 export default function Billing() {
-  return <BillingPage />
+  const { checkFeatureAccess } = useBilling()
+  if (!checkFeatureAccess) {
+    return <div>Loading ...</div>  
+  }
+  if (checkFeatureAccess("my_feature")) {
+    return <div>You have access!</div>
+  } else {
+    return <div>Please upgrade</div>
+  }
 }
 `

@@ -30,17 +30,14 @@ export const OrganizationPayoutsEnabledNotificationEmail = ({
         variant="organization"
       />
       <Paragraph variant="organization">
-        Great news! Payouts have been enabled for your organization. You can
-        now receive payments from your customers.
+        Great news! Payouts have been enabled for your organization.
+        You can now receive payments from your customers.
       </Paragraph>
       <Section
         style={{ textAlign: 'center' as const, marginTop: '32px' }}
       >
-        <EmailButton href={dashboardLink}>
-          View Dashboard
-        </EmailButton>
+        <EmailButton href={dashboardLink}>View Dashboard</EmailButton>
       </Section>
     </EmailLayout>
   )
 }
-

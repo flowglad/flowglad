@@ -1,9 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { SupabaseUpdatePayload } from '@/types'
 import { Organization } from '@/db/schema/organizations'
-import {
-  idempotentSendOrganizationPayoutsEnabledNotification,
-} from '@/trigger/notifications/send-organization-payouts-enabled-notification'
+import { idempotentSendOrganizationPayoutsEnabledNotification } from '@/trigger/notifications/send-organization-payouts-enabled-notification'
 
 interface ChangeCheckerParams {
   oldRecord: Organization.Record
@@ -13,8 +11,7 @@ interface ChangeCheckerParams {
 const payoutsEnabledChanged = (params: ChangeCheckerParams) => {
   const { oldRecord, newRecord } = params
   return (
-    !oldRecord.payoutsEnabled &&
-    newRecord.payoutsEnabled === true
+    !oldRecord.payoutsEnabled && newRecord.payoutsEnabled === true
   )
 }
 
@@ -25,7 +22,7 @@ export const organizationUpdatedTask = task({
     { ctx }
   ) => {
     const { old_record: oldRecord, record: newRecord } = payload
-    
+
     logger.log(
       JSON.stringify(
         {
@@ -52,4 +49,3 @@ export const organizationUpdatedTask = task({
     }
   },
 })
-
