@@ -111,7 +111,10 @@ export function TemplatePreviewModal({
           <div className="flex flex-col gap-4 items-start w-full overflow-y-auto min-h-0 z-[2]">
             {/* Header */}
             <div className="flex flex-col gap-1 items-start px-6 pt-2 pb-0 w-full">
-              <h2 className="text-2xl" aria-hidden="true">
+              <h2
+                className="text-2xl font-semibold"
+                aria-hidden="true"
+              >
                 {template.metadata.title}
               </h2>
               <p className="text-base text-muted-foreground opacity-80">
@@ -139,7 +142,7 @@ export function TemplatePreviewModal({
                       <div className="bg-accent p-3 rounded-2xl flex items-center w-full">
                         {/* Product Name */}
                         <div className="flex-1 min-w-0 flex gap-2 items-center px-2 py-0">
-                          <h3 className="text-md whitespace-nowrap">
+                          <h3 className="text-md font-semibold whitespace-nowrap">
                             {group.displayName}
                           </h3>
                         </div>
@@ -183,7 +186,9 @@ export function TemplatePreviewModal({
                         <div className="px-3 pb-2 flex flex-col gap-2">
                           {/* All Prices - Show all prices from all products in group */}
                           <div className="flex flex-col gap-1">
-                            <h4 className="text-sm">Prices</h4>
+                            <h4 className="text-sm font-semibold">
+                              Prices
+                            </h4>
                             {group.products.flatMap((product) =>
                               product.prices.map(
                                 (
@@ -216,7 +221,9 @@ export function TemplatePreviewModal({
                           {/* Features - Use features from first product */}
                           {firstProduct.features.length > 0 && (
                             <div className="flex flex-col gap-1">
-                              <h4 className="text-sm">Features</h4>
+                              <h4 className="text-sm font-semibold">
+                                Features
+                              </h4>
                               <div className="flex flex-wrap gap-1">
                                 {firstProduct.features.map(
                                   (featureSlug: string) => {
@@ -254,7 +261,6 @@ export function TemplatePreviewModal({
                 variant="secondary"
                 size="icon"
                 onClick={() => setIsOpen(false)}
-                className="rounded-[4px]"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
@@ -262,7 +268,6 @@ export function TemplatePreviewModal({
                 onClick={onConfirm}
                 disabled={isCreating}
                 variant="default"
-                className="rounded-[4px]"
               >
                 {isCreating ? (
                   <>

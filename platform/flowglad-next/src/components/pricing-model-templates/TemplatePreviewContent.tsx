@@ -149,7 +149,7 @@ export function TemplatePreviewContent({
                     <div className="flex items-center gap-2">
                       {/* Product Name */}
                       <div className="flex gap-2 items-center px-2 py-0">
-                        <h3 className="text-md whitespace-nowrap">
+                        <h3 className="text-md font-semibold whitespace-nowrap font-sans">
                           {group.displayName}
                         </h3>
                       </div>
