@@ -57,7 +57,7 @@ export const createMockPaymentIntent = (
     capture_method: 'automatic',
     client_secret: `pi_secret_${id}`,
     confirmation_method: 'automatic',
-    created: Math.floor(Date.now() / 100),
+    created: Math.floor(Date.now() / 1000),
     currency: 'usd',
     customer: null,
     description: null,
