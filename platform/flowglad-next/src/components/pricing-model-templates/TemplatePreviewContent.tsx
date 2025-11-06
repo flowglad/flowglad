@@ -49,19 +49,29 @@ export function TemplatePreviewContent({
   const productGroups = useMemo((): ProductGroup[] => {
     const groupMap = new Map<string, ProductGroup>()
 
-    template.input.products.forEach((product) => {
-      const groupKey = product.displayGroup || product.product.slug
+    // Filter out hidden products. PriceType.Usage prices are required to create usage events
+    // even when overages aren't desired, so we hide them to avoid confusion
+    // in plans where the intent is to disallow overages.
+    template.input.products
+      .filter((product) => product.displayGroup !== 'hidden')
+      .forEach((product) => {
+        // Determine the grouping key: use displayGroup if set, otherwise fall back to product slug
+        const groupKey = product.displayGroup || product.product.slug
 
-      if (!groupMap.has(groupKey)) {
-        groupMap.set(groupKey, {
-          groupKey,
-          displayName: product.product.name,
-          products: [],
-        })
-      }
+        // Create a new group entry if this is the first product in this group
+        // The groupMap organizes products into display groups for the UI,
+        // allowing multiple products to be shown together under a single group header
+        if (!groupMap.has(groupKey)) {
+          groupMap.set(groupKey, {
+            groupKey,
+            displayName: product.product.name,
+            products: [],
+          })
+        }
 
-      groupMap.get(groupKey)!.products.push(product)
-    })
+        // Add the current product to its corresponding group
+        groupMap.get(groupKey)!.products.push(product)
+      })
 
     // Sort products within each group by displayOrder
     groupMap.forEach((group) => {
