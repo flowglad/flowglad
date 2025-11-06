@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer')
+import puppeteer from 'puppeteer'
 
 export const initBrowser = async () => {
   return await puppeteer.connect({
