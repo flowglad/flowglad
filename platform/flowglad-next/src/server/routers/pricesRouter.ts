@@ -104,6 +104,19 @@ export const createPrice = protectedProcedure
               'Default prices on default products must have unitPrice = 0',
           })
         }
+
+        // Forbid creating price of a different type
+        if (
+          existingPrices.length > 0 &&
+          existingPrices[0].type !== price.type
+        ) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'Cannot create price of a different type than the existing prices for the product',
+          })
+        }
+
         const organization = await selectOrganizationById(
           ctx.organizationId!,
           transaction
