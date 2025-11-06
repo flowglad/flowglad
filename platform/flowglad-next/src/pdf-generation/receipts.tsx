@@ -39,7 +39,7 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
         <style>
           {`
               body { 
-                  font-family: 'Inter', sans-serif; 
+                  font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, sans-serif; 
                   color: #333; 
                   line-height: 1.4;
                   margin: 0;

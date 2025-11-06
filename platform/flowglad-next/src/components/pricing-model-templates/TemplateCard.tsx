@@ -37,9 +37,7 @@ export function TemplateCard({
           {/* Icon + Title */}
           <div className="flex flex-col gap-2.5 items-start w-full">
             <Icon className="h-5 text-foreground flex-shrink-0" />
-            <h3 className="text-lg font-semibold min-w-full w-min">
-              {title}
-            </h3>
+            <h3 className="text-lg min-w-full w-min">{title}</h3>
           </div>
 
           {/* Features List */}

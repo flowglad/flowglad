@@ -128,11 +128,7 @@ export function PurchasesDataTable({
       <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         {/* Title on the left (for detail pages) */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && (
-            <h3 className="text-lg font-semibold truncate">
-              {title}
-            </h3>
-          )}
+          {title && <h3 className="text-lg truncate">{title}</h3>}
         </div>
 
         {/* Controls on the right */}
