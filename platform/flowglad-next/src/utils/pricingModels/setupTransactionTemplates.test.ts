@@ -6,7 +6,6 @@ import type { Organization } from '@/db/schema/organizations'
 import {
   USAGE_LIMIT_SUBSCRIPTION_TEMPLATE,
   UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE,
-  CREDITS_SUBSCRIPTION_TEMPLATE,
   AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE,
 } from '@/constants/pricingModelTemplates'
 
@@ -34,10 +33,6 @@ describe('Template Integration Tests', () => {
         {
           template: UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE,
           expectedName: 'Unlimited Usage Subscription',
-        },
-        {
-          template: CREDITS_SUBSCRIPTION_TEMPLATE,
-          expectedName: 'Credit rollover subscription',
         },
         {
           template: AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE,

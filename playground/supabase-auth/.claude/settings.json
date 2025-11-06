@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pnpm lint"
+            "command": "bun run check"
           }
         ]
       }

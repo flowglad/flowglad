@@ -141,7 +141,7 @@ export function TemplatePreviewContent({
                 <button
                   key={group.groupKey}
                   onClick={() => toggleProduct(group.groupKey)}
-                  className="group bg-accent text-secondary-foreground hover:bg-[hsl(0_0%_0%/10%)] dark:bg-accent dark:hover:bg-[hsl(0_0%_100%/15%)] rounded-2xl transition-colors w-full cursor-pointer text-left"
+                  className="group bg-accent text-secondary-foreground hover:bg-[hsl(0_0%_0%/10%)] dark:bg-accent dark:hover:bg-[hsl(0_0%_100%/15%)] rounded-[4px] transition-colors w-full cursor-pointer text-left"
                 >
                   {/* Product Card Header */}
                   <div className="p-3 flex items-center w-full">
@@ -283,13 +283,19 @@ export function TemplatePreviewContent({
       <div className="flex flex-col items-start w-full shrink-0 z-[1]">
         {/* Action Buttons */}
         <div className="flex items-start justify-between w-full gap-4 pt-4">
-          <Button variant="secondary" size="icon" onClick={onBack}>
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={onBack}
+            className="rounded-[4px]"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <Button
             onClick={onConfirm}
             disabled={isCreating}
             variant="default"
+            className="rounded-[4px]"
           >
             {isCreating ? (
               <>

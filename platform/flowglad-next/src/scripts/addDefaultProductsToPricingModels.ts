@@ -1,6 +1,6 @@
 /* 
 Run the following in the terminal to add default products to all pricing models:
-NODE_ENV=production pnpm tsx src/scripts/addDefaultProductsToPricingModels.ts
+NODE_ENV=production bunx tsx src/scripts/addDefaultProductsToPricingModels.ts
 */
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'

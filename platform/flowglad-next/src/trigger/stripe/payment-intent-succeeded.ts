@@ -128,6 +128,7 @@ export const stripePaymentIntentSucceededTask = task({
       currency: invoice.currency,
       customerName: customer.name,
       customerEmail: customer.email,
+      livemode: invoice.livemode,
     })
 
     await storeTelemetry('payment', payment.id, ctx.run.id)

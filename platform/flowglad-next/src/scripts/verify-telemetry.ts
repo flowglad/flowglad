@@ -4,7 +4,7 @@
  * Telemetry Verification Script
  *
  * This script tests all the telemetry improvements made to the REST API.
- * Run with: pnpm tsx scripts/verify-telemetry.ts
+ * Run with: bunx tsx scripts/verify-telemetry.ts
  */
 import chalk from 'chalk'
 

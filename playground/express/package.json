@@ -9,8 +9,8 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
-    "link:packages": "yalc add @flowglad/express @flowglad/server @flowglad/shared && yalc update && pnpm install --ignore-workspace --force && yalc update",
-    "unlink:packages": "yalc remove --all && pnpm install"
+    "link:packages": "yalc add @flowglad/express @flowglad/server @flowglad/shared && yalc update && bun install --force && yalc update",
+    "unlink:packages": "yalc remove --all && bun install"
   },
   "dependencies": {
     "@flowglad/express": "file:.yalc/@flowglad/express",

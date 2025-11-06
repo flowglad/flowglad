@@ -4,25 +4,25 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "prebuild": "dotenvx run -f .env.local -- pnpm tsx src/scripts/removeDevRoutes.ts && pnpm build:preview-css",
-    "build": "pnpm check && next build",
+    "prebuild": "dotenvx run -f .env.local -- bunx tsx src/scripts/removeDevRoutes.ts && bun run build:preview-css",
+    "build": "bun run check && next build",
     "build:preview-css": "tsx src/scripts/build-preview-css.ts",
     "checkout-fork": "chmod +x ./src/scripts/checkout-fork.sh && ./src/scripts/checkout-fork.sh",
     "user": "tsx src/scripts/setup-env-user.ts",
     "start": "next start",
-    "check": "next lint --max-warnings=0 && tsc --noEmit && pnpm validate:registry",
-    "install-packages": "pnpm install --ignore-workspace",
+    "check": "next lint --max-warnings=0 && tsc --noEmit && bun run validate:registry",
+    "install-packages": "bun install",
     "test": "vitest run --reporter=verbose",
     "test:watch": "vitest --reporter=verbose",
-    "test:setup": "export NODE_ENV=test && docker-compose -f docker-compose.test.yml down --volumes && docker-compose -f docker-compose.test.yml up --build -d && docker-compose -f docker-compose.test.yml ps && pnpm migrations:push",
+    "test:setup": "export NODE_ENV=test && docker-compose -f docker-compose.test.yml down --volumes && docker-compose -f docker-compose.test.yml up -d && docker-compose -f docker-compose.test.yml ps && bun run migrations:push",
     "test:teardown": "docker-compose -f docker-compose.test.yml down --volumes",
-    "test:local": "npm run test:setup && DATABASE_URL=postgresql://test:test@localhost:5432/test_db ./src/scripts/run_subscription_tests.sh && npm run test:teardown",
+    "test:local": "bun run test:setup && DATABASE_URL=postgresql://test:test@localhost:5432/test_db ./src/scripts/run_subscription_tests.sh && bun run test:teardown",
     "stripe:webhook-dev": "stripe listen --forward-to localhost:3000/api/webhook-stripe",
-    "trigger:deploy": "npx trigger.dev@4.0.2 deploy --env $TRIGGER_ENV",
+    "trigger:deploy": "bunx --bun trigger.dev@4.0.2 deploy --env $TRIGGER_ENV",
     "vercel:env-pull": "vercel env pull .env.local",
     "postvercel:env-pull": "chmod +x ./src/scripts/set_local_user.sh && ./src/scripts/set_local_user.sh .env_user .env.local",
     "vercel:env-rm": "rm -rf .env.local",
-    "trigger:dev": "dotenvx run -f .env.local -- npx trigger.dev@4.0.2 dev",
+    "trigger:dev": "dotenvx run -f .env.local -- bunx --bun trigger.dev@4.0.2 dev",
     "migrations:drop": "drizzle-kit drop",
     "migrations:generate": "drizzle-kit generate",
     "migrations:push": "tsx ./src/scripts/migrate.ts",
@@ -50,7 +50,9 @@
     "@momentic/js": "0.0.1-alpha.5",
     "@next/env": "^14.2.8",
     "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api-logs": "^0.207.0",
     "@opentelemetry/context-async-hooks": "^1.30.1",
+    "@opentelemetry/sdk-logs": "^0.203.0",
     "@opentelemetry/sdk-trace-base": "^1.30.1",
     "@opentelemetry/sdk-trace-node": "^1.30.1",
     "@radix-ui/react-accordion": "^1.2.2",
@@ -115,7 +117,6 @@
     "@unkey/api": "^0.31.0",
     "@unkey/nextjs": "^0.18.5",
     "@upstash/redis": "^1.35.3",
-    "@vercel/mcp-adapter": "^0.11.1",
     "@vercel/otel": "^1.10.4",
     "ai": "^4.0.21",
     "axios": "1.12.0",
@@ -138,6 +139,7 @@
     "jszip": "^3.10.1",
     "loops": "^5.0.0",
     "lucide-react": "0.479.0",
+    "mcp-handler": "^1.0.3",
     "nanoid": "^5.0.7",
     "next": "15.2.3",
     "next-themes": "^0.4.6",
@@ -220,12 +222,12 @@
     "vite": "6.0.11",
     "vitest": "3.0.5"
   },
-  "pnpm": {
-    "overrides": {
-      "esbuild": "0.25.0",
-      "chromium-bidi": "2.1.2",
-      "@react-email/render": "0.0.17"
-    }
+  "overrides": {
+    "esbuild": "0.25.0",
+    "chromium-bidi": "2.1.2",
+    "@react-email/render": "0.0.17",
+    "zod": "4.1.5",
+    "mcp-handler>zod": "4.1.5"
   },
-  "packageManager": "pnpm@9.14.4+sha512.c8180b3fbe4e4bca02c94234717896b5529740a6cbadf19fa78254270403ea2f27d4e1d46a08a0f56c89b63dc8ebfd3ee53326da720273794e6200fcf0d184ab"
+  "packageManager": "bun@1.2.14"
 }

@@ -21,17 +21,29 @@ export interface BillingHeaderProps
   extends React.HTMLAttributes<HTMLDivElement> {}
 
 export const intervalLabel = (
-  purchase: Pick<
-    Purchase.SubscriptionPurchaseRecord,
+  purchase:
+    | Pick<
+        Purchase.SubscriptionPurchaseRecord,
+        'intervalCount' | 'intervalUnit'
+      >
+    | null
+    | undefined,
+  price?: Pick<
+    Price.SubscriptionRecord,
     'intervalCount' | 'intervalUnit'
   >
 ) => {
-  const intervalCount = purchase?.intervalCount ?? 1
-  const intervalUnit = purchase?.intervalUnit ?? 'month'
+  const intervalCount =
+    purchase?.intervalCount ?? price?.intervalCount ?? 1
+  const intervalUnit =
+    purchase?.intervalUnit ?? price?.intervalUnit ?? 'month'
+
   const intervalLabel =
     intervalCount > 1
       ? `${intervalCount} ${intervalUnit}s`
-      : intervalUnit + 'ly'
+      : intervalUnit !== 'day'
+        ? intervalUnit + 'ly'
+        : 'daily'
   return intervalLabel
 }
 
@@ -51,7 +63,7 @@ export const pricingSubtitleForSubscriptionFlow = (
       price.currency,
       price.unitPrice
     )
-  const intervalLabelText = intervalLabel(purchase)
+  const intervalLabelText = intervalLabel(purchase, price)
 
   const quantitySubtitle =
     checkoutSession.quantity > 1
@@ -66,7 +78,6 @@ export const BillingHeader = React.forwardRef<
   BillingHeaderProps
 >(({ className, ...props }, ref) => {
   const checkoutPageContext = useCheckoutPageContext()
-
   if (
     checkoutPageContext.flowType === CheckoutFlowType.Invoice ||
     checkoutPageContext.flowType === CheckoutFlowType.AddPaymentMethod
@@ -128,7 +139,11 @@ export const BillingHeader = React.forwardRef<
       {/* Product Image */}
       {product.imageURL && (
         <div className="w-full">
-          <div className={cn('w-full rounded-lg overflow-hidden bg-muted')}>
+          <div
+            className={cn(
+              'w-full rounded-lg overflow-hidden bg-muted'
+            )}
+          >
             <Image
               src={product.imageURL}
               alt={product.name}
