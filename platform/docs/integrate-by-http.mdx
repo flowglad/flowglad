@@ -106,7 +106,7 @@ Expose a single authenticated route such as `/api/flowglad/:subroute`. Each subr
 
 **POST /checkout-sessions/create**
 - accept `{ successUrl, cancelUrl, outputMetadata?, outputName?, quantity?, priceId? | priceSlug? }`.
-- if the frontend sent a `priceSlug`, look it up from the catalog you received in `/customers/billing` and substitute the resolved `priceId` before calling [POST /checkout-sessions](https://docs.flowglad.com/api-reference/checkout/create-checkout-session).
+- if the frontend sent a `priceSlug`, look it up from the catalog you received in `/customers/billing` and substitute the resolved `priceId` before calling [POST /checkout-sessions](https://docs.flowglad.com/api-reference/checkout-sessions/create-checkout-session).
 - always include `customerExternalId` (your id) in the request body so Flowglad scopes the checkout correctly.
 
 **POST /checkout-sessions/create-add-payment-method**
