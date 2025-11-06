@@ -25,9 +25,35 @@ const client = postgres(dbUrl, {
 
 const db = drizzle(client)
 
+const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms))
+
+const waitForDatabase = async () => {
+  const maxRetries = Number(process.env.DB_READY_RETRIES ?? 20)
+  const baseDelayMs = Number(process.env.DB_READY_DELAY_MS ?? 1000)
+
+  for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+    try {
+      await client`select 1`
+      return
+    } catch (error) {
+      if (attempt === maxRetries) {
+        throw error
+      }
+      const delayMs = Math.min(baseDelayMs * attempt, 5000)
+      // eslint-disable-next-line no-console
+      console.info(
+        `Waiting for database to become ready (attempt ${attempt}/${maxRetries})...`
+      )
+      await sleep(delayMs)
+    }
+  }
+}
+
 export const migrateDb = async () => {
   // eslint-disable-next-line no-console
   console.info('Applying migrations...')
+  await waitForDatabase()
   await migrate(db, { migrationsFolder: 'drizzle-migrations' })
   //   if (core.IS_TEST) {
   //     console.log(
