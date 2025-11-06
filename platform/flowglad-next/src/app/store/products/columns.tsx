@@ -38,8 +38,10 @@ export interface ProductRow {
 
 function ProductActionsMenu({
   product,
+  prices,
 }: {
   product: Product.ClientRecord
+  prices: Price.ClientRecord[]
 }) {
   const [isArchiveOpen, setIsArchiveOpen] = React.useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false)
@@ -56,6 +58,9 @@ function ProductActionsMenu({
     text: purchaseLink,
   })
 
+  // Check if product has any usage type prices
+  const hasUsagePrice = prices.some((price) => price.type === 'usage')
+
   const actionItems: ActionMenuItem[] = [
     {
       label: 'Edit',
@@ -66,10 +71,12 @@ function ProductActionsMenu({
       label: 'Copy purchase link',
       icon: <Copy className="h-4 w-4" />,
       handler: copyPurchaseLinkHandler,
-      disabled: product.default,
+      disabled: product.default || hasUsagePrice,
       helperText: product.default
         ? 'Cannot copy checkout link for default products. Default products are automatically assigned to customers.'
-        : undefined,
+        : hasUsagePrice
+          ? 'Cannot copy checkout link for products with usage-based pricing.'
+          : undefined,
     },
     {
       label: product.active ? 'Deactivate' : 'Activate',
@@ -213,9 +220,10 @@ export const columns: ColumnDef<ProductRow>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const product = row.original.product
+      const prices = row.original.prices
       return (
         <div onClick={(e) => e.stopPropagation()}>
-          <ProductActionsMenu product={product} />
+          <ProductActionsMenu product={product} prices={prices} />
         </div>
       )
     },
