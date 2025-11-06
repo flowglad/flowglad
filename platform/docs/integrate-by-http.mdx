@@ -83,7 +83,7 @@ Implementing Flowglad on your backend will consist of 3 steps (feel free to feed
 
 ### Authenticate and Derive the Requesting Customer
 
-Every server-originated Flowglad call needs the customer scoped using your ids. The `FlowgladServer` class (`packages/server/src/FlowgladServer.ts`) shows the contract we enforce in the SDKs:
+Every server-originated Flowglad call needs the customer scoped using your ids. The `FlowgladServer` class ([`packages/server/src/FlowgladServer.ts`](https://github.com/flowglad/flowglad/blob/main/packages/server/src/FlowgladServer.ts)) shows the contract we enforce in the SDKs:
 
 - derive a `{ externalId, name, email }` triple either from your auth provider (NextAuth, Supabase, Clerk) or a custom `getRequestingCustomer`.
 - only one auth provider can populate a request. If you support multiple providers, branch before instantiating your handler.
