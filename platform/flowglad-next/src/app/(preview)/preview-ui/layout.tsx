@@ -1,7 +1,6 @@
-import { Inter } from 'next/font/google'
 import { ThemeProvider } from './components/ThemeProvider'
-
-const inter = Inter({ subsets: ['latin'] })
+import { arizonaFlare, sfPro, berkeleyMono } from '@/lib/fonts'
+import { cn } from '@/lib/utils'
 
 export default function PreviewLayout({
   children,
@@ -9,7 +8,15 @@ export default function PreviewLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={cn(
+        arizonaFlare.variable,
+        sfPro.variable,
+        berkeleyMono.variable
+      )}
+      suppressHydrationWarning
+    >
       <head>
         <meta charSet="utf-8" />
         <meta
@@ -20,7 +27,7 @@ export default function PreviewLayout({
         {/* eslint-disable-next-line @next/next/no-css-tags */}
         <link rel="stylesheet" href="/preview/preview.css" />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
+      <body className={cn(sfPro.className)} suppressHydrationWarning>
         <ThemeProvider
           defaultTheme="system"
           storageKey="preview-theme"

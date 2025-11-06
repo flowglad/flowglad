@@ -10,6 +10,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-heading)', 'serif'],
+        mono: ['var(--font-mono)', 'monospace'],
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
