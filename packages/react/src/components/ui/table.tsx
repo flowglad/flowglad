@@ -38,7 +38,10 @@ function TableHeader({
   return (
     <thead
       data-slot="table-header"
-      className={cn('[&_tr]:flowglad-border-b', className)}
+      className={cn(
+        '[&_tr]:flowglad-border-b [&_tr]:hover:!flowglad-bg-transparent',
+        className
+      )}
       {...props}
     />
   )
@@ -81,7 +84,7 @@ function TableRow({
     <tr
       data-slot="table-row"
       className={cn(
-        'hover:flowglad-bg-secondary data-[state=selected]:flowglad-bg-muted flowglad-border-b flowglad-border flowglad-transition-colors',
+        'hover:flowglad-bg-secondary dark:hover:flowglad-bg-accent data-[state=selected]:flowglad-bg-muted flowglad-border-b flowglad-border flowglad-transition-colors',
         className
       )}
       {...props}
