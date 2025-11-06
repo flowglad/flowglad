@@ -182,7 +182,8 @@
     "vaul": "1.1.2",
     "yaml": "^2.8.1",
     "zod": "4.1.5",
-    "zod-openapi": "5.4.0"
+    "zod-openapi": "5.4.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
