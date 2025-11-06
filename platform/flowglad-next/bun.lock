@@ -152,6 +152,7 @@
         "trpc-to-openapi": "3.0.1",
         "tsx": "^4.17.0",
         "vaul": "1.1.2",
+        "ws": "^8.18.0",
         "yaml": "^2.8.1",
         "zod": "4.1.5",
         "zod-openapi": "5.4.0",
@@ -200,7 +201,6 @@
     "@react-email/render": "0.0.17",
     "chromium-bidi": "2.1.2",
     "esbuild": "0.25.0",
-    "mcp-handler>zod": "4.1.5",
     "zod": "4.1.5",
   },
   "packages": {
