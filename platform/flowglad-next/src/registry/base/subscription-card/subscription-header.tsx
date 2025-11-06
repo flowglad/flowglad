@@ -20,7 +20,7 @@ export function SubscriptionHeader({
       className={cn('flex items-start justify-between', className)}
     >
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">{name}</h3>
+        <h3 className="text-lg">{name}</h3>
         {status === 'trialing' && trialEnd && (
           <p className="text-sm text-muted-foreground">
             Trial: {formatDaysRemaining(trialEnd)}

@@ -29,11 +29,11 @@ export function TablePagination({
 
   return (
     <div className="flex items-center justify-between py-3">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-muted-foreground/50 font-mono">
         {isLoading || isFetching ? (
           <span>Loading...</span>
-        ) : (
-          <span style={{ opacity: total === 0 ? 0 : 1 }}>
+        ) : total === 0 ? null : (
+          <span>
             {showingStart}-{showingEnd} of {total}
           </span>
         )}
