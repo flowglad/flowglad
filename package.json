@@ -21,6 +21,9 @@
     "packages:publish": "bun run build:declarations && bun run build && bunx changeset publish",
     "prepare": "husky"
   },
+  "dependencies": {
+    "tsx": "4.17.0"
+  },
   "devDependencies": {
     "@changesets/cli": "^2.26.0",
     "@types/node": "^18.0.0",
@@ -37,7 +40,6 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "tsup": "8.3.6",
-    "tsx": "4.17.0",
     "turbo": "^2.4.4",
     "typescript": "5.8.2",
     "zx": "^8.3.2"
