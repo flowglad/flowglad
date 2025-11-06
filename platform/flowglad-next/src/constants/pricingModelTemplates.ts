@@ -1532,7 +1532,7 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             },
           ],
           features: [],
-          displayGroup: 'usage_prices',
+          displayGroup: 'hidden',
           displayOrder: 1,
         },
         {
@@ -1563,7 +1563,7 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             },
           ],
           features: [],
-          displayGroup: 'usage_prices',
+          displayGroup: 'hidden',
           displayOrder: 2,
         },
       ],

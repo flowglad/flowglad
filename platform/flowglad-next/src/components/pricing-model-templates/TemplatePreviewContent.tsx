@@ -49,19 +49,21 @@ export function TemplatePreviewContent({
   const productGroups = useMemo((): ProductGroup[] => {
     const groupMap = new Map<string, ProductGroup>()
 
-    template.input.products.forEach((product) => {
-      const groupKey = product.displayGroup || product.product.slug
+    template.input.products
+      .filter((product) => product.displayGroup !== 'hidden')
+      .forEach((product) => {
+        const groupKey = product.displayGroup || product.product.slug
 
-      if (!groupMap.has(groupKey)) {
-        groupMap.set(groupKey, {
-          groupKey,
-          displayName: product.product.name,
-          products: [],
-        })
-      }
+        if (!groupMap.has(groupKey)) {
+          groupMap.set(groupKey, {
+            groupKey,
+            displayName: product.product.name,
+            products: [],
+          })
+        }
 
-      groupMap.get(groupKey)!.products.push(product)
-    })
+        groupMap.get(groupKey)!.products.push(product)
+      })
 
     // Sort products within each group by displayOrder
     groupMap.forEach((group) => {
