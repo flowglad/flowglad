@@ -58,10 +58,10 @@
 Primeiro, instale os pacotes Flowglad necessários com base na configuração do seu projeto:
 ```bash
 # Projetos Next.js
-pnpm install @flowglad/nextjs
+bun add @flowglad/nextjs
 
 # Projetos Vite
-pnpm install @flowglad/react @flowglad/server
+bun add @flowglad/react @flowglad/server
 ```
 
 O Flowglad se integra fortemente com sua autenticação. Aqui estão alguns prompts que você pode usar para integrar o Flowglad, baseado no seu provedor de autenticação, em cerca de 30 segundos:
@@ -73,7 +73,7 @@ O Flowglad se integra fortemente com sua autenticação. Aqui estão alguns prom
 Por favor, configure a cobrança para nosso aplicativo de acordo com as seguintes instruções. Note que isso assume um aplicativo Next.js. Se nosso projeto usa uma stack diferente, você precisará adaptá-lo adequadamente. Especificamente, você precisará mudar o seguinte:
 `bash
 # substitua @flowglad/nextjs por @flowglad/react e @flowglad/server
-pnpm install @flowglad/react @flowglad/server # ou qualquer gerenciador de pacotes que usamos
+bun add @flowglad/react @flowglad/server # ou qualquer gerenciador de pacotes que usamos
 `
 
 `ts
@@ -150,7 +150,7 @@ return (
 Por favor, configure a cobrança para nosso aplicativo de acordo com as seguintes instruções. Note que isso assume um aplicativo Next.js. Se nosso projeto usa uma stack diferente, você precisará adaptá-lo adequadamente. Especificamente, você precisará mudar o seguinte:
 `bash
 # substitua @flowglad/nextjs por @flowglad/react e @flowglad/server
-pnpm install @flowglad/react @flowglad/server # ou qualquer gerenciador de pacotes que usamos
+bun add @flowglad/react @flowglad/server # ou qualquer gerenciador de pacotes que usamos
 `
 
 `ts
@@ -229,7 +229,7 @@ return (
 Por favor, configure a cobrança para nosso aplicativo de acordo com as seguintes instruções. Note que isso assume um aplicativo Next.js. Se nosso projeto usa uma stack diferente, você precisará adaptá-lo adequadamente. Especificamente, você precisará mudar o seguinte:
 `bash
 # substitua @flowglad/nextjs por @flowglad/react e @flowglad/server
-pnpm install @flowglad/react @flowglad/server # ou qualquer gerenciador de pacotes que usamos
+bun add @flowglad/react @flowglad/server # ou qualquer gerenciador de pacotes que usamos
 `
 
 `ts

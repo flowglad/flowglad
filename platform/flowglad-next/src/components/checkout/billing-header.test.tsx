@@ -106,5 +106,4 @@ describe('BillingHeader', () => {
       expect(result).toBe('monthly')
     })
   })
-
 })

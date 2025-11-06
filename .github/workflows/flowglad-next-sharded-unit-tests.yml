@@ -1,6 +1,6 @@
 # This workflow runs the unit tests 
 # for flowglad-next in a sharded manner.
-# It runs the pnpm test command across 4 shards,
+# It runs the bun test command across 4 shards,
 # and then merges the reports together.
 name: Flowglad Next Unit Tests
 
@@ -35,24 +35,13 @@ jobs:
         uses: actions/setup-node@9ced9a43a244f3ac94f13bfd896db8c8f30da67a # v3
         with:
           node-version: '18'
-      - name: Install pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          version: 8
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-      - name: Setup pnpm cache
-        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          bun-version: '1.2.14'
+          cache: true
       - name: Install dependencies
-        run: pnpm install-packages
+        run: bun run install-packages --no-progress
       # Docker setup for test dependencies (databases, etc.)
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@dc7b9719a96d48369863986a06765841d7ea23f6 # v2
@@ -68,14 +57,14 @@ jobs:
           # Verify services are running
           docker-compose -f docker-compose.test.yml ps
       - name: Run test setup
-        run: pnpm test:setup
+        run: bun run test:setup
       - name: Create vitest reports directory
         run: mkdir -p .vitest-reports
       # Run tests for this specific shard
       # Each shard runs a subset of tests based on shardIndex/shardTotal
       # Verbose output will show detailed test results in the CI logs
       - name: Run sharded tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
-        run: pnpm vitest run --reporter=verbose --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --no-silent
+        run: bunx vitest run --reporter=verbose --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --no-silent
       # Upload test results as artifacts for later merging
       - name: Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
@@ -88,7 +77,7 @@ jobs:
       # Clean up Docker containers after tests complete
       - name: Run test teardown
         if: always()  # Run even if tests fail
-        run: pnpm test:teardown
+        run: bun run test:teardown
   
   # Merges the reports from the sharded tests into a single report.
   # This job runs after all shards complete and combines their results
@@ -109,24 +98,13 @@ jobs:
         uses: actions/setup-node@9ced9a43a244f3ac94f13bfd896db8c8f30da67a # v3
         with:
           node-version: '18'
-      - name: Install pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          version: 8
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-      - name: Setup pnpm cache
-        uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          bun-version: '1.2.14'
+          cache: true
       - name: Install dependencies
-        run: pnpm install-packages
+        run: bun run install-packages --no-progress
       # Download all shard reports from artifacts
       - name: Download blob reports from GitHub Actions Artifacts
         uses: actions/download-artifact@v4
@@ -136,4 +114,4 @@ jobs:
           merge-multiple: true    # Merge into single directory
       # Combine all shard reports into a single comprehensive report
       - name: Merge reports
-        run: pnpm vitest run --merge-reports
+        run: bunx vitest run --merge-reports

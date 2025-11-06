@@ -1,6 +1,6 @@
 /* 
 run the following in the terminal
-NODE_ENV=production pnpm tsx src/scripts/rehydrateBillingPeriodItems.ts billing_period_id=bp_...
+NODE_ENV=production bunx tsx src/scripts/rehydrateBillingPeriodItems.ts billing_period_id=bp_...
 */
 
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -26,7 +26,7 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
   if (!billingPeriodIdArg) {
     console.error('Error: billing_period_id argument is required')
     console.error(
-      'Usage: NODE_ENV=production pnpm tsx src/scripts/rehydrateBillingPeriodItems.ts billing_period_id=bp_...'
+      'Usage: NODE_ENV=production bunx tsx src/scripts/rehydrateBillingPeriodItems.ts billing_period_id=bp_...'
     )
     process.exit(1)
   }

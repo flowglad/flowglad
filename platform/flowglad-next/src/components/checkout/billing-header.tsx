@@ -21,17 +21,22 @@ export interface BillingHeaderProps
   extends React.HTMLAttributes<HTMLDivElement> {}
 
 export const intervalLabel = (
-  purchase: Pick<
-    Purchase.SubscriptionPurchaseRecord,
-    'intervalCount' | 'intervalUnit'
-  > | null | undefined,
+  purchase:
+    | Pick<
+        Purchase.SubscriptionPurchaseRecord,
+        'intervalCount' | 'intervalUnit'
+      >
+    | null
+    | undefined,
   price?: Pick<
     Price.SubscriptionRecord,
     'intervalCount' | 'intervalUnit'
   >
 ) => {
-  const intervalCount = purchase?.intervalCount ?? price?.intervalCount ?? 1
-  const intervalUnit = purchase?.intervalUnit ?? price?.intervalUnit ?? 'month'
+  const intervalCount =
+    purchase?.intervalCount ?? price?.intervalCount ?? 1
+  const intervalUnit =
+    purchase?.intervalUnit ?? price?.intervalUnit ?? 'month'
 
   const intervalLabel =
     intervalCount > 1
@@ -134,7 +139,11 @@ export const BillingHeader = React.forwardRef<
       {/* Product Image */}
       {product.imageURL && (
         <div className="w-full">
-          <div className={cn('w-full rounded-lg overflow-hidden bg-muted')}>
+          <div
+            className={cn(
+              'w-full rounded-lg overflow-hidden bg-muted'
+            )}
+          >
             <Image
               src={product.imageURL}
               alt={product.name}

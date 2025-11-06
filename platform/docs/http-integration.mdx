@@ -61,12 +61,37 @@ Integrating Flowglad does not require you to make any schema changes to your dat
 
 ### Implementation Plan
 
-Implementing Flowglad on your backend will consist of 3 steps:
+Implementing Flowglad on your backend will consist of 3 steps (feel free to feed this to AI):
 
-1. Create a server route at `/api/flowglad/:subroute` that is publicly accessible, and authenticated using your existing server-side authentication logic. Your frontend will send requests to this route via the [@flowglad/react](https://www.npmjs.com/package/@flowglad/react) SDK.
+1. Add Flowglad customer creation to your product's account creation flow
+  - Call [POST /customers](https://docs.flowglad.com/api-reference/customer/create-customer) to create the customer
 
-2. Add a Flowglad customer creation
+2. Create a server route at `/api/flowglad/:subroute` that is publicly accessible and authenticated using your existing server-side authentication logic. Your frontend will send requests to this route via the [@flowglad/react](https://www.npmjs.com/package/@flowglad/react) SDK.
 
-#### Find or Create Customer Profile
+3. Implement a set of helper functions in your backend to handle common actions:
+   - `findOrCreateCustomerBilling({ name: string, externalId: string, email: string })`:
+     call [GET /customers/:externalId/billing](https://docs.flowglad.com/api-reference/customer/get-customer). If you receive a 404, call [POST /customers](https://docs.flowglad.com/api-reference/customer/create-customer) to create the customer
+   - `checkFeatureAccess(slug: string, customerBilling: <GET /customers/:externalId response>)`:
+        - gets `experimental.featureItems` payload in the first `currentSubscription` in the customer billing response
+        - returns true if a feature is present where `feature.type=="toggle" && feature.slug == slug`
+        - returns false otherwise
+   - if you plan to track usage in real time: `checkUsageBalance(slug: string, customerBilling: <GET /customers/:externalId response>)`:
+        - gets `experimental.usageMeterBalances` in the first `currentSubscription` in the customer billing response
+        - finds the `usageMeterBalance` where `usageMeterBalance.slug == slug`
+        - returns `{ availableBalance: number }` if the usageMeterBalance is found, using `usageMeterBalance.availableBalance`
+        - returns `null` if not found
+
+#### Implement the Sub-routes
+In your server's Flowglad route handler (at `/api/flowglad/:subroute`), implement the subroute handlers.
+
+**GET /customers/billing**
+- use your authentication logic to derive the customer making the request from your frontend `{ name: string, externalId: string, email: string }`, where the `email` is the email address associated with the owner of the account and `externalId` is the id of the customer in your system
+- use the `findOrCreateCustomerBilling` helper to get the customer billing data, and return
+
+**POST /checkout-sessions/create**
+
+**/checkout-sessions/create-add-payment-method**
+
+**/checkout-sessions/create-activate-subscription**
 
 
