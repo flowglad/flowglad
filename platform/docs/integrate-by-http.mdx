@@ -116,7 +116,7 @@ Expose a single authenticated route such as `/api/flowglad/:subroute`. Each subr
 
 **POST /checkout-sessions/create-activate-subscription**
 - requires `{ targetSubscriptionId, priceId, successUrl, cancelUrl }`.
-- send `type: "activate_subscription"` to [POST /checkout-sessions] so the Flowglad dashboard knows to attach the subscription after payment.
+- send `type: "activate_subscription"` to [POST /checkout-sessions](https://docs.flowglad.com/api-reference/checkout-sessions/create-checkout-session) so the Flowglad dashboard knows to attach the subscription after payment.
 
 **POST /subscriptions/cancel**
 - expect `{ id, cancellation }` where `cancellation` is one of:
