@@ -79,6 +79,7 @@ const config: Config = {
         },
       },
       boxShadow: {
+        xs: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
         medium:
           '-3px 4px 21px 0px rgba(0, 0, 0, 0.05), -2px 2px 4px 0px rgba(0, 0, 0, 0.04)',
       },

@@ -44,6 +44,12 @@
   /* Apply monospace font to code elements */
   code, pre, kbd, samp {
     font-family: var(--font-mono), monospace;
+    font-weight: 450;
+  }
+
+  /* Apply default weight to font-mono utility class */
+  .font-mono {
+    font-weight: 450;
   }
 
   input:-webkit-autofill:not([data-stripe]):not([name*="__privateStripe"]),
