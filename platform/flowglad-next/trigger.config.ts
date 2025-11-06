@@ -41,8 +41,8 @@ export default defineConfig({
       puppeteer(),
       esbuildPlugin(
         sentryEsbuildPlugin({
-          org: process.env.SENTRY_ORG as string,
-          project: process.env.SENTRY_PROJECT as string,
+          org: 'flowglad',
+          project: 'javascript-nextjs',
           authToken: process.env.SENTRY_AUTH_TOKEN,
         }),
         { placement: 'last', target: 'deploy' }

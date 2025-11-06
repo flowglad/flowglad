@@ -128,7 +128,7 @@ const CreatePricingModelModal: React.FC<
   // Get dialog content className based on view
   const getDialogClassName = () => {
     if (currentView === 'selector') {
-      return 'w-[calc(100vw-32px)] sm:w-[calc(100vw-64px)] sm:max-w-[1200px] p-0 sm:p-0 gap-0 max-h-[90vh] overflow-hidden rounded-3xl'
+      return 'w-[calc(100vw-32px)] sm:w-[calc(100vw-64px)] sm:max-w-[1200px] p-0 sm:p-0 gap-0 max-h-[90vh] overflow-hidden rounded'
     }
     if (currentView === 'blank') {
       return 'w-[calc(100vw-32px)] sm:max-w-md p-4 sm:p-6 gap-4 max-h-[90vh]'
