@@ -21,7 +21,7 @@ You should **not** use webhooks to synchronize data the following data:
 - What usage credits your customer has access to
 
 For data like this, Flowglad serves as the source of truth for your product. Instead should rely on Flowglad's `useBilling`, `flowgladServer.getBilling`, or `customers/:externalId/billing` payload.
-
+For data like this, Flowglad serves as the source of truth for your product. Instead, you should rely on Flowglad's `useBilling`, `flowgladServer.getBilling`, or `customers/:externalId/billing` payload.
 This significantly reduces bugs related to synchronization of state between Flowglad (your payment processor), and your application. 
 
 ## How deliveries work
