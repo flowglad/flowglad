@@ -1,0 +1,161 @@
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/nextjs
+```
+
+```bash yarn
+yarn add @flowglad/nextjs
+```
+
+```bash bun
+bun add @flowglad/nextjs
+```
+
+</CodeGroup>
+
+## Requirements
+
+- React 18 or 19
+- Next.js 14 or 15
+
+## Quick Start
+
+### 1. Set Up Environment Variables
+
+Add your Flowglad API key to your environment:
+
+```bash .env
+FLOWGLAD_SECRET_KEY="sk_test_..."
+```
+
+### 2. Create Server Client
+
+Create a Flowglad server instance in a shared file:
+
+<CodeGroup>
+
+```ts app/lib/flowglad.ts (App Router)
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    // Return customer information based on your auth
+    return {
+      externalId: 'user-123',
+      name: 'John Doe',
+      email: 'john@example.com',
+    }
+  },
+})
+```
+
+```ts lib/flowglad.ts (Pages Router)
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    // Return customer information based on your auth
+    return {
+      externalId: 'user-123',
+      name: 'John Doe',
+      email: 'john@example.com',
+    }
+  },
+})
+```
+
+</CodeGroup>
+
+### 3. Create API Route Handler
+
+<CodeGroup>
+
+```ts app/api/flowglad/[...path]/route.ts (App Router)
+import { flowgladServer } from '@/app/lib/flowglad'
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
+
+const { GET, POST } = createAppRouterRouteHandler({ flowgladServer })
+
+export { GET, POST }
+```
+
+```ts pages/api/flowglad/[...path].ts (Pages Router)
+import { flowgladServer } from '@/lib/flowglad'
+import { createPagesRouterRouteHandler } from '@flowglad/nextjs/server'
+
+export default createPagesRouterRouteHandler({ flowgladServer })
+```
+
+</CodeGroup>
+
+### 4. Wrap Your App with FlowgladProvider
+
+<CodeGroup>
+
+```tsx app/layout.tsx (App Router)
+import { FlowgladProvider } from '@flowglad/nextjs'
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <FlowgladProvider loadBilling={true}>
+          {children}
+        </FlowgladProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+```tsx pages/_app.tsx (Pages Router)
+import { FlowgladProvider } from '@flowglad/nextjs'
+
+export default function App({ Component, pageProps }) {
+  return (
+    <FlowgladProvider loadBilling={true}>
+      <Component {...pageProps} />
+    </FlowgladProvider>
+  )
+}
+```
+
+</CodeGroup>
+
+### 5. Use the Billing Hook
+
+```tsx
+import { useBilling } from '@flowglad/nextjs'
+
+export default function BillingPage() {
+  const { checkFeatureAccess, createCheckoutSession } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return <div>Loading...</div>
+  }
+
+  if (checkFeatureAccess('premium_feature')) {
+    return <div>You have access to premium features!</div>
+  }
+
+  return (
+    <button
+      onClick={() =>
+        createCheckoutSession({
+          priceId: 'price_123',
+          successUrl: window.location.href,
+          cancelUrl: window.location.href,
+          autoRedirect: true,
+        })
+      }
+    >
+      Upgrade to Premium
+    </button>
+  )
+}
+```
+
+

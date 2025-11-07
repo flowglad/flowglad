@@ -3,6 +3,8 @@ title: "@flowglad/express"
 description: "Express middleware and route handlers for Flowglad integration"
 ---
 
+import ExpressSetup from '/snippets/setup-express.mdx'
+
 <Info>
   NPM Package: [@flowglad/express](https://www.npmjs.com/package/@flowglad/express)
 </Info>
@@ -11,84 +13,7 @@ description: "Express middleware and route handlers for Flowglad integration"
 
 The Express SDK provides middleware and route handlers for integrating Flowglad into your Express.js applications. It works seamlessly with the Flowglad Server SDK to handle billing operations.
 
-## Installation
-
-<CodeGroup>
-
-```bash npm
-npm install @flowglad/express @flowglad/server
-```
-
-```bash yarn
-yarn add @flowglad/express @flowglad/server
-```
-
-```bash bun
-bun add @flowglad/express @flowglad/server
-```
-
-</CodeGroup>
-
-## Quick Start
-
-### 1. Set Up Environment Variables
-
-```bash .env
-FLOWGLAD_SECRET_KEY="sk_test_..."
-```
-
-### 2. Create Flowglad Server Instance
-
-```ts src/utils/flowglad.ts
-import { FlowgladServer } from '@flowglad/server'
-
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    // Return customer based on your auth system
-    return {
-      externalId: 'user-123',
-      name: 'John Doe',
-      email: 'john@example.com',
-    }
-  },
-})
-```
-
-### 3. Add Routes to Your Express App
-
-<CodeGroup>
-
-```ts Using Router (Recommended)
-import express from 'express'
-import { createFlowgladExpressRouter } from '@flowglad/express'
-import { flowgladServer } from './utils/flowglad'
-
-const app = express()
-
-// Mount Flowglad routes at /api/flowglad
-app.use('/api/flowglad', createFlowgladExpressRouter({ flowgladServer }))
-
-app.listen(3000, () => {
-  console.log('Server running on port 3000')
-})
-```
-
-```ts Using Route Handler
-import express from 'express'
-import { createFlowgladExpressRouteHandler } from '@flowglad/express'
-import { flowgladServer } from './utils/flowglad'
-
-const app = express()
-
-const flowgladHandler = createFlowgladExpressRouteHandler({ flowgladServer })
-
-// Handle all Flowglad routes
-app.all('/api/flowglad/*', flowgladHandler)
-
-app.listen(3000)
-```
-
-</CodeGroup>
+<ExpressSetup />
 
 ## Key Features
 

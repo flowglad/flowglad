@@ -1,0 +1,71 @@
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/react @flowglad/server
+```
+
+```bash yarn
+yarn add @flowglad/react @flowglad/server
+```
+
+```bash bun
+bun add @flowglad/react @flowglad/server
+```
+
+</CodeGroup>
+
+<Note>
+  **Note:** This package requires `@flowglad/server` to be set up on your backend. See the [Server SDK documentation](/sdks/server) for setup instructions.
+</Note>
+
+## Quick Start
+
+### 1. Wrap Your App with FlowgladProvider
+
+```tsx
+import { FlowgladProvider } from '@flowglad/react'
+
+export default function App({ children }) {
+  return (
+    <FlowgladProvider
+      loadBilling={true}
+      requestConfig={{
+        headers: {
+          // Add custom headers if needed
+        },
+      }}
+      theme={{
+        mode: 'dark',
+        dark: {
+          background: '#1b1b1b',
+          card: 'rgb(35 35 35)',
+        },
+      }}
+    >
+      {children}
+    </FlowgladProvider>
+  )
+}
+```
+
+### 2. Use the useBilling Hook
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+export default function BillingPage() {
+  const { checkFeatureAccess, customer, paymentMethods } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return <div>Loading...</div>
+  }
+
+  if (checkFeatureAccess('premium_feature')) {
+    return <div>You have access!</div>
+  }
+
+  return <div>Please upgrade</div>
+}
+```

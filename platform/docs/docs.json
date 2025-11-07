@@ -55,7 +55,13 @@
           {
             "group": "Overview",
             "pages": [
-              "sdks/introduction"
+              "sdks/introduction",
+              "sdks/setup",
+              "sdks/pricing-models-products",
+              "sdks/checkout-sessions",
+              "sdks/feature-access-usage",
+              "sdks/customer-purchases",
+              "sdks/subscription-management"
             ]
           },
           {
