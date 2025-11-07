@@ -19,9 +19,7 @@ export function PageHeader({
     >
       <div className="space-y-1 min-w-0 flex-1">
         {(title || children) && (
-          <h1 className="text-2xl font-semibold tracking-tight truncate">
-            {title || children}
-          </h1>
+          <h1 className="text-2xl truncate">{title || children}</h1>
         )}
         {subtitle && (
           <p className="text-sm text-muted-foreground">{subtitle}</p>

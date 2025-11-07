@@ -152,6 +152,7 @@
         "trpc-to-openapi": "3.0.1",
         "tsx": "^4.17.0",
         "vaul": "1.1.2",
+        "ws": "8.18.3",
         "yaml": "^2.8.1",
         "zod": "4.1.5",
         "zod-openapi": "5.4.0",
@@ -197,11 +198,10 @@
     },
   },
   "overrides": {
-    "@react-email/render": "0.0.17",
-    "chromium-bidi": "2.1.2",
     "esbuild": "0.25.0",
-    "mcp-handler>zod": "4.1.5",
+    "chromium-bidi": "2.1.2",
     "zod": "4.1.5",
+    "@react-email/render": "0.0.17",
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.4.4", "", {}, "sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg=="],
