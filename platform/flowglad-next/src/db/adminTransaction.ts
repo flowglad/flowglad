@@ -46,8 +46,25 @@ export async function adminTransaction<T>(
 }
 
 /**
- * New comprehensive admin transaction handler.
- * Takes a function that returns TransactionOutput, and handles event logging and ledger commands.
+ * Executes a function within an admin database transaction and automatically processes
+ * events and ledger commands from the transaction output.
+ *
+ * @param fn - Function that receives admin transaction parameters and returns a TransactionOutput
+ *   containing the result, optional events to insert, and optional ledger commands to process
+ * @param options - Transaction options including livemode flag
+ * @returns Promise resolving to the result value from the transaction function
+ *
+ * @example
+ * ```ts
+ * const result = await comprehensiveAdminTransaction(async (params) => {
+ *   // ... perform operations ...
+ *   return {
+ *     result: someValue,
+ *     eventsToInsert: [event1, event2],
+ *     ledgerCommand: { type: 'credit', amount: 100 }
+ *   }
+ * })
+ * ```
  */
 export async function comprehensiveAdminTransaction<T>(
   fn: (

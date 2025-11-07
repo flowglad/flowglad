@@ -1,7 +1,4 @@
-import {
-  comprehensiveAdminTransaction,
-  eventfulAdminTransaction,
-} from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
@@ -49,14 +46,16 @@ export const stripePaymentIntentSucceededTask = task({
       organization,
       customer,
       payment,
-    } = await eventfulAdminTransaction(async ({ transaction }) => {
-      const {
-        result: { payment },
-        eventsToInsert,
-      } = await processPaymentIntentStatusUpdated(
+    } = await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const paymentResult = await processPaymentIntentStatusUpdated(
         payload.data.object,
         transaction
       )
+      const {
+        result: { payment },
+        eventsToInsert,
+        ledgerCommand,
+      } = paymentResult
 
       const purchase = await selectPurchaseById(
         payment.purchaseId!,
@@ -102,7 +101,11 @@ export const stripePaymentIntentSucceededTask = task({
       }
       const eventInserts: Event.Insert[] = [...(eventsToInsert ?? [])]
 
-      return [result, eventInserts]
+      return {
+        result,
+        eventsToInsert: eventInserts,
+        ledgerCommand,
+      }
     }, {})
 
     /**
