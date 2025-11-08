@@ -1,21 +1,177 @@
 ---
 title: "Checkout Sessions"
-description: "Guide to launching Flowglad checkout flows programmatically"
+description: "Learn how to launch checkout flows"
 ---
 
 ## Overview
 
-Checkout sessions allow you to hand off payment collection to Flowglad-hosted or embedded flows. Use them to reduce PCI scope while offering a polished purchase experience.
+[Checkout sessions](/features/checkout-sessions) allow you to launch hosted Flowglad checkout pages to complete customer transactions
 
-## What you'll learn
+### What you can do
 
-- Create checkout sessions with the Server SDK.
-- Redirect or embed checkout flows from your frontend SDK.
-- Customize session metadata to track plans, coupons, and post-checkout actions.
+- Create product checkout sessions.
+- Securely save a payment method to a customer's Flowglad profile, optionally making it the default payment method for subscriptions.
+- ...and more!
 
-## Next steps
+### Example: Launch a checkout
 
-- Follow the Server SDK walkthrough for `createCheckoutSession`.
-- Review the Next.js example project for integrating hosted checkout pages.
+<Tabs>
+  <Tab title="Client">
 
+  ```tsx
+  'use client'
 
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function PurchaseButton({ priceId }: { priceId: string }) {
+    const { createCheckoutSession, loaded, errors } = useBilling()
+
+    if (!loaded) {
+      return <button disabled>Loading checkout…</button>
+    }
+
+    if (errors) {
+      return <p>Unable to load checkout right now.</p>
+    }
+
+    const handlePurchase = async () => {
+      await createCheckoutSession({
+        priceId,
+        successUrl: `${window.location.origin}/billing/success`,
+        cancelUrl: `${window.location.origin}/billing/cancel`,
+        autoRedirect: true,
+      })
+    }
+
+    return <button onClick={handlePurchase}>Buy now</button>
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import Fastify from 'fastify'
+  import { FlowgladServer } from '@flowglad/server'
+  import { getSessionUser } from './auth'
+
+  const fastify = Fastify()
+
+  const flowgladServer = new FlowgladServer({
+    apiKey: process.env.FLOWGLAD_SECRET_KEY,
+    getRequestingCustomer: async () => {
+      const user = await getSessionUser()
+      if (!user) {
+        throw new Error('Unauthorized')
+      }
+
+      return {
+        externalId: user.id,
+        name: user.name,
+        email: user.email,
+      }
+    },
+  })
+
+  fastify.post('/api/checkout/session', async (request, reply) => {
+    const { priceId, successUrl, cancelUrl } = request.body as {
+      priceId: string
+      successUrl: string
+      cancelUrl: string
+    }
+
+    const { checkoutSession } = await flowgladServer.createCheckoutSession({
+      type: 'subscription',
+      priceId,
+      successUrl,
+      cancelUrl,
+    })
+
+    reply.send({ checkoutSession })
+  })
+
+  fastify.listen({ port: 3000 })
+  ```
+
+  </Tab>
+</Tabs>
+
+### Example: Collect a payment method
+
+<Tabs>
+  <Tab title="Client">
+
+  ```tsx
+  'use client'
+
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function SavePaymentMethodButton() {
+    const { createAddPaymentMethodCheckoutSession, loaded, errors } = useBilling()
+
+    if (!loaded) {
+      return <button disabled>Loading billing…</button>
+    }
+
+    if (errors) {
+      return <p>Unable to load billing right now.</p>
+    }
+
+    const handleSave = async () => {
+      await createAddPaymentMethodCheckoutSession({
+        successUrl: `${window.location.origin}/billing/payment-method/success`,
+        cancelUrl: `${window.location.origin}/billing/payment-method/cancel`,
+        autoRedirect: true,
+      })
+    }
+
+    return <button onClick={handleSave}>Save payment method</button>
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import Fastify from 'fastify'
+  import { FlowgladServer } from '@flowglad/server'
+  import { getSessionUser } from './auth'
+
+  const fastify = Fastify()
+
+  const flowgladServer = new FlowgladServer({
+    apiKey: process.env.FLOWGLAD_SECRET_KEY,
+    getRequestingCustomer: async () => {
+      const user = await getSessionUser()
+      if (!user) {
+        throw new Error('Unauthorized')
+      }
+
+      return {
+        externalId: user.id,
+        name: user.name,
+        email: user.email,
+      }
+    },
+  })
+
+  fastify.post('/api/checkout/add-payment-method', async (request, reply) => {
+    const { targetSubscriptionId } = request.body as {
+      targetSubscriptionId?: string
+    }
+
+    const { checkoutSession } =
+      await flowgladServer.createAddPaymentMethodCheckoutSession({
+        targetSubscriptionId,
+        successUrl: `${process.env.APP_URL ?? 'https://example.com'}/billing/payment-method/success`,
+        cancelUrl: `${process.env.APP_URL ?? 'https://example.com'}/billing/payment-method/cancel`,
+      })
+
+    reply.send({ checkoutSession })
+  })
+
+  fastify.listen({ port: 3000 })
+  ```
+
+  </Tab>
+</Tabs>

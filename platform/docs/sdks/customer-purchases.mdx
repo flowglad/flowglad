@@ -1,21 +1,128 @@
 ---
 title: "Customer Purchases"
-description: "Retrieve purchase history and active subscriptions for personalized experiences"
+description: "Retrieve purchase history and active subscriptions for a customer"
 ---
 
 ## Overview
 
-Accessing a customer's purchase history lets you tailor onboarding, upsell paths, and support flows. Flowglad aggregates past orders alongside active subscriptions for easy consumption.
+Accessing a customer's purchase history lets you tailor onboarding, upsell paths, and support flows. Flowglad provides past purchases and active subscriptions for easy consumption.
 
-## What you'll learn
+### What you can do
 
-- Fetch purchase history using Server SDK helpers.
+- Fetch purchase history.
 - Hydrate frontends with active subscriptions to customize UI.
-- Combine purchase data with feature checks for granular entitlements.
+- ...and more!
 
-## Next steps
+### Example: Purchase History & Active Subscriptions
 
-- Add a `getCustomerPurchases` call in your account dashboard route.
-- Use the React SDK billing context to power personalized landing pages.
+<Tabs>
+  <Tab title="Client">
 
+  ```tsx
+  'use client'
 
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function CustomerPurchasesPanel() {
+    const {
+      loaded,
+      errors,
+      currentSubscriptions,
+      subscriptions,
+      purchases,
+    } = useBilling()
+
+    if (!loaded) {
+      return <p>Loading customer billing…</p>
+    }
+
+    if (errors) {
+      return <p>Unable to load billing data right now.</p>
+    }
+
+    return (
+      <div>
+        <section>
+          <h3>Current subscriptions</h3>
+          <ul>
+            {(currentSubscriptions ?? []).length === 0 && (
+              <li>No active subscriptions</li>
+            )}
+            {(currentSubscriptions ?? []).map((subscription) => (
+              <li key={subscription.id}>
+                {subscription.plan?.name ?? subscription.id} ·{' '}
+                {subscription.status}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section>
+          <h3>All subscriptions</h3>
+          <ul>
+            {(subscriptions ?? []).length === 0 && (
+              <li>No subscription history yet</li>
+            )}
+            {(subscriptions ?? []).map((subscription) => (
+              <li key={subscription.id}>
+                {subscription.plan?.name ?? subscription.id} ·{' '}
+                {subscription.status}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section>
+          <h3>Recent purchases</h3>
+          <ul>
+            {(purchases ?? []).length === 0 && <li>No purchases yet</li>}
+            {(purchases ?? []).map((purchase) => (
+              <li key={purchase.id}>
+                {purchase.lineItems?.[0]?.price?.name ?? purchase.id} ·{' '}
+                {purchase.status}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    )
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import { NextResponse } from 'next/server'
+  import { FlowgladServer } from '@flowglad/server'
+  import { getSessionUser } from '@/lib/auth'
+
+  const flowgladServer = new FlowgladServer({
+    apiKey: process.env.FLOWGLAD_SECRET_KEY,
+    getRequestingCustomer: async () => {
+      const user = await getSessionUser()
+      if (!user) {
+        throw new Error('Unauthorized')
+      }
+
+      return {
+        externalId: user.id,
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+
+  export async function GET() {
+    const billing = await flowgladServer.getBilling()
+
+    return NextResponse.json({
+      currentSubscriptions: billing.currentSubscriptions,
+      subscriptions: billing.subscriptions,
+      purchases: billing.purchases,
+    })
+  }
+  ```
+
+  </Tab>
+</Tabs>

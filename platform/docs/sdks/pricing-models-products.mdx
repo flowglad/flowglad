@@ -5,17 +5,111 @@ description: "Learn how to surface Flowglad pricing models and product catalogs 
 
 ## Overview
 
-Flowglad makes it simple to fetch pricing models and product catalogs so you can present clear plans to your customers. This guide covers the core APIs, SDK helpers, and recommended UI patterns.
+Flowglad makes it simple to fetch [pricing models](/features/pricing-models) and [products](/features/products) so you can present your offerings to customers. If you're building in React or Next.js, use the `useBilling` hook to access pricing data client-side; on the server, call `flowgladServer.getBilling()` to retrieve the same pricing model data.
 
-## What you'll learn
+### What you can do
 
-- Fetch pricing models and products from the Flowglad Server SDK.
+- Fetch pricing models and products you've configured in your Flowglad dashboard.
 - Display product tiers with prices and feature highlights in your frontend.
 - Keep your catalog up to date using real-time sync strategies.
+- ...and more!
 
-## Next steps
+### Example: Accessing your pricing model & products
 
-- Start with the `displayPricingModel` example in the Server SDK docs.
-- Explore UI components in the React and Next.js SDKs for rendering product cards.
+<Tabs>
+  <Tab title="Client">
 
+  ```tsx
+  'use client'
 
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function PricingProducts() {
+    const billing = useBilling()
+
+    if (!billing.loaded) {
+      return <div>Loading pricing…</div>
+    }
+
+    if (billing.errors || !billing.pricingModel) {
+      return <div>Unable to load pricing data.</div>
+    }
+
+    const products = billing.pricingModel.products.map((product) => ({
+      ...product,
+      prices: product.prices.map((price) => ({
+        ...price,
+        currency: 'USD' as const,
+      })),
+    }))
+
+    return (
+      <section>
+        {products.map((product) => (
+          <article key={product.slug}>
+            <h3>{product.name}</h3>
+            <p>{product.description}</p>
+            <ul>
+              {product.prices.map((price) => (
+                <li key={price.id}>
+                  {price.nickname ?? price.billingPeriod} – {price.unitAmountFormatted}
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </section>
+    )
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import { NextResponse } from 'next/server'
+  import { FlowgladServer } from '@flowglad/server'
+  import { auth } from '@/lib/auth'
+
+  const flowgladServer = new FlowgladServer({
+    // Reads from FLOWGLAD_SECRET_KEY by default
+    apiKey: process.env.FLOWGLAD_SECRET_KEY,
+    getRequestingCustomer: async () => {
+      const user = await auth()
+      if (!user) {
+        throw new Error('Unauthorized')
+      }
+
+      return {
+        externalId: user.id,
+        name: user.name,
+        email: user.email,
+      }
+    },
+  })
+
+  export async function GET() {
+    const { pricingModel } = await flowgladServer.getPricingModel()
+    // Alternative: You can also get the pricing model with getBilling
+    // const { pricingModel: billingPricingModel } = await flowgladServer.getBilling()
+
+    if (!pricingModel) {
+      return NextResponse.json({ products: [] })
+    }
+
+    const products = pricingModel.products.map((product) => ({
+      slug: product.slug,
+      name: product.name,
+      prices: product.prices.map((price) => ({
+        id: price.id,
+        unitAmount: price.unitAmount,
+        billingPeriod: price.billingPeriod,
+      })),
+    }))
+
+    return NextResponse.json({ products })
+  }
+  ```
+
+  </Tab>
+</Tabs>
