@@ -24,7 +24,7 @@ This project demonstrates the "Generation-Based Subscription Template Pricing Mo
 ## Prerequisites
 
 - Node.js >= 18.18.0
-- pnpm >= 9.12.0
+- Bun >= 1.2.14
 - PostgreSQL database
 
 ## Getting Started
@@ -32,7 +32,7 @@ This project demonstrates the "Generation-Based Subscription Template Pricing Mo
 ### 1. Install Dependencies
 
 ```bash
-pnpm install
+bun install
 ```
 
 ### 2. Set Up Environment Variables
@@ -59,30 +59,30 @@ Fill in the required values in `.env.local`:
 Generate and run database migrations:
 
 ```bash
-pnpm db:generate
-pnpm db:migrate
+bun db:generate
+bun db:migrate
 ```
 
 ### 4. Start Development Server
 
 ```bash
-pnpm dev
+bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ## Available Scripts
 
-- `pnpm dev` - Start development server
-- `pnpm build` - Build for production
-- `pnpm start` - Start production server
-- `pnpm lint` - Run ESLint
-- `pnpm lint:fix` - Fix ESLint errors automatically
-- `pnpm type-check` - Run TypeScript type checking
-- `pnpm test` - Run tests with Vitest
-- `pnpm db:generate` - Generate database migrations
-- `pnpm db:migrate` - Run database migrations
-- `pnpm db:studio` - Open Drizzle Studio (database GUI)
+- `bun dev` - Start development server
+- `bun build` - Build for production
+- `bun start` - Start production server
+- `bun lint` - Run ESLint
+- `bun lint:fix` - Fix ESLint errors automatically
+- `bun type-check` - Run TypeScript type checking
+- `bun test` - Run tests with Vitest
+- `bun db:generate` - Generate database migrations
+- `bun db:migrate` - Run database migrations
+- `bun db:studio` - Open Drizzle Studio (database GUI)
 
 ## Project Structure
 
@@ -116,7 +116,3 @@ Flowglad is integrated for subscription and billing management. The Flowglad pro
 ## Database
 
 The project uses Drizzle ORM with PostgreSQL. The schema includes the necessary tables for BetterAuth (users, sessions, accounts, verifications). You can extend the schema in `src/server/db/schema.ts`.
-
-## License
-
-MIT
