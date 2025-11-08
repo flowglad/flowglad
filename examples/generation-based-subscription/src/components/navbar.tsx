@@ -159,14 +159,14 @@ export function Navbar() {
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Account Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSignOut}>Log out</DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleSignOut}>Log out</DropdownMenuItem>
           {!isDefaultPlan && (
             <>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="w-full">
                     <DropdownMenuItem
-                      onClick={handleCancelSubscription}
+                      onSelect={handleCancelSubscription}
                       disabled={Boolean(
                         isCancelling || !currentSubscription || isCancelled
                       )}

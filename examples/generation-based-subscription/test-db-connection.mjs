@@ -8,6 +8,7 @@ async function testConnection() {
 		connectionString: process.env.DATABASE_URL,
 	})
 
+	const client = await pool.connect()
 	try {
 		console.log('Testing database connection...')
 		console.log(
@@ -15,11 +16,9 @@ async function testConnection() {
 			process.env.DATABASE_URL?.replace(/:[^:]*@/, ':****@')
 		)
 
-		const client = await pool.connect()
 		const result = await client.query('SELECT NOW()')
 		console.log('✅ Connection successful!')
 		console.log('Current time from database:', result.rows[0].now)
-		client.release()
 	} catch (error) {
 		console.error('❌ Connection failed:')
 		console.error(error.message)
@@ -28,6 +27,7 @@ async function testConnection() {
 		console.error('2. Verify the database URL format')
 		console.error('3. Ensure the database allows connections from your IP')
 	} finally {
+		client.release()
 		await pool.end()
 	}
 }

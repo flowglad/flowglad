@@ -116,8 +116,8 @@ export function HomeClient() {
   const hdVideoMinutesBalance = billing.checkUsageBalance('hd_video_minutes');
 
   // Check if user has access to usage meters (has balance object, even if balance is 0)
-  const hasFastGenerationsAccess = fastGenerationsBalance !== undefined;
-  const hasHDVideoMinutesAccess = hdVideoMinutesBalance !== undefined;
+  const hasFastGenerationsAccess = fastGenerationsBalance != null;
+  const hasHDVideoMinutesAccess = hdVideoMinutesBalance != null;
 
   // Get feature access
   const hasRelaxMode =

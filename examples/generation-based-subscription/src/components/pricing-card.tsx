@@ -118,6 +118,7 @@ export function PricingCard({
           ? error.message
           : 'Failed to start checkout. Please try again.';
       setError(errorMsg);
+    } finally {
       setIsLoading(false);
     }
   };
