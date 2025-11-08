@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { authClient } from '@/lib/auth-client';
 import { useBilling } from '@flowglad/react';
 import {
@@ -21,12 +22,14 @@ import { Button } from '@/components/ui/button';
 
 export function Navbar() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
   const billing = useBilling();
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
   async function handleSignOut() {
+    await queryClient.clear();
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
@@ -164,9 +167,9 @@ export function Navbar() {
                   <span className="w-full">
                     <DropdownMenuItem
                       onClick={handleCancelSubscription}
-                      disabled={
+                      disabled={Boolean(
                         isCancelling || !currentSubscription || isCancelled
-                      }
+                      )}
                       variant="destructive"
                       className={
                         isCancelled ? 'opacity-60 text-destructive/70' : ''

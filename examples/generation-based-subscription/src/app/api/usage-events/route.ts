@@ -79,31 +79,16 @@ export async function POST(request: Request) {
 
     const usageMeterId = usageMeter.id;
 
-    // Identify the product associated with the current subscription's price
-    const currentPriceId =
-      'priceId' in currentSubscription
-        ? (currentSubscription as { priceId?: string }).priceId
-        : undefined;
-    const currentProduct = billing.catalog?.products?.find((product) =>
-      product.prices?.some((p) => 'id' in p && p.id === currentPriceId)
-    );
-
-    if (!currentProduct) {
-      return NextResponse.json(
-        { error: 'Unable to resolve current product for subscription' },
-        { status: 400 }
+    const usagePrice = billing.catalog?.products
+      ?.flatMap((product) => product.prices ?? [])
+      .find(
+        (price) => price.type === 'usage' && price.usageMeterId === usageMeterId
       );
-    }
-
-    // Find usage price for this meter within the current product ONLY
-    const usagePrice = currentProduct.prices?.find(
-      (price) => price.type === 'usage' && price.usageMeterId === usageMeterId
-    );
 
     if (!usagePrice) {
       return NextResponse.json(
         {
-          error: `Usage price not found for meter: ${usageMeterSlug} on the current product.`,
+          error: `Usage price not found for meter: ${usageMeterSlug}. Please ensure a usage price product exists for this meter in your pricing model.`,
         },
         { status: 404 }
       );

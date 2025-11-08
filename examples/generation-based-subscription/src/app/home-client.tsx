@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
 import { useBilling } from '@flowglad/react';
+import { computeUsageTotal } from '@/lib/usage-totals';
 import { DashboardSkeleton } from '@/components/dashboard-skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-// Mock images to cycle through (using Unsplash placeholder images)
+// Mock images to cycle through
 const mockImages = [
   '/Flowglad.png',
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=450&fit=crop',
@@ -24,7 +25,7 @@ const mockImages = [
   'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=800&h=450&fit=crop',
 ];
 
-// Mock GIF for video generation (using a simple animated GIF)
+// Mock GIFs for video generation
 const mockVideoGif = [
   'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3OWN6emx1M2JpM3lkczB4Y2Y2M3U5ejgyNzNmbnJnM2ZqMDlvb3B4ciZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/pa37AAGzKXoek/giphy.gif',
   'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNnNyOXhnNXp3cTJnaWw1OGZodXducHlzeThvbTBwdDc4cGw5OWFuZyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/WI4A2fVnRBiYE/giphy.gif',
@@ -46,6 +47,25 @@ export function HomeClient() {
   const [displayedContent, setDisplayedContent] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentVideoGifIndex, setCurrentVideoGifIndex] = useState(0);
+  const previousUserIdRef = useRef<string | undefined>(undefined);
+
+  // Refetch billing data when user ID changes to prevent showing previous user's data
+  useEffect(() => {
+    const currentUserId = session?.user?.id;
+    // Only refetch if user ID actually changed and billing is loaded
+    if (
+      currentUserId &&
+      currentUserId !== previousUserIdRef.current &&
+      billing.loaded &&
+      billing.reload
+    ) {
+      previousUserIdRef.current = currentUserId;
+      billing.reload();
+    } else if (currentUserId) {
+      // Update ref even if we don't reload (e.g., on initial mount)
+      previousUserIdRef.current = currentUserId;
+    }
+  }, [session?.user?.id, billing.loaded, billing.reload]);
 
   // Check if user is on default plan and redirect to pricing page
   useEffect(() => {
@@ -109,55 +129,26 @@ export function HomeClient() {
   // Calculate progress for usage meters - get slug from price using priceId
   const fastGenerationsRemaining =
     fastGenerationsBalance?.availableBalance ?? 0;
+
   // Compute plan totals dynamically from current subscription's feature items
-  const computeUsageTotal = (
-    usageMeterSlug: 'fast_generations' | 'hd_video_minutes'
-  ): number => {
-    try {
-      if (!currentSubscription || !billing.catalog?.usageMeters) return 0;
-      const experimental = (currentSubscription as any)?.experimental;
-      const featureItems: Array<{
-        type: string;
-        usageMeterId?: string;
-        amount?: number;
-      }> = experimental?.featureItems ?? [];
-      if (!Array.isArray(featureItems) || featureItems.length === 0) return 0;
-      const usageMeterById =
-        billing.catalog.usageMeters.reduce<Record<string, { slug: string }>>(
-          (acc, meter) => {
-            if ('id' in meter && 'slug' in meter) {
-              acc[(meter as any).id as string] = {
-                slug: (meter as any).slug as string,
-              };
-            }
-            return acc;
-          },
-          {}
-        ) ?? {};
-      return featureItems
-        .filter(
-          (fi) =>
-            fi?.type === 'usage_credit_grant' &&
-            !!fi.usageMeterId &&
-            typeof fi.amount === 'number'
-        )
-        .filter((fi) => {
-          const mapped = usageMeterById[fi.usageMeterId as string];
-          return mapped && mapped.slug === usageMeterSlug;
-        })
-        .reduce((sum, fi) => sum + (fi.amount as number), 0);
-    } catch {
-      return 0;
-    }
-  };
-  const fastGenerationsTotal = computeUsageTotal('fast_generations');
+  // This calculates how many usage credits (e.g., "360 fast generations")
+  // are included in the current subscription plan
+  const fastGenerationsTotal = computeUsageTotal(
+    'fast_generations',
+    currentSubscription,
+    billing.catalog
+  );
   const fastGenerationsProgress =
     fastGenerationsTotal > 0
       ? (fastGenerationsRemaining / fastGenerationsTotal) * 100
       : 0;
 
   const hdVideoMinutesRemaining = hdVideoMinutesBalance?.availableBalance ?? 0;
-  const hdVideoMinutesTotal = computeUsageTotal('hd_video_minutes');
+  const hdVideoMinutesTotal = computeUsageTotal(
+    'hd_video_minutes',
+    currentSubscription,
+    billing.catalog
+  );
   const hdVideoMinutesProgress =
     hdVideoMinutesTotal > 0
       ? (hdVideoMinutesRemaining / hdVideoMinutesTotal) * 100
