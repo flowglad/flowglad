@@ -8,8 +8,9 @@ async function testConnection() {
 		connectionString: process.env.DATABASE_URL,
 	})
 
-	const client = await pool.connect()
+	let client
 	try {
+		client = await pool.connect()
 		console.log('Testing database connection...')
 		console.log(
 			'Connection string:',
@@ -27,7 +28,9 @@ async function testConnection() {
 		console.error('2. Verify the database URL format')
 		console.error('3. Ensure the database allows connections from your IP')
 	} finally {
-		client.release()
+		if (client) {
+			client.release()
+		}
 		await pool.end()
 	}
 }
