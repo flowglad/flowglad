@@ -58,7 +58,6 @@ export const toolWithFeatureAccessCheck = <T extends z.ZodRawShape>(
     }
     return await toolCallback(...args)
   }
-  // @ts-expect-error
   return wrappedCallback
 }
 
