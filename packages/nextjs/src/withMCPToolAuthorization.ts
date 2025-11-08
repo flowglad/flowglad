@@ -58,8 +58,7 @@ export const toolWithFeatureAccessCheck = <T extends z.ZodRawShape>(
     }
     return await toolCallback(...args)
   }
-  // @ts-ignore
-  return wrappedCallback
+  return wrappedCallback as ToolCallback
 }
 
 export const toolWithUsageBalanceCheck = <T extends z.ZodRawShape>(
