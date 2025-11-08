@@ -237,16 +237,26 @@ export const createMockPaymentIntentEventResponse = (
   | Stripe.PaymentIntentProcessingEvent
   | Stripe.PaymentIntentRequiresActionEvent => {
   // Map status to event type
-  const eventType =
-    status === 'succeeded'
-      ? 'payment_intent.succeeded'
-      : status === 'requires_payment_method'
-        ? 'payment_intent.payment_failed'
-        : status === 'canceled'
-          ? 'payment_intent.canceled'
-          : status === 'processing'
-            ? 'payment_intent.processing'
-            : 'payment_intent.requires_action'
+  let eventType: string
+  switch (status) {
+    case 'succeeded':
+      eventType = 'payment_intent.succeeded'
+      break
+    case 'requires_payment_method':
+      eventType = 'payment_intent.payment_failed'
+      break
+    case 'canceled':
+      eventType = 'payment_intent.canceled'
+      break
+    case 'processing':
+      eventType = 'payment_intent.processing'
+      break
+    case 'requires_action':
+      eventType = 'payment_intent.requires_action'
+      break
+    default:
+      eventType = 'payment_intent.requires_action'
+  }
 
   const paymentIntent = createMockPaymentIntent({
     status,
