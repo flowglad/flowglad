@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { authClient } from '@/lib/auth-client';
 import { useBilling } from '@flowglad/react';
 import { computeUsageTotal } from '@/lib/usage-totals';
@@ -17,12 +18,12 @@ import {
 
 // Mock images to cycle through
 const mockImages = [
-  '/Flowglad.png',
-  'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=450&fit=crop',
-  'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800&h=450&fit=crop',
-  'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&h=450&fit=crop',
-  'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&h=450&fit=crop',
-  'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=800&h=450&fit=crop',
+  '/images/flowglad.png',
+  '/images/unsplash-1.jpg',
+  '/images/unsplash-2.jpg',
+  '/images/unsplash-3.jpg',
+  '/images/unsplash-4.jpg',
+  '/images/unsplash-5.jpg',
 ];
 
 // Mock GIFs for video generation
@@ -65,7 +66,7 @@ export function HomeClient() {
       // Update ref even if we don't reload (e.g., on initial mount)
       previousUserIdRef.current = currentUserId;
     }
-  }, [session?.user?.id, billing.loaded, billing.reload]);
+  }, [session?.user?.id, billing]);
 
   // Check if user is on default plan and redirect to pricing page
   useEffect(() => {
@@ -396,10 +397,11 @@ export function HomeClient() {
                   </div>
                 ) : null}
                 {displayedContent ? (
-                  <img
+                  <Image
                     src={displayedContent}
                     alt="Generated content"
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full">

@@ -6,7 +6,7 @@ export async function GET(request: Request) {
     const session = await auth.api.getSession({ headers: request.headers });
 
     return NextResponse.json(session ?? null);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
