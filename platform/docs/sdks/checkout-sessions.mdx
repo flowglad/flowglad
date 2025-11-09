@@ -93,7 +93,6 @@ To create anonymous checkout sessions, you can call the [create checkout session
     }
 
     const { checkoutSession } = await flowgladServer.createCheckoutSession({
-      type: 'subscription',
       priceId,
       successUrl,
       cancelUrl,
