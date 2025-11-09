@@ -5,12 +5,17 @@ description: "Retrieve purchase history and active subscriptions for a customer"
 
 ## Overview
 
-Accessing a customer's purchase history lets you tailor onboarding, upsell paths, and support flows. Flowglad provides past purchases and active subscriptions for easy consumption.
+Accessing a customer's purchase history lets you tailor onboarding, upsell paths, and support flows. Flowglad provides past purchases and active [subscriptions](/features/subscriptions) for easy consumption.
+
+### How to use
+- Fetch all customer's subscriptions: Use the `subscriptions` field from `useBilling` on client side or access `subscriptions` from the `getBilling()` result on server. Refer to the [subscriptions response object](/api-reference/customer/get-billing-details#response-subscriptions) for the data fields returned.
+- Fetch customer's current active subscriptions: Use the `currentSubscriptions` field from `useBilling` on client side or access `currentSubscriptions` from the `getBilling()` result on server. Refer to the [currentSubscriptions response object](/api-reference/customer/get-billing-details#response-current-subscriptions) for the data fields returned. These subscription statuses are considered current: `active`, `trialing`, `past_due`, `unpaid`, `credit_trial`, `cancellation_scheduled`.
+- Fetch all customer's purchases (subscription, single payment, or usage price type): Use the `purchases` field from `useBilling` on client side or access `purchases` from the `getBilling()` result on server. Refer to the [purchases response object](/api-reference/customer/get-billing-details#response-purchases) for the data fields returned.
 
 ### What you can do
 
 - Fetch purchase history.
-- Hydrate frontends with active subscriptions to customize UI.
+- Customize frontend UI with active subscriptions.
 - ...and more!
 
 ### Example: Purchase History & Active Subscriptions
@@ -24,13 +29,8 @@ Accessing a customer's purchase history lets you tailor onboarding, upsell paths
   import { useBilling } from '@flowglad/nextjs'
 
   export function CustomerPurchasesPanel() {
-    const {
-      loaded,
-      errors,
-      currentSubscriptions,
-      subscriptions,
-      purchases,
-    } = useBilling()
+    const { loaded, errors, currentSubscriptions, subscriptions, purchases } =
+      useBilling()
 
     if (!loaded) {
       return <p>Loading customer billing…</p>
@@ -48,12 +48,14 @@ Accessing a customer's purchase history lets you tailor onboarding, upsell paths
             {(currentSubscriptions ?? []).length === 0 && (
               <li>No active subscriptions</li>
             )}
-            {(currentSubscriptions ?? []).map((subscription) => (
-              <li key={subscription.id}>
-                {subscription.plan?.name ?? subscription.id} ·{' '}
-                {subscription.status}
-              </li>
-            ))}
+            {(currentSubscriptions ?? []).map((subscription) => {
+              const label = subscription.name ?? subscription.id
+              return (
+                <li key={subscription.id}>
+                  {label} · {subscription.status}
+                </li>
+              )
+            })}
           </ul>
         </section>
 
@@ -63,12 +65,14 @@ Accessing a customer's purchase history lets you tailor onboarding, upsell paths
             {(subscriptions ?? []).length === 0 && (
               <li>No subscription history yet</li>
             )}
-            {(subscriptions ?? []).map((subscription) => (
-              <li key={subscription.id}>
-                {subscription.plan?.name ?? subscription.id} ·{' '}
-                {subscription.status}
-              </li>
-            ))}
+            {(subscriptions ?? []).map((subscription) => {
+              const label = subscription.name ?? subscription.id
+              return (
+                <li key={subscription.id}>
+                  {label} · {subscription.status}
+                </li>
+              )
+            })}
           </ul>
         </section>
 
@@ -78,8 +82,7 @@ Accessing a customer's purchase history lets you tailor onboarding, upsell paths
             {(purchases ?? []).length === 0 && <li>No purchases yet</li>}
             {(purchases ?? []).map((purchase) => (
               <li key={purchase.id}>
-                {purchase.lineItems?.[0]?.price?.name ?? purchase.id} ·{' '}
-                {purchase.status}
+                {purchase.name} · {purchase.priceType} · {purchase.status}
               </li>
             ))}
           </ul>
