@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import Autoplay from 'embla-carousel-autoplay';
 import { PricingCard } from '@/components/pricing-card';
 import type { PricingPlan } from '@/components/pricing-card';
@@ -16,76 +16,13 @@ import {
 import { useMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useBilling } from '@flowglad/nextjs';
-
-const plans: PricingPlan[] = [
-  {
-    name: 'Basic',
-    description: '~200 fast generations',
-    displayMonthly: '$10',
-    displayYearly: '$96',
-    monthlySlug: 'basic_monthly',
-    yearlySlug: 'basic_yearly',
-    features: [
-      '200 Fast Generations',
-      'General Commercial Terms',
-      'Optional Credit Top Ups',
-      'Use Within Upgraded Images',
-    ],
-  },
-  {
-    name: 'Standard',
-    description: '360 fast generations + 30 min HD video',
-    displayMonthly: '$30',
-    displayYearly: '$288',
-    monthlySlug: 'standard_monthly',
-    yearlySlug: 'standard_yearly',
-    features: [
-      '360 Fast Generations',
-      '30 HD Video Minutes',
-      'General Commercial Terms',
-      'Optional Credit Top Ups',
-      'Unlimited Relaxed Image Generations',
-      'Use Within Upgraded Images',
-    ],
-  },
-  {
-    name: 'Pro',
-    description: '750 fast generations + 60 min HD video + Stealth',
-    displayMonthly: '$60',
-    displayYearly: '$576',
-    monthlySlug: 'pro_monthly',
-    yearlySlug: 'pro_yearly',
-    features: [
-      '750 Fast Generations',
-      '60 HD Video Minutes',
-      'General Commercial Terms',
-      'Optional Credit Top Ups',
-      'Unlimited Relaxed Image Generations',
-      'Unlimited Relaxed SD Video',
-      'Stealth Mode',
-      'Use Within Upgraded Images',
-    ],
-    isPopular: true,
-  },
-  {
-    name: 'Mega',
-    description: '900+ fast generations + 120 min HD video + Stealth',
-    displayMonthly: '$120',
-    displayYearly: '$1,152',
-    monthlySlug: 'mega_monthly',
-    yearlySlug: 'mega_yearly',
-    features: [
-      '900+ Fast Generations',
-      '120 HD Video Minutes',
-      'General Commercial Terms',
-      'Optional Credit Top Ups',
-      'Unlimited Relaxed Image Generations',
-      'Unlimited Relaxed SD Video',
-      'Stealth Mode',
-      'Use Within Upgraded Images',
-    ],
-  },
-];
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from '@/components/ui/card';
 
 /**
  * PricingCardsGrid component displays all pricing plans in a responsive grid or carousel
@@ -103,6 +40,104 @@ export function PricingCardsGrid() {
     })
   );
   const billing = useBilling();
+
+  // Build plans from pricingModel based on current billing period
+  const plans = useMemo<PricingPlan[]>(() => {
+    if (
+      !billing.loaded ||
+      !('pricingModel' in billing) ||
+      !billing.pricingModel?.products
+    ) {
+      return [];
+    }
+
+    const { products } = billing.pricingModel;
+    const targetIntervalUnit = isYearly ? 'year' : 'month';
+
+    // Filter products: subscription type, matching interval, active, not default/free
+    const filteredProducts = products.filter((product) => {
+      // Skip default/free products
+      if (product.default === true) return false;
+
+      // Find subscription price with matching interval
+      const matchingPrice = product.prices?.find(
+        (price) =>
+          price.type === 'subscription' &&
+          price.active === true &&
+          'intervalUnit' in price &&
+          price.intervalUnit === targetIntervalUnit
+      );
+
+      return !!matchingPrice;
+    });
+
+    // Transform products to PricingPlan format
+    const transformedPlans = filteredProducts
+      .map((product) => {
+        const price = product.prices?.find(
+          (p) =>
+            p.type === 'subscription' &&
+            p.active === true &&
+            'intervalUnit' in p &&
+            p.intervalUnit === targetIntervalUnit
+        );
+
+        if (!price || !('slug' in price) || !price.slug) return null;
+
+        // Format price from cents to display string
+        const formatPrice = (cents: number): string => {
+          const dollars = cents / 100;
+          return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+        };
+
+        const displayPrice = formatPrice(price.unitPrice);
+
+        // Build features list from feature objects (features have name and description)
+        const featureNames =
+          product.features
+            ?.map((feature) => ('name' in feature ? feature.name : ''))
+            .filter(
+              (name): name is string =>
+                typeof name === 'string' && name.length > 0
+            ) ?? [];
+
+        // For PricingPlan interface, we need both monthly and yearly slugs/prices
+        // Since we're filtering by period, we'll use the current price for both
+        // The PricingCard component will use the correct one based on billingPeriod
+        const plan: PricingPlan = {
+          name: product.name,
+          displayMonthly: displayPrice,
+          displayYearly: displayPrice,
+          monthlySlug: price.slug,
+          yearlySlug: price.slug,
+          features: featureNames,
+        };
+
+        if (product.description) {
+          plan.description = product.description;
+        }
+
+        // Determine if popular (hardcoded "Pro" as popular)
+        if (product.name === 'Pro') {
+          plan.isPopular = true;
+        }
+
+        return plan;
+      })
+      .filter((plan): plan is PricingPlan => plan !== null);
+
+    // Sort by price (extract numeric value for sorting)
+    return transformedPlans.sort((a, b) => {
+      const getPriceValue = (priceStr: string) => {
+        return parseFloat(priceStr.replace(/[$,]/g, '')) || 0;
+      };
+      return getPriceValue(a.displayMonthly) - getPriceValue(b.displayMonthly);
+    });
+  }, [
+    billing.loaded,
+    'pricingModel' in billing ? billing.pricingModel : null,
+    isYearly,
+  ]);
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
     if (
@@ -168,7 +203,71 @@ export function PricingCardsGrid() {
       </div>
 
       {/* Pricing Cards - Carousel on Mobile, Grid on Desktop */}
-      {isMobile ? (
+      {plans.length === 0 ? (
+        // Show skeleton cards when plans are loading
+        isMobile ? (
+          <div className="px-4">
+            <Carousel
+              plugins={[autoplayPlugin.current]}
+              className="w-full"
+              opts={{
+                align: 'start',
+                loop: true,
+              }}
+            >
+              <CarouselContent className="-ml-1">
+                {[1, 2].map((i) => (
+                  <CarouselItem key={i} className="pl-1 basis-1/2">
+                    <div className="p-1 h-full">
+                      <Card className="relative flex h-full flex-col">
+                        <CardHeader className="px-3 py-3 md:px-6 md:py-4">
+                          <Skeleton className="h-6 md:h-8 w-24 mb-2" />
+                          <Skeleton className="h-4 md:h-5 w-32 mb-2" />
+                          <div className="mt-1 md:mt-2">
+                            <Skeleton className="h-8 md:h-10 w-20" />
+                          </div>
+                        </CardHeader>
+                        <CardFooter className="px-3 py-3 md:px-6 md:py-4 mt-auto">
+                          <Skeleton className="h-9 w-full" />
+                        </CardFooter>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </div>
+        ) : (
+          <div className="grid gap-6 auto-rows-fr md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="relative flex h-full flex-col">
+                <CardHeader className="px-3 py-3 md:px-6 md:py-4">
+                  <Skeleton className="h-6 md:h-8 w-24 mb-2" />
+                  <Skeleton className="h-4 md:h-5 w-32 mb-2" />
+                  <div className="mt-1 md:mt-2">
+                    <Skeleton className="h-8 md:h-10 w-20" />
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 px-3 md:px-6 pt-0">
+                  <ul className="space-y-1.5 md:space-y-3">
+                    {[1, 2, 3, 4].map((j) => (
+                      <li key={j} className="flex items-start gap-1.5 md:gap-2">
+                        <Skeleton className="h-3 w-3 md:h-4 md:w-4 mt-0.5 shrink-0 rounded-full" />
+                        <Skeleton className="h-3 md:h-4 flex-1" />
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter className="px-3 py-3 md:px-6 md:py-4 mt-auto">
+                  <Skeleton className="h-9 w-full" />
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )
+      ) : isMobile ? (
         <div className="px-4">
           <Carousel
             plugins={[autoplayPlugin.current]}

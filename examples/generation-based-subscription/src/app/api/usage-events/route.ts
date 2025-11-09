@@ -40,8 +40,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { usageMeterSlug, amount: amountNumber, transactionId } =
-      parseResult.data;
+    const {
+      usageMeterSlug,
+      amount: amountNumber,
+      transactionId,
+    } = parseResult.data;
 
     // Generate transaction ID if not provided
     const finalTransactionId =
@@ -59,6 +62,9 @@ export async function POST(request: Request) {
     }
 
     // Find the current subscription
+    // By default, each customer can only have one active subscription at a time,
+    // so accessing the first currentSubscriptions is sufficient.
+    // Multiple subscriptions per customer can be enabled in dashboard > settings
     const currentSubscription = billing.currentSubscriptions?.[0];
     if (!currentSubscription) {
       return NextResponse.json(

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 export interface PricingPlan {
@@ -45,6 +46,19 @@ export function PricingCard({
   const billing = useBilling();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!billing.loaded) {
+    return <div>Loading...</div>;
+  }
+
+  if (billing.errors) {
+    return <div>Error loading billing data</div>;
+  }
+
+  if (!billing.loadBilling) {
+    return <div>Billing not available</div>;
+  }
+
   const periodLabel = billingPeriod === 'monthly' ? '/month' : '/year';
   const priceSlug =
     billingPeriod === 'monthly' ? plan.monthlySlug : plan.yearlySlug;
@@ -126,7 +140,7 @@ export function PricingCard({
   return (
     <Card
       className={cn(
-        'relative flex h-full flex-col',
+        'relative flex h-full flex-col transition-transform hover:-translate-y-px',
         plan.isPopular && 'border-primary shadow-lg',
         isCurrentPlan && 'border-2 border-primary'
       )}

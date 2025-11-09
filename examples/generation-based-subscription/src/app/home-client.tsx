@@ -87,12 +87,7 @@ export function HomeClient() {
     if (!hasNonFreePlan) {
       router.push('/pricing');
     }
-  }, [
-    isSessionPending,
-    billing.loaded,
-    billing.currentSubscriptions,
-    router,
-  ]);
+  }, [isSessionPending, billing.loaded, billing.currentSubscriptions, router]);
 
   if (isSessionPending || !billing.loaded) {
     return <DashboardSkeleton />;
@@ -108,6 +103,9 @@ export function HomeClient() {
   }
 
   // Get current subscription plan
+  // By default, each customer can only have one active subscription at a time,
+  // so accessing the first currentSubscriptions is sufficient.
+  // Multiple subscriptions per customer can be enabled in dashboard > settings
   const currentSubscription = billing.currentSubscriptions?.[0];
   const planName = currentSubscription?.name || 'Unknown Plan';
 
@@ -123,12 +121,13 @@ export function HomeClient() {
   const hasHDVideoMinutesAccess = hdVideoMinutesBalance != null;
 
   // Get feature access
-  const hasRelaxMode =
-    !!billing.checkFeatureAccess('unlimited_relaxed_images');
-  const hasUnlimitedRelaxedSDVideo =
-    !!billing.checkFeatureAccess('unlimited_relaxed_sd_video');
-  const hasOptionalTopUps =
-    !!billing.checkFeatureAccess('optional_credit_top_ups');
+  const hasRelaxMode = !!billing.checkFeatureAccess('unlimited_relaxed_images');
+  const hasUnlimitedRelaxedSDVideo = !!billing.checkFeatureAccess(
+    'unlimited_relaxed_sd_video'
+  );
+  const hasOptionalTopUps = !!billing.checkFeatureAccess(
+    'optional_credit_top_ups'
+  );
 
   // Calculate progress for usage meters - get slug from price using priceId
   const fastGenerationsRemaining =

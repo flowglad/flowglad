@@ -113,6 +113,18 @@ This project uses BetterAuth for authentication. Users can sign up and sign in w
 
 Flowglad is integrated for subscription and billing management. The Flowglad provider is configured to work with BetterAuth sessions. The pricing model is defined in `pricing.yaml` at the root of the project, which includes subscription plans, usage meters, and features.
 
+### Setting Up Your Pricing Model
+
+To use this example project, you'll need to upload the `pricing.yaml` file to your Flowglad dashboard and set it as your default pricing model:
+
+1. Log in to your [Flowglad dashboard](https://flowglad.com)
+2. Navigate to the Pricing Models section [Flowglad pricing models page](https://app.flowglad.com/store/pricing-models)
+3. Click on Create Pricing Model
+4. Import the `pricing.yaml` file from the root of this project
+5. Once uploaded, set it as your default pricing model in the dashboard settings
+
+This will enable all the subscription plans, usage meters, and features defined in the pricing configuration for your application.
+
 ## Database
 
 The project uses Drizzle ORM with PostgreSQL. The schema includes the necessary tables for BetterAuth (users, sessions, accounts, verifications). You can extend the schema in `src/server/db/schema.ts`.

@@ -40,6 +40,9 @@ export function Navbar() {
   }
 
   async function handleCancelSubscription() {
+    // By default, each customer can only have one active subscription at a time,
+    // so accessing the first currentSubscriptions is sufficient.
+    // Multiple subscriptions per customer can be enabled in dashboard > settings
     const currentSubscription = billing.currentSubscriptions?.[0];
     const subscriptionId = currentSubscription?.id;
 
@@ -66,9 +69,6 @@ export function Navbar() {
           timing: 'at_end_of_current_billing_period',
         },
       });
-      // Reload billing data to reflect changes
-      await billing.reload?.();
-      // Subscription will be cancelled, user will see pricing page on next render
     } catch (error) {
       setCancelError(
         error instanceof Error
@@ -85,6 +85,9 @@ export function Navbar() {
   }
 
   const accountName = session.user.name || session.user.email || 'Account';
+  // By default, each customer can only have one active subscription at a time,
+  // so accessing the first currentSubscriptions is sufficient.
+  // Multiple subscriptions per customer can be enabled in dashboard > settings
   const currentSubscription = billing.currentSubscriptions?.[0];
 
   // Check if subscription is a default plan (cannot be cancelled)
