@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { authClient } from '@/lib/auth-client';
-import { useBilling } from '@flowglad/react';
+import { useBilling } from '@flowglad/nextjs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,7 +90,12 @@ export function Navbar() {
   // Check if subscription is a default plan (cannot be cancelled)
   // Default plans have default: true at the product level OR isDefault: true at the price level
   const isDefaultPlan = (() => {
-    if (!currentSubscription || !billing.catalog?.products) return false;
+    if (
+      !currentSubscription ||
+      !('pricingModel' in billing) ||
+      !billing.pricingModel?.products
+    )
+      return false;
 
     const priceId =
       currentSubscription && 'priceId' in currentSubscription
@@ -100,7 +105,7 @@ export function Navbar() {
     if (!priceId) return false;
 
     // Find the product that contains a price matching this subscription
-    for (const product of billing.catalog.products) {
+    for (const product of billing.pricingModel.products) {
       const price = product.prices?.find((p) => 'id' in p && p.id === priceId);
       if (price) {
         // Check if the product is default (e.g., Free Plan)

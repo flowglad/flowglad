@@ -2,6 +2,7 @@ import type {
   BillingWithChecks,
   SubscriptionExperimentalFields,
 } from '@flowglad/shared';
+import type { Price } from '@flowglad/types';
 
 type UsageMeterSlug = 'fast_generations' | 'hd_video_minutes';
 
@@ -13,7 +14,7 @@ type UsageMeterSlug = 'fast_generations' | 'hd_video_minutes';
  *
  * @param usageMeterSlug - The slug of the usage meter to compute totals for
  * @param currentSubscription - The current subscription object (from billing.currentSubscriptions[0])
- * @param catalog - The billing catalog (from billing.catalog)
+ * @param pricingModel - The billing pricing model (from billing.pricingModel)
  * @returns The total amount of usage credits for the specified meter, or 0 if not found
  */
 export function computeUsageTotal(
@@ -23,11 +24,11 @@ export function computeUsageTotal(
         NonNullable<BillingWithChecks['currentSubscriptions']>[number]
       >
     | undefined,
-  catalog: BillingWithChecks['catalog'] | undefined
+  pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): number {
   try {
     // Early returns if we don't have the necessary data
-    if (!currentSubscription || !catalog?.usageMeters) return 0;
+    if (!currentSubscription || !pricingModel?.usageMeters) return 0;
 
     // Get feature items from subscription (stored in experimental.featureItems)
     const experimental =
@@ -50,7 +51,7 @@ export function computeUsageTotal(
     // Build a lookup map: usageMeterId -> slug
     // (Feature items reference meters by ID, but we need to match by slug)
     const usageMeterById: Record<string, string> = {};
-    for (const meter of catalog.usageMeters) {
+    for (const meter of pricingModel.usageMeters) {
       if ('id' in meter && 'slug' in meter) {
         const meterId =
           typeof meter.id === 'string' ? meter.id : String(meter.id);
@@ -78,5 +79,62 @@ export function computeUsageTotal(
     return total;
   } catch {
     return 0;
+  }
+}
+
+/**
+ * Finds a usage meter by its slug from the pricing model.
+ *
+ * @param usageMeterSlug - The slug of the usage meter to find
+ * @param pricingModel - The billing pricing model (from billing.pricingModel)
+ * @returns The usage meter object with id and slug, or null if not found
+ */
+export function findUsageMeterBySlug(
+  usageMeterSlug: string,
+  pricingModel: BillingWithChecks['pricingModel'] | undefined
+): { id: string; slug: string } | null {
+  try {
+    if (!pricingModel?.usageMeters) return null;
+
+    const usageMeter = pricingModel.usageMeters.find(
+      (meter) => 'slug' in meter && meter.slug === usageMeterSlug
+    );
+
+    if (!usageMeter || !('id' in usageMeter) || !('slug' in usageMeter)) {
+      return null;
+    }
+
+    return {
+      id: typeof usageMeter.id === 'string' ? usageMeter.id : String(usageMeter.id),
+      slug: typeof usageMeter.slug === 'string' ? usageMeter.slug : String(usageMeter.slug),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Finds a usage price by its associated usage meter ID from the pricing model.
+ *
+ * @param usageMeterId - The ID of the usage meter to find the price for
+ * @param pricingModel - The billing pricing model (from billing.pricingModel)
+ * @returns The usage price object, or null if not found
+ */
+export function findUsagePriceByMeterId(
+  usageMeterId: string,
+  pricingModel: BillingWithChecks['pricingModel'] | undefined
+): Price | null {
+  try {
+    if (!pricingModel?.products) return null;
+
+    const usagePrice = pricingModel.products
+      .flatMap((product) => product.prices ?? [])
+      .find(
+        (price) => price.type === 'usage' && price.usageMeterId === usageMeterId
+      );
+
+    return usagePrice ?? null;
+  } catch {
+    return null;
   }
 }

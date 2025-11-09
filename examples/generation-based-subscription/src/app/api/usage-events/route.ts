@@ -1,5 +1,10 @@
 import { flowgladServer } from '@/lib/flowglad';
+import {
+  findUsageMeterBySlug,
+  findUsagePriceByMeterId,
+} from '@/lib/billing-helpers';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 /**
  * POST /api/usage-events
@@ -11,36 +16,37 @@ import { NextResponse } from 'next/server';
  *   transactionId?: string; // Optional: for idempotency
  * }
  */
+const createUsageEventSchema = z.object({
+  usageMeterSlug: z.string().min(1, 'usageMeterSlug is required'),
+  amount: z
+    .number()
+    .int('amount must be an integer')
+    .positive('amount must be a positive integer'),
+  transactionId: z.string().optional(),
+});
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const usageMeterSlug =
-      typeof body?.usageMeterSlug === 'string' ? body.usageMeterSlug : null;
-    const amountRaw = body?.amount;
-    const transactionId =
-      typeof body?.transactionId === 'string' && body.transactionId.length > 0
-        ? body.transactionId
-        : null;
+    const parseResult = createUsageEventSchema.safeParse(body);
 
-    if (!usageMeterSlug || amountRaw === undefined) {
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'usageMeterSlug and amount are required' },
+        {
+          error: 'Invalid request body',
+          details: parseResult.error.issues,
+        },
         { status: 400 }
       );
     }
 
-    // Validate amount is a positive integer
-    const amountNumber = Number(amountRaw);
-    if (
-      !Number.isFinite(amountNumber) ||
-      !Number.isInteger(amountNumber) ||
-      amountNumber <= 0
-    ) {
-      return NextResponse.json(
-        { error: 'amount must be a positive integer' },
-        { status: 400 }
-      );
-    }
+    const { usageMeterSlug, amount: amountNumber, transactionId } =
+      parseResult.data;
+
+    // Generate transaction ID if not provided
+    const finalTransactionId =
+      transactionId ||
+      `usage_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     // Get billing information to extract required IDs
     const billing = await flowgladServer.getBilling();
@@ -63,9 +69,10 @@ export async function POST(request: Request) {
 
     const subscriptionId = currentSubscription.id;
 
-    // Find the usage meter from the catalog
-    const usageMeter = billing.catalog?.usageMeters?.find(
-      (meter) => 'slug' in meter && meter.slug === usageMeterSlug
+    // Find the usage meter from the pricing model
+    const usageMeter = findUsageMeterBySlug(
+      usageMeterSlug,
+      billing.pricingModel
     );
 
     if (!usageMeter) {
@@ -79,11 +86,11 @@ export async function POST(request: Request) {
 
     const usageMeterId = usageMeter.id;
 
-    const usagePrice = billing.catalog?.products
-      ?.flatMap((product) => product.prices ?? [])
-      .find(
-        (price) => price.type === 'usage' && price.usageMeterId === usageMeterId
-      );
+    // Find the usage price by searching through the catalog
+    const usagePrice = findUsagePriceByMeterId(
+      usageMeterId,
+      billing.pricingModel
+    );
 
     if (!usagePrice) {
       return NextResponse.json(
@@ -103,9 +110,7 @@ export async function POST(request: Request) {
       priceId,
       usageMeterId,
       amount: amountNumber,
-      transactionId:
-        transactionId ||
-        `usage_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      transactionId: finalTransactionId,
     });
 
     return NextResponse.json({

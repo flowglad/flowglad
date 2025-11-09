@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/carousel';
 import { useMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { useBilling } from '@flowglad/react';
+import { useBilling } from '@flowglad/nextjs';
 
 const plans: PricingPlan[] = [
   {
@@ -107,6 +107,7 @@ export function PricingCardsGrid() {
   const isPlanCurrent = (plan: PricingPlan): boolean => {
     if (
       !billing.loaded ||
+      !('getPrice' in billing) ||
       !billing.getPrice ||
       !Array.isArray(billing.currentSubscriptions)
     ) {

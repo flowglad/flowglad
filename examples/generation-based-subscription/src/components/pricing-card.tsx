@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Check } from 'lucide-react';
-import { useBilling } from '@flowglad/react';
+import { useBilling } from '@flowglad/nextjs';
 import {
   Card,
   CardContent,
@@ -51,11 +51,11 @@ export function PricingCard({
   const displayPrice =
     billingPeriod === 'monthly' ? plan.displayMonthly : plan.displayYearly;
 
-  // Check if this plan is a default plan by checking the catalog
+  // Check if this plan is a default plan by checking the pricing model
   const isDefaultPlan = (() => {
-    if (!billing.catalog?.products || !priceSlug) return false;
+    if (!billing.pricingModel?.products || !priceSlug) return false;
 
-    for (const product of billing.catalog.products) {
+    for (const product of billing.pricingModel.products) {
       const price = product.prices?.find(
         (p) => 'slug' in p && p.slug === priceSlug
       );

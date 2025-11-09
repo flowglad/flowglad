@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ReactQueryProvider } from '@/components/providers';
 import { Navbar } from '@/components/navbar';
-import { FlowgladProvider } from '@flowglad/react';
+import { FlowgladProvider } from '@flowglad/nextjs';
 import { PropsWithChildren } from 'react';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';

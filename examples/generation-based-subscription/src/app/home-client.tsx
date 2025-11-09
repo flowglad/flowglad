@@ -4,8 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { authClient } from '@/lib/auth-client';
-import { useBilling } from '@flowglad/react';
-import { computeUsageTotal } from '@/lib/usage-totals';
+import { useBilling } from '@flowglad/nextjs';
+import { computeUsageTotal } from '@/lib/billing-helpers';
 import { DashboardSkeleton } from '@/components/dashboard-skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -68,39 +68,42 @@ export function HomeClient() {
     }
   }, [session?.user?.id, billing]);
 
-  // Check if user is on default plan and redirect to pricing page
+  // Check if user is on free plan and redirect to pricing page
   useEffect(() => {
     if (isSessionPending || !billing.loaded) {
       return;
     }
 
-    // Check if user has at least one non-default product subscription
-    const hasNonDefaultPlan =
+    // Check if user has at least one non-free plan subscription
+    // isFreePlan is true when the subscription's price has unitPrice === 0
+    const hasNonFreePlan =
       Array.isArray(billing.currentSubscriptions) &&
       billing.currentSubscriptions.length > 0 &&
-      !!billing.catalog?.products &&
       billing.currentSubscriptions.some((sub) => {
-        const priceId = (sub as { priceId?: string }).priceId;
-        if (!priceId) return false;
-        const owningProduct = billing.catalog!.products.find((product) =>
-          product.prices?.some((p) => 'id' in p && p.id === priceId)
-        );
-        return owningProduct ? owningProduct.default !== true : false;
+        return 'isFreePlan' in sub && sub.isFreePlan !== true;
       });
 
-    // If user is on default plan (no non-default plan found), redirect to pricing
-    if (!hasNonDefaultPlan) {
+    // If user is on free plan (no non-free plan found), redirect to pricing
+    if (!hasNonFreePlan) {
       router.push('/pricing');
     }
   }, [
     isSessionPending,
     billing.loaded,
     billing.currentSubscriptions,
-    billing.catalog,
     router,
   ]);
 
   if (isSessionPending || !billing.loaded) {
+    return <DashboardSkeleton />;
+  }
+
+  if (
+    billing.loadBilling !== true ||
+    billing.errors !== null ||
+    !('pricingModel' in billing) ||
+    !billing.pricingModel
+  ) {
     return <DashboardSkeleton />;
   }
 
@@ -121,11 +124,11 @@ export function HomeClient() {
 
   // Get feature access
   const hasRelaxMode =
-    billing.checkFeatureAccess('unlimited_relaxed_images') ?? false;
+    !!billing.checkFeatureAccess('unlimited_relaxed_images');
   const hasUnlimitedRelaxedSDVideo =
-    billing.checkFeatureAccess('unlimited_relaxed_sd_video') ?? false;
+    !!billing.checkFeatureAccess('unlimited_relaxed_sd_video');
   const hasOptionalTopUps =
-    billing.checkFeatureAccess('optional_credit_top_ups') ?? false;
+    !!billing.checkFeatureAccess('optional_credit_top_ups');
 
   // Calculate progress for usage meters - get slug from price using priceId
   const fastGenerationsRemaining =
@@ -137,7 +140,7 @@ export function HomeClient() {
   const fastGenerationsTotal = computeUsageTotal(
     'fast_generations',
     currentSubscription,
-    billing.catalog
+    billing.pricingModel
   );
   const fastGenerationsProgress =
     fastGenerationsTotal > 0
@@ -148,7 +151,7 @@ export function HomeClient() {
   const hdVideoMinutesTotal = computeUsageTotal(
     'hd_video_minutes',
     currentSubscription,
-    billing.catalog
+    billing.pricingModel
   );
   const hdVideoMinutesProgress =
     hdVideoMinutesTotal > 0
@@ -268,10 +271,6 @@ export function HomeClient() {
     setIsGeneratingRelaxImage(true);
 
     try {
-      // Artificial delay between 3-4.5 seconds
-      const delay = Math.floor(Math.random() * 1500) + 3000; // 3000-4500ms
-      await new Promise((resolve) => setTimeout(resolve, delay));
-
       // Cycle through mock images for relax mode
       const nextIndex = (currentImageIndex + 1) % mockImages.length;
       setCurrentImageIndex(nextIndex);
@@ -292,10 +291,6 @@ export function HomeClient() {
     setIsGeneratingRelaxSDVideo(true);
 
     try {
-      // Artificial delay between 3-4.5 seconds
-      const delay = Math.floor(Math.random() * 1500) + 3000; // 3000-4500ms
-      await new Promise((resolve) => setTimeout(resolve, delay));
-
       // Cycle through mock video GIFs
       const nextIndex = (currentVideoGifIndex + 1) % mockVideoGif.length;
       setCurrentVideoGifIndex(nextIndex);
