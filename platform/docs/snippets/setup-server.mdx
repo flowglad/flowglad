@@ -1,0 +1,72 @@
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/server
+```
+
+```bash yarn
+yarn add @flowglad/server
+```
+
+```bash bun
+bun add @flowglad/server
+```
+
+</CodeGroup>
+
+## Quick Start
+
+### 1. Set Up Environment Variables
+
+```bash .env
+FLOWGLAD_SECRET_KEY="sk_test_..."
+```
+
+### 2. Create a FlowgladServer Instance
+
+```ts
+import { FlowgladServer } from '@flowglad/server'
+
+export const flowgladServer = new FlowgladServer({
+  // Optional: apiKey defaults to FLOWGLAD_SECRET_KEY
+  // apiKey: process.env.FLOWGLAD_SECRET_KEY,
+  // Optional: baseURL defaults to https://app.flowglad.com
+  // baseURL: 'https://app.flowglad.com',
+  getRequestingCustomer: async () => ({
+    externalId: 'user-123',
+    name: 'John Doe',
+    email: 'john@example.com',
+  }),
+})
+```
+
+### 3. Call Server Methods
+
+```ts
+// Fetch billing details (customers, subscriptions, invoices, etc.)
+const billing = await flowgladServer.getBilling()
+
+// Ensure the Flowglad customer exists
+const customer = await flowgladServer.findOrCreateCustomer()
+
+// Create a hosted checkout session
+const checkoutSession = await flowgladServer.createCheckoutSession({
+  priceId: 'price_123',
+  successUrl: 'https://example.com/success',
+  cancelUrl: 'https://example.com/cancel',
+})
+
+// Check feature access for gating premium functionality
+const hasPremium = await flowgladServer.checkFeatureAccess('premium_feature')
+
+// Record metered usage
+await flowgladServer.createUsageEvent({
+  priceId: 'usage_price_id',
+  amount: 1,
+  transactionId: 'idempotency-key',
+})
+```
+
+

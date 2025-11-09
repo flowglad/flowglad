@@ -3,6 +3,8 @@ title: "@flowglad/server"
 description: "Core server-side SDK for Flowglad integration in Node.js applications"
 ---
 
+import ServerSetup from '/snippets/setup-server.mdx'
+
 <Info>
   NPM Package: [@flowglad/server](https://www.npmjs.com/package/@flowglad/server)
 </Info>
@@ -29,55 +31,7 @@ bun add @flowglad/server
 
 </CodeGroup>
 
-## Quick Start
-
-### 1. Set Up Environment Variables
-
-```bash .env
-FLOWGLAD_SECRET_KEY="sk_test_..."
-```
-
-### 2. Create a FlowgladServer Instance
-
-```typescript
-import { FlowgladServer } from '@flowglad/server'
-
-const flowgladServer = new FlowgladServer({
-  // Optional - reads from FLOWGLAD_SECRET_KEY by default
-  apiKey: 'your-api-key',
-  
-  // Optional - defaults to https://app.flowglad.com
-  baseURL: 'https://app.flowglad.com',
-  
-  // Required - function to get the current customer
-  getRequestingCustomer: async () => {
-    // Return customer info based on your auth system
-    return {
-      externalId: 'user-123',
-      name: 'John Doe',
-      email: 'john@example.com',
-    }
-  },
-})
-```
-
-### 3. Use the Server Instance
-
-```typescript
-// Get customer billing information
-const billing = await flowgladServer.getBilling()
-
-// Create a checkout session
-const checkoutSession = await flowgladServer.createCheckoutSession({
-  type: 'subscription',
-  priceId: 'price_123',
-  successUrl: 'https://example.com/success',
-  cancelUrl: 'https://example.com/cancel',
-})
-
-// Check feature access
-const hasAccess = await flowgladServer.checkFeatureAccess('premium_feature')
-```
+<ServerSetup />
 
 ## Key Features
 
