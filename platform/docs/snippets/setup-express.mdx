@@ -3,15 +3,15 @@
 <CodeGroup>
 
 ```bash npm
-npm install @flowglad/express @flowglad/server
+npm install @flowglad/express
 ```
 
 ```bash yarn
-yarn add @flowglad/express @flowglad/server
+yarn add @flowglad/express
 ```
 
 ```bash bun
-bun add @flowglad/express @flowglad/server
+bun add @flowglad/express
 ```
 
 </CodeGroup>
@@ -27,7 +27,7 @@ FLOWGLAD_SECRET_KEY="sk_test_..."
 ### 2. Create Flowglad Server Instance
 
 ```ts src/utils/flowglad.ts
-import { FlowgladServer } from '@flowglad/server'
+import { FlowgladServer } from '@flowglad/express'
 
 export const flowgladServer = new FlowgladServer({
   getRequestingCustomer: async () => {
