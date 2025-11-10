@@ -56,8 +56,6 @@ describe('insertSubscriptionAndItems', () => {
         unitPrice: 100,
         livemode: true,
         isDefault: false,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
       })
       // - Construct params for insertSubscriptionAndItems using this price.
       const params = {
@@ -91,8 +89,6 @@ describe('insertSubscriptionAndItems', () => {
         unitPrice: 500,
         livemode: true,
         isDefault: false,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
       })
 
       // - Create a payment method for testing
@@ -150,7 +146,7 @@ describe('insertSubscriptionAndItems', () => {
       // - Create a price with type PriceType.Usage and startsWithCreditTrial = true, associated with the usage meter.
       const creditTrialPrice = await setupPrice({
         productId: product.id,
-        type: PriceType.Subscription,
+        type: PriceType.Usage,
         name: 'Credit Trial Price',
         unitPrice: 0,
         livemode: true,

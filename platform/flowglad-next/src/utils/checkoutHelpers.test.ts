@@ -65,19 +65,56 @@ describe('checkoutHelpers', () => {
         })
         usageMeterId = meter.id
       }
-      const price = await setupPrice({
-        productId: product.id,
-        name: 'X',
-        type,
-        unitPrice: 1000,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: true,
-        currency: CurrencyCode.USD,
-        active: opts?.priceActive ?? true,
-        usageMeterId,
-      })
+
+      // Build price params conditionally based on type
+      // TypeScript needs explicit type narrowing for discriminated unions
+      let priceParams: Parameters<typeof setupPrice>[0]
+      
+      if (type === PriceType.SinglePayment) {
+        priceParams = {
+          productId: product.id,
+          name: 'X',
+          type: PriceType.SinglePayment,
+          unitPrice: 1000,
+          livemode: true,
+          isDefault: true,
+          currency: CurrencyCode.USD,
+          active: opts?.priceActive ?? true,
+        }
+      } else if (type === PriceType.Usage) {
+        if (!usageMeterId) {
+          throw new Error('Usage price requires usageMeterId')
+        }
+        priceParams = {
+          productId: product.id,
+          name: 'X',
+          type: PriceType.Usage,
+          unitPrice: 1000,
+          livemode: true,
+          isDefault: true,
+          currency: CurrencyCode.USD,
+          active: opts?.priceActive ?? true,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          usageMeterId,
+        }
+      } else {
+        // PriceType.Subscription
+        priceParams = {
+          productId: product.id,
+          name: 'X',
+          type: PriceType.Subscription,
+          unitPrice: 1000,
+          livemode: true,
+          isDefault: true,
+          currency: CurrencyCode.USD,
+          active: opts?.priceActive ?? true,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+        }
+      }
+
+      const price = await setupPrice(priceParams)
       return { organization, product, price }
     }
     it.each([
@@ -142,18 +179,39 @@ describe('checkoutHelpers', () => {
         livemode: true,
         active: true,
       })
-      const price = await setupPrice({
-        productId: product.id,
-        name: 'Price',
-        type,
-        unitPrice: 500,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: true,
-        currency: CurrencyCode.USD,
-        active: true,
-      })
+
+      // Build price params conditionally based on type
+      // TypeScript needs explicit type narrowing for discriminated unions
+      let priceParams: Parameters<typeof setupPrice>[0]
+      
+      if (type === PriceType.SinglePayment) {
+        priceParams = {
+          productId: product.id,
+          name: 'Price',
+          type: PriceType.SinglePayment,
+          unitPrice: 500,
+          livemode: true,
+          isDefault: true,
+          currency: CurrencyCode.USD,
+          active: true,
+        }
+      } else {
+        // PriceType.Subscription (default for this helper)
+        priceParams = {
+          productId: product.id,
+          name: 'Price',
+          type: PriceType.Subscription,
+          unitPrice: 500,
+          livemode: true,
+          isDefault: true,
+          currency: CurrencyCode.USD,
+          active: true,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+        }
+      }
+
+      const price = await setupPrice(priceParams)
       const customer = await setupCustomer({
         organizationId: organization.id,
       })
@@ -183,8 +241,6 @@ describe('checkoutHelpers', () => {
         name: 'P',
         type: PriceType.SinglePayment,
         unitPrice: 1000,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
         livemode: true,
         isDefault: true,
         currency: CurrencyCode.USD,

@@ -132,8 +132,6 @@ describe('ledgerCommandForPaymentSucceeded', () => {
       name: 'Single Payment Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 2000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       livemode: true,
       isDefault: false,
       currency: organization.defaultCurrency,
