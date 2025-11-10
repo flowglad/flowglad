@@ -289,7 +289,6 @@ export const processPaymentIntentEventForBillingRun = async (
     },
     transaction
   )
-
   let [invoice] = await selectInvoices(
     {
       billingPeriodId: billingRun.billingPeriodId,

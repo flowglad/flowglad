@@ -73,6 +73,11 @@ import {
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 import { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
+import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
+import type { CoreStripePaymentIntent } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
@@ -876,6 +881,25 @@ export const executeBillingRun = async (billingRunId: string) => {
       )
     }
 
+    // Process payment intent in comprehensive transaction if payment intent in terminal state
+    if (
+      confirmationResult.status === 'succeeded' ||
+      confirmationResult.status === 'requires_payment_method'
+    ) {
+      await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          return await processTerminalPaymentIntent(
+            confirmationResult,
+            billingRun,
+            transaction
+          )
+        },
+        {
+          livemode: billingRun.livemode,
+        }
+      )
+    }
+
     return {
       invoice,
       payment,
@@ -972,4 +996,105 @@ export const scheduleBillingRunRetry = async (
     return
   }
   return safelyInsertBillingRun(retryBillingRun, transaction)
+}
+
+export const processTerminalPaymentIntent = async (
+  paymentIntent: CoreStripePaymentIntent,
+  billingRun: BillingRun.Record,
+  transaction: DbTransaction
+): Promise<TransactionOutput<{ commandCreated: boolean }>> => {
+  // Fetch the required data
+  const { subscription, billingPeriod, organization } =
+    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId(
+      billingRun.billingPeriodId,
+      transaction
+    )
+
+  const [invoice] = await selectInvoices(
+    {
+      billingPeriodId: billingRun.billingPeriodId,
+    },
+    transaction
+  )
+
+  if (!invoice) {
+    throw new Error(
+      `Invoice not found for billing period ${billingRun.billingPeriodId}`
+    )
+  }
+
+  let ledgerCommand: BillingPeriodTransitionLedgerCommand | undefined
+
+  // Only create billing period transition command if payment succeeded, invoice is paid
+  if (
+    paymentIntent.status === 'succeeded' &&
+    invoice.status === InvoiceStatus.Paid
+  ) {
+    // Check if billing period transition command has already been executed
+    const [transitionForThisBillingPeriod] =
+      await selectLedgerTransactions(
+        {
+          subscriptionId: subscription.id,
+          type: LedgerTransactionType.BillingPeriodTransition,
+          initiatingSourceId: billingPeriod.id,
+        },
+        transaction
+      )
+
+    if (!transitionForThisBillingPeriod) {
+      // This is the first successful payment for this billing period
+      // Get subscription feature items for entitlement grants
+      const activeSubscriptionItems =
+        await selectCurrentlyActiveSubscriptionItems(
+          { subscriptionId: subscription.id },
+          billingPeriod.startDate,
+          transaction
+        )
+
+      const subscriptionItemFeatures =
+        await selectSubscriptionItemFeatures(
+          {
+            subscriptionItemId: activeSubscriptionItems.map(
+              (item) => item.id
+            ),
+            type: FeatureType.UsageCreditGrant,
+          },
+          transaction
+        )
+
+      // Find previous billing period (if any)
+      const allBillingPeriods = await selectBillingPeriods(
+        { subscriptionId: subscription.id },
+        transaction
+      )
+
+      // Find the billing period that comes before this one (by startDate)
+      const previousBillingPeriod =
+        allBillingPeriods
+          .filter((bp) => bp.startDate < billingPeriod.startDate)
+          .sort((a, b) => b.startDate - a.startDate)[0] || null
+
+      // Construct the billing period transition command
+      ledgerCommand = {
+        type: LedgerTransactionType.BillingPeriodTransition,
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        livemode: billingPeriod.livemode,
+        payload: {
+          type: 'standard',
+          subscription,
+          previousBillingPeriod,
+          newBillingPeriod: billingPeriod,
+          subscriptionFeatureItems: subscriptionItemFeatures.filter(
+            (item) => item.type === FeatureType.UsageCreditGrant
+          ),
+        },
+      }
+    }
+  }
+
+  return {
+    result: { commandCreated: !!ledgerCommand },
+    ledgerCommand,
+  }
 }
