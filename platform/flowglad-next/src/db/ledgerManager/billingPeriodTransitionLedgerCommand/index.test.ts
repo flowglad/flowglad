@@ -618,6 +618,92 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
         // - The `ledgerEntries` array in the final result is empty.
       })
     })
+
+    describe('Idempotency', () => {
+      it('should throw an error when processing a duplicate billing period transition command', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          command.payload.subscriptionFeatureItems = [
+            subscriptionFeatureItem,
+          ]
+
+          const firstResult =
+            await processBillingPeriodTransitionLedgerCommand(
+              command,
+              transaction
+            )
+
+          expect(firstResult.ledgerTransaction).toBeDefined()
+          expect(firstResult.ledgerTransaction.type).toBe(
+            LedgerTransactionType.BillingPeriodTransition
+          )
+          expect(firstResult.ledgerEntries.length).toBeGreaterThan(0)
+
+          await expect(
+            processBillingPeriodTransitionLedgerCommand(
+              command,
+              transaction
+            )
+          ).rejects.toThrow(
+            'existing billing period transition ledger command'
+          )
+        })
+      })
+
+      it('should allow processing different billing periods for the same subscription', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          command.payload.subscriptionFeatureItems = [
+            subscriptionFeatureItem,
+          ]
+
+          const firstResult =
+            await processBillingPeriodTransitionLedgerCommand(
+              command,
+              transaction
+            )
+
+          expect(firstResult.ledgerTransaction).toBeDefined()
+          expect(firstResult.ledgerTransaction.type).toBe(
+            LedgerTransactionType.BillingPeriodTransition
+          )
+          expect(firstResult.ledgerEntries.length).toBeGreaterThan(0)
+
+          const secondBillingPeriod = await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: newBillingPeriod.endDate + 1,
+            endDate:
+              newBillingPeriod.endDate + 30 * 24 * 60 * 60 * 1000,
+            livemode: subscription.livemode,
+          })
+
+          const secondCommand: BillingPeriodTransitionLedgerCommand =
+            {
+              ...command,
+              payload: {
+                type: 'standard',
+                subscription,
+                previousBillingPeriod: newBillingPeriod,
+                newBillingPeriod: secondBillingPeriod,
+                subscriptionFeatureItems: [subscriptionFeatureItem],
+              },
+            }
+
+          const secondResult =
+            await processBillingPeriodTransitionLedgerCommand(
+              secondCommand,
+              transaction
+            )
+
+          // Second processing should succeed (different billing period)
+          expect(secondResult.ledgerTransaction).toBeDefined()
+          expect(
+            secondResult.ledgerTransaction.initiatingSourceId
+          ).toBe(secondBillingPeriod.id)
+          expect(secondResult.ledgerTransaction.id).not.toBe(
+            firstResult.ledgerTransaction.id
+          )
+        })
+      })
+    })
   })
 
   describe('Non-Renewing Subscription Support', () => {

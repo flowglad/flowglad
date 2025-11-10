@@ -1030,66 +1030,51 @@ export const processTerminalPaymentIntent = async (
     paymentIntent.status === 'succeeded' &&
     invoice.status === InvoiceStatus.Paid
   ) {
-    // Check if billing period transition command has already been executed
-    const [transitionForThisBillingPeriod] =
-      await selectLedgerTransactions(
-        {
-          subscriptionId: subscription.id,
-          type: LedgerTransactionType.BillingPeriodTransition,
-          initiatingSourceId: billingPeriod.id,
-        },
-        transaction
-      )
-
-    if (!transitionForThisBillingPeriod) {
-      // This is the first successful payment for this billing period
-      // Get subscription feature items for entitlement grants
-      const activeSubscriptionItems =
-        await selectCurrentlyActiveSubscriptionItems(
-          { subscriptionId: subscription.id },
-          billingPeriod.startDate,
-          transaction
-        )
-
-      const subscriptionItemFeatures =
-        await selectSubscriptionItemFeatures(
-          {
-            subscriptionItemId: activeSubscriptionItems.map(
-              (item) => item.id
-            ),
-            type: FeatureType.UsageCreditGrant,
-          },
-          transaction
-        )
-
-      // Find previous billing period (if any)
-      const allBillingPeriods = await selectBillingPeriods(
+    const activeSubscriptionItems =
+      await selectCurrentlyActiveSubscriptionItems(
         { subscriptionId: subscription.id },
+        billingPeriod.startDate,
         transaction
       )
 
-      // Find the billing period that comes before this one (by startDate)
-      const previousBillingPeriod =
-        allBillingPeriods
-          .filter((bp) => bp.startDate < billingPeriod.startDate)
-          .sort((a, b) => b.startDate - a.startDate)[0] || null
-
-      // Construct the billing period transition command
-      ledgerCommand = {
-        type: LedgerTransactionType.BillingPeriodTransition,
-        organizationId: organization.id,
-        subscriptionId: subscription.id,
-        livemode: billingPeriod.livemode,
-        payload: {
-          type: 'standard',
-          subscription,
-          previousBillingPeriod,
-          newBillingPeriod: billingPeriod,
-          subscriptionFeatureItems: subscriptionItemFeatures.filter(
-            (item) => item.type === FeatureType.UsageCreditGrant
+    const subscriptionItemFeatures =
+      await selectSubscriptionItemFeatures(
+        {
+          subscriptionItemId: activeSubscriptionItems.map(
+            (item) => item.id
           ),
+          type: FeatureType.UsageCreditGrant,
         },
-      }
+        transaction
+      )
+
+    // Find previous billing period (if any)
+    const allBillingPeriods = await selectBillingPeriods(
+      { subscriptionId: subscription.id },
+      transaction
+    )
+
+    // Find the billing period that comes before this one (by startDate)
+    const previousBillingPeriod =
+      allBillingPeriods
+        .filter((bp) => bp.startDate < billingPeriod.startDate)
+        .sort((a, b) => b.startDate - a.startDate)[0] || null
+
+    // Construct the billing period transition command
+    ledgerCommand = {
+      type: LedgerTransactionType.BillingPeriodTransition,
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      livemode: billingPeriod.livemode,
+      payload: {
+        type: 'standard',
+        subscription,
+        previousBillingPeriod,
+        newBillingPeriod: billingPeriod,
+        subscriptionFeatureItems: subscriptionItemFeatures.filter(
+          (item) => item.type === FeatureType.UsageCreditGrant
+        ),
+      },
     }
   }
 
