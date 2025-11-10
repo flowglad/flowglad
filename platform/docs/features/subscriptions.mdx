@@ -11,7 +11,7 @@ A Subscription in Flowglad tracks the details of a recurring charge for a custom
 
 Key concepts:
 
-*   **One Active Subscription per Customer (Default):** By default, a customer can only have one active subscription at a time (`active`, `trialing`, `past_due`, `cancellation_scheduled`, `unpaid`). This encourages simpler billing management. If you need customers to have multiple simultaneous subscriptions, you can enable the `allow_multiple_subscriptions_per_customer` setting at the organization level in your Flowglad settings or by contacting support.
+*   **One Current Subscription per Customer (Default):** By default, a customer can only have one active subscription at a time (current states include `active`, `trialing`, `past_due`, `cancellation_scheduled`, `unpaid`). This encourages simpler billing management. If you need customers to have multiple simultaneous subscriptions, you can enable the `allow_multiple_subscriptions_per_customer` setting at the organization level in your Flowglad settings or by contacting support.
 *   **Billing Cycle Anchor Date:** The `billingCycleAnchorDate` (set from the `startDate` on creation) determines the day of the month billing occurs. If this date doesn't exist in a given month (e.g., the 31st in February), billing occurs on the last day of that month.
 *   **Billing Periods:** Defined by the `startDate`, `interval` (e.g., `Month`, `Year`), and `intervalCount`. Flowglad automatically calculates the `currentBillingPeriodStart` and `currentBillingPeriodEnd` for each cycle.
 
@@ -28,7 +28,7 @@ There are two primary ways to create a subscription:
 
 ### 1. Via Checkout Session
 
-Customers can initiate subscriptions themselves by completing a Flowglad Checkout Session for a product with a `subscription` or `usage` type price.
+Customers can initiate subscriptions themselves by completing a checkout session for a product with a `subscription` type price.
 
 *   **How:** This can be done through hosted product/price purchase pages or programmatically using the [`useBilling()` hook's `createCheckoutSession` method](/features/checkout-sessions#using-usebilling-hook).
 *   **Use Case:** Standard customer sign-ups and purchases where the customer interacts directly with a checkout flow initiated from within the product
@@ -40,7 +40,7 @@ Customers can initiate subscriptions themselves by completing a Flowglad Checkou
 
 ### 2. Via API
 
-You can programmatically create subscriptions using Flowglad's backend APIs (e.g., interacting with the `createSubscriptionWorkflow`).
+You can programmatically create subscriptions using the [API endpoint](/api-reference/subscriptions/create-subscription)
 
 *   **How:** Requires providing `customerId`, `priceId`, `startDate`, `interval`, and `intervalCount`.
 *   **Use Case:** Ideal for scenarios where you create subscriptions automatically based on actions within your application, such as user sign-up, plan changes initiated within your UI, or migrations.
@@ -91,12 +91,7 @@ Flowglad offers flexibility in how subscriptions can be canceled.
 ### Methods for Cancellation
 
 1.  **Flowglad Dashboard:** Manually cancel subscriptions directly within the Flowglad UI.
-2.  **API:** Programmatically cancel subscriptions using backend API calls (e.g., interacting with `cancelSubscriptionImmediately` or `scheduleSubscriptionCancellation`).
+2.  **API:** Programmatically cancel subscriptions using the [API endpoint](/api-reference/subscriptions/cancel-subscription)
 3.  **Customer Self-Service:** Allow customers to manage their own subscriptions.
-    *   **Hosted Billing Portal:** A no-code option accessible via a unique URL per customer.
-    *   **Embedded Billing Page:** A React component (`@flowglad/react` or `@flowglad/nextjs`) to embed cancellation and other billing management features directly into your application.
+    *   **Hosted Billing Portal:** (available in livemode only) A no-code option accessible via a unique URL per customer. The `billingPortalUrl` is returned in customer billing details from `useBilling` or the [get billing details API](/api-reference/customer/get-billing-details). It can also be found in the customer details page in your Flowglad dashboard.
     *   **Headless Implementation:** Use the `useBilling()` hook's `cancelSubscription` function (ensure it's used within a `<FlowgladProvider>` context) to build a completely custom cancellation UI.
-
-<Info>
-  Learn more about enabling customer self-service options in the [Customer Billing UI documentation](/features/customer-billing-UI).
-</Info>
