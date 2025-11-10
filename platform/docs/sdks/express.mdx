@@ -33,7 +33,13 @@ Creates an Express router with all Flowglad routes pre-configured.
 
 ```typescript
 interface CreateFlowgladExpressRouterOptions {
-  flowgladServer: FlowgladServer
+  flowgladServerConstructor: (
+    req: Request
+  ) => Promise<FlowgladServer> | FlowgladServer
+  middleware?: RequestHandler[]
+  beforeRequest?: () => Promise<void>
+  afterRequest?: () => Promise<void>
+  onError?: (error: unknown) => void
 }
 ```
 
@@ -46,18 +52,41 @@ interface CreateFlowgladExpressRouterOptions {
 ```ts
 import express from 'express'
 import { createFlowgladExpressRouter } from '@flowglad/express'
-import { flowgladServer } from './utils/flowglad'
+import { FlowgladServer } from '@flowglad/server'
+import { requireAuth } from './middleware/auth'
+import type { Request } from 'express'
 
 const app = express()
 
+const flowgladServerConstructor = async (req: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const user = req.user as
+        | { id: string; name: string; email: string }
+        | undefined
+      if (!user) return null
+      return {
+        externalId: user.id,
+        name: user.name,
+        email: user.email,
+      }
+    },
+  })
+
 // Mount at /api/flowglad
-app.use('/api/flowglad', createFlowgladExpressRouter({ flowgladServer }))
+app.use(
+  '/api/flowglad',
+  createFlowgladExpressRouter({
+    middleware: [requireAuth],
+    flowgladServerConstructor,
+  })
+)
 
 // Or mount at a different path
-app.use('/billing', createFlowgladExpressRouter({ flowgladServer }))
+app.use('/billing', createFlowgladExpressRouter({ flowgladServerConstructor }))
 ```
 
-### createFlowgladExpressRouteHandler
+### createExpressRouteHandler
 
 Creates a route handler function for custom routing setups.
 
@@ -66,6 +95,9 @@ Creates a route handler function for custom routing setups.
 ```typescript
 interface CreateFlowgladExpressRouteHandlerOptions {
   flowgladServer: FlowgladServer
+  beforeRequest?: () => Promise<void>
+  afterRequest?: () => Promise<void>
+  onError?: (error: unknown) => void
 }
 ```
 
@@ -77,12 +109,13 @@ interface CreateFlowgladExpressRouteHandlerOptions {
 
 ```ts
 import express from 'express'
-import { createFlowgladExpressRouteHandler } from '@flowglad/express'
-import { flowgladServer } from './utils/flowglad'
+import { createExpressRouteHandler } from '@flowglad/express'
+import { FlowgladServer } from '@flowglad/server'
 
 const app = express()
 
-const flowgladHandler = createFlowgladExpressRouteHandler({ flowgladServer })
+const flowgladServer = new FlowgladServer({ /* ... */ })
+const flowgladHandler = createExpressRouteHandler({ flowgladServer })
 
 // Handle all HTTP methods
 app.all('/api/flowglad/*', flowgladHandler)

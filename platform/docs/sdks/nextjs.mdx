@@ -34,22 +34,26 @@ Import from `@flowglad/nextjs/server`:
 
 The main server class for backend operations. See the [Server SDK documentation](/sdks/server) for full details.
 
-#### `createAppRouterRouteHandler({ flowgladServer })`
+#### `createAppRouterRouteHandler(flowgladServer, options?)`
 
 Creates GET and POST handlers for App Router:
 
 ```ts
-const { GET, POST } = createAppRouterRouteHandler({ flowgladServer })
+const { GET, POST } = createAppRouterRouteHandler(flowgladServer)
 export { GET, POST }
 ```
 
-#### `createPagesRouterRouteHandler({ flowgladServer })`
+You can pass a second argument with `beforeRequest`, `afterRequest`, or `onError` hooks if you need custom behavior.
+
+#### `createPagesRouterRouteHandler(flowgladServer, options?)`
 
 Creates a single handler for Pages Router:
 
 ```ts
-export default createPagesRouterRouteHandler({ flowgladServer })
+export default createPagesRouterRouteHandler(flowgladServer)
 ```
+
+As with the App Router helper, you may provide an optional options object to run request lifecycle hooks.
 
 ### Client Exports
 

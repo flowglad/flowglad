@@ -89,22 +89,22 @@ const customer = await flowgladServer.findOrCreateCustomer()
 
 #### `getSession()`
 
-Get the full customer session including billing information.
+Get the requesting customer's identity (externalId, name, email) derived from your auth integration.
 
 ```typescript
 const session = await flowgladServer.getSession()
-// Returns: { customer, subscriptions, paymentMethods, invoices }
 ```
 
 ### Billing Methods
 
 #### `getBilling()`
 
-Get comprehensive billing information for the customer.
+Get comprehensive billing information for the customer, including helper functions like `checkFeatureAccess`, `checkUsageBalance`, `getProduct`, and `getPrice`.
 
 ```typescript
 const billing = await flowgladServer.getBilling()
-// Returns customer, subscriptions, payment methods, invoices, and features
+const hasPremium = billing.checkFeatureAccess('premium_feature')
+const invoiceCount = billing.invoices.length
 ```
 
 #### `getPricingModel()`
@@ -148,9 +148,10 @@ Cancel an existing subscription.
 
 ```typescript
 const canceledSubscription = await flowgladServer.cancelSubscription({
-  subscriptionId: 'sub_123',
-  reason: 'customer-requested',
-  cancelAt?: 'period_end' | 'now', // Defaults to 'period_end'
+  id: 'sub_123',
+  cancellation: {
+    timing: 'at_end_of_current_billing_period',
+  },
 })
 ```
 
@@ -158,9 +159,11 @@ const canceledSubscription = await flowgladServer.cancelSubscription({
 
 ```typescript
 interface CancelSubscriptionParams {
-  subscriptionId: string
-  reason?: string
-  cancelAt?: 'period_end' | 'now'
+  id: string
+  cancellation:
+    | { timing: 'at_end_of_current_billing_period' }
+    | { timing: 'at_future_date'; endDate: Date }
+    | { timing: 'immediately' }
 }
 ```
 
@@ -189,12 +192,12 @@ const checkoutSession = await flowgladServer.createCheckoutSession({
 
 ```typescript
 interface CreateCheckoutSessionParams {
-  type: 'subscription' | 'one_time'
   priceId: string
   successUrl: string
   cancelUrl: string
   quantity?: number
-  metadata?: Record<string, string>
+  outputMetadata?: Record<string, unknown>
+  outputName?: string
 }
 ```
 
@@ -206,7 +209,7 @@ Create a checkout session that collects a payment method for the current custome
 const session = await flowgladServer.createAddPaymentMethodCheckoutSession({
   successUrl: 'https://example.com/payment-methods/success',
   cancelUrl: 'https://example.com/payment-methods/cancel',
-  customerExternalId: 'user_123', // optional override
+  targetSubscriptionId: 'sub_123', // optional
 })
 ```
 
@@ -217,7 +220,8 @@ Create a checkout session that activates a provisioning or imported subscription
 ```typescript
 const activationSession =
   await flowgladServer.createActivateSubscriptionCheckoutSession({
-    subscriptionId: 'sub_123',
+    targetSubscriptionId: 'sub_123',
+    priceId: 'price_123',
     successUrl: 'https://example.com/subscriptions/success',
     cancelUrl: 'https://example.com/subscriptions/cancel',
   })
@@ -232,6 +236,7 @@ Update the stored customer record in Flowglad.
 ```typescript
 await flowgladServer.updateCustomer({
   customer: {
+    id: 'cust_abc',
     name: 'New Name',
     email: 'new-email@example.com',
   },
@@ -260,10 +265,13 @@ Record a usage event for metered billing.
 
 ```typescript
 const usageEvent = await flowgladServer.createUsageEvent({
-  featureId: 'api_calls',
-  quantity: 100,
-  usageDate: new Date().toISOString(),
-  metadata: {
+  amount: 125,
+  priceId: 'price_usage_meter',
+  subscriptionId: 'sub_123',
+  usageMeterId: 'usage_meter_api_calls',
+  transactionId: 'txn_unique',
+  usageDate: Date.now(),
+  properties: {
     endpoint: '/api/data',
   },
 })
@@ -273,10 +281,13 @@ const usageEvent = await flowgladServer.createUsageEvent({
 
 ```typescript
 interface CreateUsageEventParams {
-  featureId: string
-  quantity: number
-  usageDate: string // ISO 8601 date string
-  metadata?: Record<string, string>
+  amount: number
+  priceId: string
+  subscriptionId: string
+  usageMeterId: string
+  transactionId: string
+  usageDate?: number
+  properties?: Record<string, unknown>
 }
 ```
 

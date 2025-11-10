@@ -119,8 +119,7 @@ interface BillingContext {
   ) => Promise<void>
   
   // Subscription management
-  cancelSubscription: (subscriptionId: string) => Promise<void>
-  updateSubscription: (params: UpdateSubscriptionParams) => Promise<void>
+  cancelSubscription: (params: CancelSubscriptionParams) => Promise<void>
   
   // Loading states
   isLoading: boolean
@@ -184,7 +183,8 @@ interface CheckoutSessionParams {
   cancelUrl: string
   autoRedirect?: boolean
   quantity?: number
-  metadata?: Record<string, string>
+  outputMetadata?: Record<string, unknown>
+  outputName?: string
 }
 ```
 
@@ -198,9 +198,6 @@ const handleUpgrade = async () => {
     cancelUrl: `${window.location.origin}/billing`,
     autoRedirect: true,
     quantity: 1,
-    metadata: {
-      source: 'upgrade_button',
-    },
   })
 }
 ```
@@ -216,7 +213,7 @@ interface AddPaymentMethodCheckoutParams {
   successUrl: string
   cancelUrl: string
   autoRedirect?: boolean
-  customerExternalId?: string
+  targetSubscriptionId?: string
 }
 ```
 
@@ -238,7 +235,8 @@ Trigger the activation flow for an existing subscription that needs a payment me
 
 ```typescript
 interface ActivateSubscriptionCheckoutParams {
-  subscriptionId: string
+  targetSubscriptionId: string
+  priceId: string
   successUrl: string
   cancelUrl: string
   autoRedirect?: boolean
@@ -249,7 +247,8 @@ interface ActivateSubscriptionCheckoutParams {
 
 ```tsx
 await createActivateSubscriptionCheckoutSession({
-  subscriptionId: 'sub_123',
+  targetSubscriptionId: 'sub_123',
+  priceId: 'price_premium_monthly',
   successUrl: `${window.location.origin}/billing/success`,
   cancelUrl: window.location.href,
   autoRedirect: true,
@@ -265,10 +264,10 @@ Cancel a subscription owned by the current customer and refresh billing data.
 ```typescript
 interface CancelSubscriptionParams {
   id: string
-  cancellation?: {
-    reason?: string
-    mode?: 'end_of_period' | 'immediate'
-  }
+  cancellation:
+    | { timing: 'at_end_of_current_billing_period' }
+    | { timing: 'at_future_date'; endDate: Date }
+    | { timing: 'immediately' }
 }
 ```
 
@@ -278,8 +277,7 @@ interface CancelSubscriptionParams {
 await cancelSubscription({
   id: 'sub_123',
   cancellation: {
-    mode: 'end_of_period',
-    reason: 'user_request',
+    timing: 'at_end_of_current_billing_period',
   },
 })
 ```
