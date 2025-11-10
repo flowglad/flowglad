@@ -42,7 +42,7 @@ bun add @flowglad/server
 - **Usage Tracking**: Record usage events for metered billing
 - **Invoices**: Retrieve and manage invoices
 - **Payment Methods**: Handle customer payment methods
-- **Catalog**: Access your product catalog
+- **Pricing Model**: Access your pricing model with products, prices, and features
 
 ## API Reference
 
@@ -107,12 +107,12 @@ const billing = await flowgladServer.getBilling()
 // Returns customer, subscriptions, payment methods, invoices, and features
 ```
 
-#### `getCatalog()`
+#### `getPricingModel()`
 
-Get the product catalog with prices and features.
+Get the default pricing model with products, prices, and features.
 
 ```typescript
-const catalog = await flowgladServer.getCatalog()
+const pricingModel = await flowgladServer.getPricingModel()
 // Returns products, prices, and features available for purchase
 ```
 
