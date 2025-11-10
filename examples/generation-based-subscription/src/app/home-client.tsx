@@ -322,7 +322,6 @@ export function HomeClient() {
         cancelUrl: window.location.href,
         quantity: 1,
         autoRedirect: true,
-        type: 'product',
       });
     } catch (error) {
       setTopUpError(
@@ -353,7 +352,6 @@ export function HomeClient() {
         cancelUrl: window.location.href,
         quantity: 1,
         autoRedirect: true,
-        type: 'product',
       });
     } catch (error) {
       setTopUpError(

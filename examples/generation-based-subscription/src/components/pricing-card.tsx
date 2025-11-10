@@ -20,16 +20,13 @@ export interface PricingPlan {
   name: string;
   description?: string;
   displayMonthly: string;
-  displayYearly: string;
   monthlySlug: string;
-  yearlySlug: string;
   features: string[];
   isPopular?: boolean;
 }
 
 interface PricingCardProps {
   plan: PricingPlan;
-  billingPeriod: 'monthly' | 'yearly';
   isCurrentPlan?: boolean;
   hideFeatures?: boolean;
 }
@@ -39,7 +36,6 @@ interface PricingCardProps {
  */
 export function PricingCard({
   plan,
-  billingPeriod,
   isCurrentPlan = false,
   hideFeatures = false,
 }: PricingCardProps) {
@@ -59,11 +55,9 @@ export function PricingCard({
     return <div>Billing not available</div>;
   }
 
-  const periodLabel = billingPeriod === 'monthly' ? '/month' : '/year';
-  const priceSlug =
-    billingPeriod === 'monthly' ? plan.monthlySlug : plan.yearlySlug;
-  const displayPrice =
-    billingPeriod === 'monthly' ? plan.displayMonthly : plan.displayYearly;
+  const periodLabel = '/month';
+  const priceSlug = plan.monthlySlug;
+  const displayPrice = plan.displayMonthly;
 
   // Check if this plan is a default plan by checking the pricing model
   const isDefaultPlan = (() => {
@@ -80,16 +74,6 @@ export function PricingCard({
     }
     return false;
   })();
-
-  // Calculate monthly equivalent from yearly price for subtext
-  const calculateMonthlyEquivalent = (yearlyPrice: string): string => {
-    // Remove $ and commas, parse as number
-    const numericPrice = parseFloat(yearlyPrice.replace(/[$,]/g, ''));
-    if (isNaN(numericPrice)) return yearlyPrice;
-    // Divide by 12 and format back
-    const monthlyEquivalent = numericPrice / 12;
-    return `$${Math.round(monthlyEquivalent)}`;
-  };
 
   const handleCheckout = async () => {
     setError(null);
@@ -124,7 +108,6 @@ export function PricingCard({
         cancelUrl: window.location.href,
         quantity: 1,
         autoRedirect: true,
-        type: 'product',
       });
     } catch (error) {
       const errorMsg =
@@ -169,12 +152,6 @@ export function PricingCard({
               {periodLabel}
             </span>
           </div>
-          {billingPeriod === 'yearly' && !isDefaultPlan && (
-            <p className="text-muted-foreground mt-0.5 text-xs">
-              {calculateMonthlyEquivalent(plan.displayYearly)}/month billed
-              annually
-            </p>
-          )}
         </div>
       </CardHeader>
 

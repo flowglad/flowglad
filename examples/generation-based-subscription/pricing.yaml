@@ -127,28 +127,6 @@ products:
       - "optional_credit_top_ups"
       - "use_within_upgraded_images"
   - product:
-      name: "Basic"
-      description: "$96/yr + ~200 fast generations"
-      active: true
-      default: false
-      slug: "basic_yearly"
-    prices:
-      - intervalUnit: "year"
-        name: "Basic Plan (Yearly)"
-        intervalCount: 1
-        type: "subscription"
-        isDefault: true
-        unitPrice: 9600
-        usageEventsPerUnit: null
-        active: true
-        slug: "basic_yearly"
-        usageMeterId: null
-    features:
-      - "basic_fast_generations"
-      - "general_commercial_terms"
-      - "optional_credit_top_ups"
-      - "use_within_upgraded_images"
-  - product:
       name: "Fast Generation Top-Ups"
       description: "Pay-as-you-go fast generations beyond plan limits"
       active: true
@@ -270,32 +248,6 @@ products:
       - "stealth_mode"
       - "use_within_upgraded_images"
   - product:
-      name: "Mega"
-      description: "$1,152/yr + 900+ fast generations + 120 min HD video + Stealth"
-      active: true
-      default: false
-      slug: "mega_yearly"
-    prices:
-      - intervalUnit: "year"
-        name: "Mega Plan (Yearly)"
-        intervalCount: 1
-        type: "subscription"
-        isDefault: true
-        unitPrice: 115200
-        usageEventsPerUnit: null
-        active: true
-        slug: "mega_yearly"
-        usageMeterId: null
-    features:
-      - "mega_fast_generations"
-      - "mega_hd_video_minutes"
-      - "general_commercial_terms"
-      - "optional_credit_top_ups"
-      - "unlimited_relaxed_images"
-      - "unlimited_relaxed_sd_video"
-      - "stealth_mode"
-      - "use_within_upgraded_images"
-  - product:
       name: "Pro"
       description: "$60/mo + 750 fast generations + 60 min HD video + Stealth"
       active: true
@@ -322,32 +274,6 @@ products:
       - "stealth_mode"
       - "use_within_upgraded_images"
   - product:
-      name: "Pro"
-      description: "$576/yr + 750 fast generations + 60 min HD video + Stealth"
-      active: true
-      default: false
-      slug: "pro_yearly"
-    prices:
-      - intervalUnit: "year"
-        name: "Pro Plan (Yearly)"
-        intervalCount: 1
-        type: "subscription"
-        isDefault: true
-        unitPrice: 57600
-        usageEventsPerUnit: null
-        active: true
-        slug: "pro_yearly"
-        usageMeterId: null
-    features:
-      - "pro_fast_generations"
-      - "pro_hd_video_minutes"
-      - "general_commercial_terms"
-      - "optional_credit_top_ups"
-      - "unlimited_relaxed_images"
-      - "unlimited_relaxed_sd_video"
-      - "stealth_mode"
-      - "use_within_upgraded_images"
-  - product:
       name: "Standard"
       description: "$30/mo + 360 fast generations + 30 min HD video"
       active: true
@@ -363,30 +289,6 @@ products:
         usageEventsPerUnit: null
         active: true
         slug: "standard_monthly"
-        usageMeterId: null
-    features:
-      - "standard_fast_generations"
-      - "standard_hd_video_minutes"
-      - "general_commercial_terms"
-      - "optional_credit_top_ups"
-      - "unlimited_relaxed_images"
-      - "use_within_upgraded_images"
-  - product:
-      name: "Standard"
-      description: "$288/yr + 360 fast generations + 30 min HD video"
-      active: true
-      default: false
-      slug: "standard_yearly"
-    prices:
-      - intervalUnit: "year"
-        name: "Standard Plan (Yearly)"
-        intervalCount: 1
-        type: "subscription"
-        isDefault: true
-        unitPrice: 28800
-        usageEventsPerUnit: null
-        active: true
-        slug: "standard_yearly"
         usageMeterId: null
     features:
       - "standard_fast_generations"

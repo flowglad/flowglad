@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useRef, useMemo } from 'react';
 import Autoplay from 'embla-carousel-autoplay';
 import { PricingCard } from '@/components/pricing-card';
 import type { PricingPlan } from '@/components/pricing-card';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import {
   Carousel,
   CarouselContent,
@@ -14,7 +12,6 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { useMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
 import { useBilling } from '@flowglad/nextjs';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -28,10 +25,6 @@ import {
  * PricingCardsGrid component displays all pricing plans in a responsive grid or carousel
  */
 export function PricingCardsGrid() {
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>(
-    'monthly'
-  );
-  const isYearly = billingPeriod === 'yearly';
   const isMobile = useMobile();
   const autoplayPlugin = useRef(
     Autoplay({
@@ -41,7 +34,7 @@ export function PricingCardsGrid() {
   );
   const billing = useBilling();
 
-  // Build plans from pricingModel based on current billing period
+  // Build plans from pricingModel
   const plans = useMemo<PricingPlan[]>(() => {
     if (
       !billing.loaded ||
@@ -52,7 +45,7 @@ export function PricingCardsGrid() {
     }
 
     const { products } = billing.pricingModel;
-    const targetIntervalUnit = isYearly ? 'year' : 'month';
+    const targetIntervalUnit = 'month';
 
     // Filter products: subscription type, matching interval, active, not default/free
     const filteredProducts = products.filter((product) => {
@@ -101,15 +94,10 @@ export function PricingCardsGrid() {
                 typeof name === 'string' && name.length > 0
             ) ?? [];
 
-        // For PricingPlan interface, we need both monthly and yearly slugs/prices
-        // Since we're filtering by period, we'll use the current price for both
-        // The PricingCard component will use the correct one based on billingPeriod
         const plan: PricingPlan = {
           name: product.name,
           displayMonthly: displayPrice,
-          displayYearly: displayPrice,
           monthlySlug: price.slug,
-          yearlySlug: price.slug,
           features: featureNames,
         };
 
@@ -133,11 +121,7 @@ export function PricingCardsGrid() {
       };
       return getPriceValue(a.displayMonthly) - getPriceValue(b.displayMonthly);
     });
-  }, [
-    billing.loaded,
-    'pricingModel' in billing ? billing.pricingModel : null,
-    isYearly,
-  ]);
+  }, [billing.loaded, 'pricingModel' in billing ? billing.pricingModel : null]);
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
     if (
@@ -148,7 +132,7 @@ export function PricingCardsGrid() {
     ) {
       return false;
     }
-    const priceSlug = isYearly ? plan.yearlySlug : plan.monthlySlug;
+    const priceSlug = plan.monthlySlug;
     const price = billing.getPrice(priceSlug);
     if (!price) return false;
     const currentPriceIds = new Set(
@@ -161,47 +145,6 @@ export function PricingCardsGrid() {
 
   return (
     <div className="w-full space-y-8">
-      {/* Billing Period Toggle */}
-      <div className="grid grid-cols-3 grid-rows-2 items-center justify-center gap-x-1 gap-y-1 w-fit mx-auto">
-        {/* Row 1 */}
-        <div className="flex items-center justify-center">
-          <span
-            className={cn(
-              'text-sm font-medium transition-colors',
-              !isYearly ? 'text-foreground' : 'text-muted-foreground'
-            )}
-          >
-            Monthly
-          </span>
-        </div>
-        <div className="flex items-center justify-center">
-          <Switch
-            checked={isYearly}
-            onCheckedChange={(checked) =>
-              setBillingPeriod(checked ? 'yearly' : 'monthly')
-            }
-          />
-        </div>
-        <div className="flex items-center justify-center">
-          <span
-            className={cn(
-              'text-sm font-medium transition-colors',
-              isYearly ? 'text-foreground' : 'text-muted-foreground'
-            )}
-          >
-            Yearly
-          </span>
-        </div>
-        {/* Row 2 */}
-        <div></div>
-        <div></div>
-        <div className="flex items-center justify-center">
-          <Badge variant="secondary" className="text-xs">
-            Save 20%
-          </Badge>
-        </div>
-      </div>
-
       {/* Pricing Cards - Carousel on Mobile, Grid on Desktop */}
       {plans.length === 0 ? (
         // Show skeleton cards when plans are loading
@@ -283,7 +226,6 @@ export function PricingCardsGrid() {
                   <div className="p-1 h-full">
                     <PricingCard
                       plan={plan}
-                      billingPeriod={billingPeriod}
                       isCurrentPlan={isPlanCurrent(plan)}
                       hideFeatures={true}
                     />
@@ -301,7 +243,6 @@ export function PricingCardsGrid() {
             <PricingCard
               key={plan.name}
               plan={plan}
-              billingPeriod={billingPeriod}
               isCurrentPlan={isPlanCurrent(plan)}
             />
           ))}
