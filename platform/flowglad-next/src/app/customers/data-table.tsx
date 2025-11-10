@@ -119,8 +119,8 @@ export function CustomersDataTable({
       maxSize: 500,
     },
     manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
+    manualSorting: true, // Server-side sorting
+    manualFiltering: true, // Server-side filtering
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -217,7 +217,6 @@ export function CustomersDataTable({
             value={inputValue}
             onChange={setInputValue}
             placeholder="Search customers..."
-            disabled={isLoading}
             isLoading={isFetching}
           />
           <DataTableViewOptions table={table} />

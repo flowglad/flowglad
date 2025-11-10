@@ -2,14 +2,10 @@
 
 import * as React from 'react'
 import {
-  ColumnFiltersState,
   ColumnSizingState,
-  SortingState,
   VisibilityState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
 import {
@@ -25,15 +21,25 @@ import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 import { columns } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { trpc } from '@/app/_trpc/client'
 import { Subscription } from '@/db/schema/subscriptions'
 import { SubscriptionStatus } from '@/types'
 import { useRouter } from 'next/navigation'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 
 export interface SubscriptionsTableFilters {
   status?: SubscriptionStatus
   customerId?: string
   organizationId?: string
+  productName?: string
 }
 
 interface SubscriptionsDataTableProps {
@@ -53,10 +59,13 @@ export function SubscriptionsDataTable({
 }: SubscriptionsDataTableProps) {
   const router = useRouter()
 
-  // ⚠️ NO search - backend doesn't support it for subscriptions
-
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
+  const { inputValue, setInputValue, searchQuery } =
+    useSearchDebounce(1000)
+  const [selectedProduct, setSelectedProduct] = React.useState<
+    string | undefined
+  >(undefined)
 
   const {
     pageIndex,
@@ -72,10 +81,22 @@ export function SubscriptionsDataTable({
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
-    filters: filters,
-    // ⚠️ NO searchQuery - backend doesn't support it
+    filters: {
+      ...filters,
+      productName: selectedProduct,
+    },
+    searchQuery,
     useQuery: trpc.subscriptions.getTableRows.useQuery,
   })
+
+  // Global product options (independent of current page/search)
+  const {
+    data: allProductOptions,
+    isLoading: isLoadingProductOptions,
+  } = trpc.subscriptions.getProductOptions.useQuery(
+    {},
+    { staleTime: 5 * 60 * 1000 }
+  )
 
   // Reset to first page when filters change
   // Use JSON.stringify to get stable comparison of filter object
@@ -85,10 +106,13 @@ export function SubscriptionsDataTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
 
-  // Client-side features (Shadcn patterns)
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] =
-    React.useState<ColumnFiltersState>([])
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
+  // Client-side sorting/filtering removed; handled server-side
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [columnSizing, setColumnSizing] =
@@ -104,12 +128,12 @@ export function SubscriptionsDataTable({
       minSize: 20, // Minimum width
       maxSize: 500, // Maximum width
     },
+    enableSorting: false, // Disable header sorting UI/interactions
     manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
+    manualSorting: true, // Disable client-side sorting
+    manualFiltering: true, // Disable client-side filtering
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    // no client sorting/filter callbacks
     onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: (updater) => {
@@ -129,11 +153,7 @@ export function SubscriptionsDataTable({
       }
     },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       columnSizing,
       pagination: { pageIndex, pageSize: currentPageSize },
@@ -143,7 +163,7 @@ export function SubscriptionsDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
+      <div className="flex flex-wrap items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         {/* Title and/or Filter buttons on the left */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           {title && (
@@ -160,8 +180,36 @@ export function SubscriptionsDataTable({
           )}
         </div>
 
-        {/* View options on the right (NO search for subscriptions) */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* View options and local filters */}
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0 justify-end">
+          <CollapsibleSearch
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder="Search subscriptions..."
+            isLoading={isFetching}
+          />
+          <Select
+            value={selectedProduct ?? '__all__'}
+            onValueChange={(v) => {
+              setSelectedProduct(
+                v === '__all__' ? undefined : v || undefined
+              )
+              goToFirstPage()
+            }}
+            disabled={isLoadingProductOptions}
+          >
+            <SelectTrigger className="h-9 w-48">
+              <SelectValue placeholder="All Products" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All products</SelectItem>
+              {(allProductOptions ?? []).map((product: string) => (
+                <SelectItem key={product} value={product}>
+                  {product}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <DataTableViewOptions table={table} />
         </div>
       </div>
