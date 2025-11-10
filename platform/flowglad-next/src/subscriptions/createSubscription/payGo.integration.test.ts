@@ -36,6 +36,7 @@ import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { CoreStripePaymentIntent } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { updatePrice } from '@/db/tableMethods/priceMethods'
 
 describe('Pay as You Go Workflow E2E', () => {
   it('should handle creating a pay as you go flow from start to finish', async () => {
@@ -44,6 +45,7 @@ describe('Pay as You Go Workflow E2E', () => {
       organization,
       pricingModel,
       product: freeProduct,
+      price: freePrice,
     } = await setupOrg()
     await adminTransaction(async ({ transaction }) => {
       await updateOrganization(
@@ -120,6 +122,17 @@ describe('Pay as You Go Workflow E2E', () => {
       livemode: pricingModel.livemode,
       isDefault: false,
       usageMeterId: usageMeter.id,
+    })
+    // Override unitPrice to 0 for the default/free price
+    await adminTransaction(async ({ transaction }) => {
+      await updatePrice(
+        {
+          id: freePrice.id,
+          type: freePrice.type,
+          unitPrice: 0,
+        },
+        transaction
+      )
     })
     const { customer, subscription } =
       await comprehensiveAdminTransaction(async ({ transaction }) => {
