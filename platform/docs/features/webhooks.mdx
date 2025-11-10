@@ -114,7 +114,7 @@ export async function flowgladWebhookHandler(req: Request, res: Response) {
   const timestamp = req.header('svix-webhook-timestamp')
   const signature = req.header('svix-webhook-signature')
   const rawBody = req.rawBody || (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
-
+  const rawBody = req.rawBody ?? (Buffer.isBuffer(req.body) ? req.body.toString('utf8') : undefined)
   if (!id || !timestamp || !signature) {
     return res.status(400).send('Missing signature headers')
   }
