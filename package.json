@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.26.0",
+    "@types/minimatch": "^5.1.2",
     "@types/node": "^18.0.0",
     "@types/react": "18.3.12",
     "@types/react-dom": "19.0.0",
