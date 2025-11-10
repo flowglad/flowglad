@@ -1026,10 +1026,9 @@ export const processTerminalPaymentIntent = async (
   let ledgerCommand: BillingPeriodTransitionLedgerCommand | undefined
 
   // Only create billing period transition command if payment succeeded, invoice is paid
-  if (
-    paymentIntent.status === 'succeeded' &&
-    invoice.status === InvoiceStatus.Paid
-  ) {
+  // FIXME: Add check for the invoice status. User could potentitally complete a payment
+  // and still owe therefore, we should ensure that the invoice status is paid
+  if (paymentIntent.status === 'succeeded') {
     // Check if billing period transition command has already been executed
     const [transitionForThisBillingPeriod] =
       await selectLedgerTransactions(
