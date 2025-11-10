@@ -68,6 +68,44 @@ export function HomeClient() {
     }
   }, [session?.user?.id, billing]);
 
+  // Poll for usage meter balances after checkout until they're populated
+  useEffect(() => {
+    if (!billing.loaded || !billing.reload) return;
+
+    const currentSubscription = billing.currentSubscriptions?.[0];
+    if (!currentSubscription) return;
+
+    // Check if we have a subscription but no usage meter balances
+    const usageMeterBalances =
+      currentSubscription.experimental?.usageMeterBalances ?? [];
+    const hasUsageBalances = usageMeterBalances.length > 0;
+
+    // If we have balances, no need to poll
+    if (hasUsageBalances) {
+      return;
+    }
+
+    // Poll every 2 seconds, up to 15 attempts
+    let attemptCount = 0;
+    const maxAttempts = 15;
+
+    const interval = setInterval(async () => {
+      attemptCount++;
+
+      // billing.reload is guaranteed to exist here because we check at the top of the effect
+      await billing.reload();
+
+      // Stop after max attempts
+      if (attemptCount >= maxAttempts) {
+        clearInterval(interval);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [billing.loaded, billing.currentSubscriptions]);
+
   // Check if user is on free plan and redirect to pricing page
   useEffect(() => {
     if (isSessionPending || !billing.loaded) {
