@@ -69,7 +69,9 @@ export const flowgladServer = new FlowgladServer({
 
 </CodeGroup>
 
-Native constructor params are available for popular auth providers including Supabase Auth, Clerk, Next Auth:
+<Info>
+Native constructor params are available for popular auth providers including Supabase Auth, Clerk, Next Auth. Read more about auth adaptors [here](/sdks/auth-adaptors)
+</Info>
 
 <CodeGroup>
 
@@ -140,6 +142,33 @@ const flowgladServer = (request: Request) => {
   }
 })
 }
+```
+
+```ts Custom Auth Example: Firebase
+import { FlowgladServer } from '@flowglad/server'
+import admin from 'firebase-admin'
+
+admin.initializeApp()
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async (context) => {
+    const token = context?.req?.headers.authorization?.replace('Bearer ', '')
+
+    if (!token) return null
+
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(token)
+
+      return {
+        externalId: decodedToken.uid,
+        name: decodedToken.name || decodedToken.email!,
+        email: decodedToken.email!,
+      }
+    } catch (error) {
+      return null
+    }
+  },
+})
 ```
 
 </CodeGroup>
