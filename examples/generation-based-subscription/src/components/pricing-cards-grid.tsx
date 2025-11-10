@@ -34,17 +34,17 @@ export function PricingCardsGrid() {
   );
   const billing = useBilling();
 
+  // Extract complex expressions for dependency array
+  const hasPricingModel = 'pricingModel' in billing;
+  const pricingModel = hasPricingModel ? billing.pricingModel : null;
+
   // Build plans from pricingModel
   const plans = useMemo<PricingPlan[]>(() => {
-    if (
-      !billing.loaded ||
-      !('pricingModel' in billing) ||
-      !billing.pricingModel?.products
-    ) {
+    if (!billing.loaded || !hasPricingModel || !pricingModel?.products) {
       return [];
     }
 
-    const { products } = billing.pricingModel;
+    const { products } = pricingModel;
 
     // Filter products: subscription type, active, not default/free
     const filteredProducts = products.filter((product) => {
@@ -112,7 +112,7 @@ export function PricingCardsGrid() {
       };
       return getPriceValue(a.displayPrice) - getPriceValue(b.displayPrice);
     });
-  }, [billing.loaded, 'pricingModel' in billing ? billing.pricingModel : null]);
+  }, [billing, hasPricingModel, pricingModel]);
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
     if (
