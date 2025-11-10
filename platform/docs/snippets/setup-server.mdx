@@ -42,6 +42,82 @@ export const flowgladServer = new FlowgladServer({
 })
 ```
 
+Native constructor params are available for popular auth providers including Supabase Auth, Clerk, Next Auth:
+
+<CodeGroup>
+
+```ts Supabase Auth
+import { FlowgladServer } from '@flowglad/nextjs/server'
+// or wherever you initialize your supabase client
+import { createClient } from '@/utils/supabase'
+
+export const flowgladServer = new FlowgladServer({
+  supabaseAuth: {
+    client: createClient
+  },
+})
+```
+
+
+```ts Clerk
+import { currentUser } from '@clerk/nextjs/server'
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  clerk: {
+    currentUser,
+  },
+})
+```
+
+
+```ts Next Auth
+import { auth } from '@/auth' // your initialized, configured NextAuth client
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  nextAuth: {
+    auth,
+  },
+})
+```
+
+
+```ts Custom Auth
+import { FlowgladServer } from '@flowglad/nextjs/server'
+// or whatever function you use to retrieve your session
+import { getBespokeSession } from '@/utils/auth'
+
+// if you can load sessions using an enclosed function
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: () => {
+    const customSessionObject = await getBespokeSession()
+    return {
+      externalId: customSessionObject.id,
+      name: customSessionObject.name,
+      email: customSessionObject.email,
+    }
+  }
+})
+
+// if you derive your session from a request / cookies / headers object:
+const flowgladServer = (request: Request) => {
+  return new FlowgladServer({
+  getRequestingCustomer: () => {
+    const customSessionObject = await getBespokeSession(request)
+    return {
+      externalId: customSessionObject.id,
+      name: customSessionObject.name,
+      email: customSessionObject.email,
+    }
+  }
+})
+}
+```
+
+</CodeGroup>
+
+
 ### 3. Call Server Methods
 
 ```ts

@@ -65,19 +65,12 @@
             ]
           },
           {
-            "group": "Framework SDKs",
+            "group": "SDKs",
             "pages": [
               "sdks/nextjs",
               "sdks/react",
-              "sdks/express"
-            ]
-          },
-          {
-            "group": "Core SDKs",
-            "pages": [
               "sdks/server",
-              "sdks/shared",
-              "sdks/types"
+              "sdks/express"
             ]
           },
           {
