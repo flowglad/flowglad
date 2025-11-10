@@ -60,6 +60,18 @@ export const createProductTransaction = async (
   },
   { userId, transaction, livemode }: AuthenticatedTransactionParams
 ) => {
+  // Validate that usage prices are not created with featureIds
+  if (payload.featureIds && payload.featureIds.length > 0) {
+    const hasUsagePrice = payload.prices.some(
+      (price) => price.type === 'usage'
+    )
+    if (hasUsagePrice) {
+      throw new Error(
+        'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
+      )
+    }
+  }
+
   const [
     {
       organization: { id: organizationId, defaultCurrency },
