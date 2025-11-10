@@ -42,13 +42,12 @@ Here's how to get started with tracking and billing for usage:
 
 ### Step 1: Create a Usage Meter
 
-1.  Navigate to the "Usage Meters" section in your Flowglad dashboard.
-    <Note>This section is only visible if the "Usage" feature flag is enabled for your organization.</Note>
+1.  Navigate to the [Pricing Models](https://app.flowglad.com/store/pricing-models) page in you dashboard and select the pricing model you would like to create the usage meter in.
 2.  Click "Create Usage Meter."
 3.  Give your meter a descriptive `name` (e.g., "API Calls," "Active Users").
 4.  Select the `Aggregation Type`:
     *   `Sum`: To add up values from usage events.
-    *   `Count Distinct Properties`: To count unique property values. If you choose this, you'll also need to specify the `property_name` you'll be sending in your usage events (e.g., `userId`, `email`).
+    *   `Count Distinct Properties`: To count unique `property` values.
 5.  Save the meter. You'll need its `id` for the next step.
 
 ### Step 2: Create a Usage Price
@@ -57,19 +56,9 @@ Here's how to get started with tracking and billing for usage:
 2.  Within the Product, go to the "Prices" section and click "Create Price."
 3.  Set the `Type` to **"Usage"**.
 4.  Fill in the price details (name, unit price, currency, interval, etc.).
-5.  Crucially, select the `Usage Meter` you created in Step 1 from the `Usage Meter Id` dropdown. This links this price to that specific meter.
-6.  Save the price.
+5.  Crucially, select the `Usage Meter` you created in Step 1 from the `Usage Meter` dropdown. This links this price to that specific meter.
 
-### Step 3: Create a Usage Subscription
-
-Customers subscribe to this "Usage" `Price` just like any other Flowglad price. You can use:
-
-*   **Checkout Sessions**: Integrate Flowglad's checkout, and customers can select plans that include your new usage price.
-*   **Direct API Calls**: Create subscriptions directly via the API if you have a custom subscription flow.
-
-Once a customer is subscribed to a usage price, their `SubscriptionId` becomes key for reporting their usage.
-
-### Step 4: Report Usage Events
+### Step 3: Report Usage Events
 
 Reporting usage is done via API calls from your backend. This is to ensure data integrity and security, as you'll be verifying and sending financial data.
 
