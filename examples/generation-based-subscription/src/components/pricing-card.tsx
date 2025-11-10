@@ -13,14 +13,13 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 export interface PricingPlan {
   name: string;
   description?: string;
-  displayMonthly: string;
-  monthlySlug: string;
+  displayPrice: string;
+  slug: string;
   features: string[];
   isPopular?: boolean;
 }
@@ -55,9 +54,8 @@ export function PricingCard({
     return <div>Billing not available</div>;
   }
 
-  const periodLabel = '/month';
-  const priceSlug = plan.monthlySlug;
-  const displayPrice = plan.displayMonthly;
+  const priceSlug = plan.slug;
+  const displayPrice = plan.displayPrice;
 
   // Check if this plan is a default plan by checking the pricing model
   const isDefaultPlan = (() => {
@@ -149,7 +147,7 @@ export function PricingCard({
               {displayPrice}
             </span>
             <span className="text-muted-foreground text-xs md:text-sm">
-              {periodLabel}
+              /month
             </span>
           </div>
         </div>

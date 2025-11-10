@@ -45,20 +45,15 @@ export function PricingCardsGrid() {
     }
 
     const { products } = billing.pricingModel;
-    const targetIntervalUnit = 'month';
 
-    // Filter products: subscription type, matching interval, active, not default/free
+    // Filter products: subscription type, active, not default/free
     const filteredProducts = products.filter((product) => {
       // Skip default/free products
       if (product.default === true) return false;
 
-      // Find subscription price with matching interval
+      // Find active subscription price
       const matchingPrice = product.prices?.find(
-        (price) =>
-          price.type === 'subscription' &&
-          price.active === true &&
-          'intervalUnit' in price &&
-          price.intervalUnit === targetIntervalUnit
+        (price) => price.type === 'subscription' && price.active === true
       );
 
       return !!matchingPrice;
@@ -68,11 +63,7 @@ export function PricingCardsGrid() {
     const transformedPlans = filteredProducts
       .map((product) => {
         const price = product.prices?.find(
-          (p) =>
-            p.type === 'subscription' &&
-            p.active === true &&
-            'intervalUnit' in p &&
-            p.intervalUnit === targetIntervalUnit
+          (p) => p.type === 'subscription' && p.active === true
         );
 
         if (!price || !('slug' in price) || !price.slug) return null;
@@ -96,8 +87,8 @@ export function PricingCardsGrid() {
 
         const plan: PricingPlan = {
           name: product.name,
-          displayMonthly: displayPrice,
-          monthlySlug: price.slug,
+          displayPrice: displayPrice,
+          slug: price.slug,
           features: featureNames,
         };
 
@@ -119,7 +110,7 @@ export function PricingCardsGrid() {
       const getPriceValue = (priceStr: string) => {
         return parseFloat(priceStr.replace(/[$,]/g, '')) || 0;
       };
-      return getPriceValue(a.displayMonthly) - getPriceValue(b.displayMonthly);
+      return getPriceValue(a.displayPrice) - getPriceValue(b.displayPrice);
     });
   }, [billing.loaded, 'pricingModel' in billing ? billing.pricingModel : null]);
 
@@ -132,7 +123,7 @@ export function PricingCardsGrid() {
     ) {
       return false;
     }
-    const priceSlug = plan.monthlySlug;
+    const priceSlug = plan.slug;
     const price = billing.getPrice(priceSlug);
     if (!price) return false;
     const currentPriceIds = new Set(

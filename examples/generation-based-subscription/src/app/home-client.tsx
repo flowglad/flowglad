@@ -28,8 +28,9 @@ const mockImages = [
 
 // Mock GIFs for video generation
 const mockVideoGif = [
-  'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3OWN6emx1M2JpM3lkczB4Y2Y2M3U5ejgyNzNmbnJnM2ZqMDlvb3B4ciZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/pa37AAGzKXoek/giphy.gif',
+  'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExd252Y2NwNG5vdmQxMXl6cWxsMWNpYzV0ZnU3a3UwbGhtcHFkZTNoMCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/a6OnFHzHgCU1O/giphy.gif',
   'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNnNyOXhnNXp3cTJnaWw1OGZodXducHlzeThvbTBwdDc4cGw5OWFuZyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/WI4A2fVnRBiYE/giphy.gif',
+  'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3OWN6emx1M2JpM3lkczB4Y2Y2M3U5ejgyNzNmbnJnM2ZqMDlvb3B4ciZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/pa37AAGzKXoek/giphy.gif',
 ];
 
 export function HomeClient() {
@@ -67,44 +68,6 @@ export function HomeClient() {
       previousUserIdRef.current = currentUserId;
     }
   }, [session?.user?.id, billing]);
-
-  // Poll for usage meter balances after checkout until they're populated
-  useEffect(() => {
-    if (!billing.loaded || !billing.reload) return;
-
-    const currentSubscription = billing.currentSubscriptions?.[0];
-    if (!currentSubscription) return;
-
-    // Check if we have a subscription but no usage meter balances
-    const usageMeterBalances =
-      currentSubscription.experimental?.usageMeterBalances ?? [];
-    const hasUsageBalances = usageMeterBalances.length > 0;
-
-    // If we have balances, no need to poll
-    if (hasUsageBalances) {
-      return;
-    }
-
-    // Poll every 2 seconds, up to 15 attempts
-    let attemptCount = 0;
-    const maxAttempts = 15;
-
-    const interval = setInterval(async () => {
-      attemptCount++;
-
-      // billing.reload is guaranteed to exist here because we check at the top of the effect
-      await billing.reload();
-
-      // Stop after max attempts
-      if (attemptCount >= maxAttempts) {
-        clearInterval(interval);
-      }
-    }, 2000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [billing.loaded, billing.currentSubscriptions]);
 
   // Check if user is on free plan and redirect to pricing page
   useEffect(() => {
