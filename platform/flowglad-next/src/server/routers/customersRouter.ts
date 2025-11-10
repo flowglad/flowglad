@@ -51,7 +51,8 @@ import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 import { organizationBillingPortalURL } from '@/utils/core'
 import { createCustomersCsv } from '@/utils/csv-export'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
-import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
+import { generateCsvExportTask } from '@/trigger/exports/generate-csv-export'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'customer',
@@ -378,14 +379,21 @@ const exportCsvProcedure = protectedProcedure
       csv: z.string().optional(),
       filename: z.string().optional(),
       totalCustomers: z.number(),
-      exceedsLimit: z.boolean(),
+      asyncExportStarted: z.boolean().optional(),
     })
   )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, organizationId }) => {
+      async ({
+        input,
+        transaction,
+        userId,
+        organizationId,
+        livemode,
+      }) => {
         const { filters, searchQuery } = input
-        const CUSTOMER_LIMIT = CSV_EXPORT_LIMITS.CUSTOMER_LIMIT
+        // Maximum number of customers that can be exported via CSV without async export
+        const CUSTOMER_LIMIT = 1000
         const PAGE_SIZE = 100
         if (!userId) {
           throw new TRPCError({
@@ -416,13 +424,26 @@ const exportCsvProcedure = protectedProcedure
 
         // Early return if over limit - no additional DB operations
         if (totalCustomers > CUSTOMER_LIMIT) {
+          await generateCsvExportTask.trigger(
+            {
+              userId,
+              organizationId,
+              filters,
+              searchQuery,
+              livemode,
+            },
+            {
+              idempotencyKey: await createTriggerIdempotencyKey(
+                `generate-csv-export-${organizationId}-${userId}-${Date.now()}`
+              ),
+            }
+          )
+
           return {
             totalCustomers,
-            exceedsLimit: true,
+            asyncExportStarted: true,
           }
         }
-
-        // Only if under limit, get user's organization and proceed with full export
         const focusedMembership =
           await selectFocusedMembershipAndOrganization(
             userId,
@@ -472,7 +493,7 @@ const exportCsvProcedure = protectedProcedure
           csv,
           filename,
           totalCustomers,
-          exceedsLimit: false,
+          asyncExportStarted: false,
         }
       }
     )

@@ -2,10 +2,7 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import {
-  CheckoutSessionType,
-  PurchaseAccessSessionSource,
-} from '@/types'
+import { PurchaseAccessSessionSource } from '@/types'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import {
   getPaymentIntent,
@@ -27,10 +24,7 @@ import { processNonPaymentCheckoutSession } from '@/utils/bookkeeping/processNon
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { isNil } from '@/utils/core'
 import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import {
-  generateInvoicePdfIdempotently,
-  generateInvoicePdfTask,
-} from '@/trigger/generate-invoice-pdf'
+import { generateInvoicePdfIdempotently } from '@/trigger/generate-invoice-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { Invoice } from '@/db/schema/invoices'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
@@ -61,12 +55,15 @@ const processPaymentIntent = async ({
   }
   const { payment, purchase, invoice, checkoutSession } =
     await comprehensiveAdminTransaction(async ({ transaction }) => {
-      const { result, eventsToInsert } =
-        await processPaymentIntentStatusUpdated(
-          paymentIntent,
-          transaction
-        )
-      const { payment } = result
+      const paymentResult = await processPaymentIntentStatusUpdated(
+        paymentIntent,
+        transaction
+      )
+      const {
+        result: { payment },
+        eventsToInsert,
+        ledgerCommand,
+      } = paymentResult
       if (!payment.purchaseId) {
         throw new Error(
           `No purchase id found for payment ${payment.id}`
@@ -107,6 +104,7 @@ const processPaymentIntent = async ({
       return {
         result: { payment, purchase, checkoutSession, invoice },
         eventsToInsert,
+        ledgerCommand,
       }
     })
   return {

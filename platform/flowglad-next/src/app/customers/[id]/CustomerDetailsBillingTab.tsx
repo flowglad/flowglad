@@ -78,8 +78,18 @@ const CustomerDetailsSection = ({
             }
           />
           <DetailLabel
-            label="Customer Since"
-            value={core.formatDate(customer.createdAt)}
+            label="Pricing Model ID"
+            value={
+              customer.pricingModelId ? (
+                <CopyableTextTableCell
+                  copyText={customer.pricingModelId}
+                >
+                  {customer.pricingModelId}
+                </CopyableTextTableCell>
+              ) : (
+                '-'
+              )
+            }
           />
           <DetailLabel
             label="Portal URL"
@@ -94,6 +104,10 @@ const CustomerDetailsSection = ({
           />
         </div>
         <div className="flex flex-col gap-4">
+          <DetailLabel
+            label="Customer Since"
+            value={core.formatDate(customer.createdAt)}
+          />
           <DetailLabel
             label="Total Spend"
             value={stripeCurrencyAmountToHumanReadableCurrencyAmount(

@@ -152,6 +152,7 @@
         "trpc-to-openapi": "3.0.1",
         "tsx": "^4.17.0",
         "vaul": "1.1.2",
+        "ws": "8.18.3",
         "yaml": "^2.8.1",
         "zod": "4.1.5",
         "zod-openapi": "5.4.0",
@@ -190,7 +191,7 @@
         "postcss": "^8",
         "require-in-the-middle": "7.4.0",
         "tailwindcss": "^3.4.1",
-        "typescript": "5.5.4",
+        "typescript": "5.8.2",
         "vite": "6.0.11",
         "vitest": "3.0.5",
       },
@@ -200,7 +201,6 @@
     "@react-email/render": "0.0.17",
     "chromium-bidi": "2.1.2",
     "esbuild": "0.25.0",
-    "mcp-handler>zod": "4.1.5",
     "zod": "4.1.5",
   },
   "packages": {
@@ -3568,7 +3568,7 @@
 
     "types-ramda": ["types-ramda@0.30.1", "", { "dependencies": { "ts-toolbelt": "^9.6.0" } }, "sha512-1HTsf5/QVRmLzcGfldPFvkVsAdi1db1BBKzi7iW3KBUlOICg/nKnFS+jGqDJS3YD8VsWbAh7JiHeBvbsw8RPxA=="],
 
-    "typescript": ["typescript@5.5.4", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q=="],
+    "typescript": ["typescript@5.8.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ=="],
 
     "uc.micro": ["uc.micro@2.1.0", "", {}, "sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A=="],
 

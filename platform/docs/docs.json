@@ -2,6 +2,14 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Flowglad Docs",
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "mcp",
+      "cursor"
+    ]
+  },
   "colors": {
     "primary": "#1e90ff",
     "light": "#1eeeff",
@@ -22,7 +30,8 @@
             "group": "Get Started",
             "pages": [
               "quickstart",
-              "setup-by-prompt"
+              "integrate-by-prompt",
+              "integrate-by-http"
             ]
           },
           {

@@ -465,7 +465,7 @@ export const processPaymentIntentStatusUpdated = async (
     )
   }
   const latestChargeId = stripeIdFromObjectOrId(
-    paymentIntent.latest_charge!
+    paymentIntent.latest_charge
   )
   const latestCharge = await getStripeCharge(latestChargeId)
   if (!latestCharge) {
