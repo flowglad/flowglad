@@ -38,24 +38,6 @@ interface FlowgladProviderProps {
   requestConfig?: {
     headers?: Record<string, string>
   }
-  theme?: {
-    mode?: 'light' | 'dark'
-    dark?: {
-      background?: string
-      card?: string
-      foreground?: string
-      border?: string
-      primary?: string
-      primaryForeground?: string
-      muted?: string
-      mutedForeground?: string
-      accent?: string
-      accentForeground?: string
-    }
-    light?: {
-      // Same properties as dark
-    }
-  }
   children: React.ReactNode
 }
 ```
@@ -68,13 +50,6 @@ interface FlowgladProviderProps {
   requestConfig={{
     headers: {
       'X-Custom-Header': 'value',
-    },
-  }}
-  theme={{
-    mode: 'dark',
-    dark: {
-      background: '#000000',
-      primary: '#1e90ff',
     },
   }}
 >
@@ -323,32 +298,6 @@ Make sure you have set up the server routes:
 - See [Server SDK](/sdks/server) for custom integrations
 
 ## Theming
-
-Customize the appearance of Flowglad components to match your application:
-
-```tsx
-<FlowgladProvider
-  theme={{
-    mode: 'dark',
-    dark: {
-      background: '#0a0a0a',
-      foreground: '#ffffff',
-      card: '#1a1a1a',
-      cardForeground: '#ffffff',
-      border: '#2a2a2a',
-      primary: '#1e90ff',
-      primaryForeground: '#ffffff',
-      muted: '#2a2a2a',
-      mutedForeground: '#888888',
-      accent: '#2a2a2a',
-      accentForeground: '#ffffff',
-    },
-  }}
->
-  {children}
-</FlowgladProvider>
-```
-
 ## Next Steps
 
 <CardGroup cols={2}>
