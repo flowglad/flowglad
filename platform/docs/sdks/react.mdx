@@ -60,6 +60,30 @@ interface FlowgladProviderProps {
 
 Access billing data and functions throughout your application.
 
+#### Load State Helpers
+
+The hook surfaces billing lifecycle metadata you can use to gate UI:
+
+- `loaded: boolean` – `true` once billing data has settled (success or error).
+- `loadBilling: boolean` – Mirrors the provider prop; if `false`, billing is intentionally skipped.
+- `errors: Error[] | null` – Populated when the last fetch failed.
+- `reload: () => Promise<void>` – Invalidates and refetches billing data.
+
+```tsx
+const { loaded, loadBilling, errors, reload } = useBilling()
+
+if (!loadBilling) return <p>Billing disabled for this view.</p>
+if (!loaded) return <p>Loading billing…</p>
+if (errors?.length) {
+  return (
+    <div>
+      <p>Unable to load billing information.</p>
+      <button onClick={reload}>Try again</button>
+    </div>
+  )
+}
+```
+
 #### Return Value
 
 ```typescript
@@ -78,9 +102,21 @@ interface BillingContext {
   
   // Feature access
   checkFeatureAccess: (featureId: string) => boolean
+  checkUsageBalance: (
+    usageMeterSlug: string,
+    options?: { subscriptionId?: string }
+  ) => { availableBalance: number } | null
+  getProduct: (productSlug: string) => CatalogProduct | null
+  getPrice: (priceSlug: string) => Price | null
   
   // Checkout
   createCheckoutSession: (params: CheckoutSessionParams) => Promise<void>
+  createAddPaymentMethodCheckoutSession: (
+    params: AddPaymentMethodCheckoutParams
+  ) => Promise<void>
+  createActivateSubscriptionCheckoutSession: (
+    params: ActivateSubscriptionCheckoutParams
+  ) => Promise<void>
   
   // Subscription management
   cancelSubscription: (subscriptionId: string) => Promise<void>
@@ -92,6 +128,10 @@ interface BillingContext {
   
   // Refresh data
   refetch: () => Promise<void>
+  reload: () => Promise<void>
+  loadBilling: boolean
+  loaded: boolean
+  errors: Error[] | null
 }
 ```
 
@@ -165,6 +205,85 @@ const handleUpgrade = async () => {
 }
 ```
 
+### createAddPaymentMethodCheckoutSession
+
+Open a Flowglad-hosted flow that collects and stores a new payment method for the signed-in customer.
+
+#### Parameters
+
+```typescript
+interface AddPaymentMethodCheckoutParams {
+  successUrl: string
+  cancelUrl: string
+  autoRedirect?: boolean
+  customerExternalId?: string
+}
+```
+
+#### Example
+
+```tsx
+await createAddPaymentMethodCheckoutSession({
+  successUrl: `${window.location.origin}/billing/payment-methods`,
+  cancelUrl: window.location.href,
+  autoRedirect: true,
+})
+```
+
+### createActivateSubscriptionCheckoutSession
+
+Trigger the activation flow for an existing subscription that needs a payment method before billing can start.
+
+#### Parameters
+
+```typescript
+interface ActivateSubscriptionCheckoutParams {
+  subscriptionId: string
+  successUrl: string
+  cancelUrl: string
+  autoRedirect?: boolean
+}
+```
+
+#### Example
+
+```tsx
+await createActivateSubscriptionCheckoutSession({
+  subscriptionId: 'sub_123',
+  successUrl: `${window.location.origin}/billing/success`,
+  cancelUrl: window.location.href,
+  autoRedirect: true,
+})
+```
+
+### cancelSubscription
+
+Cancel a subscription owned by the current customer and refresh billing data.
+
+#### Parameters
+
+```typescript
+interface CancelSubscriptionParams {
+  id: string
+  cancellation?: {
+    reason?: string
+    mode?: 'end_of_period' | 'immediate'
+  }
+}
+```
+
+#### Example
+
+```tsx
+await cancelSubscription({
+  id: 'sub_123',
+  cancellation: {
+    mode: 'end_of_period',
+    reason: 'user_request',
+  },
+})
+```
+
 ### checkFeatureAccess
 
 Check if the current customer has access to a specific feature.
@@ -187,6 +306,95 @@ if (hasAdvancedAnalytics) {
 }
 
 return <BasicAnalytics />
+```
+
+### checkUsageBalance
+
+Get the remaining balance for a usage meter tied to the customer’s subscriptions.
+
+#### Parameters
+
+- `usageMeterSlug: string` – Slug of the usage meter to inspect.
+- `options.subscriptionId?: string` – Limit the check to a specific subscription (optional).
+
+#### Returns
+
+- `{ availableBalance: number } | null`
+
+#### Example
+
+```tsx
+const usage = checkUsageBalance('api_calls')
+return usage ? (
+  <p>{usage.availableBalance} calls remaining</p>
+) : (
+  <p>No usage meter found.</p>
+)
+```
+
+### getProduct
+
+Look up a specific product from the catalog that ships with billing data.
+
+#### Parameters
+
+- `productSlug: string`
+
+#### Returns
+
+- `CatalogProduct | null`
+
+#### Example
+
+```tsx
+const proPlan = getProduct('pro')
+return proPlan ? <h3>{proPlan.name}</h3> : <p>Product unavailable.</p>
+```
+
+### getPrice
+
+Look up a price by slug from the live catalog.
+
+#### Parameters
+
+- `priceSlug: string`
+
+#### Returns
+
+- `Price | null`
+
+#### Example
+
+```tsx
+const monthly = getPrice('pro-monthly')
+return monthly ? (
+  <span>
+    ${(monthly.unitPrice / 100).toFixed(2)}
+    {monthly.intervalUnit ? ` / ${monthly.intervalUnit}` : ''}
+  </span>
+) : (
+  <span>Price not available</span>
+)
+```
+
+### Other billing records
+
+The billing payload also exposes higher-level billing records you can use to build richer UI:
+
+- `customer` – The Flowglad customer record (including email, name, IDs).
+- `subscriptions` – All subscriptions (active and past) returned for the customer.
+- `purchases` – Historical purchases for the customer.
+- `invoices` – Invoice records (including status and totals).
+- `currentSubscriptions` – Subscriptions currently active or pending.
+- `paymentMethods` – Saved payment methods for the customer.
+- `billingPortalUrl` – Deep link to Flowglad’s hosted billing portal (if enabled).
+- `pricingModel` – Resolved pricing model associated with the customer’s plan.
+
+```tsx
+const { customer, subscriptions, paymentMethods, billingPortalUrl } = useBilling()
+
+const activeSub = subscriptions?.find((sub) => sub.status === 'active')
+const defaultMethod = paymentMethods?.[0]
 ```
 
 ## Common Patterns
@@ -296,7 +504,6 @@ Make sure you have set up the server routes:
 - See [Express SDK](/sdks/express) for Express setup  
 - See [Server SDK](/sdks/server) for custom integrations
 
-## Theming
 ## Next Steps
 
 <CardGroup cols={2}>

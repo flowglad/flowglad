@@ -118,7 +118,7 @@ const pricingModel = await flowgladServer.getPricingModel()
 
 ### Subscription Methods
 
-#### `createSubscription(params)`
+#### `createSubscription`
 
 Create a new subscription for the customer.
 
@@ -142,7 +142,7 @@ interface CreateSubscriptionParams {
 }
 ```
 
-#### `cancelSubscription(params)`
+#### `cancelSubscription`
 
 Cancel an existing subscription.
 
@@ -164,21 +164,9 @@ interface CancelSubscriptionParams {
 }
 ```
 
-#### `updateSubscription(params)`
-
-Update an existing subscription.
-
-```typescript
-const updatedSubscription = await flowgladServer.updateSubscription({
-  subscriptionId: 'sub_123',
-  priceId: 'price_456', // Change plan
-  quantity: 2, // Update quantity
-})
-```
-
 ### Checkout Methods
 
-#### `createCheckoutSession(params)`
+#### `createCheckoutSession`
 
 Create a checkout session for payments.
 
@@ -210,9 +198,49 @@ interface CreateCheckoutSessionParams {
 }
 ```
 
+#### `createAddPaymentMethodCheckoutSession`
+
+Create a checkout session that collects a payment method for the current customer.
+
+```typescript
+const session = await flowgladServer.createAddPaymentMethodCheckoutSession({
+  successUrl: 'https://example.com/payment-methods/success',
+  cancelUrl: 'https://example.com/payment-methods/cancel',
+  customerExternalId: 'user_123', // optional override
+})
+```
+
+#### `createActivateSubscriptionCheckoutSession`
+
+Create a checkout session that activates a provisioning or imported subscription.
+
+```typescript
+const activationSession =
+  await flowgladServer.createActivateSubscriptionCheckoutSession({
+    subscriptionId: 'sub_123',
+    successUrl: 'https://example.com/subscriptions/success',
+    cancelUrl: 'https://example.com/subscriptions/cancel',
+  })
+```
+
+### Customer Updates
+
+#### `updateCustomer`
+
+Update the stored customer record in Flowglad.
+
+```typescript
+await flowgladServer.updateCustomer({
+  customer: {
+    name: 'New Name',
+    email: 'new-email@example.com',
+  },
+})
+```
+
 ### Feature Access Methods
 
-#### `checkFeatureAccess(featureId)`
+#### `checkFeatureAccess`
 
 Check if the customer has access to a specific feature.
 
@@ -226,7 +254,7 @@ if (hasAccess) {
 
 ### Usage Tracking Methods
 
-#### `createUsageEvent(params)`
+#### `createUsageEvent`
 
 Record a usage event for metered billing.
 
@@ -347,6 +375,10 @@ export async function getCustomerPortalData() {
 ```
 
 ## Integration Examples
+
+<Info>
+Native constructor params are available for popular auth providers including Supabase Auth, Clerk, Next Auth. Read more about auth adaptors [here](/sdks/auth-adaptors)
+</Info>
 
 ### With Supabase Auth
 
