@@ -10,9 +10,11 @@ import {
   updateBillingPeriod,
 } from '@/db/tableMethods/billingPeriodMethods'
 import {
+  currentSubscriptionStatuses,
   isSubscriptionInTerminalState,
   safelyUpdateSubscriptionStatus,
   selectSubscriptionById,
+  selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
@@ -27,6 +29,11 @@ import {
 } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { idempotentSendOrganizationSubscriptionCanceledNotification } from '@/trigger/notifications/send-organization-subscription-canceled-notification'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 
 // Abort all scheduled billing runs for a subscription
 export const abortScheduledBillingRuns = async (
@@ -44,6 +51,146 @@ export const abortScheduledBillingRuns = async (
     await updateBillingRun(
       { id: billingRun.id, status: BillingRunStatus.Aborted },
       transaction
+    )
+  }
+}
+
+export const reassignDefaultSubscription = async (
+  canceledSubscription: Subscription.Record,
+  transaction: DbTransaction
+) => {
+  if (canceledSubscription.isFreePlan) {
+    return
+  }
+
+  try {
+    const customer = await selectCustomerById(
+      canceledSubscription.customerId,
+      transaction
+    )
+
+    if (!customer) {
+      console.warn(
+        `reassignDefaultSubscription: customer ${canceledSubscription.customerId} not found for subscription ${canceledSubscription.id}`
+      )
+      return
+    }
+
+    const organization = await selectOrganizationById(
+      canceledSubscription.organizationId,
+      transaction
+    )
+
+    if (!organization) {
+      console.warn(
+        `reassignDefaultSubscription: organization ${canceledSubscription.organizationId} not found for subscription ${canceledSubscription.id}`
+      )
+      return
+    }
+
+    let pricingModelId = customer.pricingModelId
+
+    if (!pricingModelId) {
+      const defaultPricingModel = await selectDefaultPricingModel(
+        {
+          organizationId: organization.id,
+          livemode: canceledSubscription.livemode,
+        },
+        transaction
+      )
+
+      pricingModelId = defaultPricingModel?.id ?? null
+    }
+
+    if (!pricingModelId) {
+      console.warn(
+        `reassignDefaultSubscription: no pricing model found for customer ${customer.id}`
+      )
+      return
+    }
+
+    const [defaultProduct] =
+      await selectPricesAndProductsByProductWhere(
+        {
+          pricingModelId,
+          organizationId: organization.id,
+          livemode: canceledSubscription.livemode,
+          default: true,
+          active: true,
+        },
+        transaction
+      )
+
+    if (!defaultProduct) {
+      console.warn(
+        `reassignDefaultSubscription: no default product found for pricing model ${pricingModelId}`
+      )
+      return
+    }
+
+    const defaultPrice = defaultProduct.defaultPrice
+
+    if (!defaultPrice) {
+      console.warn(
+        `reassignDefaultSubscription: default product ${defaultProduct.id} missing default price`
+      )
+      return
+    }
+
+    const currentSubscriptions = await selectSubscriptions(
+      {
+        customerId: customer.id,
+        status: currentSubscriptionStatuses,
+      },
+      transaction
+    )
+
+    if (
+      currentSubscriptions.some(
+        (subscription) => subscription.priceId === defaultPrice.id
+      )
+    ) {
+      return
+    }
+
+    if (currentSubscriptions.length > 0) {
+      return
+    }
+
+    const trialEnd = defaultPrice.trialPeriodDays
+      ? new Date(
+          Date.now() +
+            defaultPrice.trialPeriodDays * 24 * 60 * 60 * 1000
+        )
+      : undefined
+
+    await createSubscriptionWorkflow(
+      {
+        organization,
+        customer: {
+          id: customer.id,
+          stripeCustomerId: customer.stripeCustomerId,
+          livemode: customer.livemode,
+          organizationId: customer.organizationId,
+        },
+        product: defaultProduct,
+        price: defaultPrice,
+        quantity: 1,
+        livemode: customer.livemode,
+        startDate: new Date(),
+        interval: defaultPrice.intervalUnit,
+        intervalCount: defaultPrice.intervalCount,
+        trialEnd,
+        autoStart: true,
+        name: `${defaultProduct.name} Subscription`,
+        previousSubscriptionId: canceledSubscription.id,
+      },
+      transaction
+    )
+  } catch (error) {
+    console.error(
+      `reassignDefaultSubscription: failed to create default subscription for customer ${canceledSubscription.customerId}`,
+      error
     )
   }
 }
@@ -139,6 +286,7 @@ export const cancelSubscriptionImmediately = async (
   if (result) {
     updatedSubscription = result
   }
+  await reassignDefaultSubscription(updatedSubscription, transaction)
   return updatedSubscription
 }
 
