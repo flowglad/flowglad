@@ -14,7 +14,7 @@ import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import core from '@/utils/core'
 
-export const sendCustomerPaymentSucceededNotificationTask = task({
+const sendCustomerPaymentSucceededNotificationTask = task({
   id: 'send-customer-payment-succeeded-notification',
   run: async (payload: { paymentId: string }, { ctx }) => {
     const {

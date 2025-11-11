@@ -1,5 +1,5 @@
 import { task, logger } from '@trigger.dev/sdk'
-import { sendPayoutNotificationEmail } from '@/utils/email'
+import { sendOrganizationOnboardingCompletedNotificationEmail } from '@/utils/email'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -9,13 +9,16 @@ import {
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 
-export const sendPayoutNotificationTask = task({
-  id: 'send-payout-notification',
+const sendOrganizationOnboardingCompletedNotificationTask = task({
+  id: 'send-organization-onboarding-completed-notification',
   run: async (payload: { organizationId: string }, { ctx }) => {
-    logger.log('Sending payout notification', {
-      organizationId: payload.organizationId,
-      ctx,
-    })
+    logger.log(
+      'Sending organization onboarding completed notification',
+      {
+        organizationId: payload.organizationId,
+        ctx,
+      }
+    )
 
     const { organization, usersAndMemberships } =
       await adminTransaction(async ({ transaction }) => {
@@ -48,22 +51,25 @@ export const sendPayoutNotificationTask = task({
       throw new Error('No recipient emails found for organization')
     }
 
-    await sendPayoutNotificationEmail({
+    await sendOrganizationOnboardingCompletedNotificationEmail({
       to: recipients,
       organizationName: organization.name,
     })
 
-    return { message: 'Payout notification sent successfully' }
+    return {
+      message:
+        'Organization onboarding completed notification sent successfully',
+    }
   },
 })
 
-export const idempotentSendPayoutNotification =
+export const idempotentSendOrganizationOnboardingCompletedNotification =
   testSafeTriggerInvoker(async (organizationId: string) => {
-    await sendPayoutNotificationTask.trigger(
+    await sendOrganizationOnboardingCompletedNotificationTask.trigger(
       { organizationId },
       {
         idempotencyKey: await createTriggerIdempotencyKey(
-          `send-payout-notification-${organizationId}`
+          `send-organization-onboarding-completed-notification-${organizationId}`
         ),
       }
     )

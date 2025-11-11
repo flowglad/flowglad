@@ -9,7 +9,7 @@ import {
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 
-export const sendOrganizationPayoutsEnabledNotificationTask = task({
+const sendOrganizationPayoutsEnabledNotificationTask = task({
   id: 'send-organization-payouts-enabled-notification',
   run: async (payload: { organizationId: string }, { ctx }) => {
     const { organizationId } = payload
