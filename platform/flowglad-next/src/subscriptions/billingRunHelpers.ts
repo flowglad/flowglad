@@ -888,6 +888,64 @@ export const executeBillingRun = async (billingRunId: string) => {
     ) {
       await comprehensiveAdminTransaction(
         async ({ transaction }) => {
+          // Update invoice status based on payment intent status
+          const [invoice] = await selectInvoices(
+            {
+              billingPeriodId: billingRun.billingPeriodId,
+            },
+            transaction
+          )
+
+          if (invoice) {
+            let targetInvoiceStatus: InvoiceStatus
+
+            if (confirmationResult.status === 'succeeded') {
+              const {
+                billingPeriodItems,
+                billingPeriod,
+                organization,
+              } =
+                await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId(
+                  billingRun.billingPeriodId,
+                  transaction
+                )
+
+              const paymentMethod = await selectPaymentMethodById(
+                billingRun.paymentMethodId,
+                transaction
+              )
+
+              const { totalDueAmount } =
+                await calculateFeeAndTotalAmountDueForBillingPeriod(
+                  {
+                    billingPeriodItems,
+                    billingPeriod,
+                    organization,
+                    paymentMethod,
+                    usageOverages: [],
+                    billingRun,
+                  },
+                  transaction
+                )
+
+              // Only mark as Paid if fully paid
+              targetInvoiceStatus =
+                confirmationResult.amount_received >= totalDueAmount
+                  ? InvoiceStatus.Paid
+                  : InvoiceStatus.Open
+            } else {
+              // For failed payments, mark as Open
+              targetInvoiceStatus = InvoiceStatus.Open
+            }
+
+            await safelyUpdateInvoiceStatus(
+              invoice,
+              targetInvoiceStatus,
+              transaction
+            )
+          }
+
+          // Process terminal payment intent for ledger commands
           return await processTerminalPaymentIntent(
             confirmationResult,
             billingRun,
@@ -1028,7 +1086,10 @@ export const processTerminalPaymentIntent = async (
   // Only create billing period transition command if payment succeeded, invoice is paid
   // FIXME: Add check for the invoice status. User could potentitally complete a payment
   // and still owe therefore, we should ensure that the invoice status is paid
-  if (paymentIntent.status === 'succeeded') {
+  if (
+    paymentIntent.status === 'succeeded' &&
+    invoice.status === InvoiceStatus.Paid
+  ) {
     // Check if billing period transition command has already been executed
     const [transitionForThisBillingPeriod] =
       await selectLedgerTransactions(
