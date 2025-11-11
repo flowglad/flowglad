@@ -93,5 +93,5 @@ Flowglad offers flexibility in how subscriptions can be canceled.
 1.  **Flowglad Dashboard:** Manually cancel subscriptions directly within the Flowglad UI.
 2.  **API:** Programmatically cancel subscriptions using the [API endpoint](/api-reference/subscriptions/cancel-subscription)
 3.  **Customer Self-Service:** Allow customers to manage their own subscriptions.
-    *   **Hosted Billing Portal:** (available in livemode only) A no-code option accessible via a unique URL per customer. The `billingPortalUrl` is returned in customer billing details from `useBilling` or the [get billing details API](/api-reference/customer/get-billing-details). It can also be found in the customer details page in your Flowglad dashboard.
+    *   **Hosted Billing Portal:** (available for livemode customers only) A no-code option accessible via a unique URL for your organization. The `billingPortalUrl` is returned in customer billing details from `useBilling` or the [get billing details API](/api-reference/customer/get-billing-details). It can also be found in the customer details page in your Flowglad dashboard.
     *   **Headless Implementation:** Use the `useBilling()` hook's `cancelSubscription` function (ensure it's used within a `<FlowgladProvider>` context) to build a completely custom cancellation UI.
