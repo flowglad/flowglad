@@ -10,7 +10,7 @@ Subscriptions represent an ongoing payment relationship with your customer. Flow
 A Subscription in Flowglad tracks the details of a recurring charge for a customer, including what products or services they're paying for, how often, and their current status.
 
 Key concepts:
-
+*   **Customers are always on a subscription, even if they aren't paying:** when a customer is created, they are subscribed to the **default plan** for their [pricing model](/features/pricing-models). If they purchase a subscription product while they are currently subscribed to your pricing model's free plan, their current subscription will change to be attached to the new price.
 *   **One Current Subscription per Customer (Default):** By default, a customer can only have one active subscription at a time (see "Current vs Non-Current Subscriptions" below). This encourages simpler billing management. If you need customers to have multiple simultaneous subscriptions, you can enable the `allow_multiple_subscriptions_per_customer` setting at the organization level in your dashboard [settings page](https://app.flowglad.com/settings).
 *   **Billing Cycle Anchor Date:** The `billingCycleAnchorDate` (set from the `startDate` on creation) determines the day of the month billing occurs. If this date doesn't exist in a given month (e.g., the 31st in February), billing occurs on the last day of that month.
 *   **Billing Periods:** Defined by the `startDate`, `interval` (e.g., `Month`, `Year`), and `intervalCount`. Flowglad automatically calculates the `currentBillingPeriodStart` and `currentBillingPeriodEnd` for each cycle.
