@@ -112,7 +112,8 @@ Subscriptions describe persistent billing relationships between your customers a
 
 Subscriptions can either `renew` or not. Subscriptions created from a `subscription` price type will renew. Renewing subscriptions have billing periods, and can optionally have a trial period at the start of the subscription. When a renewing subscription transitions to the next billing period, by default it will charge:
 - the amount due according to the renewing price(s) associated with the subscription for the forthcoming billing period
-- if you have usage based billing: the amount due for all unsettled usage balances accrued during the previous billing period - based on the usage prices associated with each usage event. Your customers will be charged automatically for overages incurred during the previous billing period. For unused usage credits, there is no automatic refund. They will automatically expire at the end of the billing period they were allocated. 
+- if you have usage based billing: the amount due for all unsettled usage balances accrued during the previous billing period - based on the usage price associated with each usage event. Your customers will be charged automatically for overages incurred during the previous billing period. For unused usage credits, there is no automatic refund. They will automatically expire at the end of the billing period they were allocated. 
+
 
 ## Invariants
 
