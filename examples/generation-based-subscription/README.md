@@ -5,7 +5,7 @@ This project demonstrates the "Generation-Based Subscription Template Pricing Mo
 
 ## Tech Stack
 
-- **[Next.js 16](https://nextjs.org)** - React framework with App Router
+- **[Next.js 15.5.6](https://nextjs.org)** - React framework with App Router
 - **[BetterAuth](https://www.better-auth.com)** - Modern authentication and user management
 - **[Flowglad](https://flowglad.com)** - Billing and subscription management
 - **[Drizzle ORM](https://orm.drizzle.team)** - PostgreSQL database with type-safe queries
@@ -24,18 +24,47 @@ This project demonstrates the "Generation-Based Subscription Template Pricing Mo
 ## Prerequisites
 
 - Node.js >= 18.18.0
-- Bun >= 1.2.14
+- Bun >= 1.3.1
 - PostgreSQL database
+- `yalc` (for linking local Flowglad packages) - Install globally with `npm install -g yalc` or `bun install -g yalc`
 
 ## Getting Started
 
 ### 1. Install Dependencies
 
+**Important:** This project is part of a monorepo. You must install dependencies from the root of the monorepo first, then navigate into this example directory.
+
+From the root of the monorepo:
+
 ```bash
 bun install
 ```
 
-### 2. Set Up Environment Variables
+Then navigate into this example directory:
+
+```bash
+cd examples/generation-based-subscription
+```
+
+### 2. Link Flowglad Packages
+
+This example project uses `yalc` to link local Flowglad packages for development. You must link the packages before running the project:
+
+```bash
+bun run link:packages
+```
+
+This command will:
+- Add Flowglad packages to yalc's local registry
+- Link them into this project's `node_modules`
+- Update dependencies
+
+**Note:** If you need to unlink packages later (e.g., to use published npm packages), run:
+```bash
+bun run unlink:packages
+```
+
+### 3. Set Up Environment Variables
 
 Copy the example environment file:
 
@@ -51,10 +80,10 @@ Fill in the required values in `.env.local`:
 - **`BETTER_AUTH_SECRET`** - Secret key for BetterAuth session encryption
   - Generate with: `openssl rand -base64 32`
   
-- **`FLOWGLAD_SECRET_KEY`** - Secret key for Flowglad billing
+- **`FLOWGLAD_SECRET_KEY`** - Secret key for Flowglad API calls
   - Get your secret key from: [https://flowglad.com](https://flowglad.com)
 
-### 3. Set Up Database
+### 4. Set Up Database
 
 Generate and run database migrations:
 
@@ -63,7 +92,7 @@ bun db:generate
 bun db:migrate
 ```
 
-### 4. Start Development Server
+### 5. Start Development Server
 
 ```bash
 bun dev
@@ -79,10 +108,11 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 - `bun lint` - Run ESLint
 - `bun lint:fix` - Fix ESLint errors automatically
 - `bun type-check` - Run TypeScript type checking
-- `bun test` - Run tests with Vitest
 - `bun db:generate` - Generate database migrations
 - `bun db:migrate` - Run database migrations
 - `bun db:studio` - Open Drizzle Studio (database GUI)
+- `bun link:packages` - Link local Flowglad packages using yalc (required before first run)
+- `bun unlink:packages` - Unlink Flowglad packages and restore to npm registry versions
 
 ## Project Structure
 

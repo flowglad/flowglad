@@ -35,7 +35,7 @@ export function PricingCardsGrid() {
   const billing = useBilling();
 
   // Extract complex expressions for dependency array
-  const hasPricingModel = 'pricingModel' in billing;
+  const hasPricingModel = !!billing.pricingModel;
   const pricingModel = hasPricingModel ? billing.pricingModel : null;
 
   // Build plans from pricingModel
@@ -66,7 +66,7 @@ export function PricingCardsGrid() {
           (p) => p.type === 'subscription' && p.active === true
         );
 
-        if (!price || !('slug' in price) || !price.slug) return null;
+        if (!price || !price.slug) return null;
 
         // Format price from cents to display string
         const formatPrice = (cents: number): string => {
@@ -79,7 +79,7 @@ export function PricingCardsGrid() {
         // Build features list from feature objects (features have name and description)
         const featureNames =
           product.features
-            ?.map((feature) => ('name' in feature ? feature.name : ''))
+            ?.map((feature) => feature.name)
             .filter(
               (name): name is string =>
                 typeof name === 'string' && name.length > 0
@@ -115,11 +115,11 @@ export function PricingCardsGrid() {
   }, [billing, hasPricingModel, pricingModel]);
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
+    // Check if getPrice exists - this narrows to LoadedFlowgladContextValues
     if (
-      !billing.loaded ||
       !('getPrice' in billing) ||
-      !billing.getPrice ||
-      !Array.isArray(billing.currentSubscriptions)
+      !billing.currentSubscriptions ||
+      billing.currentSubscriptions.length === 0
     ) {
       return false;
     }
@@ -128,7 +128,7 @@ export function PricingCardsGrid() {
     if (!price) return false;
     const currentPriceIds = new Set(
       billing.currentSubscriptions
-        .map((sub) => (sub as { priceId?: string }).priceId)
+        .map((sub) => sub.priceId)
         .filter((id): id is string => typeof id === 'string' && id.length > 0)
     );
     return currentPriceIds.has(price.id);

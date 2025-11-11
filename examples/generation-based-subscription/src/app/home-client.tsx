@@ -78,11 +78,9 @@ export function HomeClient() {
     // Check if user has at least one non-free plan subscription
     // isFreePlan is true when the subscription's price has unitPrice === 0
     const hasNonFreePlan =
-      Array.isArray(billing.currentSubscriptions) &&
+      billing.currentSubscriptions &&
       billing.currentSubscriptions.length > 0 &&
-      billing.currentSubscriptions.some((sub) => {
-        return 'isFreePlan' in sub && sub.isFreePlan !== true;
-      });
+      billing.currentSubscriptions.some((sub) => !sub.isFreePlan);
 
     // If user is on free plan (no non-free plan found), redirect to pricing
     if (!hasNonFreePlan) {
@@ -97,7 +95,6 @@ export function HomeClient() {
   if (
     billing.loadBilling !== true ||
     billing.errors !== null ||
-    !('pricingModel' in billing) ||
     !billing.pricingModel
   ) {
     return <DashboardSkeleton />;
@@ -144,7 +141,7 @@ export function HomeClient() {
   );
   const fastGenerationsProgress =
     fastGenerationsTotal > 0
-      ? (fastGenerationsRemaining / fastGenerationsTotal) * 100
+      ? Math.min((fastGenerationsRemaining / fastGenerationsTotal) * 100, 100)
       : 0;
 
   const hdVideoMinutesRemaining = hdVideoMinutesBalance?.availableBalance ?? 0;
@@ -155,7 +152,7 @@ export function HomeClient() {
   );
   const hdVideoMinutesProgress =
     hdVideoMinutesTotal > 0
-      ? (hdVideoMinutesRemaining / hdVideoMinutesTotal) * 100
+      ? Math.min((hdVideoMinutesRemaining / hdVideoMinutesTotal) * 100, 100)
       : 0;
 
   // Action handlers

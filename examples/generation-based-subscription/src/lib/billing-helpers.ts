@@ -31,20 +31,8 @@ export function computeUsageTotal(
     if (!currentSubscription || !pricingModel?.usageMeters) return 0;
 
     // Get feature items from subscription (stored in experimental.featureItems)
-    const experimental =
-      'experimental' in currentSubscription &&
-      currentSubscription.experimental &&
-      typeof currentSubscription.experimental === 'object' &&
-      'featureItems' in currentSubscription.experimental
-        ? (currentSubscription.experimental as SubscriptionExperimentalFields)
-        : null;
-
-    const featureItems =
-      experimental &&
-      'featureItems' in experimental &&
-      Array.isArray(experimental.featureItems)
-        ? experimental.featureItems
-        : [];
+    const experimental = currentSubscription.experimental;
+    const featureItems = experimental?.featureItems ?? [];
 
     if (featureItems.length === 0) return 0;
 
@@ -52,22 +40,16 @@ export function computeUsageTotal(
     // (Feature items reference meters by ID, but we need to match by slug)
     const usageMeterById: Record<string, string> = {};
     for (const meter of pricingModel.usageMeters) {
-      if ('id' in meter && 'slug' in meter) {
-        const meterId =
-          typeof meter.id === 'string' ? meter.id : String(meter.id);
-        const meterSlug =
-          typeof meter.slug === 'string' ? meter.slug : String(meter.slug);
-        usageMeterById[meterId] = meterSlug;
-      }
+      const meterId = String(meter.id);
+      const meterSlug = String(meter.slug);
+      usageMeterById[meterId] = meterSlug;
     }
 
     // Filter to only usage credit grant features that match our slug
     let total = 0;
     for (const item of featureItems) {
       // Only process usage credit grants (not toggle features)
-      if (item?.type !== 'usage_credit_grant') continue;
-      if (typeof item.usageMeterId !== 'string') continue;
-      if (typeof item.amount !== 'number') continue;
+      if (item.type !== 'usage_credit_grant') continue;
 
       // Check if this feature item's meter matches the slug we're looking for
       const meterSlug = usageMeterById[item.usageMeterId];
@@ -93,24 +75,20 @@ export function findUsageMeterBySlug(
   usageMeterSlug: string,
   pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): { id: string; slug: string } | null {
-  try {
-    if (!pricingModel?.usageMeters) return null;
+  if (!pricingModel?.usageMeters) return null;
 
-    const usageMeter = pricingModel.usageMeters.find(
-      (meter) => 'slug' in meter && meter.slug === usageMeterSlug
-    );
+  const usageMeter = pricingModel.usageMeters.find(
+    (meter) => meter.slug === usageMeterSlug
+  );
 
-    if (!usageMeter || !('id' in usageMeter) || !('slug' in usageMeter)) {
-      return null;
-    }
-
-    return {
-      id: typeof usageMeter.id === 'string' ? usageMeter.id : String(usageMeter.id),
-      slug: typeof usageMeter.slug === 'string' ? usageMeter.slug : String(usageMeter.slug),
-    };
-  } catch {
+  if (!usageMeter) {
     return null;
   }
+
+  return {
+    id: String(usageMeter.id),
+    slug: String(usageMeter.slug),
+  };
 }
 
 /**
@@ -124,17 +102,13 @@ export function findUsagePriceByMeterId(
   usageMeterId: string,
   pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): Price | null {
-  try {
-    if (!pricingModel?.products) return null;
+  if (!pricingModel?.products) return null;
 
-    const usagePrice = pricingModel.products
-      .flatMap((product) => product.prices ?? [])
-      .find(
-        (price) => price.type === 'usage' && price.usageMeterId === usageMeterId
-      );
+  const usagePrice = pricingModel.products
+    .flatMap((product) => product.prices ?? [])
+    .find(
+      (price) => price.type === 'usage' && price.usageMeterId === usageMeterId
+    );
 
-    return usagePrice ?? null;
-  } catch {
-    return null;
-  }
+  return usagePrice ?? null;
 }

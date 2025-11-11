@@ -62,9 +62,7 @@ export function PricingCard({
     if (!billing.pricingModel?.products || !priceSlug) return false;
 
     for (const product of billing.pricingModel.products) {
-      const price = product.prices?.find(
-        (p) => 'slug' in p && p.slug === priceSlug
-      );
+      const price = product.prices?.find((p) => p.slug === priceSlug);
       if (price) {
         // Check if the product is default (e.g., Free Plan)
         return product.default === true;
