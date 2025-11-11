@@ -18,20 +18,16 @@ The simplest form of pricing - a one-time payment (`unitPrice`) for a product or
 Enable recurring revenue by charging a fixed amount (`unitPrice`) on a set interval. These prices have:
 
 - **Interval Unit**: The time unit for billing (e.g., `month`, `year`). Required.
-- **Interval Count**: How many units between billings (e.g., `1` for monthly, `3` for quarterly). Required.
+- **Interval Count**: How many units between billings (e.g., `1` for monthly, `3` for quarterly). Required. Defaults to 1, but configurable in the [create](/api-reference/prices/create-price) and [update](/api-reference/prices/update-price) prices API endpoints.
 - **Trial Period Days** (optional): How long to run a free trial after checkout before the first charge.
-- **Setup Fee Amount** (optional): A one-time fee charged at the beginning of the subscription.
 
-### Usage Meter Prices
+### Usage Prices
 
 For billing based on actual usage of your product or service, charged on a recurring interval. Key characteristics:
 
 - Associated with a specific [usage meter](/features/usage-meters). Required via `usageMeterId`.
 - Usage charges are typically calculated and billed at the end of the billing period (based on `intervalUnit` and `intervalCount`), unlike standard subscriptions which charge at the start.
-- **Interval Unit**: The time unit for the billing cycle (e.g., `month`). Required.
-- **Interval Count**: How many units define the billing cycle length. Required.
-- **Setup Fee Amount** (optional): A one-time fee charged at the beginning of the subscription.
-- **Trial Period Days**: Not applicable for usage-based prices.
+- **Usage Events Per Unit**: How many usage events are considered one unit to be charged at the unit price. Required.
 
 <Tip>
 Usage meter prices combine recurring billing cycles with variable charges based on consumption tracked by a usage meter.
@@ -41,9 +37,7 @@ Usage meter prices combine recurring billing cycles with variable charges based 
 
 Each product has a default price. This is the price presented by default in checkouts or API calls when a specific price isn't requested.
 
-- You can mark a price as the default by setting its `isDefault` flag to `true`.
-- Only one price per product can be the default at any time. If you set a new price as the default (either on creation or by updating), any existing default price for that product will automatically have its `isDefault` flag set to `false`.
-- If no price for a product is explicitly marked as default (`isDefault: true`), the system considers the *first price ever created* for that product to be the default.
+- Only one price per product can be the default active price at any time. If you set a new price as the default (either on creation or by updating), any existing default price for that product will automatically have its `isDefault` flag set to `false`.
 
 ## Choosing the Right Price Type
 
@@ -59,33 +53,26 @@ Read more about [usage meters](/features/usage-meters) to understand how they wo
 
 ![Price creation modal showing fields for unit price, currency, type, and other settings](/images/price-modal.jpeg)
 
+Prices are first created when you create a product from the pricing model page. 
 
-You can create prices from the [Products page](https://app.flowglad.com/store/products) by:
+You can then update the price from either the edit button for the product on the pricing model page or from the [Products page](https://app.flowglad.com/store/products) by:
 
 1. Selecting a product
-2. Clicking the "Add Price" button
+2. Clicking the "New Price" button
 3. Filling out the price details form
 
 When creating a price, you'll need to provide:
 
 - **Unit Price**: The amount to charge (in cents/pence)
-- **Currency**: The currency for this price (e.g., USD, GBP, EUR)
 - **Type**: Choose between Single Payment, Subscription, or Usage Meter
-- **Default**: Whether this should be the default price for the product
 
 Additional fields will appear based on the price type selected:
 
 - For **Subscription** prices:
   - Interval Unit (month/year)
-  - Interval Count
   - Optional Trial Period Days
-  - Optional Setup Fee
 
 - For **Usage** prices:
   - Usage Meter selection
-  - Interval Unit (month/year)
-  - Interval Count
-  - Optional Setup Fee
-<Note>
-Usage prices are currently behind an invite-only feature flag. If you would like access to usage pricing, please reach out.
-</Note>
+  - Usage Events Per Unit
+
