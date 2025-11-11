@@ -1737,8 +1737,6 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         name: 'Single Payment Price',
         type: PriceType.SinglePayment,
         unitPrice: 1000,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
         livemode: true,
         isDefault: false,
         currency: organization.defaultCurrency,
