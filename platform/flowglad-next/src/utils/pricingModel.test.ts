@@ -2115,6 +2115,154 @@ describe('createPriceTransaction', () => {
       'Cannot create additional prices for the default plan'
     )
   })
+
+  it('allows creating an additional price with the same type', async () => {
+    const nonDefaultProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Additional Product',
+      livemode: true,
+    })
+    const firstPrice = await adminTransaction(
+      async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Initial Subscription Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 2500,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: true,
+              slug: `initial-subscription-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      }
+    )
+
+    expect(firstPrice.productId).toBe(nonDefaultProduct.id)
+    expect(firstPrice.unitPrice).toBe(2500)
+
+    const updatedUnitPrice = 3500
+    const updatedPrice = await adminTransaction(
+      async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Additional Subscription Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: updatedUnitPrice,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: false,
+              slug: `additional-subscription-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      }
+    )
+
+    expect(updatedPrice.productId).toBe(nonDefaultProduct.id)
+    expect(updatedPrice.unitPrice).toBe(updatedUnitPrice)
+    expect(updatedPrice.currency).toBe(organization.defaultCurrency)
+    expect(updatedPrice.type).toBe(PriceType.Subscription)
+    expect(updatedPrice.isDefault).toBe(true) // newly created price is always set as the default
+    expect(updatedPrice.active).toBe(true)
+  })
+
+  it('rejects creating an additional price with a different type', async () => {
+    const nonDefaultProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Additional Product',
+      livemode: true,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const params: AuthenticatedTransactionParams = {
+        transaction,
+        livemode: true,
+        organizationId: organization.id,
+        userId,
+      }
+
+      return createPriceTransaction(
+        {
+          price: {
+            name: 'Initial Subscription Price',
+            productId: nonDefaultProduct.id,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            unitPrice: 2500,
+            trialPeriodDays: 0,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            isDefault: true,
+            slug: `initial-subscription-price-${core.nanoid()}`,
+          },
+        },
+        params
+      )
+    })
+
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Mismatched Type Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.SinglePayment,
+              unitPrice: 3500,
+              intervalUnit: null,
+              intervalCount: null,
+              trialPeriodDays: null,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: false,
+              slug: `mismatched-type-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      })
+    ).rejects.toThrow(
+      'Cannot create price of a different type than the existing prices for the product'
+    )
+  })
 })
 
 describe('createProductTransaction', () => {
