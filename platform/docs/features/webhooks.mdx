@@ -1,6 +1,140 @@
 ---
 title: 'Webhooks'
-description: 'Receive notifications to your server endpoint when events happen in Flowglad.'
+description: 'Optional notifications you can subscribe to when billing events happen in Flowglad.'
 ---
 
-Coming soon... 
+<Note>
+By default, Flowglad acts as your product's source of truth for all billing data and feature access. You should only use it when another system must be told that a Flowglad billing event occurred.
+</Note>
+
+## When to use webhooks
+
+Usually you only need webhooks when you want to trigger a workflow in response to a billing-related event.
+
+- Starting or terminating background services in response to billing events, e.g. shutting down a VPS when a subscription cancels
+- Automated notifications
+
+You should **not** use webhooks to synchronize the following data:
+- What plan your customer has subscribed to
+- What features your customer gets based on their subscription
+- Whether your customer is subscribed to a paid plan
+- What usage credits your customer has access to
+
+For data like this, Flowglad serves as the source of truth for your product. Instead, you should rely on Flowglad's `useBilling`, `flowgladServer.getBilling`, or `customers/:externalId/billing` payload.
+This significantly reduces bugs related to synchronization of state between Flowglad (your payment processor), and your application. 
+
+## How deliveries work
+
+Flowglad records every billing-related change as an event, stores it durably, and then fans it out to each active webhook subscription that opted into that event type. Deliveries are sent separately in test and live mode, respect the `filterTypes` you set on the webhook, and are retried automatically whenever your endpoint responds with a non-2xx status.
+
+## Available events
+
+You can subscribe to any combination of the following event types:
+
+- `customer.created`
+- `customer.updated`
+- `purchase.completed`
+- `payment.failed`
+- `payment.succeeded`
+- `subscription.created`
+- `subscription.updated`
+- `subscription.canceled`
+
+Create different endpoints if you want to route subsets of events to different systems.
+
+## Payload structure
+
+Each webhook delivery contains:
+
+- `eventType`: one of the values listed above.
+- `eventId`: a unique identifier you can use for idempotency.
+- `livemode`: `true` for production data, `false` for test data.
+- `timestamp`: ISO 8601 string describing when Flowglad recorded the event.
+- `data`: the event payload. Every payload includes a stable object reference plus the Flowglad customer (when available).
+
+Example `payment.succeeded` delivery:
+
+```json
+{
+  "eventType": "payment.succeeded",
+  "eventId": "evt_9h1x4c1d",
+  "livemode": true,
+  "timestamp": "2024-03-04T19:43:16.251Z",
+  "data": {
+    "id": "pay_31n0b4p4",
+    "object": "payment",
+    "customer": {
+      "id": "cust_bc91m2vk",
+      "externalId": "user_42"
+    }
+  }
+}
+```
+
+## Delivery behavior
+
+- **At-least-once semantics**: duplicate deliveries can occur after retries. Use `eventId` (and, if desired, the combination of `eventType` + object ID) to ensure idempotent processing.
+- **Automatic retries**: Flowglad retries for several hours with exponential backoff whenever your endpoint returns a 3xx, 4xx, or 5xx response, or times out.
+- **Timeouts**: endpoints must respond within 10 seconds; otherwise the attempt is retried.
+- **Separate environments**: test-mode webhooks never receive live data. Publish a dedicated endpoint URL if you need to exercise both environments.
+
+## Managing webhooks
+
+### Dashboard
+
+1. Go to your organization's [Settings page](https://app.flowglad.com/settings).
+2. Select the **API** tab, and then **Create Webhook**.
+3. Provide a descriptive name, HTTPS URL, and the event types you want.
+4. Toggle the `Active` switch on or off to receive or pause deliveries.
+5. Copy the signing secret that appears after creation. If you misplace it, you can rotate or re-fetch the secret from the overflow menu.
+
+### API
+
+You can also retrieve and manage webhooks [via the API](https://docs.flowglad.com/api-reference/webhooks/get-webhook).
+
+## Secrets & verification
+
+Every webhook has a unique signing secret per environment. Flowglad sends three headers with every delivery:
+
+- `svix-webhook-id`: unique attempt identifier.
+- `svix-webhook-timestamp`: Unix timestamp (seconds) when the attempt started.
+- `svix-webhook-signature`: HMAC SHA-256 signature computed over `<timestamp>.<raw-body>` using your secret, hex encoded.
+
+Verify each request before acting on it. Example (Express + Node):
+
+```ts
+import crypto from 'crypto'
+import type { Request, Response } from 'express'
+
+const secret = process.env.FLOWGLAD_WEBHOOK_SECRET!
+
+export async function flowgladWebhookHandler(req: Request, res: Response) {
+  const id = req.header('svix-webhook-id')
+  const timestamp = req.header('svix-webhook-timestamp')
+  const signature = req.header('svix-webhook-signature')
+  const rawBody = req.rawBody || (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
+  const rawBody = req.rawBody ?? (Buffer.isBuffer(req.body) ? req.body.toString('utf8') : undefined)
+  if (!id || !timestamp || !signature) {
+    return res.status(400).send('Missing signature headers')
+  }
+
+  const payloadToSign = `${timestamp}.${rawBody}`
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(payloadToSign)
+    .digest('hex')
+
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    return res.status(400).send('Invalid signature')
+  }
+
+  // Process req.body here
+  res.status(204).end()
+}
+```
+
+<Note>
+You **must** use the raw request body when verifying webhooks, as even small changes will change the cryptographic signature. If you use a server framework that automatically parses JSON payloads, turn off this setting for your webhook route in order to access the raw request body.
+</Note>
+
+Rotate the secret anytime you suspect exposure; previously signed events remain valid because signatures are checked per attempt.
