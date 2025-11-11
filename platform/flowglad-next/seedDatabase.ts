@@ -838,37 +838,83 @@ export const setupInvoice = async ({
   })
 }
 
-export const setupPrice = async ({
-  productId,
-  name,
-  type,
-  unitPrice,
-  intervalUnit,
-  intervalCount,
-  livemode,
-  isDefault,
-  trialPeriodDays,
-  currency,
-  externalId,
-  active = true,
-  usageMeterId,
-  slug,
-}: {
-  productId: string
-  name: string
-  type: PriceType
-  unitPrice: number
-  intervalUnit?: IntervalUnit
-  intervalCount?: number
-  livemode: boolean
-  isDefault: boolean
-  usageMeterId?: string
-  currency?: CurrencyCode
-  externalId?: string
-  trialPeriodDays?: number
-  active?: boolean
-  slug?: string
-}): Promise<Price.Record> => {
+// Strict validation schemas for setupPrice to catch test data errors
+const baseSetupPriceSchema = z.object({
+  productId: z.string(),
+  name: z.string(),
+  unitPrice: z.number(),
+  livemode: z.boolean(),
+  isDefault: z.boolean(),
+  currency: z.nativeEnum(CurrencyCode).optional(),
+  externalId: z.string().optional(),
+  active: z.boolean().optional(),
+  slug: z.string().optional(),
+})
+
+const setupSinglePaymentPriceSchema = baseSetupPriceSchema.extend({
+  type: z.literal(PriceType.SinglePayment),
+  // These fields should NOT be present for SinglePayment prices
+  intervalUnit: z.never().optional(),
+  intervalCount: z.never().optional(),
+  trialPeriodDays: z.never().optional(),
+  usageMeterId: z.never().optional(),
+})
+
+const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
+  type: z.literal(PriceType.Subscription),
+  intervalUnit: z.nativeEnum(IntervalUnit).optional(),
+  intervalCount: z.number().optional(),
+  trialPeriodDays: z.number().optional(),
+  usageMeterId: z.never().optional(), // Subscriptions don't use usage meters
+})
+
+const setupUsagePriceSchema = baseSetupPriceSchema.extend({
+  type: z.literal(PriceType.Usage),
+  intervalUnit: z.nativeEnum(IntervalUnit).optional(),
+  intervalCount: z.number().optional(),
+  usageMeterId: z.string(), // Required for Usage prices
+  trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
+})
+
+const setupPriceInputSchema = z.discriminatedUnion('type', [
+  setupSinglePaymentPriceSchema,
+  setupSubscriptionPriceSchema,
+  setupUsagePriceSchema,
+])
+
+/**
+ * This schema is used to validate the input for the setupPrice function.
+ * 
+ * prices.ts currently has a schema called pricesInsertSchema, which is similar to this but more permissive.
+ * We should consider making that schema more strict and using it here instead of creating this one.
+ */
+
+type SetupPriceInput = z.infer<typeof setupPriceInputSchema>
+
+export const setupPrice = async (
+  input: SetupPriceInput
+): Promise<Price.Record> => {
+  // Validate input to catch test data errors early
+  const validatedInput = setupPriceInputSchema.parse(input)
+
+  const {
+    productId,
+    name,
+    type,
+    unitPrice,
+    livemode,
+    isDefault,
+    currency,
+    externalId,
+    active = true,
+    slug,
+  } = validatedInput
+
+  const intervalUnit = type !== PriceType.SinglePayment ? validatedInput.intervalUnit : undefined
+  const intervalCount = type !== PriceType.SinglePayment ? validatedInput.intervalCount : undefined
+  const trialPeriodDays = type === PriceType.Subscription ? validatedInput.trialPeriodDays : undefined
+  const usageMeterId = type === PriceType.Usage ? validatedInput.usageMeterId : undefined
+
   return adminTransaction(async ({ transaction }) => {
     const basePrice = {
       ...nulledPriceColumns,
@@ -2431,17 +2477,20 @@ export const setupUsageLedgerScenario = async (params: {
     livemode,
     pricingModelId: pricingModel.id,
   })
+  // Build price params for Usage type, excluding incompatible fields from priceArgs
+  const { trialPeriodDays: _, ...compatiblePriceArgs } = params.priceArgs ?? {}
   const price = await setupPrice({
     productId: product.id,
     name: 'Test Price',
-    type: PriceType.Usage,
     unitPrice: 1000,
-    intervalUnit: IntervalUnit.Month,
-    intervalCount: 1,
     livemode,
     isDefault: false,
+    ...compatiblePriceArgs,
+    // Override type-specific fields after spreading priceArgs
+    type: PriceType.Usage,
+    intervalUnit: IntervalUnit.Month,
+    intervalCount: 1,
     usageMeterId: usageMeter.id,
-    ...(params.priceArgs ?? {}),
   })
   const subscription = await setupSubscription({
     organizationId: organization.id,

@@ -61,8 +61,6 @@ describe('createCheckoutSessionTransaction', () => {
       type: PriceType.SinglePayment,
       name: 'Single Payment Price',
       unitPrice: 1000,
-      intervalUnit: IntervalUnit.Day,
-      intervalCount: 1,
       livemode: true,
       isDefault: false,
     })
@@ -289,8 +287,6 @@ describe('createCheckoutSessionTransaction', () => {
           type: PriceType.SinglePayment,
           name: 'Default Product Price',
           unitPrice: 0,
-          intervalUnit: IntervalUnit.Day,
-          intervalCount: 1,
           livemode: true,
           isDefault: true,
         })

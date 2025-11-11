@@ -492,11 +492,6 @@ describe('createSubscriptionWorkflow', async () => {
         unitPrice: 100,
         livemode: true,
         isDefault: false,
-        /**
-         * FIXME: clean up function signature
-         */
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
       })
 
       await expect(
@@ -541,8 +536,6 @@ describe('createSubscriptionWorkflow', async () => {
         unitPrice: 100,
         livemode: true,
         isDefault: false,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
       })
 
       const result = await adminTransaction(
@@ -1744,8 +1737,6 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         name: 'Single Payment Price',
         type: PriceType.SinglePayment,
         unitPrice: 1000,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
         livemode: true,
         isDefault: false,
         currency: organization.defaultCurrency,
