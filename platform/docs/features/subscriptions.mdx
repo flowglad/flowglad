@@ -22,6 +22,17 @@ Each `Subscription` record has one or more `SubscriptionItem` records.
 *   **`Subscription` Record:** Holds the core details like the customer (`customerId`), overall status, billing cycle information (`interval`, `intervalCount`, `billingCycleAnchorDate`), trial period (`trialEnd`), and potentially default/backup payment methods. It also has a primary `priceId` which often corresponds to the initial item purchased. But note: the `SubscriptionItem`s define the actual billing components.
 *   **`SubscriptionItem` Record:** Represents a specific product or service line item within the subscription. Each item has its own `priceId`, `quantity`, and `unitPrice`. This allows for subscriptions with multiple components, potentially added or changed over time. The sum of active subscription items determines the amount billed each period (for non-usage-based items).
 
+### Current vs Non-Current Subscriptions
+Depending on its status, a subscription can either be **current** or not. A current subscription will grant feature access and usage credits. A non-current subscription will not.
+Current subscriptions have one of the following statuses:
+- `"active"`
+- `"past_due"`
+- `"trialing"`
+- `"cancellation_scheduled"`
+- `"unpaid"`
+
+Subscriptions in all other statuses will be inactive.
+
 ## Creating a Subscription
 
 There are two primary ways to create a subscription:
