@@ -7,60 +7,24 @@ Invoices in Flowglad serve as detailed records justifying payments made by your 
 
 ## How Invoices are Generated
 
-Invoices are created in several ways within Flowglad:
+Invoices are created in two ways within Flowglad:
 
 1.  **Subscription Renewals:** An invoice is automatically generated for each billing cycle of an active subscription. It reflects the charges for that period based on the subscription plan.
 2.  **One-Time Purchases:** When a customer completes a checkout for a non-subscription product or service, an invoice is generated and typically marked as paid immediately upon successful payment.
-3.  **Manual Creation (UI):** You can create invoices directly from the Customer Details page in the Flowglad dashboard. This is useful for bespoke charges, consultations, or services not tied to a standard product or subscription.
-4.  **Manual Creation (API):** Invoices can be programmatically created using the Flowglad API.
-
-    ```typescript title="API: Create Invoice Example"
-    // Simplified example using a hypothetical SDK
-    const { invoice, invoiceLineItems } = await flowglad.invoices.create({
-      invoice: {
-        customerId: 'cust_123',
-        currency: 'USD',
-        //dueDate: new Date('2024-12-31'), // Optional, defaults to issue date
-        // invoiceNumber: 'INV-CUST-001' // Optional, can be assigned
-      },
-      invoiceLineItems: [
-        {
-          description: 'Consulting Services',
-          quantity: 2,
-          price: 50000, // Price in cents (e.g., $500.00)
-        },
-        {
-          description: 'Setup Fee',
-          quantity: 1,
-          price: 10000, // $100.00
-        },
-      ],
-      autoSend: true, // Optional: Email invoice to customer upon creation
-    });
-    ```
 
 ## Invoice Structure & Line Items
 
 Each invoice contains essential details like the issue date, due date, customer information, and potentially billing/shipping addresses.
 
-A key part of the invoice is its **Line Items**. When creating invoices manually (via UI or API):
+A key part of the invoice is its **Line Items**:
 
 *   Line items detail specific goods or services being charged for.
 *   Each line item includes a `description`, `quantity`, and `price` (per unit, specified in the currency's smallest unit, e.g., cents for USD).
 *   Line items can be entirely custom; they **do not** need to be linked to a pre-existing Product or Price record in Flowglad (the `priceId` field is optional).
 
-## Paying Invoices
-
-*   **Automatic Payment:** Invoices generated for subscriptions are automatically paid when the corresponding subscription payment is successfully processed. Similarly, invoices for one-time purchases are settled upon checkout completion.
-*   **Manual Payment:** Manually created invoices (or overdue subscription invoices) can be paid by the customer through a dedicated, secure checkout session. When you create or send an invoice, Flowglad can generate a unique payment link. Clicking this link takes the customer to a checkout page specifically for settling that invoice.
-
-    <Card title="Invoice Checkout Sessions" href="/features/checkout-sessions#paying-standalone-invoices">
-      Learn more about how customers can pay standalone invoices using dedicated Checkout Sessions.
-    </Card>
-
 ## Invoices vs. Payments
 
-Think of an Invoice as the "why" and a Payment as the "how" and "when".
+Think of an Invoice as the "what" a customer owes and why. Think of a payment as "how" the customer pays you and "when".
 
 *   **Invoice:** Details *what* a customer owes and *why* (e.g., Subscription renewal for Plan X, Consulting Services). It's the bill or statement of charges.
 *   **Payment:** Represents the actual transaction where funds were transferred to settle an invoice (or part of it).
@@ -94,6 +58,4 @@ Besides creation, the Invoices API allows you to:
 
 *   **Retrieve (`GET`):** Fetch details of a specific invoice and its line items.
 *   **List (`LIST`):** Retrieve a list of invoices, with pagination and filtering options.
-*   **Update (`PUT`):** Modify details of an existing invoice (primarily `draft` invoices, though some fields on `open` invoices might be updatable depending on configuration).
-*   **Send Reminder:** Trigger an email reminder to the customer for an `open` invoice.
 
