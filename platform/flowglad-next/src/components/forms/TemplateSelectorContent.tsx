@@ -21,7 +21,7 @@ export function TemplateSelectorContent({
     <>
       {/* Sticky Header */}
       <div className="bg-background border-b sticky top-0 z-10 flex items-center justify-between pl-6 md:pl-6 pr-4 py-4 rounded-t-3xl">
-        <h2 className="text-xl font-semibold" aria-hidden="true">
+        <h2 className="text-xl" aria-hidden="true">
           Create Pricing Model
         </h2>
         <div className="flex items-center gap-2">

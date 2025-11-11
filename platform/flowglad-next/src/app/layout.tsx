@@ -1,6 +1,5 @@
 import { Toaster } from 'sonner'
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 
 import Providers from './Providers'
@@ -20,8 +19,7 @@ import { auth, getSession } from '@/utils/auth'
 import { headers } from 'next/headers'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import * as Sentry from '@sentry/nextjs'
-
-const inter = Inter({ subsets: ['latin'] })
+import { arizonaFlare, sfPro, berkeleyMono } from '@/lib/fonts'
 
 export const metadata: Metadata = {
   title: 'Flowglad',
@@ -86,8 +84,17 @@ export default async function RootLayout({
     ? 'customer'
     : 'merchant'
   return (
-    <html lang="en" className="h-full" suppressHydrationWarning>
-      <body className={cn(inter.className, 'h-full')}>
+    <html
+      lang="en"
+      className={cn(
+        'h-full',
+        arizonaFlare.variable,
+        sfPro.variable,
+        berkeleyMono.variable
+      )}
+      suppressHydrationWarning
+    >
+      <body className={cn(sfPro.className, 'h-full')}>
         <Providers
           authContext={{
             organization,

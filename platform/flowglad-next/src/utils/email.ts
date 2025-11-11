@@ -28,6 +28,7 @@ import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
 import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
 import { PayoutNotificationEmail } from '@/email-templates/organization/payout-notification'
 import { OrganizationPayoutsEnabledNotificationEmail } from '@/email-templates/organization/organization-payouts-enabled'
+import { CustomersCsvExportReadyEmail } from '@/email-templates/organization/customers-csv-export-ready'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
@@ -481,3 +482,34 @@ export const sendOrganizationPayoutsEnabledNotificationEmail =
       }),
     })
   }
+
+export const sendCustomersCsvExportReadyEmail = async ({
+  to,
+  organizationName,
+  csvContent,
+  filename,
+  livemode,
+}: {
+  to: string[]
+  organizationName: string
+  csvContent: string
+  filename: string
+  livemode: boolean
+}) => {
+  return safeSend({
+    from: 'Flowglad <notifications@flowglad.com>',
+    to: to.map(safeTo),
+    subject: 'Your customers CSV export is ready',
+    react: await CustomersCsvExportReadyEmail({
+      organizationName,
+      livemode,
+    }),
+    attachments: [
+      {
+        filename,
+        content: Buffer.from(csvContent, 'utf-8'),
+        contentType: 'text/csv',
+      },
+    ],
+  })
+}

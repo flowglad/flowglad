@@ -80,9 +80,7 @@ export default function CustomerSelectorDemo() {
   return (
     <div className="container mx-auto p-8 space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">
-          Customer Selector Component
-        </h1>
+        <h1 className="text-3xl">Customer Selector Component</h1>
         <p className="text-muted-foreground">
           A component for selecting customer profiles with search and
           grid layout options.
@@ -140,11 +138,11 @@ export default function CustomerSelectorDemo() {
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Component States</h2>
+        <h2 className="text-xl">Component States</h2>
 
         <div className="space-y-6">
           <div>
-            <h3 className="text-lg font-medium mb-2">Empty State</h3>
+            <h3 className="text-lg mb-2">Empty State</h3>
             <div className="border rounded-lg p-6 bg-background">
               <CustomerSelector
                 customers={[]}
@@ -155,7 +153,7 @@ export default function CustomerSelectorDemo() {
           </div>
 
           <div>
-            <h3 className="text-lg font-medium mb-2">
+            <h3 className="text-lg mb-2">
               Single Customer (No Search)
             </h3>
             <div className="border rounded-lg p-6 bg-background">
@@ -168,9 +166,7 @@ export default function CustomerSelectorDemo() {
           </div>
 
           <div>
-            <h3 className="text-lg font-medium mb-2">
-              Loading State
-            </h3>
+            <h3 className="text-lg mb-2">Loading State</h3>
             <div className="border rounded-lg p-6 bg-background">
               <CustomerSelector
                 customers={[]}

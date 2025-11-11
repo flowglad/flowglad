@@ -61,7 +61,7 @@ export default function SelectCustomerPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="max-w-md w-full text-center space-y-4 p-6">
-          <h2 className="text-2xl font-bold text-destructive">
+          <h2 className="text-2xl text-destructive">
             Error Loading Customers
           </h2>
           <p className="text-muted-foreground">{error.message}</p>
@@ -84,7 +84,7 @@ export default function SelectCustomerPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="max-w-md w-full text-center space-y-4 p-6">
-          <h2 className="text-2xl font-bold">No Customers Found</h2>
+          <h2 className="text-2xl">No Customers Found</h2>
           <p className="text-muted-foreground">
             No customer profiles found for your email address in this
             organization.
@@ -116,9 +116,7 @@ export default function SelectCustomerPage() {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="space-y-6">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">
-              Select Customer Profile
-            </h1>
+            <h1 className="text-3xl">Select Customer Profile</h1>
             <p className="text-muted-foreground">
               Choose which customer profile you want to manage
             </p>

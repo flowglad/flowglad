@@ -49,19 +49,29 @@ export function TemplatePreviewContent({
   const productGroups = useMemo((): ProductGroup[] => {
     const groupMap = new Map<string, ProductGroup>()
 
-    template.input.products.forEach((product) => {
-      const groupKey = product.displayGroup || product.product.slug
+    // Filter out hidden products. PriceType.Usage prices are required to create usage events
+    // even when overages aren't desired, so we hide them to avoid confusion
+    // in plans where the intent is to disallow overages.
+    template.input.products
+      .filter((product) => product.displayGroup !== 'hidden')
+      .forEach((product) => {
+        // Determine the grouping key: use displayGroup if set, otherwise fall back to product slug
+        const groupKey = product.displayGroup || product.product.slug
 
-      if (!groupMap.has(groupKey)) {
-        groupMap.set(groupKey, {
-          groupKey,
-          displayName: product.product.name,
-          products: [],
-        })
-      }
+        // Create a new group entry if this is the first product in this group
+        // The groupMap organizes products into display groups for the UI,
+        // allowing multiple products to be shown together under a single group header
+        if (!groupMap.has(groupKey)) {
+          groupMap.set(groupKey, {
+            groupKey,
+            displayName: product.product.name,
+            products: [],
+          })
+        }
 
-      groupMap.get(groupKey)!.products.push(product)
-    })
+        // Add the current product to its corresponding group
+        groupMap.get(groupKey)!.products.push(product)
+      })
 
     // Sort products within each group by displayOrder
     groupMap.forEach((group) => {
@@ -119,7 +129,7 @@ export function TemplatePreviewContent({
       <div className="flex flex-col gap-4 items-start w-full overflow-y-auto min-h-0 z-[2]">
         {/* Header */}
         <div className="flex flex-col gap-1.5 items-start px-3 pt-2 pb-0 w-full">
-          <h2 className="text-lg font-semibold" aria-hidden="true">
+          <h2 className="text-lg" aria-hidden="true">
             {template.metadata.title}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -149,7 +159,7 @@ export function TemplatePreviewContent({
                     <div className="flex items-center gap-2">
                       {/* Product Name */}
                       <div className="flex gap-2 items-center px-2 py-0">
-                        <h3 className="text-md font-semibold whitespace-nowrap">
+                        <h3 className="text-md font-semibold whitespace-nowrap font-sans">
                           {group.displayName}
                         </h3>
                       </div>

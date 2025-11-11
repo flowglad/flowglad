@@ -142,11 +142,7 @@ export function InvoicesDataTable({
       <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         {/* Title and/or Filter buttons on the left */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && (
-            <h3 className="text-lg font-semibold truncate">
-              {title}
-            </h3>
-          )}
+          {title && <h3 className="text-lg truncate">{title}</h3>}
           {filterOptions && activeFilter && onFilterChange && (
             <FilterButtonGroup
               options={filterOptions}

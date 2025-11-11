@@ -6,7 +6,7 @@ import {
 } from '@/db/schema/features'
 import {
   selectFeatureById,
-  updateFeature as updateFeatureDB,
+  updateFeatureTransaction,
   insertFeature,
   selectFeaturesPaginated,
   selectFeaturesTableRowData,
@@ -93,7 +93,7 @@ export const updateFeature = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const feature = await updateFeatureDB(
+        const feature = await updateFeatureTransaction(
           {
             ...input.feature,
             id: input.id,

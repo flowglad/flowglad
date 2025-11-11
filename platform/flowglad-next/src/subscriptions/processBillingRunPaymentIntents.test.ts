@@ -16,9 +16,14 @@ import {
   setupOrg,
   setupPayment,
   setupMemberships,
+  setupProduct,
+  setupPrice,
 } from '@/../seedDatabase'
 
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { processPaymentIntentEventForBillingRun } from './processBillingRunPaymentIntents'
 import {
   BillingRunStatus,
@@ -26,24 +31,57 @@ import {
   LedgerTransactionType,
   PaymentStatus,
   SubscriptionStatus,
+  FeatureUsageGrantFrequency,
+  LedgerEntryType,
+  IntervalUnit,
+  PriceType,
+  SubscriptionItemType,
 } from '@/types'
 import Stripe from 'stripe'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
-import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
+import {
+  selectBillingRunById,
+  updateBillingRun,
+  selectBillingRuns,
+} from '@/db/tableMethods/billingRunMethods'
+import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { IntentMetadataType } from '@/utils/stripe'
 import core from '@/utils/core'
 import { settleInvoiceUsageCostsLedgerCommandSchema } from '@/db/ledgerManager/ledgerManagerTypes'
+import {
+  setupUsageMeter,
+  setupUsageCreditGrantFeature,
+  setupProductFeature,
+  setupSubscriptionItem,
+  setupSubscriptionItemFeatureUsageCreditGrant,
+} from '@/../seedDatabase'
+import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
+import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import {
+  selectLedgerEntries,
+  aggregateBalanceForLedgerAccountFromEntries,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { createSubscriptionWorkflow } from './createSubscription/workflow'
+import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
+import { setupLedgerTransaction } from '@/../seedDatabase'
+import { updateInvoice } from '@/db/tableMethods/invoiceMethods'
+import { Invoice } from '@/db/schema/invoices'
+import {
+  createMockPaymentIntentEventResponse,
+  createMockPaymentIntent,
+} from '@/test/helpers/stripeMocks'
 
 /**
  * In our tests we assume that getStripeCharge (used inside processPaymentIntentEventForBillingRun)
  * is configured (or stubbed in the test environment) so that when called with a known charge id,
  * it returns a charge object with a predictable amount (for example, 1000 for 'ch_success', 500 for 'ch_failed', etc.).
  */
+
 describe('processPaymentIntentEventForBillingRun integration tests', async () => {
-  const { organization, price } = await setupOrg()
+  const { organization, price, product } = await setupOrg()
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -120,22 +158,23 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
 
     await adminTransaction(async ({ transaction }) => {
-      const event: Stripe.PaymentIntentSucceededEvent = {
-        created: 1, // Earlier than the stored timestamp
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'succeeded',
-            metadata: {
-              billingRunId: newBillingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: newBillingRun.billingPeriodId,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: stripePaymentIntentId,
+          latest_charge: stripeChargeId,
+          metadata: {
+            billingRunId: newBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: newBillingRun.billingPeriodId,
           },
+          livemode: true,
         },
-      } as any
+        {
+          created: 1,
+          livemode: true,
+        }
+      )
 
       // The function should simply skip processing and return undefined.
       const { result } = await processPaymentIntentEventForBillingRun(
@@ -177,22 +216,24 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       invoiceId: invoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const event: Stripe.PaymentIntentSucceededEvent = {
-        created: 3000,
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'succeeded',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingRun.billingPeriodId,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: stripePaymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: billingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: billingRun.billingPeriodId,
           },
+          latest_charge: stripeChargeId,
+          livemode: true,
         },
-      } as any
+        {
+          created: 3000,
+          livemode: true,
+        }
+      )
 
       const { result, ledgerCommand } =
         await processPaymentIntentEventForBillingRun(
@@ -266,22 +307,24 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       invoiceId: invoice.id,
     })
 
-    const event: Stripe.PaymentIntentSucceededEvent = {
-      created: 3000,
-      data: {
-        object: {
-          id: stripePaymentIntentId,
-          status: 'succeeded',
-          metadata: {
-            billingRunId: billingRun.id,
-            type: IntentMetadataType.BillingRun,
-            billingPeriodId: billingRun.billingPeriodId,
-          },
-          latest_charge: stripeChargeId,
-          livemode: true,
+    const event = createMockPaymentIntentEventResponse(
+      'succeeded',
+      {
+        id: stripePaymentIntentId,
+        status: 'succeeded',
+        metadata: {
+          billingRunId: billingRun.id,
+          type: IntentMetadataType.BillingRun,
+          billingPeriodId: billingRun.billingPeriodId,
         },
+        latest_charge: stripeChargeId,
+        livemode: true,
       },
-    } as any
+      {
+        created: 3000,
+        livemode: true,
+      }
+    )
 
     await adminTransaction(async ({ transaction }) => {
       const { ledgerCommand: firstLedgerCommand } =
@@ -308,7 +351,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const stripeChargeId = `ch_${Date.now()}___failed` + core.nanoid()
     const failedBillingRun = await setupBillingRun({
       stripePaymentIntentId,
-      lastPaymentIntentEventTimestamp: Date.now(),
+      lastPaymentIntentEventTimestamp: Math.floor(Date.now() / 1000),
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       subscriptionId: subscription.id,
@@ -332,23 +375,23 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       invoiceId: failedInvoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const event: Stripe.PaymentIntentPaymentFailedEvent = {
-        created: Date.now() / 1000,
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'requires_payment_method',
-            metadata: {
-              billingRunId: failedBillingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: failedBillingRun.billingPeriodId,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'requires_payment_method',
+        {
+          id: stripePaymentIntentId,
+          status: 'requires_payment_method',
+          metadata: {
+            billingRunId: failedBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: failedBillingRun.billingPeriodId,
           },
+          latest_charge: stripeChargeId,
+          livemode: true,
         },
-      } as any
-
+        {
+          livemode: true,
+        }
+      )
       const { ledgerCommand } =
         await processPaymentIntentEventForBillingRun(
           event,
@@ -412,22 +455,24 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
         billingRunId: billingRun.id,
       })
 
-      const event: Stripe.PaymentIntentCanceledEvent = {
-        created: 5000,
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'canceled',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingRun.billingPeriodId,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'canceled',
+        {
+          id: stripePaymentIntentId,
+          status: 'canceled',
+          metadata: {
+            billingRunId: billingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: billingRun.billingPeriodId,
           },
+          latest_charge: stripeChargeId,
+          livemode: true,
         },
-      } as any
+        {
+          created: 5000,
+          livemode: true,
+        }
+      )
 
       const { ledgerCommand } =
         await processPaymentIntentEventForBillingRun(
@@ -489,22 +534,24 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       invoiceId: invoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const event: Stripe.PaymentIntentProcessingEvent = {
-        created: 6000,
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'processing',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingRun.billingPeriodId,
-            },
-            latest_charge: `ch_${billingRun.id}__processing`,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'processing',
+        {
+          id: stripePaymentIntentId,
+          status: 'processing',
+          metadata: {
+            billingRunId: billingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: billingRun.billingPeriodId,
           },
+          latest_charge: `ch_${billingRun.id}__processing`,
+          livemode: true,
         },
-      } as any
+        {
+          created: 6000,
+          livemode: true,
+        }
+      )
 
       const { ledgerCommand } =
         await processPaymentIntentEventForBillingRun(
@@ -576,22 +623,24 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
         billingRunId: billingRun.id,
       })
 
-      const event: Stripe.PaymentIntentRequiresActionEvent = {
-        created: 7000,
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'requires_action',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingPeriod.id,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'requires_action',
+        {
+          id: stripePaymentIntentId,
+          status: 'requires_action',
+          metadata: {
+            billingRunId: billingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: billingPeriod.id,
           },
+          latest_charge: stripeChargeId,
+          livemode: true,
         },
-      } as any
+        {
+          created: 7000,
+          livemode: true,
+        }
+      )
 
       const { ledgerCommand } =
         await processPaymentIntentEventForBillingRun(
@@ -633,22 +682,24 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
     await adminTransaction(async ({ transaction }) => {
       // Do not seed any invoice for billingPeriodId 'bp_no_invoice'
-      const event: Stripe.PaymentIntentSucceededEvent = {
-        created: 8000,
-        data: {
-          object: {
-            id: paymentIntentId,
-            status: 'succeeded',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingRun.billingPeriodId,
-            },
-            latest_charge: `ch_no_invoice_${billingRun.id}`,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: paymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: billingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: billingRun.billingPeriodId,
           },
+          latest_charge: `ch_no_invoice_${billingRun.id}`,
+          livemode: true,
         },
-      } as any
+        {
+          created: 8000,
+          livemode: true,
+        }
+      )
 
       await expect(
         processPaymentIntentEventForBillingRun(event, transaction)
@@ -677,22 +728,24 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
         billingRunId: billingRun.id,
       })
 
-      const event: Stripe.PaymentIntentSucceededEvent = {
-        created: 9000,
-        data: {
-          object: {
-            id: 'pi_no_charge',
-            status: 'succeeded',
-            metadata: {
-              billingRunId: billingRun.id,
-              billingPeriodId: billingRun.billingPeriodId,
-              type: IntentMetadataType.BillingRun,
-            },
-            latest_charge: null,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: 'pi_no_charge',
+          status: 'succeeded',
+          metadata: {
+            billingRunId: billingRun.id,
+            billingPeriodId: billingRun.billingPeriodId,
+            type: IntentMetadataType.BillingRun,
           },
+          latest_charge: null,
+          livemode: true,
         },
-      } as any
+        {
+          created: 9000,
+          livemode: true,
+        }
+      )
 
       await expect(
         processPaymentIntentEventForBillingRun(event, transaction)
