@@ -111,7 +111,7 @@ export const createPriceTransaction = async (
   // Forbid creating price of a different type
   if (
     existingPrices.length > 0 &&
-    existingPrices[0].type !== price.type
+    existingPrices.some((existingPrice) => existingPrice.type !== price.type)
   ) {
     throw new TRPCError({
       code: 'FORBIDDEN',
