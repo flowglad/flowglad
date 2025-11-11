@@ -900,37 +900,12 @@ export const executeBillingRun = async (billingRunId: string) => {
             let targetInvoiceStatus: InvoiceStatus
 
             if (confirmationResult.status === 'succeeded') {
-              const {
-                billingPeriodItems,
-                billingPeriod,
-                organization,
-              } =
-                await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId(
-                  billingRun.billingPeriodId,
-                  transaction
-                )
-
-              const paymentMethod = await selectPaymentMethodById(
-                billingRun.paymentMethodId,
-                transaction
-              )
-
-              const { totalDueAmount } =
-                await calculateFeeAndTotalAmountDueForBillingPeriod(
-                  {
-                    billingPeriodItems,
-                    billingPeriod,
-                    organization,
-                    paymentMethod,
-                    usageOverages: [],
-                    billingRun,
-                  },
-                  transaction
-                )
+              const totalPaid =
+                totalAmountPaid + confirmationResult.amount_received
 
               // Only mark as Paid if fully paid
               targetInvoiceStatus =
-                confirmationResult.amount_received >= totalDueAmount
+                totalPaid >= totalDueAmount
                   ? InvoiceStatus.Paid
                   : InvoiceStatus.Open
             } else {
