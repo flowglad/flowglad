@@ -11,7 +11,7 @@ A Subscription in Flowglad tracks the details of a recurring charge for a custom
 
 Key concepts:
 
-*   **One Current Subscription per Customer (Default):** By default, a customer can only have one active subscription at a time (current states include `active`, `trialing`, `past_due`, `cancellation_scheduled`, `unpaid`). This encourages simpler billing management. If you need customers to have multiple simultaneous subscriptions, you can enable the `allow_multiple_subscriptions_per_customer` setting at the organization level in your Flowglad settings or by contacting support.
+*   **One Current Subscription per Customer (Default):** By default, a customer can only have one active subscription at a time (see "Current vs Non-Current Subscriptions" below). This encourages simpler billing management. If you need customers to have multiple simultaneous subscriptions, you can enable the `allow_multiple_subscriptions_per_customer` setting at the organization level in your dashboard [settings page](https://app.flowglad.com/settings).
 *   **Billing Cycle Anchor Date:** The `billingCycleAnchorDate` (set from the `startDate` on creation) determines the day of the month billing occurs. If this date doesn't exist in a given month (e.g., the 31st in February), billing occurs on the last day of that month.
 *   **Billing Periods:** Defined by the `startDate`, `interval` (e.g., `Month`, `Year`), and `intervalCount`. Flowglad automatically calculates the `currentBillingPeriodStart` and `currentBillingPeriodEnd` for each cycle.
 
