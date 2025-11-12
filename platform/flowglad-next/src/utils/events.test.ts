@@ -131,8 +131,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -221,8 +219,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -311,8 +307,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -374,8 +368,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -443,8 +435,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -512,8 +502,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })

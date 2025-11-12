@@ -127,6 +127,12 @@ import {
   createMockConfirmationResult,
   createMockPaymentIntent,
 } from '@/test/helpers/stripeMocks'
+import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
+import {
+  selectCurrentlyActiveSubscriptionItems,
+  selectSubscriptionItems,
+  updateSubscriptionItem,
+} from '@/db/tableMethods/subscriptionItemMethods'
 
 // Mock Stripe functions
 vi.mock('@/utils/stripe', async (importOriginal) => {
@@ -1410,6 +1416,152 @@ describe('billingRunHelpers', async () => {
           mockPaymentIntent.id,
           billingRun.livemode
         )
+      })
+      it('should grant usage credits when payment succeeds and invoice is marked as Paid', async () => {
+        // Setup: Create usage credit grant feature
+        const grantAmount = 5000
+        const feature = await setupUsageCreditGrantFeature({
+          organizationId: organization.id,
+          name: 'Test Usage Credit Grant',
+          usageMeterId: usageMeter.id,
+          renewalFrequency: FeatureUsageGrantFrequency.Once,
+          amount: grantAmount,
+          livemode: true,
+        })
+
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: feature.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          const activeSubscriptionItems =
+            await selectCurrentlyActiveSubscriptionItems(
+              { subscriptionId: subscription.id },
+              billingPeriod.startDate,
+              transaction
+            )
+
+          // If no items found, update the subscription item's addedDate to be <= billing period start
+          if (activeSubscriptionItems.length === 0) {
+            const allItems: SubscriptionItem.Record[] =
+              await selectSubscriptionItems(
+                {
+                  subscriptionId: subscription.id,
+                },
+                transaction
+              )
+
+            if (allItems.length > 0) {
+              // Update addedDate to be at or before billing period start
+              await updateSubscriptionItem(
+                {
+                  id: allItems[0].id,
+                  addedDate: billingPeriod.startDate,
+                  type: allItems[0].type,
+                },
+                transaction
+              )
+
+              // Re-query after update
+              const updatedItems =
+                await selectCurrentlyActiveSubscriptionItems(
+                  { subscriptionId: subscription.id },
+                  billingPeriod.startDate,
+                  transaction
+                )
+              await createSubscriptionFeatureItems(
+                updatedItems,
+                transaction
+              )
+              return
+            }
+          }
+
+          await createSubscriptionFeatureItems(
+            activeSubscriptionItems,
+            transaction
+          )
+        })
+
+        // Mock payment intent and confirmation with succeeded status
+        const mockPaymentIntent = createMockPaymentIntentResponse({
+          amount: staticBillingPeriodItem.unitPrice,
+          customer: customer.stripeCustomerId!,
+          payment_method: paymentMethod.stripePaymentMethodId!,
+          amount_received: staticBillingPeriodItem.unitPrice,
+          metadata: {
+            billingRunId: billingRun.id,
+            type: 'billing_run',
+            billingPeriodId: billingPeriod.id,
+          },
+        })
+
+        const mockConfirmationResult = createMockConfirmationResult(
+          mockPaymentIntent.id,
+          {
+            metadata: mockPaymentIntent.metadata,
+            amount_received: staticBillingPeriodItem.unitPrice,
+            status: 'succeeded',
+          }
+        )
+
+        vi.mocked(
+          createPaymentIntentForBillingRun
+        ).mockResolvedValueOnce(mockPaymentIntent)
+        vi.mocked(
+          confirmPaymentIntentForBillingRun
+        ).mockResolvedValueOnce(mockConfirmationResult)
+
+        // Execute billing run
+        await executeBillingRun(billingRun.id)
+
+        // Verify invoice is marked as Paid
+        const invoices = await adminTransaction(({ transaction }) =>
+          selectInvoices(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+        )
+        const invoice = invoices.find(
+          (inv) => inv.billingPeriodId === billingPeriod.id
+        )
+        expect(invoice).toBeDefined()
+        expect(invoice!.status).toBe(InvoiceStatus.Paid)
+
+        // Verify usage credits were granted
+        await adminTransaction(async ({ transaction }) => {
+          const ledgerAccounts = await selectLedgerAccounts(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+            },
+            transaction
+          )
+          expect(ledgerAccounts.length).toBe(1)
+          const ledgerAccount = ledgerAccounts[0]
+
+          const usageCredits = await selectUsageCredits(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          expect(usageCredits.length).toBe(1)
+          const usageCredit = usageCredits[0]
+          expect(usageCredit.issuedAmount).toBe(grantAmount)
+          expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
+          expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
+
+          // Verify correct grant amount in the ledger
+          const balance =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount.id },
+              'available',
+              transaction
+            )
+          expect(balance).toBe(grantAmount)
+        })
       })
     })
   })
