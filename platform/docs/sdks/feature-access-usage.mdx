@@ -29,9 +29,11 @@ Flowglad tracks feature entitlements and consumption so you can gate premium fun
 
   import { useBilling } from '@flowglad/nextjs'
 
-  export function FeatureAccessGate({
-    featureSlug: string
-  }) {
+export function FeatureAccessGate({
+  featureSlug,
+}: {
+  featureSlug: string
+}) {
     const {
       loaded,
       errors,

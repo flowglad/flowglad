@@ -300,7 +300,8 @@ import { FlowgladServer } from '@flowglad/server'
 
 export function requireFeature(featureId: string) {
   return async (req, res, next) => {
-    const hasAccess = await flowgladServer.checkFeatureAccess(featureId)
+    const billing = await flowgladServer.getBilling()
+    const hasAccess = billing.checkFeatureAccess(featureId)
 
     if (!hasAccess) {
       return res.status(403).json({
@@ -324,10 +325,11 @@ app.get('/api/premium-endpoint', requireFeature('premium_feature'), (req, res) =
 ```typescript
 export async function trackAPIUsage(endpoint: string) {
   await flowgladServer.createUsageEvent({
-    featureId: 'api_calls',
-    quantity: 1,
-    usageDate: new Date().toISOString(),
-    metadata: {
+    priceId: 'price_usage_api_calls',
+    usageMeterId: 'usage_meter_api_calls',
+    subscriptionId: 'sub_current',
+    amount: 1,
+    properties: {
       endpoint,
     },
   })
@@ -350,8 +352,10 @@ export async function upgradeSubscription(
   try {
     // Cancel current subscription
     await flowgladServer.cancelSubscription({
-      subscriptionId: currentSubscriptionId,
-      cancelAt: 'now',
+      id: currentSubscriptionId,
+      cancellation: {
+        timing: 'immediately',
+      },
     })
 
     // Create new subscription
