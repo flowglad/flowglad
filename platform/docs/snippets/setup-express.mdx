@@ -67,7 +67,7 @@ import { flowgladServer } from './utils/flowglad'
 
 const app = express()
 
-const flowgladHandler = createFlowgladExpressRouteHandler({ flowgladServer })
+const flowgladHandler = createExpressRouteHandler({ flowgladServer })
 
 // Handle all Flowglad routes
 app.all('/api/flowglad/*', flowgladHandler)
