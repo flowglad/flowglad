@@ -182,7 +182,13 @@ Use Flowglad to create, update, and cancel [subscriptions](/features/subscriptio
   ```ts
   import { FlowgladServer } from '@flowglad/server'
   import { auth } from '@/lib/auth'
-
+/**
+* Note: this only demonstrates how to 
+* initiate subscription cancellation from your backend.
+* If you initiate the cancellation using `cancelSubscription`
+* from your frontend, your flowglad route handler
+* will handle this automatically
+*/
   const flowgladServer = new FlowgladServer({
     getRequestingCustomer: async () => {
       const session = await auth()
