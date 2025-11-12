@@ -14,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { isDefaultPlanBySlug } from '@/lib/billing-helpers';
 
 export interface PricingPlan {
   name: string;
@@ -58,18 +59,7 @@ export function PricingCard({
   const displayPrice = plan.displayPrice;
 
   // Check if this plan is a default plan by checking the pricing model
-  const isDefaultPlan = (() => {
-    if (!billing.pricingModel?.products || !priceSlug) return false;
-
-    for (const product of billing.pricingModel.products) {
-      const price = product.prices?.find((p) => p.slug === priceSlug);
-      if (price) {
-        // Check if the product is default (e.g., Free Plan)
-        return product.default === true;
-      }
-    }
-    return false;
-  })();
+  const isDefaultPlan = isDefaultPlanBySlug(billing.pricingModel, priceSlug);
 
   const handleCheckout = async () => {
     setError(null);

@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+import { isDefaultPlanByPriceId } from '@/lib/billing-helpers';
 
 export function Navbar() {
   const router = useRouter();
@@ -27,6 +28,14 @@ export function Navbar() {
   const billing = useBilling();
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+
+  if (!billing.loaded || !billing.loadBilling) {
+    return null; // or loading skeleton
+  }
+
+  if (billing.errors) {
+    return null; // or error message
+  }
 
   async function handleSignOut() {
     await queryClient.clear();
@@ -91,26 +100,11 @@ export function Navbar() {
   const currentSubscription = billing.currentSubscriptions?.[0];
 
   // Check if subscription is a default plan (cannot be cancelled)
-  // Default plans have default: true at the product level OR isDefault: true at the price level
-  const isDefaultPlan = (() => {
-    if (!currentSubscription || !billing.pricingModel?.products) return false;
-
-    const priceId = currentSubscription?.priceId;
-
-    if (!priceId) return false;
-
-    // Find the product that contains a price matching this subscription
-    for (const product of billing.pricingModel.products) {
-      const price = product.prices?.find((p) => p.id === priceId);
-      if (price) {
-        // Check if the product is default (e.g., Free Plan)
-        // Only check product.default, not price.isDefault (which is set for all subscription prices)
-        return product.default === true;
-      }
-    }
-
-    return false;
-  })();
+  const priceId = currentSubscription?.priceId;
+  const isDefaultPlan = isDefaultPlanByPriceId(
+    billing.pricingModel,
+    priceId
+  );
 
   // Check if subscription is scheduled for cancellation
   // Flowglad subscriptions have: status === "cancellation_scheduled" or cancelScheduledAt property

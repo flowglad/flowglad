@@ -34,17 +34,18 @@ export function PricingCardsGrid() {
   );
   const billing = useBilling();
 
-  // Extract complex expressions for dependency array
-  const hasPricingModel = !!billing.pricingModel;
-  const pricingModel = hasPricingModel ? billing.pricingModel : null;
-
   // Build plans from pricingModel
   const plans = useMemo<PricingPlan[]>(() => {
-    if (!billing.loaded || !hasPricingModel || !pricingModel?.products) {
+    // Early return if billing isn't ready or has no pricing model
+    if (
+      !billing.loaded ||
+      !billing.loadBilling ||
+      billing.errors
+    ) {
       return [];
     }
 
-    const { products } = pricingModel;
+    const { products } = billing.pricingModel;
 
     // Filter products: subscription type, active, not default/free
     const filteredProducts = products.filter((product) => {
@@ -52,7 +53,7 @@ export function PricingCardsGrid() {
       if (product.default === true) return false;
 
       // Find active subscription price
-      const matchingPrice = product.prices?.find(
+      const matchingPrice = product.prices.find(
         (price) => price.type === 'subscription' && price.active === true
       );
 
@@ -62,7 +63,7 @@ export function PricingCardsGrid() {
     // Transform products to PricingPlan format
     const transformedPlans = filteredProducts
       .map((product) => {
-        const price = product.prices?.find(
+        const price = product.prices.find(
           (p) => p.type === 'subscription' && p.active === true
         );
 
@@ -79,7 +80,7 @@ export function PricingCardsGrid() {
         // Build features list from feature objects (features have name and description)
         const featureNames =
           product.features
-            ?.map((feature) => feature.name)
+            .map((feature) => feature.name)
             .filter(
               (name): name is string =>
                 typeof name === 'string' && name.length > 0
@@ -112,12 +113,19 @@ export function PricingCardsGrid() {
       };
       return getPriceValue(a.displayPrice) - getPriceValue(b.displayPrice);
     });
-  }, [billing, hasPricingModel, pricingModel]);
+  }, [billing]);
+
+  // Early returns after all hooks to prevent type issues in the rest of the component
+  if (!billing.loaded || !billing.loadBilling) {
+    return null; // or loading skeleton
+  }
+
+  if (billing.errors) {
+    return null; // or error message
+  }
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
-    // Check if getPrice exists - this narrows to LoadedFlowgladContextValues
     if (
-      !('getPrice' in billing) ||
       !billing.currentSubscriptions ||
       billing.currentSubscriptions.length === 0
     ) {

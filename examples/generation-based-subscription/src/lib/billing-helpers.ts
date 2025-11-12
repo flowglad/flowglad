@@ -112,3 +112,54 @@ export function findUsagePriceByMeterId(
 
   return usagePrice ?? null;
 }
+
+/**
+ * Checks if a plan is a default plan by looking up the price by slug.
+ * Default plans have default: true at the product level.
+ *
+ * @param pricingModel - The billing pricing model (from billing.pricingModel)
+ * @param priceSlug - The slug of the price to check
+ * @returns true if the plan is a default plan, false otherwise
+ */
+export function isDefaultPlanBySlug(
+  pricingModel: BillingWithChecks['pricingModel'] | null | undefined,
+  priceSlug: string | undefined
+): boolean {
+  if (!pricingModel?.products || !priceSlug) return false;
+
+  for (const product of pricingModel.products) {
+    const price = product.prices?.find((p) => p.slug === priceSlug);
+    if (price) {
+      // Check if the product is default (e.g., Free Plan)
+      return product.default === true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Checks if a subscription is a default plan by looking up the price by ID.
+ * Default plans have default: true at the product level.
+ * Only checks product.default, not price.isDefault (which is set for all subscription prices).
+ *
+ * @param pricingModel - The billing pricing model (from billing.pricingModel)
+ * @param priceId - The ID of the price to check
+ * @returns true if the plan is a default plan, false otherwise
+ */
+export function isDefaultPlanByPriceId(
+  pricingModel: BillingWithChecks['pricingModel'] | null | undefined,
+  priceId: string | null | undefined
+): boolean {
+  if (!pricingModel?.products || !priceId) return false;
+
+  // Find the product that contains a price matching this subscription
+  for (const product of pricingModel.products) {
+    const price = product.prices?.find((p) => p.id === priceId);
+    if (price) {
+      // Check if the product is default (e.g., Free Plan)
+      // Only check product.default, not price.isDefault (which is set for all subscription prices)
+      return product.default === true;
+    }
+  }
+  return false;
+}
