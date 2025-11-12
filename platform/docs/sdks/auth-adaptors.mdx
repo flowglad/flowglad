@@ -20,6 +20,7 @@ import { createClient } from '@/utils/supabase'
 
 export const flowgladServer = new FlowgladServer({
   supabaseAuth: {
+    // this must be the supabase server client
     client: createClient,
   },
 })
