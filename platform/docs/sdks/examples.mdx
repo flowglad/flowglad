@@ -180,26 +180,32 @@ export default function BillingPage() {
 ```
 
 ```ts Backend: server.ts
-import express from 'express'
+import express, { type Request } from 'express'
 import { FlowgladServer } from '@flowglad/server'
 import { createFlowgladExpressRouter } from '@flowglad/express'
 
 const app = express()
 
-const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async (context) => {
-    const token = context?.req?.headers.authorization?.replace('Bearer ', '')
-    const user = await verifyToken(token)
-    
-    return user ? {
-      externalId: user.id,
-      name: user.name,
-      email: user.email,
-    } : null
-  },
-})
+const flowgladServerConstructor = (req: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const token = req.headers.authorization?.replace('Bearer ', '')
+      const user = await verifyToken(token)
+      
+      return user
+        ? {
+            externalId: user.id,
+            name: user.name,
+            email: user.email,
+          }
+        : null
+    },
+  })
 
-app.use('/api/flowglad', createFlowgladExpressRouter({ flowgladServer }))
+app.use(
+  '/api/flowglad',
+  createFlowgladExpressRouter({ flowgladServerConstructor })
+)
 app.listen(3000)
 ```
 
@@ -215,11 +221,11 @@ app.listen(3000)
 import { useBilling } from '@flowglad/react'
 
 export function FeatureGate({ 
-  featureId, 
+  featureSlug, 
   fallback, 
   children 
 }: {
-  featureId: string
+  featureSlug: string
   fallback?: React.ReactNode
   children: React.ReactNode
 }) {
@@ -229,7 +235,7 @@ export function FeatureGate({
     return null
   }
 
-  if (!checkFeatureAccess(featureId)) {
+  if (!checkFeatureAccess(featureSlug)) {
     return fallback || <div>Upgrade to access this feature</div>
   }
 
@@ -238,7 +244,7 @@ export function FeatureGate({
 
 // Usage
 <FeatureGate 
-  featureId="advanced_analytics"
+  featureSlug="advanced_analytics"
   fallback={<UpgradePrompt />}
 >
   <AdvancedAnalytics />
@@ -248,11 +254,11 @@ export function FeatureGate({
 ```ts Server Middleware
 import { flowgladServer } from './flowglad'
 
-export function requireFeature(featureId: string) {
+export function requireFeature(featureSlug: string) {
   return async (req, res, next) => {
     try {
       const billing = await flowgladServer.getBilling()
-      const hasAccess = billing.checkFeatureAccess(featureId)
+      const hasAccess = billing.checkFeatureAccess(featureSlug)
 
       if (!hasAccess) {
         return res.status(403).json({
@@ -286,12 +292,15 @@ export async function trackAPICall(
   quantity: number = 1
 ) {
   await flowgladServer.createUsageEvent({
-    featureId: 'api_calls',
-    quantity,
-    usageDate: new Date().toISOString(),
-    metadata: {
+    usageMeterId: 'usage_meter_api_calls',
+    subscriptionId: 'sub_123',
+    priceId: 'price_usage_meter',
+    amount: quantity,
+    transactionId: `${endpoint}:${Date.now()}`,
+    usageDate: Date.now(),
+    properties: {
       endpoint,
-      timestamp: Date.now().toString(),
+      requestedAt: new Date().toISOString(),
     },
   })
 }
