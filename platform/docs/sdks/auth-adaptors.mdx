@@ -1,11 +1,11 @@
 ---
-title: "Auth Adaptors"
+title: "Auth Adapters"
 description: "Configure FlowgladServer with the auth provider your app already uses."
 ---
 
-Flowglad ships with convenience adaptors so you can construct the `FlowgladServer` with the authenticated customer from popular auth providers or from your own session logic. The examples below assume a Next.js project, but the same patterns apply anywhere you can create a `FlowgladServer` instance.
+Flowglad ships with convenience adapters so you can construct the `FlowgladServer` with the authenticated customer from popular auth providers or from your own session logic. The examples below assume a Next.js project, but the same patterns apply anywhere you can create a `FlowgladServer` instance.
 
-Flowglad provides adaptors for these auth providers:
+Flowglad provides adapters for these auth providers:
 - Supabase Auth
 - Clerk
 - NextAuth
@@ -146,5 +146,5 @@ export const flowgladServer = new FlowgladServer({
 
 ## What happens at runtime?
 
-Each adaptor populates the customer payload that Flowglad needs to create purchases, subscriptions, and usage. Returning `null` simply means the request is unauthenticated. For edge or serverless environments, make sure the adaptor you choose works with the runtime (e.g. Supabase Auth helpers are edge-ready).
+Each adapter populates the customer payload that Flowglad needs to create purchases, subscriptions, and usage. Returning `null` simply means the request is unauthenticated. For edge or serverless environments, make sure the adapter you choose works with the runtime (e.g. Supabase Auth helpers are edge-ready).
 
