@@ -33,10 +33,11 @@ The main provider component that wraps your application.
 
 ```typescript
 interface FlowgladProviderProps {
-  loadBilling?: boolean
   requestConfig?: {
     headers?: Record<string, string>
   }
+  serverRoute?: string
+  loadBilling: boolean
   children: React.ReactNode
 }
 ```
@@ -126,7 +127,6 @@ interface BillingContext {
   error: Error | null
   
   // Refresh data
-  refetch: () => Promise<void>
   reload: () => Promise<void>
   loadBilling: boolean
   loaded: boolean
