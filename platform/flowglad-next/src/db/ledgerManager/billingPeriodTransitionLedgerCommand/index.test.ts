@@ -620,7 +620,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
     })
 
     describe('Idempotency', () => {
-      it('should throw an error when processing a duplicate billing period transition command', async () => {
+      it('should return existing transaction and entries when processing a duplicate billing period transition command', async () => {
         await adminTransaction(async ({ transaction }) => {
           command.payload.subscriptionFeatureItems = [
             subscriptionFeatureItem,
@@ -638,14 +638,27 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           )
           expect(firstResult.ledgerEntries.length).toBeGreaterThan(0)
 
-          await expect(
-            processBillingPeriodTransitionLedgerCommand(
+          const secondResult =
+            await processBillingPeriodTransitionLedgerCommand(
               command,
               transaction
             )
-          ).rejects.toThrow(
-            'existing billing period transition ledger command'
+
+          // Should return the same transaction
+          expect(secondResult.ledgerTransaction.id).toBe(
+            firstResult.ledgerTransaction.id
           )
+          expect(secondResult.ledgerTransaction.type).toBe(
+            LedgerTransactionType.BillingPeriodTransition
+          )
+
+          // Should return the same entries (no duplicates created)
+          expect(secondResult.ledgerEntries.length).toBe(
+            firstResult.ledgerEntries.length
+          )
+          expect(
+            secondResult.ledgerEntries.map((e) => e.id).sort()
+          ).toEqual(firstResult.ledgerEntries.map((e) => e.id).sort())
         })
       })
 

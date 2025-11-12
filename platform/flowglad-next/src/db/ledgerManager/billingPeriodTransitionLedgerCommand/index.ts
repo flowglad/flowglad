@@ -14,6 +14,7 @@ import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { LedgerTransactionType } from '@/types'
 import { grantEntitlementUsageCredits } from './grantEntitlementUsageCredits'
 import { expireCreditsAtEndOfBillingPeriod } from './expireCreditsAtEndOfBillingPeriod'
+import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 
 export const processBillingPeriodTransitionLedgerCommand = async (
   command: BillingPeriodTransitionLedgerCommand,
@@ -35,10 +36,16 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     )
 
   if (transitionForThisBillingPeriod) {
-    throw new Error(
-      `There is an existing billing period transition ledger command 
-      for subscription ${command.payload.subscription.id}`
+    const existingLedgerEntries = await selectLedgerEntries(
+      {
+        ledgerTransactionId: transitionForThisBillingPeriod.id,
+      },
+      transaction
     )
+    return {
+      ledgerTransaction: transitionForThisBillingPeriod,
+      ledgerEntries: existingLedgerEntries,
+    }
   }
 
   const ledgerTransactionInput: LedgerTransaction.Insert = {
