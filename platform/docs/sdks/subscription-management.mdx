@@ -25,7 +25,7 @@ If you create a subscription without a payment method attached, you must collect
 If there is a payment method associated with a subscription on a free trial, Flowglad will attempt to charge the payment method when the trial ends. If the payment method fails, Flowglad will not activate the subscription.
 
 ### Cancel Subscriptions
-You can cancel a subscription with `useBilling`'s `cancelSubsctiption` from client side or with `flowgladServer`'s `cancelSubscription` from server side. You provide the subscription `id` and specify the cancellation timing-- either `immediately`, `at_end_of_current_billing_period`, or `at_future_date` and specify the `endDate` (see the cancel subscription API [body](/api-reference/subscriptions/cancel-subscription#body-cancellation) for details).
+You can cancel a subscription with `useBilling`'s `cancelSubscription` from client side or with `flowgladServer`'s `cancelSubscription` from server side. You provide the subscription `id` and specify the cancellation timing-- either `immediately`, `at_end_of_current_billing_period`, or `at_future_date` and specify the `endDate` (see the cancel subscription API [body](/api-reference/subscriptions/cancel-subscription#body-cancellation) for details).
 ### What you can do
 
 - Allow customer to complete a subscription product checkout which will create a subscription automatically.
