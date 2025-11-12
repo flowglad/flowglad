@@ -102,7 +102,7 @@ interface BillingContext {
   invoices: Invoice[]
   
   // Feature access
-  checkFeatureAccess: (featureId: string) => boolean
+  checkFeatureAccess: (featureSlug: string) => boolean
   checkUsageBalance: (
     usageMeterSlug: string,
     options?: { subscriptionId?: string }
@@ -139,14 +139,14 @@ interface BillingContext {
 ```tsx
 import { useBilling } from '@flowglad/react'
 
-function FeatureGate({ featureId, children }) {
+function FeatureGate({ featureSlug, children }) {
   const { checkFeatureAccess, createCheckoutSession } = useBilling()
 
   if (!checkFeatureAccess) {
     return <div>Loading...</div>
   }
 
-  if (!checkFeatureAccess(featureId)) {
+  if (!checkFeatureAccess(featureSlug)) {
     return (
       <div>
         <p>Upgrade to access this feature</p>
@@ -174,13 +174,22 @@ function FeatureGate({ featureId, children }) {
 
 Create a new checkout session for subscriptions or one-time payments.
 
+Checkout sessions for specific prices can be made using either `priceSlug` (an identifier that you define), or `priceId` (an identifier Flowglad defines) as a parameter. 
+
+`priceSlug` is recommended, so that you don't need to store any references to Flowglad ids in your application database or environment variables.
+
 #### Parameters
 
 ```typescript
 interface CheckoutSessionParams {
-  priceId: string
+  // Must specify either priceId or priceSlug
+  priceId?: string
+  priceSlug?: string
   successUrl: string
   cancelUrl: string
+  /*
+   * Whether to automatically redirect to the hosted checkout page after the session is created
+   */
   autoRedirect?: boolean
   quantity?: number
   /**
@@ -203,11 +212,14 @@ interface CheckoutSessionParams {
 ```tsx
 const handleUpgrade = async () => {
   await createCheckoutSession({
-    priceId: 'price_premium_monthly',
+    priceSlug: 'price_premium_monthly',
     successUrl: `${window.location.origin}/billing/success`,
     cancelUrl: `${window.location.origin}/billing`,
     autoRedirect: true,
-    quantity: 1,
+    /**
+    * Optional. If not provided, defaults to 1
+    */
+    quantity?: number
   })
 }
 ```
@@ -223,6 +235,12 @@ interface AddPaymentMethodCheckoutParams {
   successUrl: string
   cancelUrl: string
   autoRedirect?: boolean
+  outputMetadata?: Record<string, unknown>
+  outputName?: string
+  /**
+   * When provided, Flowglad sets the newly created payment method
+   * as the default for the given subscription.
+   */
   targetSubscriptionId?: string
 }
 ```
@@ -239,17 +257,21 @@ await createAddPaymentMethodCheckoutSession({
 
 ### createActivateSubscriptionCheckoutSession
 
-Trigger the activation flow for an existing subscription that needs a payment method before billing can start.
-
+Trigger the activation flow for an existing subscription that needs a payment method before billing can start. Activations can happen for subscriptions on trial, or subscriptions where payment is due but has not yet been completed.
 #### Parameters
 
 ```typescript
-interface ActivateSubscriptionCheckoutParams {
+interface ActivateSubscriptionCheckoutSessionParams {
+  /**
+   * The subscription to activate.
+   */
   targetSubscriptionId: string
   priceId: string
   successUrl: string
   cancelUrl: string
   autoRedirect?: boolean
+  outputMetadata?: Record<string, string>
+  outputName?: string
 }
 ```
 
@@ -258,7 +280,7 @@ interface ActivateSubscriptionCheckoutParams {
 ```tsx
 await createActivateSubscriptionCheckoutSession({
   targetSubscriptionId: 'sub_123',
-  priceId: 'price_premium_monthly',
+  priceId: 'price_029demLwqVKLAN5x1azBk',
   successUrl: `${window.location.origin}/billing/success`,
   cancelUrl: window.location.href,
   autoRedirect: true,
@@ -298,7 +320,7 @@ Check if the current customer has access to a specific feature.
 
 #### Parameters
 
-- `featureId: string` - The ID of the feature to check
+- `featureSlug: string` - The slug of the feature to check
 
 #### Returns
 
@@ -350,7 +372,7 @@ Look up a specific product from the catalog that ships with billing data.
 
 #### Returns
 
-- `CatalogProduct | null`
+- `Product | null`
 
 #### Example
 
@@ -413,11 +435,11 @@ const defaultMethod = paymentMethods?.[0]
 import { useBilling } from '@flowglad/react'
 
 export function FeatureGate({ 
-  featureId, 
+  featureSlug, 
   fallback, 
   children 
 }: {
-  featureId: string
+  featureSlug: string
   fallback?: React.ReactNode
   children: React.ReactNode
 }) {
@@ -427,7 +449,7 @@ export function FeatureGate({
     return null
   }
 
-  if (!checkFeatureAccess(featureId)) {
+  if (!checkFeatureAccess(featureSlug)) {
     return fallback || <div>Access denied</div>
   }
 
@@ -436,7 +458,7 @@ export function FeatureGate({
 
 // Usage
 <FeatureGate 
-  featureId="premium_feature"
+  featureSlug="premium_feature"
   fallback={<UpgradePrompt />}
 >
   <PremiumFeature />
@@ -476,7 +498,7 @@ export function SubscriptionStatus() {
 ```tsx
 import { useBilling } from '@flowglad/react'
 
-export function UpgradeButton({ priceId }: { priceId: string }) {
+export function UpgradeButton({ priceSlug }: { priceSlug: string }) {
   const { createCheckoutSession } = useBilling()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -484,7 +506,7 @@ export function UpgradeButton({ priceId }: { priceId: string }) {
     setIsLoading(true)
     try {
       await createCheckoutSession({
-        priceId,
+        priceSlug,
         successUrl: `${window.location.origin}/success`,
         cancelUrl: window.location.href,
         autoRedirect: true,
