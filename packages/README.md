@@ -9,17 +9,17 @@ bun yalc:publish
 ```
 2. Start the dev process, which will hot reload a package in `packages` whenever any of its files changes:
 ```bash
-bun dev # in project root
+bun build:declarations && bun build && bun dev # in project root
 ```
-2. In `playground/supabase-auth`, link the packages in yalc and then install dependencies:
+3. In `playground/supabase-auth`, link the packages in yalc and then install dependencies:
 ```bash
 bun link:packages # in playground/supabase-auth
 ```
-3. Start the `flowglad-next` project at `http://localhost:3000`:
+4. Start the `flowglad-next` project at `http://localhost:3000`:
 ```bash
 bun dev # in platform/flowglad-next
 ```
-4. Run `playground/supabase-auth`:
+5. Run `playground/supabase-auth`:
 ```bash
 bun dev # in playground/supabase-auth
 ```
