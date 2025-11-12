@@ -36,7 +36,7 @@ Accessing a customer's purchase history lets you tailor onboarding, upsell paths
       return <p>Loading customer billing…</p>
     }
 
-    if (errors) {
+    if (errors?.length) {
       return <p>Unable to load billing data right now.</p>
     }
 
