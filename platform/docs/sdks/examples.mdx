@@ -258,7 +258,8 @@ import { flowgladServer } from './flowglad'
 export function requireFeature(featureId: string) {
   return async (req, res, next) => {
     try {
-      const hasAccess = await flowgladServer.checkFeatureAccess(featureId)
+      const billing = await flowgladServer.getBilling()
+      const hasAccess = billing.checkFeatureAccess(featureId)
 
       if (!hasAccess) {
         return res.status(403).json({
@@ -502,43 +503,6 @@ export function CustomerPortal() {
     </div>
   )
 }
-```
-
-## Webhook Handling
-
-Example webhook handler for subscription events:
-
-```ts
-import express from 'express'
-import { flowgladServer } from './flowglad'
-
-const app = express()
-
-app.post('/webhooks/flowglad', express.raw({ type: 'application/json' }), async (req, res) => {
-  const signature = req.headers['flowglad-signature'] as string
-  
-  try {
-    // Verify webhook signature
-    const event = flowgladServer.verifyWebhook(req.body, signature)
-
-    switch (event.type) {
-      case 'subscription.created':
-        await handleSubscriptionCreated(event.data)
-        break
-      case 'subscription.canceled':
-        await handleSubscriptionCanceled(event.data)
-        break
-      case 'payment.succeeded':
-        await handlePaymentSucceeded(event.data)
-        break
-    }
-
-    res.json({ received: true })
-  } catch (error) {
-    console.error('Webhook error:', error)
-    res.status(400).send('Webhook error')
-  }
-})
 ```
 
 ## Testing Examples
