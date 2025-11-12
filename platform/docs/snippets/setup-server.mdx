@@ -92,7 +92,7 @@ import { getBespokeSession } from '@/utils/auth'
 
 // if you can load sessions using an enclosed function
 export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: () => {
+  getRequestingCustomer: async () => {
     const customSessionObject = await getBespokeSession()
     return {
       externalId: customSessionObject.id,
@@ -105,7 +105,7 @@ export const flowgladServer = new FlowgladServer({
 // if you derive your session from a request / cookies / headers object:
 const flowgladServer = (request: Request) => {
   return new FlowgladServer({
-  getRequestingCustomer: () => {
+  getRequestingCustomer: async () => {
     const customSessionObject = await getBespokeSession(request)
     return {
       externalId: customSessionObject.id,
