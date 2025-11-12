@@ -15,7 +15,8 @@
       },
       "yalc:publish": {
         "dependsOn": ["^yalc:publish"],
-        "outputs": []
+        "outputs": [],
+        "cache": false
       },
       "lint": {
         "dependsOn": ["^lint"],
