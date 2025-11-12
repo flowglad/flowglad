@@ -3,6 +3,7 @@ import {
   cancelSubscriptionImmediately,
   scheduleSubscriptionCancellation,
   abortScheduledBillingRuns,
+  reassignDefaultSubscription,
 } from '@/subscriptions/cancelSubscription'
 import { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
 import {
@@ -20,6 +21,8 @@ import {
   setupCustomer,
   setupPaymentMethod,
   setupOrg,
+  setupProduct,
+  setupPrice,
 } from '@/../seedDatabase'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
@@ -29,7 +32,14 @@ import { BillingRun } from '@/db/schema/billingRuns'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Customer } from '@/db/schema/customers'
-import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
+import {
+  currentSubscriptionStatuses,
+  safelyUpdateSubscriptionStatus,
+  selectSubscriptions,
+} from '@/db/tableMethods/subscriptionMethods'
+import { updatePrice } from '@/db/tableMethods/priceMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { PriceType, IntervalUnit } from '@/types'
 
 describe('Subscription Cancellation Test Suite', async () => {
   const { organization, price } = await setupOrg()
@@ -74,7 +84,404 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
   })
 
+  describe('reassignDefaultSubscription', () => {
+    it('creates a default subscription when customer has no current subscriptions', async () => {
+      const {
+        organization,
+        price: defaultPrice,
+        pricingModel,
+      } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+      })
+      const paidProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Paid Plan',
+      })
+      const paidPrice = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Paid Plan Price',
+        type: PriceType.Subscription,
+        unitPrice: 5000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+      const canceledSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice.id,
+        status: SubscriptionStatus.Canceled,
+        isFreePlan: false,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // need to update defaultPrice as setupOrg create default price at $10
+        await updatePrice(
+          {
+            id: defaultPrice.id,
+            unitPrice: 0,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+
+        await reassignDefaultSubscription(
+          canceledSubscription,
+          transaction
+        )
+
+        const subscriptions = await selectSubscriptions(
+          { customerId: customer.id },
+          transaction
+        )
+        const defaultSubscriptions = subscriptions.filter(
+          (sub) => sub.priceId === defaultPrice.id
+        )
+
+        expect(defaultSubscriptions).toHaveLength(1)
+        expect(defaultSubscriptions[0].status).toBe(
+          SubscriptionStatus.Active
+        )
+      })
+    })
+
+    it('does not create a duplicate default subscription when one already exists', async () => {
+      const {
+        organization,
+        price: defaultPrice,
+        pricingModel,
+      } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+      })
+      const paidProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Paid Plan',
+      })
+      const paidPrice = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Paid Plan Price',
+        type: PriceType.Subscription,
+        unitPrice: 5000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+      const existingDefaultSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: defaultPrice.id,
+        status: SubscriptionStatus.Active,
+        isFreePlan: true,
+      })
+      const canceledSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice.id,
+        status: SubscriptionStatus.Canceled,
+        isFreePlan: false,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // need to update defaultPrice as setupOrg create default price at $10
+        await updatePrice(
+          {
+            id: defaultPrice.id,
+            unitPrice: 0,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+
+        await reassignDefaultSubscription(
+          canceledSubscription,
+          transaction
+        )
+
+        const subscriptions = await selectSubscriptions(
+          { customerId: customer.id },
+          transaction
+        )
+        const defaultSubscriptions = subscriptions.filter(
+          (sub) => sub.priceId === defaultPrice.id
+        )
+
+        expect(defaultSubscriptions).toHaveLength(1)
+        expect(defaultSubscriptions[0].id).toBe(
+          existingDefaultSubscription.id
+        )
+      })
+    })
+
+    it('does not create a default subscription when other active subscriptions remain for multi-sub organizations', async () => {
+      const {
+        organization,
+        price: defaultPrice,
+        pricingModel,
+      } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+      })
+      const paidProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Paid Plan',
+      })
+      const paidPrice = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Paid Plan Price',
+        type: PriceType.Subscription,
+        unitPrice: 5000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice.id,
+        status: SubscriptionStatus.Active,
+        isFreePlan: false,
+      })
+      const canceledSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice.id,
+        status: SubscriptionStatus.Canceled,
+        isFreePlan: false,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateOrganization(
+          {
+            id: organization.id,
+            allowMultipleSubscriptionsPerCustomer: true,
+          },
+          transaction
+        )
+
+        await reassignDefaultSubscription(
+          canceledSubscription,
+          transaction
+        )
+
+        const subscriptions = await selectSubscriptions(
+          { customerId: customer.id },
+          transaction
+        )
+        const defaultSubscriptions = subscriptions.filter(
+          (sub) => sub.priceId === defaultPrice.id
+        )
+
+        expect(defaultSubscriptions).toHaveLength(0)
+      })
+    })
+  })
+
   describe('cancelSubscriptionImmediately', () => {
+    it('should create a default subscription when customer has none after cancellation', async () => {
+      const {
+        organization,
+        price: defaultPrice,
+        pricingModel,
+      } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const paidProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Paid Plan',
+      })
+      const paidPrice = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Paid Plan Price',
+        type: PriceType.Subscription,
+        unitPrice: 5000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+      const periodStart = Date.now() - 60 * 60 * 1000
+      const periodEnd = Date.now() + 60 * 60 * 1000
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice.id,
+        paymentMethodId: paymentMethod.id,
+      })
+      await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: periodStart,
+        endDate: periodEnd,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // need to update defaultPrice as setupOrg create default price at $10
+        await updatePrice(
+          {
+            id: defaultPrice.id,
+            unitPrice: 0,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+
+        const canceled = await cancelSubscriptionImmediately(
+          subscription,
+          transaction
+        )
+
+        expect(canceled.status).toBe(SubscriptionStatus.Canceled)
+
+        const subscriptions = await selectSubscriptions(
+          { customerId: customer.id },
+          transaction
+        )
+        const defaultSubscriptions = subscriptions.filter(
+          (sub) => sub.priceId === defaultPrice.id
+        )
+
+        expect(defaultSubscriptions).toHaveLength(1)
+        expect(defaultSubscriptions[0].status).toBe(
+          SubscriptionStatus.Active
+        )
+      })
+    })
+
+    it('should not create a default subscription when other active subscriptions remain and multiple are allowed', async () => {
+      const {
+        organization,
+        price: defaultPrice,
+        pricingModel,
+      } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const paidProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Primary Paid Plan',
+      })
+      const paidPrice = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Primary Paid Plan Price',
+        type: PriceType.Subscription,
+        unitPrice: 5000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+      const secondProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Secondary Paid Plan',
+      })
+      const secondPrice = await setupPrice({
+        productId: secondProduct.id,
+        name: 'Secondary Paid Plan Price',
+        type: PriceType.Subscription,
+        unitPrice: 7000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+      const periodStart = Date.now() - 60 * 60 * 1000
+      const periodEnd = Date.now() + 60 * 60 * 1000
+      const subscriptionToCancel = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice.id,
+        paymentMethodId: paymentMethod.id,
+      })
+      await setupBillingPeriod({
+        subscriptionId: subscriptionToCancel.id,
+        startDate: periodStart,
+        endDate: periodEnd,
+      })
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: secondPrice.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateOrganization(
+          {
+            id: organization.id,
+            allowMultipleSubscriptionsPerCustomer: true,
+          },
+          transaction
+        )
+
+        const preCancelActiveSubscriptions =
+          await selectSubscriptions(
+            {
+              customerId: customer.id,
+              status: currentSubscriptionStatuses,
+            },
+            transaction
+          )
+
+        await cancelSubscriptionImmediately(
+          subscriptionToCancel,
+          transaction
+        )
+
+        const subscriptions = await selectSubscriptions(
+          { customerId: customer.id },
+          transaction
+        )
+        const postCancelActiveSubscriptions =
+          await selectSubscriptions(
+            {
+              customerId: customer.id,
+              status: currentSubscriptionStatuses,
+            },
+            transaction
+          )
+        const defaultSubscriptions = subscriptions.filter(
+          (sub) => sub.priceId === defaultPrice.id
+        )
+
+        // the test setup does not create a default subscription for the customer in setupCustomer, so we expect 0 here
+        expect(defaultSubscriptions).toHaveLength(0)
+        expect(postCancelActiveSubscriptions).toHaveLength(
+          preCancelActiveSubscriptions.length - 1
+        )
+        expect(
+          subscriptions.some(
+            (sub) =>
+              sub.priceId === secondPrice.id &&
+              sub.status === SubscriptionStatus.Active
+          )
+        ).toBe(true)
+      })
+    })
+
     it('should cancel an active subscription and update billing periods', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Set up a subscription and two billing periods:
