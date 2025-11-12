@@ -101,7 +101,7 @@ import { useBilling } from '@flowglad/nextjs'
 export default function BillingPage() {
   const { currentSubscriptions, createCheckoutSession } = useBilling()
 
-  const activeSubscription = currentSubscriptions?[0]
+  const activeSubscription = currentSubscriptions?.[0]
 
   if (activeSubscription) {
     return (
