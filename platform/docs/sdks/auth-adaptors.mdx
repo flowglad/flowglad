@@ -126,7 +126,7 @@ admin.initializeApp()
 export const flowgladServer = (request: Request) =>
   new FlowgladServer({
     getRequestingCustomer: async () => {
-      const token = request.headers.authorization?.replace('Bearer ', '')
+      const token = request.headers.get('authorization')?.replace('Bearer ', '')
 
       if (!token) return null
 
