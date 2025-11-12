@@ -39,7 +39,7 @@ bun add @flowglad/server
 - **Subscriptions**: Create, update, and cancel subscriptions
 - **Checkout Sessions**: Generate checkout URLs for payments
 - **Feature Access**: Check customer access to features
-- **Usage Tracking**: Record usage events for metered billing
+- **Usage Tracking**: Record usage events and track usage credit grants in real time
 - **Invoices**: Retrieve and manage invoices
 - **Payment Methods**: Handle customer payment methods
 - **Pricing Model**: Access your pricing model with products, prices, and features
@@ -63,6 +63,11 @@ type FlowgladServerOptions =
   | NextjsAuthFlowgladServerSessionParams
 
 interface CoreCustomerUser {
+  /**
+    * the ID of the customer in your system, e.g.
+    * if they are a consumer, your user.id
+    * if they are a business, your organization.id
+    */
   externalId: string
   name: string
   email: string
@@ -177,7 +182,6 @@ Create a new subscription for the customer.
 ```typescript
 const subscription = await flowgladServer.createSubscription({
   priceId: 'price_123',
-  quantity: 1,
   metadata: {
     source: 'upgrade_flow',
   },
@@ -189,8 +193,19 @@ const subscription = await flowgladServer.createSubscription({
 ```typescript
 interface CreateSubscriptionParams {
   priceId: string
+  /**
+   * Quantity of the subscription items.
+   * @default 1
+   */
   quantity?: number
-  metadata?: Record<string, string>
+  startDate?: string
+  trialEnd?: number
+  metadata?: Record<string, unknown>
+  name?: string
+  backupPaymentMethodId?: string
+  defaultPaymentMethodId?: string
+  interval?: 'day' | 'week' | 'month' | 'year'
+  intervalCount?: number
 }
 ```
 
@@ -227,12 +242,11 @@ Create a checkout session for payments.
 
 ```typescript
 const checkoutSession = await flowgladServer.createCheckoutSession({
-  type: 'subscription', // or 'one_time'
-  priceId: 'price_123',
+  priceSlug: 'price_123',
   successUrl: 'https://example.com/success',
   cancelUrl: 'https://example.com/cancel',
   quantity: 1,
-  metadata: {
+  outputMetadata: {
     campaign: 'summer_sale',
   },
 })
@@ -244,11 +258,14 @@ const checkoutSession = await flowgladServer.createCheckoutSession({
 
 ```typescript
 interface CreateCheckoutSessionParams {
-  priceId: string
+  // Must include either priceId or priceSlug
+  // slug is encouraged over id
+  priceId?: string
+  priceSlug?: string
   successUrl: string
   cancelUrl: string
   quantity?: number
-  outputMetadata?: Record<string, unknown>
+  outputMetadata?: Record<string, string>
   outputName?: string
 }
 ```
@@ -272,7 +289,7 @@ Create a checkout session that activates a provisioning or imported subscription
 ```typescript
 const activationSession =
   await flowgladServer.createActivateSubscriptionCheckoutSession({
-    targetSubscriptionId: 'sub_123',
+    targetSubscriptionId: 'sub_123', // optional, attaches the paymentMethod to the subscription for future payments
     priceId: 'price_123',
     successUrl: 'https://example.com/subscriptions/success',
     cancelUrl: 'https://example.com/subscriptions/cancel',
