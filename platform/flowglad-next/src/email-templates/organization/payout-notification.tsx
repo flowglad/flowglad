@@ -29,8 +29,9 @@ export const OrganizationOnboardingCompletedNotificationEmail = ({
         variant="organization"
       />
       <Paragraph variant="organization">
-      We're reviewing your account and hope to have livemode payments enabled soon. 
-      We will reach out if we need anything from you.
+        We&apos;re reviewing your account and hope to have livemode
+        payments enabled soon. We will reach out if we need anything
+        from you.
       </Paragraph>
 
       <Section
