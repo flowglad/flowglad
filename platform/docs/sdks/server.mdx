@@ -496,27 +496,6 @@ export const flowgladServer = new FlowgladServer({
 })
 ```
 
-## Error Handling
-
-The SDK throws errors that you should handle appropriately:
-
-```typescript
-try {
-  const subscription = await flowgladServer.createSubscription({
-    priceId: 'price_123',
-  })
-} catch (error) {
-  if (error.code === 'CUSTOMER_NOT_FOUND') {
-    // Handle customer not found
-  } else if (error.code === 'PAYMENT_REQUIRED') {
-    // Handle payment required
-  } else {
-    // Handle other errors
-    console.error('Unexpected error:', error)
-  }
-}
-```
-
 ## Next Steps
 
 <CardGroup cols={2}>
