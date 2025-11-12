@@ -53,31 +53,91 @@ new FlowgladServer(options: FlowgladServerOptions)
 ```
 
 #### Options
+See [types.ts](https://github.com/flowglad/flowglad/blob/main/packages/server/src/types.ts) for more details.
 
 ```typescript
-interface FlowgladServerOptions {
-  apiKey?: string // Defaults to FLOWGLAD_SECRET_KEY env var
-  baseURL?: string // Defaults to https://app.flowglad.com
-  getRequestingCustomer: () => Promise<CustomerInfo | null>
-}
+type FlowgladServerOptions =
+  | BaseFlowgladServerSessionParams
+  | SupabaseFlowgladServerSessionParams
+  | ClerkFlowgladServerSessionParams
+  | NextjsAuthFlowgladServerSessionParams
 
-interface CustomerInfo {
+interface CoreCustomerUser {
   externalId: string
   name: string
   email: string
-  metadata?: Record<string, any>
+}
+
+interface BaseFlowgladServerSessionParams {
+  apiKey?: string
+  baseURL?: string
+  getRequestingCustomer: () => Promise<CoreCustomerUser | null>
+}
+
+interface SupabaseClient {
+  auth: {
+    getUser: () => Promise<
+      | {
+          data: {
+            user: {
+              id: string
+              email?: string
+              user_metadata: Record<string, any>
+            }
+          }
+        }
+      | { data: { user: null }; error: unknown }
+    >
+  }
+}
+
+interface SupabaseFlowgladServerSessionParams {
+  apiKey?: string
+  baseURL?: string
+  getRequestingCustomer?: () => Promise<CoreCustomerUser | null>
+  supabaseAuth: {
+    client: () => Promise<SupabaseClient> | SupabaseClient
+  }
+}
+
+interface ClerkUser {
+  id: string
+  firstName: string | null
+  lastName: string | null
+  username: string | null
+  emailAddresses: { emailAddress: string }[]
+}
+
+interface ClerkFlowgladServerSessionParams {
+  apiKey?: string
+  baseURL?: string
+  getRequestingCustomer?: () => Promise<CoreCustomerUser | null>
+  clerk: {
+    currentUser: () => Promise<ClerkUser | null>
+    customerFromCurrentUser?: (user: ClerkUser) => Promise<CoreCustomerUser | null>
+  }
+}
+
+interface NextAuthSession {
+  user: {
+    name?: string | null
+    email?: string | null
+    image?: string | null
+  }
+}
+
+interface NextjsAuthFlowgladServerSessionParams {
+  apiKey?: string
+  baseURL?: string
+  getRequestingCustomer?: () => Promise<CoreCustomerUser | null>
+  nextAuth: {
+    auth: () => Promise<NextAuthSession | null>
+    customerFromAuth?: (session: NextAuthSession) => Promise<CoreCustomerUser | null>
+  }
 }
 ```
 
 ### Customer Methods
-
-#### `getRequestingCustomerId()`
-
-Get the ID of the current customer.
-
-```typescript
-const customerId = await flowgladServer.getRequestingCustomerId()
-```
 
 #### `findOrCreateCustomer()`
 
@@ -85,14 +145,6 @@ Find an existing customer or create a new one.
 
 ```typescript
 const customer = await flowgladServer.findOrCreateCustomer()
-```
-
-#### `getSession()`
-
-Get the requesting customer's identity (externalId, name, email) derived from your auth integration.
-
-```typescript
-const session = await flowgladServer.getSession()
 ```
 
 ### Billing Methods
