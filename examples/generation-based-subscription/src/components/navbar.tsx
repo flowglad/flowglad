@@ -19,7 +19,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { isDefaultPlanByPriceId } from '@/lib/billing-helpers';
 
 export function Navbar() {
   const router = useRouter();
@@ -99,12 +98,6 @@ export function Navbar() {
   // Multiple subscriptions per customer can be enabled in dashboard > settings
   const currentSubscription = billing.currentSubscriptions?.[0];
 
-  // Check if subscription is a default plan (cannot be cancelled)
-  const priceId = currentSubscription?.priceId;
-  const isDefaultPlan = isDefaultPlanByPriceId(
-    billing.pricingModel,
-    priceId
-  );
 
   // Check if subscription is scheduled for cancellation
   // Flowglad subscriptions have: status === "cancellation_scheduled" or cancelScheduledAt property
@@ -139,7 +132,7 @@ export function Navbar() {
           <DropdownMenuLabel>Account Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={handleSignOut}>Log out</DropdownMenuItem>
-          {!isDefaultPlan && (
+          {!currentSubscription?.isFreePlan && (
             <>
               <Tooltip>
                 <TooltipTrigger asChild>

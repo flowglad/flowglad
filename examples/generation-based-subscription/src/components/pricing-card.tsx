@@ -64,20 +64,6 @@ export function PricingCard({
   const handleCheckout = async () => {
     setError(null);
 
-    // Check if billing is loaded
-    if (!billing.loaded) {
-      const errorMsg =
-        'Billing system not loaded yet. Please wait a moment and try again.';
-      setError(errorMsg);
-      return;
-    }
-
-    if (!billing.createCheckoutSession || !billing.getPrice) {
-      const errorMsg = 'Billing system not available. Please refresh the page.';
-      setError(errorMsg);
-      return;
-    }
-
     // Get price object from slug to get the price ID
     const priceObj = billing.getPrice(priceSlug);
     if (!priceObj) {

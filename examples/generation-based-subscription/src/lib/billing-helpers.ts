@@ -1,7 +1,4 @@
-import type {
-  BillingWithChecks,
-  SubscriptionExperimentalFields,
-} from '@flowglad/shared';
+import type { BillingWithChecks } from '@flowglad/shared';
 import type { Price } from '@flowglad/types';
 
 type UsageMeterSlug = 'fast_generations' | 'hd_video_minutes';
@@ -146,20 +143,3 @@ export function isDefaultPlanBySlug(
  * @param priceId - The ID of the price to check
  * @returns true if the plan is a default plan, false otherwise
  */
-export function isDefaultPlanByPriceId(
-  pricingModel: BillingWithChecks['pricingModel'] | null | undefined,
-  priceId: string | null | undefined
-): boolean {
-  if (!pricingModel?.products || !priceId) return false;
-
-  // Find the product that contains a price matching this subscription
-  for (const product of pricingModel.products) {
-    const price = product.prices?.find((p) => p.id === priceId);
-    if (price) {
-      // Check if the product is default (e.g., Free Plan)
-      // Only check product.default, not price.isDefault (which is set for all subscription prices)
-      return product.default === true;
-    }
-  }
-  return false;
-}
