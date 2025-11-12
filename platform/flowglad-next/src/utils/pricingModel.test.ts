@@ -2249,6 +2249,160 @@ describe('createProductTransaction', () => {
 
     expect(productFeatures).toHaveLength(0)
   })
+
+  it('should throw an error when creating a usage price with featureIds', async () => {
+    // Setup: Create a usage meter for the usage price
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: sourcePricingModel.id,
+      name: 'API Calls',
+      slug: 'api-calls',
+      livemode: false,
+    })
+
+    const featureIds = features.map((f) => f.id)
+
+    // Test: Attempting to create a usage price with featureIds should throw
+    await expect(
+      authenticatedTransaction(
+        async ({ transaction }) => {
+          return createProductTransaction(
+            {
+              product: {
+                name: 'Test Product Usage Price with Features',
+                description: 'Test Description',
+                active: true,
+                imageURL: null,
+                singularQuantityLabel: 'singular',
+                pluralQuantityLabel: 'plural',
+                pricingModelId: sourcePricingModel.id,
+                default: false,
+                slug: `flowglad-test-product-price+${core.nanoid()}`,
+              },
+              prices: [
+                {
+                  name: 'Usage Price',
+                  type: PriceType.Usage,
+                  intervalCount: 1,
+                  intervalUnit: IntervalUnit.Month,
+                  unitPrice: 100,
+                  trialPeriodDays: null,
+                  active: true,
+                  usageMeterId: usageMeter.id,
+                  usageEventsPerUnit: 1,
+                  isDefault: true,
+                  slug: `flowglad-test-usage-price+${core.nanoid()}`,
+                },
+              ],
+              featureIds, // This should cause an error
+            },
+            {
+              userId,
+              transaction,
+              livemode: org1ApiKey.livemode,
+              organizationId: organization.id,
+            }
+          )
+        },
+        {
+          apiKey: org1ApiKeyToken,
+        }
+      )
+    ).rejects.toThrow(
+      'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
+    )
+  })
+
+  it('should create a product with a usage price when there are no featureIds', async () => {
+    // Setup: Create a usage meter for the usage price
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: sourcePricingModel.id,
+      name: 'API Requests',
+      slug: 'api-requests',
+      livemode: false,
+    })
+
+    // Test: Create a usage price product without featureIds - should succeed
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return createProductTransaction(
+          {
+            product: {
+              name: 'API Usage Product',
+              description: 'Product with usage-based pricing',
+              active: true,
+              imageURL: null,
+              singularQuantityLabel: 'request',
+              pluralQuantityLabel: 'requests',
+              pricingModelId: sourcePricingModel.id,
+              default: false,
+              slug: `flowglad-usage-product+${core.nanoid()}`,
+            },
+            prices: [
+              {
+                name: 'Per-Request Pricing',
+                type: PriceType.Usage,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                unitPrice: 50,
+                trialPeriodDays: null,
+                active: true,
+                usageMeterId: usageMeter.id,
+                usageEventsPerUnit: 1,
+                isDefault: true,
+                slug: `flowglad-usage-price+${core.nanoid()}`,
+              },
+            ],
+            // featureIds intentionally omitted - should be allowed for usage prices
+          },
+          {
+            userId,
+            transaction,
+            livemode: org1ApiKey.livemode,
+            organizationId: organization.id,
+          }
+        )
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
+    )
+
+    const { product, prices } = result
+    const price = prices[0]
+
+    // Verify product was created correctly
+    expect(product.name).toBe('API Usage Product')
+    expect(product.description).toBe(
+      'Product with usage-based pricing'
+    )
+    expect(product.active).toBe(true)
+    expect(product.singularQuantityLabel).toBe('request')
+    expect(product.pluralQuantityLabel).toBe('requests')
+
+    // Verify usage price was created correctly
+    expect(prices).toHaveLength(1)
+    expect(price.name).toBe('Per-Request Pricing')
+    expect(price.type).toBe(PriceType.Usage)
+    expect(price.usageMeterId).toBe(usageMeter.id)
+    expect(price.usageEventsPerUnit).toBe(1)
+    expect(price.unitPrice).toBe(50)
+    expect(price.isDefault).toBe(true)
+    expect(price.active).toBe(true)
+
+    // Verify no product features are associated (since featureIds was not provided)
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(productFeatures).toHaveLength(0)
+  })
 })
 
 describe('editProduct', () => {
