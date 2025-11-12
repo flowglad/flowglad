@@ -55,10 +55,18 @@ export const abortScheduledBillingRuns = async (
   }
 }
 
+/**
+ * Re-adds a default-plan subscription when a cancellation leaves the customer without one.
+ *
+ * @param canceledSubscription Subscription record that was just canceled.
+ * @param transaction Active database transaction.
+ * @returns Resolves when the reassignment logic finishes.
+ */
 export const reassignDefaultSubscription = async (
   canceledSubscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
+  // don't need to re-add default subscription when upgrading to a paid plan
   if (canceledSubscription.isFreePlan) {
     return
   }
@@ -69,24 +77,10 @@ export const reassignDefaultSubscription = async (
       transaction
     )
 
-    if (!customer) {
-      console.warn(
-        `reassignDefaultSubscription: customer ${canceledSubscription.customerId} not found for subscription ${canceledSubscription.id}`
-      )
-      return
-    }
-
     const organization = await selectOrganizationById(
       canceledSubscription.organizationId,
       transaction
     )
-
-    if (!organization) {
-      console.warn(
-        `reassignDefaultSubscription: organization ${canceledSubscription.organizationId} not found for subscription ${canceledSubscription.id}`
-      )
-      return
-    }
 
     let pricingModelId = customer.pricingModelId
 
