@@ -7,7 +7,7 @@ interface PayoutNotificationEmailProps {
   organizationName: string
 }
 
-export const PayoutNotificationEmail = ({
+export const OrganizationOnboardingCompletedNotificationEmail = ({
   organizationName,
 }: PayoutNotificationEmailProps) => {
   const contactEmail = `mailto:hello@flowglad.com?subject=Payout Enablement Request&body=Hi Flowglad team,%0A%0AI would like to request payout enablement for my organization: ${encodeURIComponent(organizationName)}%0A%0AThank you!`
@@ -29,9 +29,8 @@ export const PayoutNotificationEmail = ({
         variant="organization"
       />
       <Paragraph variant="organization">
-        Your organization has completed onboarding and is nearly ready
-        to process payments. To enable payouts, we need to manually
-        review your account. Please contact us below to get started.
+      We're reviewing your account and hope to have livemode payments enabled soon. 
+      We will reach out if we need anything from you.
       </Paragraph>
 
       <Section
