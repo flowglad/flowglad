@@ -40,7 +40,8 @@ export function PricingCardsGrid() {
     if (
       !billing.loaded ||
       !billing.loadBilling ||
-      billing.errors
+      billing.errors ||
+      !billing.pricingModel
     ) {
       return [];
     }
