@@ -7,7 +7,7 @@ description: "Manage subscription lifecycle events with Flowglad's SDKs"
 
 Use Flowglad to create, update, and cancel [subscriptions](/features/subscriptions) across web and server experiences.
 
-### How to use
+## How to use
 - **Create subscription**: subscriptions are most commonly created as part of the standard checkout flow with `createCheckoutSession` when the price type is `subscription`. The checkout session will collect payment details from the customer, even if the subscription includes a trial period, so a charge attempt will be made automatically when the customer's trial expires. If you prefer to start customers on free trials without asking for card details upfront, you can use flowgladServer's `createSubscription` method, passing in the `priceId` and other optional fields (see the create subscription API [body](/api-reference/subscriptions/create-subscription#body-customer-id) for more details on the parameters. Note: you do not need to include `customerId` when calling `createSubscription` with the server SDK).
 - **Cancel subscription**: you can cancel a subscription with `useBilling`'s `cancelSubscription` from client side or with `flowgladServer`'s `cancelSubscription` from server side. You provide the subscription `id` and specify the cancellation timing-- either `immediately`, `at_end_of_current_billing_period`, or `at_future_date` and specify the `endDate` (see the cancel subscription API [body](/api-reference/subscriptions/cancel-subscription#body-cancellation) for details).
 
