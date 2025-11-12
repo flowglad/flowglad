@@ -36,23 +36,6 @@ export default async function RootLayout({ children }: PropsWithChildren) {
               test: 'lol'
             }
           }}
-          theme={{
-            mode: 'dark',
-            dark: {
-              // background: '#1b1b1b',
-              // card: 'rgb(35 35 35)'
-              // card: 'hsl(125 85% 3.9%)',
-              // cardForeground: 'rgba(255, 0, 0, 0.8)',
-              // foreground: 'rgba(255, 0, 0, 0.5)',
-              // border: 'rgba(0, 255, 0, 0.5)'
-              // containerForeground: '#ffffff',
-              // border: '#0000'
-              // buttonBackground: '#0d6efd',
-              // buttonForeground: '#ffffff',
-              // destructive: '#dc3545',
-              // destructiveForeground: '#ffffff'
-            }
-          }}
         >
           <Navbar />
           <main

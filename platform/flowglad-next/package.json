@@ -7,7 +7,6 @@
     "prebuild": "dotenvx run -f .env.local -- bun run src/scripts/removeDevRoutes.ts && bun run build:preview-css",
     "build": "bun run check && next build",
     "build:preview-css": "bun run src/scripts/build-preview-css.ts",
-    "checkout-fork": "chmod +x ./src/scripts/checkout-fork.sh && ./src/scripts/checkout-fork.sh",
     "user": "bun run src/scripts/setup-env-user.ts",
     "start": "next start",
     "check": "next lint --max-warnings=0 && tsc --noEmit && bun run validate:registry",
