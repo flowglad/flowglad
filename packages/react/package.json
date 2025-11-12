@@ -13,8 +13,7 @@
     "dev": "tsup --watch --onSuccess 'yalc push'",
     "check": "eslint --max-warnings=0 && tsc --noEmit",
     "yalc:publish": "yalc publish && yalc link",
-    "build:declarations": "tsc -p tsconfig.declarations.json",
-    "test": "vitest --reporter=verbose"
+    "build:declarations": "tsc -p tsconfig.declarations.json"
   },
   "dependencies": {
     "@flowglad/node": "0.22.0",
