@@ -3,11 +3,11 @@
 [![npm version](https://img.shields.io/npm/v/@flowglad/react.svg)](https://www.npmjs.com/package/@flowglad/react)
 [![npm bundle size](https://img.shields.io/bundlephobia/min/@flowglad/react)](https://bundlephobia.com/package/@flowglad/react)
 
-React components and hooks for integrating FlowGlad's billing and subscription management into your React applications. This package provides a complete solution for handling subscriptions, payment methods, and billing information in your React frontend.
+React hooks and context provider for integrating Flowglad's billing and subscription management into your React applications. This package provides a complete solution for handling subscriptions, payment methods, and billing information in your React frontend.
 
 ## Prerequisites
 
-This package requires a FlowGlad server instance to communicate with. You can set up the server using the `@flowglad/server` package. See the [server package documentation](https://www.npmjs.com/package/@flowglad/server) for setup instructions.
+This package requires a Flowglad server instance to communicate with. You can set up the server using the `@flowglad/server` package. See the [server package documentation](https://www.npmjs.com/package/@flowglad/server) for setup instructions.
 
 ## Installation
 
@@ -21,7 +21,7 @@ bun add @flowglad/react
 
 ## Quick Start
 
-1. Set up the FlowGladProvider in your app:
+1. Set up the FlowgladProvider in your app:
 
 ```tsx
 import { FlowgladProvider } from '@flowglad/react';
@@ -33,13 +33,6 @@ export default function RootLayout({ children }) {
       requestConfig={{
         headers: {
           // Add any custom headers here
-        }
-      }}
-      theme={{
-        mode: 'dark',
-        dark: {
-          background: '#1b1b1b',
-          card: 'rgb(35 35 35)'
         }
       }}
     >
@@ -86,14 +79,6 @@ The main provider component that must wrap your application to enable Flowglad f
   loadBilling={boolean}
   requestConfig={{
     headers?: Record<string, string>
-  }}
-  theme={{
-    mode?: 'light' | 'dark'
-    dark?: {
-      background?: string
-      card?: string
-      // ... other theme properties
-    }
   }}
 >
   {children}
