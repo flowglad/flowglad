@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/@flowglad/react.svg)](https://www.npmjs.com/package/@flowglad/react)
 [![npm bundle size](https://img.shields.io/bundlephobia/min/@flowglad/react)](https://bundlephobia.com/package/@flowglad/react)
 
-React components and hooks for integrating Flowglad's billing and subscription management into your React applications. This package provides a complete solution for handling subscriptions, payment methods, and billing information in your React frontend.
+React hooks and context provider for integrating Flowglad's billing and subscription management into your React applications. This package provides a complete solution for handling subscriptions, payment methods, and billing information in your React frontend.
 
 ## Prerequisites
 
