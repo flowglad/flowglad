@@ -9,8 +9,6 @@ import {
   RequestConfig,
 } from './FlowgladContext'
 import { validateUrl } from './utils'
-import { FlowgladThemeProvider } from './FlowgladTheme'
-import { FlowgladThemeConfig } from './lib/themes'
 import { CustomerBillingDetails } from '@flowglad/types'
 
 const queryClient = new QueryClient()
@@ -24,12 +22,10 @@ export interface LoadedFlowgladProviderProps {
   requestConfig?: RequestConfig
   serverRoute?: string
   loadBilling: boolean
-  theme?: FlowgladThemeConfig
 }
 
 interface DevModeFlowgladProviderProps {
   __devMode: true
-  theme?: FlowgladThemeConfig
   billingMocks: CustomerBillingDetails
   children: React.ReactNode
 }
@@ -52,7 +48,7 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
     )
   }
 
-  const { serverRoute, loadBilling, requestConfig, theme, children } =
+  const { serverRoute, loadBilling, requestConfig, children } =
     props as LoadedFlowgladProviderProps
   validateUrl(serverRoute, 'serverRoute', true)
   return (
@@ -62,9 +58,7 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
         loadBilling={loadBilling}
         requestConfig={requestConfig}
       >
-        <FlowgladThemeProvider theme={theme}>
-          {children}
-        </FlowgladThemeProvider>
+        {children}
       </FlowgladContextProvider>
     </QueryClientProvider>
   )
