@@ -108,9 +108,9 @@ export default function RootLayout({ children }) {
 import { useBilling } from '@flowglad/nextjs'
 
 export default function BillingPage() {
-  const { subscriptions, createCheckoutSession } = useBilling()
+  const { currentSubscriptions, createCheckoutSession } = useBilling()
 
-  const activeSubscription = subscriptions?.find(s => s.status === 'active')
+  const activeSubscription = currentSubscriptions?[0]
 
   if (activeSubscription) {
     return (
