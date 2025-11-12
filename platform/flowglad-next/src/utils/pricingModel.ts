@@ -2,11 +2,14 @@ import omit from 'ramda/src/omit'
 import {
   bulkInsertProducts,
   insertProduct,
+  selectProductById,
   updateProduct,
 } from '@/db/tableMethods/productMethods'
 import {
   bulkInsertPrices,
   insertPrice,
+  safelyInsertPrice,
+  selectPrices,
   selectPricesAndProductsByProductWhere,
 } from '@/db/tableMethods/priceMethods'
 import {
@@ -19,6 +22,7 @@ import {
   pricesInsertSchema,
   ProductWithPrices,
 } from '@/db/schema/prices'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { Product } from '@/db/schema/products'
 import {
@@ -44,12 +48,91 @@ import { UsageMeter } from '@/db/schema/usageMeters'
 import { Feature } from '@/db/schema/features'
 import { ProductFeature } from '@/db/schema/productFeatures'
 import { DestinationEnvironment } from '@/types'
+import { TRPCError } from '@trpc/server'
 
 export const createPrice = async (
   payload: Price.Insert,
   transaction: DbTransaction
 ) => {
   return insertPrice(payload, transaction)
+}
+
+export const createPriceTransaction = async (
+  payload: { price: Price.ClientInsert },
+  {
+    transaction,
+    livemode,
+    organizationId,
+  }: AuthenticatedTransactionParams
+) => {
+  const { price } = payload
+  if (!organizationId) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'organizationId is required to create a price',
+    })
+  }
+
+  // Get product to check if it's a default product
+  const product = await selectProductById(
+    price.productId,
+    transaction
+  )
+
+  // Get all prices for this product to validate constraints
+  const existingPrices = await selectPrices(
+    { productId: price.productId },
+    transaction
+  )
+
+  // Forbid creating additional prices for default products
+  if (product.default && existingPrices.length > 0) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Cannot create additional prices for the default plan',
+    })
+  }
+
+  // Validate that default prices on default products must have unitPrice = 0
+  if (price.isDefault && product.default && price.unitPrice !== 0) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message:
+        'Default prices on default products must have unitPrice = 0',
+    })
+  }
+
+  // Forbid creating price of a different type
+  if (
+    existingPrices.length > 0 &&
+    existingPrices.some(
+      (existingPrice) => existingPrice.type !== price.type
+    )
+  ) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'Cannot create price of a different type than the existing prices for the product',
+    })
+  }
+
+  const organization = await selectOrganizationById(
+    organizationId,
+    transaction
+  )
+
+  // for now, created prices have default = true and active = true
+  const newPrice = await safelyInsertPrice(
+    {
+      ...price,
+      livemode: livemode ?? false,
+      currency: organization.defaultCurrency,
+      externalId: null,
+    },
+    transaction
+  )
+
+  return newPrice
 }
 
 export const createProductTransaction = async (
