@@ -9,6 +9,7 @@
     "yalc:publish": "bunx turbo run yalc:publish",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "dev": "tsx scripts/dev.ts",
+    "dev:setup": "bash scripts/dev-setup.sh",
     "check": "bunx turbo run check",
     "clean": "bunx turbo run clean",
     "changeset:empty": "bunx changeset --empty",
