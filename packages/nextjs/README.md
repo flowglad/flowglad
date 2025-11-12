@@ -1,6 +1,6 @@
 # @flowglad/nextjs
 
-A Next.js integration package for Flowglad, providing utilities and components for both client and server-side functionality.
+A Next.js integration package for Flowglad, providing utilities for both client and server-side functionality.
 
 ## Installation
 
