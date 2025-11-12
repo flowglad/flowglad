@@ -399,7 +399,6 @@ export const FlowgladContextProvider = (
   })
 
   let value: FlowgladContextValues
-
   if (!loadBilling) {
     value = {
       loaded: true,
