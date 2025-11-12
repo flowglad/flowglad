@@ -888,6 +888,39 @@ export const executeBillingRun = async (billingRunId: string) => {
     ) {
       await comprehensiveAdminTransaction(
         async ({ transaction }) => {
+          // Update invoice status based on payment intent status
+          const [invoice] = await selectInvoices(
+            {
+              billingPeriodId: billingRun.billingPeriodId,
+            },
+            transaction
+          )
+
+          if (invoice) {
+            let targetInvoiceStatus: InvoiceStatus
+
+            if (confirmationResult.status === 'succeeded') {
+              const totalPaid =
+                totalAmountPaid + confirmationResult.amount_received
+
+              // Only mark as Paid if fully paid
+              targetInvoiceStatus =
+                totalPaid >= totalDueAmount
+                  ? InvoiceStatus.Paid
+                  : InvoiceStatus.Open
+            } else {
+              // For failed payments, mark as Open
+              targetInvoiceStatus = InvoiceStatus.Open
+            }
+
+            await safelyUpdateInvoiceStatus(
+              invoice,
+              targetInvoiceStatus,
+              transaction
+            )
+          }
+
+          // Process terminal payment intent for ledger commands
           return await processTerminalPaymentIntent(
             confirmationResult,
             billingRun,
