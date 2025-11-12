@@ -143,12 +143,13 @@ Setup for a React application with a separate Node.js backend:
 import { FlowgladProvider } from '@flowglad/react'
 
 export default function App() {
+  const authToken = getAuthToken()
   return (
     <FlowgladProvider
-      loadBilling={true}
+      loadBilling={!!authToken}
       requestConfig={{
         headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
+          Authorization: `Bearer ${authToken}`,
         },
       }}
     >
