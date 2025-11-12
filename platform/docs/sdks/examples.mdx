@@ -117,7 +117,8 @@ export default function BillingPage() {
     <button
       onClick={() =>
         createCheckoutSession({
-          priceId: 'price_premium_monthly',
+          // you can provide either priceSlug or priceId
+          priceSlug: 'price_premium_monthly',
           successUrl: window.location.href,
           cancelUrl: window.location.href,
           autoRedirect: true,
