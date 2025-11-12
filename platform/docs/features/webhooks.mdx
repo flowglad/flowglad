@@ -44,29 +44,22 @@ Create different endpoints if you want to route subsets of events to different s
 
 ## Payload structure
 
-Each webhook delivery contains:
+The webhook payload includes:
 
-- `eventType`: one of the values listed above.
-- `eventId`: a unique identifier you can use for idempotency.
-- `livemode`: `true` for production data, `false` for test data.
-- `timestamp`: ISO 8601 string describing when Flowglad recorded the event.
-- `data`: the event payload. Every payload includes a stable object reference plus the Flowglad customer (when available).
+- `id`: the object's unique identifier
+- `object`: the object type (e.g., `"customer"`, `"payment"`, `"subscription"`)
+- Object-specific fields (e.g., `customer`, `status`, etc.)
+
 
 Example `payment.succeeded` delivery:
 
 ```json
 {
-  "eventType": "payment.succeeded",
-  "eventId": "evt_9h1x4c1d",
-  "livemode": true,
-  "timestamp": "2024-03-04T19:43:16.251Z",
-  "data": {
-    "id": "pay_31n0b4p4",
-    "object": "payment",
-    "customer": {
-      "id": "cust_bc91m2vk",
-      "externalId": "user_42"
-    }
+  "id": "pay_31n0b4p4",
+  "object": "payment",
+  "customer": {
+    "id": "cust_bc91m2vk",
+    "externalId": "user_42"
   }
 }
 ```
@@ -96,9 +89,9 @@ You can also retrieve and manage webhooks [via the API](https://docs.flowglad.co
 
 Every webhook has a unique signing secret per environment. Flowglad sends three headers with every delivery:
 
-- `svix-webhook-id`: unique attempt identifier.
-- `svix-webhook-timestamp`: Unix timestamp (seconds) when the attempt started.
-- `svix-webhook-signature`: HMAC SHA-256 signature computed over `<timestamp>.<raw-body>` using your secret, hex encoded.
+- `svix-id`: unique attempt identifier.
+- `svix-timestamp`: Unix timestamp (seconds) when the attempt started.
+- `svix-signature`: HMAC SHA-256 signature computed over `<id>.<timestamp>.<raw-body>` using your secret, base64 encoded. Format: `v1,<base64-signature>`.
 
 Verify each request before acting on it. Example (Express + Node):
 
@@ -109,22 +102,44 @@ import type { Request, Response } from 'express'
 const secret = process.env.FLOWGLAD_WEBHOOK_SECRET!
 
 export async function flowgladWebhookHandler(req: Request, res: Response) {
-  const id = req.header('svix-webhook-id')
-  const timestamp = req.header('svix-webhook-timestamp')
-  const signature = req.header('svix-webhook-signature')
-  const rawBody = req.rawBody || (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
-  const rawBody = req.rawBody ?? (Buffer.isBuffer(req.body) ? req.body.toString('utf8') : undefined)
+  const id = req.header('svix-id')
+  const timestamp = req.header('svix-timestamp')
+  const signature = req.header('svix-signature')
+  let rawBody = req.rawBody
+  if (!rawBody) {
+    if (Buffer.isBuffer(req.body)) {
+      rawBody = req.body.toString('utf8')
+    } else if (typeof req.body === 'string') {
+      rawBody = req.body
+    } else {
+      rawBody = JSON.stringify(req.body)
+    }
+  }
+  
   if (!id || !timestamp || !signature) {
     return res.status(400).send('Missing signature headers')
   }
 
-  const payloadToSign = `${timestamp}.${rawBody}`
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(payloadToSign)
-    .digest('hex')
+  // Extract secret key (strip whsec_ prefix and base64 decode)
+  // The secret format is whsec_<base64-encoded-key>, we need the decoded bytes for HMAC
+  const secretKey = Buffer.from(secret.split('_')[1], 'base64')
 
-  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+  // Construct signed content: id.timestamp.body
+  const signedContent = `${id}.${timestamp}.${rawBody}`
+  
+  // Compute expected signature using the decoded secret key bytes
+  const expected = crypto
+    .createHmac('sha256', secretKey)
+    .update(signedContent)
+    .digest('base64')
+
+  // Extract signature from v1,<signature> format
+  const [version, sig] = signature.split(',')
+  if (version !== 'v1' || !sig) {
+    return res.status(400).send('Invalid signature format')
+  }
+  
+  if (!crypto.timingSafeEqual(Buffer.from(sig, 'base64'), Buffer.from(expected, 'base64'))) {
     return res.status(400).send('Invalid signature')
   }
 
