@@ -189,6 +189,11 @@ interface CheckoutSessionParams {
    * - purchase.metadata for single payment prices
    */ 
   outputMetadata?: Record<string, unknown>
+  /**
+   * the name value to set on the object created by this checkout session
+   * - subscription.name for subscription prices
+   * - purchase.name for single payment prices
+   */ 
   outputName?: string
 }
 ```
