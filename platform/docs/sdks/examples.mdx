@@ -62,17 +62,8 @@ import { FlowgladServer } from '@flowglad/nextjs/server'
 import { createClient } from '@/utils/supabase/server'
 
 export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) return null
-
-    return {
-      externalId: user.id,
-      name: user.user_metadata.full_name || user.email!.split('@')[0],
-      email: user.email!,
-    }
+  supabaseAuth: {
+    client: createClient,
   },
 })
 ```
