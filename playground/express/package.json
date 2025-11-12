@@ -1,5 +1,5 @@
 {
-  "name": "express-app",
+  "name": "@flowglad/playground-express",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -8,17 +8,15 @@
     "start": "node dist/index.js",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "link:packages": "yalc add @flowglad/express @flowglad/server @flowglad/shared && yalc update && bun install --force && yalc update",
-    "unlink:packages": "yalc remove --all && bun install"
+    "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
-    "@flowglad/express": "file:.yalc/@flowglad/express",
-    "@flowglad/nextjs": "file:.yalc/@flowglad/nextjs",
+    "@flowglad/express": "workspace:*",
+    "@flowglad/nextjs": "workspace:*",
     "@flowglad/node": "0.22.0",
-    "@flowglad/react": "file:.yalc/@flowglad/react",
-    "@flowglad/server": "file:.yalc/@flowglad/server",
-    "@flowglad/shared": "file:.yalc/@flowglad/shared",
+    "@flowglad/react": "workspace:*",
+    "@flowglad/server": "workspace:*",
+    "@flowglad/shared": "workspace:*",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.3"

@@ -6,9 +6,8 @@
   "scripts": {
     "randombytes": "tsx scripts/randomBytes.ts",
     "test": "bunx turbo run test",
-    "yalc:publish": "bunx turbo run yalc:publish",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "dev": "tsx scripts/dev.ts",
+    "dev": "bunx turbo run dev --parallel --no-cache",
     "check": "bunx turbo run check",
     "clean": "bunx turbo run clean",
     "changeset:empty": "bunx changeset --empty",
@@ -30,10 +29,7 @@
     "@types/node": "^18.0.0",
     "@types/react": "18.3.12",
     "@types/react-dom": "19.0.0",
-    "chalk": "^5.4.1",
-    "chokidar": "^4.0.3",
     "conventional-changelog-cli": "^5.0.0",
-    "debounce": "^2.2.0",
     "husky": "^9.1.7",
     "prettier": "3.5.1",
     "prettier-plugin-packagejson": "2.5.8",
@@ -42,11 +38,11 @@
     "react-dom": "19.0.0",
     "tsup": "8.3.6",
     "turbo": "^2.4.4",
-    "typescript": "5.8.2",
-    "zx": "^8.3.2"
+    "typescript": "5.8.2"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "playground/*"
   ],
   "packageManager": "bun@1.3.1"
 }
