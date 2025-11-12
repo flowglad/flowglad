@@ -28,17 +28,22 @@ FLOWGLAD_SECRET_KEY="sk_test_..."
 
 ```ts src/utils/flowglad.ts
 import { FlowgladServer } from '@flowglad/express'
+import { Request } from 'express'
 
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    // Return customer based on your auth system
-    return {
-      externalId: 'user-123',
-      name: 'John Doe',
-      email: 'john@example.com',
-    }
-  },
-})
+// Factory that builds a FlowgladServer for each request
+export const flowgladServer = (req: Request) => {
+  const query = req.query
+  return new FlowgladServer({
+    // Pull user identity from the current request/session
+    getRequestingCustomer: async () => {
+      return {
+        externalId: query.externalId as string,
+        name: query.name as string,
+        email: query.email as string,
+      }
+    },
+  })
+}
 ```
 
 ### 3. Add Routes to Your Express App
@@ -53,7 +58,12 @@ import { flowgladServer } from './utils/flowglad'
 const app = express()
 
 // Mount Flowglad routes at /api/flowglad
-app.use('/api/flowglad', createFlowgladExpressRouter({ flowgladServer }))
+app.use(
+  '/api/flowglad',
+  createFlowgladExpressRouter({
+    flowgladServerConstructor: flowgladServer,
+  })
+)
 
 app.listen(3000, () => {
   console.log('Server running on port 3000')
@@ -67,10 +77,13 @@ import { flowgladServer } from './utils/flowglad'
 
 const app = express()
 
-const flowgladHandler = createExpressRouteHandler({ flowgladServer })
-
 // Handle all Flowglad routes
-app.all('/api/flowglad/*', flowgladHandler)
+app.all('/api/flowglad/*', async (req, res) => {
+  const handler = createExpressRouteHandler({
+    flowgladServer: await flowgladServer(req),
+  })
+  return handler(req, res)
+})
 
 app.listen(3000)
 ```
