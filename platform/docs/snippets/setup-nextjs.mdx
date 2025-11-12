@@ -132,15 +132,15 @@ export const flowgladServer = new FlowgladServer({
 // if you derive your session from a request / cookies / headers object:
 const flowgladServer = (request: Request) => {
   return new FlowgladServer({
-  getRequestingCustomer: async () => {
-    const customSessionObject = await getBespokeSession(request)
-    return {
-      externalId: customSessionObject.id,
-      name: customSessionObject.name,
-      email: customSessionObject.email,
+    getRequestingCustomer: async () => {
+      const customSessionObject = await getBespokeSession(request)
+      return {
+        externalId: customSessionObject.id,
+        name: customSessionObject.name,
+        email: customSessionObject.email,
+      }
     }
-  }
-})
+  })
 }
 ```
 
@@ -150,25 +150,26 @@ import admin from 'firebase-admin'
 
 admin.initializeApp()
 
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async (context) => {
-    const token = context?.req?.headers.authorization?.replace('Bearer ', '')
+export const flowgladServer = (request: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const token = request.headers.authorization?.replace('Bearer ', '')
 
-    if (!token) return null
+      if (!token) return null
 
-    try {
-      const decodedToken = await admin.auth().verifyIdToken(token)
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token)
 
-      return {
-        externalId: decodedToken.uid,
-        name: decodedToken.name || decodedToken.email!,
-        email: decodedToken.email!,
+        return {
+          externalId: decodedToken.uid,
+          name: decodedToken.name || decodedToken.email!,
+          email: decodedToken.email!,
+        }
+      } catch (error) {
+        return null
       }
-    } catch (error) {
-      return null
     }
-  },
-})
+  })
 ```
 
 </CodeGroup>

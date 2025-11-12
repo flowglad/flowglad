@@ -123,24 +123,26 @@ import admin from 'firebase-admin'
 
 admin.initializeApp()
 
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async (context) => {
-    const token = context?.req?.headers.authorization?.replace('Bearer ', '')
-    if (!token) return null
+export const flowgladServer = (request: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const token = request.headers.authorization?.replace('Bearer ', '')
 
-    try {
-      const decodedToken = await admin.auth().verifyIdToken(token)
+      if (!token) return null
 
-      return {
-        externalId: decodedToken.uid,
-        name: decodedToken.name || decodedToken.email!,
-        email: decodedToken.email!,
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token)
+
+        return {
+          externalId: decodedToken.uid,
+          name: decodedToken.name || decodedToken.email!,
+          email: decodedToken.email!,
+        }
+      } catch (error) {
+        return null
       }
-    } catch {
-      return null
     }
-  },
-})
+  })
 ```
 
 </CodeGroup>
