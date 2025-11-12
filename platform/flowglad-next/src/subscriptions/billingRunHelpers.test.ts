@@ -1444,12 +1444,7 @@ describe('billingRunHelpers', async () => {
 
           // If no items found, update the subscription item's addedDate to be <= billing period start
           if (activeSubscriptionItems.length === 0) {
-            const allItems = await transaction
-              .select()
-              .from(subscriptionItems)
-              .where(
-                eq(subscriptionItems.subscriptionId, subscription.id)
-              )
+            const allItems = await selectSubscriptionItems({ subscriptionId: subscription.id })
 
             if (allItems.length > 0) {
               // Update addedDate to be at or before billing period start
