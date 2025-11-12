@@ -78,12 +78,6 @@ export const createPriceTransaction = async (
     price.productId,
     transaction
   )
-  if (!product) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: `Product not found with id ${price.productId}`,
-    })
-  }
 
   // Get all prices for this product to validate constraints
   const existingPrices = await selectPrices(
@@ -111,7 +105,9 @@ export const createPriceTransaction = async (
   // Forbid creating price of a different type
   if (
     existingPrices.length > 0 &&
-    existingPrices.some((existingPrice) => existingPrice.type !== price.type)
+    existingPrices.some(
+      (existingPrice) => existingPrice.type !== price.type
+    )
   ) {
     throw new TRPCError({
       code: 'FORBIDDEN',
@@ -124,12 +120,6 @@ export const createPriceTransaction = async (
     organizationId,
     transaction
   )
-  if (!organization) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: `Organization not found with id ${organizationId}`,
-    })
-  }
 
   // for now, created prices have default = true and active = true
   const newPrice = await safelyInsertPrice(
