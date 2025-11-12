@@ -14,7 +14,6 @@
     "check": "eslint --max-warnings=0 && tsc --noEmit",
     "yalc:publish": "yalc publish && yalc link",
     "build:declarations": "tsc -p tsconfig.declarations.json",
-    "pretest": "bun run build:css",
     "test": "vitest --reporter=verbose"
   },
   "dependencies": {
