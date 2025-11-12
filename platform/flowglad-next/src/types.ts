@@ -770,6 +770,9 @@ export enum CheckoutSessionType {
   Purchase = 'purchase',
   AddPaymentMethod = 'add_payment_method',
   ActivateSubscription = 'activate_subscription',
+  /**
+   * @deprecated
+   */
   Invoice = 'invoice',
 }
 
