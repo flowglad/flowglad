@@ -411,35 +411,6 @@ app.get('/api/data', async (req, res) => {
 })
 ```
 
-### Subscription Upgrade Flow
-
-```typescript
-export async function upgradeSubscription(
-  currentSubscriptionId: string,
-  newPriceId: string
-) {
-  try {
-    // Cancel current subscription
-    await flowgladServer.cancelSubscription({
-      id: currentSubscriptionId,
-      cancellation: {
-        timing: 'immediately',
-      },
-    })
-
-    // Create new subscription
-    const newSubscription = await flowgladServer.createSubscription({
-      priceId: newPriceId,
-    })
-
-    return newSubscription
-  } catch (error) {
-    console.error('Upgrade failed:', error)
-    throw error
-  }
-}
-```
-
 ### Customer Portal Generation
 
 ```typescript
