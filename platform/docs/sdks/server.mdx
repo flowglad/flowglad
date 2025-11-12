@@ -81,7 +81,7 @@ const customerId = await flowgladServer.getRequestingCustomerId()
 
 #### `findOrCreateCustomer()`
 
-Find an existing customer or create a new one.
+Find an existing Flowglad customer associated with the current requesting customer (per your app's authentication) or create a new one if none is found.
 
 ```typescript
 const customer = await flowgladServer.findOrCreateCustomer()
