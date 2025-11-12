@@ -14,7 +14,7 @@ import {
 } from '@/utils/backendCore'
 import { kebabCase } from 'change-case'
 
-export const sendCustomerSubscriptionCreatedNotificationTask = task({
+const sendCustomerSubscriptionCreatedNotificationTask = task({
   id: 'send-customer-subscription-created-notification',
   maxDuration: 60,
   queue: { concurrencyLimit: 10 },
