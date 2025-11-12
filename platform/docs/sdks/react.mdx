@@ -183,6 +183,11 @@ interface CheckoutSessionParams {
   cancelUrl: string
   autoRedirect?: boolean
   quantity?: number
+  /**
+   * the metadata values to set on the object created by this checkout session
+   * - subscription.metadata for subscription prices
+   * - purchase.metadata for single payment prices
+   */ 
   outputMetadata?: Record<string, unknown>
   outputName?: string
 }
