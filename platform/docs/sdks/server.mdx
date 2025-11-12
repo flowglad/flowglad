@@ -407,16 +407,8 @@ const supabase = createClient(
 )
 
 export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) return null
-
-    return {
-      externalId: user.id,
-      name: user.user_metadata.full_name || user.email!,
-      email: user.email!,
-    }
+  supabaseAuth: {
+    client: () => supabase,
   },
 })
 ```
@@ -429,51 +421,37 @@ import admin from 'firebase-admin'
 
 admin.initializeApp()
 
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async (context) => {
-    const token = context?.req?.headers.authorization?.replace('Bearer ', '')
+export const flowgladServer = (request: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const token = request.headers.authorization?.replace('Bearer ', '')
 
-    if (!token) return null
+      if (!token) return null
 
-    try {
-      const decodedToken = await admin.auth().verifyIdToken(token)
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token)
 
-      return {
-        externalId: decodedToken.uid,
-        name: decodedToken.name || decodedToken.email!,
-        email: decodedToken.email!,
+        return {
+          externalId: decodedToken.uid,
+          name: decodedToken.name || decodedToken.email!,
+          email: decodedToken.email!,
+        }
+      } catch (error) {
+        return null
       }
-    } catch (error) {
-      return null
-    }
-  },
-})
+    },
+  })
 ```
 
 ### With Clerk
 
 ```typescript
+import { currentUser } from '@clerk/nextjs/server'
 import { FlowgladServer } from '@flowglad/server'
-import { clerkClient } from '@clerk/clerk-sdk-node'
 
 export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async (context) => {
-    const sessionId = context?.req?.cookies.get('__session')
-
-    if (!sessionId) return null
-
-    try {
-      const session = await clerkClient.sessions.getSession(sessionId)
-      const user = await clerkClient.users.getUser(session.userId)
-
-      return {
-        externalId: user.id,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.emailAddresses[0].emailAddress,
-      }
-    } catch (error) {
-      return null
-    }
+  clerk: {
+    currentUser,
   },
 })
 ```
