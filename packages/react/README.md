@@ -35,13 +35,6 @@ export default function RootLayout({ children }) {
           // Add any custom headers here
         }
       }}
-      theme={{
-        mode: 'dark',
-        dark: {
-          background: '#1b1b1b',
-          card: 'rgb(35 35 35)'
-        }
-      }}
     >
       {children}
     </FlowgladProvider>
@@ -86,14 +79,6 @@ The main provider component that must wrap your application to enable Flowglad f
   loadBilling={boolean}
   requestConfig={{
     headers?: Record<string, string>
-  }}
-  theme={{
-    mode?: 'light' | 'dark'
-    dark?: {
-      background?: string
-      card?: string
-      // ... other theme properties
-    }
   }}
 >
   {children}

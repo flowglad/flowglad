@@ -61,10 +61,6 @@ export default function RootLayout({ children }) {
     <FlowgladProvider
       serverRoute="/api/flowglad" // Your Flowglad API route
       loadBilling={true} // Set to true to load billing data
-      theme={{
-        mode: 'system', // 'light' | 'dark' | 'system'
-        // Optional theme customization
-      }}
     >
       {children}
     </FlowgladProvider>

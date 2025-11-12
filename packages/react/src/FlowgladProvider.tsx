@@ -13,10 +13,6 @@ import { CustomerBillingDetails } from '@flowglad/types'
 
 const queryClient = new QueryClient()
 
-export interface Appearance {
-  darkMode?: boolean
-}
-
 export interface LoadedFlowgladProviderProps {
   children: React.ReactNode
   requestConfig?: RequestConfig
