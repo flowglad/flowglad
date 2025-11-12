@@ -128,9 +128,11 @@ import {
   createMockPaymentIntent,
 } from '@/test/helpers/stripeMocks'
 import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
-import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { subscriptionItems } from '@/db/schema/subscriptionItems'
-import { eq } from 'drizzle-orm'
+import {
+  selectCurrentlyActiveSubscriptionItems,
+  selectSubscriptionItems,
+  updateSubscriptionItem,
+} from '@/db/tableMethods/subscriptionItemMethods'
 
 // Mock Stripe functions
 vi.mock('@/utils/stripe', async (importOriginal) => {
@@ -1444,14 +1446,24 @@ describe('billingRunHelpers', async () => {
 
           // If no items found, update the subscription item's addedDate to be <= billing period start
           if (activeSubscriptionItems.length === 0) {
-            const allItems = await selectSubscriptionItems({ subscriptionId: subscription.id })
+            const allItems: SubscriptionItem.Record[] =
+              await selectSubscriptionItems(
+                {
+                  subscriptionId: subscription.id,
+                },
+                transaction
+              )
 
             if (allItems.length > 0) {
               // Update addedDate to be at or before billing period start
-              await transaction
-                .update(subscriptionItems)
-                .set({ addedDate: billingPeriod.startDate })
-                .where(eq(subscriptionItems.id, allItems[0].id))
+              await updateSubscriptionItem(
+                {
+                  id: allItems[0].id,
+                  addedDate: billingPeriod.startDate,
+                  type: allItems[0].type,
+                },
+                transaction
+              )
 
               // Re-query after update
               const updatedItems =
