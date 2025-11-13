@@ -1,5 +1,5 @@
 import type { BillingWithChecks } from '@flowglad/shared';
-import type { Price } from '@flowglad/types';
+import type { Price, UsageMeter, Product } from '@flowglad/types';
 
 type UsageMeterSlug = 'fast_generations' | 'hd_video_minutes';
 
@@ -75,7 +75,7 @@ export function findUsageMeterBySlug(
   if (!pricingModel?.usageMeters) return null;
 
   const usageMeter = pricingModel.usageMeters.find(
-    (meter) => meter.slug === usageMeterSlug
+    (meter: UsageMeter) => meter.slug === usageMeterSlug
   );
 
   if (!usageMeter) {
@@ -89,22 +89,32 @@ export function findUsageMeterBySlug(
 }
 
 /**
- * Finds a usage price by its associated usage meter ID from the pricing model.
+ * Finds a usage price by its associated usage meter slug from the pricing model.
  *
- * @param usageMeterId - The ID of the usage meter to find the price for
+ * @param usageMeterSlug - The slug of the usage meter to find the price for
  * @param pricingModel - The billing pricing model (from billing.pricingModel)
  * @returns The usage price object, or null if not found
  */
-export function findUsagePriceByMeterId(
-  usageMeterId: string,
+export function findUsagePriceByMeterSlug(
+  usageMeterSlug: string,
   pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): Price | null {
-  if (!pricingModel?.products) return null;
+  if (!pricingModel?.products || !pricingModel?.usageMeters) return null;
 
+  // Build lookup map: slug -> id
+  const meterIdBySlug = new Map(
+    pricingModel.usageMeters.map((meter: UsageMeter) => [meter.slug, meter.id])
+  );
+
+  const usageMeterId = meterIdBySlug.get(usageMeterSlug);
+  if (!usageMeterId) return null;
+
+  // Find price by meter ID
   const usagePrice = pricingModel.products
-    .flatMap((product) => product.prices ?? [])
+    .flatMap((product: Product) => product.prices ?? [])
     .find(
-      (price) => price.type === 'usage' && price.usageMeterId === usageMeterId
+      (price: Price) =>
+        price.type === 'usage' && price.usageMeterId === usageMeterId
     );
 
   return usagePrice ?? null;
@@ -125,7 +135,7 @@ export function isDefaultPlanBySlug(
   if (!pricingModel?.products || !priceSlug) return false;
 
   for (const product of pricingModel.products) {
-    const price = product.prices?.find((p) => p.slug === priceSlug);
+    const price = product.prices?.find((p: Price) => p.slug === priceSlug);
     if (price) {
       // Check if the product is default (e.g., Free Plan)
       return product.default === true;
