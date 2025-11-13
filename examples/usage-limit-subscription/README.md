@@ -30,7 +30,19 @@ This project demonstrates the "Usage-Limit Subscription Template Pricing Model".
 
 ## Getting Started
 
-### 1. Install Dependencies
+### 1. Set Up Your Pricing Model
+
+To use this example project, you'll need to upload the `pricing.yaml` file to your Flowglad dashboard and set it as your default pricing model:
+
+1. Log in to your [Flowglad dashboard](https://flowglad.com)
+2. Navigate to the Pricing Models section [Flowglad pricing models page](https://app.flowglad.com/store/pricing-models)
+3. Click on Create Pricing Model
+4. Import the `pricing.yaml` file from the root of this project
+5. Once uploaded, set it as your default pricing model in the dashboard settings
+
+This will enable all the subscription plans, usage meters, and features defined in the pricing configuration for your application.
+
+### 2. Install Dependencies
 
 **Important:** This project is part of a monorepo. You must install dependencies from the root of the monorepo first, then navigate into this example directory.
 
@@ -46,7 +58,7 @@ Then navigate into this example directory:
 cd examples/usage-limit-subscription
 ```
 
-### 2. Link Flowglad Packages
+### 3. Link Flowglad Packages
 
 This example project uses `yalc` to link local Flowglad packages for development. You must link the packages before running the project:
 
@@ -64,7 +76,7 @@ This command will:
 bun run unlink:packages
 ```
 
-### 3. Set Up Environment Variables
+### 4. Set Up Environment Variables
 
 Copy the example environment file:
 
@@ -83,7 +95,7 @@ Fill in the required values in `.env.local`:
 - **`FLOWGLAD_SECRET_KEY`** - Secret key for Flowglad API calls
   - Get your secret key from: [https://flowglad.com](https://flowglad.com)
 
-### 4. Set Up Database
+### 5. Set Up Database
 
 Generate and run database migrations:
 
@@ -92,7 +104,7 @@ bun db:generate
 bun db:migrate
 ```
 
-### 5. Start Development Server
+### 6. Start Development Server
 
 ```bash
 bun dev
@@ -142,18 +154,6 @@ This project uses BetterAuth for authentication. Users can sign up and sign in w
 ## Billing
 
 Flowglad is integrated for subscription and billing management. The Flowglad provider is configured to work with BetterAuth sessions. The pricing model is defined in `pricing.yaml` at the root of the project, which includes subscription plans, usage meters, and features.
-
-### Setting Up Your Pricing Model
-
-To use this example project, you'll need to upload the `pricing.yaml` file to your Flowglad dashboard and set it as your default pricing model:
-
-1. Log in to your [Flowglad dashboard](https://flowglad.com)
-2. Navigate to the Pricing Models section [Flowglad pricing models page](https://app.flowglad.com/store/pricing-models)
-3. Click on Create Pricing Model
-4. Import the `pricing.yaml` file from the root of this project
-5. Once uploaded, set it as your default pricing model in the dashboard settings
-
-This will enable all the subscription plans, usage meters, and features defined in the pricing configuration for your application.
 
 ## Database
 
