@@ -391,14 +391,6 @@ export const checkoutSessionsUpdateSchema = z
   ])
   .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
-export const createCheckoutSessionInputSchema = z
-  .object({
-    checkoutSession: checkoutSessionsInsertSchema,
-  })
-  .meta({
-    id: 'CreateCheckoutSessionInputParams',
-  })
-
 // Client UPDATE schemas with metadata ids applied
 export const purchaseCheckoutSessionClientUpdateSchema =
   purchaseCheckoutSessionClientUpdateSchemaBase.meta({
@@ -667,7 +659,7 @@ export type GetIntentStatusInput = z.infer<
   typeof getIntentStatusInputSchema
 >
 
-const coreCheckoutSessionSchema = z.object({
+const coreCheckoutSessionInputSchema = z.object({
   customerExternalId: z
     .string()
     .describe(
@@ -692,8 +684,8 @@ const coreCheckoutSessionSchema = z.object({
     ),
 })
 
-export const identifiedProductCheckoutSessionSchema =
-  coreCheckoutSessionSchema
+export const identifiedProductCheckoutSessionInputSchema =
+  coreCheckoutSessionInputSchema
     .extend({
       type: z.literal(CheckoutSessionType.Product),
       priceId: z
@@ -710,23 +702,23 @@ export const identifiedProductCheckoutSessionSchema =
     })
     .meta({ id: 'IdentifiedProductCheckoutSessionInput' })
 
-export const anonymousProductCheckoutSessionSchema =
-  identifiedProductCheckoutSessionSchema
+export const anonymousProductCheckoutSessionInputSchema =
+  identifiedProductCheckoutSessionInputSchema
     .extend({
       anonymous: z.literal(true),
       customerExternalId: z.null().optional(),
     })
     .meta({ id: 'AnonymousProductCheckoutSessionInput' })
 
-export const productCheckoutSessionSchema = z
+export const productCheckoutSessionInputSchema = z
   .discriminatedUnion('anonymous', [
-    identifiedProductCheckoutSessionSchema,
-    anonymousProductCheckoutSessionSchema,
+    identifiedProductCheckoutSessionInputSchema,
+    anonymousProductCheckoutSessionInputSchema,
   ])
   .meta({ id: 'ProductCheckoutSessionInput' })
 
-export const addPaymentMethodCheckoutSessionSchema =
-  coreCheckoutSessionSchema
+export const addPaymentMethodCheckoutSessionInputSchema =
+  coreCheckoutSessionInputSchema
     .extend({
       type: z.literal(CheckoutSessionType.AddPaymentMethod),
       targetSubscriptionId: z
@@ -745,8 +737,8 @@ export const addPaymentMethodCheckoutSessionSchema =
     })
     .meta({ id: 'AddPaymentMethodCheckoutSessionInput' })
 
-export const activateSubscriptionCheckoutSessionSchema =
-  coreCheckoutSessionSchema
+export const activateSubscriptionCheckoutSessionInputSchema =
+  coreCheckoutSessionInputSchema
     .extend({
       type: z.literal(CheckoutSessionType.ActivateSubscription),
       targetSubscriptionId: z.string(),
@@ -758,33 +750,33 @@ export const activateSubscriptionCheckoutSessionSchema =
 
 const urlFields = { cancelUrl: true, successUrl: true } as const
 
-export const customerBillingIdentifiedProductCheckoutSessionSchema =
-  identifiedProductCheckoutSessionSchema.omit(urlFields)
+export const customerBillingIdentifiedProductCheckoutSessionInputSchema =
+  identifiedProductCheckoutSessionInputSchema.omit(urlFields)
 
-export const customerBillingAnonymousProductCheckoutSessionSchema =
-  anonymousProductCheckoutSessionSchema.omit(urlFields)
+export const customerBillingAnonymousProductCheckoutSessionInputSchema =
+  anonymousProductCheckoutSessionInputSchema.omit(urlFields)
 
-export const customerBillingProductCheckoutSessionSchema = z
+export const customerBillingProductCheckoutSessionInputSchema = z
   .discriminatedUnion('anonymous', [
-    customerBillingIdentifiedProductCheckoutSessionSchema,
-    customerBillingAnonymousProductCheckoutSessionSchema,
+    customerBillingIdentifiedProductCheckoutSessionInputSchema,
+    customerBillingAnonymousProductCheckoutSessionInputSchema,
   ])
   .meta({ id: 'CustomerBillingProductCheckoutSession' })
 
-export const customerBillingActivateSubscriptionCheckoutSessionSchema =
-  activateSubscriptionCheckoutSessionSchema.omit(urlFields)
+export const customerBillingActivateSubscriptionCheckoutSessionInputSchema =
+  activateSubscriptionCheckoutSessionInputSchema.omit(urlFields)
 
-export const customerBillingCreatePricedCheckoutSessionSchema =
+export const customerBillingCreatePricedCheckoutSessionInputSchema =
   z.discriminatedUnion('type', [
-    customerBillingProductCheckoutSessionSchema,
-    customerBillingActivateSubscriptionCheckoutSessionSchema,
+    customerBillingProductCheckoutSessionInputSchema,
+    customerBillingActivateSubscriptionCheckoutSessionInputSchema,
   ])
 
 const createCheckoutSessionObject = z
   .discriminatedUnion('type', [
-    productCheckoutSessionSchema,
-    activateSubscriptionCheckoutSessionSchema,
-    addPaymentMethodCheckoutSessionSchema,
+    productCheckoutSessionInputSchema,
+    activateSubscriptionCheckoutSessionInputSchema,
+    addPaymentMethodCheckoutSessionInputSchema,
   ])
   .meta({ id: 'CreateCheckoutSessionInput' })
 
@@ -799,7 +791,7 @@ export const singleCheckoutSessionOutputSchema = z.object({
     .describe('The URL to redirect to complete the purchase'),
 })
 
-export const createCheckoutSessionSchema = z
+export const createCheckoutSessionInputSchema = z
   /*
     If the session is Product and 'anonymous' is missing, set it to false
     before validating. This ensures the discriminated union on 'anonymous'
@@ -828,5 +820,5 @@ export const createCheckoutSessionSchema = z
   .describe('Use this schema for new checkout sessions.')
 
 export type CreateCheckoutSessionInput = z.infer<
-  typeof createCheckoutSessionSchema
+  typeof createCheckoutSessionInputSchema
 >

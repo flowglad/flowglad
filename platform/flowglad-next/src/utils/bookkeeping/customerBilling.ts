@@ -19,7 +19,7 @@ import { Customer } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
 import {
   CreateCheckoutSessionInput,
-  customerBillingCreatePricedCheckoutSessionSchema,
+  customerBillingCreatePricedCheckoutSessionInputSchema,
 } from '@/db/schema/checkoutSessions'
 import { Price } from '@/db/schema/prices'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
@@ -135,12 +135,12 @@ export const customerBillingCreatePricedCheckoutSession = async ({
   customer,
 }: {
   checkoutSessionInput: z.infer<
-    typeof customerBillingCreatePricedCheckoutSessionSchema
+    typeof customerBillingCreatePricedCheckoutSessionInputSchema
   >
   customer: Customer.Record
 }) => {
   const checkoutSessionInputResult =
-    customerBillingCreatePricedCheckoutSessionSchema.safeParse(
+    customerBillingCreatePricedCheckoutSessionInputSchema.safeParse(
       rawCheckoutSessionInput
     )
   if (!checkoutSessionInputResult.success) {

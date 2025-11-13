@@ -30,6 +30,7 @@ import { IntervalUnit } from '@/types'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { core } from '@/utils/core'
 import { Subscription } from '@/db/schema/subscriptions'
+import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 
 describe('createCheckoutSessionTransaction', () => {
   let organization: Organization.Record
@@ -499,6 +500,150 @@ describe('createCheckoutSessionTransaction', () => {
         )
       ).rejects.toThrow(
         'Customer is required for activate subscription checkout sessions'
+      )
+    })
+  })
+
+  describe('ActivateSubscription target subscription validation', () => {
+    const buildActivateInput = (
+      overrides: Partial<CreateCheckoutSessionObject> = {}
+    ): CreateCheckoutSessionObject => ({
+      customerExternalId: customer.externalId,
+      type: CheckoutSessionType.ActivateSubscription,
+      successUrl: 'http://success.url',
+      cancelUrl: 'http://cancel.url',
+      // @ts-expect-error - limits of spread inference
+      targetSubscriptionId: targetSubscription.id,
+      ...overrides,
+    })
+
+    it('should throw when the target subscription does not exist', async () => {
+      const checkoutSessionInput = buildActivateInput({
+        targetSubscriptionId: 'missing_sub',
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow('Target subscription missing_sub not found')
+    })
+
+    it('should throw when the target subscription belongs to another organization', async () => {
+      const { organization: otherOrg, price: otherPrice } =
+        await setupOrg()
+      try {
+        const otherCustomer = await setupCustomer({
+          organizationId: otherOrg.id,
+          stripeCustomerId: `cus_${core.nanoid()}`,
+        })
+        const otherSubscription = await setupSubscription({
+          organizationId: otherOrg.id,
+          customerId: otherCustomer.id,
+          priceId: otherPrice.id,
+          status: SubscriptionStatus.Incomplete,
+          livemode: true,
+        })
+
+        const checkoutSessionInput = buildActivateInput({
+          targetSubscriptionId: otherSubscription.id,
+        })
+
+        await expect(
+          adminTransaction(async ({ transaction }) =>
+            createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+          )
+        ).rejects.toThrow(
+          `Target subscription ${otherSubscription.id} does not belong to organization ${organization.id}`
+        )
+      } finally {
+        await teardownOrg({ organizationId: otherOrg.id })
+      }
+    })
+
+    it('should throw when the target subscription belongs to another customer', async () => {
+      const otherCustomer = await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+      })
+      const otherCustomerSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: otherCustomer.id,
+        priceId: subscriptionPrice.id,
+        status: SubscriptionStatus.Incomplete,
+        livemode: true,
+      })
+
+      const checkoutSessionInput = buildActivateInput({
+        targetSubscriptionId: otherCustomerSubscription.id,
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow(
+        `Target subscription ${otherCustomerSubscription.id} does not belong to customer ${customer.id}`
+      )
+    })
+
+    it('should throw when the target subscription is missing a price', async () => {
+      const subscriptionWithoutPrice = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: subscriptionPrice.id,
+        status: SubscriptionStatus.Incomplete,
+        livemode: true,
+      })
+      await adminTransaction(async ({ transaction }) =>
+        updateSubscription(
+          {
+            id: subscriptionWithoutPrice.id,
+            priceId: null,
+            renews: subscriptionWithoutPrice.renews,
+          },
+          transaction
+        )
+      )
+
+      const checkoutSessionInput = buildActivateInput({
+        targetSubscriptionId: subscriptionWithoutPrice.id,
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) =>
+          createCheckoutSessionTransaction(
+            {
+              checkoutSessionInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        )
+      ).rejects.toThrow(
+        `Target subscription ${subscriptionWithoutPrice.id} does not have an associated price`
       )
     })
   })

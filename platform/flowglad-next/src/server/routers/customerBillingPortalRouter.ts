@@ -40,10 +40,7 @@ import {
   scheduleSubscriptionCancellation,
 } from '@/subscriptions/cancelSubscription'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
-import {
-  CheckoutSessionType,
-  SubscriptionCancellationArrangement,
-} from '@/types'
+import { SubscriptionCancellationArrangement } from '@/types'
 import { auth } from '@/utils/auth'
 import {
   selectUserById,
@@ -62,11 +59,8 @@ import {
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import {
-  activateSubscriptionCheckoutSessionSchema,
   checkoutSessionClientSelectSchema,
-  createCheckoutSessionSchema,
-  productCheckoutSessionSchema,
-  customerBillingCreatePricedCheckoutSessionSchema,
+  customerBillingCreatePricedCheckoutSessionInputSchema,
 } from '@/db/schema/checkoutSessions'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
@@ -484,7 +478,7 @@ const createCheckoutSessionWithPriceProcedure =
     .input(
       z.object({
         checkoutSession:
-          customerBillingCreatePricedCheckoutSessionSchema,
+          customerBillingCreatePricedCheckoutSessionInputSchema,
       })
     )
     .output(
