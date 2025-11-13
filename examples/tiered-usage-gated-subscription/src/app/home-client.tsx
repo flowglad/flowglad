@@ -198,351 +198,213 @@ export function HomeClient() {
       ? (deepResearchRemaining / deepResearchTotal) * 100
       : 0;
 
-  // Action handlers for sending messages to different models
-  const handleSendGPT5Thinking = async () => {
-    // Unlimited: just need toggle feature
-    // Limited: need toggle feature AND usage meter access AND credits remaining
-    if (!hasGPT5Thinking) return;
-    if (
-      !isGPT5ThinkingUnlimited &&
-      (!hasGPT5ThinkingAccess || gpt5ThinkingRemaining === 0)
-    ) {
+  // Generic handler function for usage events
+  const handleUsageEvent = async ({
+    priceSlug,
+    usageMeterSlug,
+    hasFeatureAccess,
+    hasUsageMeterAccess,
+    isUnlimited,
+    remaining,
+    setIsLoading,
+    setMessageError,
+    billing,
+    transactionIdPrefix,
+    userMessage,
+    assistantMessage,
+    modelName,
+    errorMessage = 'Failed to send message. Please try again.',
+    alwaysCreateUsageEvent = false,
+  }: {
+    priceSlug: string;
+    usageMeterSlug: string;
+    hasFeatureAccess: boolean;
+    hasUsageMeterAccess: boolean;
+    isUnlimited: boolean;
+    remaining: number;
+    setIsLoading: (loading: boolean) => void;
+    setMessageError: (error: string | null) => void;
+    billing: ReturnType<typeof useBilling>;
+    transactionIdPrefix: string;
+    userMessage: string;
+    assistantMessage: string;
+    modelName: string;
+    errorMessage?: string;
+    alwaysCreateUsageEvent?: boolean;
+  }) => {
+    // Check feature access
+    if (!hasFeatureAccess) return;
+
+    // Check if limited and has no access or no credits
+    if (!isUnlimited && (!hasUsageMeterAccess || remaining === 0)) {
       return;
     }
 
-    setIsSendingGPT5Thinking(true);
+    setIsLoading(true);
     setMessageError(null);
 
     try {
-      const transactionId = `gpt5_thinking_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      const amount = 1;
+      // Create usage event if always required OR if model is limited (has usage meter)
+      if (alwaysCreateUsageEvent || !isUnlimited) {
+        const transactionId = `${transactionIdPrefix}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const amount = 1;
 
-      const response = await fetch('/api/usage-events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          priceSlug: 'gpt5_tracking',
-          usageMeterSlug: 'gpt_5_thinking_messages',
-          amount,
-          transactionId,
-        }),
-      });
+        const response = await fetch('/api/usage-events', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            priceSlug,
+            usageMeterSlug,
+            amount,
+            transactionId,
+          }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create usage event');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create usage event');
+        }
+
+        if (billing.reload) {
+          await billing.reload();
+        }
       }
 
-      // Add mock message to chat
+      // Add message to chat
       setChatMessages((prev) => [
         ...prev,
-        { role: 'user', content: 'Hello, GPT-5 Thinking!' },
+        { role: 'user', content: userMessage },
         {
           role: 'assistant',
-          content:
-            "Hello! I'm GPT-5 Thinking, ready to help with complex reasoning tasks.",
-          model: 'GPT-5 Thinking',
+          content: assistantMessage,
+          model: modelName,
         },
       ]);
-
-      await billing.reload();
     } catch (error) {
-      setMessageError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to send message. Please try again.'
-      );
+      setMessageError(error instanceof Error ? error.message : errorMessage);
     } finally {
-      setIsSendingGPT5Thinking(false);
+      setIsLoading(false);
     }
+  };
+
+  // Action handlers for sending messages to different models
+  const handleSendGPT5Thinking = async () => {
+    await handleUsageEvent({
+      priceSlug: 'gpt5_tracking',
+      usageMeterSlug: 'gpt_5_thinking_messages',
+      hasFeatureAccess: hasGPT5Thinking,
+      hasUsageMeterAccess: hasGPT5ThinkingAccess,
+      isUnlimited: isGPT5ThinkingUnlimited,
+      remaining: gpt5ThinkingRemaining,
+      setIsLoading: setIsSendingGPT5Thinking,
+      setMessageError,
+      billing,
+      transactionIdPrefix: 'gpt5_thinking',
+      userMessage: 'Hello, GPT-5 Thinking!',
+      assistantMessage:
+        "Hello! I'm GPT-5 Thinking, ready to help with complex reasoning tasks.",
+      modelName: 'GPT-5 Thinking',
+      alwaysCreateUsageEvent: true,
+    });
   };
 
   const handleSendO3 = async () => {
-    if (!hasO3AccessFeature) return;
-    if (!isO3Unlimited && (!hasO3Access || o3Remaining === 0)) {
-      return;
-    }
-
-    setIsSendingO3(true);
-    setMessageError(null);
-
-    try {
-      // Only create usage event if model is limited (has usage meter)
-      if (!isO3Unlimited) {
-        const transactionId = `o3_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-        const amount = 1;
-
-        const response = await fetch('/api/usage-events', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            priceSlug: 'o3_tracking',
-            usageMeterSlug: 'o3_messages',
-            amount,
-            transactionId,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create usage event');
-        }
-
-        await billing.reload();
-      }
-
-      setChatMessages((prev) => [
-        ...prev,
-        { role: 'user', content: 'Hello, o3!' },
-        {
-          role: 'assistant',
-          content:
-            "Hello! I'm o3, a reasoning model designed for complex problem-solving.",
-          model: 'o3',
-        },
-      ]);
-    } catch (error) {
-      setMessageError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to send message. Please try again.'
-      );
-    } finally {
-      setIsSendingO3(false);
-    }
+    await handleUsageEvent({
+      priceSlug: 'o3_tracking',
+      usageMeterSlug: 'o3_messages',
+      hasFeatureAccess: hasO3AccessFeature,
+      hasUsageMeterAccess: hasO3Access,
+      isUnlimited: isO3Unlimited,
+      remaining: o3Remaining,
+      setIsLoading: setIsSendingO3,
+      setMessageError,
+      billing,
+      transactionIdPrefix: 'o3',
+      userMessage: 'Hello, o3!',
+      assistantMessage:
+        "Hello! I'm o3, a reasoning model designed for complex problem-solving.",
+      modelName: 'o3',
+    });
   };
 
   const handleSendO4Mini = async () => {
-    if (!hasO4MiniAccessFeature) return;
-    if (!isO4MiniUnlimited && (!hasO4MiniAccess || o4MiniRemaining === 0)) {
-      return;
-    }
-
-    setIsSendingO4Mini(true);
-    setMessageError(null);
-
-    try {
-      // Only create usage event if model is limited (has usage meter)
-      if (!isO4MiniUnlimited) {
-        const transactionId = `o4_mini_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-        const amount = 1;
-
-        const response = await fetch('/api/usage-events', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            priceSlug: 'o4_mini_tracking',
-            usageMeterSlug: 'o4_mini_messages',
-            amount,
-            transactionId,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create usage event');
-        }
-
-        await billing.reload();
-      }
-
-      setChatMessages((prev) => [
-        ...prev,
-        { role: 'user', content: 'Hello, o4-mini!' },
-        {
-          role: 'assistant',
-          content: "Hello! I'm o4-mini, a fast reasoning model.",
-          model: 'o4-mini',
-        },
-      ]);
-    } catch (error) {
-      setMessageError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to send message. Please try again.'
-      );
-    } finally {
-      setIsSendingO4Mini(false);
-    }
+    await handleUsageEvent({
+      priceSlug: 'o4_mini_tracking',
+      usageMeterSlug: 'o4_mini_messages',
+      hasFeatureAccess: hasO4MiniAccessFeature,
+      hasUsageMeterAccess: hasO4MiniAccess,
+      isUnlimited: isO4MiniUnlimited,
+      remaining: o4MiniRemaining,
+      setIsLoading: setIsSendingO4Mini,
+      setMessageError,
+      billing,
+      transactionIdPrefix: 'o4_mini',
+      userMessage: 'Hello, o4-mini!',
+      assistantMessage: "Hello! I'm o4-mini, a fast reasoning model.",
+      modelName: 'o4-mini',
+    });
   };
 
   const handleSendO4MiniHigh = async () => {
-    if (!hasO4MiniHighAccessFeature) return;
-    if (
-      !isO4MiniHighUnlimited &&
-      (!hasO4MiniHighAccess || o4MiniHighRemaining === 0)
-    ) {
-      return;
-    }
-
-    setIsSendingO4MiniHigh(true);
-    setMessageError(null);
-
-    try {
-      // Only create usage event if model is limited (has usage meter)
-      if (!isO4MiniHighUnlimited) {
-        const transactionId = `o4_mini_high_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-        const amount = 1;
-
-        const response = await fetch('/api/usage-events', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            priceSlug: 'o4_mini_high_tracking',
-            usageMeterSlug: 'o4_mini_high_messages',
-            amount,
-            transactionId,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create usage event');
-        }
-
-        await billing.reload();
-      }
-
-      setChatMessages((prev) => [
-        ...prev,
-        { role: 'user', content: 'Hello, o4-mini-high!' },
-        {
-          role: 'assistant',
-          content: "Hello! I'm o4-mini-high, an advanced reasoning model.",
-          model: 'o4-mini-high',
-        },
-      ]);
-    } catch (error) {
-      setMessageError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to send message. Please try again.'
-      );
-    } finally {
-      setIsSendingO4MiniHigh(false);
-    }
+    await handleUsageEvent({
+      priceSlug: 'o4_mini_high_tracking',
+      usageMeterSlug: 'o4_mini_high_messages',
+      hasFeatureAccess: hasO4MiniHighAccessFeature,
+      hasUsageMeterAccess: hasO4MiniHighAccess,
+      isUnlimited: isO4MiniHighUnlimited,
+      remaining: o4MiniHighRemaining,
+      setIsLoading: setIsSendingO4MiniHigh,
+      setMessageError,
+      billing,
+      transactionIdPrefix: 'o4_mini_high',
+      userMessage: 'Hello, o4-mini-high!',
+      assistantMessage: "Hello! I'm o4-mini-high, an advanced reasoning model.",
+      modelName: 'o4-mini-high',
+    });
   };
 
   const handleUseAgentMode = async () => {
-    if (!hasAgentMode) return;
-    if (
-      !isAgentModeUnlimited &&
-      (!hasAgentModeAccess || agentMessagesRemaining === 0)
-    ) {
-      return;
-    }
-
-    setIsUsingAgentMode(true);
-    setMessageError(null);
-
-    try {
-      const transactionId = `agent_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      const amount = 1;
-
-      const response = await fetch('/api/usage-events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          priceSlug: 'agent_tracking',
-          usageMeterSlug: 'agent_messages',
-          amount,
-          transactionId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create usage event');
-      }
-
-      setChatMessages((prev) => [
-        ...prev,
-        { role: 'user', content: 'Start agent mode task' },
-        {
-          role: 'assistant',
-          content:
-            "Agent mode activated! I'll work on this complex task step by step.",
-          model: 'Agent Mode',
-        },
-      ]);
-
-      await billing.reload();
-    } catch (error) {
-      setMessageError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to start agent mode. Please try again.'
-      );
-    } finally {
-      setIsUsingAgentMode(false);
-    }
+    await handleUsageEvent({
+      priceSlug: 'agent_tracking',
+      usageMeterSlug: 'agent_messages',
+      hasFeatureAccess: hasAgentMode,
+      hasUsageMeterAccess: hasAgentModeAccess,
+      isUnlimited: isAgentModeUnlimited,
+      remaining: agentMessagesRemaining,
+      setIsLoading: setIsUsingAgentMode,
+      setMessageError,
+      billing,
+      transactionIdPrefix: 'agent',
+      userMessage: 'Start agent mode task',
+      assistantMessage:
+        "Agent mode activated! I'll work on this complex task step by step.",
+      modelName: 'Agent Mode',
+      errorMessage: 'Failed to start agent mode. Please try again.',
+      alwaysCreateUsageEvent: true,
+    });
   };
 
   const handleUseDeepResearch = async () => {
-    if (!hasDeepResearch) return;
-    if (
-      !isDeepResearchUnlimited &&
-      (!hasDeepResearchAccess || deepResearchRemaining === 0)
-    ) {
-      return;
-    }
-
-    setIsUsingDeepResearch(true);
-    setMessageError(null);
-
-    try {
-      const transactionId = `deep_research_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      const amount = 1;
-
-      const response = await fetch('/api/usage-events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          priceSlug: 'deep_research_tracking',
-          usageMeterSlug: 'deep_research_requests',
-          amount,
-          transactionId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create usage event');
-      }
-
-      setChatMessages((prev) => [
-        ...prev,
-        { role: 'user', content: 'Start deep research' },
-        {
-          role: 'assistant',
-          content:
-            'Deep research initiated! Gathering comprehensive information from multiple sources...',
-          model: 'Deep Research',
-        },
-      ]);
-
-      await billing.reload();
-    } catch (error) {
-      setMessageError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to start deep research. Please try again.'
-      );
-    } finally {
-      setIsUsingDeepResearch(false);
-    }
+    await handleUsageEvent({
+      priceSlug: 'deep_research_tracking',
+      usageMeterSlug: 'deep_research_requests',
+      hasFeatureAccess: hasDeepResearch,
+      hasUsageMeterAccess: hasDeepResearchAccess,
+      isUnlimited: isDeepResearchUnlimited,
+      remaining: deepResearchRemaining,
+      setIsLoading: setIsUsingDeepResearch,
+      setMessageError,
+      billing,
+      transactionIdPrefix: 'deep_research',
+      userMessage: 'Start deep research',
+      assistantMessage:
+        'Deep research initiated! Gathering comprehensive information from multiple sources...',
+      modelName: 'Deep Research',
+      errorMessage: 'Failed to start deep research. Please try again.',
+      alwaysCreateUsageEvent: true,
+    });
   };
 
   return (
