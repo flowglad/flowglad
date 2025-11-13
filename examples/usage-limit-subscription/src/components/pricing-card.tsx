@@ -85,7 +85,6 @@ export function PricingCard({
     setIsLoading(true);
     try {
       await billing.createCheckoutSession({
-        type: 'product',
         priceId: priceObj.id,
         successUrl: `${window.location.origin}/`,
         cancelUrl: window.location.href,
