@@ -1,5 +1,18 @@
 # @flowglad/express
 
+## 0.12.0
+
+### Minor Changes
+
+- Support priceSlug in createCheckoutSession
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/react@0.12.0
+  - @flowglad/server@0.12.0
+  - @flowglad/shared@0.12.0
+
 ## 0.11.0
 
 ### Minor Changes
