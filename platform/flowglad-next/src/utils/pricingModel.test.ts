@@ -14,6 +14,7 @@ import {
 } from '@/../seedDatabase'
 import {
   clonePricingModelTransaction,
+  createPriceTransaction,
   createProductTransaction,
   editProduct,
 } from './pricingModel'
@@ -44,6 +45,7 @@ import { UsageMeter } from '@/db/schema/usageMeters'
 import { ProductFeature } from '@/db/schema/productFeatures'
 import { productFeatures } from '@/db/schema/productFeatures'
 import { eq } from 'drizzle-orm'
+import { AuthenticatedTransactionParams } from '@/db/types'
 
 describe('clonePricingModelTransaction', () => {
   let organization: Organization.Record
@@ -2021,6 +2023,248 @@ describe('clonePricingModelTransaction', () => {
   })
 })
 
+describe('createPriceTransaction', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let defaultProduct: Product.Record
+  let userId: string
+
+  beforeEach(async () => {
+    const orgSetup = await setupOrg()
+    organization = orgSetup.organization
+    pricingModel = orgSetup.pricingModel
+    defaultProduct = orgSetup.product
+    const userApiKey = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    userId = userApiKey.user.id
+  })
+
+  it('creates a price for a non-default product', async () => {
+    const nonDefaultProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Additional Product',
+      livemode: true,
+    })
+
+    const createdPrice = await adminTransaction(
+      async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Additional Product Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 2500,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: true,
+              slug: `additional-product-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      }
+    )
+
+    expect(createdPrice.productId).toBe(nonDefaultProduct.id)
+    expect(createdPrice.unitPrice).toBe(2500)
+    expect(createdPrice.currency).toBe(organization.defaultCurrency)
+  })
+
+  it('rejects creating additional prices for a default product', async () => {
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Disallowed Additional Price',
+              productId: defaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 3000,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: false,
+              slug: `disallowed-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      })
+    ).rejects.toThrow(
+      'Cannot create additional prices for the default plan'
+    )
+  })
+
+  it('allows creating an additional price with the same type', async () => {
+    const nonDefaultProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Additional Product',
+      livemode: true,
+    })
+    const firstPrice = await adminTransaction(
+      async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Initial Subscription Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 2500,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: true,
+              slug: `initial-subscription-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      }
+    )
+
+    expect(firstPrice.productId).toBe(nonDefaultProduct.id)
+    expect(firstPrice.unitPrice).toBe(2500)
+
+    const updatedUnitPrice = 3500
+    const updatedPrice = await adminTransaction(
+      async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Additional Subscription Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: updatedUnitPrice,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: false,
+              slug: `additional-subscription-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      }
+    )
+
+    expect(updatedPrice.productId).toBe(nonDefaultProduct.id)
+    expect(updatedPrice.unitPrice).toBe(updatedUnitPrice)
+    expect(updatedPrice.currency).toBe(organization.defaultCurrency)
+    expect(updatedPrice.type).toBe(PriceType.Subscription)
+    expect(updatedPrice.isDefault).toBe(true) // newly created price is always set as the default
+    expect(updatedPrice.active).toBe(true)
+  })
+
+  it('rejects creating an additional price with a different type', async () => {
+    const nonDefaultProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Additional Product',
+      livemode: true,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const params: AuthenticatedTransactionParams = {
+        transaction,
+        livemode: true,
+        organizationId: organization.id,
+        userId,
+      }
+
+      return createPriceTransaction(
+        {
+          price: {
+            name: 'Initial Subscription Price',
+            productId: nonDefaultProduct.id,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            unitPrice: 2500,
+            trialPeriodDays: 0,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            isDefault: true,
+            slug: `initial-subscription-price-${core.nanoid()}`,
+          },
+        },
+        params
+      )
+    })
+
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Mismatched Type Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.SinglePayment,
+              unitPrice: 3500,
+              intervalUnit: null,
+              intervalCount: null,
+              trialPeriodDays: null,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: false,
+              slug: `mismatched-type-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      })
+    ).rejects.toThrow(
+      'Cannot create price of a different type than the existing prices for the product'
+    )
+  })
+})
+
 describe('createProductTransaction', () => {
   let organization: Organization.Record
   let sourcePricingModel: PricingModel.Record
@@ -2238,6 +2482,160 @@ describe('createProductTransaction', () => {
     )
 
     const { product } = result
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(productFeatures).toHaveLength(0)
+  })
+
+  it('should throw an error when creating a usage price with featureIds', async () => {
+    // Setup: Create a usage meter for the usage price
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: sourcePricingModel.id,
+      name: 'API Calls',
+      slug: 'api-calls',
+      livemode: false,
+    })
+
+    const featureIds = features.map((f) => f.id)
+
+    // Test: Attempting to create a usage price with featureIds should throw
+    await expect(
+      authenticatedTransaction(
+        async ({ transaction }) => {
+          return createProductTransaction(
+            {
+              product: {
+                name: 'Test Product Usage Price with Features',
+                description: 'Test Description',
+                active: true,
+                imageURL: null,
+                singularQuantityLabel: 'singular',
+                pluralQuantityLabel: 'plural',
+                pricingModelId: sourcePricingModel.id,
+                default: false,
+                slug: `flowglad-test-product-price+${core.nanoid()}`,
+              },
+              prices: [
+                {
+                  name: 'Usage Price',
+                  type: PriceType.Usage,
+                  intervalCount: 1,
+                  intervalUnit: IntervalUnit.Month,
+                  unitPrice: 100,
+                  trialPeriodDays: null,
+                  active: true,
+                  usageMeterId: usageMeter.id,
+                  usageEventsPerUnit: 1,
+                  isDefault: true,
+                  slug: `flowglad-test-usage-price+${core.nanoid()}`,
+                },
+              ],
+              featureIds, // This should cause an error
+            },
+            {
+              userId,
+              transaction,
+              livemode: org1ApiKey.livemode,
+              organizationId: organization.id,
+            }
+          )
+        },
+        {
+          apiKey: org1ApiKeyToken,
+        }
+      )
+    ).rejects.toThrow(
+      'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
+    )
+  })
+
+  it('should create a product with a usage price when there are no featureIds', async () => {
+    // Setup: Create a usage meter for the usage price
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: sourcePricingModel.id,
+      name: 'API Requests',
+      slug: 'api-requests',
+      livemode: false,
+    })
+
+    // Test: Create a usage price product without featureIds - should succeed
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return createProductTransaction(
+          {
+            product: {
+              name: 'API Usage Product',
+              description: 'Product with usage-based pricing',
+              active: true,
+              imageURL: null,
+              singularQuantityLabel: 'request',
+              pluralQuantityLabel: 'requests',
+              pricingModelId: sourcePricingModel.id,
+              default: false,
+              slug: `flowglad-usage-product+${core.nanoid()}`,
+            },
+            prices: [
+              {
+                name: 'Per-Request Pricing',
+                type: PriceType.Usage,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                unitPrice: 50,
+                trialPeriodDays: null,
+                active: true,
+                usageMeterId: usageMeter.id,
+                usageEventsPerUnit: 1,
+                isDefault: true,
+                slug: `flowglad-usage-price+${core.nanoid()}`,
+              },
+            ],
+            // featureIds intentionally omitted - should be allowed for usage prices
+          },
+          {
+            userId,
+            transaction,
+            livemode: org1ApiKey.livemode,
+            organizationId: organization.id,
+          }
+        )
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
+    )
+
+    const { product, prices } = result
+    const price = prices[0]
+
+    // Verify product was created correctly
+    expect(product.name).toBe('API Usage Product')
+    expect(product.description).toBe(
+      'Product with usage-based pricing'
+    )
+    expect(product.active).toBe(true)
+    expect(product.singularQuantityLabel).toBe('request')
+    expect(product.pluralQuantityLabel).toBe('requests')
+
+    // Verify usage price was created correctly
+    expect(prices).toHaveLength(1)
+    expect(price.name).toBe('Per-Request Pricing')
+    expect(price.type).toBe(PriceType.Usage)
+    expect(price.usageMeterId).toBe(usageMeter.id)
+    expect(price.usageEventsPerUnit).toBe(1)
+    expect(price.unitPrice).toBe(50)
+    expect(price.isDefault).toBe(true)
+    expect(price.active).toBe(true)
+
+    // Verify no product features are associated (since featureIds was not provided)
     const productFeatures = await adminTransaction(
       async ({ transaction }) => {
         return selectProductFeatures(

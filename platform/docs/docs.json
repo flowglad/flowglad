@@ -37,10 +37,10 @@
           {
             "group": "Features",
             "pages": [
+              "features/pricing-models",
               "features/products",
               "features/prices",
               "features/discounts",
-              "features/pricing-models",
               "features/subscriptions",
               "features/checkout-sessions",
               "features/invoices",

@@ -5,13 +5,16 @@ import {
 } from '@/db/ledgerManager/ledgerManagerTypes'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
+import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
 import {
   findOrCreateLedgerAccountsForSubscriptionAndUsageMeters,
   selectLedgerAccounts,
 } from '@/db/tableMethods/ledgerAccountMethods'
 import { LedgerAccount } from '@/db/schema/ledgerAccounts'
+import { LedgerTransactionType } from '@/types'
 import { grantEntitlementUsageCredits } from './grantEntitlementUsageCredits'
 import { expireCreditsAtEndOfBillingPeriod } from './expireCreditsAtEndOfBillingPeriod'
+import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 
 export const processBillingPeriodTransitionLedgerCommand = async (
   command: BillingPeriodTransitionLedgerCommand,
@@ -21,6 +24,29 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     command.payload.type === 'standard'
       ? command.payload.newBillingPeriod.id
       : command.payload.subscription.id
+
+  const [transitionForThisBillingPeriod] =
+    await selectLedgerTransactions(
+      {
+        subscriptionId: command.payload.subscription.id,
+        type: LedgerTransactionType.BillingPeriodTransition,
+        initiatingSourceId: initiatingSourceId,
+      },
+      transaction
+    )
+
+  if (transitionForThisBillingPeriod) {
+    const existingLedgerEntries = await selectLedgerEntries(
+      {
+        ledgerTransactionId: transitionForThisBillingPeriod.id,
+      },
+      transaction
+    )
+    return {
+      ledgerTransaction: transitionForThisBillingPeriod,
+      ledgerEntries: existingLedgerEntries,
+    }
+  }
 
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,

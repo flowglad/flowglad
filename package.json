@@ -8,7 +8,7 @@
     "test": "bunx turbo run test",
     "yalc:publish": "bunx turbo run yalc:publish",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "dev": "tsx scripts/dev.ts",
+    "dev": "bun scripts/dev.ts",
     "check": "bunx turbo run check",
     "clean": "bunx turbo run clean",
     "changeset:empty": "bunx changeset --empty",
@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.26.0",
+    "@types/minimatch": "^5.1.2",
     "@types/node": "^18.0.0",
     "@types/react": "18.3.12",
     "@types/react-dom": "19.0.0",

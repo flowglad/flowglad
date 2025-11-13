@@ -34,8 +34,6 @@ Prices describe what a customer pays for a given product. Prices can be of 3 typ
 
 All prices belong to a product. A product can have many prices, but only one price is active at a time. Once you create a product's first price, you cannot create a new price of a different type. In order to create a price of a different type, you must create a new product. 
 
-While described as "Edit" in the UI, prices are immutable. Once created their properties cannot be edited.
-
 #### Single Payment Prices
 
 Single payment prices are charged once. Customers can subscribe to a single payment price. The subscription in this case will not renew, or have any billing periods. This models pay as you go subscriptions.
@@ -54,15 +52,47 @@ Usage prices are currently required when creating a usage event. If you do not i
 
 ## Usage Meters
 
-Usage meters measure consumption of resources in your product. Products will have usage meters for aspects of their products with variable costs, such as bandwidth, storage, or tokens. Usage meters have an `aggregationType` that specifies how to aggregate usage events for billing purposes. By default, usage meters aggregate by `sum` which is a simple count of usage meters. If you wish to aggregate by distinct event types, use the `count_distinct_properties` aggregationType.
+Usage meters measure consumption of resources in your product. Products will have usage meters for aspects of their products with variable costs, such as bandwidth, storage, or tokens. 
+
+Usage meters have an `aggregationType` that specifies how to aggregate usage events for billing purposes. By default, usage meters aggregate by `sum` which is a simple count of usage event amounts.
+
+```ts
+// simplified sum aggregation example
+const usageEvents = [{
+    amount: 1
+}, {
+    amount: 1
+}, {
+    amount: 1
+}]
+// total aggregate usage amount => 3
+```
+
+If you wish to aggregate by distinct event types, use the `count_distinct_properties` aggregationType. 
+
+```ts
+// simplified aggregation example
+const usageEvents = [{
+    properties: { id: 'abc' },
+}, {
+    properties: { id: 'abc' }
+}, {
+    properties: { id: 'def' }
+}]
+// total aggregate usage amount => 2
+```
 
 ## Usage Credits
 
 Usage credits give your customers balance on their usage meter. Every usage credit is associated with a subscription and a usage meter. Flowglad grants your customers usage credits based on the products that they purchase.
 
+When a customer receives usage credits, it **increases** the usage balance on their subscription. If a customer receives usage credits on a recurring basis as part of their subscription, and there are unused credits from that grant at the end of the billing period, they will expire automatically. Monetary refunds will not be issued for any unused usage credits. At this moment, Flowglad does not yet support rollovers of credit balances past the billing period in which they were allocated.
+
 ## Usage Events
 
-Usage events record a consumption of an event to a usage meter. Every usage event belongs to a usage meter and a subscription. Usage events that have not been covered by usage credits
+Usage events record a consumption of an event to a usage meter. Every usage event belongs to a usage meter and a subscription. When usage events are created, they **deduct** from the usage balance on the subscription.
+
+If the customer is on a renewing subscription, Flowglad will attempt to settle the outstanding usage balance for the prior billing period when there's a billing period transition.
 
 ## Features
 
@@ -82,9 +112,11 @@ Subscriptions describe persistent billing relationships between your customers a
 
 Subscriptions can either `renew` or not. Subscriptions created from a `subscription` price type will renew. Renewing subscriptions have billing periods, and can optionally have a trial period at the start of the subscription. When a renewing subscription transitions to the next billing period, by default it will charge:
 - the amount due according to the renewing price(s) associated with the subscription for the forthcoming billing period
-- the amount due for all unsettled usage balances accrued during the previous billing period - based on the usage prices associated with each usage event
+- if you have usage based billing: the amount due for all unsettled usage balances accrued during the previous billing period - based on the usage price associated with each usage event. Your customers will be charged automatically for overages incurred during the previous billing period. For unused usage credits, there is no automatic refund. They will automatically expire at the end of the billing period they were allocated. 
+
 
 ## Invariants
+
 At all times, all customers are on a subscription. If they are not currently paying for your product, they are subscribed to the default product. This allows you to read customers' feature access and usage balances from Flowglad, even if they aren't currently paying for anything.
 
 All customers are associated with a pricing model. This allows you to control at a granular level what prices each customer sees, and make explicit how to migrate customers to new pricing models as you release them.

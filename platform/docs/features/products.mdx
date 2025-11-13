@@ -1,14 +1,9 @@
 ---
 title: 'Products'
-description: "Create a product, with multiple prices, easily."
+description: "Create a product, easily."
 ---
 
-Products allow you to group [prices](/features/prices) together that correspond with the same offering. These oftentimes will share the same descriptions, the same name, the same feature set, or the same group of benefits. 
-
-<Note>
-Products can have multiple prices. This helps group prices that your customers pay together, either for reporting, or for accessing the same features.
-</Note>
-
+Products allow you to group features together to form an offering your customers can purchase or subscribe to. Every product must be attached to exactly one pricing model and has one active price at a time.
 
 # Creating Products
 
@@ -23,10 +18,12 @@ When creating a product, you'll need to provide some basic information:
 - **Name**: A clear, descriptive name for your product
 - **Description**: (Optional but recommended) A detailed explanation of what the product offers
 - **Pricing Model**: Every product must be attached to exactly one pricing model
+- **Features** (for non-usage price types): The features included in this product that will be granted when a customer successfully subscribes to or purchases it
+- **Price**: The type of the price (single payment, subscription, or usage) and relevant details such as amount, billing interval, etc. Note: the price type for a product cannot be changed later for billing stability. Other details can be modified.
 
 ### About Pricing Models
 <Note>
-Pricing Models group your products. Since each product has associated prices, pricing models effectively organize these prices into logical groupings as well. They are the bedrock of our multi-tenant pricing.
+Pricing Models group your products and prices, along with associated features and usage meters. Pricing models schematize your business model. This allows you to iterate on your pricing easily, clone new pricing strategies from test mode to live mode, or import pricing strategies via templates
 </Note>
 
 This is particularly useful when you need to:
@@ -48,8 +45,8 @@ A few important notes about pricing:
 
 - The initial price you create will automatically be set as the default
 - Once created, the pricing type of the price you created cannot be modified
-- You can create new prices for this product and set them as defaults
-- You can change which price is set as the default later
+- You can change the price for this product and the new price will automatically be set as the default price
+- A product can only have one active price at a time. Once a new price is created, the previous active price is deactivated
 
 Read more about [prices](/features/prices).
 

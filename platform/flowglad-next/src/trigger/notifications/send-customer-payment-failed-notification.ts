@@ -18,7 +18,7 @@ import {
 } from '@/utils/backendCore'
 import core from '@/utils/core'
 
-export const sendCustomerPaymentFailedNotificationTask = task({
+const sendCustomerPaymentFailedNotificationTask = task({
   id: 'send-customer-payment-failed-notification',
   run: async (payload: { paymentId: string }, { ctx }) => {
     const {
