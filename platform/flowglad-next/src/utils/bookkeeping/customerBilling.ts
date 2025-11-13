@@ -173,23 +173,24 @@ export const customerBillingCreatePricedCheckoutSession = async ({
     })
   }
 
-  const price = await authenticatedTransaction(
-    async ({ transaction }) => {
-      return await selectPriceById(
-        checkoutSessionInput.priceId,
-        transaction
-      )
+  if (checkoutSessionInput.type === CheckoutSessionType.Product) {
+    const price = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return await selectPriceById(
+          checkoutSessionInput.priceId,
+          transaction
+        )
+      }
+    )
+    if (!price) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message:
+          'Price ' +
+          checkoutSessionInput.priceId +
+          ' not found. Either it does not exist or you do not have access to it.',
+      })
     }
-  )
-
-  if (!price) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message:
-        'Price ' +
-        checkoutSessionInput.priceId +
-        ' not found. Either it does not exist or you do not have access to it.',
-    })
   }
 
   const redirectUrl = customerBillingPortalURL({

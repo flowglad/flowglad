@@ -14,16 +14,22 @@ import {
   setupPrice,
   setupUsageMeter,
   setupProduct,
+  setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
 import { Customer } from '@/db/schema/customers'
-import { CheckoutSessionType, PriceType } from '@/types'
+import {
+  CheckoutSessionType,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
 import { CreateCheckoutSessionObject } from '@/db/schema/checkoutSessions'
 import { IntervalUnit } from '@/types'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { core } from '@/utils/core'
+import { Subscription } from '@/db/schema/subscriptions'
 
 describe('createCheckoutSessionTransaction', () => {
   let organization: Organization.Record
@@ -32,6 +38,7 @@ describe('createCheckoutSessionTransaction', () => {
   let subscriptionPrice: Price.Record
   let usagePrice: Price.Record
   let usageMeter: UsageMeter.Record
+  let targetSubscription: Subscription.Record
 
   beforeEach(async () => {
     const { organization: org, pricingModel } = await setupOrg()
@@ -84,6 +91,13 @@ describe('createCheckoutSessionTransaction', () => {
       livemode: true,
       isDefault: false,
       usageMeterId: usageMeter.id,
+    })
+    targetSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: subscriptionPrice.id,
+      status: SubscriptionStatus.Incomplete,
+      livemode: true,
     })
   })
 
@@ -230,8 +244,7 @@ describe('createCheckoutSessionTransaction', () => {
       type: CheckoutSessionType.ActivateSubscription,
       successUrl: 'http://success.url',
       cancelUrl: 'http://cancel.url',
-      targetSubscriptionId: 'sub_123',
-      priceId: subscriptionPrice.id,
+      targetSubscriptionId: targetSubscription.id,
     }
 
     const { checkoutSession, url } = await adminTransaction(
@@ -248,6 +261,7 @@ describe('createCheckoutSessionTransaction', () => {
 
     expect(checkoutSession.stripeSetupIntentId).toBeDefined()
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
+    expect(checkoutSession.priceId).toBe(subscriptionPrice.id)
     expect(url).toBe(
       `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
     )
@@ -467,8 +481,7 @@ describe('createCheckoutSessionTransaction', () => {
         // @ts-expect-error - testing that anonymous is ignored
         anonymous: true,
         customerExternalId: 'non-existent-customer',
-        priceId: subscriptionPrice.id,
-        targetSubscriptionId: 'sub_123',
+        targetSubscriptionId: targetSubscription.id,
         successUrl: 'http://success.url',
         cancelUrl: 'http://cancel.url',
       }

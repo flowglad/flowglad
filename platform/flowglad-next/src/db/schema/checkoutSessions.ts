@@ -749,7 +749,6 @@ export const activateSubscriptionCheckoutSessionSchema =
   coreCheckoutSessionSchema
     .extend({
       type: z.literal(CheckoutSessionType.ActivateSubscription),
-      priceId: z.string(),
       targetSubscriptionId: z.string(),
       preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
     })

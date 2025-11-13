@@ -25,17 +25,20 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 
 const checkoutSessionInsertFromInput = ({
   checkoutSessionInput,
   customer,
   organizationId,
   livemode,
+  activateSubscriptionPriceId,
 }: {
   checkoutSessionInput: CreateCheckoutSessionObject
   customer: Customer.Record | null
   organizationId: string
   livemode: boolean
+  activateSubscriptionPriceId?: string | null
 }): CheckoutSession.Insert => {
   const coreFields: Pick<
     CheckoutSession.Insert,
@@ -108,9 +111,14 @@ const checkoutSessionInsertFromInput = ({
         'Customer is required for activate subscription checkout sessions'
       )
     }
+    if (!activateSubscriptionPriceId) {
+      throw new Error(
+        'Activate subscription checkout sessions require a price derived from the target subscription'
+      )
+    }
     return {
       ...coreFields,
-      priceId: checkoutSessionInput.priceId,
+      priceId: activateSubscriptionPriceId,
       type: CheckoutSessionType.ActivateSubscription,
       targetSubscriptionId: checkoutSessionInput.targetSubscriptionId,
       purchaseId: null,
@@ -158,6 +166,7 @@ export const createCheckoutSessionTransaction = async (
   let price: Price.Record | null = null
   let product: Product.Record | null = null
   let organization: Organization.Record | null = null
+  let activateSubscriptionPriceId: string | null = null
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
     const [result] =
       await selectPriceProductAndOrganizationByPriceWhere(
@@ -184,6 +193,41 @@ export const createCheckoutSessionTransaction = async (
       organizationId,
       transaction
     )
+    if (
+      checkoutSessionInput.type ===
+      CheckoutSessionType.ActivateSubscription
+    ) {
+      const targetSubscription = await selectSubscriptionById(
+        checkoutSessionInput.targetSubscriptionId,
+        transaction
+      ).catch((error) => {
+        throw new Error(
+          `Target subscription ${checkoutSessionInput.targetSubscriptionId} not found`,
+          { cause: error }
+        )
+      })
+      if (!customer) {
+        throw new Error(
+          'Customer is required for activate subscription checkout sessions'
+        )
+      }
+      if (targetSubscription.organizationId !== organizationId) {
+        throw new Error(
+          `Target subscription ${targetSubscription.id} does not belong to organization ${organizationId}`
+        )
+      }
+      if (targetSubscription.customerId !== customer.id) {
+        throw new Error(
+          `Target subscription ${targetSubscription.id} does not belong to customer ${customer?.id}`
+        )
+      }
+      if (!targetSubscription.priceId) {
+        throw new Error(
+          `Target subscription ${targetSubscription.id} does not have an associated price`
+        )
+      }
+      activateSubscriptionPriceId = targetSubscription.priceId
+    }
   }
 
   const checkoutSession = await insertCheckoutSession(
@@ -192,6 +236,7 @@ export const createCheckoutSessionTransaction = async (
       customer,
       organizationId,
       livemode,
+      activateSubscriptionPriceId,
     }),
     transaction
   )
