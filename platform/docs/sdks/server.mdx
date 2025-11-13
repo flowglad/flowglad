@@ -258,8 +258,10 @@ const checkoutSession = await flowgladServer.createCheckoutSession({
 
 ```typescript
 interface CreateCheckoutSessionParams {
-  // Must include either priceId or priceSlug
-  // slug is encouraged over id
+  /*
+   * Must specify either priceId or priceSlug
+   * Slug is encouraged over Id
+   */
   priceId?: string
   priceSlug?: string
   successUrl: string

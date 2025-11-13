@@ -182,7 +182,10 @@ Checkout sessions for specific prices can be made using either `priceSlug` (an i
 
 ```typescript
 interface CheckoutSessionParams {
-  // Must specify either priceId or priceSlug
+  /*
+   * Must specify either priceId or priceSlug
+   * Slug is encouraged over Id
+   */
   priceId?: string
   priceSlug?: string
   successUrl: string
