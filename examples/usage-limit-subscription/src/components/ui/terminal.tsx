@@ -4,59 +4,56 @@ import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface TerminalProps {
-  lines: string[];
+  /**
+   * New line to add to the terminal. The component maintains its own internal
+   * state of all lines. When this prop changes (by React's dependency comparison),
+   * it will be added to the terminal and typed out character by character.
+   */
+  newLine?: string;
   className?: string;
 }
 
-export function Terminal({ lines, className }: TerminalProps) {
+export function Terminal({ newLine, className }: TerminalProps) {
+  // Internal state: all lines that have been added
+  const [lines, setLines] = useState<string[]>([]);
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
   const [currentLine, setCurrentLine] = useState('');
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
-  const previousLinesLengthRef = useRef(0);
 
+  // Handle new line prop: add to internal lines state when the prop value changes
   useEffect(() => {
-    // Reset when lines array is cleared
-    if (lines.length === 0) {
-      setDisplayedLines([]);
-      setCurrentLine('');
-      setCurrentLineIndex(0);
-      previousLinesLengthRef.current = 0;
-      return;
+    if (newLine !== undefined) {
+      setLines((prev) => [...prev, newLine]);
     }
-
-    // Detect when a new line is added
-    if (lines.length > previousLinesLengthRef.current) {
-      // If we were typing a line, finish it first
-      if (currentLine) {
-        setDisplayedLines((prev) => [...prev, currentLine]);
-        setCurrentLine('');
-      }
-      // Start typing the new line
-      setCurrentLineIndex(lines.length - 1);
-      previousLinesLengthRef.current = lines.length;
-    }
-  }, [lines.length, currentLine]);
+  }, [newLine]);
 
   // Type the current line character by character
   useEffect(() => {
-    if (currentLineIndex >= lines.length) {
+    // If we're past all lines, stop
+    if (currentLineIndex >= lines.length || currentLineIndex < 0) {
       return;
     }
 
     const targetLine = lines[currentLineIndex];
-    
+
     if (!targetLine) {
       return;
     }
-    
+
+    // If we haven't finished typing this line, add the next character
     if (currentLine.length < targetLine.length) {
       const timer = setTimeout(() => {
         setCurrentLine(targetLine.slice(0, currentLine.length + 1));
-      }, 30); // Typing speed
+      }, 15); // Typing speed
 
       return () => clearTimeout(timer);
-    } else if (currentLine.length === targetLine.length && currentLine === targetLine) {
-      // Line is complete, move it to displayed lines
+    }
+
+    // If we've finished typing this line, move to the next
+    if (
+      currentLine.length === targetLine.length &&
+      currentLine === targetLine
+    ) {
       setDisplayedLines((prev) => [...prev, currentLine]);
       setCurrentLine('');
       setCurrentLineIndex((prev) => prev + 1);
@@ -97,8 +94,7 @@ export function Terminal({ lines, className }: TerminalProps) {
         <div className="space-y-1">
           {displayedLines.map((line, index) => (
             <div key={index} className="text-foreground">
-              <span className="text-green-400">$</span>{' '}
-              <span>{line}</span>
+              <span className="text-green-400">$</span> <span>{line}</span>
             </div>
           ))}
           {currentLine && (
@@ -108,15 +104,16 @@ export function Terminal({ lines, className }: TerminalProps) {
               <span className="animate-pulse">▊</span>
             </div>
           )}
-          {!currentLine && displayedLines.length === lines.length && lines.length > 0 && (
-            <div className="text-foreground">
-              <span className="text-green-400">$</span>
-              <span className="animate-pulse ml-1">▊</span>
-            </div>
-          )}
+          {!currentLine &&
+            displayedLines.length === lines.length &&
+            lines.length > 0 && (
+              <div className="text-foreground">
+                <span className="text-green-400">$</span>
+                <span className="animate-pulse ml-1">▊</span>
+              </div>
+            )}
         </div>
       </div>
     </div>
   );
 }
-

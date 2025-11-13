@@ -47,7 +47,9 @@ export function HomeClient() {
   const billing = useBilling();
   const [isMakingFastRequest, setIsMakingFastRequest] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const [terminalLines, setTerminalLines] = useState<string[]>([]);
+  const [latestTerminalLine, setLatestTerminalLine] = useState<
+    string | undefined
+  >(undefined);
   const previousUserIdRef = useRef<string | undefined>(undefined);
 
   // Helper function to add a random code line to terminal
@@ -55,7 +57,7 @@ export function HomeClient() {
     const randomLine =
       FAKE_CODE_LINES[Math.floor(Math.random() * FAKE_CODE_LINES.length)];
     if (randomLine) {
-      setTerminalLines((prev) => [...prev, randomLine]);
+      setLatestTerminalLine(randomLine);
     }
   };
 
@@ -76,7 +78,6 @@ export function HomeClient() {
       previousUserIdRef.current = currentUserId;
     }
   }, [session?.user?.id, billing]);
-
 
   if (isSessionPending || !billing.loaded) {
     return <DashboardSkeleton />;
@@ -101,7 +102,9 @@ export function HomeClient() {
     return <DashboardSkeleton />;
   }
 
-  const fastRequestsBalance = billing.checkUsageBalance('fast_premium_requests');
+  const fastRequestsBalance = billing.checkUsageBalance(
+    'fast_premium_requests'
+  );
 
   // Check if user has access to usage meters (has balance object, even if balance is 0)
   const hasFastRequestsAccess = fastRequestsBalance != null;
@@ -113,8 +116,7 @@ export function HomeClient() {
   const hasPriorityAccess = billing.checkFeatureAccess('priority_access');
 
   // Calculate progress for usage meters - get slug from price using priceId
-  const fastRequestsRemaining =
-    fastRequestsBalance?.availableBalance ?? 0;
+  const fastRequestsRemaining = fastRequestsBalance?.availableBalance ?? 0;
 
   // Compute plan totals dynamically from current subscription's feature items
   // This calculates how many usage credits (e.g., "360 fast premium requests")
@@ -126,7 +128,10 @@ export function HomeClient() {
   );
   const fastRequestsProgress =
     fastRequestsTotal > 0
-      ? Math.max(0, Math.min((fastRequestsRemaining / fastRequestsTotal) * 100, 100))
+      ? Math.max(
+          0,
+          Math.min((fastRequestsRemaining / fastRequestsTotal) * 100, 100)
+        )
       : 0;
 
   // Action handlers
@@ -207,14 +212,13 @@ export function HomeClient() {
     // In a real implementation, this would trigger a background agent task
   };
 
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <main className="flex min-h-screen w-full max-w-7xl flex-col p-8">
         <div className="w-full space-y-8">
           {/* Terminal Component */}
           <div className="max-w-2xl mx-auto">
-            <Terminal lines={terminalLines} />
+            <Terminal newLine={latestTerminalLine} />
           </div>
 
           <Card className="max-w-2xl mx-auto shadow-lg">
@@ -270,8 +274,7 @@ export function HomeClient() {
                       </Button>
                     </span>
                   </TooltipTrigger>
-                  {(!hasFastRequestsAccess ||
-                    fastRequestsRemaining === 0) && (
+                  {(!hasFastRequestsAccess || fastRequestsRemaining === 0) && (
                     <TooltipContent>
                       {!hasFastRequestsAccess
                         ? 'Not available in your plan'
@@ -296,9 +299,7 @@ export function HomeClient() {
                     </span>
                   </TooltipTrigger>
                   {!hasSlowRequests && (
-                    <TooltipContent>
-                      Not available in your plan
-                    </TooltipContent>
+                    <TooltipContent>Not available in your plan</TooltipContent>
                   )}
                 </Tooltip>
 
@@ -318,9 +319,7 @@ export function HomeClient() {
                     </span>
                   </TooltipTrigger>
                   {!hasCompletions && (
-                    <TooltipContent>
-                      Not available in your plan
-                    </TooltipContent>
+                    <TooltipContent>Not available in your plan</TooltipContent>
                   )}
                 </Tooltip>
 
@@ -340,9 +339,7 @@ export function HomeClient() {
                     </span>
                   </TooltipTrigger>
                   {!hasBackgroundAgents && (
-                    <TooltipContent>
-                      Not available in your plan
-                    </TooltipContent>
+                    <TooltipContent>Not available in your plan</TooltipContent>
                   )}
                 </Tooltip>
 
@@ -376,16 +373,16 @@ export function HomeClient() {
                         </span>
                       </div>
                       <Progress
-                        value={
-                          fastRequestsTotal > 0 ? fastRequestsProgress : 0
-                        }
+                        value={fastRequestsTotal > 0 ? fastRequestsProgress : 0}
                         className="w-full"
                       />
                       {fastRequestsRemaining <= 0 && hasFastRequestsAccess && (
                         <div className="rounded-md bg-muted/50 border border-border p-3 mt-2">
                           <p className="text-sm text-muted-foreground">
                             <span className="font-medium">Usage Overages:</span>{' '}
-                            You've used all included requests. Additional fast premium requests will be charged at the overage rate based on your plan's usage pricing.
+                            You've used all included requests. Additional fast
+                            premium requests will be charged at the overage rate
+                            based on your plan's usage pricing.
                           </p>
                         </div>
                       )}
