@@ -27,7 +27,7 @@ import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 
-const checkoutSessionInsertFromInput = ({
+export const checkoutSessionInsertFromInput = ({
   checkoutSessionInput,
   customer,
   organizationId,
