@@ -310,6 +310,9 @@ return (
 ```
 </details>
 
+## Getting Started
+The quickest way to get started is to go spin up a new pricing model. You can do so in the [dashboard](https://app.flowglad.com/store/pricing-models)
+
 ## Language & Framework SDK Coverage
 
 Flowglad aims to have first class support for every language and framework that developers build in.
