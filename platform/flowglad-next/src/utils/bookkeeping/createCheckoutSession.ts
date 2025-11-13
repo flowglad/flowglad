@@ -218,7 +218,7 @@ export const createCheckoutSessionTransaction = async (
       }
       if (targetSubscription.customerId !== customer.id) {
         throw new Error(
-          `Target subscription ${targetSubscription.id} does not belong to customer ${customer?.id}`
+          `Target subscription ${targetSubscription.id} does not belong to customer ${customer.id}`
         )
       }
       if (!targetSubscription.priceId) {
