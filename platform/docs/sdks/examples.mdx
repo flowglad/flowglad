@@ -5,6 +5,32 @@ description: "Complete examples and common patterns for using Flowglad SDKs"
 
 ## Overview
 
+This page provides complete examples and common integration patterns for Flowglad SDKs. For full working applications, check out our [example projects](#example-projects).
+
+## Example Projects
+
+### Generation-based Subscription
+
+A Next.js app app with authentication and billing interation, demonstrating a pricing model with subscription, single-payment, and usage.
+
+**Location:** [examples/generation-based-subscription](https://github.com/flowglad/flowglad/tree/main/examples/generation-based-subscription)
+
+**Features:**
+- Next.js App Router
+- BetterAuth authentication
+- FlowgladProvider setup
+- Pricing table
+- Feature-gated content
+- Usage-based billing for image generation
+- Subscription management
+
+**Key Files:**
+- `pricing.yaml` - Pricing model specification
+- `src/lib/flowglad.ts` - Flowglad server setup
+- `src/app/layout.tsx` - FlowgladProvider setup
+- `src/app/api/flowglad/[...path]/route.ts` - Flowglad routeHandler
+- `src/app/api/usage-events/route.ts` - Route for usage event creation
+
 This page provides complete examples and common integration patterns for Flowglad SDKs. For full working applications, check out our [playground projects](#playground-projects).
 
 ## Playground Projects
