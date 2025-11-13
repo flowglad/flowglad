@@ -7,7 +7,7 @@
     "randombytes": "tsx scripts/randomBytes.ts",
     "test": "bunx turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "dev": "bunx turbo run dev --parallel --no-cache --filter=!@flowglad/playground-supabase-auth",
+    "dev": "bunx turbo run dev --parallel --no-cache --filter=!@flowglad/playground-*",
     "check": "bunx turbo run check",
     "clean": "bunx turbo run clean",
     "changeset:empty": "bunx changeset --empty",
