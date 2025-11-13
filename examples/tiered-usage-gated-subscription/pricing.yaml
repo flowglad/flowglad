@@ -1,5 +1,5 @@
 isDefault: false
-name: "Unlimited Usage Subscription"
+name: "Unlimited Usage Subscription "
 features:
   - type: "toggle"
     slug: "gpt_5_fast"
@@ -13,9 +13,9 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "gpt_5_thinking_plus_limit"
-    name: "12,000 GPT-5 Thinking Messages/Month"
-    description: "12,000 GPT-5 Thinking messages per month (manual selection only)"
-    amount: 12000
+    name: "3,000 GPT-5 Thinking Messages/Week"
+    description: "3,000 GPT-5 Thinking messages per week (manual selection only)"
+    amount: 3000
     renewalFrequency: "every_billing_period"
     active: true
     usageMeterSlug: "gpt_5_thinking_messages"
@@ -26,9 +26,9 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "o3_limit"
-    name: "400 o3 Messages/Month"
-    description: "400 o3 messages per month"
-    amount: 400
+    name: "100 o3 Messages/Week"
+    description: "100 o3 messages per week"
+    amount: 100
     renewalFrequency: "every_billing_period"
     active: true
     usageMeterSlug: "o3_messages"
@@ -39,9 +39,9 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "o4_mini_limit"
-    name: "9,000 o4-mini Messages/Month"
-    description: "9,000 o4-mini messages per month"
-    amount: 9000
+    name: "300 o4-mini Messages/Day"
+    description: "300 o4-mini messages per day"
+    amount: 300
     renewalFrequency: "every_billing_period"
     active: true
     usageMeterSlug: "o4_mini_messages"
@@ -52,9 +52,9 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "o4_mini_high_limit"
-    name: "3,000 o4-mini-high Messages/Month"
-    description: "3,000 o4-mini-high messages per month"
-    amount: 3000
+    name: "100 o4-mini-high Messages/Day"
+    description: "100 o4-mini-high messages per day"
+    amount: 100
     renewalFrequency: "every_billing_period"
     active: true
     usageMeterSlug: "o4_mini_high_messages"
@@ -150,7 +150,7 @@ features:
 products:
   - product:
       name: "Business"
-      description: "$30/user/mo with GPT-5 Thinking (12K/mo), o3 (400/mo), o4-mini (9K/mo), workspace & admin"
+      description: "$30/user/mo with GPT-5 Thinking (3K/wk), o3 (100/wk), o4-mini (300/day), workspace & admin"
       active: true
       singularQuantityLabel: "user"
       pluralQuantityLabel: "users"
@@ -215,8 +215,122 @@ products:
       - "custom_gpts"
       - "projects"
   - product:
+      name: "o3 Tracking"
+      description: "Tool for tracking o3 usage events"
+      active: true
+      default: false
+      slug: "o3_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "o3_tracking"
+        usageMeterSlug: "o3_messages"
+    features: []
+  - product:
+      name: "o4 mini-high Tracking"
+      description: "Tool for tracking o4-mini-high usage events"
+      active: true
+      default: false
+      slug: "o4_mini_high_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "o4_mini_high_tracking"
+        usageMeterSlug: "o4_mini_high_messages"
+    features: []
+  - product:
+      name: "o4 mini Tracking"
+      description: "Tool for tracking o4-mini usage events"
+      active: true
+      default: false
+      slug: "o4_mini_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "o4_mini_tracking"
+        usageMeterSlug: "o4_mini_messages"
+    features: []
+  - product:
+      name: "GPT5 Tracking"
+      description: "Tool for tracking GPT5 usage events"
+      active: true
+      default: false
+      slug: "gpt5_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "gpt5_tracking"
+        usageMeterSlug: "gpt_5_thinking_messages"
+    features: []
+  - product:
+      name: "Agent Tracking"
+      description: "Tool for tracking Agent usage events"
+      active: true
+      default: false
+      slug: "agent_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "agent_tracking"
+        usageMeterSlug: "agent_messages"
+    features: []
+  - product:
+      name: "Deep Research Tracking"
+      description: "Tool for tracking Deep Research usage events"
+      active: true
+      default: false
+      slug: "deep_research_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "deep_research_tracking"
+        usageMeterSlug: "deep_research_requests"
+    features: []
+  - product:
       name: "Plus"
-      description: "$20/mo with GPT-5 Thinking (12K/mo), o3 (400/mo), o4-mini (9K/mo), Agent (40/mo), 32K context"
+      description: "$20/mo with GPT-5 Thinking (3K/wk), o3 (100/wk), o4-mini (300/day), Agent (40/mo), 32K context"
       active: true
       default: false
       slug: "plus"
@@ -231,72 +345,6 @@ products:
         active: true
         slug: "plus_monthly"
         usageMeterId: null
-      - intervalUnit: "month"
-        name: "GPT-5 Thinking Message Overage"
-        intervalCount: 1
-        type: "usage"
-        trialPeriodDays: null
-        isDefault: false
-        unitPrice: 150
-        usageEventsPerUnit: 1
-        active: true
-        slug: "plus_gpt5_thinking_overage"
-        usageMeterSlug: "gpt_5_thinking_messages"
-      - intervalUnit: "month"
-        name: "o3 Message Overage"
-        intervalCount: 1
-        type: "usage"
-        trialPeriodDays: null
-        isDefault: false
-        unitPrice: 75
-        usageEventsPerUnit: 1
-        active: true
-        slug: "plus_o3_overage"
-        usageMeterSlug: "o3_messages"
-      - intervalUnit: "month"
-        name: "o4-mini Message Overage"
-        intervalCount: 1
-        type: "usage"
-        trialPeriodDays: null
-        isDefault: false
-        unitPrice: 40
-        usageEventsPerUnit: 1
-        active: true
-        slug: "plus_o4_mini_overage"
-        usageMeterSlug: "o4_mini_messages"
-      - intervalUnit: "month"
-        name: "o4-mini-high Message Overage"
-        intervalCount: 1
-        type: "usage"
-        trialPeriodDays: null
-        isDefault: false
-        unitPrice: 60
-        usageEventsPerUnit: 1
-        active: true
-        slug: "plus_o4_mini_high_overage"
-        usageMeterSlug: "o4_mini_high_messages"
-      - intervalUnit: "month"
-        name: "Agent Mode Message Overage"
-        intervalCount: 1
-        type: "usage"
-        trialPeriodDays: null
-        isDefault: false
-        unitPrice: 200
-        usageEventsPerUnit: 1
-        active: true
-        slug: "plus_agent_mode_overage"
-        usageMeterSlug: "agent_messages"
-      - intervalUnit: "month"
-        name: "Deep Research Request Overage"
-        intervalCount: 1
-        type: "usage"
-        trialPeriodDays: null
-        isDefault: false
-        unitPrice: 500
-        usageEventsPerUnit: 1
-        active: true
-        slug: "plus_deep_research_overage"
-        usageMeterSlug: "deep_research_requests"
     features:
       - "gpt_5_fast"
       - "gpt_5_thinking"

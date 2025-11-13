@@ -106,7 +106,6 @@ export function HomeClient() {
   const deepResearchBalance = billing.checkUsageBalance(
     'deep_research_requests'
   );
-  console.log(deepResearchBalance);
 
   // Check if user has access to usage meters
   // Having a usage meter balance (even if 0) means you have access to that meter
@@ -224,6 +223,7 @@ export function HomeClient() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          priceSlug: 'gpt5_tracking',
           usageMeterSlug: 'gpt_5_thinking_messages',
           amount,
           transactionId,
@@ -280,6 +280,7 @@ export function HomeClient() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            priceSlug: 'o3_tracking',
             usageMeterSlug: 'o3_messages',
             amount,
             transactionId,
@@ -336,6 +337,7 @@ export function HomeClient() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            priceSlug: 'o4_mini_tracking',
             usageMeterSlug: 'o4_mini_messages',
             amount,
             transactionId,
@@ -394,6 +396,7 @@ export function HomeClient() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            priceSlug: 'o4_mini_high_tracking',
             usageMeterSlug: 'o4_mini_high_messages',
             amount,
             transactionId,
@@ -450,6 +453,7 @@ export function HomeClient() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          priceSlug: 'agent_tracking',
           usageMeterSlug: 'agent_messages',
           amount,
           transactionId,
@@ -506,6 +510,7 @@ export function HomeClient() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          priceSlug: 'deep_research_tracking',
           usageMeterSlug: 'deep_research_requests',
           amount,
           transactionId,

@@ -1,7 +1,7 @@
 import { flowgladServer } from '@/lib/flowglad';
 import {
+  findUsagePriceBySlug,
   findUsageMeterBySlug,
-  findUsagePriceByMeterId,
 } from '@/lib/billing-helpers';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -11,12 +11,14 @@ import { z } from 'zod';
  * Creates a usage event for the current customer
  *
  * Body: {
- *   usageMeterSlug: string;  // e.g., 'fast_generations'
+ *   priceSlug: string;       // e.g., 'plus_o3_overage' or 'pro_o3_tracking'
+ *   usageMeterSlug: string;  // e.g., 'o3_messages' - used for validation
  *   amount: number;          // e.g., 1
  *   transactionId?: string; // Optional: for idempotency
  * }
  */
 const createUsageEventSchema = z.object({
+  priceSlug: z.string().min(1, 'priceSlug is required'),
   usageMeterSlug: z.string().min(1, 'usageMeterSlug is required'),
   amount: z
     .number()
@@ -41,6 +43,7 @@ export async function POST(request: Request) {
     }
 
     const {
+      priceSlug,
       usageMeterSlug,
       amount: amountNumber,
       transactionId,
@@ -75,12 +78,12 @@ export async function POST(request: Request) {
 
     const subscriptionId = currentSubscription.id;
 
-    // Find the usage meter from the pricing model
+    // Find the usage meter by slug for validation
     const usageMeter = findUsageMeterBySlug(
       usageMeterSlug,
       billing.pricingModel
     );
-
+    console.log(usageMeter);
     if (!usageMeter) {
       return NextResponse.json(
         {
@@ -90,24 +93,48 @@ export async function POST(request: Request) {
       );
     }
 
-    const usageMeterId = usageMeter.id;
-
-    // Find the usage price by searching through the catalog
-    const usagePrice = findUsagePriceByMeterId(
-      usageMeterId,
-      billing.pricingModel
-    );
+    // Find the usage price directly by slug
+    const usagePrice = findUsagePriceBySlug(priceSlug, billing.pricingModel);
 
     if (!usagePrice) {
       return NextResponse.json(
         {
-          error: `Usage price not found for meter: ${usageMeterSlug}. Please ensure a usage price product exists for this meter in your pricing model.`,
+          error: `Usage price not found: ${priceSlug}`,
         },
         { status: 404 }
       );
     }
 
+    if (usagePrice.type !== 'usage') {
+      return NextResponse.json(
+        {
+          error: `Price ${priceSlug} is not a usage price`,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!usagePrice.usageMeterId) {
+      return NextResponse.json(
+        {
+          error: `Price ${priceSlug} does not have a usage meter associated`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate that the price's usage meter matches the provided usage meter slug
+    if (usagePrice.usageMeterId !== usageMeter.id) {
+      return NextResponse.json(
+        {
+          error: `Price ${priceSlug} is associated with a different usage meter than ${usageMeterSlug}`,
+        },
+        { status: 400 }
+      );
+    }
+
     const priceId = usagePrice.id;
+    const usageMeterId = usagePrice.usageMeterId;
 
     // Create usage event with all required IDs
     // Note: customerId is automatically resolved from the session by FlowgladServer

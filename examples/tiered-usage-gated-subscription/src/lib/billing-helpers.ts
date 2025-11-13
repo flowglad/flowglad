@@ -150,3 +150,27 @@ export function findUsagePriceByMeterId(
     return null;
   }
 }
+
+/**
+ * Finds a usage price by its slug from the pricing model.
+ *
+ * @param priceSlug - The slug of the price to find
+ * @param pricingModel - The billing pricing model (from billing.pricingModel)
+ * @returns The usage price object, or null if not found
+ */
+export function findUsagePriceBySlug(
+  priceSlug: string,
+  pricingModel: BillingWithChecks['pricingModel'] | undefined
+): Price | null {
+  try {
+    if (!pricingModel?.products) return null;
+
+    const usagePrice = pricingModel.products
+      .flatMap((product) => product.prices ?? [])
+      .find((price) => price.type === 'usage' && price.slug === priceSlug);
+
+    return usagePrice ?? null;
+  } catch {
+    return null;
+  }
+}
