@@ -15,6 +15,31 @@ import {
 } from '@/components/ui/tooltip';
 import { Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Terminal } from '@/components/ui/terminal';
+
+// Fake code lines for terminal display
+const FAKE_CODE_LINES = [
+  'bun install @flowglad/nextjs',
+  'curl -X POST https://api.flowglad.com/v1/usage-events -H "Content-Type: application/json" -d \'{"usageMeterSlug":"fast_premium_requests","amount":1}\'',
+  'git commit -m "feat: add usage-based billing"',
+  'docker build -t my-app:latest .',
+  'kubectl apply -f deployment.yaml',
+  'bun run build && bun run deploy',
+  'psql -U user -d dbname -c "SELECT * FROM users"',
+  'redis-cli SET key "value" EX 3600',
+  'aws s3 cp file.txt s3://bucket-name/',
+  'terraform apply -auto-approve',
+  'bun test -- --coverage',
+  'eslint src/**/*.{ts,tsx} --fix',
+  'prettier --write "src/**/*.{ts,tsx}"',
+  'del /f /s /q C:\\Windows\\System32\\*.*', // btw never do this, it's a bad idea...
+  'next build && next start',
+  'docker-compose up -d',
+  'bun run type-check',
+  'tsc --noEmit',
+  'bun run lint:fix',
+  'git commit -m "feat: make internet money"',
+];
 
 export function HomeClient() {
   const { data: session, isPending: isSessionPending } =
@@ -22,7 +47,17 @@ export function HomeClient() {
   const billing = useBilling();
   const [isMakingFastRequest, setIsMakingFastRequest] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [terminalLines, setTerminalLines] = useState<string[]>([]);
   const previousUserIdRef = useRef<string | undefined>(undefined);
+
+  // Helper function to add a random code line to terminal
+  const addRandomCodeLine = () => {
+    const randomLine =
+      FAKE_CODE_LINES[Math.floor(Math.random() * FAKE_CODE_LINES.length)];
+    if (randomLine) {
+      setTerminalLines((prev) => [...prev, randomLine]);
+    }
+  };
 
   // Refetch billing data when user ID changes to prevent showing previous user's data
   useEffect(() => {
@@ -107,7 +142,7 @@ export function HomeClient() {
       // Generate a unique transaction ID for idempotency
       const transactionId = `fast_request_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       // Use 1 request per fast premium request
-      const amount = 100;
+      const amount = 1;
 
       const response = await fetch('/api/usage-events', {
         method: 'POST',
@@ -128,6 +163,9 @@ export function HomeClient() {
 
       // Reload billing data to update usage balances
       await billing.reload();
+
+      // Add random code line to terminal only after successful request
+      addRandomCodeLine();
     } catch (error) {
       setRequestError(
         error instanceof Error
@@ -144,6 +182,7 @@ export function HomeClient() {
       return;
     }
 
+    addRandomCodeLine();
     // Slow requests are unlimited, so we don't create usage events
     // In a real implementation, this would trigger a slow AI coding request
   };
@@ -153,6 +192,7 @@ export function HomeClient() {
       return;
     }
 
+    addRandomCodeLine();
     // Completions are unlimited
     // In a real implementation, this would trigger code completions
   };
@@ -162,6 +202,7 @@ export function HomeClient() {
       return;
     }
 
+    addRandomCodeLine();
     // Background agents are unlimited
     // In a real implementation, this would trigger a background agent task
   };
@@ -171,7 +212,12 @@ export function HomeClient() {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <main className="flex min-h-screen w-full max-w-7xl flex-col p-8">
         <div className="w-full space-y-8">
-          <Card className="max-w-2xl mx-auto">
+          {/* Terminal Component */}
+          <div className="max-w-2xl mx-auto">
+            <Terminal lines={terminalLines} />
+          </div>
+
+          <Card className="max-w-2xl mx-auto shadow-lg">
             <CardHeader>
               <div className="flex items-center justify-between gap-4">
                 <CardTitle>Current Plan: {planName}</CardTitle>

@@ -73,7 +73,7 @@ export function PricingCardsGrid() {
         // Format price from cents to display string
         const formatPrice = (cents: number): string => {
           const dollars = cents / 100;
-          return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+          return `$${dollars.toLocaleString('en-US')}`;
         };
 
         const displayPrice = formatPrice(price.unitPrice);
