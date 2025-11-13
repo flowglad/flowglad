@@ -1198,7 +1198,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
       {
         customerExternalId: customer.externalId,
-        priceId: price.id,
         type: CheckoutSessionType.ActivateSubscription,
         targetSubscriptionId: subscription.id,
         successUrl: 'http://success.url',

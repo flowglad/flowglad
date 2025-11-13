@@ -32,7 +32,7 @@ import {
   checkoutSessionsPaginatedSelectSchema,
   getIntentStatusInputSchema,
   singleCheckoutSessionOutputSchema,
-  createCheckoutSessionSchema,
+  createCheckoutSessionInputSchema,
 } from '@/db/schema/checkoutSessions'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { billingAddressSchema } from '@/db/schema/organizations'
@@ -54,7 +54,7 @@ export const checkoutSessionsRouteConfigs = routeConfigs
 
 export const createCheckoutSession = protectedProcedure
   .meta(openApiMetas.POST)
-  .input(createCheckoutSessionSchema)
+  .input(createCheckoutSessionInputSchema)
   .output(singleCheckoutSessionOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
