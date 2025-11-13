@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- Price slug in createCheckoutSession
+- Support priceSlug in createCheckoutSession
 
 ## 0.11.0
 
