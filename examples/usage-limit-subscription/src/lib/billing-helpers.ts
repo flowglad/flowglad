@@ -1,7 +1,7 @@
 import type { BillingWithChecks } from '@flowglad/shared';
 import type { Price, UsageMeter, Product } from '@flowglad/types';
 
-type UsageMeterSlug = 'fast_generations' | 'hd_video_minutes';
+type UsageMeterSlug = 'fast_premium_requests';
 
 /**
  * Computes the total usage credits for a given usage meter slug from the current subscription's feature items.
@@ -37,8 +37,8 @@ export function computeUsageTotal(
     // (Feature items reference meters by ID, but we need to match by slug)
     const usageMeterById: Record<string, string> = {};
     for (const meter of pricingModel.usageMeters) {
-      const meterId = String(meter.id);
-      const meterSlug = String(meter.slug);
+      const meterId = meter.id;
+      const meterSlug = meter.slug;
       usageMeterById[meterId] = meterSlug;
     }
 
@@ -83,8 +83,8 @@ export function findUsageMeterBySlug(
   }
 
   return {
-    id: String(usageMeter.id),
-    slug: String(usageMeter.slug),
+    id: usageMeter.id,
+    slug: usageMeter.slug,
   };
 }
 
@@ -143,13 +143,3 @@ export function isDefaultPlanBySlug(
   }
   return false;
 }
-
-/**
- * Checks if a subscription is a default plan by looking up the price by ID.
- * Default plans have default: true at the product level.
- * Only checks product.default, not price.isDefault (which is set for all subscription prices).
- *
- * @param pricingModel - The billing pricing model (from billing.pricingModel)
- * @param priceId - The ID of the price to check
- * @returns true if the plan is a default plan, false otherwise
- */

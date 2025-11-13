@@ -8,7 +8,7 @@ import { z } from 'zod';
  * Creates a usage event for the current customer
  *
  * Body: {
- *   usageMeterSlug: string;  // e.g., 'fast_generations'
+ *   usageMeterSlug: string;  // e.g., 'fast_premium_requests'
  *   amount: number;          // e.g., 1
  *   transactionId?: string; // Optional: for idempotency
  * }
@@ -72,6 +72,7 @@ export async function POST(request: Request) {
 
     const subscriptionId = currentSubscription.id;
 
+    // Find the usage price by searching through the catalog using the meter slug
     const usagePrice = findUsagePriceByMeterSlug(
       usageMeterSlug,
       billing.pricingModel

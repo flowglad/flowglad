@@ -1,7 +1,7 @@
 # Flowglad Example Project
 
 An example of how to integrate Flowglad into a Next.js project with BetterAuth. 
-This project demonstrates the "Generation-Based Subscription Template Pricing Model".
+This project demonstrates the "Usage-Limit Subscription Template Pricing Model".
 
 ## Tech Stack
 
@@ -55,7 +55,7 @@ bun install
 Then navigate into this example directory:
 
 ```bash
-cd examples/generation-based-subscription
+cd examples/usage-limit-subscription
 ```
 
 ### 3. Link Flowglad Packages
