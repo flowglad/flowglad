@@ -17,7 +17,7 @@ You can create subscriptions with free trials with or without requiring a valid 
 If you prefer to start customers on free trials without asking for payment details, you can use flowgladServer's `createSubscription` method, passing in the `priceId` and other optional fields (see the create subscription API [body](/api-reference/subscriptions/create-subscription#body-customer-id) for more details on the parameters. 
 
 <Note>
-You do not need to include `customerId` when calling `createSubscription` with the `flowgladServer`, as the server client is already bound to the requesting customer scope).
+You do not need to include `customerId` when calling `createSubscription` with the `flowgladServer`, as the server client is already bound to the requesting customer scope.
 </Note>
 
 If you create a subscription without a payment method attached, you must collect a payment method from the customer before the trial period ends in order to activate the subscription. You can do this via the `createActivateSubscriptionCheckoutSession` method.
