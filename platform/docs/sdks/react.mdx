@@ -1,0 +1,550 @@
+---
+title: "@flowglad/react"
+description: "React components and hooks for Flowglad billing and subscription management"
+---
+
+import ReactSetup from '/snippets/setup-react.mdx'
+
+<Info>
+  NPM Package: [@flowglad/react](https://www.npmjs.com/package/@flowglad/react)
+</Info>
+
+## Overview
+
+The React SDK provides components, hooks, and context for managing billing and subscriptions in your React applications. It works with any React framework and requires a backend server running the Flowglad Server SDK.
+
+<ReactSetup />
+
+## Key Features
+
+- **Type-safe Hooks**: Access billing data with full TypeScript support
+- **React Context**: Global state management for billing information
+- **Feature Access Control**: Check user access to features
+- **Checkout Sessions**: Create and manage payment flows
+- **Subscription Management**: Handle subscription lifecycles
+
+## API Reference
+
+### FlowgladProvider
+
+The main provider component that wraps your application. See [FlowgladProvider.tsx](https://github.com/flowglad/flowglad/blob/main/packages/react/src/FlowgladProvider.tsx) for more details
+
+#### Props
+
+```typescript
+interface FlowgladProviderProps {
+  requestConfig?: {
+    headers?: Record<string, string>
+  }
+  serverRoute?: string
+  loadBilling: boolean
+  children: React.ReactNode
+}
+```
+
+#### Example
+
+```tsx
+<FlowgladProvider
+  loadBilling={true}
+  requestConfig={{
+    headers: {
+      'X-Custom-Header': 'value',
+    },
+  }}
+>
+  {children}
+</FlowgladProvider>
+```
+
+### useBilling Hook
+
+Access billing data and functions throughout your application.
+
+#### Load State Helpers
+
+The hook surfaces billing lifecycle metadata you can use to gate UI:
+
+- `loaded: boolean` – `true` once billing data has settled (success or error).
+- `loadBilling: boolean` – Mirrors the provider prop; if `false`, billing is intentionally skipped.
+- `errors: Error[] | null` – Populated when the last fetch failed.
+- `reload: () => Promise<void>` – Invalidates and refetches billing data.
+
+```tsx
+const { loaded, loadBilling, errors, reload } = useBilling()
+
+if (!loadBilling) return <p>Billing disabled for this view.</p>
+if (!loaded) return <p>Loading billing…</p>
+if (errors?.length) {
+  return (
+    <div>
+      <p>Unable to load billing information.</p>
+      <button onClick={reload}>Try again</button>
+    </div>
+  )
+}
+```
+
+#### Return Value
+
+```typescript
+interface BillingContext {
+  // Customer data
+  customer: Customer | null
+  
+  // Payment methods
+  paymentMethods: PaymentMethod[]
+  
+  // Subscriptions
+  subscriptions: Subscription[]
+  
+  // Invoices
+  invoices: Invoice[]
+  
+  // Feature access
+  checkFeatureAccess: (featureSlug: string) => boolean
+  checkUsageBalance: (
+    usageMeterSlug: string,
+    options?: { subscriptionId?: string }
+  ) => { availableBalance: number } | null
+  getProduct: (productSlug: string) => CatalogProduct | null
+  getPrice: (priceSlug: string) => Price | null
+  
+  // Checkout
+  createCheckoutSession: (params: CheckoutSessionParams) => Promise<void>
+  createAddPaymentMethodCheckoutSession: (
+    params: AddPaymentMethodCheckoutParams
+  ) => Promise<void>
+  createActivateSubscriptionCheckoutSession: (
+    params: ActivateSubscriptionCheckoutParams
+  ) => Promise<void>
+  
+  // Subscription management
+  cancelSubscription: (params: CancelSubscriptionParams) => Promise<void>
+  
+  // Loading states
+  isLoading: boolean
+  error: Error | null
+  
+  // Refresh data
+  reload: () => Promise<void>
+  loadBilling: boolean
+  loaded: boolean
+  errors: Error[] | null
+}
+```
+
+#### Example Usage
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+function FeatureGate({ featureSlug, children }) {
+  const { checkFeatureAccess, createCheckoutSession } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return <div>Loading...</div>
+  }
+
+  if (!checkFeatureAccess(featureSlug)) {
+    return (
+      <div>
+        <p>Upgrade to access this feature</p>
+        <button
+          onClick={() =>
+            createCheckoutSession({
+              priceId: 'price_123',
+              successUrl: window.location.href,
+              cancelUrl: window.location.href,
+              autoRedirect: true,
+            })
+          }
+        >
+          Upgrade Now
+        </button>
+      </div>
+    )
+  }
+
+  return <>{children}</>
+}
+```
+
+### createCheckoutSession
+
+Create a new checkout session for subscriptions or one-time payments.
+
+Checkout sessions for specific prices can be made using either `priceSlug` (an identifier that you define), or `priceId` (an identifier Flowglad defines) as a parameter. 
+
+`priceSlug` is recommended, so that you don't need to store any references to Flowglad ids in your application database or environment variables.
+
+#### Parameters
+
+```typescript
+interface CheckoutSessionParams {
+  /*
+   * Must specify either priceId or priceSlug
+   * Slug is encouraged over Id
+   */
+  priceId?: string
+  priceSlug?: string
+  successUrl: string
+  cancelUrl: string
+  /*
+   * Whether to automatically redirect to the hosted checkout page after the session is created
+   */
+  autoRedirect?: boolean
+  quantity?: number
+  /**
+   * the metadata values to set on the object created by this checkout session
+   * - subscription.metadata for subscription prices
+   * - purchase.metadata for single payment prices
+   */ 
+  outputMetadata?: Record<string, unknown>
+  /**
+   * the name value to set on the object created by this checkout session
+   * - subscription.name for subscription prices
+   * - purchase.name for single payment prices
+   */ 
+  outputName?: string
+}
+```
+
+#### Example
+
+```tsx
+const handleUpgrade = async () => {
+  await createCheckoutSession({
+    priceSlug: 'price_premium_monthly',
+    successUrl: `${window.location.origin}/billing/success`,
+    cancelUrl: `${window.location.origin}/billing`,
+    autoRedirect: true,
+    /**
+    * Optional. If not provided, defaults to 1
+    */
+    quantity?: number
+  })
+}
+```
+
+### createAddPaymentMethodCheckoutSession
+
+Open a Flowglad-hosted flow that collects and stores a new payment method for the signed-in customer.
+
+#### Parameters
+
+```typescript
+interface AddPaymentMethodCheckoutParams {
+  successUrl: string
+  cancelUrl: string
+  autoRedirect?: boolean
+  outputMetadata?: Record<string, unknown>
+  outputName?: string
+  /**
+   * When provided, Flowglad sets the newly created payment method
+   * as the default for the given subscription.
+   */
+  targetSubscriptionId?: string
+}
+```
+
+#### Example
+
+```tsx
+await createAddPaymentMethodCheckoutSession({
+  successUrl: `${window.location.origin}/billing/payment-methods`,
+  cancelUrl: window.location.href,
+  autoRedirect: true,
+})
+```
+
+### createActivateSubscriptionCheckoutSession
+
+Trigger the activation flow for an existing subscription that needs a payment method before billing can start. Activations can happen for subscriptions on trial, or subscriptions where payment is due but has not yet been completed.
+#### Parameters
+
+```typescript
+interface ActivateSubscriptionCheckoutSessionParams {
+  /**
+   * The subscription to activate.
+   */
+  targetSubscriptionId: string
+  priceId: string
+  successUrl: string
+  cancelUrl: string
+  autoRedirect?: boolean
+  outputMetadata?: Record<string, string>
+  outputName?: string
+}
+```
+
+#### Example
+
+```tsx
+await createActivateSubscriptionCheckoutSession({
+  targetSubscriptionId: 'sub_123',
+  priceId: 'price_029demLwqVKLAN5x1azBk',
+  successUrl: `${window.location.origin}/billing/success`,
+  cancelUrl: window.location.href,
+  autoRedirect: true,
+})
+```
+
+### cancelSubscription
+
+Cancel a subscription owned by the current customer and refresh billing data.
+
+#### Parameters
+
+```typescript
+interface CancelSubscriptionParams {
+  id: string
+  cancellation:
+    | { timing: 'at_end_of_current_billing_period' }
+    | { timing: 'at_future_date'; endDate: Date }
+    | { timing: 'immediately' }
+}
+```
+
+#### Example
+
+```tsx
+await cancelSubscription({
+  id: 'sub_123',
+  cancellation: {
+    timing: 'at_end_of_current_billing_period',
+  },
+})
+```
+
+### checkFeatureAccess
+
+Check if the current customer has access to a specific feature.
+
+#### Parameters
+
+- `featureSlug: string` - The slug of the feature to check
+
+#### Returns
+
+- `boolean` - `true` if the customer has access, `false` otherwise
+
+#### Example
+
+```tsx
+const hasAdvancedAnalytics = checkFeatureAccess('advanced_analytics')
+
+if (hasAdvancedAnalytics) {
+  return <AdvancedAnalytics />
+}
+
+return <BasicAnalytics />
+```
+
+### checkUsageBalance
+
+Get the remaining balance for a usage meter tied to the customer’s subscriptions.
+
+#### Parameters
+
+- `usageMeterSlug: string` – Slug of the usage meter to inspect.
+- `options.subscriptionId?: string` – Limit the check to a specific subscription (optional).
+
+#### Returns
+
+- `{ availableBalance: number } | null`
+
+#### Example
+
+```tsx
+const usage = checkUsageBalance('api_calls')
+return usage ? (
+  <p>{usage.availableBalance} calls remaining</p>
+) : (
+  <p>No usage meter found.</p>
+)
+```
+
+### getProduct
+
+Look up a specific product from the catalog that ships with billing data.
+
+#### Parameters
+
+- `productSlug: string`
+
+#### Returns
+
+- `Product | null`
+
+#### Example
+
+```tsx
+const proPlan = getProduct('pro')
+return proPlan ? <h3>{proPlan.name}</h3> : <p>Product unavailable.</p>
+```
+
+### getPrice
+
+Look up a price by slug from the live catalog.
+
+#### Parameters
+
+- `priceSlug: string`
+
+#### Returns
+
+- `Price | null`
+
+#### Example
+
+```tsx
+const monthly = getPrice('pro-monthly')
+return monthly ? (
+  <span>
+    ${(monthly.unitPrice / 100).toFixed(2)}
+    {monthly.intervalUnit ? ` / ${monthly.intervalUnit}` : ''}
+  </span>
+) : (
+  <span>Price not available</span>
+)
+```
+
+### Other billing records
+
+The billing payload also exposes higher-level billing records you can use to build richer UI:
+
+- `customer` – The Flowglad customer record (including email, name, IDs).
+- `subscriptions` – All subscriptions (active and past) returned for the customer.
+- `purchases` – Historical purchases for the customer.
+- `invoices` – Invoice records (including status and totals).
+- `currentSubscriptions` – Subscriptions currently active or pending.
+- `paymentMethods` – Saved payment methods for the customer.
+- `billingPortalUrl` – Deep link to Flowglad’s hosted billing portal (if enabled).
+- `pricingModel` – Resolved pricing model associated with the customer’s plan.
+
+```tsx
+const { customer, subscriptions, paymentMethods, billingPortalUrl } = useBilling()
+
+const activeSub = subscriptions?.find((sub) => sub.status === 'active')
+const defaultMethod = paymentMethods?.[0]
+```
+
+## Common Patterns
+
+### Feature Gating Component
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+export function FeatureGate({ 
+  featureSlug, 
+  fallback, 
+  children 
+}: {
+  featureSlug: string
+  fallback?: React.ReactNode
+  children: React.ReactNode
+}) {
+  const { checkFeatureAccess } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return null
+  }
+
+  if (!checkFeatureAccess(featureSlug)) {
+    return fallback || <div>Access denied</div>
+  }
+
+  return <>{children}</>
+}
+
+// Usage
+<FeatureGate 
+  featureSlug="premium_feature"
+  fallback={<UpgradePrompt />}
+>
+  <PremiumFeature />
+</FeatureGate>
+```
+
+### Subscription Status Display
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+export function SubscriptionStatus() {
+  const { subscriptions, customer } = useBilling()
+
+  if (!subscriptions || subscriptions.length === 0) {
+    return <div>No active subscriptions</div>
+  }
+
+  const activeSubscription = subscriptions.find(s => s.status === 'active')
+
+  if (!activeSubscription) {
+    return <div>No active subscriptions</div>
+  }
+
+  return (
+    <div>
+      <h3>Current Plan</h3>
+      <p>Status: {activeSubscription.status}</p>
+      <p>Renews: {new Date(activeSubscription.currentPeriodEnd).toLocaleDateString()}</p>
+    </div>
+  )
+}
+```
+
+### Custom Upgrade Button
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+export function UpgradeButton({ priceSlug }: { priceSlug: string }) {
+  const { createCheckoutSession } = useBilling()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleUpgrade = async () => {
+    setIsLoading(true)
+    try {
+      await createCheckoutSession({
+        priceSlug,
+        successUrl: `${window.location.origin}/success`,
+        cancelUrl: window.location.href,
+        autoRedirect: true,
+      })
+    } catch (error) {
+      console.error('Checkout failed:', error)
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <button onClick={handleUpgrade} disabled={isLoading}>
+      {isLoading ? 'Loading...' : 'Upgrade'}
+    </button>
+  )
+}
+```
+
+## Server Integration
+
+This package requires a backend server running the Flowglad Server SDK. The provider automatically makes requests to `/api/flowglad` by default.
+
+Make sure you have set up the server routes:
+- See [Next.js SDK](/sdks/nextjs) for Next.js setup
+- See [Express SDK](/sdks/express) for Express setup  
+- See [Server SDK](/sdks/server) for custom integrations
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Server SDK" icon="server" href="/sdks/server">
+    Set up your backend server
+  </Card>
+  <Card title="Examples" icon="code" href="/sdks/examples">
+    See complete code examples
+  </Card>
+</CardGroup>
+

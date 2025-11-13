@@ -8,15 +8,13 @@ import { stripePaymentIntentSucceededTask } from '@/trigger/stripe/payment-inten
 import Stripe from 'stripe'
 import { getConnectedAccountOnboardingStatus } from './stripe'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectDiscounts } from '@/db/tableMethods/discountMethods'
-import { selectProducts } from '@/db/tableMethods/productMethods'
 import { BusinessOnboardingStatus } from '@/types'
 import { stripePaymentIntentPaymentFailedTask } from '@/trigger/stripe/payment-intent-payment-failed'
 import { stripePaymentIntentCanceledTask } from '@/trigger/stripe/payment-intent-canceled'
 import { setupIntentSucceededTask } from '@/trigger/stripe/setup-intent-succeeded'
 import { stripeChargeFailedTask } from '@/trigger/stripe/charge-failed'
 import { createTriggerIdempotencyKey } from './backendCore'
-import { idempotentSendPayoutNotification } from '@/trigger/notifications/send-payout-notification'
+import { idempotentSendOrganizationOnboardingCompletedNotification } from '@/trigger/notifications/send-organization-onboarding-completed-notification'
 
 export const handleStripePrimaryWebhookEvent = async (
   event: Stripe.Event
@@ -105,7 +103,14 @@ export const updateOrganizationOnboardingStatus = async (
         transaction
       )
 
+      if (!organization) {
+        throw new Error(
+          `Organization not found for stripeAccountId: ${stripeAccountId}`
+        )
+      }
+
       const newOnboardingStatus = onboardingStatus.onboardingStatus
+      const oldOnboardingStatus = organization.onboardingStatus
 
       /**
        * NOTE: Intentionally not setting payoutsEnabled here to manually vet organizations
@@ -121,12 +126,17 @@ export const updateOrganizationOnboardingStatus = async (
         transaction
       )
 
+      // Only send notification when status transitions to FullyOnboarded
       if (
         newOnboardingStatus ===
           BusinessOnboardingStatus.FullyOnboarded &&
+        oldOnboardingStatus !==
+          BusinessOnboardingStatus.FullyOnboarded &&
         !organization.payoutsEnabled
       ) {
-        await idempotentSendPayoutNotification(organization.id)
+        await idempotentSendOrganizationOnboardingCompletedNotification(
+          organization.id
+        )
       }
 
       return organization

@@ -12,79 +12,78 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 
-export const sendOrganizationSubscriptionCanceledNotificationTask =
-  task({
-    id: 'send-organization-subscription-canceled-notification',
-    run: async (
+const sendOrganizationSubscriptionCanceledNotificationTask = task({
+  id: 'send-organization-subscription-canceled-notification',
+  run: async (
+    {
+      subscription,
+    }: {
+      subscription: Subscription.Record
+    },
+    { ctx }
+  ) => {
+    logger.log(
+      'Sending organization subscription canceled notification',
       {
         subscription,
-      }: {
-        subscription: Subscription.Record
-      },
-      { ctx }
-    ) => {
-      logger.log(
-        'Sending organization subscription canceled notification',
-        {
-          subscription,
-          ctx,
-        }
-      )
-
-      const { organization, customer, usersAndMemberships } =
-        await adminTransaction(async ({ transaction }) => {
-          const organization = await selectOrganizationById(
-            subscription.organizationId,
-            transaction
-          )
-          const customer = await selectCustomerById(
-            subscription.customerId,
-            transaction
-          )
-          const usersAndMemberships =
-            await selectMembershipsAndUsersByMembershipWhere(
-              {
-                organizationId: subscription.organizationId,
-              },
-              transaction
-            )
-          return {
-            organization,
-            customer,
-            usersAndMemberships,
-          }
-        })
-
-      if (!organization || !customer) {
-        throw new Error('Organization or customer not found')
+        ctx,
       }
-      await safeSend({
-        from: 'Flowglad <notifications@flowglad.com>',
-        to: usersAndMemberships
-          .map(({ user }) => user.email)
-          .filter((email) => !isNil(email)),
-        subject: `Subscription Cancelled: ${customer.name} canceled ${subscription.name}`,
-        react: OrganizationSubscriptionCanceledNotificationEmail({
-          organizationName: organization.name,
-          subscriptionName: subscription.name!,
-          customerId: customer.id,
-          customerName: customer.name,
-          customerEmail: customer.email,
-          cancellationDate: new Date(
-            subscription.cancelScheduledAt ||
-              subscription.canceledAt ||
-              Date.now()
-          ),
-          livemode: subscription.livemode,
-        }),
+    )
+
+    const { organization, customer, usersAndMemberships } =
+      await adminTransaction(async ({ transaction }) => {
+        const organization = await selectOrganizationById(
+          subscription.organizationId,
+          transaction
+        )
+        const customer = await selectCustomerById(
+          subscription.customerId,
+          transaction
+        )
+        const usersAndMemberships =
+          await selectMembershipsAndUsersByMembershipWhere(
+            {
+              organizationId: subscription.organizationId,
+            },
+            transaction
+          )
+        return {
+          organization,
+          customer,
+          usersAndMemberships,
+        }
       })
 
-      return {
-        message:
-          'Organization subscription canceled notification sent successfully',
-      }
-    },
-  })
+    if (!organization || !customer) {
+      throw new Error('Organization or customer not found')
+    }
+    await safeSend({
+      from: 'Flowglad <notifications@flowglad.com>',
+      to: usersAndMemberships
+        .map(({ user }) => user.email)
+        .filter((email) => !isNil(email)),
+      subject: `Subscription Cancelled: ${customer.name} canceled ${subscription.name}`,
+      react: OrganizationSubscriptionCanceledNotificationEmail({
+        organizationName: organization.name,
+        subscriptionName: subscription.name!,
+        customerId: customer.id,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        cancellationDate: new Date(
+          subscription.cancelScheduledAt ||
+            subscription.canceledAt ||
+            Date.now()
+        ),
+        livemode: subscription.livemode,
+      }),
+    })
+
+    return {
+      message:
+        'Organization subscription canceled notification sent successfully',
+    }
+  },
+})
 
 export const idempotentSendOrganizationSubscriptionCanceledNotification =
   testSafeTriggerInvoker(

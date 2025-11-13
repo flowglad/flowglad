@@ -18,10 +18,6 @@ import { Event } from '@/db/schema/events'
 import { storeTelemetry } from '@/utils/redis'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { processTerminalPaymentIntent } from '@/subscriptions/billingRunHelpers'
-import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
-import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
-import { LedgerTransactionType } from '@/types'
-import { adminTransaction } from '@/db/adminTransaction'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -45,55 +41,17 @@ export const stripePaymentIntentSucceededTask = task({
         }
       )
 
-      // Check if billing period transition ledger command has already been created
-      // to avoid duplicate transaction execution
-      // FIXME: We are checking here to see if a ledger command has already been processed for this
-      // billing period. We should do that idepotency check inside of the ledger manager.
-      const hasExistingTransition = await adminTransaction(
-        async ({ transaction }) => {
-          const billingRun = await selectBillingRunById(
-            metadata.billingRunId,
-            transaction
-          )
-
-          const { subscription, billingPeriod } =
-            await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId(
-              billingRun.billingPeriodId,
-              transaction
-            )
-
-          const [existingTransition] = await selectLedgerTransactions(
-            {
-              subscriptionId: subscription.id,
-              type: LedgerTransactionType.BillingPeriodTransition,
-              initiatingSourceId: billingPeriod.id,
-            },
-            transaction
-          )
-
-          return !!existingTransition
-        },
-        {
-          livemode: result.billingRun.livemode,
-        }
-      )
-
-      // Only process terminal payment intent if transition hasn't been created yet
-      if (!hasExistingTransition) {
-        await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            const billingRun = await selectBillingRunById(
-              metadata.billingRunId,
-              transaction
-            )
-            return await processTerminalPaymentIntent(
-              payload.data.object,
-              billingRun,
-              transaction
-            )
-          }
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        const billingRun = await selectBillingRunById(
+          metadata.billingRunId,
+          transaction
         )
-      }
+        return await processTerminalPaymentIntent(
+          payload.data.object,
+          billingRun,
+          transaction
+        )
+      })
 
       return result
     }

@@ -549,8 +549,6 @@ describe('selectRevenueDataForOrganization', () => {
         livemode: true,
         isDefault: true,
         currency: CurrencyCode.USD,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
       })
       const priceB = await setupPrice({
         productId: productB.id,
@@ -560,8 +558,6 @@ describe('selectRevenueDataForOrganization', () => {
         livemode: true,
         isDefault: false,
         currency: CurrencyCode.USD,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
       })
 
       // Setup Purchases
@@ -765,8 +761,6 @@ describe('selectRevenueDataForOrganization', () => {
         livemode: true,
         isDefault: false,
         currency: CurrencyCode.USD,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
       })
 
       const purchaseB = await setupPurchase({

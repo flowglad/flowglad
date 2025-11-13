@@ -221,41 +221,6 @@ export const USAGE_LIMIT_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
         },
         {
           product: {
-            name: 'Pro',
-            default: false,
-            description: '$240/yr + 500 fast requests included',
-            slug: 'pro_yearly',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'pro_yearly',
-              isDefault: true,
-              name: 'Pro Plan (Yearly)',
-              usageMeterId: null,
-              trialPeriodDays: 14,
-              usageEventsPerUnit: null,
-              active: true,
-              intervalUnit: IntervalUnit.Year,
-              intervalCount: 1,
-              unitPrice: 24000,
-            },
-          ],
-          features: [
-            'pro_fast_requests',
-            'unlimited_slow_requests',
-            'unlimited_completions',
-            'background_agents',
-          ],
-          displayGroup: 'pro',
-          displayOrder: 2,
-        },
-        {
-          product: {
             name: 'Pro+',
             default: false,
             description: '$60/mo + 1,500 fast requests (3x) included',
@@ -434,11 +399,11 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
         {
           type: FeatureType.UsageCreditGrant,
           slug: 'gpt_5_thinking_plus_limit',
-          name: '3,000 GPT-5 Thinking Messages/Week',
+          name: '12,000 GPT-5 Thinking Messages/Month',
           description:
-            '3,000 GPT-5 Thinking messages per week (manual selection only)',
+            '12,000 GPT-5 Thinking messages per month (manual selection only)',
           usageMeterSlug: 'gpt_5_thinking_messages',
-          amount: 3000,
+          amount: 12000,
           renewalFrequency:
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
@@ -453,10 +418,10 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
         {
           type: FeatureType.UsageCreditGrant,
           slug: 'o3_limit',
-          name: '100 o3 Messages/Week',
-          description: '100 o3 messages per week',
+          name: '400 o3 Messages/Month',
+          description: '400 o3 messages per month',
           usageMeterSlug: 'o3_messages',
-          amount: 100,
+          amount: 400,
           renewalFrequency:
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
@@ -471,10 +436,10 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
         {
           type: FeatureType.UsageCreditGrant,
           slug: 'o4_mini_limit',
-          name: '300 o4-mini Messages/Day',
-          description: '300 o4-mini messages per day',
+          name: '9,000 o4-mini Messages/Month',
+          description: '9,000 o4-mini messages per month',
           usageMeterSlug: 'o4_mini_messages',
-          amount: 300,
+          amount: 9000,
           renewalFrequency:
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
@@ -489,10 +454,10 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
         {
           type: FeatureType.UsageCreditGrant,
           slug: 'o4_mini_high_limit',
-          name: '100 o4-mini-high Messages/Day',
-          description: '100 o4-mini-high messages per day',
+          name: '3,000 o4-mini-high Messages/Month',
+          description: '3,000 o4-mini-high messages per month',
           usageMeterSlug: 'o4_mini_high_messages',
-          amount: 100,
+          amount: 3000,
           renewalFrequency:
             FeatureUsageGrantFrequency.EveryBillingPeriod,
           active: true,
@@ -672,7 +637,7 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             name: 'Plus',
             default: false,
             description:
-              '$20/mo with GPT-5 Thinking (3K/wk), o3 (100/wk), o4-mini (300/day), Agent (40/mo), 32K context',
+              '$20/mo with GPT-5 Thinking (12K/mo), o3 (400/mo), o4-mini (9K/mo), Agent (40/mo), 32K context',
             slug: 'plus',
             active: true,
             imageURL: null,
@@ -845,7 +810,7 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             name: 'Business',
             default: false,
             description:
-              '$30/user/mo with GPT-5 Thinking (3K/wk), o3 (100/wk), o4-mini (300/day), workspace & admin',
+              '$30/user/mo with GPT-5 Thinking (12K/mo), o3 (400/mo), o4-mini (9K/mo), workspace & admin',
             slug: 'business_monthly',
             active: true,
             imageURL: null,
@@ -1274,41 +1239,6 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
         },
         {
           product: {
-            name: 'Basic',
-            default: false,
-            description: '$96/yr + ~200 fast generations',
-            slug: 'basic_yearly',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'basic_yearly',
-              isDefault: true,
-              name: 'Basic Plan (Yearly)',
-              usageMeterId: null,
-              trialPeriodDays: null,
-              usageEventsPerUnit: null,
-              active: true,
-              intervalUnit: IntervalUnit.Year,
-              intervalCount: 1,
-              unitPrice: 9600,
-            },
-          ],
-          features: [
-            'basic_fast_generations',
-            'general_commercial_terms',
-            'optional_credit_top_ups',
-            'use_within_upgraded_images',
-          ],
-          displayGroup: 'basic',
-          displayOrder: 2,
-        },
-        {
-          product: {
             name: 'Standard',
             default: false,
             description:
@@ -1344,44 +1274,6 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           ],
           displayGroup: 'standard',
           displayOrder: 1,
-        },
-        {
-          product: {
-            name: 'Standard',
-            default: false,
-            description:
-              '$288/yr + 360 fast generations + 30 min HD video',
-            slug: 'standard_yearly',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'standard_yearly',
-              isDefault: true,
-              name: 'Standard Plan (Yearly)',
-              usageMeterId: null,
-              trialPeriodDays: null,
-              usageEventsPerUnit: null,
-              active: true,
-              intervalUnit: IntervalUnit.Year,
-              intervalCount: 1,
-              unitPrice: 28800,
-            },
-          ],
-          features: [
-            'standard_fast_generations',
-            'standard_hd_video_minutes',
-            'general_commercial_terms',
-            'optional_credit_top_ups',
-            'unlimited_relaxed_images',
-            'use_within_upgraded_images',
-          ],
-          displayGroup: 'standard',
-          displayOrder: 2,
         },
         {
           product: {
@@ -1425,46 +1317,6 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
         },
         {
           product: {
-            name: 'Pro',
-            default: false,
-            description:
-              '$576/yr + 750 fast generations + 60 min HD video + Stealth',
-            slug: 'pro_yearly',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'pro_yearly',
-              isDefault: true,
-              name: 'Pro Plan (Yearly)',
-              usageMeterId: null,
-              trialPeriodDays: null,
-              usageEventsPerUnit: null,
-              active: true,
-              intervalUnit: IntervalUnit.Year,
-              intervalCount: 1,
-              unitPrice: 57600,
-            },
-          ],
-          features: [
-            'pro_fast_generations',
-            'pro_hd_video_minutes',
-            'general_commercial_terms',
-            'optional_credit_top_ups',
-            'unlimited_relaxed_images',
-            'unlimited_relaxed_sd_video',
-            'stealth_mode',
-            'use_within_upgraded_images',
-          ],
-          displayGroup: 'pro',
-          displayOrder: 2,
-        },
-        {
-          product: {
             name: 'Mega',
             default: false,
             description:
@@ -1502,46 +1354,6 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           ],
           displayGroup: 'mega',
           displayOrder: 1,
-        },
-        {
-          product: {
-            name: 'Mega',
-            default: false,
-            description:
-              '$1,152/yr + 900+ fast generations + 120 min HD video + Stealth',
-            slug: 'mega_yearly',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          prices: [
-            {
-              type: PriceType.Subscription,
-              slug: 'mega_yearly',
-              isDefault: true,
-              name: 'Mega Plan (Yearly)',
-              usageMeterId: null,
-              trialPeriodDays: null,
-              usageEventsPerUnit: null,
-              active: true,
-              intervalUnit: IntervalUnit.Year,
-              intervalCount: 1,
-              unitPrice: 115200,
-            },
-          ],
-          features: [
-            'mega_fast_generations',
-            'mega_hd_video_minutes',
-            'general_commercial_terms',
-            'optional_credit_top_ups',
-            'unlimited_relaxed_images',
-            'unlimited_relaxed_sd_video',
-            'stealth_mode',
-            'use_within_upgraded_images',
-          ],
-          displayGroup: 'mega',
-          displayOrder: 2,
         },
         {
           product: {
@@ -2703,40 +2515,6 @@ export const AI_TOKEN_USAGE_TEMPLATE: PricingModelTemplate = {
       },
       {
         product: {
-          name: 'Starter',
-          default: false,
-          description: '$228/yr with 100K tokens included',
-          slug: 'starter_yearly',
-          active: true,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-        },
-        prices: [
-          {
-            type: PriceType.Subscription,
-            slug: 'starter_yearly',
-            isDefault: true,
-            name: 'Starter Plan (Yearly)',
-            usageMeterId: null,
-            trialPeriodDays: 14,
-            usageEventsPerUnit: null,
-            active: true,
-            intervalUnit: IntervalUnit.Year,
-            intervalCount: 1,
-            unitPrice: 22800,
-          },
-        ],
-        features: [
-          'starter_tokens',
-          'api_access',
-          'standard_support',
-        ],
-        displayGroup: 'starter',
-        displayOrder: 2,
-      },
-      {
-        product: {
           name: 'Pro',
           default: false,
           description: '$79/mo with 500K tokens + priority support',
@@ -2772,41 +2550,6 @@ export const AI_TOKEN_USAGE_TEMPLATE: PricingModelTemplate = {
       },
       {
         product: {
-          name: 'Pro',
-          default: false,
-          description: '$948/yr with 500K tokens + priority support',
-          slug: 'pro_yearly',
-          active: true,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-        },
-        prices: [
-          {
-            type: PriceType.Subscription,
-            slug: 'pro_yearly',
-            isDefault: true,
-            name: 'Pro Plan (Yearly)',
-            usageMeterId: null,
-            trialPeriodDays: 14,
-            usageEventsPerUnit: null,
-            active: true,
-            intervalUnit: IntervalUnit.Year,
-            intervalCount: 1,
-            unitPrice: 94800,
-          },
-        ],
-        features: [
-          'pro_tokens',
-          'api_access',
-          'rate_limiting',
-          'priority_support',
-        ],
-        displayGroup: 'pro',
-        displayOrder: 2,
-      },
-      {
-        product: {
           name: 'Business',
           default: false,
           description: '$299/mo with 2M tokens + dedicated support',
@@ -2839,41 +2582,6 @@ export const AI_TOKEN_USAGE_TEMPLATE: PricingModelTemplate = {
         ],
         displayGroup: 'business',
         displayOrder: 1,
-      },
-      {
-        product: {
-          name: 'Business',
-          default: false,
-          description: '$3,588/yr with 2M tokens + dedicated support',
-          slug: 'business_yearly',
-          active: true,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-        },
-        prices: [
-          {
-            type: PriceType.Subscription,
-            slug: 'business_yearly',
-            isDefault: true,
-            name: 'Business Plan (Yearly)',
-            usageMeterId: null,
-            trialPeriodDays: 14,
-            usageEventsPerUnit: null,
-            active: true,
-            intervalUnit: IntervalUnit.Year,
-            intervalCount: 1,
-            unitPrice: 358800,
-          },
-        ],
-        features: [
-          'business_tokens',
-          'api_access',
-          'rate_limiting',
-          'dedicated_support',
-        ],
-        displayGroup: 'business',
-        displayOrder: 2,
       },
       {
         product: {

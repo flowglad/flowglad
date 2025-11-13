@@ -109,11 +109,8 @@ describe('Pay as You Go Workflow E2E', () => {
       name: 'Paid Price',
       type: PriceType.SinglePayment,
       unitPrice: 10,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       livemode: true,
       isDefault: true,
-      usageMeterId: usageMeter.id,
     })
     const usagePrice = await setupPrice({
       productId: paidProduct.id,

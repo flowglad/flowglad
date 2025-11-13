@@ -62,6 +62,9 @@ export const createDiscount = protectedProcedure
           },
           transaction
         )
+      },
+      {
+        apiKey: ctx.apiKey,
       }
     )
     return { discount }

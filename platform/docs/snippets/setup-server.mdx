@@ -1,0 +1,178 @@
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/server
+```
+
+```bash yarn
+yarn add @flowglad/server
+```
+
+```bash bun
+bun add @flowglad/server
+```
+
+</CodeGroup>
+
+## Quick Start
+
+### 1. Set Up Environment Variables
+
+```bash .env
+FLOWGLAD_SECRET_KEY="sk_test_..."
+```
+
+### 2. Create a FlowgladServer Instance
+
+```ts
+import { FlowgladServer } from '@flowglad/server'
+
+export const flowgladServer = new FlowgladServer({
+  // Optional: apiKey defaults to FLOWGLAD_SECRET_KEY
+  // apiKey: process.env.FLOWGLAD_SECRET_KEY,
+  // Optional: baseURL defaults to https://app.flowglad.com
+  // baseURL: 'https://app.flowglad.com',
+  getRequestingCustomer: async () => ({
+    externalId: 'user-123',
+    name: 'John Doe',
+    email: 'john@example.com',
+  }),
+})
+```
+
+<Info>
+Native constructor params are available for popular auth providers including Supabase Auth, Clerk, Next Auth. Read more about auth adaptors [here](/sdks/auth-adaptors)
+</Info>
+
+<CodeGroup>
+
+```ts Supabase Auth
+import { FlowgladServer } from '@flowglad/server'
+// or wherever you initialize your supabase client
+import { createClient } from '@/utils/supabase'
+
+export const flowgladServer = new FlowgladServer({
+  supabaseAuth: {
+    client: createClient
+  },
+})
+```
+
+
+```ts Clerk
+import { currentUser } from '@clerk/nextjs/server'
+import { FlowgladServer } from '@flowglad/server'
+
+export const flowgladServer = new FlowgladServer({
+  clerk: {
+    currentUser,
+  },
+})
+```
+
+
+```ts Next Auth
+import { auth } from '@/auth' // your initialized, configured NextAuth client
+import { FlowgladServer } from '@flowglad/server'
+
+export const flowgladServer = new FlowgladServer({
+  nextAuth: {
+    auth,
+  },
+})
+```
+
+
+```ts Custom Auth
+import { FlowgladServer } from '@flowglad/server'
+// or whatever function you use to retrieve your session
+import { getBespokeSession } from '@/utils/auth'
+
+// if you can load sessions using an enclosed function
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    const customSessionObject = await getBespokeSession()
+    return {
+      externalId: customSessionObject.id,
+      name: customSessionObject.name,
+      email: customSessionObject.email,
+    }
+  }
+})
+
+// if you derive your session from a request / cookies / headers object:
+const flowgladServer = (request: Request) => {
+  return new FlowgladServer({
+  getRequestingCustomer: async () => {
+    const customSessionObject = await getBespokeSession(request)
+    return {
+      externalId: customSessionObject.id,
+      name: customSessionObject.name,
+      email: customSessionObject.email,
+    }
+  }
+})
+}
+```
+
+```ts Custom Auth Example: Firebase
+import { FlowgladServer } from '@flowglad/server'
+import admin from 'firebase-admin'
+
+admin.initializeApp()
+
+export const flowgladServer = (request: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const token = request.headers.authorization?.replace('Bearer ', '')
+
+      if (!token) return null
+
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token)
+
+        return {
+          externalId: decodedToken.uid,
+          name: decodedToken.name || decodedToken.email!,
+          email: decodedToken.email!,
+        }
+      } catch (error) {
+        return null
+      }
+    }
+  })
+```
+
+</CodeGroup>
+
+
+### 3. Call Server Methods
+
+```ts
+// Fetch billing details (customers, subscriptions, invoices, etc.)
+const billing = await flowgladServer.getBilling()
+
+// Ensure the Flowglad customer exists
+const customer = await flowgladServer.findOrCreateCustomer()
+
+// Create a hosted checkout session
+const checkoutSession = await flowgladServer.createCheckoutSession({
+  priceId: 'price_123',
+  successUrl: 'https://example.com/success',
+  cancelUrl: 'https://example.com/cancel',
+})
+
+// Check feature access for gating premium functionality
+const hasPremium = await flowgladServer.checkFeatureAccess('premium_feature')
+
+// Record metered usage
+await flowgladServer.createUsageEvent({
+  priceId: 'usage_price_id',
+  amount: 1,
+  transactionId: 'idempotency-key',
+})
+```
+
+

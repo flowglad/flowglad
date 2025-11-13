@@ -37,10 +37,10 @@
           {
             "group": "Features",
             "pages": [
+              "features/pricing-models",
               "features/products",
               "features/prices",
               "features/discounts",
-              "features/pricing-models",
               "features/subscriptions",
               "features/checkout-sessions",
               "features/invoices",
@@ -54,6 +54,39 @@
               "principles",
               "data-model",
               "countries"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "sdks/introduction",
+              "sdks/setup",
+              "sdks/auth-adaptors",
+              "sdks/pricing-models-products",
+              "sdks/checkout-sessions",
+              "sdks/feature-access-usage",
+              "sdks/customer-purchases",
+              "sdks/subscription-management"
+            ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              "sdks/nextjs",
+              "sdks/react",
+              "sdks/server",
+              "sdks/express"
+            ]
+          },
+          {
+            "group": "Additional Resources",
+            "pages": [
+              "sdks/examples"
             ]
           }
         ]

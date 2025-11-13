@@ -22,7 +22,7 @@ interface PaymentFailedNotificationData {
   livemode: boolean
 }
 
-export const sendOrganizationPaymentFailedNotificationTask = task({
+const sendOrganizationPaymentFailedNotificationTask = task({
   id: 'send-organization-payment-failed-notification',
   run: async (
     {
