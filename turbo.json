@@ -13,15 +13,15 @@
         "dependsOn": ["^build:declarations"],
         "outputs": ["dist/types/**"]
       },
-      "yalc:publish": {
-        "dependsOn": ["^yalc:publish"],
-        "outputs": [],
-        "cache": false
-      },
       "lint": {
         "dependsOn": ["^lint"],
         "cache": false,
         "persistent": true
+      },
+      "dev": {
+        "dependsOn": ["^dev"],
+        "cache": false,
+        "persistent": true
       }
     }
-  }
+}

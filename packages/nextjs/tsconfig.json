@@ -8,7 +8,14 @@
       "strict": true,
       "esModuleInterop": true,
       "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true
+      "forceConsistentCasingInFileNames": true,
+      "baseUrl": ".",
+      "paths": {
+        "@flowglad/react": ["../react/src/index.ts"],
+        "@flowglad/shared": ["../shared/src/index.ts"],
+        "@flowglad/server": ["../server/src/index.ts"],
+        "@flowglad/types": ["../types/src/index.ts"]
+      }
     },
     "include": ["src"]
   }

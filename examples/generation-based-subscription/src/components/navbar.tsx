@@ -98,7 +98,6 @@ export function Navbar() {
   // Multiple subscriptions per customer can be enabled in dashboard > settings
   const currentSubscription = billing.currentSubscriptions?.[0];
 
-
   // Check if subscription is scheduled for cancellation
   // Flowglad subscriptions have: status === "cancellation_scheduled" or cancelScheduledAt property
   const isCancelled =
