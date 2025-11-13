@@ -1,0 +1,168 @@
+isDefault: true
+name: "Usage-Limit Subscription"
+features:
+  - type: "usage_credit_grant"
+    slug: "hobby_trial_requests"
+    name: "250 Fast Premium Requests"
+    description: "250 fast premium requests during 14-day trial"
+    amount: 250
+    renewalFrequency: "once"
+    active: true
+    usageMeterSlug: "fast_premium_requests"
+  - type: "usage_credit_grant"
+    slug: "pro_fast_requests"
+    name: "500 Fast Premium Requests"
+    description: "500 fast premium requests included per month"
+    amount: 500
+    renewalFrequency: "every_billing_period"
+    active: true
+    usageMeterSlug: "fast_premium_requests"
+  - type: "usage_credit_grant"
+    slug: "pro_plus_fast_requests"
+    name: "1,500 Fast Premium Requests"
+    description: "1,500 fast premium requests included per month (3x)"
+    amount: 1500
+    renewalFrequency: "every_billing_period"
+    active: true
+    usageMeterSlug: "fast_premium_requests"
+  - type: "usage_credit_grant"
+    slug: "ultra_fast_requests"
+    name: "10,000 Fast Premium Requests"
+    description: "10,000 fast premium requests included per month (20x)"
+    amount: 10000
+    renewalFrequency: "every_billing_period"
+    active: true
+    usageMeterSlug: "fast_premium_requests"
+  - type: "toggle"
+    slug: "unlimited_slow_requests"
+    name: "Unlimited Slow Premium Requests"
+    description: "Unlimited slow premium model requests"
+    active: true
+  - type: "toggle"
+    slug: "unlimited_completions"
+    name: "Unlimited Code Completions"
+    description: "Unlimited tab completions"
+    active: true
+  - type: "toggle"
+    slug: "background_agents"
+    name: "Background Agents"
+    description: "Background agents for proactive suggestions"
+    active: true
+  - type: "toggle"
+    slug: "priority_access"
+    name: "Priority Access"
+    description: "Priority access to new features"
+    active: true
+products:
+  - product:
+      name: "Fast Request Overages"
+      description: "Additional fast requests billed at cost after included credits exhausted"
+      active: true
+      singularQuantityLabel: "request"
+      pluralQuantityLabel: "requests"
+      default: false
+      slug: "fast_request_overages"
+    prices:
+      - intervalUnit: "month"
+        name: "Fast Request Overage"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 10
+        usageEventsPerUnit: 1
+        active: true
+        slug: "fast_request_overage"
+        usageMeterSlug: "fast_premium_requests"
+    features: []
+  - product:
+      name: "Hobby"
+      description: "Free with 14-day Pro trial (250 fast requests)"
+      active: true
+      default: true
+      slug: "hobby"
+    prices:
+      - intervalUnit: "month"
+        name: "Hobby Plan (Free)"
+        intervalCount: 1
+        type: "subscription"
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: null
+        active: true
+        slug: "hobby_monthly"
+        usageMeterId: null
+    features:
+      - "hobby_trial_requests"
+  - product:
+      name: "Pro"
+      description: "$20/mo + 500 fast requests included (overages at cost)"
+      active: true
+      default: false
+      slug: "pro_monthly"
+    prices:
+      - intervalUnit: "month"
+        name: "Pro Plan (Monthly)"
+        intervalCount: 1
+        type: "subscription"
+        trialPeriodDays: 14
+        isDefault: true
+        unitPrice: 2000
+        usageEventsPerUnit: null
+        active: true
+        slug: "pro_monthly"
+        usageMeterId: null
+    features:
+      - "pro_fast_requests"
+      - "unlimited_slow_requests"
+      - "unlimited_completions"
+      - "background_agents"
+  - product:
+      name: "Pro+"
+      description: "$60/mo + 1,500 fast requests (3x) included"
+      active: true
+      default: false
+      slug: "pro_plus"
+    prices:
+      - intervalUnit: "month"
+        name: "Pro+ Plan (Monthly)"
+        intervalCount: 1
+        type: "subscription"
+        isDefault: true
+        unitPrice: 6000
+        usageEventsPerUnit: null
+        active: true
+        slug: "pro_plus_monthly"
+        usageMeterId: null
+    features:
+      - "pro_plus_fast_requests"
+      - "unlimited_slow_requests"
+      - "unlimited_completions"
+      - "background_agents"
+  - product:
+      name: "Ultra"
+      description: "$200/mo + 10,000 fast requests (20x) included"
+      active: true
+      default: false
+      slug: "ultra"
+    prices:
+      - intervalUnit: "month"
+        name: "Ultra Plan (Monthly)"
+        intervalCount: 1
+        type: "subscription"
+        isDefault: true
+        unitPrice: 20000
+        usageEventsPerUnit: null
+        active: true
+        slug: "ultra_monthly"
+        usageMeterId: null
+    features:
+      - "ultra_fast_requests"
+      - "unlimited_slow_requests"
+      - "unlimited_completions"
+      - "background_agents"
+      - "priority_access"
+usageMeters:
+  - name: "Fast Premium Requests"
+    slug: "fast_premium_requests"
+    aggregationType: "sum"
