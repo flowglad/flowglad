@@ -107,10 +107,10 @@ export function HomeClient() {
   const hasFastRequestsAccess = fastRequestsBalance != null;
 
   // Get feature access
-  const hasSlowRequests = !!billing.checkFeatureAccess('unlimited_slow_requests');
-  const hasCompletions = !!billing.checkFeatureAccess('unlimited_completions');
-  const hasBackgroundAgents = !!billing.checkFeatureAccess('background_agents');
-  const hasPriorityAccess = !!billing.checkFeatureAccess('priority_access');
+  const hasSlowRequests = billing.checkFeatureAccess('unlimited_slow_requests');
+  const hasCompletions = billing.checkFeatureAccess('unlimited_completions');
+  const hasBackgroundAgents = billing.checkFeatureAccess('background_agents');
+  const hasPriorityAccess = billing.checkFeatureAccess('priority_access');
 
   // Calculate progress for usage meters - get slug from price using priceId
   const fastRequestsRemaining =
