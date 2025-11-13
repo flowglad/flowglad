@@ -59,6 +59,39 @@
         ]
       },
       {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "sdks/introduction",
+              "sdks/setup",
+              "sdks/auth-adaptors",
+              "sdks/pricing-models-products",
+              "sdks/checkout-sessions",
+              "sdks/feature-access-usage",
+              "sdks/customer-purchases",
+              "sdks/subscription-management"
+            ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              "sdks/nextjs",
+              "sdks/react",
+              "sdks/server",
+              "sdks/express"
+            ]
+          },
+          {
+            "group": "Additional Resources",
+            "pages": [
+              "sdks/examples"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "API Reference",
         "openapi": {
           "source": "https://app.flowglad.com/api/openapi",

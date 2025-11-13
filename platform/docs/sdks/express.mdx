@@ -1,0 +1,358 @@
+---
+title: "@flowglad/express"
+description: "Express middleware and route handlers for Flowglad integration"
+---
+
+import ExpressSetup from '/snippets/setup-express.mdx'
+
+<Info>
+  NPM Package: [@flowglad/express](https://www.npmjs.com/package/@flowglad/express)
+</Info>
+
+## Overview
+
+The Express SDK provides middleware and route handlers for integrating Flowglad into your Express.js applications. It works seamlessly with the Flowglad Server SDK to handle billing operations.
+
+<ExpressSetup />
+
+## Key Features
+
+- **Express Router**: Pre-configured router for easy mounting
+- **Route Handler**: Flexible handler for custom routing
+- **Request Context**: Automatic customer context from requests
+- **Error Handling**: Built-in error handling for billing operations
+- **Type Safety**: Full TypeScript support
+
+## API Reference
+
+### createFlowgladExpressRouter
+
+Creates an Express router with all Flowglad routes pre-configured.
+
+#### Parameters
+
+```typescript
+interface CreateFlowgladExpressRouterOptions {
+  flowgladServerConstructor: (
+    req: Request
+  ) => Promise<FlowgladServer> | FlowgladServer
+  middleware?: RequestHandler[]
+  beforeRequest?: () => Promise<void>
+  afterRequest?: () => Promise<void>
+  onError?: (error: unknown) => void
+}
+```
+
+#### Returns
+
+- `Router` - An Express router instance
+
+#### Example
+
+```ts
+import express, { type Request } from 'express'
+import { createFlowgladExpressRouter } from '@flowglad/express'
+import { FlowgladServer } from '@flowglad/server'
+import { requireAuth } from './middleware/auth'
+
+const app = express()
+
+const flowgladServerConstructor = (req: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const user = req.user as {
+        id: string
+        name: string
+        email: string
+      } | null
+
+      if (!user) {
+        return null
+      }
+
+      return {
+        externalId: user.id,
+        name: user.name,
+        email: user.email,
+      }
+    },
+  })
+
+// Mount at /api/flowglad
+app.use(
+  '/api/flowglad',
+  createFlowgladExpressRouter({
+    middleware: [requireAuth],
+    flowgladServerConstructor,
+  })
+)
+
+// Or mount at a different path
+app.use(
+  '/billing',
+  createFlowgladExpressRouter({ flowgladServerConstructor })
+)
+```
+
+### createExpressRouteHandler
+
+Creates a route handler function for custom routing setups.
+
+#### Parameters
+
+```typescript
+interface CreateFlowgladExpressRouteHandlerOptions {
+  flowgladServer: FlowgladServer
+  beforeRequest?: () => Promise<void>
+  afterRequest?: () => Promise<void>
+  onError?: (error: unknown) => void
+}
+```
+
+#### Returns
+
+- `RequestHandler` - An Express request handler
+
+#### Example
+
+```ts
+import express from 'express'
+import { createExpressRouteHandler } from '@flowglad/express'
+import { FlowgladServer } from '@flowglad/server'
+
+const app = express()
+
+const flowgladServer = new FlowgladServer({ /* ... */ })
+const flowgladHandler = createExpressRouteHandler({ flowgladServer })
+
+// Handle all HTTP methods
+app.all('/api/flowglad/*', flowgladHandler)
+
+// Or handle specific methods
+app.get('/api/flowglad/*', flowgladHandler)
+app.post('/api/flowglad/*', flowgladHandler)
+```
+
+## Integration with Authentication
+
+### Passport.js Example
+
+```ts src/utils/flowglad.ts
+import { FlowgladServer } from '@flowglad/server'
+import type { Request } from 'express'
+
+export const flowgladServerConstructor = (req: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const user = req.user as {
+        id: string
+        name: string
+        email: string
+      } | undefined
+
+      if (!user) {
+        return null
+      }
+
+      return {
+        externalId: user.id,
+        name: user.name,
+        email: user.email,
+      }
+    },
+  })
+```
+
+### JWT Auth Example
+
+```ts src/utils/flowglad.ts
+import { FlowgladServer } from '@flowglad/server'
+import type { Request } from 'express'
+import jwt from 'jsonwebtoken'
+
+export const flowgladServerConstructor = (req: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const token =
+        req.headers.authorization?.replace('Bearer ', '')
+
+      if (!token) {
+        return null
+      }
+
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+          userId: string
+          name: string
+          email: string
+        }
+
+        return {
+          externalId: decoded.userId,
+          name: decoded.name,
+          email: decoded.email,
+        }
+      } catch (error) {
+        return null
+      }
+    },
+  })
+```
+
+### Session-Based Auth Example
+
+```ts src/utils/flowglad.ts
+import { FlowgladServer } from '@flowglad/server'
+import type { Request } from 'express'
+
+export const flowgladServerConstructor = (req: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      if (!req.session?.userId) {
+        return null
+      }
+
+      // Fetch user from database
+      const user = await db.users.findById(req.session.userId)
+
+      if (!user) {
+        return null
+      }
+
+      return {
+        externalId: user.id,
+        name: user.name,
+        email: user.email,
+      }
+    },
+  })
+```
+
+## Complete Example
+
+Here's a full Express application with Flowglad integration:
+
+```ts src/index.ts
+import express, { type Request } from 'express'
+import session from 'express-session'
+import { createFlowgladExpressRouter } from '@flowglad/express'
+import { FlowgladServer } from '@flowglad/server'
+
+const app = express()
+
+// Middleware
+app.use(express.json())
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET!,
+    resave: false,
+    saveUninitialized: false,
+  })
+)
+
+// Create Flowglad server constructor
+const flowgladServerConstructor = (req: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      if (!req.session?.userId) {
+        return null
+      }
+
+      return {
+        externalId: req.session.userId,
+        name: req.session.userName,
+        email: req.session.userEmail,
+      }
+    },
+  })
+
+// Mount Flowglad routes
+app.use(
+  '/api/flowglad',
+  createFlowgladExpressRouter({ flowgladServerConstructor })
+)
+
+// Your other routes
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' })
+})
+
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
+})
+```
+
+## Middleware Configuration
+
+### CORS
+
+If you need CORS support, add it before the Flowglad routes:
+
+```ts
+import cors from 'cors'
+
+app.use(
+  '/api/flowglad',
+  cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+  })
+)
+
+app.use(
+  '/api/flowglad',
+  createFlowgladExpressRouter({ flowgladServerConstructor })
+)
+```
+
+### Custom Middleware
+
+Add custom middleware before the Flowglad routes:
+
+```ts
+import { requireAuth } from './middleware/auth'
+
+// Protect Flowglad routes with authentication
+app.use('/api/flowglad', requireAuth)
+app.use(
+  '/api/flowglad',
+  createFlowgladExpressRouter({ flowgladServerConstructor })
+)
+```
+
+## Error Handling
+
+The Express SDK includes built-in error handling, but you can add custom error handlers:
+
+```ts
+app.use(
+  '/api/flowglad',
+  createFlowgladExpressRouter({ flowgladServerConstructor })
+)
+
+// Custom error handler
+app.use((err, req, res, next) => {
+  console.error('Flowglad error:', err)
+  res.status(500).json({
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+  })
+})
+```
+
+## Example Project
+
+For a complete working example, see our [Express playground project](https://github.com/flowglad/flowglad/tree/main/playground/express).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Server SDK" icon="server" href="/sdks/server">
+    Learn about server-side capabilities
+  </Card>
+  <Card title="Examples" icon="code" href="/sdks/examples">
+    Browse more code examples
+  </Card>
+</CardGroup>
+

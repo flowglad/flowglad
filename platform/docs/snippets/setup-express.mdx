@@ -1,0 +1,91 @@
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/express
+```
+
+```bash yarn
+yarn add @flowglad/express
+```
+
+```bash bun
+bun add @flowglad/express
+```
+
+</CodeGroup>
+
+## Quick Start
+
+### 1. Set Up Environment Variables
+
+```bash .env
+FLOWGLAD_SECRET_KEY="sk_test_..."
+```
+
+### 2. Create Flowglad Server Instance
+
+```ts src/utils/flowglad.ts
+import { FlowgladServer } from '@flowglad/express'
+import { Request } from 'express'
+
+// Factory that builds a FlowgladServer for each request
+export const flowgladServer = (req: Request) => {
+  const query = req.query
+  return new FlowgladServer({
+    // Pull user identity from the current request/session
+    getRequestingCustomer: async () => {
+      return {
+        externalId: query.externalId as string,
+        name: query.name as string,
+        email: query.email as string,
+      }
+    },
+  })
+}
+```
+
+### 3. Add Routes to Your Express App
+
+<CodeGroup>
+
+```ts Using Router (Recommended)
+import express from 'express'
+import { createFlowgladExpressRouter } from '@flowglad/express'
+import { flowgladServer } from './utils/flowglad'
+
+const app = express()
+
+// Mount Flowglad routes at /api/flowglad
+app.use(
+  '/api/flowglad',
+  createFlowgladExpressRouter({
+    flowgladServerConstructor: flowgladServer,
+  })
+)
+
+app.listen(3000, () => {
+  console.log('Server running on port 3000')
+})
+```
+
+```ts Using Route Handler
+import express from 'express'
+import { createExpressRouteHandler } from '@flowglad/express'
+import { flowgladServer } from './utils/flowglad'
+
+const app = express()
+
+// Handle all Flowglad routes
+app.all('/api/flowglad/*', async (req, res) => {
+  const handler = createExpressRouteHandler({
+    flowgladServer: await flowgladServer(req),
+  })
+  return handler(req, res)
+})
+
+app.listen(3000)
+```
+
+</CodeGroup>

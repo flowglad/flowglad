@@ -1,0 +1,153 @@
+---
+title: "Auth Adapters"
+description: "Configure FlowgladServer with the auth provider your app already uses."
+---
+
+Flowglad ships with convenience adapters so you can construct the `FlowgladServer` with the authenticated customer from popular auth providers or from your own session logic. The examples below assume a Next.js project, but the same patterns apply anywhere you can create a `FlowgladServer` instance.
+
+Flowglad provides adapters for these auth providers:
+- Supabase Auth
+- Clerk
+- NextAuth
+
+## Supabase Auth
+
+<CodeGroup>
+
+```ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+import { createClient } from '@/utils/supabase'
+
+export const flowgladServer = new FlowgladServer({
+  supabaseAuth: {
+    // this must be the supabase server client
+    client: createClient,
+  },
+})
+```
+
+</CodeGroup>
+
+## Clerk
+
+<CodeGroup>
+
+```ts
+import { currentUser } from '@clerk/nextjs/server'
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  clerk: {
+    currentUser,
+  },
+})
+```
+
+</CodeGroup>
+
+## NextAuth
+
+<CodeGroup>
+
+```ts
+import { auth } from '@/auth' // your configured NextAuth client
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  nextAuth: {
+    auth,
+  },
+})
+```
+
+</CodeGroup>
+
+## Custom session loaders
+
+When you already have a helper that returns the signed-in user, pass it through `getRequestingCustomer`.
+
+<CodeGroup>
+
+```ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+import { getBespokeSession } from '@/utils/auth'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    const session = await getBespokeSession()
+    if (!session) return null
+
+    return {
+      externalId: session.id,
+      name: session.name,
+      email: session.email,
+    }
+  },
+})
+```
+
+</CodeGroup>
+
+If you need to inspect the incoming request, derive the customer inside a factory that receives the request object.
+
+<CodeGroup>
+
+```ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+import { getBespokeSession } from '@/utils/auth'
+
+export const createFlowgladServer = (request: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const session = await getBespokeSession(request)
+      if (!session) return null
+
+      return {
+        externalId: session.id,
+        name: session.name,
+        email: session.email,
+      }
+    },
+  })
+```
+
+</CodeGroup>
+
+## Custom auth example: Firebase
+
+<CodeGroup>
+
+```ts
+import { FlowgladServer } from '@flowglad/server'
+import admin from 'firebase-admin'
+
+admin.initializeApp()
+
+export const flowgladServer = (request: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const token = request.headers.get('authorization')?.replace('Bearer ', '')
+
+      if (!token) return null
+
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token)
+
+        return {
+          externalId: decodedToken.uid,
+          name: decodedToken.name || decodedToken.email!,
+          email: decodedToken.email!,
+        }
+      } catch (error) {
+        return null
+      }
+    }
+  })
+```
+
+</CodeGroup>
+
+## What happens at runtime?
+
+Each adapter populates the customer payload that Flowglad needs to create purchases, subscriptions, and usage. Returning `null` simply means the request is unauthenticated. For edge or serverless environments, make sure the adapter you choose works with the runtime (e.g. Supabase Auth helpers are edge-ready).
+

@@ -1,0 +1,266 @@
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/nextjs
+```
+
+```bash yarn
+yarn add @flowglad/nextjs
+```
+
+```bash bun
+bun add @flowglad/nextjs
+```
+
+</CodeGroup>
+
+## Requirements
+
+- React 18 or 19
+- Next.js 14 or 15
+
+## Quick Start
+
+### 1. Set Up Environment Variables
+
+Add your Flowglad API key to your environment:
+
+```bash .env
+FLOWGLAD_SECRET_KEY="sk_test_..."
+```
+
+### 2. Create Server Client
+
+Create a Flowglad server instance in a shared file:
+
+<CodeGroup>
+
+```ts app/lib/flowglad.ts (App Router)
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    // Return customer information based on your auth
+    return {
+      externalId: 'user-123',
+      name: 'John Doe',
+      email: 'john@example.com',
+    }
+  },
+})
+```
+
+```ts lib/flowglad.ts (Pages Router)
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    // Return customer information based on your auth
+    return {
+      externalId: 'user-123',
+      name: 'John Doe',
+      email: 'john@example.com',
+    }
+  },
+})
+```
+
+</CodeGroup>
+
+<Info>
+Native constructor params are available for popular auth providers including Supabase Auth, Clerk, Next Auth. Read more about auth adaptors [here](/sdks/auth-adaptors)
+</Info>
+
+<CodeGroup>
+
+```ts Supabase Auth
+import { FlowgladServer } from '@flowglad/nextjs/server'
+// or wherever you initialize your supabase client
+import { createClient } from '@/utils/supabase'
+
+export const flowgladServer = new FlowgladServer({
+  supabaseAuth: {
+    client: createClient
+  },
+})
+```
+
+
+```ts Clerk
+import { currentUser } from '@clerk/nextjs/server'
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  clerk: {
+    currentUser,
+  },
+})
+```
+
+
+```ts Next Auth
+import { auth } from '@/auth' // your initialized, configured NextAuth client
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowgladServer = new FlowgladServer({
+  nextAuth: {
+    auth,
+  },
+})
+```
+
+
+```ts Custom Auth
+import { FlowgladServer } from '@flowglad/nextjs/server'
+// or whatever function you use to retrieve your session
+import { getBespokeSession } from '@/utils/auth'
+
+// if you can load sessions using an enclosed function
+export const flowgladServer = new FlowgladServer({
+  getRequestingCustomer: async () => {
+    const customSessionObject = await getBespokeSession()
+    return {
+      externalId: customSessionObject.id,
+      name: customSessionObject.name,
+      email: customSessionObject.email,
+    }
+  }
+})
+
+// if you derive your session from a request / cookies / headers object:
+const flowgladServer = (request: Request) => {
+  return new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const customSessionObject = await getBespokeSession(request)
+      return {
+        externalId: customSessionObject.id,
+        name: customSessionObject.name,
+        email: customSessionObject.email,
+      }
+    }
+  })
+}
+```
+
+```ts Custom Auth Example: Firebase
+import { FlowgladServer } from '@flowglad/server'
+import admin from 'firebase-admin'
+
+admin.initializeApp()
+
+export const flowgladServer = (request: Request) =>
+  new FlowgladServer({
+    getRequestingCustomer: async () => {
+      const token = request.headers.get('authorization')?.replace('Bearer ', '')
+
+      if (!token) return null
+
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token)
+
+        return {
+          externalId: decodedToken.uid,
+          name: decodedToken.name || decodedToken.email!,
+          email: decodedToken.email!,
+        }
+      } catch (error) {
+        return null
+      }
+    }
+  })
+```
+
+</CodeGroup>
+
+### 3. Create API Route Handler
+
+<CodeGroup>
+
+```ts app/api/flowglad/[...path]/route.ts (App Router)
+import { flowgladServer } from '@/app/lib/flowglad'
+import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
+
+const { GET, POST } = createAppRouterRouteHandler(flowgladServer)
+
+export { GET, POST }
+```
+
+```ts pages/api/flowglad/[...path].ts (Pages Router)
+import { flowgladServer } from '@/lib/flowglad'
+import { createPagesRouterRouteHandler } from '@flowglad/nextjs/server'
+
+export default createPagesRouterRouteHandler(flowgladServer)
+```
+
+</CodeGroup>
+
+### 4. Wrap Your App with FlowgladProvider
+
+<CodeGroup>
+
+```tsx app/layout.tsx (App Router)
+import { FlowgladProvider } from '@flowglad/nextjs'
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <FlowgladProvider loadBilling={true}>
+          {children}
+        </FlowgladProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+```tsx pages/_app.tsx (Pages Router)
+import { FlowgladProvider } from '@flowglad/nextjs'
+
+export default function App({ Component, pageProps }) {
+  return (
+    <FlowgladProvider loadBilling={true}>
+      <Component {...pageProps} />
+    </FlowgladProvider>
+  )
+}
+```
+
+</CodeGroup>
+
+### 5. Use the Billing Hook
+
+```tsx
+import { useBilling } from '@flowglad/nextjs'
+
+export default function BillingPage() {
+  const { checkFeatureAccess, createCheckoutSession } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return <div>Loading...</div>
+  }
+
+  if (checkFeatureAccess('premium_feature')) {
+    return <div>You have access to premium features!</div>
+  }
+
+  return (
+    <button
+      onClick={() =>
+        createCheckoutSession({
+          priceId: 'price_123',
+          successUrl: window.location.href,
+          cancelUrl: window.location.href,
+          autoRedirect: true,
+        })
+      }
+    >
+      Upgrade to Premium
+    </button>
+  )
+}
+```
+
+

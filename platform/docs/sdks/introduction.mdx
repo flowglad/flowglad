@@ -1,0 +1,122 @@
+---
+title: "SDK Overview"
+description: "Learn about Flowglad's SDK ecosystem and choose the right package for your application"
+---
+
+## Welcome
+
+Flowglad provides a comprehensive suite of SDKs to integrate billing, subscriptions, and payments into your applications. Our SDKs are designed to work seamlessly with popular frameworks while providing flexibility for custom implementations.
+
+## Getting Started
+
+New to Flowglad? Start with our [Quickstart Guide](/quickstart) for a step-by-step walkthrough of setting up Flowglad in your NextJS application, or read on to learn more about the SDK features and capabilities. 
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Pricing Models & Products" icon="book" href="/sdks/pricing-models-products">
+    Display your products and pricing models to help customers discover offerings.
+  </Card>
+  <Card title="Checkout Sessions" icon="shopping-cart" href="/sdks/checkout-sessions">
+    Create frictionless checkout sessions with Flowglad-hosted flows.
+  </Card>
+  <Card title="Feature Access & Usage" icon="shield" href="/sdks/feature-access-usage">
+    Check feature entitlements and track usage balances to power gated or usage-based products.
+  </Card>
+  <Card title="Customer Purchases" icon="user" href="/sdks/customer-purchases">
+    Retrieve a customer's purchases and active subscriptions to personalize in-app experiences.
+  </Card>
+  <Card title="Subscription Management" icon="refresh" href="/sdks/subscription-management">
+    Manage subscriptions end-to-end: create, cancel, activate.
+  </Card>
+</CardGroup>
+
+## Available SDKs
+
+<CardGroup cols={2}>
+  <Card title="Next.js SDK" icon="react" href="/sdks/nextjs">
+    Official SDK for Next.js applications with App Router and Pages Router support
+  </Card>
+  <Card title="React SDK" icon="react" href="/sdks/react">
+    React components and hooks for client-side billing management
+  </Card>
+  <Card title="Server SDK" icon="server" href="/sdks/server">
+    Core server-side SDK for any Node.js application
+  </Card>
+  <Card title="Express SDK" icon="node" href="/sdks/express">
+    Express middleware and route handlers for Node.js backends
+  </Card>
+</CardGroup>
+
+
+## Choosing the Right SDK
+
+### For Next.js Applications
+
+Use **@flowglad/nextjs** - it includes everything you need:
+- Server-side utilities for Flowglad API routes and direct server methods
+- Client-side React context for managing billing and subscription data
+- Support for both App Router and Pages Router
+
+### For Other React Frameworks
+
+Use **@flowglad/react** + **@flowglad/server**:
+- @flowglad/react handles billing and subscription state in your React frontend
+- @flowglad/server provides the Flowglad server instance your frontend communicates with
+
+### For Express Backends
+
+Use **@flowglad/express**:
+- @flowglad/express provides Express router for Flowglad REST endpoints
+
+### For Other Node.js Backends
+
+Use **@flowglad/server** directly for maximum flexibility
+
+## Quick Installation
+
+<CodeGroup>
+
+```bash Next.js
+bun add @flowglad/nextjs
+```
+
+```bash React + Server
+bun add @flowglad/react @flowglad/server
+```
+
+```bash Express
+bun add @flowglad/express @flowglad/server
+```
+
+```bash Node.js
+bun add @flowglad/server
+```
+
+</CodeGroup>
+
+## NPM Packages
+
+All Flowglad SDKs are available on NPM:
+
+- [@flowglad/nextjs](https://www.npmjs.com/package/@flowglad/nextjs)
+- [@flowglad/react](https://www.npmjs.com/package/@flowglad/react)
+- [@flowglad/express](https://www.npmjs.com/package/@flowglad/express)
+- [@flowglad/server](https://www.npmjs.com/package/@flowglad/server)
+
+## Example Projects
+
+Looking for a complete example? Check out our example projects:
+- **Generation-based Subscription** - Next.js app with authentication and billing, demonstrating a pricing model with subscription, single-payment, and usage ([examples/generation-based-subscription](https://github.com/flowglad/flowglad/tree/main/examples/generation-based-subscription))
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Setup" icon="rocket" href="/sdks/setup">
+    Walk through framework-specific setup for Next.js, React, and Express
+  </Card>
+  <Card title="Browse Examples" icon="code" href="/sdks/examples">
+    See complete code examples and patterns
+  </Card>
+</CardGroup>
+
