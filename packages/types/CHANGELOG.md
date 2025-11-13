@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.12.0
+
+### Minor Changes
+
+- Price slug in createCheckoutSession
+
 ## 0.11.0
 
 ### Minor Changes
