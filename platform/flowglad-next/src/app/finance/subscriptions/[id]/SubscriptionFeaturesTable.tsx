@@ -10,12 +10,21 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import { FeatureType } from '@/types'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import { cn } from '@/lib/utils'
 
 const FEATURE_TYPE_LABELS: Record<FeatureType, string> = {
   [FeatureType.Toggle]: 'Toggle',
   [FeatureType.UsageCreditGrant]: 'Usage credit grant',
+}
+
+const FEATURE_RENEWAL_LABELS: Record<
+  FeatureUsageGrantFrequency,
+  string
+> = {
+  [FeatureUsageGrantFrequency.Once]: 'One time',
+  [FeatureUsageGrantFrequency.EveryBillingPeriod]:
+    'Every billing period',
 }
 
 interface SubscriptionFeaturesTableProps {
@@ -42,6 +51,7 @@ export const SubscriptionFeaturesTable = ({
             <TableHead>Name</TableHead>
             <TableHead>Slug</TableHead>
             <TableHead>Type</TableHead>
+            <TableHead>Renewal Frequency</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -65,13 +75,20 @@ export const SubscriptionFeaturesTable = ({
                   <TableCell className="capitalize">
                     {FEATURE_TYPE_LABELS[feature.type]}
                   </TableCell>
+                  <TableCell>
+                    {feature.type === FeatureType.Toggle
+                      ? '-'
+                      : FEATURE_RENEWAL_LABELS[
+                          feature.renewalFrequency
+                        ]}
+                  </TableCell>
                 </TableRow>
               )
             })
           ) : (
             <TableRow>
               <TableCell
-                colSpan={3}
+                colSpan={4}
                 className="h-24 text-center text-muted-foreground"
               >
                 No features granted.
