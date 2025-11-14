@@ -13,6 +13,7 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { kebabCase } from 'change-case'
+import { SubscriptionStatus } from '@/types'
 
 const sendCustomerSubscriptionCreatedNotificationTask = task({
   id: 'send-customer-subscription-created-notification',
@@ -88,28 +89,31 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
     if (price.intervalUnit) {
       nextBillingDate = new Date(subscription.createdAt!)
       const intervalCount = price.intervalCount || 1
-
-      switch (price.intervalUnit) {
-        case 'day':
-          nextBillingDate.setDate(
-            nextBillingDate.getDate() + intervalCount
-          )
-          break
-        case 'week':
-          nextBillingDate.setDate(
-            nextBillingDate.getDate() + intervalCount * 7
-          )
-          break
-        case 'month':
-          nextBillingDate.setMonth(
-            nextBillingDate.getMonth() + intervalCount
-          )
-          break
-        case 'year':
-          nextBillingDate.setFullYear(
-            nextBillingDate.getFullYear() + intervalCount
-          )
-          break
+      if (subscription.status === SubscriptionStatus.Trialing) {
+        nextBillingDate = new Date(subscription.trialEnd!)
+      } else {
+        switch (price.intervalUnit) {
+          case 'day':
+            nextBillingDate.setDate(
+              nextBillingDate.getDate() + intervalCount
+            )
+            break
+          case 'week':
+            nextBillingDate.setDate(
+              nextBillingDate.getDate() + intervalCount * 7
+            )
+            break
+          case 'month':
+            nextBillingDate.setMonth(
+              nextBillingDate.getMonth() + intervalCount
+            )
+            break
+          case 'year':
+            nextBillingDate.setFullYear(
+              nextBillingDate.getFullYear() + intervalCount
+            )
+            break
+        }
       }
     }
     const notifUatEmail = core.envVariable('NOTIF_UAT_EMAIL')
