@@ -7,7 +7,7 @@ import {
   commitPurchaseCompletedEvent,
   commitSubscriptionCreatedEvent,
   commitSubscriptionUpdatedEvent,
-  commitSubscriptionCancelledEvent,
+  commitSubscriptionCanceledEvent,
 } from './events'
 import {
   FlowgladEventType,
@@ -478,7 +478,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
   })
 
-  it('should include customer.externalId in SubscriptionCancelled event payload', async () => {
+  it('should include customer.externalId in SubscriptionCanceled event payload', async () => {
     const orgData = await setupOrg()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
@@ -520,10 +520,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     await adminTransaction(async ({ transaction }) => {
-      await commitSubscriptionCancelledEvent(
-        subscription,
-        transaction
-      )
+      await commitSubscriptionCanceledEvent(subscription, transaction)
     })
 
     const events = await adminTransaction(async ({ transaction }) => {
@@ -534,7 +531,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     const subscriptionCancelledEvent = events.find(
-      (e) => e.type === FlowgladEventType.SubscriptionCancelled
+      (e) => e.type === FlowgladEventType.SubscriptionCanceled
     )
 
     expect(subscriptionCancelledEvent).toBeDefined()

@@ -11,6 +11,7 @@ import {
 } from '@/db/tableMethods/billingPeriodMethods'
 import {
   currentSubscriptionStatuses,
+  isSubscriptionCurrent,
   isSubscriptionInTerminalState,
   safelyUpdateSubscriptionStatus,
   selectSubscriptionById,
@@ -26,14 +27,21 @@ import {
   BillingRunStatus,
   SubscriptionCancellationArrangement,
   SubscriptionStatus,
+  EventNoun,
 } from '@/types'
 import { DbTransaction } from '@/db/types'
+import { FlowgladEventType } from '@/types'
 import { idempotentSendOrganizationSubscriptionCanceledNotification } from '@/trigger/notifications/send-organization-subscription-canceled-notification'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
 import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { constructSubscriptionCanceledEventHash } from '@/utils/eventHelpers'
+import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { Event } from '@/db/schema/events'
+import { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
+import { Customer } from '@/db/schema/customers'
 
 // Abort all scheduled billing runs for a subscription
 export const abortScheduledBillingRuns = async (
@@ -189,13 +197,67 @@ export const reassignDefaultSubscription = async (
   }
 }
 
+const constructSubscriptionCanceledEventInsert = (
+  subscription: Subscription.Record,
+  customer: Customer.Record
+): Event.Insert => {
+  return {
+    type: FlowgladEventType.SubscriptionCanceled,
+    occurredAt: new Date().getTime(),
+    organizationId: subscription.organizationId,
+    livemode: subscription.livemode,
+    metadata: {},
+    submittedAt: new Date().getTime(),
+    processedAt: null,
+    payload: {
+      object: EventNoun.Subscription,
+      id: subscription.id,
+      customer: {
+        id: subscription.customerId,
+        externalId: customer.externalId,
+      },
+    },
+    hash: constructSubscriptionCanceledEventHash(subscription),
+  }
+}
 // Cancel a subscription immediately
 export const cancelSubscriptionImmediately = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
-) => {
+): Promise<TransactionOutput<Subscription.Record>> => {
+  const customer = await selectCustomerById(
+    subscription.customerId,
+    transaction
+  )
   if (isSubscriptionInTerminalState(subscription.status)) {
-    return subscription
+    return {
+      result: subscription,
+      eventsToInsert: [
+        constructSubscriptionCanceledEventInsert(
+          subscription,
+          customer
+        ),
+      ],
+    }
+  }
+  if (
+    subscription.canceledAt &&
+    subscription.status !== SubscriptionStatus.Canceled
+  ) {
+    const updatedSubscription = await safelyUpdateSubscriptionStatus(
+      subscription,
+      SubscriptionStatus.Canceled,
+      transaction
+    )
+    return {
+      result: updatedSubscription,
+      eventsToInsert: [
+        constructSubscriptionCanceledEventInsert(
+          updatedSubscription,
+          customer
+        ),
+      ],
+    }
   }
   const endDate = Date.now()
   const status = SubscriptionStatus.Canceled
@@ -281,7 +343,15 @@ export const cancelSubscriptionImmediately = async (
     updatedSubscription = result
   }
   await reassignDefaultSubscription(updatedSubscription, transaction)
-  return updatedSubscription
+  return {
+    result: updatedSubscription,
+    eventsToInsert: [
+      constructSubscriptionCanceledEventInsert(
+        updatedSubscription,
+        customer
+      ),
+    ],
+  }
 }
 
 // Schedule a subscription cancellation for the future
@@ -397,4 +467,59 @@ export const scheduleSubscriptionCancellation = async (
     updatedSubscription
   )
   return updatedSubscription
+}
+
+type CancelSubscriptionProcedureParams =
+  AuthenticatedProcedureTransactionParams<
+    ScheduleSubscriptionCancellationParams,
+    { subscription: Subscription.ClientRecord },
+    { apiKey?: string }
+  >
+
+export const cancelSubscriptionProcedureTransaction = async ({
+  input,
+  transaction,
+  ctx,
+}: CancelSubscriptionProcedureParams): Promise<
+  TransactionOutput<{ subscription: Subscription.ClientRecord }>
+> => {
+  if (
+    input.cancellation.timing ===
+    SubscriptionCancellationArrangement.Immediately
+  ) {
+    const subscription = await selectSubscriptionById(
+      input.id,
+      transaction
+    )
+    const { result: updatedSubscription, eventsToInsert } =
+      await cancelSubscriptionImmediately(subscription, transaction)
+    return {
+      result: {
+        subscription: {
+          ...updatedSubscription,
+          current: isSubscriptionCurrent(
+            updatedSubscription.status,
+            updatedSubscription.cancellationReason
+          ),
+        },
+      },
+      eventsToInsert,
+    }
+  }
+  const subscription = await scheduleSubscriptionCancellation(
+    input,
+    transaction
+  )
+  return {
+    result: {
+      subscription: {
+        ...subscription,
+        current: isSubscriptionCurrent(
+          subscription.status,
+          subscription.cancellationReason
+        ),
+      },
+    },
+    eventsToInsert: [],
+  }
 }

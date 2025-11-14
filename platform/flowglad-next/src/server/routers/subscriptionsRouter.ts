@@ -3,7 +3,6 @@ import {
   BillingPeriodStatus,
   IntervalUnit,
   PriceType,
-  SubscriptionCancellationArrangement,
   SubscriptionStatus,
 } from '@/types'
 import {
@@ -39,10 +38,7 @@ import {
   adjustSubscriptionInputSchema,
   scheduleSubscriptionCancellationSchema,
 } from '@/subscriptions/schemas'
-import {
-  cancelSubscriptionImmediately,
-  scheduleSubscriptionCancellation,
-} from '@/subscriptions/cancelSubscription'
+import { cancelSubscriptionProcedureTransaction } from '@/subscriptions/cancelSubscription'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
@@ -141,51 +137,11 @@ const cancelSubscriptionProcedure = protectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        if (
-          input.cancellation.timing ===
-          SubscriptionCancellationArrangement.Immediately
-        ) {
-          const subscription = await selectSubscriptionById(
-            input.id,
-            transaction
-          )
-          const updatedSubscription =
-            await cancelSubscriptionImmediately(
-              subscription,
-              transaction
-            )
-          return {
-            subscription: {
-              ...updatedSubscription,
-              current: isSubscriptionCurrent(
-                updatedSubscription.status,
-                updatedSubscription.cancellationReason
-              ),
-            },
-          }
-        }
-        const subscription = await scheduleSubscriptionCancellation(
-          input,
-          transaction
-        )
-        return {
-          subscription: {
-            ...subscription,
-            current: isSubscriptionCurrent(
-              subscription.status,
-              subscription.cancellationReason
-            ),
-          },
-        }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      cancelSubscriptionProcedureTransaction
     )
-  })
+  )
 
 const listSubscriptionsProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
