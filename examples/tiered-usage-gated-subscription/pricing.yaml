@@ -1,5 +1,5 @@
 isDefault: false
-name: "Unlimited Usage Subscription - 2"
+name: "Unlimited Usage Subscription"
 features:
   - type: "toggle"
     slug: "gpt_5_fast"
@@ -13,9 +13,9 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "gpt_5_thinking_plus_limit"
-    name: "3,000 GPT-5 Thinking Messages/Month"
-    description: "3,000 GPT-5 Thinking messages per month (manual selection only)"
-    amount: 3000
+    name: "12,000 GPT-5 Thinking Messages/Month"
+    description: "12,000 GPT-5 Thinking messages per month (manual selection only)"
+    amount: 12000
     renewalFrequency: "every_billing_period"
     active: true
     usageMeterSlug: "gpt_5_thinking_messages"
@@ -26,9 +26,9 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "o3_limit"
-    name: "100 o3 Messages/Month"
-    description: "100 o3 messages per month"
-    amount: 100
+    name: "400 o3 Messages/Month"
+    description: "400 o3 messages per month"
+    amount: 400
     renewalFrequency: "every_billing_period"
     active: true
     usageMeterSlug: "o3_messages"
@@ -39,9 +39,9 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "o4_mini_limit"
-    name: "300 o4-mini Messages/Month"
-    description: "300 o4-mini messages per month"
-    amount: 300
+    name: "9,000 o4-mini Messages/Month"
+    description: "9,000 o4-mini messages per month"
+    amount: 9000
     renewalFrequency: "every_billing_period"
     active: true
     usageMeterSlug: "o4_mini_messages"
@@ -52,9 +52,9 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "o4_mini_high_limit"
-    name: "100 o4-mini-high Messages/Month"
-    description: "100 o4-mini-high messages per month"
-    amount: 100
+    name: "3,000 o4-mini-high Messages/Month"
+    description: "3,000 o4-mini-high messages per month"
+    amount: 3000
     renewalFrequency: "every_billing_period"
     active: true
     usageMeterSlug: "o4_mini_high_messages"
@@ -150,7 +150,7 @@ features:
 products:
   - product:
       name: "Business"
-      description: "$30/user/mo with GPT-5 Thinking (3K/mo), o3 (100/mo), o4-mini (300/mo), workspace & admin"
+      description: "$30/user/mo with GPT-5 Thinking (12K/mo), o3 (400/mo), o4-mini (9K/mo), workspace & admin"
       active: true
       singularQuantityLabel: "user"
       pluralQuantityLabel: "users"
@@ -330,7 +330,7 @@ products:
     features: []
   - product:
       name: "Plus"
-      description: "$20/mo with GPT-5 Thinking (3K/mo), o3 (100/mo), o4-mini (300/mo), Agent (40/mo), 32K context"
+      description: "$20/mo with GPT-5 Thinking (12K/mo), o3 (400/mo), o4-mini (9K/mo), Agent (40/mo), 32K context"
       active: true
       default: false
       slug: "plus"
