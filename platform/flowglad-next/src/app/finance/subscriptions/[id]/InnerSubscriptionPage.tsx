@@ -20,6 +20,7 @@ import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMet
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 
 import { InvoicesDataTable } from '../../invoices/data-table'
+import { SubscriptionFeaturesTable } from './SubscriptionFeaturesTable'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -113,6 +114,9 @@ const InnerSubscriptionPage = ({
               Add feature
             </Button>
           }
+        />
+        <SubscriptionFeaturesTable
+          featureItems={subscription.experimental?.featureItems}
         />
         <InvoicesDataTable
           title="Invoices"

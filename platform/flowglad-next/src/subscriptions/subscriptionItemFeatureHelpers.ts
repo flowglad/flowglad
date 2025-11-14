@@ -338,18 +338,22 @@ const grantImmediateUsageCredits = async (
   {
     subscription,
     subscriptionItemFeature,
+    grantAmount,
   }: {
     subscription: Subscription.Record
     subscriptionItemFeature: SubscriptionItemFeature.Record
+    grantAmount: number
   },
   transaction: DbTransaction
 ) => {
   const usageMeterId = subscriptionItemFeature.usageMeterId
-  const amount = subscriptionItemFeature.amount
-  if (!usageMeterId || amount === null) {
+  if (!usageMeterId) {
     throw new Error(
-      `Subscription item feature ${subscriptionItemFeature.id} is missing usage meter or amount for immediate credit grant.`
+      `Subscription item feature ${subscriptionItemFeature.id} is missing usage meter for immediate credit grant.`
     )
+  }
+  if (!grantAmount) {
+    return
   }
 
   const currentBillingPeriod =
@@ -357,9 +361,6 @@ const grantImmediateUsageCredits = async (
       subscription.id,
       transaction
     )
-  if (!amount) {
-    return
-  }
   const usageCredit = await insertUsageCredit(
     {
       subscriptionId: subscription.id,
@@ -372,7 +373,7 @@ const grantImmediateUsageCredits = async (
       billingPeriodId: currentBillingPeriod?.id ?? null,
       usageMeterId,
       paymentId: null,
-      issuedAmount: amount,
+      issuedAmount: grantAmount,
       issuedAt: Date.now(),
       expiresAt: currentBillingPeriod?.endDate ?? null,
       status: UsageCreditStatus.Posted,
@@ -461,10 +462,31 @@ export const addFeatureToSubscriptionItem = async (
       productFeature,
       feature
     )
+  let usageFeatureInsert: SubscriptionItemFeature.UsageCreditGrantInsert | null =
+    null
 
   let subscriptionItemFeature: SubscriptionItemFeature.Record
 
+  /**
+   * Adds or updates a SubscriptionItemFeature for the given subscription item and feature.
+   *
+   * Handles deduplication by checking if an appropriate SubscriptionItemFeature already exists for
+   * the given subscription item and feature. If a matching record is found (not expired), it will be
+   * updated instead of inserting a new row, ensuring feature assignment is idempotent and no duplicates
+   * are created.
+   *
+   * - For Toggle features, attempts an upsert by productFeatureId + subscriptionId. If an upserted record
+   *   is returned, it is used. Otherwise, falls back to selecting an existing Toggle feature. This ensures
+   *   toggles are not duplicated even under high concurrency (race conditions).
+   *
+   * - For UsageCreditGrant features, if one already exists and is not expired, the amount is incremented
+   *   and related fields updated. If none exists, a new feature is inserted.
+   *
+   * Throws descriptive errors if data integrity cannot be ensured.
+   */
   if (feature.type === FeatureType.Toggle) {
+    // Upsert (insert-or-update) the toggle feature for this subscription item/product/feature.
+    // If upsert returns, use the returned record. Otherwise, fall back to fetching the existing record.
     const [upserted] =
       await upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
         featureInsert,
@@ -473,6 +495,7 @@ export const addFeatureToSubscriptionItem = async (
     if (upserted) {
       subscriptionItemFeature = upserted
     } else {
+      // The upsert didn't return a record; retrieve the (now existing) toggle feature.
       const [existingToggle] = await selectSubscriptionItemFeatures(
         {
           subscriptionItemId: subscriptionItem.id,
@@ -489,8 +512,11 @@ export const addFeatureToSubscriptionItem = async (
       subscriptionItemFeature = existingToggle
     }
   } else {
-    const usageFeatureInsert =
+    // Handle usage-credit-grant features
+    const usageFeatureInsertData =
       featureInsert as SubscriptionItemFeature.UsageCreditGrantInsert
+    usageFeatureInsert = usageFeatureInsertData
+    // Check for an existing (not expired) usage feature for these entities
     const [existingUsageFeature] =
       await selectSubscriptionItemFeatures(
         {
@@ -502,6 +528,7 @@ export const addFeatureToSubscriptionItem = async (
       )
 
     if (existingUsageFeature) {
+      // If found, ensure it's the correct type and update/accumulate
       if (
         existingUsageFeature.type !== FeatureType.UsageCreditGrant
       ) {
@@ -509,37 +536,44 @@ export const addFeatureToSubscriptionItem = async (
           `Existing feature ${existingUsageFeature.id} is not a usage credit grant.`
         )
       }
+      // Bump the credit amount and update other properties if necessary
       subscriptionItemFeature = await updateSubscriptionItemFeature(
         {
           ...existingUsageFeature,
           amount:
             (existingUsageFeature.amount ?? 0) +
-            usageFeatureInsert.amount,
-          productFeatureId: usageFeatureInsert.productFeatureId,
-          usageMeterId: usageFeatureInsert.usageMeterId,
-          renewalFrequency: usageFeatureInsert.renewalFrequency,
+            usageFeatureInsertData.amount,
+          productFeatureId: usageFeatureInsertData.productFeatureId,
+          usageMeterId: usageFeatureInsertData.usageMeterId,
+          renewalFrequency: usageFeatureInsertData.renewalFrequency,
           expiredAt: null,
         },
         transaction
       )
     } else {
+      // No previous record, insert a new usage-credit-grant feature
       subscriptionItemFeature = await insertSubscriptionItemFeature(
-        usageFeatureInsert,
+        usageFeatureInsertData,
         transaction
       )
     }
   }
-
   let ledgerCommand: CreditGrantRecognizedLedgerCommand | undefined
 
   if (
     feature.type === FeatureType.UsageCreditGrant &&
     grantCreditsImmediately
   ) {
+    if (!usageFeatureInsert) {
+      throw new Error(
+        'Missing usage feature insert data for immediate credit grant.'
+      )
+    }
     const immediateGrant = await grantImmediateUsageCredits(
       {
         subscription,
         subscriptionItemFeature,
+        grantAmount: usageFeatureInsert.amount,
       },
       transaction
     )
