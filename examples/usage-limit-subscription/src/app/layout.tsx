@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { ReactQueryProvider } from '@/components/providers';
+import {
+  ReactQueryProvider,
+  FlowgladProviderWrapper,
+} from '@/components/providers';
 import { Navbar } from '@/components/navbar';
-import { FlowgladProvider } from '@flowglad/nextjs';
 import { PropsWithChildren } from 'react';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -24,18 +24,16 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: PropsWithChildren) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const user = session?.user;
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReactQueryProvider>
-          <FlowgladProvider loadBilling={!!user}>
+          <FlowgladProviderWrapper>
             <Navbar />
             {children}
-          </FlowgladProvider>
+          </FlowgladProviderWrapper>
         </ReactQueryProvider>
       </body>
     </html>
