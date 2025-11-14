@@ -6,12 +6,9 @@ import {
   notNullStringForeignKey,
   constructIndex,
   livemodePolicy,
-  ommittedColumnsForInsertSchema,
   merchantPolicy,
-  hiddenColumnsForClientSchema,
 } from '@/db/tableUtils'
 import { organizations } from '@/db/schema/organizations'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { FlowgladEventType } from '@/types'
 import { buildSchemas } from '../createZodSchemas'
 
