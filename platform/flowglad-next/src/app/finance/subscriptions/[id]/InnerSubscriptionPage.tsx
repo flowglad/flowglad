@@ -19,6 +19,7 @@ import { Pencil } from 'lucide-react'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
 import { InvoicesDataTable } from '../../invoices/data-table'
+import { SubscriptionFeaturesTable } from './SubscriptionFeaturesTable'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -98,6 +99,9 @@ const InnerSubscriptionPage = ({
           title="Items"
           subscriptionItems={subscription.subscriptionItems}
           currencyCode={organization.defaultCurrency}
+        />
+        <SubscriptionFeaturesTable
+          featureItems={subscription.experimental?.featureItems}
         />
         <InvoicesDataTable
           title="Invoices"
