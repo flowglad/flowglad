@@ -9,11 +9,16 @@ import {
   setupProduct,
   setupPrice,
   setupUsageMeter,
+  setupLedgerAccount,
 } from '@/../seedDatabase'
-import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers' // The function to test
+import {
+  addFeatureToSubscriptionItem,
+  createSubscriptionFeatureItems,
+} from '@/subscriptions/subscriptionItemFeatureHelpers'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { Customer } from '@/db/schema/customers'
@@ -456,6 +461,163 @@ describe('SubscriptionItemFeatureHelpers', () => {
         const sif = createdSifs[0]
         expect(sif.subscriptionItemId).toBe(subscriptionItem2.id)
         expect(sif.amount).toBe(featureAmount * quantity)
+      })
+    })
+  })
+
+  describe('addFeatureToSubscriptionItem', () => {
+    it('deduplicates toggle features via upsert', async () => {
+      const [{ feature: toggleFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [{ name: 'Manual Toggle', type: FeatureType.Toggle }]
+        )
+
+      await adminTransaction(async ({ transaction }) => {
+        const firstResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+        const secondResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+        expect(secondResult.result.subscriptionItemFeature.id).toBe(
+          firstResult.result.subscriptionItemFeature.id
+        )
+      })
+    })
+
+    it('inserts usage features and grants immediate credits when requested', async () => {
+      const [{ feature: usageFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            {
+              name: 'Manual Usage Grant',
+              type: FeatureType.UsageCreditGrant,
+              amount: 250,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              usageMeterName: 'manual-grant-meter',
+            },
+          ]
+        )
+
+      await setupLedgerAccount({
+        subscriptionId: subscription.id,
+        usageMeterId: usageFeature.usageMeterId!,
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const firstResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+        const secondResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: true,
+          },
+          transaction
+        )
+
+        expect(secondResult.result.subscriptionItemFeature.id).toBe(
+          firstResult.result.subscriptionItemFeature.id
+        )
+        expect(secondResult.ledgerCommand).toBeDefined()
+
+        const featureGrants = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: subscriptionItem.id },
+          transaction
+        )
+        const activeGrant = featureGrants.find(
+          (item) =>
+            item.featureId === usageFeature.id &&
+            item.expiredAt === null
+        )
+        expect(activeGrant).toBeDefined()
+        expect(activeGrant?.amount).toBe(
+          (usageFeature.amount ?? 0) * 2 * subscriptionItem.quantity
+        )
+
+        const usageCredits = await selectUsageCredits(
+          {
+            subscriptionId: subscription.id,
+            usageMeterId: usageFeature.usageMeterId!,
+          },
+          transaction
+        )
+        expect(
+          usageCredits.some(
+            (credit) =>
+              credit.sourceReferenceId ===
+              secondResult.result.subscriptionItemFeature.id
+          )
+        ).toBe(true)
+      })
+    })
+
+    it('rejects features outside the subscription pricing model', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const mismatchedFeature = await insertFeature(
+          {
+            organizationId: orgData.organization.id,
+            livemode: true,
+            type: FeatureType.Toggle,
+            slug: `mismatched-feature-${core.nanoid(6)}`,
+            name: 'Mismatched Toggle',
+            description: 'Toggle from another pricing model',
+            amount: null,
+            renewalFrequency: null,
+            usageMeterId: null,
+            pricingModelId: orgData.testmodePricingModel.id,
+            active: true,
+          },
+          transaction
+        )
+
+        await insertProductFeature(
+          {
+            organizationId: orgData.organization.id,
+            livemode: true,
+            productId: productForFeatures.id,
+            featureId: mismatchedFeature.id,
+          },
+          transaction
+        )
+
+        await expect(
+          addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: mismatchedFeature.id,
+              grantCreditsImmediately: false,
+            },
+            transaction
+          )
+        ).rejects.toThrow(/pricing model/i)
       })
     })
   })
