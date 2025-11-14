@@ -69,7 +69,7 @@ export const AddSubscriptionFeatureItemFormFields = ({
   const form = useFormContext<AddSubscriptionFeatureFormValues>()
   const subscriptionItemId = form.watch('subscriptionItemId')
   useEffect(() => {
-    if (!subscriptionItemId && activeSubscriptionItems[0]) {
+    if ((!subscriptionItemId || !activeSubscriptionItems.some((item) => item.id === subscriptionItemId)) && activeSubscriptionItems[0]) {
       form.setValue(
         'subscriptionItemId',
         activeSubscriptionItems[0].id
