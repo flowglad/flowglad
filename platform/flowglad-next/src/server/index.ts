@@ -38,6 +38,7 @@ import { subscriptionItemFeaturesRouter } from './routers/subscriptionItemFeatur
 import { customerBillingPortalRouter } from './routers/customerBillingPortalRouter'
 import { logout } from './mutations/logout'
 import { setReferralSelection } from './mutations/setReferralSelection'
+import { addFeatureToSubscription } from './mutations/addFeatureToSubscription'
 
 const filesRouter = router({
   create: createFile,
@@ -89,6 +90,7 @@ export const appRouter = router({
   productFeatures: productFeaturesRouter,
   subscriptionItemFeatures: subscriptionItemFeaturesRouter,
   customerBillingPortal: customerBillingPortalRouter,
+  addFeatureToSubscription,
 })
 
 // This would map to REST endpoints like:
