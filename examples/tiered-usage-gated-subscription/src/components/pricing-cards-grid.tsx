@@ -14,6 +14,7 @@ import {
 import { useMobile } from '@/hooks/use-mobile';
 import { useBilling } from '@flowglad/nextjs';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { SubscriptionPrice } from '@flowglad/types';
 import {
   Card,
   CardContent,
@@ -38,7 +39,8 @@ export function PricingCardsGrid() {
   const plans = useMemo<PricingPlan[]>(() => {
     if (
       !billing.loaded ||
-      !('pricingModel' in billing) ||
+      billing.loadBilling !== true ||
+      billing.errors !== null ||
       !billing.pricingModel?.products
     ) {
       return [];
@@ -51,10 +53,9 @@ export function PricingCardsGrid() {
     const filteredProducts = products.filter((product) => {
       // Find subscription price with monthly interval
       const matchingPrice = product.prices?.find(
-        (price) =>
+        (price): price is SubscriptionPrice =>
           price.type === 'subscription' &&
           price.active === true &&
-          'intervalUnit' in price &&
           price.intervalUnit === 'month'
       );
 
@@ -66,14 +67,13 @@ export function PricingCardsGrid() {
       .map((product) => {
         // Always use monthly pricing
         const price = product.prices?.find(
-          (p) =>
+          (p): p is SubscriptionPrice =>
             p.type === 'subscription' &&
             p.active === true &&
-            'intervalUnit' in p &&
             p.intervalUnit === 'month'
         );
 
-        if (!price || !('slug' in price) || !price.slug) return null;
+        if (!price || !price.slug) return null;
 
         // Format price from cents to display string
         const formatPrice = (cents: number): string => {
@@ -85,7 +85,7 @@ export function PricingCardsGrid() {
         // Build features list from feature objects (features have name and description)
         const featureNames =
           product.features
-            ?.map((feature) => ('name' in feature ? feature.name : ''))
+            ?.map((feature) => feature.name ?? '')
             .filter(
               (name): name is string =>
                 typeof name === 'string' && name.length > 0
@@ -124,13 +124,21 @@ export function PricingCardsGrid() {
       if (bValue === -1) return 1; // Free always first
       return aValue - bValue;
     });
-  }, [billing.loaded, 'pricingModel' in billing ? billing.pricingModel : null]);
+  }, [
+    billing.loaded,
+    billing.loadBilling,
+    billing.errors,
+    billing.loaded && billing.loadBilling === true && billing.errors === null
+      ? billing.pricingModel
+      : null,
+  ]);
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
     if (
       !billing.loaded ||
-      !('getPrice' in billing) ||
-      !billing.getPrice ||
+      billing.loadBilling !== true ||
+      billing.errors !== null ||
+      typeof billing.getPrice !== 'function' ||
       !Array.isArray(billing.currentSubscriptions)
     ) {
       return false;
@@ -139,7 +147,7 @@ export function PricingCardsGrid() {
     if (!price) return false;
     const currentPriceIds = new Set(
       billing.currentSubscriptions
-        .map((sub) => (sub as { priceId?: string }).priceId)
+        .map((sub) => sub.priceId)
         .filter((id): id is string => typeof id === 'string' && id.length > 0)
     );
     return currentPriceIds.has(price.id);

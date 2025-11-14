@@ -1,5 +1,5 @@
 isDefault: false
-name: "Unlimited Usage Subscription "
+name: "Unlimited Usage Subscription - 2"
 features:
   - type: "toggle"
     slug: "gpt_5_fast"
@@ -13,8 +13,8 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "gpt_5_thinking_plus_limit"
-    name: "3,000 GPT-5 Thinking Messages/Week"
-    description: "3,000 GPT-5 Thinking messages per week (manual selection only)"
+    name: "3,000 GPT-5 Thinking Messages/Month"
+    description: "3,000 GPT-5 Thinking messages per month (manual selection only)"
     amount: 3000
     renewalFrequency: "every_billing_period"
     active: true
@@ -26,8 +26,8 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "o3_limit"
-    name: "100 o3 Messages/Week"
-    description: "100 o3 messages per week"
+    name: "100 o3 Messages/Month"
+    description: "100 o3 messages per month"
     amount: 100
     renewalFrequency: "every_billing_period"
     active: true
@@ -39,8 +39,8 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "o4_mini_limit"
-    name: "300 o4-mini Messages/Day"
-    description: "300 o4-mini messages per day"
+    name: "300 o4-mini Messages/Month"
+    description: "300 o4-mini messages per month"
     amount: 300
     renewalFrequency: "every_billing_period"
     active: true
@@ -52,8 +52,8 @@ features:
     active: true
   - type: "usage_credit_grant"
     slug: "o4_mini_high_limit"
-    name: "100 o4-mini-high Messages/Day"
-    description: "100 o4-mini-high messages per day"
+    name: "100 o4-mini-high Messages/Month"
+    description: "100 o4-mini-high messages per month"
     amount: 100
     renewalFrequency: "every_billing_period"
     active: true
@@ -150,7 +150,7 @@ features:
 products:
   - product:
       name: "Business"
-      description: "$30/user/mo with GPT-5 Thinking (3K/wk), o3 (100/wk), o4-mini (300/day), workspace & admin"
+      description: "$30/user/mo with GPT-5 Thinking (3K/mo), o3 (100/mo), o4-mini (300/mo), workspace & admin"
       active: true
       singularQuantityLabel: "user"
       pluralQuantityLabel: "users"
@@ -330,7 +330,7 @@ products:
     features: []
   - product:
       name: "Plus"
-      description: "$20/mo with GPT-5 Thinking (3K/wk), o3 (100/wk), o4-mini (300/day), Agent (40/mo), 32K context"
+      description: "$20/mo with GPT-5 Thinking (3K/mo), o3 (100/mo), o4-mini (300/mo), Agent (40/mo), 32K context"
       active: true
       default: false
       slug: "plus"

@@ -25,7 +25,7 @@ This project demonstrates the "Tiered Usage-Gated Subscription Template Pricing 
 
 - Node.js >= 18.18.0
 - Bun >= 1.3.1
-- PostgreSQL database
+- PostgreSQL database (or Docker to run the included `docker-compose.yml`)
 - `yalc` (for linking local Flowglad packages) - Install globally with `npm install -g yalc` or `bun install -g yalc`
 
 ## Getting Started
@@ -97,6 +97,35 @@ Fill in the required values in `.env.local`:
 
 ### 5. Set Up Database
 
+If you don't have a PostgreSQL database available, you can use the included `docker-compose.yml` file to spin up a local PostgreSQL instance:
+
+```bash
+docker-compose up -d
+```
+
+This will start a PostgreSQL container with the following configuration:
+- **Host:** `localhost`
+- **Port:** `5432`
+- **Database:** `flowglad_db`
+- **User:** `flowglad`
+- **Password:** `flowglad_dev_password`
+
+Once the container is running, use this connection string in your `.env.local` file:
+
+```
+DATABASE_URL=postgresql://flowglad:flowglad_dev_password@localhost:5432/flowglad_db
+```
+
+To stop the database container when you're done:
+
+```bash
+docker-compose down
+```
+
+**Note:** If you already have a PostgreSQL database, you can skip this step and use your existing database connection string instead.
+
+### 6. Run Database Migrations
+
 Generate and run database migrations:
 
 ```bash
@@ -104,7 +133,7 @@ bun db:generate
 bun db:migrate
 ```
 
-### 6. Start Development Server
+### 7. Start Development Server
 
 ```bash
 bun dev

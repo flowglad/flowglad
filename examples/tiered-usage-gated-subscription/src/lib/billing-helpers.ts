@@ -1,5 +1,6 @@
 import type { BillingWithChecks } from '@flowglad/shared';
 import type { Price } from '@flowglad/types';
+import type { UsageMeter } from '@flowglad/types';
 
 type UsageMeterSlug =
   | 'gpt_5_thinking_messages'
@@ -43,22 +44,16 @@ export function computeUsageTotal(
     // (Feature items reference meters by ID, but we need to match by slug)
     const usageMeterById: Record<string, string> = {};
     for (const meter of pricingModel.usageMeters) {
-      if ('id' in meter && 'slug' in meter) {
-        const meterId =
-          typeof meter.id === 'string' ? meter.id : String(meter.id);
-        const meterSlug =
-          typeof meter.slug === 'string' ? meter.slug : String(meter.slug);
-        usageMeterById[meterId] = meterSlug;
-      }
+      const meterId = String(meter.id);
+      const meterSlug = String(meter.slug);
+      usageMeterById[meterId] = meterSlug;
     }
 
     // Filter to only usage credit grant features that match our slug
     let total = 0;
     for (const item of featureItems) {
       // Only process usage credit grants (not toggle features)
-      if (item?.type !== 'usage_credit_grant') continue;
-      if (typeof item.usageMeterId !== 'string') continue;
-      if (typeof item.amount !== 'number') continue;
+      if (item.type !== 'usage_credit_grant') continue;
 
       // Check if this feature item's meter matches the slug we're looking for
       const meterSlug = usageMeterById[item.usageMeterId];
@@ -84,30 +79,20 @@ export function findUsageMeterBySlug(
   usageMeterSlug: string,
   pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): { id: string; slug: string } | null {
-  try {
-    if (!pricingModel?.usageMeters) return null;
+  if (!pricingModel?.usageMeters) return null;
 
-    const usageMeter = pricingModel.usageMeters.find(
-      (meter) => 'slug' in meter && meter.slug === usageMeterSlug
-    );
+  const usageMeter = pricingModel.usageMeters.find(
+    (meter: UsageMeter) => meter.slug === usageMeterSlug
+  );
 
-    if (!usageMeter || !('id' in usageMeter) || !('slug' in usageMeter)) {
-      return null;
-    }
-
-    return {
-      id:
-        typeof usageMeter.id === 'string'
-          ? usageMeter.id
-          : String(usageMeter.id),
-      slug:
-        typeof usageMeter.slug === 'string'
-          ? usageMeter.slug
-          : String(usageMeter.slug),
-    };
-  } catch {
+  if (!usageMeter) {
     return null;
   }
+
+  return {
+    id: String(usageMeter.id),
+    slug: String(usageMeter.slug),
+  };
 }
 
 /**
@@ -126,7 +111,9 @@ export function findUsagePriceBySlug(
 
     const usagePrice = pricingModel.products
       .flatMap((product) => product.prices ?? [])
-      .find((price) => price.type === 'usage' && price.slug === priceSlug);
+      .find(
+        (price: Price) => price.type === 'usage' && price.slug === priceSlug
+      );
 
     return usagePrice ?? null;
   } catch {

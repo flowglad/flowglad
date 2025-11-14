@@ -77,7 +77,7 @@ export function HomeClient() {
   if (
     billing.loadBilling !== true ||
     billing.errors !== null ||
-    !('pricingModel' in billing) ||
+    !billing.loaded ||
     !billing.pricingModel
   ) {
     return <DashboardSkeleton />;

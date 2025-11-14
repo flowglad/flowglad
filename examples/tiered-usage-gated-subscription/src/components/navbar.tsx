@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { authClient } from '@/lib/auth-client';
 import { useBilling } from '@flowglad/nextjs';
+import type { Price } from '@flowglad/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,21 +96,20 @@ export function Navbar() {
   const isDefaultPlan = (() => {
     if (
       !currentSubscription ||
-      !('pricingModel' in billing) ||
+      !billing.loaded ||
+      billing.loadBilling !== true ||
+      billing.errors !== null ||
       !billing.pricingModel?.products
     )
       return false;
 
-    const priceId =
-      currentSubscription && 'priceId' in currentSubscription
-        ? (currentSubscription as { priceId?: string }).priceId
-        : undefined;
+    const priceId = currentSubscription.priceId;
 
     if (!priceId) return false;
 
     // Find the product that contains a price matching this subscription
     for (const product of billing.pricingModel.products) {
-      const price = product.prices.find((p) => 'id' in p && p.id === priceId);
+      const price = product.prices.find((p: Price) => p.id === priceId);
       if (price) {
         // Check if the product is default (e.g., Free Plan)
         // Only check product.default, not price.isDefault (which is set for all subscription prices)
@@ -131,18 +131,15 @@ export function Navbar() {
   // Format cancellation date for display
   // cancelScheduledAt is in milliseconds (Unix timestamp)
   const cancellationDate =
-    currentSubscription &&
-    'cancelScheduledAt' in currentSubscription &&
-    (currentSubscription as { cancelScheduledAt?: number }).cancelScheduledAt
-      ? new Date(
-          (
-            currentSubscription as { cancelScheduledAt: number }
-          ).cancelScheduledAt
-        ).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
+    currentSubscription && currentSubscription.cancelScheduledAt
+      ? new Date(currentSubscription.cancelScheduledAt).toLocaleDateString(
+          'en-US',
+          {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }
+        )
       : null;
 
   return (
