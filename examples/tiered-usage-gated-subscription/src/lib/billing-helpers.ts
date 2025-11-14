@@ -1,7 +1,4 @@
-import type {
-  BillingWithChecks,
-  SubscriptionExperimentalFields,
-} from '@flowglad/shared';
+import type { BillingWithChecks } from '@flowglad/shared';
 import type { Price } from '@flowglad/types';
 
 type UsageMeterSlug =
@@ -37,20 +34,8 @@ export function computeUsageTotal(
     if (!currentSubscription || !pricingModel?.usageMeters) return 0;
 
     // Get feature items from subscription (stored in experimental.featureItems)
-    const experimental =
-      'experimental' in currentSubscription &&
-      currentSubscription.experimental &&
-      typeof currentSubscription.experimental === 'object' &&
-      'featureItems' in currentSubscription.experimental
-        ? (currentSubscription.experimental as SubscriptionExperimentalFields)
-        : null;
-
-    const featureItems =
-      experimental &&
-      'featureItems' in experimental &&
-      Array.isArray(experimental.featureItems)
-        ? experimental.featureItems
-        : [];
+    const experimental = currentSubscription.experimental;
+    const featureItems = experimental?.featureItems ?? [];
 
     if (featureItems.length === 0) return 0;
 
@@ -120,32 +105,6 @@ export function findUsageMeterBySlug(
           ? usageMeter.slug
           : String(usageMeter.slug),
     };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Finds a usage price by its associated usage meter ID from the pricing model.
- *
- * @param usageMeterId - The ID of the usage meter to find the price for
- * @param pricingModel - The billing pricing model (from billing.pricingModel)
- * @returns The usage price object, or null if not found
- */
-export function findUsagePriceByMeterId(
-  usageMeterId: string,
-  pricingModel: BillingWithChecks['pricingModel'] | undefined
-): Price | null {
-  try {
-    if (!pricingModel?.products) return null;
-
-    const usagePrice = pricingModel.products
-      .flatMap((product) => product.prices ?? [])
-      .find(
-        (price) => price.type === 'usage' && price.usageMeterId === usageMeterId
-      );
-
-    return usagePrice ?? null;
   } catch {
     return null;
   }

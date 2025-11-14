@@ -19,10 +19,10 @@ export default function SignUpPage() {
     setLoading(true);
     setError(null);
     await authClient.signUp.email(
-      { name, email, password, callbackURL: '/' },
+      { name, email, password, callbackURL: '/?view=pricing' },
       {
         onError: (ctx) => setError(ctx.error.message),
-        onSuccess: () => router.push('/'),
+        onSuccess: () => router.push('/?view=pricing'),
         onRequest: () => {},
       }
     );

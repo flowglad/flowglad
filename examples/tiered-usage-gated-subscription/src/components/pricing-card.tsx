@@ -13,25 +13,22 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 export interface PricingPlan {
   name: string;
   description?: string;
-  displayMonthly: string;
-  displayYearly: string;
-  monthlySlug: string;
-  yearlySlug: string;
+  displayPrice: string;
+  slug: string;
   features: string[];
   isPopular?: boolean;
 }
 
 interface PricingCardProps {
   plan: PricingPlan;
-  billingPeriod: 'monthly' | 'yearly';
   isCurrentPlan?: boolean;
   hideFeatures?: boolean;
+  isPremiumUser?: boolean;
 }
 
 /**
@@ -39,9 +36,9 @@ interface PricingCardProps {
  */
 export function PricingCard({
   plan,
-  billingPeriod,
   isCurrentPlan = false,
   hideFeatures = false,
+  isPremiumUser = false,
 }: PricingCardProps) {
   const billing = useBilling();
   const [isLoading, setIsLoading] = useState(false);
@@ -59,20 +56,14 @@ export function PricingCard({
     return <div>Billing not available</div>;
   }
 
-  const periodLabel = billingPeriod === 'monthly' ? '/month' : '/year';
-  const priceSlug =
-    billingPeriod === 'monthly' ? plan.monthlySlug : plan.yearlySlug;
-  const displayPrice =
-    billingPeriod === 'monthly' ? plan.displayMonthly : plan.displayYearly;
+  const priceSlug = plan.slug;
 
   // Check if this plan is a default plan by checking the pricing model
   const isDefaultPlan = (() => {
     if (!billing.pricingModel?.products || !priceSlug) return false;
 
     for (const product of billing.pricingModel.products) {
-      const price = product.prices?.find(
-        (p) => 'slug' in p && p.slug === priceSlug
-      );
+      const price = product.prices?.find((p) => p.slug === priceSlug);
       if (price) {
         // Check if the product is default (e.g., Free Plan)
         return product.default === true;
@@ -80,16 +71,6 @@ export function PricingCard({
     }
     return false;
   })();
-
-  // Calculate monthly equivalent from yearly price for subtext
-  const calculateMonthlyEquivalent = (yearlyPrice: string): string => {
-    // Remove $ and commas, parse as number
-    const numericPrice = parseFloat(yearlyPrice.replace(/[$,]/g, ''));
-    if (isNaN(numericPrice)) return yearlyPrice;
-    // Divide by 12 and format back
-    const monthlyEquivalent = numericPrice / 12;
-    return `$${Math.round(monthlyEquivalent)}`;
-  };
 
   const handleCheckout = async () => {
     setError(null);
@@ -124,7 +105,6 @@ export function PricingCard({
         cancelUrl: window.location.href,
         quantity: 1,
         autoRedirect: true,
-        type: 'product',
       });
     } catch (error) {
       const errorMsg =
@@ -140,9 +120,10 @@ export function PricingCard({
   return (
     <Card
       className={cn(
-        'relative flex h-full flex-col transition-transform hover:-translate-y-px',
+        'relative flex h-full flex-col transition-transform',
         plan.isPopular && 'border-primary shadow-lg',
-        isCurrentPlan && 'border-2 border-primary'
+        isCurrentPlan && 'border-2 border-primary opacity-60',
+        !isCurrentPlan && 'hover:-translate-y-px'
       )}
     >
       {plan.isPopular && (
@@ -163,24 +144,18 @@ export function PricingCard({
         <div className="mt-1 md:mt-2">
           <div className="flex items-baseline gap-1">
             <span className="text-2xl md:text-4xl font-bold">
-              {displayPrice}
+              {plan.displayPrice}
             </span>
             <span className="text-muted-foreground text-xs md:text-sm">
-              {periodLabel}
+              /month
             </span>
           </div>
-          {billingPeriod === 'yearly' && !isDefaultPlan && (
-            <p className="text-muted-foreground mt-0.5 text-xs">
-              {calculateMonthlyEquivalent(plan.displayYearly)}/month billed
-              annually
-            </p>
-          )}
         </div>
       </CardHeader>
 
       {!hideFeatures && (
-        <CardContent className="flex-1 px-3 md:px-6 pt-0">
-          <ul className="space-y-1.5 md:space-y-3">
+        <CardContent className="flex-1 px-3 md:px-6 pt-0 overflow-hidden flex flex-col min-h-0 max-h-[1500px] md:max-h-[150px]">
+          <ul className="space-y-1.5 md:space-y-3 overflow-y-auto flex-1 pr-1">
             {plan.features.length === 0 ? (
               <li className="text-muted-foreground text-xs md:text-sm">
                 No features included
@@ -204,7 +179,7 @@ export function PricingCard({
             variant={plan.isPopular ? 'default' : 'outline'}
             disabled={
               isCurrentPlan ||
-              isDefaultPlan ||
+              isPremiumUser ||
               isLoading ||
               !billing.loaded ||
               !billing.createCheckoutSession ||
@@ -217,7 +192,9 @@ export function PricingCard({
               ? 'Loading...'
               : isCurrentPlan
                 ? 'Current Plan'
-                : 'Get Started'}
+                : isPremiumUser
+                  ? 'Already on Premium'
+                  : 'Get Started'}
           </Button>
           {error && (
             <p className="text-xs text-destructive text-center">{error}</p>

@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useRef, useMemo } from 'react';
 import Autoplay from 'embla-carousel-autoplay';
 import { PricingCard } from '@/components/pricing-card';
 import type { PricingPlan } from '@/components/pricing-card';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import {
   Carousel,
   CarouselContent,
@@ -14,7 +12,6 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { useMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
 import { useBilling } from '@flowglad/nextjs';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -28,10 +25,6 @@ import {
  * PricingCardsGrid component displays all pricing plans in a responsive grid or carousel
  */
 export function PricingCardsGrid() {
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>(
-    'monthly'
-  );
-  const isYearly = billingPeriod === 'yearly';
   const isMobile = useMobile();
   const autoplayPlugin = useRef(
     Autoplay({
@@ -52,20 +45,17 @@ export function PricingCardsGrid() {
     }
 
     const { products } = billing.pricingModel;
-    const targetIntervalUnit = isYearly ? 'year' : 'month';
 
-    // Filter products: subscription type, matching interval, active, not default/free
+    // Filter products: subscription type, monthly interval, active
+    // Now includes free/default plans
     const filteredProducts = products.filter((product) => {
-      // Skip default/free products
-      if (product.default === true) return false;
-
-      // Find subscription price with matching interval
+      // Find subscription price with monthly interval
       const matchingPrice = product.prices?.find(
         (price) =>
           price.type === 'subscription' &&
           price.active === true &&
           'intervalUnit' in price &&
-          price.intervalUnit === targetIntervalUnit
+          price.intervalUnit === 'month'
       );
 
       return !!matchingPrice;
@@ -74,23 +64,23 @@ export function PricingCardsGrid() {
     // Transform products to PricingPlan format
     const transformedPlans = filteredProducts
       .map((product) => {
+        // Always use monthly pricing
         const price = product.prices?.find(
           (p) =>
             p.type === 'subscription' &&
             p.active === true &&
             'intervalUnit' in p &&
-            p.intervalUnit === targetIntervalUnit
+            p.intervalUnit === 'month'
         );
 
         if (!price || !('slug' in price) || !price.slug) return null;
 
         // Format price from cents to display string
         const formatPrice = (cents: number): string => {
+          if (cents === 0) return 'Free';
           const dollars = cents / 100;
           return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
         };
-
-        const displayPrice = formatPrice(price.unitPrice);
 
         // Build features list from feature objects (features have name and description)
         const featureNames =
@@ -101,15 +91,10 @@ export function PricingCardsGrid() {
                 typeof name === 'string' && name.length > 0
             ) ?? [];
 
-        // For PricingPlan interface, we need both monthly and yearly slugs/prices
-        // Since we're filtering by period, we'll use the current price for both
-        // The PricingCard component will use the correct one based on billingPeriod
         const plan: PricingPlan = {
           name: product.name,
-          displayMonthly: displayPrice,
-          displayYearly: displayPrice,
-          monthlySlug: price.slug,
-          yearlySlug: price.slug,
+          displayPrice: formatPrice(price.unitPrice),
+          slug: price.slug,
           features: featureNames,
         };
 
@@ -127,17 +112,19 @@ export function PricingCardsGrid() {
       .filter((plan): plan is PricingPlan => plan !== null);
 
     // Sort by price (extract numeric value for sorting)
+    // Free plan should come first, then by price
     return transformedPlans.sort((a, b) => {
       const getPriceValue = (priceStr: string) => {
+        if (priceStr === 'Free') return -1; // Free comes first
         return parseFloat(priceStr.replace(/[$,]/g, '')) || 0;
       };
-      return getPriceValue(a.displayMonthly) - getPriceValue(b.displayMonthly);
+      const aValue = getPriceValue(a.displayPrice);
+      const bValue = getPriceValue(b.displayPrice);
+      if (aValue === -1) return -1; // Free always first
+      if (bValue === -1) return 1; // Free always first
+      return aValue - bValue;
     });
-  }, [
-    billing.loaded,
-    'pricingModel' in billing ? billing.pricingModel : null,
-    isYearly,
-  ]);
+  }, [billing.loaded, 'pricingModel' in billing ? billing.pricingModel : null]);
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
     if (
@@ -148,8 +135,7 @@ export function PricingCardsGrid() {
     ) {
       return false;
     }
-    const priceSlug = isYearly ? plan.yearlySlug : plan.monthlySlug;
-    const price = billing.getPrice(priceSlug);
+    const price = billing.getPrice(plan.slug);
     if (!price) return false;
     const currentPriceIds = new Set(
       billing.currentSubscriptions
@@ -159,49 +145,13 @@ export function PricingCardsGrid() {
     return currentPriceIds.has(price.id);
   };
 
+  // Check if user is on a premium plan (not free)
+  const currentSubscription = billing.currentSubscriptions?.[0];
+  const isFreePlan = currentSubscription?.isFreePlan ?? false;
+  const isPremiumPlan = !!(currentSubscription && !isFreePlan);
+
   return (
     <div className="w-full space-y-8">
-      {/* Billing Period Toggle */}
-      <div className="grid grid-cols-3 grid-rows-2 items-center justify-center gap-x-1 gap-y-1 w-fit mx-auto">
-        {/* Row 1 */}
-        <div className="flex items-center justify-center">
-          <span
-            className={cn(
-              'text-sm font-medium transition-colors',
-              !isYearly ? 'text-foreground' : 'text-muted-foreground'
-            )}
-          >
-            Monthly
-          </span>
-        </div>
-        <div className="flex items-center justify-center">
-          <Switch
-            checked={isYearly}
-            onCheckedChange={(checked) =>
-              setBillingPeriod(checked ? 'yearly' : 'monthly')
-            }
-          />
-        </div>
-        <div className="flex items-center justify-center">
-          <span
-            className={cn(
-              'text-sm font-medium transition-colors',
-              isYearly ? 'text-foreground' : 'text-muted-foreground'
-            )}
-          >
-            Yearly
-          </span>
-        </div>
-        {/* Row 2 */}
-        <div></div>
-        <div></div>
-        <div className="flex items-center justify-center">
-          <Badge variant="secondary" className="text-xs">
-            Save 20%
-          </Badge>
-        </div>
-      </div>
-
       {/* Pricing Cards - Carousel on Mobile, Grid on Desktop */}
       {plans.length === 0 ? (
         // Show skeleton cards when plans are loading
@@ -252,7 +202,7 @@ export function PricingCardsGrid() {
                 </CardHeader>
                 <CardContent className="flex-1 px-3 md:px-6 pt-0">
                   <ul className="space-y-1.5 md:space-y-3">
-                    {[1, 2, 3, 4].map((j) => (
+                    {[1, 2, 3].map((j) => (
                       <li key={j} className="flex items-start gap-1.5 md:gap-2">
                         <Skeleton className="h-3 w-3 md:h-4 md:w-4 mt-0.5 shrink-0 rounded-full" />
                         <Skeleton className="h-3 md:h-4 flex-1" />
@@ -283,9 +233,9 @@ export function PricingCardsGrid() {
                   <div className="p-1 h-full">
                     <PricingCard
                       plan={plan}
-                      billingPeriod={billingPeriod}
                       isCurrentPlan={isPlanCurrent(plan)}
                       hideFeatures={true}
+                      isPremiumUser={isPremiumPlan}
                     />
                   </div>
                 </CarouselItem>
@@ -301,8 +251,8 @@ export function PricingCardsGrid() {
             <PricingCard
               key={plan.name}
               plan={plan}
-              billingPeriod={billingPeriod}
               isCurrentPlan={isPlanCurrent(plan)}
+              isPremiumUser={isPremiumPlan}
             />
           ))}
         </div>

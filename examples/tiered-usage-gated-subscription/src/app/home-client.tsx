@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
 import { useBilling } from '@flowglad/nextjs';
 import { computeUsageTotal } from '@/lib/billing-helpers';
@@ -14,9 +14,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
+import { PricingCardsGrid } from '@/components/pricing-cards-grid';
 
 export function HomeClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, isPending: isSessionPending } =
     authClient.useSession();
   const billing = useBilling();
@@ -50,26 +53,22 @@ export function HomeClient() {
     }
   }, [session?.user?.id, billing]);
 
-  // Check if user is on free plan and redirect to pricing page
+  // View state: 'dashboard' or 'upgrade'
+  const [currentView, setCurrentView] = useState<'dashboard' | 'upgrade'>(
+    'dashboard'
+  );
+
+  // Update view when URL param changes
   useEffect(() => {
-    if (isSessionPending || !billing.loaded) {
-      return;
+    if (searchParams) {
+      const viewParam = searchParams.get('view');
+      if (viewParam === 'pricing') {
+        setCurrentView('upgrade');
+      } else {
+        setCurrentView('dashboard');
+      }
     }
-
-    // Check if user has at least one non-free plan subscription
-    // isFreePlan is true when the subscription's price has unitPrice === 0
-    const hasNonFreePlan =
-      Array.isArray(billing.currentSubscriptions) &&
-      billing.currentSubscriptions.length > 0 &&
-      billing.currentSubscriptions.some((sub) => {
-        return 'isFreePlan' in sub && sub.isFreePlan !== true;
-      });
-
-    // If user is on free plan (no non-free plan found), redirect to pricing
-    if (!hasNonFreePlan) {
-      router.push('/pricing');
-    }
-  }, [isSessionPending, billing.loaded, billing.currentSubscriptions, router]);
+  }, [searchParams]);
 
   if (isSessionPending || !billing.loaded) {
     return <DashboardSkeleton />;
@@ -119,15 +118,15 @@ export function HomeClient() {
   // Check toggle features for model access
   // If toggle exists without usage meter = unlimited access
   // If toggle exists with usage meter = limited access (check credits)
-  const hasGPT5Fast = !!billing.checkFeatureAccess('gpt_5_fast');
-  const hasGPT5Thinking = !!billing.checkFeatureAccess('gpt_5_thinking');
-  const hasO3AccessFeature = !!billing.checkFeatureAccess('o3_access');
-  const hasO4MiniAccessFeature = !!billing.checkFeatureAccess('o4_mini_access');
-  const hasO4MiniHighAccessFeature = !!billing.checkFeatureAccess(
+  const hasGPT5Fast = billing.checkFeatureAccess('gpt_5_fast');
+  const hasGPT5Thinking = billing.checkFeatureAccess('gpt_5_thinking');
+  const hasO3AccessFeature = billing.checkFeatureAccess('o3_access');
+  const hasO4MiniAccessFeature = billing.checkFeatureAccess('o4_mini_access');
+  const hasO4MiniHighAccessFeature = billing.checkFeatureAccess(
     'o4_mini_high_access'
   );
-  const hasAgentMode = !!billing.checkFeatureAccess('agent_mode');
-  const hasDeepResearch = !!billing.checkFeatureAccess('deep_research');
+  const hasAgentMode = billing.checkFeatureAccess('agent_mode');
+  const hasDeepResearch = billing.checkFeatureAccess('deep_research');
 
   // Determine if models are unlimited (toggle exists but no usage meter) or limited (has usage meter)
   const isGPT5ThinkingUnlimited = hasGPT5Thinking && !hasGPT5ThinkingAccess;
@@ -411,429 +410,477 @@ export function HomeClient() {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <main className="flex min-h-screen w-full max-w-7xl flex-col p-8">
         <div className="w-full space-y-8">
-          {/* Chat Interface with Action Buttons */}
-          <Card className="max-w-4xl mx-auto">
-            <CardHeader>
-              <CardTitle>Current Plan: {planName}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Chat Display Area */}
-              <div className="relative w-full h-96 bg-muted rounded-lg border-2 border-dashed overflow-y-auto p-4">
-                {isSendingGPT5Thinking ||
-                isSendingO3 ||
-                isSendingO4Mini ||
-                isSendingO4MiniHigh ||
-                isUsingAgentMode ||
-                isUsingDeepResearch ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-muted/80 z-10">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                      <p className="text-sm text-muted-foreground">
-                        Processing...
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-                {chatMessages.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground">
-                      Send a message to one of the AI models to start chatting!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {chatMessages.map((msg, idx) => (
-                      <div
-                        key={idx}
-                        className={`flex ${
-                          msg.role === 'user' ? 'justify-end' : 'justify-start'
-                        }`}
-                      >
-                        <div
-                          className={`max-w-[80%] rounded-lg p-3 ${
-                            msg.role === 'user'
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted'
-                          }`}
-                        >
-                          {msg.model && (
-                            <p className="text-xs opacity-70 mb-1">
-                              {msg.model}
-                            </p>
-                          )}
-                          <p className="text-sm">{msg.content}</p>
+          {/* View Toggle */}
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-sm font-medium">Dashboard</span>
+            <Switch
+              checked={currentView === 'upgrade'}
+              onCheckedChange={(checked) => {
+                const newView = checked ? 'upgrade' : 'dashboard';
+                setCurrentView(newView);
+                // Update URL without page reload
+                if (checked) {
+                  router.push('/?view=pricing', { scroll: false });
+                } else {
+                  router.push('/', { scroll: false });
+                }
+              }}
+            />
+            <span className="text-sm font-medium">Pricing</span>
+          </div>
+
+          {currentView === 'upgrade' ? (
+            <div className="w-full space-y-12">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <h1 className="text-4xl font-semibold leading-tight tracking-tight text-foreground md:text-5xl">
+                  Choose Your Plan
+                </h1>
+                <p className="text-lg leading-8 text-muted-foreground md:text-xl">
+                  Select the perfect plan for your AI generation needs
+                </p>
+              </div>
+              <PricingCardsGrid />
+            </div>
+          ) : (
+            <>
+              {/* Chat Interface with Action Buttons */}
+              <Card className="max-w-4xl mx-auto">
+                <CardHeader>
+                  <CardTitle>Current Plan: {planName}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Chat Display Area */}
+                  <div className="relative w-full h-96 bg-muted rounded-lg border-2 border-dashed overflow-y-auto p-4">
+                    {isSendingGPT5Thinking ||
+                    isSendingO3 ||
+                    isSendingO4Mini ||
+                    isSendingO4MiniHigh ||
+                    isUsingAgentMode ||
+                    isUsingDeepResearch ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-muted/80 z-10">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                          <p className="text-sm text-muted-foreground">
+                            Processing...
+                          </p>
                         </div>
                       </div>
-                    ))}
+                    ) : null}
+                    {chatMessages.length === 0 ? (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground">
+                          Send a message to one of the AI models to start
+                          chatting!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {chatMessages.map((msg, idx) => (
+                          <div
+                            key={idx}
+                            className={`flex ${
+                              msg.role === 'user'
+                                ? 'justify-end'
+                                : 'justify-start'
+                            }`}
+                          >
+                            <div
+                              className={`max-w-[80%] rounded-lg p-3 ${
+                                msg.role === 'user'
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted'
+                              }`}
+                            >
+                              {msg.model && (
+                                <p className="text-xs opacity-70 mb-1">
+                                  {msg.model}
+                                </p>
+                              )}
+                              <p className="text-sm">{msg.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-6">
-                {/* AI Model Actions */}
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                    AI Models
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* GPT-5 Thinking */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="w-full">
-                          <Button
-                            onClick={handleSendGPT5Thinking}
-                            className="w-full transition-transform hover:-translate-y-px"
-                            size="lg"
-                            disabled={
-                              !hasGPT5Thinking ||
-                              (!isGPT5ThinkingUnlimited &&
-                                (!hasGPT5ThinkingAccess ||
-                                  gpt5ThinkingRemaining === 0)) ||
-                              isSendingGPT5Thinking
-                            }
-                          >
-                            {isSendingGPT5Thinking
-                              ? 'Sending...'
-                              : 'GPT-5 Thinking'}
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {(!hasGPT5Thinking ||
-                        (!isGPT5ThinkingUnlimited &&
-                          (!hasGPT5ThinkingAccess ||
-                            gpt5ThinkingRemaining === 0))) && (
-                        <TooltipContent>
-                          {!hasGPT5Thinking
-                            ? 'Not available in your plan'
-                            : !hasGPT5ThinkingAccess
-                              ? 'No access'
-                              : 'No credits remaining'}
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
+                  {/* Action Buttons */}
+                  <div className="space-y-6">
+                    {/* AI Model Actions */}
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                        AI Models
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* GPT-5 Thinking */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="w-full">
+                              <Button
+                                onClick={handleSendGPT5Thinking}
+                                className="w-full transition-transform hover:-translate-y-px"
+                                size="lg"
+                                disabled={
+                                  !hasGPT5Thinking ||
+                                  (!isGPT5ThinkingUnlimited &&
+                                    (!hasGPT5ThinkingAccess ||
+                                      gpt5ThinkingRemaining === 0)) ||
+                                  isSendingGPT5Thinking
+                                }
+                              >
+                                {isSendingGPT5Thinking
+                                  ? 'Sending...'
+                                  : 'GPT-5 Thinking'}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {(!hasGPT5Thinking ||
+                            (!isGPT5ThinkingUnlimited &&
+                              (!hasGPT5ThinkingAccess ||
+                                gpt5ThinkingRemaining === 0))) && (
+                            <TooltipContent>
+                              {!hasGPT5Thinking
+                                ? 'Not available in your plan'
+                                : !hasGPT5ThinkingAccess
+                                  ? 'No access'
+                                  : 'No credits remaining'}
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
 
-                    {/* o3 */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="w-full">
-                          <Button
-                            onClick={handleSendO3}
-                            className="w-full transition-transform hover:-translate-y-px"
-                            size="lg"
-                            disabled={
-                              !hasO3AccessFeature ||
-                              (!isO3Unlimited &&
-                                (!hasO3Access || o3Remaining === 0)) ||
-                              isSendingO3
-                            }
-                          >
-                            {isSendingO3 ? 'Sending...' : 'o3 Model'}
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {(!hasO3AccessFeature ||
-                        (!isO3Unlimited &&
-                          (!hasO3Access || o3Remaining === 0))) && (
-                        <TooltipContent>
-                          {!hasO3AccessFeature
-                            ? 'Not available in your plan'
-                            : !hasO3Access
-                              ? 'No access'
-                              : 'No credits remaining'}
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
+                        {/* o3 */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="w-full">
+                              <Button
+                                onClick={handleSendO3}
+                                className="w-full transition-transform hover:-translate-y-px"
+                                size="lg"
+                                disabled={
+                                  !hasO3AccessFeature ||
+                                  (!isO3Unlimited &&
+                                    (!hasO3Access || o3Remaining === 0)) ||
+                                  isSendingO3
+                                }
+                              >
+                                {isSendingO3 ? 'Sending...' : 'o3 Model'}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {(!hasO3AccessFeature ||
+                            (!isO3Unlimited &&
+                              (!hasO3Access || o3Remaining === 0))) && (
+                            <TooltipContent>
+                              {!hasO3AccessFeature
+                                ? 'Not available in your plan'
+                                : !hasO3Access
+                                  ? 'No access'
+                                  : 'No credits remaining'}
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
 
-                    {/* o4-mini */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="w-full">
-                          <Button
-                            onClick={handleSendO4Mini}
-                            className="w-full transition-transform hover:-translate-y-px"
-                            size="lg"
-                            disabled={
-                              !hasO4MiniAccessFeature ||
-                              (!isO4MiniUnlimited &&
-                                (!hasO4MiniAccess || o4MiniRemaining === 0)) ||
-                              isSendingO4Mini
-                            }
-                          >
-                            {isSendingO4Mini ? 'Sending...' : 'o4-mini'}
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {(!hasO4MiniAccessFeature ||
-                        (!isO4MiniUnlimited &&
-                          (!hasO4MiniAccess || o4MiniRemaining === 0))) && (
-                        <TooltipContent>
-                          {!hasO4MiniAccessFeature
-                            ? 'Not available in your plan'
-                            : !hasO4MiniAccess
-                              ? 'No access'
-                              : 'No credits remaining'}
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
+                        {/* o4-mini */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="w-full">
+                              <Button
+                                onClick={handleSendO4Mini}
+                                className="w-full transition-transform hover:-translate-y-px"
+                                size="lg"
+                                disabled={
+                                  !hasO4MiniAccessFeature ||
+                                  (!isO4MiniUnlimited &&
+                                    (!hasO4MiniAccess ||
+                                      o4MiniRemaining === 0)) ||
+                                  isSendingO4Mini
+                                }
+                              >
+                                {isSendingO4Mini ? 'Sending...' : 'o4-mini'}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {(!hasO4MiniAccessFeature ||
+                            (!isO4MiniUnlimited &&
+                              (!hasO4MiniAccess || o4MiniRemaining === 0))) && (
+                            <TooltipContent>
+                              {!hasO4MiniAccessFeature
+                                ? 'Not available in your plan'
+                                : !hasO4MiniAccess
+                                  ? 'No access'
+                                  : 'No credits remaining'}
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
 
-                    {/* o4-mini-high */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="w-full">
-                          <Button
-                            onClick={handleSendO4MiniHigh}
-                            className="w-full transition-transform hover:-translate-y-px"
-                            size="lg"
-                            disabled={
-                              !hasO4MiniHighAccessFeature ||
-                              (!isO4MiniHighUnlimited &&
-                                (!hasO4MiniHighAccess ||
-                                  o4MiniHighRemaining === 0)) ||
-                              isSendingO4MiniHigh
-                            }
-                          >
-                            {isSendingO4MiniHigh
-                              ? 'Sending...'
-                              : 'o4-mini-high'}
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {(!hasO4MiniHighAccessFeature ||
-                        (!isO4MiniHighUnlimited &&
-                          (!hasO4MiniHighAccess ||
-                            o4MiniHighRemaining === 0))) && (
-                        <TooltipContent>
-                          {!hasO4MiniHighAccessFeature
-                            ? 'Not available in your plan'
-                            : !hasO4MiniHighAccess
-                              ? 'No access'
-                              : 'No credits remaining'}
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
+                        {/* o4-mini-high */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="w-full">
+                              <Button
+                                onClick={handleSendO4MiniHigh}
+                                className="w-full transition-transform hover:-translate-y-px"
+                                size="lg"
+                                disabled={
+                                  !hasO4MiniHighAccessFeature ||
+                                  (!isO4MiniHighUnlimited &&
+                                    (!hasO4MiniHighAccess ||
+                                      o4MiniHighRemaining === 0)) ||
+                                  isSendingO4MiniHigh
+                                }
+                              >
+                                {isSendingO4MiniHigh
+                                  ? 'Sending...'
+                                  : 'o4-mini-high'}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {(!hasO4MiniHighAccessFeature ||
+                            (!isO4MiniHighUnlimited &&
+                              (!hasO4MiniHighAccess ||
+                                o4MiniHighRemaining === 0))) && (
+                            <TooltipContent>
+                              {!hasO4MiniHighAccessFeature
+                                ? 'Not available in your plan'
+                                : !hasO4MiniHighAccess
+                                  ? 'No access'
+                                  : 'No credits remaining'}
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </div>
+                    </div>
+
+                    {/* Advanced Features */}
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                        Advanced Features
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Agent Mode */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="w-full">
+                              <Button
+                                onClick={handleUseAgentMode}
+                                variant="outline"
+                                className="w-full transition-transform hover:-translate-y-px"
+                                disabled={
+                                  !hasAgentMode ||
+                                  (!isAgentModeUnlimited &&
+                                    (!hasAgentModeAccess ||
+                                      agentMessagesRemaining === 0)) ||
+                                  isUsingAgentMode
+                                }
+                              >
+                                {isUsingAgentMode
+                                  ? 'Activating...'
+                                  : 'Agent Mode'}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {(!hasAgentMode ||
+                            (!isAgentModeUnlimited &&
+                              (!hasAgentModeAccess ||
+                                agentMessagesRemaining === 0))) && (
+                            <TooltipContent>
+                              {!hasAgentMode
+                                ? 'Not available in your plan'
+                                : !hasAgentModeAccess
+                                  ? 'No access'
+                                  : 'No credits remaining'}
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+
+                        {/* Deep Research */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="w-full">
+                              <Button
+                                onClick={handleUseDeepResearch}
+                                variant="outline"
+                                className="w-full transition-transform hover:-translate-y-px"
+                                disabled={
+                                  !hasDeepResearch ||
+                                  (!isDeepResearchUnlimited &&
+                                    (!hasDeepResearchAccess ||
+                                      deepResearchRemaining === 0)) ||
+                                  isUsingDeepResearch
+                                }
+                              >
+                                {isUsingDeepResearch
+                                  ? 'Researching...'
+                                  : 'Deep Research'}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {(!hasDeepResearch ||
+                            (!isDeepResearchUnlimited &&
+                              (!hasDeepResearchAccess ||
+                                deepResearchRemaining === 0))) && (
+                            <TooltipContent>
+                              {!hasDeepResearch
+                                ? 'Not available in your plan'
+                                : !hasDeepResearchAccess
+                                  ? 'No access'
+                                  : 'No credits remaining'}
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </div>
+                    </div>
+                    {messageError && (
+                      <p className="text-sm text-destructive mt-2">
+                        {messageError}
+                      </p>
+                    )}
                   </div>
-                </div>
 
-                {/* Advanced Features */}
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                    Advanced Features
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Agent Mode */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="w-full">
-                          <Button
-                            onClick={handleUseAgentMode}
-                            variant="outline"
-                            className="w-full transition-transform hover:-translate-y-px"
-                            disabled={
-                              !hasAgentMode ||
-                              (!isAgentModeUnlimited &&
-                                (!hasAgentModeAccess ||
-                                  agentMessagesRemaining === 0)) ||
-                              isUsingAgentMode
+                  {/* Usage Meters */}
+                  <div className="space-y-6 pt-6 border-t">
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      Usage Meters
+                    </h3>
+                    <div className="space-y-4">
+                      {/* GPT-5 Thinking Messages */}
+                      {(hasGPT5ThinkingAccess || gpt5ThinkingRemaining > 0) && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              GPT-5 Thinking Messages
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {gpt5ThinkingRemaining}
+                              {gpt5ThinkingTotal > 0
+                                ? `/${gpt5ThinkingTotal}`
+                                : ''}{' '}
+                              messages
+                            </span>
+                          </div>
+                          <Progress
+                            value={
+                              gpt5ThinkingTotal > 0 ? gpt5ThinkingProgress : 0
                             }
-                          >
-                            {isUsingAgentMode ? 'Activating...' : 'Agent Mode'}
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {(!hasAgentMode ||
-                        (!isAgentModeUnlimited &&
-                          (!hasAgentModeAccess ||
-                            agentMessagesRemaining === 0))) && (
-                        <TooltipContent>
-                          {!hasAgentMode
-                            ? 'Not available in your plan'
-                            : !hasAgentModeAccess
-                              ? 'No access'
-                              : 'No credits remaining'}
-                        </TooltipContent>
+                            className="w-full"
+                          />
+                        </div>
                       )}
-                    </Tooltip>
 
-                    {/* Deep Research */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="w-full">
-                          <Button
-                            onClick={handleUseDeepResearch}
-                            variant="outline"
-                            className="w-full transition-transform hover:-translate-y-px"
-                            disabled={
-                              !hasDeepResearch ||
-                              (!isDeepResearchUnlimited &&
-                                (!hasDeepResearchAccess ||
-                                  deepResearchRemaining === 0)) ||
-                              isUsingDeepResearch
-                            }
-                          >
-                            {isUsingDeepResearch
-                              ? 'Researching...'
-                              : 'Deep Research'}
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {(!hasDeepResearch ||
-                        (!isDeepResearchUnlimited &&
-                          (!hasDeepResearchAccess ||
-                            deepResearchRemaining === 0))) && (
-                        <TooltipContent>
-                          {!hasDeepResearch
-                            ? 'Not available in your plan'
-                            : !hasDeepResearchAccess
-                              ? 'No access'
-                              : 'No credits remaining'}
-                        </TooltipContent>
+                      {/* o3 Messages */}
+                      {(hasO3Access || o3Remaining > 0) && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              o3 Messages
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {o3Remaining}
+                              {o3Total > 0 ? `/${o3Total}` : ''} messages
+                            </span>
+                          </div>
+                          <Progress
+                            value={o3Total > 0 ? o3Progress : 0}
+                            className="w-full"
+                          />
+                        </div>
                       )}
-                    </Tooltip>
+
+                      {/* o4-mini Messages */}
+                      {(hasO4MiniAccess || o4MiniRemaining > 0) && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              o4-mini Messages
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {o4MiniRemaining}
+                              {o4MiniTotal > 0 ? `/${o4MiniTotal}` : ''}{' '}
+                              messages
+                            </span>
+                          </div>
+                          <Progress
+                            value={o4MiniTotal > 0 ? o4MiniProgress : 0}
+                            className="w-full"
+                          />
+                        </div>
+                      )}
+
+                      {/* o4-mini-high Messages */}
+                      {(hasO4MiniHighAccess || o4MiniHighRemaining > 0) && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              o4-mini-high Messages
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {o4MiniHighRemaining}
+                              {o4MiniHighTotal > 0
+                                ? `/${o4MiniHighTotal}`
+                                : ''}{' '}
+                              messages
+                            </span>
+                          </div>
+                          <Progress
+                            value={o4MiniHighTotal > 0 ? o4MiniHighProgress : 0}
+                            className="w-full"
+                          />
+                        </div>
+                      )}
+
+                      {/* Agent Messages */}
+                      {(hasAgentModeAccess || agentMessagesRemaining > 0) && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              Agent Mode Messages
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {agentMessagesRemaining}
+                              {agentMessagesTotal > 0
+                                ? `/${agentMessagesTotal}`
+                                : ''}{' '}
+                              messages
+                            </span>
+                          </div>
+                          <Progress
+                            value={
+                              agentMessagesTotal > 0 ? agentMessagesProgress : 0
+                            }
+                            className="w-full"
+                          />
+                        </div>
+                      )}
+
+                      {/* Deep Research Requests */}
+                      {(hasDeepResearchAccess || deepResearchRemaining > 0) && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              Deep Research Requests
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {deepResearchRemaining}
+                              {deepResearchTotal > 0
+                                ? `/${deepResearchTotal}`
+                                : ''}{' '}
+                              requests
+                            </span>
+                          </div>
+                          <Progress
+                            value={
+                              deepResearchTotal > 0 ? deepResearchProgress : 0
+                            }
+                            className="w-full"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {messageError && (
-                  <p className="text-sm text-destructive mt-2">
-                    {messageError}
-                  </p>
-                )}
-              </div>
-
-              {/* Usage Meters */}
-              <div className="space-y-6 pt-6 border-t">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  Usage Meters
-                </h3>
-                <div className="space-y-4">
-                  {/* GPT-5 Thinking Messages */}
-                  {(hasGPT5ThinkingAccess || gpt5ThinkingRemaining > 0) && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          GPT-5 Thinking Messages
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {gpt5ThinkingRemaining}
-                          {gpt5ThinkingTotal > 0
-                            ? `/${gpt5ThinkingTotal}`
-                            : ''}{' '}
-                          messages
-                        </span>
-                      </div>
-                      <Progress
-                        value={gpt5ThinkingTotal > 0 ? gpt5ThinkingProgress : 0}
-                        className="w-full"
-                      />
-                    </div>
-                  )}
-
-                  {/* o3 Messages */}
-                  {(hasO3Access || o3Remaining > 0) && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">o3 Messages</span>
-                        <span className="text-sm text-muted-foreground">
-                          {o3Remaining}
-                          {o3Total > 0 ? `/${o3Total}` : ''} messages
-                        </span>
-                      </div>
-                      <Progress
-                        value={o3Total > 0 ? o3Progress : 0}
-                        className="w-full"
-                      />
-                    </div>
-                  )}
-
-                  {/* o4-mini Messages */}
-                  {(hasO4MiniAccess || o4MiniRemaining > 0) && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          o4-mini Messages
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {o4MiniRemaining}
-                          {o4MiniTotal > 0 ? `/${o4MiniTotal}` : ''} messages
-                        </span>
-                      </div>
-                      <Progress
-                        value={o4MiniTotal > 0 ? o4MiniProgress : 0}
-                        className="w-full"
-                      />
-                    </div>
-                  )}
-
-                  {/* o4-mini-high Messages */}
-                  {(hasO4MiniHighAccess || o4MiniHighRemaining > 0) && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          o4-mini-high Messages
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {o4MiniHighRemaining}
-                          {o4MiniHighTotal > 0
-                            ? `/${o4MiniHighTotal}`
-                            : ''}{' '}
-                          messages
-                        </span>
-                      </div>
-                      <Progress
-                        value={o4MiniHighTotal > 0 ? o4MiniHighProgress : 0}
-                        className="w-full"
-                      />
-                    </div>
-                  )}
-
-                  {/* Agent Messages */}
-                  {(hasAgentModeAccess || agentMessagesRemaining > 0) && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          Agent Mode Messages
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {agentMessagesRemaining}
-                          {agentMessagesTotal > 0
-                            ? `/${agentMessagesTotal}`
-                            : ''}{' '}
-                          messages
-                        </span>
-                      </div>
-                      <Progress
-                        value={
-                          agentMessagesTotal > 0 ? agentMessagesProgress : 0
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                  )}
-
-                  {/* Deep Research Requests */}
-                  {(hasDeepResearchAccess || deepResearchRemaining > 0) && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          Deep Research Requests
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {deepResearchRemaining}
-                          {deepResearchTotal > 0
-                            ? `/${deepResearchTotal}`
-                            : ''}{' '}
-                          requests
-                        </span>
-                      </div>
-                      <Progress
-                        value={deepResearchTotal > 0 ? deepResearchProgress : 0}
-                        className="w-full"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </main>
     </div>

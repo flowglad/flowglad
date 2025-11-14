@@ -109,7 +109,7 @@ export function Navbar() {
 
     // Find the product that contains a price matching this subscription
     for (const product of billing.pricingModel.products) {
-      const price = product.prices?.find((p) => 'id' in p && p.id === priceId);
+      const price = product.prices.find((p) => 'id' in p && p.id === priceId);
       if (price) {
         // Check if the product is default (e.g., Free Plan)
         // Only check product.default, not price.isDefault (which is set for all subscription prices)
@@ -124,20 +124,9 @@ export function Navbar() {
   // Flowglad subscriptions have: status === "cancellation_scheduled" or cancelScheduledAt property
   const isCancelled =
     currentSubscription &&
-    (('status' in currentSubscription &&
-      (currentSubscription as { status?: string }).status ===
-        'cancellation_scheduled') ||
-      ('cancelScheduledAt' in currentSubscription &&
-        (
-          currentSubscription as {
-            cancelScheduledAt?: number;
-            canceledAt?: number;
-          }
-        ).cancelScheduledAt &&
-        !(
-          'canceledAt' in currentSubscription &&
-          (currentSubscription as { canceledAt?: number }).canceledAt
-        )));
+    (currentSubscription.status === 'cancellation_scheduled' ||
+      (currentSubscription.cancelScheduledAt &&
+        !currentSubscription.canceledAt));
 
   // Format cancellation date for display
   // cancelScheduledAt is in milliseconds (Unix timestamp)

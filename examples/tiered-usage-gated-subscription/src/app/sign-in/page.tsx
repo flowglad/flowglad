@@ -18,10 +18,10 @@ export default function SignInPage() {
     setLoading(true);
     setError(null);
     await authClient.signIn.email(
-      { email, password, callbackURL: '/' },
+      { email, password, callbackURL: '/?view=pricing' },
       {
         onError: (ctx) => setError(ctx.error.message),
-        onSuccess: () => router.push('/'),
+        onSuccess: () => router.push('/?view=pricing'),
         onRequest: () => {},
       }
     );
