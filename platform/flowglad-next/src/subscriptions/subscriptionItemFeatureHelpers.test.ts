@@ -33,6 +33,10 @@ import {
   CurrencyCode,
   PriceType,
   FeatureUsageGrantFrequency,
+  LedgerTransactionType,
+  UsageCreditStatus,
+  UsageCreditType,
+  UsageCreditSourceReferenceType,
 } from '@/types'
 import * as R from 'ramda'
 import { core } from '@/utils/core'
@@ -546,7 +550,30 @@ describe('SubscriptionItemFeatureHelpers', () => {
         expect(secondResult.result.subscriptionItemFeature.id).toBe(
           firstResult.result.subscriptionItemFeature.id
         )
-        expect(secondResult.ledgerCommand).toBeDefined()
+        const expectedGrantAmount =
+          (usageFeature.amount ?? 0) * 2 * subscriptionItem.quantity
+
+        expect(secondResult.ledgerCommand).toMatchObject({
+          type: LedgerTransactionType.CreditGrantRecognized,
+          organizationId: subscription.organizationId,
+          livemode: subscription.livemode,
+          subscriptionId: subscription.id,
+          payload: {
+            usageCredit: expect.objectContaining({
+              subscriptionId: subscription.id,
+              organizationId: subscription.organizationId,
+              livemode: subscription.livemode,
+              usageMeterId: usageFeature.usageMeterId!,
+              sourceReferenceId:
+                secondResult.result.subscriptionItemFeature.id,
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.ManualAdjustment,
+              creditType: UsageCreditType.Grant,
+              status: UsageCreditStatus.Posted,
+              issuedAmount: expectedGrantAmount,
+            }),
+          },
+        })
 
         const featureGrants = await selectSubscriptionItemFeatures(
           { subscriptionItemId: subscriptionItem.id },
@@ -554,17 +581,18 @@ describe('SubscriptionItemFeatureHelpers', () => {
         )
         // ensure no ledger command when not granting immediately
         expect(firstResult.ledgerCommand).toBeUndefined()
-        expect(secondResult.ledgerCommand?.type).toBe(
-          'credit_grant_recognized'
-        )
         const activeGrant = featureGrants.find(
           (item) =>
             item.featureId === usageFeature.id &&
             item.expiredAt === null
         )
-        expect(activeGrant).toBeDefined()
-        expect(activeGrant?.amount).toBe(
-          (usageFeature.amount ?? 0) * 2 * subscriptionItem.quantity
+        expect(activeGrant).toEqual(
+          expect.objectContaining({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            amount: expectedGrantAmount,
+            expiredAt: null,
+          })
         )
 
         const usageCredits = await selectUsageCredits(
