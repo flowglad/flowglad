@@ -104,6 +104,9 @@ const InnerSubscriptionPage = ({
           title="Subscription Items"
           subscriptionItems={subscription.subscriptionItems}
           currencyCode={organization.defaultCurrency}
+        />
+        <SubscriptionFeaturesTable
+          featureItems={subscription.experimental?.featureItems}
           toolbarContent={
             <Button
               size="sm"
@@ -114,9 +117,6 @@ const InnerSubscriptionPage = ({
               Add feature
             </Button>
           }
-        />
-        <SubscriptionFeaturesTable
-          featureItems={subscription.experimental?.featureItems}
         />
         <InvoicesDataTable
           title="Invoices"
