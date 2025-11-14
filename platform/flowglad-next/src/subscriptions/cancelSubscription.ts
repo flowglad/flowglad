@@ -476,6 +476,24 @@ type CancelSubscriptionProcedureParams =
     { apiKey?: string }
   >
 
+/**
+ * Procedure transaction handler for canceling subscriptions.
+ * Routes to either immediate or scheduled cancellation based on the input timing.
+ *
+ * For immediate cancellations:
+ * - Calls `cancelSubscriptionImmediately` which emits a `SubscriptionCanceled` event
+ * - Returns the canceled subscription with events to insert
+ *
+ * For scheduled cancellations (end of billing period or future date):
+ * - Calls `scheduleSubscriptionCancellation` which schedules the cancellation
+ * - Returns the scheduled subscription with no events (events emitted when cancellation executes)
+ *
+ * @param params - Procedure transaction parameters
+ * @param params.input - Cancellation request with subscription ID and timing arrangement
+ * @param params.transaction - Active database transaction
+ * @param params.ctx - Request context (may contain apiKey)
+ * @returns Promise resolving to TransactionOutput with the updated subscription (formatted for client) and events to insert
+ */
 export const cancelSubscriptionProcedureTransaction = async ({
   input,
   transaction,
