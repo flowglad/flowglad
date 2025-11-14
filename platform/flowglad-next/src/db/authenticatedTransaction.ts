@@ -198,18 +198,28 @@ export type AuthenticatedProcedureTransactionParams<
   ctx: TContext
 }
 
+export type AuthenticatedProcedureTransactionHandler<
+  TInput,
+  TOutput,
+  TContext extends { apiKey?: string },
+> = (
+  params: AuthenticatedProcedureTransactionParams<
+    TInput,
+    TOutput,
+    TContext
+  >
+) => Promise<TOutput>
+
 export const authenticatedProcedureTransaction = <
   TInput,
   TOutput,
   TContext extends { apiKey?: string },
 >(
-  handler: (
-    params: AuthenticatedProcedureTransactionParams<
-      TInput,
-      TOutput,
-      TContext
-    >
-  ) => Promise<TOutput>
+  handler: AuthenticatedProcedureTransactionHandler<
+    TInput,
+    TOutput,
+    TContext
+  >
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
     return authenticatedTransaction(

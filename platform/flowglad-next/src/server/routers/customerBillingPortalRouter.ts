@@ -18,6 +18,7 @@ import {
   setDefaultPaymentMethodForCustomer,
 } from '@/utils/bookkeeping/customerBilling'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
@@ -37,6 +38,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import {
   cancelSubscriptionImmediately,
+  cancelSubscriptionProcedureTransaction,
   scheduleSubscriptionCancellation,
 } from '@/subscriptions/cancelSubscription'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
@@ -191,62 +193,27 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(async ({ input, ctx }) => {
-    const { customer } = ctx
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(async (params) => {
+      const { input, transaction, ctx } = params
+      const { customer } = ctx
+      // First verify the subscription belongs to the customer
+      const subscription = await selectSubscriptionById(
+        input.id,
+        transaction
+      )
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        // First verify the subscription belongs to the customer
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
-
-        if (subscription.customerId !== customer.id) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message:
-              'You do not have permission to cancel this subscription',
-          })
-        }
-
-        if (
-          input.cancellation.timing ===
-          SubscriptionCancellationArrangement.Immediately
-        ) {
-          const updatedSubscription =
-            await cancelSubscriptionImmediately(
-              subscription,
-              transaction
-            )
-          return {
-            subscription: {
-              ...updatedSubscription,
-              current: isSubscriptionCurrent(
-                updatedSubscription.status,
-                updatedSubscription.cancellationReason
-              ),
-            },
-          }
-        }
-
-        const scheduledSubscription =
-          await scheduleSubscriptionCancellation(input, transaction)
-        return {
-          subscription: {
-            ...scheduledSubscription,
-            current: isSubscriptionCurrent(
-              scheduledSubscription.status,
-              scheduledSubscription.cancellationReason
-            ),
-          },
-        }
-      },
-      {
-        apiKey: ctx.apiKey,
+      if (subscription.customerId !== customer.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message:
+            'You do not have permission to cancel this subscription',
+        })
       }
-    )
-  })
+
+      return cancelSubscriptionProcedureTransaction(params)
+    })
+  )
 
 // requestMagicLink procedure
 const requestMagicLinkProcedure = publicProcedure

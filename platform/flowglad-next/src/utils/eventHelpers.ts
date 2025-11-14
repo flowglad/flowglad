@@ -21,6 +21,15 @@ export function constructSubscriptionCreatedEventHash(
   })
 }
 
+export function constructSubscriptionCanceledEventHash(
+  subscription: Pick<Subscription.Record, 'id'>
+) {
+  return constructEventHash({
+    type: FlowgladEventType.SubscriptionCanceled,
+    id: subscription.id,
+  })
+}
+
 export function constructPaymentSucceededEventHash(
   payment: Pick<Payment.Record, 'id'>
 ) {
