@@ -552,6 +552,11 @@ describe('SubscriptionItemFeatureHelpers', () => {
           { subscriptionItemId: subscriptionItem.id },
           transaction
         )
+        // ensure no ledger command when not granting immediately
+        expect(firstResult.ledgerCommand).toBeUndefined()
+        expect(secondResult.ledgerCommand?.type).toBe(
+          'credit_grant_recognized'
+        )
         const activeGrant = featureGrants.find(
           (item) =>
             item.featureId === usageFeature.id &&
