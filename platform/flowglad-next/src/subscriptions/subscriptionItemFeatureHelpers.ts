@@ -293,10 +293,10 @@ const ensureFeatureBelongsToProductPricingModel = ({
 }
 
 const findActiveProductFeatureForProduct = async (
-  productId: string,
-  featureId: string,
+  params: { productId: string; featureId: string },
   transaction: DbTransaction
 ): Promise<ProductFeature.Record> => {
+  const { productId, featureId } = params
   const [productFeature] = await selectProductFeatures(
     {
       productId,
@@ -451,8 +451,7 @@ export const addFeatureToSubscriptionItem = async (
   }
 
   const productFeature = await findActiveProductFeatureForProduct(
-    product.id,
-    feature.id,
+    { productId: product.id, featureId: feature.id },
     transaction
   )
 
