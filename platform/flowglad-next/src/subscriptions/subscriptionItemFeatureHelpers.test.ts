@@ -503,7 +503,73 @@ describe('SubscriptionItemFeatureHelpers', () => {
       })
     })
 
-    it('inserts usage features and grants immediate credits when requested', async () => {
+    it('grants immediate credits for a usage feature with no existing recurring grant', async () => {
+      const [{ feature: usageFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            {
+              name: 'Manual Usage Grant',
+              type: FeatureType.UsageCreditGrant,
+              amount: 250,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              usageMeterName: 'manual-grant-meter',
+            },
+          ]
+        )
+
+      await setupLedgerAccount({
+        subscriptionId: subscription.id,
+        usageMeterId: usageFeature.usageMeterId!,
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: true,
+          },
+          transaction
+        )
+
+        const expectedImmediateGrantAmount = usageFeature.amount ?? 0
+        const expectedRecurringGrantAmount =
+          (usageFeature.amount ?? 0) * subscriptionItem.quantity
+
+        expect(result.ledgerCommand).toMatchObject({
+          type: LedgerTransactionType.CreditGrantRecognized,
+          payload: {
+            usageCredit: expect.objectContaining({
+              issuedAmount: expectedImmediateGrantAmount,
+            }),
+          },
+        })
+
+        const [activeGrant] = await selectSubscriptionItemFeatures(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            expiredAt: null,
+          },
+          transaction
+        )
+
+        expect(activeGrant).toEqual(
+          expect.objectContaining({
+            amount: expectedRecurringGrantAmount,
+          })
+        )
+      })
+    })
+
+    it('grants immediate credits even when a recurring usage grant already exists', async () => {
       const [{ feature: usageFeature }] =
         await setupTestFeaturesAndProductFeatures(
           orgData.organization.id,
@@ -550,8 +616,11 @@ describe('SubscriptionItemFeatureHelpers', () => {
         expect(secondResult.result.subscriptionItemFeature.id).toBe(
           firstResult.result.subscriptionItemFeature.id
         )
-        const expectedGrantAmount =
-          (usageFeature.amount ?? 0) * 2 * subscriptionItem.quantity
+        const expectedImmediateGrantAmount = usageFeature.amount ?? 0
+        const expectedRecurringGrantAmount =
+          (usageFeature.amount ?? 0) * subscriptionItem.quantity
+        const expectedCumulativeGrantAmount =
+          expectedRecurringGrantAmount + expectedRecurringGrantAmount
 
         expect(secondResult.ledgerCommand).toMatchObject({
           type: LedgerTransactionType.CreditGrantRecognized,
@@ -570,7 +639,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
                 UsageCreditSourceReferenceType.ManualAdjustment,
               creditType: UsageCreditType.Grant,
               status: UsageCreditStatus.Posted,
-              issuedAmount: expectedGrantAmount,
+              issuedAmount: expectedImmediateGrantAmount,
             }),
           },
         })
@@ -590,7 +659,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
           expect.objectContaining({
             subscriptionItemId: subscriptionItem.id,
             featureId: usageFeature.id,
-            amount: expectedGrantAmount,
+            amount: expectedCumulativeGrantAmount,
             expiredAt: null,
           })
         )

@@ -338,18 +338,22 @@ const grantImmediateUsageCredits = async (
   {
     subscription,
     subscriptionItemFeature,
+    grantAmount,
   }: {
     subscription: Subscription.Record
     subscriptionItemFeature: SubscriptionItemFeature.Record
+    grantAmount: number
   },
   transaction: DbTransaction
 ) => {
   const usageMeterId = subscriptionItemFeature.usageMeterId
-  const amount = subscriptionItemFeature.amount
-  if (!usageMeterId || amount === null) {
+  if (!usageMeterId) {
     throw new Error(
-      `Subscription item feature ${subscriptionItemFeature.id} is missing usage meter or amount for immediate credit grant.`
+      `Subscription item feature ${subscriptionItemFeature.id} is missing usage meter for immediate credit grant.`
     )
+  }
+  if (!grantAmount) {
+    return
   }
 
   const currentBillingPeriod =
@@ -357,9 +361,6 @@ const grantImmediateUsageCredits = async (
       subscription.id,
       transaction
     )
-  if (!amount) {
-    return
-  }
   const usageCredit = await insertUsageCredit(
     {
       subscriptionId: subscription.id,
@@ -372,7 +373,7 @@ const grantImmediateUsageCredits = async (
       billingPeriodId: currentBillingPeriod?.id ?? null,
       usageMeterId,
       paymentId: null,
-      issuedAmount: amount,
+      issuedAmount: grantAmount,
       issuedAt: Date.now(),
       expiresAt: currentBillingPeriod?.endDate ?? null,
       status: UsageCreditStatus.Posted,
@@ -461,6 +462,8 @@ export const addFeatureToSubscriptionItem = async (
       productFeature,
       feature
     )
+  let usageFeatureInsert: SubscriptionItemFeature.UsageCreditGrantInsert | null =
+    null
 
   let subscriptionItemFeature: SubscriptionItemFeature.Record
 
@@ -510,8 +513,9 @@ export const addFeatureToSubscriptionItem = async (
     }
   } else {
     // Handle usage-credit-grant features
-    const usageFeatureInsert =
+    const usageFeatureInsertData =
       featureInsert as SubscriptionItemFeature.UsageCreditGrantInsert
+    usageFeatureInsert = usageFeatureInsertData
     // Check for an existing (not expired) usage feature for these entities
     const [existingUsageFeature] =
       await selectSubscriptionItemFeatures(
@@ -538,10 +542,10 @@ export const addFeatureToSubscriptionItem = async (
           ...existingUsageFeature,
           amount:
             (existingUsageFeature.amount ?? 0) +
-            usageFeatureInsert.amount,
-          productFeatureId: usageFeatureInsert.productFeatureId,
-          usageMeterId: usageFeatureInsert.usageMeterId,
-          renewalFrequency: usageFeatureInsert.renewalFrequency,
+            usageFeatureInsertData.amount,
+          productFeatureId: usageFeatureInsertData.productFeatureId,
+          usageMeterId: usageFeatureInsertData.usageMeterId,
+          renewalFrequency: usageFeatureInsertData.renewalFrequency,
           expiredAt: null,
         },
         transaction
@@ -549,7 +553,7 @@ export const addFeatureToSubscriptionItem = async (
     } else {
       // No previous record, insert a new usage-credit-grant feature
       subscriptionItemFeature = await insertSubscriptionItemFeature(
-        usageFeatureInsert,
+        usageFeatureInsertData,
         transaction
       )
     }
@@ -560,10 +564,16 @@ export const addFeatureToSubscriptionItem = async (
     feature.type === FeatureType.UsageCreditGrant &&
     grantCreditsImmediately
   ) {
+    if (!usageFeatureInsert) {
+      throw new Error(
+        'Missing usage feature insert data for immediate credit grant.'
+      )
+    }
     const immediateGrant = await grantImmediateUsageCredits(
       {
         subscription,
         subscriptionItemFeature,
+        grantAmount: usageFeatureInsert.amount,
       },
       transaction
     )
