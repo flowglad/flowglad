@@ -20,12 +20,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info } from 'lucide-react'
-import { CurrencyCode, FeatureType } from '@/types'
+import {
+  CurrencyCode,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 interface AddSubscriptionFeatureItemFormFieldsProps {
@@ -101,9 +104,42 @@ export const AddSubscriptionFeatureItemFormFields = ({
       }
     )
 
+  const selectedFeatureId = form.watch('featureId')
+  const grantCreditsImmediatelyValue = form.watch(
+    'grantCreditsImmediately'
+  )
+
   useEffect(() => {
+    if (!selectedSubscriptionItem?.id) {
+      return
+    }
     form.setValue('featureId', '')
-  }, [selectedSubscriptionItem?.id, form])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubscriptionItem?.id])
+
+  const featureOptions =
+    featuresData?.features.filter((feature) => feature.active) ?? []
+
+  const isFeatureSelectDisabled =
+    isLoadingProduct ||
+    isLoadingFeatures ||
+    !productId ||
+    !pricingModelId ||
+    featureOptions.length === 0
+
+  const selectedFeature = featureOptions.find(
+    (feature) => feature.id === selectedFeatureId
+  )
+  const showImmediateGrantToggle =
+    selectedFeature?.type === FeatureType.UsageCreditGrant &&
+    selectedFeature.renewalFrequency ===
+      FeatureUsageGrantFrequency.EveryBillingPeriod
+  useEffect(() => {
+    if (!showImmediateGrantToggle && grantCreditsImmediatelyValue) {
+      form.setValue('grantCreditsImmediately', false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showImmediateGrantToggle, grantCreditsImmediatelyValue])
 
   if (activeSubscriptionItems.length === 0) {
     return (
@@ -116,15 +152,6 @@ export const AddSubscriptionFeatureItemFormFields = ({
       </Alert>
     )
   }
-
-  const featureOptions =
-    featuresData?.features.filter((feature) => feature.active) ?? []
-
-  const isFeatureSelectDisabled =
-    isLoadingProduct ||
-    isLoadingFeatures ||
-    !productId ||
-    !pricingModelId
 
   return (
     <div className="space-y-6">
@@ -147,14 +174,20 @@ export const AddSubscriptionFeatureItemFormFields = ({
                 <SelectContent>
                   {activeSubscriptionItems.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
-                      <div className="flex flex-col gap-0.5 text-left">
+                      <div className="flex flex-col gap-1 text-left">
                         <span className="font-medium">
                           {getSubscriptionItemDisplayName(item)}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          Quantity: {item.quantity} • Price:{' '}
-                          {getSubscriptionItemPriceDisplay(item)}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>Quantity: {item.quantity}</span>
+                          <span className="text-muted-foreground">
+                            •
+                          </span>
+                          <span>
+                            Price:{' '}
+                            {getSubscriptionItemPriceDisplay(item)}
+                          </span>
+                        </div>
                       </div>
                     </SelectItem>
                   ))}
@@ -175,7 +208,9 @@ export const AddSubscriptionFeatureItemFormFields = ({
       />
 
       <div className="space-y-2 rounded-lg border bg-muted/30 p-4 text-sm">
-        <p className="font-medium">Selected product details</p>
+        <p className="font-medium">
+          Product details for subscription item
+        </p>
         {isLoadingProduct ? (
           <Skeleton className="h-5 w-48" />
         ) : productData ? (
@@ -186,12 +221,14 @@ export const AddSubscriptionFeatureItemFormFields = ({
               </span>{' '}
               {productData.name}
             </p>
-            <p>
-              <span className="font-medium text-foreground">
-                Pricing model:
-              </span>{' '}
-              {productData.pricingModelId}
-            </p>
+            {productData.slug && (
+              <p>
+                <span className="font-medium text-foreground">
+                  Slug:
+                </span>{' '}
+                {productData.slug}
+              </p>
+            )}
           </div>
         ) : (
           <p className="text-muted-foreground">
@@ -259,32 +296,34 @@ export const AddSubscriptionFeatureItemFormFields = ({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="grantCreditsImmediately"
-        render={({ field }) => (
-          <FormItem className="flex flex-col gap-3 rounded-lg border p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <FormLabel className="text-base">
-                  Grant credits immediately
-                </FormLabel>
-                <p className="text-sm text-muted-foreground">
-                  Issue usage credits right away in addition to the
-                  next billing period grant.
-                </p>
+      {showImmediateGrantToggle && (
+        <FormField
+          control={form.control}
+          name="grantCreditsImmediately"
+          render={({ field }) => (
+            <FormItem className="flex flex-col gap-3 rounded-lg border p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <FormLabel className="text-base">
+                    Grant credits immediately
+                  </FormLabel>
+                  <p className="text-sm text-muted-foreground">
+                    Issue usage credits right away in addition to the
+                    next billing period grant.
+                  </p>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
               </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </div>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
     </div>
   )
 }

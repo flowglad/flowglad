@@ -100,7 +100,7 @@ const InnerSubscriptionPage = ({
           </div>
         </div>
         <SubscriptionItemsDataTable
-          title="Items"
+          title="Subscription Items"
           subscriptionItems={subscription.subscriptionItems}
           currencyCode={organization.defaultCurrency}
           toolbarContent={
