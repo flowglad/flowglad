@@ -52,3 +52,5 @@ public/preview/preview.*.css
 
 # shadcn registry build artifacts
 public/ui/*.json
+
+prompts/*.ts

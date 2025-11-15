@@ -132,49 +132,9 @@ const getPresignedURL = async ({
   }
 }
 
-const SCREENSHOT_DIRECTORY = 'screenshots/'
-
-const screenshotKeyFromContentAddress = (contentAddress: string) => {
-  const dedupedScreenshotDirectory = contentAddress.startsWith(
-    SCREENSHOT_DIRECTORY
-  )
-    ? contentAddress
-    : `${SCREENSHOT_DIRECTORY}${contentAddress}`
-  const dedupedFileEnding = contentAddress.endsWith('.png')
-    ? ''
-    : '.png'
-  return `${dedupedScreenshotDirectory}${dedupedFileEnding}`
-}
-
 const BUCKET_PUBLIC_URL = process.env.NEXT_PUBLIC_CDN_URL as string
 
-const screenshotURLFromContentAddress = (contentAddress: string) => {
-  return new URL(
-    screenshotKeyFromContentAddress(contentAddress),
-    BUCKET_PUBLIC_URL
-  ).href
-}
-
-/**
- * used to determine whether the file is a designer file and if so,
- * the designer id - a kind of permissions check for the file
- */
-const getDesignerIdFromUrl = (url: string): number | null => {
-  const parsedUrl = new URL(url)
-  const pathParts = parsedUrl.pathname.split('/')
-  const designerPart = pathParts[1]?.startsWith('designer_')
-    ? pathParts[1]
-    : undefined
-
-  if (designerPart) {
-    const designerId = parseInt(designerPart.split('_')[1], 10)
-    return isNaN(designerId) ? null : designerId
-  }
-
-  return null
-}
-
-const deleteObject = async (key: string): Promise<void> => {
+export const deleteObject = async (key: string): Promise<void> => {
   try {
     await s3.deleteObject({
       Bucket: cloudflareBucket,
@@ -188,7 +148,7 @@ const deleteObject = async (key: string): Promise<void> => {
   }
 }
 
-const getObject = async (key: string) => {
+export const getObject = async (key: string) => {
   try {
     const response = await s3.getObject({
       Bucket: cloudflareBucket,
@@ -211,23 +171,62 @@ export const getHeadObject = async (key: string) => {
   return response
 }
 
-const keyFromCDNUrl = (cdnUrl: string) => {
+export const keyFromCDNUrl = (cdnUrl: string) => {
   const parsedUrl = new URL(cdnUrl)
   const pathParts = parsedUrl.pathname.split('/')
   const key = pathParts[pathParts.length - 1]
   return key
 }
 
+const putTextFile = async ({
+  body,
+  key,
+}: {
+  body: string
+  key: string
+}) => {
+  try {
+    await putFile({ body, key, contentType: 'text/plain' })
+  } catch (error) {
+    const errorMessage = `Failed to save the text to R2. Key: ${key}. Error: ${error}`
+    console.error(errorMessage)
+    throw Error(errorMessage)
+  }
+}
+
+export const putCodebaseMarkdown = async ({
+  organizationId,
+  markdown,
+}: {
+  organizationId: string
+  markdown: string
+}) => {
+  const key = `${organizationId}/codebase.md`
+  await putTextFile({ body: markdown, key })
+}
+
+export const putPricingModelIntegrationGuideMarkdown = async ({
+  organizationId,
+  pricingModelId,
+  markdown,
+}: {
+  organizationId: string
+  pricingModelId: string
+  markdown: string
+}) => {
+  const key = `${organizationId}/pricing-models/${pricingModelId}/integration-guide.md`
+  await putTextFile({ body: markdown, key })
+}
+
 const cloudflareMethods = {
-  screenshotKeyFromContentAddress,
   getPresignedURL,
   putImage,
   putPDF,
   putCsv,
+  putCodebaseMarkdown,
+  putPricingModelIntegrationGuideMarkdown,
   keyFromCDNUrl,
-  screenshotURLFromContentAddress,
   BUCKET_PUBLIC_URL,
-  getDesignerIdFromUrl,
   deleteObject,
   getObject,
 }

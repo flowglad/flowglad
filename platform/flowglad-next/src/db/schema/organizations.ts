@@ -201,6 +201,7 @@ export namespace Organization {
 
 export const createOrganizationSchema = z.object({
   organization: organizationsClientInsertSchema,
+  codebaseMarkdown: z.string().optional(),
 })
 
 export type CreateOrganizationInput = z.infer<

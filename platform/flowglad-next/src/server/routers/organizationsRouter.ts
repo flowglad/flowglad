@@ -48,6 +48,7 @@ import { createPaginatedTableRowInputSchema } from '@/db/tableUtils'
 import { createPaginatedTableRowOutputSchema } from '@/db/tableUtils'
 import { getSession } from '@/utils/auth'
 import { selectUsers } from '@/db/tableMethods/userMethods'
+import cloudflareMethods from '@/utils/cloudflare'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -316,7 +317,12 @@ const createOrganization = protectedProcedure
         transaction
       )
     })
-
+    if (input.codebaseMarkdown) {
+      await cloudflareMethods.putCodebaseMarkdown({
+        organizationId: result.organization.id,
+        markdown: input.codebaseMarkdown,
+      })
+    }
     return {
       organization: result.organization,
     }
