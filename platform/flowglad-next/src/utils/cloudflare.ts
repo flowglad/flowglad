@@ -242,7 +242,11 @@ export const getMarkdownFile = async ({
 }): Promise<string | null> => {
   const fullKey = `${organizationId}/${key}`
   const response = await getObject(fullKey)
-  return response.Body?.toString() ?? null
+  if (!response.Body) {
+    return null
+  }
+  // AWS SDK v3 returns Body as a Readable stream, need to transform to string
+  return await response.Body.transformToString()
 }
 
 const cloudflareMethods = {
