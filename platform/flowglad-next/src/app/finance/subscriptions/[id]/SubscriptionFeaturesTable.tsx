@@ -61,10 +61,8 @@ export const SubscriptionFeaturesTable = ({
         <TableBody>
           {featureItems.length ? (
             featureItems.map((feature) => {
-              const featureName =
-                'name' in feature ? feature.name : '—'
-              const featureSlug =
-                'slug' in feature ? feature.slug : feature.featureId
+              const featureName = feature.name
+              const featureSlug = feature.slug
 
               return (
                 <TableRow key={feature.id}>
