@@ -2,6 +2,7 @@ import axios from 'axios'
 import core from './core'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { PutObjectCommand, S3 } from '@aws-sdk/client-s3'
+import { createHmac } from 'crypto'
 
 const cloudflareAccountID = core.envVariable('CLOUDFLARE_ACCOUNT_ID')
 const cloudflareAccessKeyID = core.envVariable(
@@ -194,28 +195,54 @@ const putTextFile = async ({
   }
 }
 
-export const putCodebaseMarkdown = async ({
-  organizationId,
-  markdown,
+/**
+ * Generates an unguessable hash using the organization's securitySalt
+ * Uses HMAC-SHA256 to create a deterministic but unguessable hash
+ * The hash can be regenerated when needed (same content + same salt = same hash)
+ * but cannot be guessed without knowing both the content and the salt
+ */
+export const generateContentHash = ({
+  content,
+  securitySalt,
 }: {
-  organizationId: string
-  markdown: string
-}) => {
-  const key = `${organizationId}/codebase.md`
-  await putTextFile({ body: markdown, key })
+  content: string
+  securitySalt: string
+}): string => {
+  return createHmac('sha256', securitySalt)
+    .update(content)
+    .digest('hex')
 }
 
-export const putPricingModelIntegrationGuideMarkdown = async ({
+/**
+ * Stores markdown content in Cloudflare R2 with a hashed key
+ * Returns the content hash for storage/retrieval purposes
+ */
+export const putMarkdownFile = async ({
   organizationId,
-  pricingModelId,
+  key,
   markdown,
 }: {
   organizationId: string
-  pricingModelId: string
+  key: string
   markdown: string
-}) => {
-  const key = `${organizationId}/pricing-models/${pricingModelId}/integration-guide.md`
-  await putTextFile({ body: markdown, key })
+}): Promise<void> => {
+  const fullKey = `${organizationId}/${key}`
+  await putTextFile({ body: markdown, key: fullKey })
+}
+
+/**
+ * Retrieves markdown content from Cloudflare R2 by key
+ */
+export const getMarkdownFile = async ({
+  organizationId,
+  key,
+}: {
+  organizationId: string
+  key: string
+}): Promise<string | null> => {
+  const fullKey = `${organizationId}/${key}`
+  const response = await getObject(fullKey)
+  return response.Body?.toString() ?? null
 }
 
 const cloudflareMethods = {
@@ -223,8 +250,6 @@ const cloudflareMethods = {
   putImage,
   putPDF,
   putCsv,
-  putCodebaseMarkdown,
-  putPricingModelIntegrationGuideMarkdown,
   keyFromCDNUrl,
   BUCKET_PUBLIC_URL,
   deleteObject,

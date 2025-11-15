@@ -85,6 +85,7 @@ export const organizations = pgTable(
     upfrontProcessingCredits: integer('upfront_processing_credits')
       .notNull()
       .default(0),
+    codebaseMarkdownHash: text('codebase_markdown_hash'),
   },
   (table) => {
     return [
@@ -167,6 +168,7 @@ export const {
       ...hiddenColumnsForClientSchema,
       securitySalt: true,
       upfrontProcessingCredits: true,
+      codebaseMarkdownHash: true,
     },
     readOnlyColumns: {
       stripeAccountId: true,

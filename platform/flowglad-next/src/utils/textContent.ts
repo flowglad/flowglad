@@ -1,0 +1,174 @@
+import { adminTransaction } from '@/db/adminTransaction'
+import {
+  selectOrganizationById,
+  updateOrganization,
+} from '@/db/tableMethods/organizationMethods'
+import {
+  selectPricingModelById,
+  updatePricingModel,
+} from '@/db/tableMethods/pricingModelMethods'
+import {
+  generateContentHash,
+  putMarkdownFile,
+  getMarkdownFile,
+} from './cloudflare'
+
+/**
+ * Saves organization codebase markdown to Cloudflare R2 and stores the hash in database
+ * Handles fetching the organization's securitySalt from the database
+ */
+export const saveOrganizationCodebaseMarkdown = async ({
+  organizationId,
+  markdown,
+}: {
+  organizationId: string
+  markdown: string
+}): Promise<void> => {
+  // Fetch organization to get securitySalt
+  const organization = await adminTransaction(
+    async ({ transaction }) => {
+      return selectOrganizationById(organizationId, transaction)
+    }
+  )
+
+  if (!organization) {
+    throw new Error(`Organization ${organizationId} not found`)
+  }
+
+  // Generate content hash using organization's securitySalt
+  const contentHash = generateContentHash({
+    content: markdown,
+    securitySalt: organization.securitySalt,
+  })
+
+  const key = `codebase-${contentHash}.md`
+
+  // Store hash in database
+  await adminTransaction(async ({ transaction }) => {
+    await updateOrganization(
+      {
+        id: organizationId,
+        codebaseMarkdownHash: contentHash,
+      },
+      transaction
+    )
+  })
+
+  // Store the file in Cloudflare R2
+  await putMarkdownFile({
+    organizationId,
+    key,
+    markdown,
+  })
+}
+
+/**
+ * Retrieves organization codebase markdown from Cloudflare R2
+ * Retrieves hash from organizations.codebaseMarkdownHash (database)
+ */
+export const getOrganizationCodebaseMarkdown = async (
+  organizationId: string
+): Promise<string | null> => {
+  // Fetch hash from database
+  const organization = await adminTransaction(
+    async ({ transaction }) => {
+      return selectOrganizationById(organizationId, transaction)
+    }
+  )
+
+  const contentHash = organization?.codebaseMarkdownHash ?? null
+  if (!contentHash) {
+    return null
+  }
+
+  const key = `codebase-${contentHash}.md`
+
+  // Retrieve the file from Cloudflare R2
+  return getMarkdownFile({
+    organizationId,
+    key,
+  })
+}
+
+/**
+ * Saves pricing model integration guide markdown to Cloudflare R2 and stores the hash in database
+ * Handles fetching the organization's securitySalt from the database
+ */
+export const savePricingModelIntegrationMarkdown = async ({
+  organizationId,
+  pricingModelId,
+  markdown,
+}: {
+  organizationId: string
+  pricingModelId: string
+  markdown: string
+}): Promise<void> => {
+  // Fetch organization to get securitySalt
+  const organization = await adminTransaction(
+    async ({ transaction }) => {
+      return selectOrganizationById(organizationId, transaction)
+    }
+  )
+
+  if (!organization) {
+    throw new Error(`Organization ${organizationId} not found`)
+  }
+
+  // Generate content hash using organization's securitySalt
+  const contentHash = generateContentHash({
+    content: markdown,
+    securitySalt: organization.securitySalt,
+  })
+
+  const key = `pricing-models/${pricingModelId}/integration-guide-${contentHash}.md`
+
+  // Store hash in database
+  await adminTransaction(async ({ transaction }) => {
+    await updatePricingModel(
+      {
+        id: pricingModelId,
+        integrationGuideHash: contentHash,
+      },
+      transaction
+    )
+  })
+
+  // Store the file in Cloudflare R2
+  await putMarkdownFile({
+    organizationId,
+    key,
+    markdown,
+  })
+}
+
+/**
+ * Retrieves pricing model integration guide markdown from Cloudflare R2
+ * Retrieves hash from pricing_models.integrationGuideHash (database)
+ */
+export const getPricingModelIntegrationMarkdown = async ({
+  organizationId,
+  pricingModelId,
+}: {
+  organizationId: string
+  pricingModelId: string
+}): Promise<string | null> => {
+  // Fetch hash from database
+  const pricingModel = await adminTransaction(
+    async ({ transaction }) => {
+      return selectPricingModelById(pricingModelId, transaction)
+    }
+  )
+
+  const contentHash = pricingModel?.integrationGuideHash ?? null
+  if (!contentHash) {
+    return null
+  }
+
+  const key = `pricing-models/${pricingModelId}/integration-guide-${contentHash}.md`
+
+  // Retrieve the file from Cloudflare R2
+  return getMarkdownFile({
+    organizationId,
+    key,
+  })
+}

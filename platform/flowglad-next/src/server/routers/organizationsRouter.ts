@@ -29,6 +29,10 @@ import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
 import {
+  saveOrganizationCodebaseMarkdown,
+  getOrganizationCodebaseMarkdown,
+} from '@/utils/textContent'
+import {
   calculateMRRByMonth,
   calculateMRRBreakdown,
   calculateARR,
@@ -48,7 +52,6 @@ import { createPaginatedTableRowInputSchema } from '@/db/tableUtils'
 import { createPaginatedTableRowOutputSchema } from '@/db/tableUtils'
 import { getSession } from '@/utils/auth'
 import { selectUsers } from '@/db/tableMethods/userMethods'
-import cloudflareMethods from '@/utils/cloudflare'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -318,7 +321,7 @@ const createOrganization = protectedProcedure
       )
     })
     if (input.codebaseMarkdown) {
-      await cloudflareMethods.putCodebaseMarkdown({
+      await saveOrganizationCodebaseMarkdown({
         organizationId: result.organization.id,
         markdown: input.codebaseMarkdown,
       })
@@ -326,6 +329,29 @@ const createOrganization = protectedProcedure
     return {
       organization: result.organization,
     }
+  })
+
+const getCodebaseMarkdown = protectedProcedure
+  .output(z.string().nullable())
+  .query(async ({ ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+
+    return getOrganizationCodebaseMarkdown(ctx.organizationId)
+  })
+
+const updateCodebaseMarkdown = protectedProcedure
+  .input(z.object({ markdown: z.string() }))
+  .mutation(async ({ ctx, input }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+
+    await saveOrganizationCodebaseMarkdown({
+      organizationId: ctx.organizationId,
+      markdown: input.markdown,
+    })
   })
 
 const updateOrganization = protectedProcedure
@@ -425,6 +451,8 @@ export const organizationsRouter = router({
   updateFocusedMembership: updateFocusedMembership,
   getOrganizations: getOrganizations,
   inviteUser: inviteUserToOrganization,
+  getCodebaseMarkdown: getCodebaseMarkdown,
+  updateCodebaseMarkdown: updateCodebaseMarkdown,
   // Revenue is a sub-resource of organizations
   getRevenue: getRevenueData,
   // MRR-related endpoints for the billing dashboard
