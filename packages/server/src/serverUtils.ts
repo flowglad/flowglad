@@ -5,6 +5,7 @@ import {
   NextjsAuthFlowgladServerSessionParams,
   SupabaseFlowgladServerSessionParams,
   ClerkFlowgladServerSessionParams,
+  BetterAuthFlowgladServerSessionParams,
 } from './types'
 
 export const getSessionFromNextAuth = async (
@@ -74,6 +75,26 @@ export const sessionFromClerkAuth = async (
   return coreCustomerUser
 }
 
+export const sessionFromBetterAuth = async (
+  params: BetterAuthFlowgladServerSessionParams
+) => {
+  let coreCustomerUser: CoreCustomerUser | null = null
+  const session = await params.betterAuth.getSession()
+  if (session?.user) {
+    if (params.betterAuth.customerFromSession) {
+      coreCustomerUser =
+        await params.betterAuth.customerFromSession(session)
+    } else {
+      coreCustomerUser = {
+        externalId: session.user.id,
+        name: session.user.name || '',
+        email: session.user.email || '',
+      }
+    }
+  }
+  return coreCustomerUser
+}
+
 export const getSessionFromParams = async (
   params: FlowgladServerSessionParams
 ) => {
@@ -82,10 +103,11 @@ export const getSessionFromParams = async (
     'nextAuth' in params,
     'supabaseAuth' in params,
     'clerk' in params,
+    'betterAuth' in params,
   ].filter(Boolean).length
   if (providerCount > 1) {
     throw new Error(
-      'FlowgladError: Only one of nextAuth, supabaseAuth, or clerk may be defined at a time.'
+      'FlowgladError: Only one of nextAuth, supabaseAuth, clerk, or betterAuth may be defined at a time.'
     )
   }
   if (params.getRequestingCustomer) {
@@ -97,6 +119,8 @@ export const getSessionFromParams = async (
       coreCustomerUser = await sessionFromSupabaseAuth(params)
     } else if ('clerk' in params) {
       coreCustomerUser = await sessionFromClerkAuth(params)
+    } else if ('betterAuth' in params) {
+      coreCustomerUser = await sessionFromBetterAuth(params)
     }
   }
 

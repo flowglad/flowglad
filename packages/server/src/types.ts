@@ -64,6 +64,7 @@ export interface NextjsAuthFlowgladServerSessionParams
 
 interface BetterAuthSession {
   user: {
+    id: string
     name?: string | null
     email?: string | null
     image?: string | null
