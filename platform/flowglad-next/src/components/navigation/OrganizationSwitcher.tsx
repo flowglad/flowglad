@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import { useAuthContext } from '@/contexts/authContext'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -23,6 +24,7 @@ import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react'
 import CreateOrganizationModal from '@/components/forms/CreateOrganizationModal'
 
 const OrganizationSwitcher = () => {
+  const router = useRouter()
   const { organization } = useAuthContext()
   const [isOrgMenuOpen, setIsOrgMenuOpen] = useState(false)
   const [
@@ -49,6 +51,7 @@ const OrganizationSwitcher = () => {
       onSuccess: async () => {
         await invalidateTRPC()
         await focusedMembership.refetch()
+        router.refresh()
       },
     })
 
