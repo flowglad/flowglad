@@ -26,7 +26,7 @@ import { trpc } from '@/app/_trpc/client'
 import FileInput from '@/components/FileInput'
 import { Textarea } from '../ui/textarea'
 import { Button } from '../ui/button'
-import analyzeCodebasePrompt from '@/prompts/analyze-codebase'
+import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { cursorDeepLink } from '@/utils/cursor'
 
