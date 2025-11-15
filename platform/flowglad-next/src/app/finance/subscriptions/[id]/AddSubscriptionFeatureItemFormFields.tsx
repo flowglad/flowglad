@@ -66,16 +66,38 @@ export const AddSubscriptionFeatureItemFormFields = ({
     () => subscriptionItems.filter((item) => !item.expiredAt),
     [subscriptionItems]
   )
+  const hasSingleActiveItem = activeSubscriptionItems.length === 1
   const form = useFormContext<AddSubscriptionFeatureFormValues>()
   const subscriptionItemId = form.watch('subscriptionItemId')
   useEffect(() => {
-    if ((!subscriptionItemId || !activeSubscriptionItems.some((item) => item.id === subscriptionItemId)) && activeSubscriptionItems[0]) {
+    if (
+      hasSingleActiveItem &&
+      activeSubscriptionItems[0]?.id !== subscriptionItemId
+    ) {
+      form.setValue(
+        'subscriptionItemId',
+        activeSubscriptionItems[0]?.id
+      )
+      return
+    }
+    if (
+      (!subscriptionItemId ||
+        !activeSubscriptionItems.some(
+          (item) => item.id === subscriptionItemId
+        )) &&
+      activeSubscriptionItems[0]
+    ) {
       form.setValue(
         'subscriptionItemId',
         activeSubscriptionItems[0].id
       )
     }
-  }, [subscriptionItemId, activeSubscriptionItems, form])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    subscriptionItemId,
+    activeSubscriptionItems,
+    hasSingleActiveItem,
+  ])
 
   const selectedSubscriptionItem =
     activeSubscriptionItems.find(
@@ -155,87 +177,59 @@ export const AddSubscriptionFeatureItemFormFields = ({
 
   return (
     <div className="space-y-6">
-      <FormField
-        control={form.control}
-        name="subscriptionItemId"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Subscription item</FormLabel>
-            <FormControl>
-              <Select
-                value={field.value}
-                onValueChange={(value) => {
-                  field.onChange(value)
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a subscription item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeSubscriptionItems.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      <div className="flex flex-col gap-1 text-left">
-                        <span className="font-medium">
-                          {getSubscriptionItemDisplayName(item)}
-                        </span>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <span>Quantity: {item.quantity}</span>
-                          <span className="text-muted-foreground">
-                            •
+      {!hasSingleActiveItem && (
+        <FormField
+          control={form.control}
+          name="subscriptionItemId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Subscription item</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a subscription item" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeSubscriptionItems.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        <div className="flex flex-col gap-1 text-left">
+                          <span className="font-medium">
+                            {getSubscriptionItemDisplayName(item)}
                           </span>
-                          <span>
-                            Price:{' '}
-                            {getSubscriptionItemPriceDisplay(item)}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            <span>Quantity: {item.quantity}</span>
+                            <span className="text-muted-foreground">
+                              •
+                            </span>
+                            <span>
+                              Price:{' '}
+                              {getSubscriptionItemPriceDisplay(item)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormControl>
-            <FormMessage />
-            {!isLoadingFeatures &&
-              pricingModelId &&
-              featureOptions.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No active features are available for the selected
-                  pricing model.
-                </p>
-              )}
-          </FormItem>
-        )}
-      />
-
-      <div className="space-y-2 rounded-lg border bg-muted/30 p-4 text-sm">
-        <p className="font-medium">
-          Product details for subscription item
-        </p>
-        {isLoadingProduct ? (
-          <Skeleton className="h-5 w-48" />
-        ) : productData ? (
-          <div className="text-muted-foreground space-y-1">
-            <p>
-              <span className="font-medium text-foreground">
-                Product:
-              </span>{' '}
-              {productData.name}
-            </p>
-            {productData.slug && (
-              <p>
-                <span className="font-medium text-foreground">
-                  Slug:
-                </span>{' '}
-                {productData.slug}
-              </p>
-            )}
-          </div>
-        ) : (
-          <p className="text-muted-foreground">
-            Unable to load product details.
-          </p>
-        )}
-      </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+              {!isLoadingFeatures &&
+                pricingModelId &&
+                featureOptions.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No active features are available for the selected
+                    pricing model.
+                  </p>
+                )}
+            </FormItem>
+          )}
+        />
+      )}
 
       <FormField
         control={form.control}
