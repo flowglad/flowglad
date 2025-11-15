@@ -85,6 +85,7 @@ export const organizations = pgTable(
     upfrontProcessingCredits: integer('upfront_processing_credits')
       .notNull()
       .default(0),
+    codebaseMarkdownHash: text('codebase_markdown_hash'),
   },
   (table) => {
     return [
@@ -167,6 +168,7 @@ export const {
       ...hiddenColumnsForClientSchema,
       securitySalt: true,
       upfrontProcessingCredits: true,
+      codebaseMarkdownHash: true,
     },
     readOnlyColumns: {
       stripeAccountId: true,
@@ -201,6 +203,7 @@ export namespace Organization {
 
 export const createOrganizationSchema = z.object({
   organization: organizationsClientInsertSchema,
+  codebaseMarkdown: z.string().optional(),
 })
 
 export type CreateOrganizationInput = z.infer<

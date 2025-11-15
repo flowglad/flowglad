@@ -62,6 +62,14 @@ const nextConfig = {
   },
   experimental: {
     webpackMemoryOptimizations: true,
+    turbo: {
+      rules: {
+        '*.md': {
+          loaders: ['raw-loader'],
+          as: '*.js',
+        },
+      },
+    },
   },
   webpack: (
     config,

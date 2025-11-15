@@ -29,6 +29,10 @@ import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
 import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
 import {
+  saveOrganizationCodebaseMarkdown,
+  getOrganizationCodebaseMarkdown,
+} from '@/utils/textContent'
+import {
   calculateMRRByMonth,
   calculateMRRBreakdown,
   calculateARR,
@@ -316,10 +320,38 @@ const createOrganization = protectedProcedure
         transaction
       )
     })
-
+    if (input.codebaseMarkdown) {
+      await saveOrganizationCodebaseMarkdown({
+        organizationId: result.organization.id,
+        markdown: input.codebaseMarkdown,
+      })
+    }
     return {
       organization: result.organization,
     }
+  })
+
+const getCodebaseMarkdown = protectedProcedure
+  .output(z.string().nullable())
+  .query(async ({ ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+
+    return getOrganizationCodebaseMarkdown(ctx.organizationId)
+  })
+
+const updateCodebaseMarkdown = protectedProcedure
+  .input(z.object({ markdown: z.string() }))
+  .mutation(async ({ ctx, input }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+
+    await saveOrganizationCodebaseMarkdown({
+      organizationId: ctx.organizationId,
+      markdown: input.markdown,
+    })
   })
 
 const updateOrganization = protectedProcedure
@@ -419,6 +451,8 @@ export const organizationsRouter = router({
   updateFocusedMembership: updateFocusedMembership,
   getOrganizations: getOrganizations,
   inviteUser: inviteUserToOrganization,
+  getCodebaseMarkdown: getCodebaseMarkdown,
+  updateCodebaseMarkdown: updateCodebaseMarkdown,
   // Revenue is a sub-resource of organizations
   getRevenue: getRevenueData,
   // MRR-related endpoints for the billing dashboard

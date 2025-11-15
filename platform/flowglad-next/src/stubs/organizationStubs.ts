@@ -33,4 +33,5 @@ export const dummyOrganization: Organization.Record = {
   securitySalt: 'lol',
   monthlyBillingVolumeFreeTier: 100000,
   upfrontProcessingCredits: 0,
+  codebaseMarkdownHash: '1234567890',
 }

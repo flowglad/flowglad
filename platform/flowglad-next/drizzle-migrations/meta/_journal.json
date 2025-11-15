@@ -1730,6 +1730,13 @@
       "when": 1760925281638,
       "tag": "0247_thankful_gladiator",
       "breakpoints": true
+    },
+    {
+      "idx": 248,
+      "version": "7",
+      "when": 1763232536125,
+      "tag": "0248_safe_wallflower",
+      "breakpoints": true
     }
   ]
 }
