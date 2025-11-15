@@ -100,7 +100,7 @@ describe('grantEntitlementUsageCredits', () => {
   let baseSubscriptionItem: SubscriptionItem.Record
   let baseFeature: Feature.Record
   let baseProductFeature: ProductFeature.Record
-  let baseSubscriptionItemFeature: SubscriptionItemFeature.UsageCreditGrantClientRecord
+  let baseSubscriptionItemFeature: SubscriptionItemFeature.UsageCreditGrantRecord
   let command: BillingPeriodTransitionLedgerCommand
   let commandPayload: BillingPeriodTransitionLedgerCommand['payload']
 
@@ -512,8 +512,7 @@ describe('grantEntitlementUsageCredits', () => {
       name: 'Test SIF Without Meter',
       // The nested productFeature and feature can be from baseSubscriptionItemFeature
       // as the function under test should primarily operate on top-level SIF properties.
-    } as SubscriptionItemFeature.UsageCreditGrantClientRecord // Still cast to the expected type
-
+    } as SubscriptionItemFeature.UsageCreditGrantRecord // Still cast to the expected type
     command.payload.subscriptionFeatureItems = [
       itemWithMeter,
       itemWithoutMeter,
@@ -593,7 +592,7 @@ describe('grantEntitlementUsageCredits', () => {
       featureId: 'feature_id_for_only_no_meter_sif',
       productFeatureId: 'product_feature_id_for_only_no_meter_sif',
       name: 'Test SIF Only Without Meter',
-    } as SubscriptionItemFeature.UsageCreditGrantClientRecord
+    } as SubscriptionItemFeature.UsageCreditGrantRecord
 
     command.payload.subscriptionFeatureItems = [itemWithoutMeterOnly]
 

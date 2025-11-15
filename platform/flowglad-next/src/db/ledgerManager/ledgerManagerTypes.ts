@@ -7,7 +7,7 @@ import { usageCreditsSelectSchema } from '@/db/schema/usageCredits'
 import { usageCreditBalanceAdjustmentsSelectSchema } from '@/db/schema/usageCreditBalanceAdjustments'
 import { refundsSelectSchema } from '@/db/schema/refunds'
 import { subscriptionMeterPeriodCalculationSelectSchema } from '@/db/schema/subscriptionMeterPeriodCalculations'
-import { usageCreditGrantSubscriptionItemFeatureClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
+import { usageCreditGrantSubscriptionItemFeatureSelectSchema } from '@/db/schema/subscriptionItemFeatures'
 import { subscriptionsSelectSchema } from '@/db/schema/subscriptions'
 import { billingPeriodsSelectSchema } from '@/db/schema/billingPeriods'
 import { LedgerEntry } from '@/db/schema/ledgerEntries'
@@ -77,7 +77,7 @@ const standardBillingPeriodTransitionPayloadSchema = z.object({
     ),
   newBillingPeriod: billingPeriodsSelectSchema,
   subscriptionFeatureItems:
-    usageCreditGrantSubscriptionItemFeatureClientSelectSchema
+    usageCreditGrantSubscriptionItemFeatureSelectSchema
       .array()
       .describe(
         'The subscription feature items that were active during this billing run for the given subscription.'

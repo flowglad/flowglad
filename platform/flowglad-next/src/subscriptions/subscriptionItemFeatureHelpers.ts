@@ -124,8 +124,8 @@ const getFeaturesByPriceId = async (
 export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
   (
     subscriptionItem: SubscriptionItem.Record,
-    productFeature: ProductFeature.Record,
-    feature: Feature.Record
+    feature: Feature.Record,
+    productFeature?: ProductFeature.Record
   ): SubscriptionItemFeature.Insert => {
     switch (feature.type) {
       case FeatureType.UsageCreditGrant:
@@ -137,7 +137,7 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           usageMeterId: feature.usageMeterId,
           amount: feature.amount * subscriptionItem.quantity,
           renewalFrequency: feature.renewalFrequency,
-          productFeatureId: productFeature.id,
+          productFeatureId: productFeature?.id ?? null,
           expiredAt: null,
           detachedAt: null,
           detachedReason: null,
@@ -151,7 +151,7 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           usageMeterId: null,
           amount: null,
           renewalFrequency: null,
-          productFeatureId: productFeature.id,
+          productFeatureId: productFeature?.id ?? null,
           expiredAt: null,
           detachedAt: null,
           detachedReason: null,
@@ -219,8 +219,8 @@ export const createSubscriptionFeatureItems = async (
       return featuresData.flatMap(({ feature, productFeature }) => {
         return subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
           item,
-          productFeature,
-          feature
+          feature,
+          productFeature
         )
       })
     })
@@ -451,17 +451,12 @@ export const addFeatureToSubscriptionItem = async (
     )
   }
 
-  const productFeature = await findActiveProductFeatureForProduct(
-    { productId: product.id, featureId: feature.id },
-    transaction
-  )
-
   const featureInsert =
     subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
       subscriptionItem,
-      productFeature,
       feature
     )
+
   let usageFeatureInsert: SubscriptionItemFeature.UsageCreditGrantInsert | null =
     null
 

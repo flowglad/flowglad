@@ -12,6 +12,7 @@ import {
 import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import { cn } from '@/lib/utils'
+import { ReactNode } from 'react'
 
 const FEATURE_TYPE_LABELS: Record<FeatureType, string> = {
   [FeatureType.Toggle]: 'Toggle',
@@ -31,12 +32,14 @@ interface SubscriptionFeaturesTableProps {
   featureItems?: SubscriptionItemFeature.ClientRecord[]
   title?: string
   className?: string
+  toolbarContent?: ReactNode
 }
 
 export const SubscriptionFeaturesTable = ({
   featureItems = [],
   title = 'Features',
   className,
+  toolbarContent,
 }: SubscriptionFeaturesTableProps) => {
   return (
     <div className={cn('w-full', className)}>
@@ -44,6 +47,7 @@ export const SubscriptionFeaturesTable = ({
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
           <h3 className="text-lg truncate">{title}</h3>
         </div>
+        {toolbarContent}
       </div>
       <Table className="w-full" style={{ tableLayout: 'fixed' }}>
         <TableHeader>
@@ -57,10 +61,8 @@ export const SubscriptionFeaturesTable = ({
         <TableBody>
           {featureItems.length ? (
             featureItems.map((feature) => {
-              const featureName =
-                'name' in feature ? feature.name : '—'
-              const featureSlug =
-                'slug' in feature ? feature.slug : feature.featureId
+              const featureName = feature.name
+              const featureSlug = feature.slug
 
               return (
                 <TableRow key={feature.id}>

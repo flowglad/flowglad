@@ -722,5 +722,43 @@ describe('SubscriptionItemFeatureHelpers', () => {
         ).rejects.toThrow(/pricing model/i)
       })
     })
+
+    it('allows adding features without a product association', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const standaloneFeature = await insertFeature(
+          {
+            organizationId: orgData.organization.id,
+            livemode: true,
+            type: FeatureType.Toggle,
+            slug: `standalone-feature-${core.nanoid(6)}`,
+            name: 'Standalone Toggle',
+            description: 'Toggle without a product feature mapping',
+            amount: null,
+            renewalFrequency: null,
+            usageMeterId: null,
+            pricingModelId: orgData.pricingModel.id,
+            active: true,
+          },
+          transaction
+        )
+
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: standaloneFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+
+        expect(result.result.subscriptionItemFeature).toEqual(
+          expect.objectContaining({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: standaloneFeature.id,
+            productFeatureId: null,
+          })
+        )
+      })
+    })
   })
 })

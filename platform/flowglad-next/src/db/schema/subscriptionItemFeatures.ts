@@ -187,8 +187,10 @@ export const {
   select: usageCreditGrantSubscriptionItemFeatureSelectSchema,
   update: usageCreditGrantSubscriptionItemFeatureUpdateSchema,
   client: {
-    insert: usageCreditGrantSubscriptionItemFeatureClientInsertSchema,
-    select: usageCreditGrantSubscriptionItemFeatureClientSelectSchema,
+    insert:
+      baseUsageCreditGrantSubscriptionItemFeatureClientInsertSchema,
+    select:
+      baseUsageCreditGrantSubscriptionItemFeatureClientSelectSchema,
     update: usageCreditGrantSubscriptionItemFeatureClientUpdateSchema,
   },
 } = buildSchemas(subscriptionItemFeatures, {
@@ -246,6 +248,16 @@ export const toggleSubscriptionItemFeatureClientInsertSchema =
   baseToggleSubscriptionItemFeatureClientInsertSchema
     .extend(clientSelectWithFeatureFieldRefinements)
     .meta({ id: 'ToggleSubscriptionItemFeatureInsert' })
+
+export const usageCreditGrantSubscriptionItemFeatureClientSelectSchema =
+  baseUsageCreditGrantSubscriptionItemFeatureClientSelectSchema
+    .extend(clientSelectWithFeatureFieldRefinements)
+    .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureRecord' })
+
+export const usageCreditGrantSubscriptionItemFeatureClientInsertSchema =
+  baseUsageCreditGrantSubscriptionItemFeatureClientInsertSchema
+    .extend(clientSelectWithFeatureFieldRefinements)
+    .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureInsert' })
 
 /*
  * Combined client-facing discriminated union schemas

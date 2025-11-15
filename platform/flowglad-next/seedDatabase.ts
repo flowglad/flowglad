@@ -884,7 +884,7 @@ const setupPriceInputSchema = z.discriminatedUnion('type', [
 
 /**
  * This schema is used to validate the input for the setupPrice function.
- * 
+ *
  * prices.ts currently has a schema called pricesInsertSchema, which is similar to this but more permissive.
  * We should consider making that schema more strict and using it here instead of creating this one.
  */
@@ -910,10 +910,20 @@ export const setupPrice = async (
     slug,
   } = validatedInput
 
-  const intervalUnit = type !== PriceType.SinglePayment ? validatedInput.intervalUnit : undefined
-  const intervalCount = type !== PriceType.SinglePayment ? validatedInput.intervalCount : undefined
-  const trialPeriodDays = type === PriceType.Subscription ? validatedInput.trialPeriodDays : undefined
-  const usageMeterId = type === PriceType.Usage ? validatedInput.usageMeterId : undefined
+  const intervalUnit =
+    type !== PriceType.SinglePayment
+      ? validatedInput.intervalUnit
+      : undefined
+  const intervalCount =
+    type !== PriceType.SinglePayment
+      ? validatedInput.intervalCount
+      : undefined
+  const trialPeriodDays =
+    type === PriceType.Subscription
+      ? validatedInput.trialPeriodDays
+      : undefined
+  const usageMeterId =
+    type === PriceType.Usage ? validatedInput.usageMeterId : undefined
 
   return adminTransaction(async ({ transaction }) => {
     const basePrice = {
@@ -2412,9 +2422,9 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
     featureId: string
     productFeatureId: string
   }
-): Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord> => {
+): Promise<SubscriptionItemFeature.UsageCreditGrantRecord> => {
   return adminTransaction(async ({ transaction }) => {
-    return insertSubscriptionItemFeature(
+    const result = await insertSubscriptionItemFeature(
       {
         livemode: true,
         type: FeatureType.UsageCreditGrant,
@@ -2424,7 +2434,11 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
         ...params,
       },
       transaction
-    ) as Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord>
+    )
+    if (result.type !== FeatureType.UsageCreditGrant) {
+      throw new Error('Expected UsageCreditGrant feature')
+    }
+    return result
   })
 }
 
@@ -2478,7 +2492,8 @@ export const setupUsageLedgerScenario = async (params: {
     pricingModelId: pricingModel.id,
   })
   // Build price params for Usage type, excluding incompatible fields from priceArgs
-  const { trialPeriodDays: _, ...compatiblePriceArgs } = params.priceArgs ?? {}
+  const { trialPeriodDays: _, ...compatiblePriceArgs } =
+    params.priceArgs ?? {}
   const price = await setupPrice({
     productId: product.id,
     name: 'Test Price',

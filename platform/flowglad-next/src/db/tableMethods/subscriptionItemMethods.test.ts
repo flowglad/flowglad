@@ -426,8 +426,8 @@ describe('subscriptionItemMethods', async () => {
         feature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
             subscriptionItem,
-            featureSetup[0].productFeature,
-            featureSetup[0].feature
+            featureSetup[0].feature,
+            featureSetup[0].productFeature
           ),
           transaction
         )
@@ -617,8 +617,8 @@ describe('subscriptionItemMethods', async () => {
         const activeFeature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
             activeItem,
-            featureSetup[0].productFeature,
-            featureSetup[0].feature
+            featureSetup[0].feature,
+            featureSetup[0].productFeature
           ),
           transaction
         )
@@ -643,8 +643,8 @@ describe('subscriptionItemMethods', async () => {
         const expiredFeature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
             expiredItem,
-            featureSetup[0].productFeature,
-            featureSetup[0].feature
+            featureSetup[0].feature,
+            featureSetup[0].productFeature
           ),
           transaction
         )
@@ -722,8 +722,8 @@ describe('subscriptionItemMethods', async () => {
         const activeFeature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
             activeItem,
-            featureSetup[0].productFeature,
-            featureSetup[0].feature
+            featureSetup[0].feature,
+            featureSetup[0].productFeature
           ),
           transaction
         )
@@ -733,8 +733,8 @@ describe('subscriptionItemMethods', async () => {
           {
             ...subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
               activeItem,
-              featureSetup[1].productFeature,
-              featureSetup[1].feature
+              featureSetup[1].feature,
+              featureSetup[1].productFeature
             ),
             expiredAt: pastDate, // Expired
           },
