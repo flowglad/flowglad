@@ -9,11 +9,16 @@ import {
   setupProduct,
   setupPrice,
   setupUsageMeter,
+  setupLedgerAccount,
 } from '@/../seedDatabase'
-import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers' // The function to test
+import {
+  addFeatureToSubscriptionItem,
+  createSubscriptionFeatureItems,
+} from '@/subscriptions/subscriptionItemFeatureHelpers'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { Customer } from '@/db/schema/customers'
@@ -28,6 +33,10 @@ import {
   CurrencyCode,
   PriceType,
   FeatureUsageGrantFrequency,
+  LedgerTransactionType,
+  UsageCreditStatus,
+  UsageCreditType,
+  UsageCreditSourceReferenceType,
 } from '@/types'
 import * as R from 'ramda'
 import { core } from '@/utils/core'
@@ -456,6 +465,261 @@ describe('SubscriptionItemFeatureHelpers', () => {
         const sif = createdSifs[0]
         expect(sif.subscriptionItemId).toBe(subscriptionItem2.id)
         expect(sif.amount).toBe(featureAmount * quantity)
+      })
+    })
+  })
+
+  describe('addFeatureToSubscriptionItem', () => {
+    it('deduplicates toggle features via upsert', async () => {
+      const [{ feature: toggleFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [{ name: 'Manual Toggle', type: FeatureType.Toggle }]
+        )
+
+      await adminTransaction(async ({ transaction }) => {
+        const firstResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+        const secondResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+        expect(secondResult.result.subscriptionItemFeature.id).toBe(
+          firstResult.result.subscriptionItemFeature.id
+        )
+      })
+    })
+
+    it('grants immediate credits for a usage feature with no existing recurring grant', async () => {
+      const [{ feature: usageFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            {
+              name: 'Manual Usage Grant',
+              type: FeatureType.UsageCreditGrant,
+              amount: 250,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              usageMeterName: 'manual-grant-meter',
+            },
+          ]
+        )
+
+      await setupLedgerAccount({
+        subscriptionId: subscription.id,
+        usageMeterId: usageFeature.usageMeterId!,
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: true,
+          },
+          transaction
+        )
+
+        const expectedImmediateGrantAmount = usageFeature.amount ?? 0
+        const expectedRecurringGrantAmount =
+          (usageFeature.amount ?? 0) * subscriptionItem.quantity
+
+        expect(result.ledgerCommand).toMatchObject({
+          type: LedgerTransactionType.CreditGrantRecognized,
+          payload: {
+            usageCredit: expect.objectContaining({
+              issuedAmount: expectedImmediateGrantAmount,
+            }),
+          },
+        })
+
+        const [activeGrant] = await selectSubscriptionItemFeatures(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            expiredAt: null,
+          },
+          transaction
+        )
+
+        expect(activeGrant).toEqual(
+          expect.objectContaining({
+            amount: expectedRecurringGrantAmount,
+          })
+        )
+      })
+    })
+
+    it('grants immediate credits even when a recurring usage grant already exists', async () => {
+      const [{ feature: usageFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            {
+              name: 'Manual Usage Grant',
+              type: FeatureType.UsageCreditGrant,
+              amount: 250,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              usageMeterName: 'manual-grant-meter',
+            },
+          ]
+        )
+
+      await setupLedgerAccount({
+        subscriptionId: subscription.id,
+        usageMeterId: usageFeature.usageMeterId!,
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const firstResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+        const secondResult = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: true,
+          },
+          transaction
+        )
+
+        expect(secondResult.result.subscriptionItemFeature.id).toBe(
+          firstResult.result.subscriptionItemFeature.id
+        )
+        const expectedImmediateGrantAmount = usageFeature.amount ?? 0
+        const expectedRecurringGrantAmount =
+          (usageFeature.amount ?? 0) * subscriptionItem.quantity
+        const expectedCumulativeGrantAmount =
+          expectedRecurringGrantAmount + expectedRecurringGrantAmount
+
+        expect(secondResult.ledgerCommand).toMatchObject({
+          type: LedgerTransactionType.CreditGrantRecognized,
+          organizationId: subscription.organizationId,
+          livemode: subscription.livemode,
+          subscriptionId: subscription.id,
+          payload: {
+            usageCredit: expect.objectContaining({
+              subscriptionId: subscription.id,
+              organizationId: subscription.organizationId,
+              livemode: subscription.livemode,
+              usageMeterId: usageFeature.usageMeterId!,
+              sourceReferenceId:
+                secondResult.result.subscriptionItemFeature.id,
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.ManualAdjustment,
+              creditType: UsageCreditType.Grant,
+              status: UsageCreditStatus.Posted,
+              issuedAmount: expectedImmediateGrantAmount,
+            }),
+          },
+        })
+
+        const featureGrants = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: subscriptionItem.id },
+          transaction
+        )
+        // ensure no ledger command when not granting immediately
+        expect(firstResult.ledgerCommand).toBeUndefined()
+        const activeGrant = featureGrants.find(
+          (item) =>
+            item.featureId === usageFeature.id &&
+            item.expiredAt === null
+        )
+        expect(activeGrant).toEqual(
+          expect.objectContaining({
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            amount: expectedCumulativeGrantAmount,
+            expiredAt: null,
+          })
+        )
+
+        const usageCredits = await selectUsageCredits(
+          {
+            subscriptionId: subscription.id,
+            usageMeterId: usageFeature.usageMeterId!,
+          },
+          transaction
+        )
+        expect(
+          usageCredits.some(
+            (credit) =>
+              credit.sourceReferenceId ===
+              secondResult.result.subscriptionItemFeature.id
+          )
+        ).toBe(true)
+      })
+    })
+
+    it('rejects features outside the subscription pricing model', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const mismatchedFeature = await insertFeature(
+          {
+            organizationId: orgData.organization.id,
+            livemode: true,
+            type: FeatureType.Toggle,
+            slug: `mismatched-feature-${core.nanoid(6)}`,
+            name: 'Mismatched Toggle',
+            description: 'Toggle from another pricing model',
+            amount: null,
+            renewalFrequency: null,
+            usageMeterId: null,
+            pricingModelId: orgData.testmodePricingModel.id,
+            active: true,
+          },
+          transaction
+        )
+
+        await insertProductFeature(
+          {
+            organizationId: orgData.organization.id,
+            livemode: true,
+            productId: productForFeatures.id,
+            featureId: mismatchedFeature.id,
+          },
+          transaction
+        )
+
+        await expect(
+          addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: mismatchedFeature.id,
+              grantCreditsImmediately: false,
+            },
+            transaction
+          )
+        ).rejects.toThrow(/pricing model/i)
       })
     })
   })

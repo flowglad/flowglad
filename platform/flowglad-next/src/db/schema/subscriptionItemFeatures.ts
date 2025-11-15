@@ -361,3 +361,22 @@ export const expireSubscriptionItemFeatureInputSchema = z.object({
 export type DeactivateSubscriptionItemFeatureInput = z.infer<
   typeof expireSubscriptionItemFeatureInputSchema
 >
+
+export const addFeatureToSubscriptionInputSchema = z.object({
+  subscriptionItemId: z.string(),
+  featureId: z.string(),
+  grantCreditsImmediately: z.boolean().optional().default(false),
+})
+
+export type AddFeatureToSubscriptionInput = z.infer<
+  typeof addFeatureToSubscriptionInputSchema
+>
+
+export const removeFeatureFromSubscriptionInputSchema = z.object({
+  subscriptionItemId: z.string(),
+  featureId: z.string(),
+})
+
+export type RemoveFeatureFromSubscriptionInput = z.infer<
+  typeof removeFeatureFromSubscriptionInputSchema
+>

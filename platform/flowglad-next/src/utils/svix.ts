@@ -135,12 +135,14 @@ export async function updateSvixEndpoint(params: {
     webhook,
     livemode: webhook.livemode,
   })
+
   const endpoint = await svix().endpoint.patch(
     application.id,
     endpointId,
     {
       url: webhook.url,
       filterTypes: webhook.filterTypes,
+      disabled: !webhook.active,
     }
   )
   return endpoint
