@@ -29,6 +29,7 @@ import {
   count,
   inArray,
   ne,
+  ilike,
 } from 'drizzle-orm'
 import { SubscriptionStatus, CancellationReason } from '@/types'
 import { DbTransaction } from '@/db/types'
@@ -246,6 +247,44 @@ export const selectSubscriptionsTableRowData =
           customer: customerClientSelectSchema.parse(customer),
         }
       })
+    },
+    undefined,
+    ({ searchQuery }) => {
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+      return trimmedQuery && trimmedQuery !== ''
+        ? or(
+            eq(subscriptions.id, trimmedQuery),
+            sql`exists (
+              select 1 from ${customers} c
+              where c.id = ${subscriptions.customerId}
+                and c.name ilike ${`%${trimmedQuery}%`}
+            )`
+          )
+        : undefined
+    },
+    async ({ filters }) => {
+      const productNameValue =
+        filters &&
+        typeof filters === 'object' &&
+        'productName' in filters
+          ? (filters as Record<string, unknown>).productName
+          : undefined
+      const productName =
+        productNameValue && typeof productNameValue === 'string'
+          ? productNameValue.trim()
+          : undefined
+
+      if (!productName || productName === '') return undefined
+
+      return sql`exists (
+        select 1 from ${prices} p
+        inner join ${products} pr on pr.id = p.product_id
+        where p.id = ${subscriptions.priceId}
+          and pr.name = ${productName}
+      )`
     }
   )
 
@@ -360,6 +399,29 @@ export const selectSubscriptionCountsByStatus = async (
     status: item.status as SubscriptionStatus,
     count: item.count,
   }))
+}
+
+export const selectDistinctSubscriptionProductNames = async (
+  organizationId: string,
+  transaction: DbTransaction
+): Promise<string[]> => {
+  const rows = await transaction
+    .select({ name: products.name })
+    .from(subscriptions)
+    .innerJoin(prices, eq(prices.id, subscriptions.priceId))
+    .innerJoin(products, eq(products.id, prices.productId))
+    .where(eq(subscriptions.organizationId, organizationId))
+    .groupBy(products.name)
+
+  const names = rows
+    .map((r) => r.name)
+    .filter((n): n is string => !!n && n.trim().length > 0)
+  // Sort case-insensitively for stable UI ordering
+  // Using sensitivity: 'base' makes localeCompare ignore case differences
+  names.sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  )
+  return names
 }
 
 export const safelyUpdateSubscriptionsForCustomerToNewPaymentMethod =
