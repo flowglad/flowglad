@@ -267,6 +267,7 @@ export const setupProduct = async ({
   pricingModelId,
   active = true,
   default: isDefault = false,
+  slug,
 }: {
   organizationId: string
   name: string
@@ -274,6 +275,7 @@ export const setupProduct = async ({
   pricingModelId: string
   active?: boolean
   default?: boolean
+  slug?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     return await insertProduct(
@@ -289,7 +291,7 @@ export const setupProduct = async ({
         pricingModelId,
         externalId: null,
         default: isDefault,
-        slug: `flowglad-test-product-price+${core.nanoid()}`,
+        slug: slug ?? `flowglad-test-product-price+${core.nanoid()}`,
       },
       transaction
     )
@@ -884,7 +886,7 @@ const setupPriceInputSchema = z.discriminatedUnion('type', [
 
 /**
  * This schema is used to validate the input for the setupPrice function.
- * 
+ *
  * prices.ts currently has a schema called pricesInsertSchema, which is similar to this but more permissive.
  * We should consider making that schema more strict and using it here instead of creating this one.
  */
@@ -910,10 +912,20 @@ export const setupPrice = async (
     slug,
   } = validatedInput
 
-  const intervalUnit = type !== PriceType.SinglePayment ? validatedInput.intervalUnit : undefined
-  const intervalCount = type !== PriceType.SinglePayment ? validatedInput.intervalCount : undefined
-  const trialPeriodDays = type === PriceType.Subscription ? validatedInput.trialPeriodDays : undefined
-  const usageMeterId = type === PriceType.Usage ? validatedInput.usageMeterId : undefined
+  const intervalUnit =
+    type !== PriceType.SinglePayment
+      ? validatedInput.intervalUnit
+      : undefined
+  const intervalCount =
+    type !== PriceType.SinglePayment
+      ? validatedInput.intervalCount
+      : undefined
+  const trialPeriodDays =
+    type === PriceType.Subscription
+      ? validatedInput.trialPeriodDays
+      : undefined
+  const usageMeterId =
+    type === PriceType.Usage ? validatedInput.usageMeterId : undefined
 
   return adminTransaction(async ({ transaction }) => {
     const basePrice = {
@@ -2478,7 +2490,8 @@ export const setupUsageLedgerScenario = async (params: {
     pricingModelId: pricingModel.id,
   })
   // Build price params for Usage type, excluding incompatible fields from priceArgs
-  const { trialPeriodDays: _, ...compatiblePriceArgs } = params.priceArgs ?? {}
+  const { trialPeriodDays: _, ...compatiblePriceArgs } =
+    params.priceArgs ?? {}
   const price = await setupPrice({
     productId: product.id,
     name: 'Test Price',
