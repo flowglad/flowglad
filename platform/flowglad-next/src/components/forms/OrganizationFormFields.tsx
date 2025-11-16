@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { trpc } from '@/app/_trpc/client'
-import FileInput from '@/components/FileInput'
+import OrganizationLogoInput from '@/components/OrganizationLogoInput'
 
 const OrganizationFormFields: React.FC = () => {
   const form = useFormContext<CreateOrganizationInput>()
@@ -53,33 +53,14 @@ const OrganizationFormFields: React.FC = () => {
         name="organization.logoURL"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Company logo</FormLabel>
             <FormControl>
-              <FileInput
-                directory="organizations"
-                singleOnly
-                id="organization-logo-upload"
-                fileTypes={[
-                  'png',
-                  'jpeg',
-                  'jpg',
-                  'gif',
-                  'webp',
-                  'svg',
-                  'avif',
-                ]}
-                initialURL={field.value ?? undefined}
-                onUploadComplete={({ publicURL }) =>
-                  field.onChange(publicURL)
-                }
+              <OrganizationLogoInput
+                value={field.value}
+                onUploadComplete={field.onChange}
                 onUploadDeleted={() => field.onChange(undefined)}
-                hint="Recommended square image. Max size 2MB."
+                id="organization-logo-upload"
               />
             </FormControl>
-            <FormDescription>
-              This logo appears in your dashboard navigation and
-              customer-facing invoices.
-            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
