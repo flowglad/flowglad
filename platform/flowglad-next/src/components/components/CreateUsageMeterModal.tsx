@@ -8,6 +8,7 @@ import { trpc } from '@/app/_trpc/client'
 import { UsageMeterAggregationType, PriceType } from '@/types'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { isCurrencyZeroDecimal } from '@/utils/stripe'
+import { toast } from 'sonner'
 
 interface CreateUsageMeterModalProps {
   isOpen: boolean
@@ -20,7 +21,14 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
   setIsOpen,
   defaultPricingModelId,
 }) => {
-  const createUsageMeter = trpc.usageMeters.create.useMutation()
+  const createUsageMeter = trpc.usageMeters.create.useMutation({
+    onSuccess: () => {
+      toast.success('Usage meter created successfully')
+    },
+    onError: () => {
+      toast.error('Failed to create usage meter')
+    },
+  })
   const trpcContext = trpc.useContext()
   const { organization } = useAuthenticatedContext()
 

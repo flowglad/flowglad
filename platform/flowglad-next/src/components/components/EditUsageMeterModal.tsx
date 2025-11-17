@@ -14,6 +14,7 @@ import {
   isCurrencyZeroDecimal,
   countableCurrencyAmountToRawStringAmount,
 } from '@/utils/stripe'
+import { toast } from 'sonner'
 
 interface EditUsageMeterModalProps {
   isOpen: boolean
@@ -26,7 +27,14 @@ const EditUsageMeterModal: React.FC<EditUsageMeterModalProps> = ({
   setIsOpen,
   usageMeter,
 }) => {
-  const editUsageMeter = trpc.usageMeters.update.useMutation()
+  const editUsageMeter = trpc.usageMeters.update.useMutation({
+    onSuccess: () => {
+      toast.success('Usage meter updated successfully')
+    },
+    onError: () => {
+      toast.error('Failed to create usage meter')
+    },
+  })
   const { organization } = useAuthenticatedContext()
 
   // Don't render modal if organization is not loaded yet
