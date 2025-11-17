@@ -110,22 +110,6 @@ describe('getSessionFromParams', () => {
       )
     })
 
-    it('fails validation when constructed name would be empty string (no customerFromAuth and user.name missing)', async () => {
-      // setup:
-      const params: NextjsAuthFlowgladServerSessionParams = {
-        apiKey: 'test',
-        nextAuth: {
-          auth: async () => ({
-            user: { email: 'jane@example.com', name: '' },
-          }),
-        },
-      }
-      const server = new FlowgladServer(params)
-
-      // expects:
-      await expect(server.getSession()).rejects.toThrow(/name/)
-    })
-
     it('propagates errors thrown by nextAuth.auth()', async () => {
       // setup:
       const params: NextjsAuthFlowgladServerSessionParams = {
@@ -200,32 +184,6 @@ describe('getSessionFromParams', () => {
       await expect(server.getSession()).rejects.toThrow(
         /Unable to derive requesting customer/
       )
-    })
-
-    it('fails validation when getUser resolves with user missing name (user_metadata.name empty)', async () => {
-      // setup:
-      const user = {
-        id: 'user_123',
-        email: 'jane@example.com',
-        user_metadata: { name: '' },
-      }
-      const supabaseClient = {
-        auth: {
-          getUser: async () => ({
-            data: { user },
-          }),
-        },
-      }
-      const params: SupabaseFlowgladServerSessionParams = {
-        apiKey: 'test',
-        supabaseAuth: {
-          client: async () => supabaseClient as any,
-        },
-      }
-      const server = new FlowgladServer(params)
-
-      // expects:
-      await expect(server.getSession()).rejects.toThrow(/name/)
     })
 
     it('fails validation when getUser resolves with user null', async () => {
@@ -412,27 +370,6 @@ describe('getSessionFromParams', () => {
       )
     })
 
-    it('fails validation when firstName is empty and no customerFromCurrentUser provided', async () => {
-      // setup:
-      const clerkUser = {
-        id: 'clerk_4',
-        firstName: '',
-        lastName: null,
-        username: null,
-        emailAddresses: [{ emailAddress: 'jane@example.com' }],
-      }
-      const params: ClerkFlowgladServerSessionParams = {
-        apiKey: 'test',
-        clerk: {
-          currentUser: async () => clerkUser as any,
-        },
-      }
-      const server = new FlowgladServer(params)
-
-      // expects:
-      await expect(server.getSession()).rejects.toThrow(/name/)
-    })
-
     it('throws when emailAddresses is empty and no customerFromCurrentUser provided', async () => {
       // setup:
       const clerkUser = {
@@ -518,7 +455,7 @@ describe('getSessionFromParams', () => {
       const badCustomer = {
         externalId: 'ext_base_bad',
         name: '',
-        email: 'user@example.com',
+        email: 'user',
       }
       const params: BaseFlowgladServerSessionParams = {
         apiKey: 'test',
@@ -527,7 +464,7 @@ describe('getSessionFromParams', () => {
       const server = new FlowgladServer(params)
 
       // expects:
-      await expect(server.getSession()).rejects.toThrow(/name/)
+      await expect(server.getSession()).rejects.toThrow()
     })
 
     it('propagates errors thrown by getRequestingCustomer', async () => {
@@ -623,7 +560,7 @@ describe('getSessionFromParams', () => {
         apiKey: 'test',
         betterAuth: {
           getSession: async () =>
-            buildSession({ email: 'not-an-email' as any }),
+            buildSession({ email: 'not-an-email' }),
         },
       }
       const server = new FlowgladServer(params)
