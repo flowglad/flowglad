@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { IntervalUnit, PriceType } from '@/types'
 import { Switch } from '@/components/ui/switch'
@@ -215,10 +216,14 @@ const UsageFields = ({
   defaultPriceLocked,
   edit,
   pricingModelId,
+  disableUsageMeter,
+  fixedUsageMeterId,
 }: {
   defaultPriceLocked: boolean
   edit?: boolean
   pricingModelId?: string
+  disableUsageMeter?: boolean
+  fixedUsageMeterId?: string
 }) => {
   const {
     control,
@@ -230,6 +235,13 @@ const UsageFields = ({
   const zeroDecimal = isCurrencyZeroDecimal(
     organization!.defaultCurrency
   )
+
+  // Set fixed usage meter ID if provided
+  React.useEffect(() => {
+    if (fixedUsageMeterId) {
+      setValue('price.usageMeterId', fixedUsageMeterId)
+    }
+  }, [fixedUsageMeterId, setValue])
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -285,6 +297,7 @@ const UsageFields = ({
                       field.onChange(numValue)
                     }
                   }}
+                  disabled={defaultPriceLocked}
                 />
               </FormControl>
               <FormMessage />
@@ -292,12 +305,14 @@ const UsageFields = ({
           )}
         />
       </div>
-      <UsageMetersSelect
-        name="price.usageMeterId"
-        control={control}
-        disabled={edit}
-        pricingModelId={pricingModelId}
-      />
+      {!disableUsageMeter && (
+        <UsageMetersSelect
+          name="price.usageMeterId"
+          control={control}
+          disabled={edit || disableUsageMeter}
+          pricingModelId={pricingModelId}
+        />
+      )}
     </div>
   )
 }
@@ -309,6 +324,9 @@ const PriceFormFields = ({
   isDefaultProductOverride,
   isDefaultPriceOverride,
   pricingModelId,
+  disableUsageMeter,
+  fixedUsageMeterId,
+  disablePriceType,
 }: {
   priceOnly?: boolean
   edit?: boolean
@@ -316,6 +334,9 @@ const PriceFormFields = ({
   isDefaultProductOverride?: boolean
   isDefaultPriceOverride?: boolean
   pricingModelId?: string
+  disableUsageMeter?: boolean
+  fixedUsageMeterId?: string
+  disablePriceType?: boolean
 }) => {
   const {
     control,
@@ -364,6 +385,8 @@ const PriceFormFields = ({
           defaultPriceLocked={defaultPriceLocked}
           edit={edit}
           pricingModelId={pricingModelId}
+          disableUsageMeter={disableUsageMeter}
+          fixedUsageMeterId={fixedUsageMeterId}
         />
       )
       break
@@ -446,7 +469,7 @@ const PriceFormFields = ({
                   }
                   field.onChange(value)
                 }}
-                disabled={edit || isDefaultLocked}
+                disabled={edit || isDefaultLocked || disablePriceType}
               >
                 <SelectTrigger>
                   <SelectValue />

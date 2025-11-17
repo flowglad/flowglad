@@ -23,7 +23,12 @@ import {
 } from '@/db/tableUtils'
 import { z } from 'zod'
 import { errorHandlers } from '../trpcErrorHandler'
-import { createUsageMeterTransaction } from '@/utils/usage'
+import {
+  createUsageMeterTransaction,
+  updateUsageMeterTransaction,
+} from '@/utils/usage'
+import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageMeter',
@@ -46,9 +51,28 @@ export const createUsageMeter = protectedProcedure
         organizationId,
       }) => {
         try {
+          // Convert __rawPriceString to unitPrice if provided
+          let price = input.price
+          if (input.__rawPriceString && organizationId) {
+            const organization = await selectOrganizationById(
+              organizationId,
+              transaction
+            )
+            const unitPrice =
+              rawStringAmountToCountableCurrencyAmount(
+                organization.defaultCurrency,
+                input.__rawPriceString
+              )
+            price = {
+              ...price,
+              unitPrice,
+            }
+          }
+
           const { usageMeter } = await createUsageMeterTransaction(
             {
               usageMeter: input.usageMeter,
+              price,
             },
             { transaction, userId, livemode, organizationId }
           )
@@ -81,14 +105,39 @@ const updateUsageMeter = protectedProcedure
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({
+        input,
+        transaction,
+        userId,
+        livemode,
+        organizationId,
+      }) => {
         try {
-          const usageMeter = await updateUsageMeterDB(
+          // Convert __rawPriceString to unitPrice if provided
+          let price = input.price
+          if (input.__rawPriceString && organizationId) {
+            const organization = await selectOrganizationById(
+              organizationId,
+              transaction
+            )
+            const unitPrice =
+              rawStringAmountToCountableCurrencyAmount(
+                organization.defaultCurrency,
+                input.__rawPriceString
+              )
+            price = {
+              ...price,
+              unitPrice,
+            }
+          }
+
+          const { usageMeter } = await updateUsageMeterTransaction(
             {
-              ...input.usageMeter,
               id: input.id,
+              usageMeter: input.usageMeter,
+              price,
             },
-            transaction
+            { transaction, userId, livemode, organizationId }
           )
           return { usageMeter }
         } catch (error) {
