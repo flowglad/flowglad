@@ -34,6 +34,7 @@ import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { TRPCError } from '@trpc/server'
 import { adminTransaction } from '@/db/adminTransaction'
 import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
+import { constructIntegrationGuide } from '@/utils/pricingModels/integration-guides/constructIntegrationGuide'
 import yaml from 'json-to-pretty-yaml'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -327,6 +328,31 @@ const exportPricingModelProcedure = protectedProcedure
     )
   )
 
+const getIntegrationGuideProcedure = protectedProcedure
+  .input(idInputSchema)
+  .output(
+    z.object({
+      integrationGuide: z
+        .string()
+        .describe('Integration guide for the pricing model'),
+    })
+  )
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        const pricingModelData = await getPricingModelSetupData(
+          input.id,
+          transaction
+        )
+        const integrationGuide = await constructIntegrationGuide({
+          pricingModelData,
+          isBackendJavascript: true,
+        })
+        return { integrationGuide }
+      }
+    )
+  )
+
 export const pricingModelsRouter = router({
   list: listPricingModelsProcedure,
   setup: setupPricingModelProcedure,
@@ -337,4 +363,5 @@ export const pricingModelsRouter = router({
   clone: clonePricingModelProcedure,
   getTableRows: getTableRowsProcedure,
   export: exportPricingModelProcedure,
+  getIntegrationGuide: getIntegrationGuideProcedure,
 })

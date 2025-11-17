@@ -25,6 +25,7 @@ import {
 import PopoverMenu, {
   PopoverMenuItem,
 } from '@/components/PopoverMenu'
+import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
 import { trpc } from '@/app/_trpc/client'
 import { toast } from 'sonner'
 
@@ -42,6 +43,10 @@ function InnerPricingModelDetailsPage({
     useState(false)
   const [isCreateFeatureModalOpen, setIsCreateFeatureModalOpen] =
     useState(false)
+  const [
+    isGetIntegrationGuideModalOpen,
+    setIsGetIntegrationGuideModalOpen,
+  ] = useState(false)
   const [
     isCreateUsageMeterModalOpen,
     setIsCreateUsageMeterModalOpen,
@@ -104,6 +109,11 @@ function InnerPricingModelDetailsPage({
       label: 'Export',
       handler: () => exportPricingModelHandler(),
       helperText: 'Export pricing model as YAML file',
+    },
+    {
+      label: 'Integrate via Prompt',
+      handler: () => setIsGetIntegrationGuideModalOpen(true),
+      helperText: 'Integrate into your app in one shot',
     },
   ]
 
@@ -201,6 +211,11 @@ function InnerPricingModelDetailsPage({
         isOpen={isCreateUsageMeterModalOpen}
         setIsOpen={setIsCreateUsageMeterModalOpen}
         defaultPricingModelId={pricingModel.id}
+      />
+      <PricingModelIntegrationGuideModal
+        isOpen={isGetIntegrationGuideModalOpen}
+        setIsOpen={setIsGetIntegrationGuideModalOpen}
+        pricingModelId={pricingModel.id}
       />
     </InternalPageContainer>
   )
