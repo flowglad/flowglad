@@ -55,6 +55,7 @@ export const SubscriptionFeaturesTable = ({
             <TableHead>Name</TableHead>
             <TableHead>Slug</TableHead>
             <TableHead>Type</TableHead>
+            <TableHead>Amount</TableHead>
             <TableHead>Renewal Frequency</TableHead>
           </TableRow>
         </TableHeader>
@@ -80,6 +81,11 @@ export const SubscriptionFeaturesTable = ({
                   <TableCell>
                     {feature.type === FeatureType.Toggle
                       ? '-'
+                      : feature.amount}
+                  </TableCell>
+                  <TableCell>
+                    {feature.type === FeatureType.Toggle
+                      ? '-'
                       : FEATURE_RENEWAL_LABELS[
                           feature.renewalFrequency
                         ]}
@@ -90,7 +96,7 @@ export const SubscriptionFeaturesTable = ({
           ) : (
             <TableRow>
               <TableCell
-                colSpan={4}
+                colSpan={5}
                 className="h-24 text-center text-muted-foreground"
               >
                 No features granted.
