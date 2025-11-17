@@ -6,24 +6,17 @@ import {
   setupPrice,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import {
-  createUsageMeterTransaction,
-  updateUsageMeterTransaction,
-} from './usage'
+import { createUsageMeterTransaction } from './usage'
 import { Organization } from '@/db/schema/organizations'
 import { PricingModel } from '@/db/schema/pricingModels'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
 import {
-  PriceType,
   IntervalUnit,
-  CurrencyCode,
+  PriceType,
   UsageMeterAggregationType,
 } from '@/types'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
-import { UsageMeter } from '@/db/schema/usageMeters'
 
 describe('createUsageMeterTransaction', () => {
   let organization: Organization.Record
@@ -513,172 +506,6 @@ describe('createUsageMeterTransaction', () => {
       // Verify custom unitPrice is used, default usageEventsPerUnit
       expect(result.price.unitPrice).toBe(500)
       expect(result.price.usageEventsPerUnit).toBe(1)
-    })
-  })
-})
-
-describe('updateUsageMeterTransaction', () => {
-  let organization: Organization.Record
-  let pricingModel: PricingModel.Record
-  let userId: string
-  let usageMeter: UsageMeter.Record
-  let product: Product.Record
-  let initialPrice: Price.Record
-
-  beforeEach(async () => {
-    const orgSetup = await setupOrg()
-    organization = orgSetup.organization
-    pricingModel = orgSetup.pricingModel
-
-    // Create a user for the organization
-    const userSetup = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: false,
-    })
-    userId = userSetup.user.id
-
-    // Create a usage meter with initial price
-    const result = await adminTransaction(async ({ transaction }) => {
-      return createUsageMeterTransaction(
-        {
-          usageMeter: {
-            name: 'Test Meter',
-            slug: 'test-meter',
-            pricingModelId: pricingModel.id,
-          },
-          price: {
-            unitPrice: 100,
-            usageEventsPerUnit: 10,
-          },
-        },
-        {
-          transaction,
-          userId,
-          livemode: false,
-          organizationId: organization.id,
-        }
-      )
-    })
-    usageMeter = result.usageMeter
-    product = result.product
-    initialPrice = result.price
-  })
-
-  describe('Update without price fields', () => {
-    it('should update usage meter without creating new price', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return updateUsageMeterTransaction(
-            {
-              id: usageMeter.id,
-              usageMeter: {
-                id: usageMeter.id,
-                name: 'Updated Test Meter',
-              },
-              // No price field provided
-            },
-            {
-              transaction,
-              userId,
-              livemode: false,
-              organizationId: organization.id,
-            }
-          )
-        }
-      )
-
-      expect(result.usageMeter.name).toBe('Updated Test Meter')
-      expect(result.price).toBeUndefined()
-
-      // Verify no new price was created
-      const prices = await adminTransaction(
-        async ({ transaction }) => {
-          return selectPrices({ productId: product.id }, transaction)
-        }
-      )
-      expect(prices).toHaveLength(1)
-      expect(prices[0].id).toBe(initialPrice.id)
-    })
-  })
-
-  describe('Update with new price values', () => {
-    it('should create new price and mark it active/default', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return updateUsageMeterTransaction(
-            {
-              id: usageMeter.id,
-              usageMeter: {
-                id: usageMeter.id,
-                name: 'Updated Meter With New Price',
-              },
-              price: {
-                unitPrice: 200,
-                usageEventsPerUnit: 20,
-              },
-            },
-            {
-              transaction,
-              userId,
-              livemode: false,
-              organizationId: organization.id,
-            }
-          )
-        }
-      )
-
-      expect(result.usageMeter.name).toBe(
-        'Updated Meter With New Price'
-      )
-      expect(result.price).toBeDefined()
-      expect(result.price!.unitPrice).toBe(200)
-      expect(result.price!.usageEventsPerUnit).toBe(20)
-      expect(result.price!.active).toBe(true)
-      expect(result.price!.isDefault).toBe(true)
-      expect(result.price!.type).toBe(PriceType.Usage)
-    })
-
-    it('should mark old prices as non-default/inactive', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        return updateUsageMeterTransaction(
-          {
-            id: usageMeter.id,
-            usageMeter: {
-              id: usageMeter.id,
-              name: 'Updated Meter',
-            },
-            price: {
-              unitPrice: 300,
-              usageEventsPerUnit: 30,
-            },
-          },
-          {
-            transaction,
-            userId,
-            livemode: false,
-            organizationId: organization.id,
-          }
-        )
-      })
-
-      // Verify old price is no longer default/active
-      const prices = await adminTransaction(
-        async ({ transaction }) => {
-          return selectPrices({ productId: product.id }, transaction)
-        }
-      )
-
-      expect(prices).toHaveLength(2)
-
-      const oldPrice = prices.find((p) => p.id === initialPrice.id)
-      expect(oldPrice).toBeDefined()
-      expect(oldPrice!.active).toBe(false)
-      expect(oldPrice!.isDefault).toBe(false)
-
-      const newPrice = prices.find((p) => p.id !== initialPrice.id)
-      expect(newPrice).toBeDefined()
-      expect(newPrice!.active).toBe(true)
-      expect(newPrice!.isDefault).toBe(true)
     })
   })
 })

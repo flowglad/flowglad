@@ -23,10 +23,7 @@ import {
 } from '@/db/tableUtils'
 import { z } from 'zod'
 import { errorHandlers } from '../trpcErrorHandler'
-import {
-  createUsageMeterTransaction,
-  updateUsageMeterTransaction,
-} from '@/utils/usage'
+import { createUsageMeterTransaction } from '@/utils/usage'
 import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
@@ -105,39 +102,14 @@ const updateUsageMeter = protectedProcedure
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({
-        input,
-        transaction,
-        userId,
-        livemode,
-        organizationId,
-      }) => {
+      async ({ input, transaction }) => {
         try {
-          // Convert __rawPriceString to unitPrice if provided
-          let price = input.price
-          if (input.__rawPriceString && organizationId) {
-            const organization = await selectOrganizationById(
-              organizationId,
-              transaction
-            )
-            const unitPrice =
-              rawStringAmountToCountableCurrencyAmount(
-                organization.defaultCurrency,
-                input.__rawPriceString
-              )
-            price = {
-              ...price,
-              unitPrice,
-            }
-          }
-
-          const { usageMeter } = await updateUsageMeterTransaction(
+          const usageMeter = await updateUsageMeterDB(
             {
+              ...input.usageMeter,
               id: input.id,
-              usageMeter: input.usageMeter,
-              price,
             },
-            { transaction, userId, livemode, organizationId }
+            transaction
           )
           return { usageMeter }
         } catch (error) {

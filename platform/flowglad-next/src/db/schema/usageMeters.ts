@@ -180,8 +180,6 @@ export type CreateUsageMeterInput = z.infer<
 export const editUsageMeterSchema = z.object({
   id: z.string(),
   usageMeter: usageMetersClientUpdateSchema,
-  price: usageMeterPriceFieldsSchema,
-  __rawPriceString: z.string().optional(),
 })
 
 export type EditUsageMeterInput = z.infer<typeof editUsageMeterSchema>
