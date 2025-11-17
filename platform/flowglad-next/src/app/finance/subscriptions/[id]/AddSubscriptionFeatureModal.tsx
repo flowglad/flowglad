@@ -29,11 +29,14 @@ export const AddSubscriptionFeatureModal = ({
   subscriptionItems,
   featureItems = [],
 }: AddSubscriptionFeatureModalProps) => {
-  const utils = trpc.useUtils()
   const addFeatureMutation =
     trpc.subscriptions.addFeatureToSubscription.useMutation()
 
-  const defaultSubscriptionItemId = subscriptionItems[0]?.id ?? ''
+  const activeSubscriptionItems = subscriptionItems.filter(
+    (item) => !item.expiredAt
+  )
+  const defaultSubscriptionItemId =
+    activeSubscriptionItems[0]?.id ?? ''
 
   const defaultValues = useMemo(
     () => ({
