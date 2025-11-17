@@ -89,6 +89,17 @@ export async function comprehensiveAdminTransaction<T>(
 
     const output = await fn(paramsForFn)
 
+    // Validate that only one of ledgerCommand or ledgerCommands is provided
+    if (
+      output.ledgerCommand &&
+      output.ledgerCommands &&
+      output.ledgerCommands.length > 0
+    ) {
+      throw new Error(
+        'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
+      )
+    }
+
     // Process events if any
     if (output.eventsToInsert && output.eventsToInsert.length > 0) {
       await bulkInsertOrDoNothingEventsByHash(
@@ -98,12 +109,15 @@ export async function comprehensiveAdminTransaction<T>(
     }
 
     // Process ledger commands if any
-    const allLedgerCommands = [
-      ...(output.ledgerCommand ? [output.ledgerCommand] : []),
-      ...(output.ledgerCommands || []),
-    ]
-    for (const command of allLedgerCommands) {
-      await processLedgerCommand(command, transaction)
+    if (output.ledgerCommand) {
+      await processLedgerCommand(output.ledgerCommand, transaction)
+    } else if (
+      output.ledgerCommands &&
+      output.ledgerCommands.length > 0
+    ) {
+      for (const command of output.ledgerCommands) {
+        await processLedgerCommand(command, transaction)
+      }
     }
 
     // No RESET ROLE typically needed here as admin role wasn't set via session context
