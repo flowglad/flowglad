@@ -185,6 +185,34 @@ export const AddSubscriptionFeatureItemFormFields = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showImmediateGrantToggle, grantCreditsImmediatelyValue])
 
+  // Check if selected feature already exists as an active recurring usage credit grant
+  const existingRecurringUsageGrants = featureItems.filter(
+    (item) =>
+      item.type === FeatureType.UsageCreditGrant &&
+      item.featureId === selectedFeatureId &&
+      !item.expiredAt &&
+      item.renewalFrequency ===
+        FeatureUsageGrantFrequency.EveryBillingPeriod
+  )
+  const currentAmount = existingRecurringUsageGrants.reduce(
+    (sum, item) => sum + (item.amount ?? 0),
+    0
+  )
+  const isSelectedFeatureARecurringUsageGrant =
+    selectedFeature?.type === FeatureType.UsageCreditGrant &&
+    selectedFeature.renewalFrequency ===
+      FeatureUsageGrantFrequency.EveryBillingPeriod
+  const newAmount =
+    isSelectedFeatureARecurringUsageGrant && selectedSubscriptionItem
+      ? (selectedFeature.amount ?? 0) *
+        selectedSubscriptionItem.quantity
+      : 0
+
+  const showExistingFeatureCallout =
+    isSelectedFeatureARecurringUsageGrant &&
+    existingRecurringUsageGrants.length > 0 &&
+    currentAmount > 0
+
   if (activeSubscriptionItems.length === 0) {
     return (
       <Alert>
@@ -308,6 +336,18 @@ export const AddSubscriptionFeatureItemFormFields = ({
               )}
             </FormControl>
             <FormMessage />
+            {showExistingFeatureCallout && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  This feature already exists on this subscription and
+                  currently grants {currentAmount} credits every
+                  period. Re-adding {selectedFeature.name} will grant{' '}
+                  {currentAmount + newAmount} total credits every
+                  period going forward.
+                </AlertDescription>
+              </Alert>
+            )}
           </FormItem>
         )}
       />
