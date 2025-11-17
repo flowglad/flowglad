@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { useFormContext } from 'react-hook-form'
 import type { AddSubscriptionFeatureFormValues } from './addSubscriptionFeatureFormSchema'
@@ -30,9 +30,14 @@ import {
   FeatureUsageGrantFrequency,
 } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
+import { z } from 'zod'
 
 interface AddSubscriptionFeatureItemFormFieldsProps {
   subscriptionItems: RichSubscription['subscriptionItems']
+  featureItems?: z.infer<
+    typeof subscriptionItemFeaturesClientSelectSchema
+  >[]
 }
 
 const getSubscriptionItemDisplayName = (
@@ -61,10 +66,10 @@ const getSubscriptionItemPriceDisplay = (
 
 export const AddSubscriptionFeatureItemFormFields = ({
   subscriptionItems,
+  featureItems = [],
 }: AddSubscriptionFeatureItemFormFieldsProps) => {
-  const activeSubscriptionItems = useMemo(
-    () => subscriptionItems.filter((item) => !item.expiredAt),
-    [subscriptionItems]
+  const activeSubscriptionItems = subscriptionItems.filter(
+    (item) => !item.expiredAt
   )
   const hasSingleActiveItem = activeSubscriptionItems.length === 1
   const form = useFormContext<AddSubscriptionFeatureFormValues>()
@@ -139,8 +144,25 @@ export const AddSubscriptionFeatureItemFormFields = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubscriptionItem?.id])
 
-  const featureOptions =
+  // Get feature IDs of toggle features already added to this subscription
+  const toggleFeatures = featureItems.filter(
+    (item) => item.type === FeatureType.Toggle && !item.expiredAt
+  )
+  const existingToggleFeatureIds = new Set(
+    toggleFeatures.map((item) => item.featureId)
+  )
+
+  // Filter out toggle features that are already added to the subscription
+  const allActiveFeatures =
     featuresData?.features.filter((feature) => feature.active) ?? []
+  const featureOptions = allActiveFeatures.filter((feature) => {
+    // For toggle features, exclude if already added
+    if (feature.type === FeatureType.Toggle) {
+      return !existingToggleFeatureIds.has(feature.id)
+    }
+    // For usage credit grants, always show (can be added multiple times)
+    return true
+  })
 
   const isFeatureSelectDisabled =
     isLoadingProduct ||

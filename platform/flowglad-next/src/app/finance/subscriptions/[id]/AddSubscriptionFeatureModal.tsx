@@ -12,19 +12,26 @@ import {
   type AddSubscriptionFeatureFormValues,
 } from './addSubscriptionFeatureFormSchema'
 import { AddSubscriptionFeatureItemFormFields } from './AddSubscriptionFeatureItemFormFields'
+import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
+import { z } from 'zod'
 
 interface AddSubscriptionFeatureModalProps
   extends ModalInterfaceProps {
   subscriptionItems: RichSubscription['subscriptionItems']
+  featureItems?: z.infer<
+    typeof subscriptionItemFeaturesClientSelectSchema
+  >[]
 }
 
 export const AddSubscriptionFeatureModal = ({
   isOpen,
   setIsOpen,
   subscriptionItems,
+  featureItems = [],
 }: AddSubscriptionFeatureModalProps) => {
+  const utils = trpc.useUtils()
   const addFeatureMutation =
-    trpc.addFeatureToSubscription.useMutation()
+    trpc.subscriptions.addFeatureToSubscription.useMutation()
 
   const defaultSubscriptionItemId = subscriptionItems[0]?.id ?? ''
 
@@ -65,6 +72,7 @@ export const AddSubscriptionFeatureModal = ({
     >
       <AddSubscriptionFeatureItemFormFields
         subscriptionItems={subscriptionItems}
+        featureItems={featureItems}
       />
     </FormModal>
   )

@@ -292,31 +292,6 @@ const ensureFeatureBelongsToProductPricingModel = ({
   }
 }
 
-const findActiveProductFeatureForProduct = async (
-  params: { productId: string; featureId: string },
-  transaction: DbTransaction
-): Promise<ProductFeature.Record> => {
-  const { productId, featureId } = params
-  const [productFeature] = await selectProductFeatures(
-    {
-      productId,
-      featureId,
-    },
-    transaction
-  )
-  if (!productFeature) {
-    throw new Error(
-      `Feature ${featureId} is not attached to product ${productId}.`
-    )
-  }
-  if (productFeature.expiredAt !== null) {
-    throw new Error(
-      `Feature ${featureId} is expired for product ${productId}.`
-    )
-  }
-  return productFeature
-}
-
 const findCurrentBillingPeriodForSubscription = async (
   subscriptionId: string,
   transaction: DbTransaction

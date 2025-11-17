@@ -139,6 +139,7 @@ const InnerSubscriptionPage = ({
         isOpen={isAddFeatureModalOpen}
         setIsOpen={setIsAddFeatureModalOpen}
         subscriptionItems={subscription.subscriptionItems}
+        featureItems={subscription.experimental?.featureItems}
       />
     </InternalPageContainer>
   )
