@@ -55,6 +55,7 @@ import {
   executeBillingRun,
 } from '@/subscriptions/billingRunHelpers'
 import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
+import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',
@@ -535,4 +536,5 @@ export const subscriptionsRouter = router({
   retryBillingRunProcedure,
   getTableRows,
   updatePaymentMethod: updatePaymentMethodProcedure,
+  addFeatureToSubscription,
 })

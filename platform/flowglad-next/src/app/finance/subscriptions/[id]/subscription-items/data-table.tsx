@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import type { ReactNode } from 'react'
 import {
   ColumnFiltersState,
   ColumnSizingState,
@@ -30,12 +31,14 @@ interface SubscriptionItemsDataTableProps {
   subscriptionItems: SubscriptionItem.ClientRecord[]
   currencyCode: CurrencyCode
   title?: string
+  toolbarContent?: ReactNode
 }
 
 export function SubscriptionItemsDataTable({
   subscriptionItems,
   currencyCode,
   title,
+  toolbarContent,
 }: SubscriptionItemsDataTableProps) {
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -83,6 +86,7 @@ export function SubscriptionItemsDataTable({
 
         {/* Controls on the right */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {toolbarContent}
           <DataTableViewOptions table={table} />
         </div>
       </div>

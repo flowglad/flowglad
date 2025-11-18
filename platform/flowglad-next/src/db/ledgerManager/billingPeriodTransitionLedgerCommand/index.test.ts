@@ -92,7 +92,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
   let billingRun: BillingRun.Record
   let feature: Feature.Record
   let productFeature: ProductFeature.Record
-  let subscriptionFeatureItem: SubscriptionItemFeature.UsageCreditGrantClientRecord
+  let subscriptionFeatureItem: SubscriptionItemFeature.UsageCreditGrantRecord
   let command: BillingPeriodTransitionLedgerCommand
 
   beforeEach(async () => {
@@ -729,8 +729,8 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
     let recurringFeature: Feature.Record
     let productFeatureOnce: ProductFeature.Record
     let productFeatureRecurring: ProductFeature.Record
-    let subscriptionItemFeatureOnce: SubscriptionItemFeature.UsageCreditGrantClientRecord
-    let subscriptionItemFeatureRecurring: SubscriptionItemFeature.UsageCreditGrantClientRecord
+    let subscriptionItemFeatureOnce: SubscriptionItemFeature.UsageCreditGrantRecord
+    let subscriptionItemFeatureRecurring: SubscriptionItemFeature.UsageCreditGrantRecord
     let nonRenewingCommand: BillingPeriodTransitionLedgerCommand
     let nonRenewingSubscriptionItem: SubscriptionItem.Record
     let ledgerAccountNonRenewing1: LedgerAccount.Record
