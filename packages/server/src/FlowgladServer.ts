@@ -26,16 +26,25 @@ import { getSessionFromParams } from './serverUtils'
 export class FlowgladServer {
   private createHandlerParams: FlowgladServerSessionParams
   private flowgladNode: FlowgladNode
+  private scopedCustomerExternalId?: string
   constructor(createHandlerParams: FlowgladServerSessionParams) {
     this.createHandlerParams = createHandlerParams
     this.flowgladNode = new FlowgladNode({
       apiKey: createHandlerParams.apiKey,
       baseURL: createHandlerParams.baseURL,
     })
+    // Detect and store scoped customer external ID
+    if ('customerExternalId' in createHandlerParams) {
+      this.scopedCustomerExternalId =
+        createHandlerParams.customerExternalId
+    }
   }
 
   public getRequestingCustomerId = async (): Promise<string> => {
-    if (this.createHandlerParams.getRequestingCustomer) {
+    if (
+      'getRequestingCustomer' in this.createHandlerParams &&
+      this.createHandlerParams.getRequestingCustomer
+    ) {
       const customer =
         await this.createHandlerParams.getRequestingCustomer()
       if (customer) {
@@ -43,7 +52,8 @@ export class FlowgladServer {
       }
     }
     const session = await getSessionFromParams(
-      this.createHandlerParams
+      this.createHandlerParams,
+      this.scopedCustomerExternalId
     )
     if (!session) {
       throw new Error('User not authenticated')
@@ -52,7 +62,10 @@ export class FlowgladServer {
   }
 
   public getSession = async (): Promise<CoreCustomerUser | null> => {
-    return getSessionFromParams(this.createHandlerParams)
+    return getSessionFromParams(
+      this.createHandlerParams,
+      this.scopedCustomerExternalId
+    )
   }
 
   public getBilling = async (): Promise<BillingWithChecks> => {
@@ -92,7 +105,8 @@ export class FlowgladServer {
       const errorCode = (error as any)?.error?.code
       if (errorCode === 'NOT_FOUND') {
         const session = await getSessionFromParams(
-          this.createHandlerParams
+          this.createHandlerParams,
+          this.scopedCustomerExternalId
         )
         if (!session) {
           throw new Error('User not authenticated')
@@ -118,7 +132,8 @@ export class FlowgladServer {
   public getCustomer =
     async (): Promise<FlowgladNode.Customers.CustomerRetrieveResponse> => {
       const session = await getSessionFromParams(
-        this.createHandlerParams
+        this.createHandlerParams,
+        this.scopedCustomerExternalId
       )
       if (!session) {
         throw new Error('User not authenticated')
@@ -136,7 +151,8 @@ export class FlowgladServer {
     params: CreateProductCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
     const session = await getSessionFromParams(
-      this.createHandlerParams
+      this.createHandlerParams,
+      this.scopedCustomerExternalId
     )
     if (!session) {
       throw new Error('User not authenticated')
@@ -175,7 +191,8 @@ export class FlowgladServer {
     params: FlowgladNode.Customers.CustomerUpdateParams
   ): Promise<FlowgladNode.Customers.CustomerUpdateResponse> => {
     const session = await getSessionFromParams(
-      this.createHandlerParams
+      this.createHandlerParams,
+      this.scopedCustomerExternalId
     )
     if (!session) {
       throw new Error('User not authenticated')
@@ -190,7 +207,8 @@ export class FlowgladServer {
     params: CreateAddPaymentMethodCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
     const session = await getSessionFromParams(
-      this.createHandlerParams
+      this.createHandlerParams,
+      this.scopedCustomerExternalId
     )
     if (!session) {
       throw new Error('User not authenticated')
@@ -210,7 +228,8 @@ export class FlowgladServer {
     params: CreateActivateSubscriptionCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
     const session = await getSessionFromParams(
-      this.createHandlerParams
+      this.createHandlerParams,
+      this.scopedCustomerExternalId
     )
     if (!session) {
       throw new Error('User not authenticated')
