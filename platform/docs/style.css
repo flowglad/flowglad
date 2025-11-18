@@ -685,6 +685,27 @@ code:not(pre > code) {
   border-radius: var(--radius-md) !important;
 }
 
+/* Accordions */
+.accordion,
+details.accordion {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Accordion summary (top rounded when closed) */
+.accordion summary,
+details.accordion > summary {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Accordion summary when expanded (only top corners rounded) */
+.accordion[open] summary,
+details.accordion[open] > summary {
+  border-top-left-radius: var(--radius-lg) !important;
+  border-top-right-radius: var(--radius-lg) !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
 /* Input fields and form elements */
 input[type="text"],
 input[type="email"],
