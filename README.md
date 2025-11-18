@@ -1,6 +1,7 @@
 <p align="center">
   <a href="https://github.com/flowglad/flowglad">
-    <img width="1440" alt="1440w light" src="https://github.com/user-attachments/assets/4dea09ea-91c9-4233-a4ac-cef513bbb927" />
+    <img width="1440" alt="Light mode" src="./public/github-image-banner-light-mode.jpg#gh-light-mode-only" />
+    <img width="1440" alt="Dark mode" src="./public/github-image-banner-dark-mode.jpg#gh-dark-mode-only" />
   </a>
 
   <h3 align="center">Flowglad</h3>
