@@ -23,6 +23,8 @@ import { buildSchemas } from '@/db/createZodSchemas'
 import { UsageMeterAggregationType } from '@/types'
 import { pricingModels } from '@/db/schema/pricingModels'
 import core from '@/utils/core'
+import { pricesClientInsertSchema } from '@/db/schema/prices'
+import { PriceType } from '@/types'
 
 const TABLE_NAME = 'usage_meters'
 
@@ -156,12 +158,31 @@ export namespace UsageMeter {
   export type Where = SelectConditions<typeof usageMeters>
 }
 
+// Schema for price fields in usage meter forms
+const usageMeterPriceFieldsSchema = z
+  .object({
+    type: z.nativeEnum(PriceType).optional(),
+    unitPrice: z.number().optional(),
+    usageEventsPerUnit: z.number().optional(),
+  })
+  .optional()
+
 export const createUsageMeterSchema = z.object({
   usageMeter: usageMetersClientInsertSchema,
+  price: usageMeterPriceFieldsSchema,
 })
+
+export const createUsageMeterFormSchema =
+  createUsageMeterSchema.extend({
+    __rawPriceString: z.string(),
+  })
 
 export type CreateUsageMeterInput = z.infer<
   typeof createUsageMeterSchema
+>
+
+export type CreateUsageMeterFormInput = z.infer<
+  typeof createUsageMeterFormSchema
 >
 
 export const editUsageMeterSchema = z.object({

@@ -9,18 +9,14 @@ import {
 import { createUsageMeterTransaction } from './usage'
 import { Organization } from '@/db/schema/organizations'
 import { PricingModel } from '@/db/schema/pricingModels'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
 import {
-  PriceType,
   IntervalUnit,
-  CurrencyCode,
+  PriceType,
   UsageMeterAggregationType,
 } from '@/types'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
-import { UsageMeter } from '@/db/schema/usageMeters'
 
 describe('createUsageMeterTransaction', () => {
   let organization: Organization.Record
@@ -420,6 +416,96 @@ describe('createUsageMeterTransaction', () => {
       expect(afterCounts.usageMeters).toBe(beforeCounts.usageMeters)
       expect(afterCounts.products).toBe(beforeCounts.products)
       expect(afterCounts.prices).toBe(beforeCounts.prices)
+    })
+  })
+
+  describe('Custom price fields', () => {
+    it('should create usage meter with custom unitPrice and usageEventsPerUnit', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return createUsageMeterTransaction(
+            {
+              usageMeter: {
+                name: 'Custom Price API Calls',
+                slug: 'custom-price-api-calls',
+                pricingModelId: pricingModel.id,
+              },
+              price: {
+                unitPrice: 1000, // $10.00
+                usageEventsPerUnit: 100,
+              },
+            },
+            {
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+            }
+          )
+        }
+      )
+
+      // Verify price has custom values
+      expect(result.price.unitPrice).toBe(1000)
+      expect(result.price.usageEventsPerUnit).toBe(100)
+      expect(result.price.type).toBe(PriceType.Usage)
+    })
+
+    it('should create usage meter without price values (use defaults)', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return createUsageMeterTransaction(
+            {
+              usageMeter: {
+                name: 'Default Price API Calls',
+                slug: 'default-price-api-calls',
+                pricingModelId: pricingModel.id,
+              },
+              // No price field provided
+            },
+            {
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+            }
+          )
+        }
+      )
+
+      // Verify price uses defaults
+      expect(result.price.unitPrice).toBe(0)
+      expect(result.price.usageEventsPerUnit).toBe(1)
+      expect(result.price.type).toBe(PriceType.Usage)
+    })
+
+    it('should respect custom unitPrice when usageEventsPerUnit is not provided', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return createUsageMeterTransaction(
+            {
+              usageMeter: {
+                name: 'Partial Custom Price',
+                slug: 'partial-custom-price',
+                pricingModelId: pricingModel.id,
+              },
+              price: {
+                unitPrice: 500, // $5.00
+              },
+            },
+            {
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+            }
+          )
+        }
+      )
+
+      // Verify custom unitPrice is used, default usageEventsPerUnit
+      expect(result.price.unitPrice).toBe(500)
+      expect(result.price.usageEventsPerUnit).toBe(1)
     })
   })
 })
