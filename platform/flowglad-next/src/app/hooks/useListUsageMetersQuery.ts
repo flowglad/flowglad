@@ -13,6 +13,7 @@ export const useListUsageMetersQuery = (pricingModelId?: string) => {
             direction: 'forward',
           })
         : undefined,
+      limit: 100,
     },
     {
       refetchOnMount: 'always',
