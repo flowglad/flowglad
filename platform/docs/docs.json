@@ -11,9 +11,9 @@
     ]
   },
   "colors": {
-    "primary": "#1e90ff",
-    "light": "#1eeeff",
-    "dark": "#1e90ff"
+    "primary": "#DD7D29",
+    "light": "#FFC898",
+    "dark": "#BA702E"
   },
   "integrations": {
     "posthog": {
@@ -123,8 +123,8 @@
   },
   "background": {
     "color": {
-      "light": "#ffffff",
-      "dark": "#1b1b1b"
+      "light": "#FBFAF4",
+      "dark": "#2D2A28"
     }
   },
   "navbar": {
