@@ -17,6 +17,7 @@ import { z } from 'zod'
 
 interface AddSubscriptionFeatureModalProps
   extends ModalInterfaceProps {
+  subscriptionId: string
   subscriptionItems: RichSubscription['subscriptionItems']
   featureItems?: z.infer<
     typeof subscriptionItemFeaturesClientSelectSchema
@@ -26,11 +27,20 @@ interface AddSubscriptionFeatureModalProps
 export const AddSubscriptionFeatureModal = ({
   isOpen,
   setIsOpen,
+  subscriptionId,
   subscriptionItems,
   featureItems = [],
 }: AddSubscriptionFeatureModalProps) => {
+  const utils = trpc.useUtils()
   const addFeatureMutation =
-    trpc.subscriptions.addFeatureToSubscription.useMutation()
+    trpc.subscriptions.addFeatureToSubscription.useMutation({
+      onSuccess: async () => {
+        // Invalidate the subscription query to refresh the UI with the new feature
+        await utils.subscriptions.get.invalidate({
+          id: subscriptionId,
+        })
+      },
+    })
 
   const activeSubscriptionItems = subscriptionItems.filter(
     (item) => !item.expiredAt

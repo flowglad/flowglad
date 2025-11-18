@@ -138,6 +138,7 @@ const InnerSubscriptionPage = ({
       <AddSubscriptionFeatureModal
         isOpen={isAddFeatureModalOpen}
         setIsOpen={setIsAddFeatureModalOpen}
+        subscriptionId={subscription.id}
         subscriptionItems={subscription.subscriptionItems}
         featureItems={subscription.experimental?.featureItems}
       />

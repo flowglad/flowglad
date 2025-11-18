@@ -21,7 +21,6 @@ import {
   insertSubscriptionItemFeature,
   selectSubscriptionItemFeatures,
   updateSubscriptionItemFeature,
-  upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import { selectSubscriptionItemById } from '@/db/tableMethods/subscriptionItemMethods'
@@ -121,6 +120,23 @@ const getFeaturesByPriceId = async (
   return result
 }
 
+/**
+ * Creates a subscription item feature insert object from a subscription item and feature.
+ *
+ * This function constructs the appropriate insert schema based on the feature type:
+ * - For UsageCreditGrant features: includes usage meter, amount (multiplied by subscription item quantity),
+ *   and renewal frequency
+ * - For Toggle features: sets usage-related fields to null
+ *
+ * The productFeature parameter is optional to support features that may not have a direct
+ * product feature association (e.g., manually added features).
+ *
+ * @param subscriptionItem - The subscription item to attach the feature to
+ * @param feature - The feature to attach (must match the subscription item's pricing model)
+ * @param productFeature - Optional product feature association (null if not provided)
+ * @returns A SubscriptionItemFeature.Insert object ready for database insertion
+ * @throws Error if the feature type is unknown
+ */
 export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
   (
     subscriptionItem: SubscriptionItem.Record,
@@ -165,11 +181,19 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
 
 /**
  * Creates subscription item features for a list of subscription items.
- * It fetches product features associated with the price of each subscription item
- * and creates corresponding subscription item feature records.
  *
- * @param subscriptionItems - An array of SubscriptionItem.Record objects.
- * @param transaction - The database transaction.
+ * This function:
+ * 1. Fetches all unique prices from the provided subscription items
+ * 2. Retrieves product features associated with each price
+ * 3. Creates corresponding subscription item feature records for each item/feature pair
+ *
+ * Note: This can potentially create duplicate feature grants if subscriptions include
+ * multiple prices from the same product. Consider deduplication if needed.
+ *
+ * @param subscriptionItems - An array of subscription items to create features for
+ * @param transaction - The database transaction to use for all operations
+ * @returns A Promise resolving to an array of created SubscriptionItemFeature records
+ * @returns Empty array if no subscription items provided or no features found
  */
 export const createSubscriptionFeatureItems = async (
   subscriptionItems: SubscriptionItem.Record[],
@@ -309,6 +333,24 @@ const findCurrentBillingPeriodForSubscription = async (
   )
 }
 
+/**
+ * Grants immediate usage credits for a subscription item feature.
+ *
+ * Creates a usage credit record and processes a CreditGrantRecognized ledger command
+ * to immediately grant credits to a customer's usage meter. This is used when
+ * `grantCreditsImmediately` is true when adding a usage credit grant feature.
+ *
+ * The credit is associated with the current billing period and will expire at the
+ * end of that period (if a billing period exists).
+ *
+ * @param params - Object containing:
+ *   - subscription: The subscription record
+ *   - subscriptionItemFeature: The subscription item feature that triggered the grant
+ *   - grantAmount: The amount of credits to grant
+ * @param transaction - The database transaction to use for all operations
+ * @returns An object containing the created usage credit and ledger command, or undefined if grantAmount is 0
+ * @throws Error if the subscription item feature is missing a usage meter ID
+ */
 const grantImmediateUsageCredits = async (
   {
     subscription,
@@ -374,6 +416,20 @@ const grantImmediateUsageCredits = async (
   }
 }
 
+/**
+ * Adds a feature to a subscription item.
+ *
+ * Validates subscription item, feature eligibility, organization/livemode matching, and pricing model compatibility.
+ * For toggle features, rejects if already added. For usage credit grants, increments amount if exists, otherwise inserts.
+ *
+ * When `grantCreditsImmediately` is true for usage features, creates an immediate usage credit grant and
+ * processes a CreditGrantRecognized ledger command. Credits expire at the end of the current billing period.
+ *
+ * @param input - Contains subscriptionItemId, featureId, and optional grantCreditsImmediately flag
+ * @param transaction - The database transaction to use for all operations
+ * @returns TransactionOutput with the subscription item feature record and optional ledger command
+ * @throws Error if validation fails or attempting to add a duplicate toggle feature
+ */
 export const addFeatureToSubscriptionItem = async (
   input: AddFeatureToSubscriptionInput,
   transaction: DbTransaction
@@ -426,6 +482,24 @@ export const addFeatureToSubscriptionItem = async (
     )
   }
 
+  // Validate that toggle features are not already added to this subscription item
+  // This provides explicit validation in addition to the frontend filtering
+  if (feature.type === FeatureType.Toggle) {
+    const [existingToggle] = await selectSubscriptionItemFeatures(
+      {
+        subscriptionItemId: subscriptionItem.id,
+        featureId: feature.id,
+        expiredAt: null,
+      },
+      transaction
+    )
+    if (existingToggle) {
+      throw new Error(
+        `Toggle feature "${feature.name || feature.id}" is already added to this subscription item. Toggle features can only be added once per subscription item.`
+      )
+    }
+  }
+
   const featureInsert =
     subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
       subscriptionItem,
@@ -437,50 +511,12 @@ export const addFeatureToSubscriptionItem = async (
 
   let subscriptionItemFeature: SubscriptionItemFeature.Record
 
-  /**
-   * Adds or updates a SubscriptionItemFeature for the given subscription item and feature.
-   *
-   * Handles deduplication by checking if an appropriate SubscriptionItemFeature already exists for
-   * the given subscription item and feature. If a matching record is found (not expired), it will be
-   * updated instead of inserting a new row, ensuring feature assignment is idempotent and no duplicates
-   * are created.
-   *
-   * - For Toggle features, attempts an upsert by productFeatureId + subscriptionId. If an upserted record
-   *   is returned, it is used. Otherwise, falls back to selecting an existing Toggle feature. This ensures
-   *   toggles are not duplicated even under high concurrency (race conditions).
-   *
-   * - For UsageCreditGrant features, if one already exists and is not expired, the amount is incremented
-   *   and related fields updated. If none exists, a new feature is inserted.
-   *
-   * Throws descriptive errors if data integrity cannot be ensured.
-   */
   if (feature.type === FeatureType.Toggle) {
-    // Upsert (insert-or-update) the toggle feature for this subscription item/product/feature.
-    // If upsert returns, use the returned record. Otherwise, fall back to fetching the existing record.
-    const [upserted] =
-      await upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
-        featureInsert,
-        transaction
-      )
-    if (upserted) {
-      subscriptionItemFeature = upserted
-    } else {
-      // The upsert didn't return a record; retrieve the (now existing) toggle feature.
-      const [existingToggle] = await selectSubscriptionItemFeatures(
-        {
-          subscriptionItemId: subscriptionItem.id,
-          featureId: feature.id,
-          expiredAt: null,
-        },
-        transaction
-      )
-      if (!existingToggle) {
-        throw new Error(
-          `Failed to upsert toggle feature ${feature.id} for subscription item ${subscriptionItem.id}.`
-        )
-      }
-      subscriptionItemFeature = existingToggle
-    }
+    // Insert the toggle feature (validation already ensured it doesn't exist)
+    subscriptionItemFeature = await insertSubscriptionItemFeature(
+      featureInsert,
+      transaction
+    )
   } else {
     // Handle usage-credit-grant features
     const usageFeatureInsertData =

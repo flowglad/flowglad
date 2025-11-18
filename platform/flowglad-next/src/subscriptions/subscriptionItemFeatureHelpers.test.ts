@@ -470,7 +470,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
   })
 
   describe('addFeatureToSubscriptionItem', () => {
-    it('deduplicates toggle features via upsert', async () => {
+    it('rejects duplicate toggle features with explicit error', async () => {
       const [{ feature: toggleFeature }] =
         await setupTestFeaturesAndProductFeatures(
           orgData.organization.id,
@@ -481,6 +481,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         )
 
       await adminTransaction(async ({ transaction }) => {
+        // First addition should succeed
         const firstResult = await addFeatureToSubscriptionItem(
           {
             subscriptionItemId: subscriptionItem.id,
@@ -489,16 +490,27 @@ describe('SubscriptionItemFeatureHelpers', () => {
           },
           transaction
         )
-        const secondResult = await addFeatureToSubscriptionItem(
-          {
+        expect(firstResult.result.subscriptionItemFeature).toEqual(
+          expect.objectContaining({
             subscriptionItemId: subscriptionItem.id,
             featureId: toggleFeature.id,
-            grantCreditsImmediately: false,
-          },
-          transaction
+            type: FeatureType.Toggle,
+            expiredAt: null,
+          })
         )
-        expect(secondResult.result.subscriptionItemFeature.id).toBe(
-          firstResult.result.subscriptionItemFeature.id
+
+        // Second addition should fail with explicit error
+        await expect(
+          addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              grantCreditsImmediately: false,
+            },
+            transaction
+          )
+        ).rejects.toThrow(
+          'Toggle feature "Manual Toggle" is already added to this subscription item. Toggle features can only be added once per subscription item.'
         )
       })
     })
