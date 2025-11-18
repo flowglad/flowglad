@@ -58,7 +58,7 @@ export function DataTablePagination<TData>({
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="text-muted-foreground flex-1 text-sm font-mono">
-        {totalRows} results
+        {totalRows} {totalRows === 1 ? 'result' : 'results'}
       </div>
       {(showExportButton || !shouldHidePagination) && (
         <div className="flex items-center space-x-3">

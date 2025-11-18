@@ -2424,9 +2424,9 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
     featureId: string
     productFeatureId: string
   }
-): Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord> => {
+): Promise<SubscriptionItemFeature.UsageCreditGrantRecord> => {
   return adminTransaction(async ({ transaction }) => {
-    return insertSubscriptionItemFeature(
+    const result = await insertSubscriptionItemFeature(
       {
         livemode: true,
         type: FeatureType.UsageCreditGrant,
@@ -2436,7 +2436,11 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
         ...params,
       },
       transaction
-    ) as Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord>
+    )
+    if (result.type !== FeatureType.UsageCreditGrant) {
+      throw new Error('Expected UsageCreditGrant feature')
+    }
+    return result
   })
 }
 

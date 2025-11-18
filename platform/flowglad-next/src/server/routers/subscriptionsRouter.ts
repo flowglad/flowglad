@@ -59,6 +59,7 @@ import {
   cancelFreeSubscriptionForUpgrade,
   linkUpgradedSubscriptions,
 } from '@/subscriptions/cancelFreeSubscriptionForUpgrade'
+import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',
@@ -566,4 +567,5 @@ export const subscriptionsRouter = router({
   retryBillingRunProcedure,
   getTableRows,
   updatePaymentMethod: updatePaymentMethodProcedure,
+  addFeatureToSubscription,
 })
