@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { trpc } from '@/app/_trpc/client'
 import { toast } from 'sonner'
+import OrganizationLogoInput from '@/components/OrganizationLogoInput'
 import FormModal from '@/components/forms/FormModal'
 import { useFormContext } from 'react-hook-form'
 import {
@@ -53,7 +54,8 @@ const CodebaseMarkdownFormFields = () => {
           onClick={() => {
             window.open(
               cursorDeepLink(analyzeCodebasePrompt),
-              '_blank', 'noopener,noreferrer'
+              '_blank',
+              'noopener,noreferrer'
             )
           }}
         >
@@ -85,15 +87,19 @@ const OrganizationSettingsTab = () => {
   const [isCodebaseModalOpen, setIsCodebaseModalOpen] =
     useState(false)
 
+  const trpcContext = trpc.useContext()
   const utils = trpc.useUtils()
 
   const updateOrganizationMutation =
     trpc.organizations.update.useMutation({
-      onSuccess: () => {
+      onSuccess: async () => {
         toast.success('Organization settings updated successfully')
+        await trpcContext.organizations.getFocusedMembership.invalidate()
       },
       onError: (error) => {
-        toast.error('Failed to update organization settings')
+        toast.error(
+          error.message || 'Failed to update organization settings'
+        )
       },
     })
 
@@ -127,6 +133,28 @@ const OrganizationSettingsTab = () => {
             <CopyableTextTableCell copyText={organization.id}>
               {organization.id}
             </CopyableTextTableCell>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <OrganizationLogoInput
+              value={organization.logoURL}
+              onUploadComplete={(publicURL) => {
+                updateOrganizationMutation.mutate({
+                  organization: {
+                    id: organization.id,
+                    logoURL: publicURL,
+                  },
+                })
+              }}
+              onUploadDeleted={() => {
+                updateOrganizationMutation.mutate({
+                  organization: {
+                    id: organization.id,
+                    logoURL: null,
+                  },
+                })
+              }}
+              id="organization-logo-upload-settings"
+            />
           </div>
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center justify-between">
