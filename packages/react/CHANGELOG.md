@@ -1,5 +1,13 @@
 # @flowglad/react
 
+## 0.12.1
+
+### Patch Changes
+
+- workspaces fix
+- Updated dependencies
+  - @flowglad/shared@0.12.1
+
 ## 0.12.0
 
 ### Minor Changes

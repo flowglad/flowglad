@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/server",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -18,8 +18,8 @@
     "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
-    "@flowglad/shared": "workspace:*",
-    "@flowglad/types": "workspace:*",
+    "@flowglad/shared": "0.12.1",
+    "@flowglad/types": "0.12.0",
     "@flowglad/node": "0.22.0",
     "zod": "4.1.5"
   },

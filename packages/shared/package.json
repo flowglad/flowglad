@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/shared",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -21,7 +21,7 @@
     "zod": "4.1.5",
     "date-fns": "4.1.0",
     "@flowglad/node": "0.22.0",
-    "@flowglad/types": "workspace:*"
+    "@flowglad/types": "0.12.0"
   },
   "devDependencies": {
     "eslint": "8.57.0",
