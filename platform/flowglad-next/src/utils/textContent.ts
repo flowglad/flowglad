@@ -43,7 +43,14 @@ export const saveOrganizationCodebaseMarkdown = async ({
 
   const key = `codebase-${contentHash}.md`
 
-  // Store hash in database
+  // Store the file in Cloudflare R2 first to ensure it exists before updating the database
+  await putMarkdownFile({
+    organizationId,
+    key,
+    markdown,
+  })
+
+  // Store hash in database after successful R2 upload
   await adminTransaction(async ({ transaction }) => {
     await updateOrganization(
       {
@@ -52,13 +59,6 @@ export const saveOrganizationCodebaseMarkdown = async ({
       },
       transaction
     )
-  })
-
-  // Store the file in Cloudflare R2
-  await putMarkdownFile({
-    organizationId,
-    key,
-    markdown,
   })
 }
 
@@ -122,7 +122,14 @@ export const savePricingModelIntegrationMarkdown = async ({
 
   const key = `pricing-models/${pricingModelId}/integration-guide-${contentHash}.md`
 
-  // Store hash in database
+  // Store the file in Cloudflare R2 first to ensure it exists before updating the database
+  await putMarkdownFile({
+    organizationId,
+    key,
+    markdown,
+  })
+
+  // Store hash in database after successful R2 upload
   await adminTransaction(async ({ transaction }) => {
     await updatePricingModel(
       {
@@ -131,13 +138,6 @@ export const savePricingModelIntegrationMarkdown = async ({
       },
       transaction
     )
-  })
-
-  // Store the file in Cloudflare R2
-  await putMarkdownFile({
-    organizationId,
-    key,
-    markdown,
   })
 }
 

@@ -53,7 +53,8 @@ const CodebaseMarkdownFormFields = () => {
           onClick={() => {
             window.open(
               cursorDeepLink(analyzeCodebasePrompt),
-              '_blank'
+              '_blank',
+              'noopener,noreferrer'
             )
           }}
         >

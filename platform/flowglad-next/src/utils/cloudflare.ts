@@ -241,12 +241,44 @@ export const getMarkdownFile = async ({
   key: string
 }): Promise<string | null> => {
   const fullKey = `${organizationId}/${key}`
-  const response = await getObject(fullKey)
-  if (!response.Body) {
-    return null
+  try {
+    // Call s3.getObject directly to preserve AWS error properties for proper error handling
+    const response = await s3.getObject({
+      Bucket: cloudflareBucket,
+      Key: fullKey,
+    })
+    if (!response.Body) {
+      return null
+    }
+    // AWS SDK v3 returns Body as a Readable stream, need to transform to string
+    return await response.Body.transformToString()
+  } catch (error: unknown) {
+    // Handle missing objects gracefully - return null instead of throwing
+    // AWS SDK throws errors with name "NoSuchKey" or statusCode 404 for missing objects
+    if (
+      error &&
+      typeof error === 'object' &&
+      ('name' in error ||
+        'statusCode' in error ||
+        '$metadata' in error)
+    ) {
+      const awsError = error as {
+        name?: string
+        statusCode?: number
+        $metadata?: { httpStatusCode?: number }
+      }
+      if (
+        awsError.name === 'NoSuchKey' ||
+        awsError.name === 'NotFound' ||
+        awsError.statusCode === 404 ||
+        awsError.$metadata?.httpStatusCode === 404
+      ) {
+        return null
+      }
+    }
+    // Re-throw unexpected errors
+    throw error
   }
-  // AWS SDK v3 returns Body as a Readable stream, need to transform to string
-  return await response.Body.transformToString()
 }
 
 const cloudflareMethods = {
