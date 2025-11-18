@@ -5,7 +5,7 @@ description: 'Integrating Flowglad without using the SDKs'
 
 Flowglad offers rich full stack SDKs for Typescript. If your backend is written in another language besides Typescript, you can integrate Flowglad via our public APIs. All you need is a way to make HTTP requests. Even without the backend SDKs, Flowglad provides a simple integration path.
 
-Implementing Flowglad on your backend will consist of 3 steps (feel free to feed this to AI):
+Implementing Flowglad on your backend will consist of 3 steps:
 
 1. Add Flowglad customer creation to your product's account creation flow
   - Call [POST /customers](https://docs.flowglad.com/api-reference/customer/create-customer) to create the customer
