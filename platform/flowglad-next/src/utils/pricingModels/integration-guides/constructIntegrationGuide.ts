@@ -1,12 +1,13 @@
 import { FeatureType } from '@/types'
 import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
-import javascriptIntegrationFragment from '@/prompts/integration-fragments/javascript-integration.md'
-import httpIntegrationFragment from '@/prompts/integration-fragments/http-integration.md'
-import freeTrialFragment from '@/prompts/integration-fragments/pricing/free-trials.md'
-import usageBasedFragment from '@/prompts/integration-fragments/pricing/usage-based.md'
-import toggleFeaturesFragment from '@/prompts/integration-fragments/pricing/toggle-features.md'
-import integrationCoreFragment from '@/prompts/integration-fragments/integration-core.md'
 import yaml from 'json-to-pretty-yaml'
+
+/**
+ * Markdown files are imported dynamically to avoid parse-time errors when
+ * this module is imported but the function isn't called (e.g., when generating
+ * OpenAPI docs with tsx). Dynamic imports are evaluated at runtime, so the
+ * markdown files are only loaded when constructIntegrationGuide is actually executed.
+ */
 
 interface PricingModelIntegrationGuideParams {
   pricingModelData: SetupPricingModelInput
@@ -35,42 +36,57 @@ const hasToggleFeatures = (
   )
 }
 
-const constructToggleFeaturesFragment = (
+const constructToggleFeaturesFragment = async (
   pricingModelData: SetupPricingModelInput
-): string => {
+): Promise<string> => {
   if (!hasToggleFeatures(pricingModelData)) {
     return ``
   }
-  return toggleFeaturesFragment
+  const toggleFeaturesFragment = await import(
+    '@/prompts/integration-fragments/pricing/toggle-features.md'
+  )
+  return toggleFeaturesFragment.default
 }
 
-const constructFreeTrialFragment = (
+const constructFreeTrialFragment = async (
   pricingModelData: SetupPricingModelInput
-): string => {
+): Promise<string> => {
   if (!hasTrials(pricingModelData)) {
     return ``
   }
-  return freeTrialFragment
+  const freeTrialFragment = await import(
+    '@/prompts/integration-fragments/pricing/free-trials.md'
+  )
+  return freeTrialFragment.default
 }
 
-const constructUsageBasedFragment = (
+const constructUsageBasedFragment = async (
   pricingModelData: SetupPricingModelInput
-): string => {
+): Promise<string> => {
   if (!hasUsageMeters(pricingModelData)) {
     return ``
   }
-  return usageBasedFragment
+  const usageBasedFragment = await import(
+    '@/prompts/integration-fragments/pricing/usage-based.md'
+  )
+  return usageBasedFragment.default
 }
 
-export const constructBackendIntegrationFragment = ({
+export const constructBackendIntegrationFragment = async ({
   isBackendJavascript,
 }: {
   isBackendJavascript: boolean
-}): string => {
+}): Promise<string> => {
   if (!isBackendJavascript) {
-    return httpIntegrationFragment
+    const httpIntegrationFragment = await import(
+      '@/prompts/integration-fragments/http-integration.md'
+    )
+    return httpIntegrationFragment.default
   }
-  return javascriptIntegrationFragment
+  const javascriptIntegrationFragment = await import(
+    '@/prompts/integration-fragments/javascript-integration.md'
+  )
+  return javascriptIntegrationFragment.default
 }
 
 const pricingModelYamlFragment = (
@@ -86,14 +102,18 @@ export const constructIntegrationGuide = async ({
   pricingModelData,
   isBackendJavascript,
 }: PricingModelIntegrationGuideParams) => {
+  const integrationCoreFragment = await import(
+    '@/prompts/integration-fragments/integration-core.md'
+  )
+
   return [
-    integrationCoreFragment,
-    constructBackendIntegrationFragment({
+    integrationCoreFragment.default,
+    await constructBackendIntegrationFragment({
       isBackendJavascript,
     }),
-    constructToggleFeaturesFragment(pricingModelData),
-    constructUsageBasedFragment(pricingModelData),
-    constructFreeTrialFragment(pricingModelData),
+    await constructToggleFeaturesFragment(pricingModelData),
+    await constructUsageBasedFragment(pricingModelData),
+    await constructFreeTrialFragment(pricingModelData),
     pricingModelYamlFragment(pricingModelData),
   ].join('')
 }
