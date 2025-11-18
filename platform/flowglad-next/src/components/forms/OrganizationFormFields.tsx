@@ -1,5 +1,5 @@
 'use client'
-
+import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { CreateOrganizationInput } from '@/db/schema/organizations'
 import { Input } from '@/components/ui/input'
@@ -18,11 +18,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  REFERRAL_OPTIONS,
+  type ReferralOption,
+} from '@/utils/referrals'
 import { trpc } from '@/app/_trpc/client'
+import { Textarea } from '../ui/textarea'
+import { Button } from '../ui/button'
+import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { cursorDeepLink } from '@/utils/cursor'
 
-const OrganizationFormFields: React.FC = () => {
+const OrganizationFormFields = ({
+  setReferralSource,
+  referralSource,
+}: {
+  setReferralSource?: ReturnType<
+    typeof useState<ReferralOption | undefined>
+  >[1]
+  referralSource?: ReferralOption
+}) => {
   const form = useFormContext<CreateOrganizationInput>()
   const { data: countries } = trpc.countries.list.useQuery()
+  const copyPromptHandler = useCopyTextHandler({
+    text: analyzeCodebasePrompt,
+  })
 
   const countryOptions =
     countries?.countries
@@ -47,7 +67,6 @@ const OrganizationFormFields: React.FC = () => {
           </FormItem>
         )}
       />
-
       <FormField
         control={form.control}
         name="organization.countryId"
@@ -81,6 +100,71 @@ const OrganizationFormFields: React.FC = () => {
           </FormItem>
         )}
       />
+      <FormField
+        control={form.control}
+        name="codebaseMarkdown"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Codebase Overview</FormLabel>
+            <FormControl>
+              <Textarea
+                {...field}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+              />
+            </FormControl>
+            <FormDescription>
+              Optional. A detailed overview of your codebase. This
+              will be used to generate integration guides for your
+              pricing models.
+            </FormDescription>
+            <Button
+              variant="link"
+              type="button"
+              onClick={copyPromptHandler}
+            >
+              Copy analysis prompt
+            </Button>
+            <Button
+              variant="link"
+              type="button"
+              onClick={() => {
+                window.open(
+                  cursorDeepLink(analyzeCodebasePrompt),
+                  '_blank'
+                )
+              }}
+            >
+              Open analysis prompt in Cursor
+            </Button>
+          </FormItem>
+        )}
+      />
+      {setReferralSource && (
+        <FormItem>
+          <FormLabel>How did you hear about us?</FormLabel>
+          <FormControl>
+            <Select
+              value={referralSource}
+              onValueChange={(val: string) =>
+                setReferralSource(val as ReferralOption)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select an option" />
+              </SelectTrigger>
+              <SelectContent>
+                {REFERRAL_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormControl>
+        </FormItem>
+      )}
+      {/* FIXME (FG-555): Readd logo upload field once we have a way to upload the logo during organization creation */}
     </div>
   )
 }

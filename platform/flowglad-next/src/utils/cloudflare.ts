@@ -2,6 +2,7 @@ import axios from 'axios'
 import core from './core'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { PutObjectCommand, S3 } from '@aws-sdk/client-s3'
+import { createHmac } from 'crypto'
 
 const cloudflareAccountID = core.envVariable('CLOUDFLARE_ACCOUNT_ID')
 const cloudflareAccessKeyID = core.envVariable(
@@ -132,49 +133,9 @@ const getPresignedURL = async ({
   }
 }
 
-const SCREENSHOT_DIRECTORY = 'screenshots/'
-
-const screenshotKeyFromContentAddress = (contentAddress: string) => {
-  const dedupedScreenshotDirectory = contentAddress.startsWith(
-    SCREENSHOT_DIRECTORY
-  )
-    ? contentAddress
-    : `${SCREENSHOT_DIRECTORY}${contentAddress}`
-  const dedupedFileEnding = contentAddress.endsWith('.png')
-    ? ''
-    : '.png'
-  return `${dedupedScreenshotDirectory}${dedupedFileEnding}`
-}
-
 const BUCKET_PUBLIC_URL = process.env.NEXT_PUBLIC_CDN_URL as string
 
-const screenshotURLFromContentAddress = (contentAddress: string) => {
-  return new URL(
-    screenshotKeyFromContentAddress(contentAddress),
-    BUCKET_PUBLIC_URL
-  ).href
-}
-
-/**
- * used to determine whether the file is a designer file and if so,
- * the designer id - a kind of permissions check for the file
- */
-const getDesignerIdFromUrl = (url: string): number | null => {
-  const parsedUrl = new URL(url)
-  const pathParts = parsedUrl.pathname.split('/')
-  const designerPart = pathParts[1]?.startsWith('designer_')
-    ? pathParts[1]
-    : undefined
-
-  if (designerPart) {
-    const designerId = parseInt(designerPart.split('_')[1], 10)
-    return isNaN(designerId) ? null : designerId
-  }
-
-  return null
-}
-
-const deleteObject = async (key: string): Promise<void> => {
+export const deleteObject = async (key: string): Promise<void> => {
   try {
     await s3.deleteObject({
       Bucket: cloudflareBucket,
@@ -188,7 +149,7 @@ const deleteObject = async (key: string): Promise<void> => {
   }
 }
 
-const getObject = async (key: string) => {
+export const getObject = async (key: string) => {
   try {
     const response = await s3.getObject({
       Bucket: cloudflareBucket,
@@ -211,23 +172,122 @@ export const getHeadObject = async (key: string) => {
   return response
 }
 
-const keyFromCDNUrl = (cdnUrl: string) => {
+export const keyFromCDNUrl = (cdnUrl: string) => {
   const parsedUrl = new URL(cdnUrl)
   const pathParts = parsedUrl.pathname.split('/')
   const key = pathParts[pathParts.length - 1]
   return key
 }
 
+const putTextFile = async ({
+  body,
+  key,
+}: {
+  body: string
+  key: string
+}) => {
+  try {
+    await putFile({ body, key, contentType: 'text/plain' })
+  } catch (error) {
+    const errorMessage = `Failed to save the text to R2. Key: ${key}. Error: ${error}`
+    console.error(errorMessage)
+    throw Error(errorMessage)
+  }
+}
+
+/**
+ * Generates an unguessable hash using the organization's securitySalt
+ * Uses HMAC-SHA256 to create a deterministic but unguessable hash
+ * The hash can be regenerated when needed (same content + same salt = same hash)
+ * but cannot be guessed without knowing both the content and the salt
+ */
+export const generateContentHash = ({
+  content,
+  securitySalt,
+}: {
+  content: string
+  securitySalt: string
+}): string => {
+  return createHmac('sha256', securitySalt)
+    .update(content)
+    .digest('hex')
+}
+
+/**
+ * Stores markdown content in Cloudflare R2 with a hashed key
+ * Returns the content hash for storage/retrieval purposes
+ */
+export const putMarkdownFile = async ({
+  organizationId,
+  key,
+  markdown,
+}: {
+  organizationId: string
+  key: string
+  markdown: string
+}): Promise<void> => {
+  const fullKey = `${organizationId}/${key}`
+  await putTextFile({ body: markdown, key: fullKey })
+}
+
+/**
+ * Retrieves markdown content from Cloudflare R2 by key
+ */
+export const getMarkdownFile = async ({
+  organizationId,
+  key,
+}: {
+  organizationId: string
+  key: string
+}): Promise<string | null> => {
+  const fullKey = `${organizationId}/${key}`
+  try {
+    // Call s3.getObject directly to preserve AWS error properties for proper error handling
+    const response = await s3.getObject({
+      Bucket: cloudflareBucket,
+      Key: fullKey,
+    })
+    if (!response.Body) {
+      return null
+    }
+    // AWS SDK v3 returns Body as a Readable stream, need to transform to string
+    return await response.Body.transformToString()
+  } catch (error: unknown) {
+    // Handle missing objects gracefully - return null instead of throwing
+    // AWS SDK throws errors with name "NoSuchKey" or statusCode 404 for missing objects
+    if (
+      error &&
+      typeof error === 'object' &&
+      ('name' in error ||
+        'statusCode' in error ||
+        '$metadata' in error)
+    ) {
+      const awsError = error as {
+        name?: string
+        statusCode?: number
+        $metadata?: { httpStatusCode?: number }
+      }
+      if (
+        awsError.name === 'NoSuchKey' ||
+        awsError.name === 'NotFound' ||
+        awsError.statusCode === 404 ||
+        awsError.$metadata?.httpStatusCode === 404
+      ) {
+        return null
+      }
+    }
+    // Re-throw unexpected errors
+    throw error
+  }
+}
+
 const cloudflareMethods = {
-  screenshotKeyFromContentAddress,
   getPresignedURL,
   putImage,
   putPDF,
   putCsv,
   keyFromCDNUrl,
-  screenshotURLFromContentAddress,
   BUCKET_PUBLIC_URL,
-  getDesignerIdFromUrl,
   deleteObject,
   getObject,
 }
