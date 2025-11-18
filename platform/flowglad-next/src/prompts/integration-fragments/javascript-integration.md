@@ -16,7 +16,7 @@ import { FlowgladProvider } from '@flowglad/react'
 // or wherever you initialize your supabase client
 import { createClient } from '@/utils/supabase'
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: PropsWithChildren) {
     const supabase = createClient();
