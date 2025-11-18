@@ -26,7 +26,7 @@ const subscription = flowgladServer.createSubscription({
 
 To activate a subscription on a free trial, create an `activate_subscription` checkoutSession:
 ```ts
-const { currentSubscriptions, createActivateSubscriptionCheckoutSesssion } = useBilling()
+const { currentSubscriptions, createActivateSubscriptionCheckoutSession } = useBilling()
 
 const checkout = createActivateSubscriptionCheckoutSession({ // or flowgladServer.createActivateSubscriptionCheckoutSession()
     autoRedirect: true,
