@@ -216,14 +216,12 @@ const UsageFields = ({
   defaultPriceLocked,
   edit,
   pricingModelId,
-  disableUsageMeter,
-  fixedUsageMeterId,
+  hideUsageMeter,
 }: {
   defaultPriceLocked: boolean
   edit?: boolean
   pricingModelId?: string
-  disableUsageMeter?: boolean
-  fixedUsageMeterId?: string
+  hideUsageMeter?: boolean
 }) => {
   const {
     control,
@@ -235,13 +233,6 @@ const UsageFields = ({
   const zeroDecimal = isCurrencyZeroDecimal(
     organization!.defaultCurrency
   )
-
-  // Set fixed usage meter ID if provided
-  React.useEffect(() => {
-    if (fixedUsageMeterId) {
-      setValue('price.usageMeterId', fixedUsageMeterId)
-    }
-  }, [fixedUsageMeterId, setValue])
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -305,11 +296,11 @@ const UsageFields = ({
           )}
         />
       </div>
-      {!disableUsageMeter && (
+      {!hideUsageMeter && (
         <UsageMetersSelect
           name="price.usageMeterId"
           control={control}
-          disabled={edit || disableUsageMeter}
+          disabled={edit}
           pricingModelId={pricingModelId}
         />
       )}
@@ -324,8 +315,7 @@ const PriceFormFields = ({
   isDefaultProductOverride,
   isDefaultPriceOverride,
   pricingModelId,
-  disableUsageMeter,
-  fixedUsageMeterId,
+  hideUsageMeter,
   disablePriceType,
 }: {
   priceOnly?: boolean
@@ -334,8 +324,7 @@ const PriceFormFields = ({
   isDefaultProductOverride?: boolean
   isDefaultPriceOverride?: boolean
   pricingModelId?: string
-  disableUsageMeter?: boolean
-  fixedUsageMeterId?: string
+  hideUsageMeter?: boolean
   disablePriceType?: boolean
 }) => {
   const {
@@ -385,8 +374,7 @@ const PriceFormFields = ({
           defaultPriceLocked={defaultPriceLocked}
           edit={edit}
           pricingModelId={pricingModelId}
-          disableUsageMeter={disableUsageMeter}
-          fixedUsageMeterId={fixedUsageMeterId}
+          hideUsageMeter={hideUsageMeter}
         />
       )
       break

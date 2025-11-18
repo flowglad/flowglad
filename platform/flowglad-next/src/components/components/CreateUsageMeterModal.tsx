@@ -87,7 +87,7 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
           <PriceFormFields
             priceOnly
             pricingModelId={defaultPricingModelId}
-            disableUsageMeter={true}
+            hideUsageMeter={true}
             disablePriceType={true}
           />
         </div>
