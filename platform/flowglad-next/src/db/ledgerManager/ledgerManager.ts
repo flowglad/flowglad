@@ -173,7 +173,7 @@ const processPaymentRefundedLedgerCommand = async (
   }
 }
 
-const extractIdempotencyKey = (
+export const extractLedgerManagerIdempotencyKey = (
   command: LedgerCommand
 ): {
   initiatingSourceType: string
@@ -189,7 +189,7 @@ const extractIdempotencyKey = (
       }
     case LedgerTransactionType.BillingPeriodTransition:
       return {
-        initiatingSourceType: command.type, // Uses command.type as initiatingSourceType
+        initiatingSourceType: command.type,
         initiatingSourceId:
           command.payload.type === 'standard'
             ? command.payload.newBillingPeriod.id
@@ -219,12 +219,11 @@ const extractIdempotencyKey = (
       }
     case LedgerTransactionType.PaymentRefunded:
       return {
-        initiatingSourceType:
-          LedgerTransactionInitiatingSourceType.Refund,
+        initiatingSourceType: command.type,
         initiatingSourceId: command.payload.refund.id,
       }
     default:
-      return null // Command type doesn't support idempotency check
+      return null // Should never happen
   }
 }
 
@@ -234,7 +233,7 @@ export const processLedgerCommand = async (
 ): Promise<LedgerCommandResult> => {
   const command = ledgerCommandSchema.parse(rawCommand)
 
-  const idempotencyKey = extractIdempotencyKey(command)
+  const idempotencyKey = extractLedgerManagerIdempotencyKey(command)
   if (idempotencyKey) {
     const [existingTransaction] = await selectLedgerTransactions(
       {

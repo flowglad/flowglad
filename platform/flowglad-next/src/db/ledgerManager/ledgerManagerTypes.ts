@@ -155,7 +155,7 @@ export type CreditGrantExpiredLedgerCommand = z.infer<
   typeof creditGrantExpiredLedgerCommandSchema
 >
 
-enum PaymentRefundedLedgerCommandAdjustmentBehavior {
+export enum PaymentRefundedLedgerCommandAdjustmentBehavior {
   RevertAllCredits = 'revert_all_credits',
   RevertUnusedCredits = 'revert_unused_credits',
   PreserveCredits = 'preserve_credits',
