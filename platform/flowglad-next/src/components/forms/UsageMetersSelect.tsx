@@ -35,7 +35,6 @@ const UsageMetersSelect = ({
   const form = useFormContext()
   const { watch, setValue } = form
   const usageMeterId = watch(name)
-
   // Validate and reset selection when filtered data changes
   useEffect(() => {
     // If no usage meters available, clear the selection
