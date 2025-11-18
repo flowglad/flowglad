@@ -117,7 +117,7 @@ export const flowgladRouteHandler = async (
   const organization = await orgFromReq(req)
   const flowgladServer = new FlowgladServer({ customerExternalId: organization.id })
   const flowgladFetchRequestHandler = createFetchRequestHandler({
-    flowgladServer: 
+    flowgladServer,
     // optional fields: onError, beforeRequest, afterRequest
   })
   const result = await flowgladFetchRequestHandler(req)
