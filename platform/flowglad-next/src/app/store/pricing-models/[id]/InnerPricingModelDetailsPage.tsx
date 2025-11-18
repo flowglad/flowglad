@@ -187,6 +187,7 @@ function InnerPricingModelDetailsPage({
         isOpen={isCreateProductModalOpen}
         setIsOpen={setIsCreateProductModalOpen}
         defaultPricingModelId={pricingModel.id}
+        hidePricingModelSelect={true}
       />
       <CreateCustomerFormModal
         isOpen={isCreateCustomerModalOpen}
