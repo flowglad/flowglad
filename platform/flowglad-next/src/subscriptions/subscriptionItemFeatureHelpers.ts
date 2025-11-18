@@ -124,8 +124,8 @@ const getFeaturesByPriceId = async (
 export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
   (
     subscriptionItem: SubscriptionItem.Record,
-    productFeature: ProductFeature.Record,
-    feature: Feature.Record
+    feature: Feature.Record,
+    productFeature?: ProductFeature.Record
   ): SubscriptionItemFeature.Insert => {
     switch (feature.type) {
       case FeatureType.UsageCreditGrant:
@@ -137,7 +137,7 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           usageMeterId: feature.usageMeterId,
           amount: feature.amount * subscriptionItem.quantity,
           renewalFrequency: feature.renewalFrequency,
-          productFeatureId: productFeature.id,
+          productFeatureId: productFeature?.id ?? null,
           expiredAt: null,
           detachedAt: null,
           detachedReason: null,
@@ -151,7 +151,7 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           usageMeterId: null,
           amount: null,
           renewalFrequency: null,
-          productFeatureId: productFeature.id,
+          productFeatureId: productFeature?.id ?? null,
           expiredAt: null,
           detachedAt: null,
           detachedReason: null,
@@ -219,8 +219,8 @@ export const createSubscriptionFeatureItems = async (
       return featuresData.flatMap(({ feature, productFeature }) => {
         return subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
           item,
-          productFeature,
-          feature
+          feature,
+          productFeature
         )
       })
     })
@@ -290,31 +290,6 @@ const ensureFeatureBelongsToProductPricingModel = ({
       `Feature ${feature.id} does not belong to the same pricing model as product ${product.id}.`
     )
   }
-}
-
-const findActiveProductFeatureForProduct = async (
-  params: { productId: string; featureId: string },
-  transaction: DbTransaction
-): Promise<ProductFeature.Record> => {
-  const { productId, featureId } = params
-  const [productFeature] = await selectProductFeatures(
-    {
-      productId,
-      featureId,
-    },
-    transaction
-  )
-  if (!productFeature) {
-    throw new Error(
-      `Feature ${featureId} is not attached to product ${productId}.`
-    )
-  }
-  if (productFeature.expiredAt !== null) {
-    throw new Error(
-      `Feature ${featureId} is expired for product ${productId}.`
-    )
-  }
-  return productFeature
 }
 
 const findCurrentBillingPeriodForSubscription = async (
@@ -451,17 +426,12 @@ export const addFeatureToSubscriptionItem = async (
     )
   }
 
-  const productFeature = await findActiveProductFeatureForProduct(
-    { productId: product.id, featureId: feature.id },
-    transaction
-  )
-
   const featureInsert =
     subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
       subscriptionItem,
-      productFeature,
       feature
     )
+
   let usageFeatureInsert: SubscriptionItemFeature.UsageCreditGrantInsert | null =
     null
 

@@ -49,6 +49,7 @@ export const createUsageMeter = protectedProcedure
           const { usageMeter } = await createUsageMeterTransaction(
             {
               usageMeter: input.usageMeter,
+              price: input.price,
             },
             { transaction, userId, livemode, organizationId }
           )

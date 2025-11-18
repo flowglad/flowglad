@@ -27,8 +27,10 @@ import { PriceType } from '@/types'
 
 export const ProductFormFields = ({
   editProduct = false,
+  hidePricingModelSelect = false,
 }: {
   editProduct?: boolean
+  hidePricingModelSelect?: boolean
 }) => {
   const form = useFormContext<CreateProductSchema>()
   const priceForm = usePriceFormContext()
@@ -138,7 +140,7 @@ export const ProductFormFields = ({
                 </FormItem>
               )}
             />
-            {!editProduct && (
+            {!editProduct && !hidePricingModelSelect && (
               <div className="w-full relative flex flex-col gap-3">
                 <PricingModelSelect
                   name="product.pricingModelId"

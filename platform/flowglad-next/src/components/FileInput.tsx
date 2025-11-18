@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import core from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
@@ -65,6 +65,7 @@ const FileInput: React.FC<FileInputProps> = ({
   const [uploadedFiles, setUploadedFiles] = useState<
     FileUploadDataWithType[]
   >([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const getPresignedURL = trpc.utils.getPresignedURL.useMutation()
   React.useEffect(() => {
     if (initialURL) {
@@ -84,6 +85,13 @@ const FileInput: React.FC<FileInputProps> = ({
           ),
         },
       ])
+    } else {
+      // Clear uploaded files when initialURL is undefined/null
+      setUploadedFiles([])
+      // Reset the file input element so the browser recognizes new file selections
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }, [initialURL])
   const deleteFile = (fileDetails: FileUploadDataWithType) => {
@@ -91,6 +99,10 @@ const FileInput: React.FC<FileInputProps> = ({
       (file) => file.objectKey !== fileDetails.objectKey
     )
     setUploadedFiles(updatedFiles)
+    // Reset the file input element so the browser recognizes new file selections
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
     onUploadDeleted?.(fileDetails)
   }
   const handleFileChange = async (
@@ -137,6 +149,10 @@ const FileInput: React.FC<FileInputProps> = ({
         ...fileUploadsWithFiles,
       ]
       setUploadedFiles(newUploadedFiles)
+      // Reset the file input element so the browser recognizes new file selections
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     } catch (error) {
       console.error('Error uploading files:', error)
       onUploadError?.(
@@ -267,6 +283,7 @@ const FileInput: React.FC<FileInputProps> = ({
       >
         <div className="w-full relative flex flex-col items-center gap-3">
           <input
+            ref={fileInputRef}
             id={id}
             type="file"
             onChange={handleFileChange}
