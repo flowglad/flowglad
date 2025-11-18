@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/express",
-  "version": "0.12.1",
+  "version": "0.12.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -16,9 +16,9 @@
     "build:declarations": "tsc -p tsconfig.declarations.json"
   },
   "dependencies": {
-    "@flowglad/shared": "0.12.1",
-    "@flowglad/react": "0.12.1",
-    "@flowglad/server": "0.12.1",
+    "@flowglad/shared": "workspace:*",
+    "@flowglad/react": "workspace:*",
+    "@flowglad/server": "workspace:*",
     "@flowglad/node": "0.22.0",
     "zod": "4.1.5"
   },

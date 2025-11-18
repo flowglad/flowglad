@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/react",
-  "version": "0.12.1",
+  "version": "0.12.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@flowglad/node": "0.22.0",
-    "@flowglad/shared": "0.12.1",
+    "@flowglad/shared": "workspace:*",
     "@tanstack/react-query": "5.66.0",
     "axios": "1.12.0",
     "clsx": "2.1.1",
@@ -25,7 +25,7 @@
     "zod": "4.1.5"
   },
   "devDependencies": {
-    "@flowglad/types": "0.12.0",
+    "@flowglad/types": "workspace:*",
     "@types/autoprefixer": "^10.2.0",
     "@types/react": "18.3.12",
     "autoprefixer": "^10.4.18",
