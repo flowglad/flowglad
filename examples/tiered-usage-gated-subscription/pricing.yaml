@@ -1,0 +1,420 @@
+isDefault: false
+name: "Unlimited Usage Subscription"
+features:
+  - type: "toggle"
+    slug: "gpt_5_fast"
+    name: "GPT-5 Fast/Instant"
+    description: "Access to GPT-5 Fast and Instant models with rate limits"
+    active: true
+  - type: "toggle"
+    slug: "gpt_5_thinking"
+    name: "GPT-5 Thinking"
+    description: "Access to GPT-5 Thinking model with 196K context window"
+    active: true
+  - type: "usage_credit_grant"
+    slug: "gpt_5_thinking_plus_limit"
+    name: "12,000 GPT-5 Thinking Messages/Month"
+    description: "12,000 GPT-5 Thinking messages per month (manual selection only)"
+    amount: 12000
+    renewalFrequency: "every_billing_period"
+    active: true
+    usageMeterSlug: "gpt_5_thinking_messages"
+  - type: "toggle"
+    slug: "o3_access"
+    name: "o3 Model Access"
+    description: "Access to o3 reasoning model"
+    active: true
+  - type: "usage_credit_grant"
+    slug: "o3_limit"
+    name: "400 o3 Messages/Month"
+    description: "400 o3 messages per month"
+    amount: 400
+    renewalFrequency: "every_billing_period"
+    active: true
+    usageMeterSlug: "o3_messages"
+  - type: "toggle"
+    slug: "o4_mini_access"
+    name: "o4-mini Model Access"
+    description: "Access to o4-mini reasoning model"
+    active: true
+  - type: "usage_credit_grant"
+    slug: "o4_mini_limit"
+    name: "9,000 o4-mini Messages/Month"
+    description: "9,000 o4-mini messages per month"
+    amount: 9000
+    renewalFrequency: "every_billing_period"
+    active: true
+    usageMeterSlug: "o4_mini_messages"
+  - type: "toggle"
+    slug: "o4_mini_high_access"
+    name: "o4-mini-high Model Access"
+    description: "Access to o4-mini-high reasoning model"
+    active: true
+  - type: "usage_credit_grant"
+    slug: "o4_mini_high_limit"
+    name: "3,000 o4-mini-high Messages/Month"
+    description: "3,000 o4-mini-high messages per month"
+    amount: 3000
+    renewalFrequency: "every_billing_period"
+    active: true
+    usageMeterSlug: "o4_mini_high_messages"
+  - type: "toggle"
+    slug: "context_16k"
+    name: "16K Context Window"
+    description: "16K token context window for GPT-5 Fast/Instant"
+    active: true
+  - type: "toggle"
+    slug: "context_32k"
+    name: "32K Context Window"
+    description: "32K token context window for GPT-5 Fast/Instant"
+    active: true
+  - type: "toggle"
+    slug: "context_128k"
+    name: "128K Context Window"
+    description: "128K token context window for GPT-5 Fast/Instant"
+    active: true
+  - type: "toggle"
+    slug: "context_196k"
+    name: "196K Context Window"
+    description: "196K token context window for GPT-5 Thinking"
+    active: true
+  - type: "toggle"
+    slug: "web_search"
+    name: "Real-time Web Search"
+    description: "Real-time data retrieval from the web"
+    active: true
+  - type: "toggle"
+    slug: "file_uploads"
+    name: "File Uploads & Analysis"
+    description: "Upload and analyze files"
+    active: true
+  - type: "toggle"
+    slug: "voice_mode"
+    name: "Voice Mode"
+    description: "Voice interaction with video & screensharing"
+    active: true
+  - type: "toggle"
+    slug: "code_editing"
+    name: "Code Editing"
+    description: "Edit code using the macOS desktop app"
+    active: true
+  - type: "toggle"
+    slug: "custom_gpts"
+    name: "Custom GPTs"
+    description: "Create and use custom GPTs"
+    active: true
+  - type: "toggle"
+    slug: "projects"
+    name: "Projects"
+    description: "Create and use projects"
+    active: true
+  - type: "toggle"
+    slug: "agent_mode"
+    name: "Agent Mode"
+    description: "ChatGPT Agent for complex tasks"
+    active: true
+  - type: "usage_credit_grant"
+    slug: "agent_limit_standard"
+    name: "40 Agent Messages/Month"
+    description: "40 agent mode messages per month"
+    amount: 40
+    renewalFrequency: "every_billing_period"
+    active: true
+    usageMeterSlug: "agent_messages"
+  - type: "usage_credit_grant"
+    slug: "agent_limit_pro"
+    name: "400 Agent Messages/Month"
+    description: "400 agent mode messages per month"
+    amount: 400
+    renewalFrequency: "every_billing_period"
+    active: true
+    usageMeterSlug: "agent_messages"
+  - type: "toggle"
+    slug: "deep_research"
+    name: "Deep Research"
+    description: "Access to deep research feature"
+    active: true
+  - type: "usage_credit_grant"
+    slug: "deep_research_limit"
+    name: "25 Deep Research Requests/Month"
+    description: "25 deep research requests per month"
+    amount: 25
+    renewalFrequency: "every_billing_period"
+    active: true
+    usageMeterSlug: "deep_research_requests"
+  - type: "toggle"
+    slug: "workspace_admin"
+    name: "Workspace & Admin Controls"
+    description: "Model picker and admin controls for organization"
+    active: true
+products:
+  - product:
+      name: "Business"
+      description: "$30/user/mo with GPT-5 Thinking (12K/mo), o3 (400/mo), o4-mini (9K/mo), workspace & admin"
+      active: true
+      singularQuantityLabel: "user"
+      pluralQuantityLabel: "users"
+      default: false
+      slug: "business_monthly"
+    prices:
+      - intervalUnit: "month"
+        name: "Business Plan (per user/month)"
+        intervalCount: 1
+        type: "subscription"
+        isDefault: true
+        unitPrice: 3000
+        usageEventsPerUnit: null
+        active: true
+        slug: "business_monthly"
+        usageMeterId: null
+    features:
+      - "gpt_5_fast"
+      - "gpt_5_thinking"
+      - "gpt_5_thinking_plus_limit"
+      - "o3_access"
+      - "o3_limit"
+      - "o4_mini_access"
+      - "o4_mini_limit"
+      - "o4_mini_high_access"
+      - "o4_mini_high_limit"
+      - "context_32k"
+      - "context_196k"
+      - "web_search"
+      - "file_uploads"
+      - "voice_mode"
+      - "code_editing"
+      - "custom_gpts"
+      - "projects"
+      - "agent_mode"
+      - "agent_limit_standard"
+      - "workspace_admin"
+  - product:
+      name: "Free"
+      description: "GPT-5 Fast/Instant with 16K context and rate limits"
+      active: true
+      default: true
+      slug: "free_tier"
+    prices:
+      - intervalUnit: "month"
+        name: "Free Plan"
+        intervalCount: 1
+        type: "subscription"
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: null
+        active: true
+        slug: "free_monthly"
+        usageMeterId: null
+    features:
+      - "gpt_5_fast"
+      - "context_16k"
+      - "web_search"
+      - "file_uploads"
+      - "voice_mode"
+      - "code_editing"
+      - "custom_gpts"
+      - "projects"
+  - product:
+      name: "o3 Tracking"
+      description: "Tool for tracking o3 usage events"
+      active: true
+      default: false
+      slug: "o3_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "o3_tracking"
+        usageMeterSlug: "o3_messages"
+    features: []
+  - product:
+      name: "o4 mini-high Tracking"
+      description: "Tool for tracking o4-mini-high usage events"
+      active: true
+      default: false
+      slug: "o4_mini_high_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "o4_mini_high_tracking"
+        usageMeterSlug: "o4_mini_high_messages"
+    features: []
+  - product:
+      name: "o4 mini Tracking"
+      description: "Tool for tracking o4-mini usage events"
+      active: true
+      default: false
+      slug: "o4_mini_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "o4_mini_tracking"
+        usageMeterSlug: "o4_mini_messages"
+    features: []
+  - product:
+      name: "GPT5 Tracking"
+      description: "Tool for tracking GPT5 usage events"
+      active: true
+      default: false
+      slug: "gpt5_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "gpt5_tracking"
+        usageMeterSlug: "gpt_5_thinking_messages"
+    features: []
+  - product:
+      name: "Agent Tracking"
+      description: "Tool for tracking Agent usage events"
+      active: true
+      default: false
+      slug: "agent_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "agent_tracking"
+        usageMeterSlug: "agent_messages"
+    features: []
+  - product:
+      name: "Deep Research Tracking"
+      description: "Tool for tracking Deep Research usage events"
+      active: true
+      default: false
+      slug: "deep_research_tracking"
+    prices:
+      - intervalUnit: "month"
+        name: "Default Price"
+        intervalCount: 1
+        type: "usage"
+        trialPeriodDays: null
+        isDefault: true
+        unitPrice: 0
+        usageEventsPerUnit: 1
+        active: true
+        slug: "deep_research_tracking"
+        usageMeterSlug: "deep_research_requests"
+    features: []
+  - product:
+      name: "Plus"
+      description: "$20/mo with GPT-5 Thinking (12K/mo), o3 (400/mo), o4-mini (9K/mo), Agent (40/mo), 32K context"
+      active: true
+      default: false
+      slug: "plus"
+    prices:
+      - intervalUnit: "month"
+        name: "Plus Plan (Monthly)"
+        intervalCount: 1
+        type: "subscription"
+        isDefault: true
+        unitPrice: 2000
+        usageEventsPerUnit: null
+        active: true
+        slug: "plus_monthly"
+        usageMeterId: null
+    features:
+      - "gpt_5_fast"
+      - "gpt_5_thinking"
+      - "gpt_5_thinking_plus_limit"
+      - "o3_access"
+      - "o3_limit"
+      - "o4_mini_access"
+      - "o4_mini_limit"
+      - "o4_mini_high_access"
+      - "o4_mini_high_limit"
+      - "context_32k"
+      - "context_196k"
+      - "web_search"
+      - "file_uploads"
+      - "voice_mode"
+      - "code_editing"
+      - "custom_gpts"
+      - "projects"
+      - "agent_mode"
+      - "agent_limit_standard"
+  - product:
+      name: "Pro"
+      description: "$200/mo with unlimited o-models, Agent (400/mo), 128K context for Fast, 196K for Thinking"
+      active: true
+      default: false
+      slug: "pro"
+    prices:
+      - intervalUnit: "month"
+        name: "Pro Plan (Monthly)"
+        intervalCount: 1
+        type: "subscription"
+        isDefault: true
+        unitPrice: 20000
+        usageEventsPerUnit: null
+        active: true
+        slug: "pro_monthly"
+        usageMeterId: null
+    features:
+      - "gpt_5_fast"
+      - "gpt_5_thinking"
+      - "gpt_5_thinking_plus_limit"
+      - "o3_access"
+      - "o4_mini_access"
+      - "o4_mini_high_access"
+      - "context_128k"
+      - "context_196k"
+      - "web_search"
+      - "file_uploads"
+      - "voice_mode"
+      - "code_editing"
+      - "custom_gpts"
+      - "projects"
+      - "agent_mode"
+      - "agent_limit_pro"
+usageMeters:
+  - name: "GPT-5 Thinking Messages"
+    slug: "gpt_5_thinking_messages"
+    aggregationType: "sum"
+  - name: "o3 Messages"
+    slug: "o3_messages"
+    aggregationType: "sum"
+  - name: "o4-mini Messages"
+    slug: "o4_mini_messages"
+    aggregationType: "sum"
+  - name: "o4-mini-high Messages"
+    slug: "o4_mini_high_messages"
+    aggregationType: "sum"
+  - name: "Agent Mode Messages"
+    slug: "agent_messages"
+    aggregationType: "sum"
+  - name: "Deep Research Requests"
+    slug: "deep_research_requests"
+    aggregationType: "sum"

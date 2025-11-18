@@ -29,6 +29,7 @@ export const CustomerSubscriptionUpgradedEmail = ({
   interval,
   nextBillingDate,
   paymentMethodLast4,
+  trialing = false,
 }: {
   customerName: string
   organizationName: string
@@ -45,6 +46,7 @@ export const CustomerSubscriptionUpgradedEmail = ({
   interval?: IntervalUnit
   nextBillingDate?: Date
   paymentMethodLast4?: string
+  trialing?: boolean
 }) => {
   const formattedPrice =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(currency, price)
@@ -104,7 +106,8 @@ export const CustomerSubscriptionUpgradedEmail = ({
         </DetailItem>
         {nextBillingDate && (
           <DetailItem dataTestId="first-charge-date">
-            First charge: {formatDate(nextBillingDate)}
+            {trialing ? 'First charge' : 'Next charge'}:{' '}
+            {formatDate(nextBillingDate)}
           </DetailItem>
         )}
         {paymentMethodLast4 && (
@@ -116,7 +119,8 @@ export const CustomerSubscriptionUpgradedEmail = ({
 
       {nextBillingDate && (
         <Paragraph style={{ marginTop: '24px' }}>
-          Your first charge of {formattedPrice} will be processed on{' '}
+          Your {trialing ? 'first charge' : 'next charge'} of{' '}
+          {formattedPrice} will be processed on{' '}
           {formatDate(nextBillingDate)}.
           {paymentMethodLast4 &&
             ` The payment method ending in ${paymentMethodLast4} will be used.`}

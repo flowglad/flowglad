@@ -7,7 +7,6 @@ import {
   type ReferralOption,
 } from '@/utils/referrals'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { trpc } from '@/app/_trpc/client'
 import {
   createOrganizationSchema,
@@ -16,29 +15,17 @@ import {
 import ErrorLabel from '@/components/ErrorLabel'
 import { useRouter } from 'next/navigation'
 import { useAuthContext } from '@/contexts/authContext'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormControl,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form'
-import FileInput from '@/components/FileInput'
+import { Form } from '@/components/ui/form'
+import OrganizationFormFields from '@/components/forms/OrganizationFormFields'
 
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
   const setReferralSelection =
     trpc.utils.setReferralSelection.useMutation()
   const { data } = trpc.countries.list.useQuery()
+  const [referralSource, setReferralSource] = useState<
+    ReferralOption | undefined
+  >()
   const { setOrganization } = useAuthContext()
   const form = useForm<CreateOrganizationInput>({
     resolver: zodResolver(createOrganizationSchema),
@@ -50,9 +37,6 @@ const BusinessDetails = () => {
     },
   })
   const router = useRouter()
-  const [referralSource, setReferralSource] = useState<
-    ReferralOption | undefined
-  >()
   const onSubmit = form.handleSubmit(async (data) => {
     try {
       const { organization } =
@@ -76,14 +60,6 @@ const BusinessDetails = () => {
     }
   })
 
-  const countryOptions =
-    data?.countries
-      .map((country) => ({
-        label: country.name,
-        value: country.id,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label)) ?? []
-
   return (
     <div className="bg-background h-full w-full flex justify-between items-center">
       <div className="flex-1 h-full w-full flex flex-col justify-center items-center gap-9 p-20">
@@ -93,120 +69,10 @@ const BusinessDetails = () => {
               onSubmit={onSubmit}
               className="w-[380px] flex flex-col gap-6"
             >
-              <div className="w-full flex flex-col gap-4">
-                <FormField
-                  control={form.control}
-                  name="organization.name"
-                  render={({ field, fieldState }) => (
-                    <FormItem>
-                      <FormLabel>
-                        What is your business name?
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Your Company"
-                          {...field}
-                          className="w-full"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="organization.logoURL"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company logo</FormLabel>
-                      <FormControl>
-                        <FileInput
-                          directory="organizations"
-                          singleOnly
-                          id="organization-logo-upload"
-                          fileTypes={[
-                            'png',
-                            'jpeg',
-                            'jpg',
-                            'gif',
-                            'webp',
-                            'svg',
-                            'avif',
-                          ]}
-                          initialURL={field.value ?? undefined}
-                          onUploadComplete={({ publicURL }) =>
-                            field.onChange(publicURL)
-                          }
-                          onUploadDeleted={() =>
-                            field.onChange(undefined)
-                          }
-                          hint="Recommended square image. Max size 2MB."
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        This logo appears in your dashboard navigation
-                        and customer-facing invoices.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="organization.countryId"
-                  render={({ field, fieldState }) => (
-                    <FormItem>
-                      <FormLabel>Country</FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value ?? undefined}
-                          onValueChange={field.onChange}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Country" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {countryOptions.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                      <FormDescription>
-                        Used to determine your default currency
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-                <FormItem>
-                  <FormLabel>How did you hear about us?</FormLabel>
-                  <FormControl>
-                    <Select
-                      value={referralSource}
-                      onValueChange={(val: string) =>
-                        setReferralSource(val as ReferralOption)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an option" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {REFERRAL_OPTIONS.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                </FormItem>
-              </div>
+              <OrganizationFormFields
+                setReferralSource={setReferralSource}
+                referralSource={referralSource}
+              />
               <Button
                 variant="default"
                 size="default"

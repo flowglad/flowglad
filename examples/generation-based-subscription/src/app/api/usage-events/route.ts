@@ -1,8 +1,5 @@
 import { flowgladServer } from '@/lib/flowglad';
-import {
-  findUsageMeterBySlug,
-  findUsagePriceByMeterId,
-} from '@/lib/billing-helpers';
+import { findUsagePriceByMeterSlug } from '@/lib/billing-helpers';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -75,26 +72,8 @@ export async function POST(request: Request) {
 
     const subscriptionId = currentSubscription.id;
 
-    // Find the usage meter from the pricing model
-    const usageMeter = findUsageMeterBySlug(
+    const usagePrice = findUsagePriceByMeterSlug(
       usageMeterSlug,
-      billing.pricingModel
-    );
-
-    if (!usageMeter) {
-      return NextResponse.json(
-        {
-          error: `Usage meter not found: ${usageMeterSlug}`,
-        },
-        { status: 404 }
-      );
-    }
-
-    const usageMeterId = usageMeter.id;
-
-    // Find the usage price by searching through the catalog
-    const usagePrice = findUsagePriceByMeterId(
-      usageMeterId,
       billing.pricingModel
     );
 
@@ -108,6 +87,16 @@ export async function POST(request: Request) {
     }
 
     const priceId = usagePrice.id;
+    const usageMeterId = usagePrice.usageMeterId;
+
+    if (!usageMeterId) {
+      return NextResponse.json(
+        {
+          error: `Usage price found but missing usageMeterId for meter: ${usageMeterSlug}`,
+        },
+        { status: 500 }
+      );
+    }
 
     // Create usage event with all required IDs
     // Note: customerId is automatically resolved from the session by FlowgladServer

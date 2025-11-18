@@ -589,7 +589,7 @@ export enum FlowgladEventType {
   PaymentSucceeded = 'payment.succeeded',
   SubscriptionCreated = 'subscription.created',
   SubscriptionUpdated = 'subscription.updated',
-  SubscriptionCancelled = 'subscription.canceled',
+  SubscriptionCanceled = 'subscription.canceled',
 }
 
 export enum EventCategory {
@@ -770,6 +770,9 @@ export enum CheckoutSessionType {
   Purchase = 'purchase',
   AddPaymentMethod = 'add_payment_method',
   ActivateSubscription = 'activate_subscription',
+  /**
+   * @deprecated
+   */
   Invoice = 'invoice',
 }
 

@@ -1,8 +1,8 @@
 {
+  "name": "@flowglad/playground-supabase-auth",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
-    "yalc:watch": "yalc watch",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -17,18 +17,16 @@
     "supabase:generate-migration": "npx supabase db diff | npx supabase migration new",
     "supabase:generate-seed": "npx supabase db dump --data-only -f supabase/seed.sql",
     "supabase:push": "npx supabase db push",
-    "supabase:pull": "npx supabase db pull",
-    "link:packages": "yalc add @flowglad/nextjs @flowglad/react @flowglad/server @flowglad/shared && yalc update && bun install --force && yalc update",
-    "unlink:packages": "yalc remove --all && bun install"
+    "supabase:pull": "npx supabase db pull"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.10.2",
-    "@flowglad/nextjs": "file:.yalc/@flowglad/nextjs",
+    "@flowglad/nextjs": "workspace:*",
     "@flowglad/node": "0.22.0",
-    "@flowglad/react": "file:.yalc/@flowglad/react",
-    "@flowglad/server": "file:.yalc/@flowglad/server",
-    "@flowglad/shared": "file:.yalc/@flowglad/shared",
-    "@flowglad/types": "file:.yalc/@flowglad/types",
+    "@flowglad/react": "workspace:*",
+    "@flowglad/server": "workspace:*",
+    "@flowglad/shared": "workspace:*",
+    "@flowglad/types": "workspace:*",
     "@vercel/mcp-adapter": "0.11.1",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-toast": "^1.1.5",

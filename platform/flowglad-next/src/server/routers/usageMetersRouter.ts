@@ -16,15 +16,14 @@ import { generateOpenApiMetas } from '@/utils/openapi'
 import { usageMetersClientSelectSchema } from '@/db/schema/usageMeters'
 
 import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
-import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import {
   idInputSchema,
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
 } from '@/db/tableUtils'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { z } from 'zod'
 import { errorHandlers } from '../trpcErrorHandler'
+import { createUsageMeterTransaction } from '@/utils/usage'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageMeter',
@@ -39,23 +38,19 @@ export const createUsageMeter = protectedProcedure
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, livemode }) => {
+      async ({
+        input,
+        transaction,
+        userId,
+        livemode,
+        organizationId,
+      }) => {
         try {
-          const [{ organization }] =
-            await selectMembershipAndOrganizations(
-              {
-                userId,
-                focused: true,
-              },
-              transaction
-            )
-          const usageMeter = await insertUsageMeter(
+          const { usageMeter } = await createUsageMeterTransaction(
             {
-              ...input.usageMeter,
-              organizationId: organization.id,
-              livemode,
+              usageMeter: input.usageMeter,
             },
-            transaction
+            { transaction, userId, livemode, organizationId }
           )
           return { usageMeter }
         } catch (error) {

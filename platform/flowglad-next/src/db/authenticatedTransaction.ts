@@ -143,6 +143,17 @@ export async function comprehensiveAuthenticatedTransaction<T>(
 
     const output = await fn(paramsForFn)
 
+    // Validate that only one of ledgerCommand or ledgerCommands is provided
+    if (
+      output.ledgerCommand &&
+      output.ledgerCommands &&
+      output.ledgerCommands.length > 0
+    ) {
+      throw new Error(
+        'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
+      )
+    }
+
     // Process events if any
     if (output.eventsToInsert && output.eventsToInsert.length > 0) {
       await bulkInsertOrDoNothingEventsByHash(
@@ -151,9 +162,16 @@ export async function comprehensiveAuthenticatedTransaction<T>(
       )
     }
 
-    // Process ledger command if any
+    // Process ledger commands if any
     if (output.ledgerCommand) {
       await processLedgerCommand(output.ledgerCommand, transaction)
+    } else if (
+      output.ledgerCommands &&
+      output.ledgerCommands.length > 0
+    ) {
+      for (const command of output.ledgerCommands) {
+        await processLedgerCommand(command, transaction)
+      }
     }
 
     // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
@@ -198,18 +216,28 @@ export type AuthenticatedProcedureTransactionParams<
   ctx: TContext
 }
 
+export type AuthenticatedProcedureTransactionHandler<
+  TInput,
+  TOutput,
+  TContext extends { apiKey?: string },
+> = (
+  params: AuthenticatedProcedureTransactionParams<
+    TInput,
+    TOutput,
+    TContext
+  >
+) => Promise<TOutput>
+
 export const authenticatedProcedureTransaction = <
   TInput,
   TOutput,
   TContext extends { apiKey?: string },
 >(
-  handler: (
-    params: AuthenticatedProcedureTransactionParams<
-      TInput,
-      TOutput,
-      TContext
-    >
-  ) => Promise<TOutput>
+  handler: AuthenticatedProcedureTransactionHandler<
+    TInput,
+    TOutput,
+    TContext
+  >
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
     return authenticatedTransaction(

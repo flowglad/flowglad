@@ -289,7 +289,7 @@ export const commitSubscriptionUpdatedEvent = async (
   )
 }
 
-export const commitSubscriptionCancelledEvent = async (
+export const commitSubscriptionCanceledEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
@@ -306,7 +306,7 @@ export const commitSubscriptionCancelledEvent = async (
 
   return commitEvent(
     {
-      type: FlowgladEventType.SubscriptionCancelled,
+      type: FlowgladEventType.SubscriptionCanceled,
       eventCategory: EventCategory.Subscription,
       source: EventNoun.Subscription,
       payload: {

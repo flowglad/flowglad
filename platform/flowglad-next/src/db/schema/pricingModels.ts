@@ -34,6 +34,7 @@ export const pricingModels = pgTable(
     ),
     isDefault: boolean('is_default').notNull().default(false),
     name: text('name').notNull(),
+    integrationGuideHash: text('integration_guide_hash'),
   },
   (table) => {
     return [
