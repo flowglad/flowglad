@@ -146,7 +146,7 @@ export const AddSubscriptionFeatureItemFormFields = ({
 
   // Get feature IDs of toggle features already added to this subscription
   const toggleFeatures = featureItems.filter(
-    (item) => item.type === FeatureType.Toggle && !item.expiredAt
+    (item) => item.type === FeatureType.Toggle && !item.expiredAt && item.subscriptionItemId === selectedSubscriptionItem?.id
   )
   const existingToggleFeatureIds = new Set(
     toggleFeatures.map((item) => item.featureId)
