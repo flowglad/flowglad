@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { trpc } from '@/app/_trpc/client'
-import OrganizationLogoInput from '@/components/OrganizationLogoInput'
 
 const OrganizationFormFields: React.FC = () => {
   const form = useFormContext<CreateOrganizationInput>()
@@ -43,23 +42,6 @@ const OrganizationFormFields: React.FC = () => {
             <FormLabel>Organization Name</FormLabel>
             <FormControl>
               <Input placeholder="Your Company" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name="organization.logoURL"
-        render={({ field }) => (
-          <FormItem>
-            <FormControl>
-              <OrganizationLogoInput
-                value={field.value}
-                onUploadComplete={field.onChange}
-                onUploadDeleted={() => field.onChange(undefined)}
-                id="organization-logo-upload"
-              />
             </FormControl>
             <FormMessage />
           </FormItem>

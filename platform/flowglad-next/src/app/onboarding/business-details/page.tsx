@@ -32,7 +32,6 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form'
-import OrganizationLogoInput from '@/components/OrganizationLogoInput'
 
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
@@ -45,7 +44,6 @@ const BusinessDetails = () => {
     defaultValues: {
       organization: {
         name: '',
-        logoURL: undefined,
       },
     },
   })
@@ -113,28 +111,7 @@ const BusinessDetails = () => {
                     </FormItem>
                   )}
                 />
-                {/* FIXME (FG-555): Logo upload will fail during onboarding because the organization
-                    doesn't exist yet. The getPresignedURL mutation requires an organization.
-                    Users must create the organization first, then update the logo separately. */}
-                <FormField
-                  control={form.control}
-                  name="organization.logoURL"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <OrganizationLogoInput
-                          value={field.value}
-                          onUploadComplete={field.onChange}
-                          onUploadDeleted={() =>
-                            field.onChange(undefined)
-                          }
-                          id="organization-logo-upload"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* FIXME (FG-555): Readd OrganizationLogoInput to this page once we have a way to upload the logo during organization creation */}
                 <FormField
                   control={form.control}
                   name="organization.countryId"

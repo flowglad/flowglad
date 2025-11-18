@@ -49,8 +49,8 @@ const OrganizationLogoInput: React.FC<OrganizationLogoInputProps> = ({
 }) => {
   return (
     <div className={className}>
-      <Label>{label}</Label>
-      <div className="max-w-md mt-2">
+      {label && <Label htmlFor={id}>{label}</Label>}
+      <div className={label ? 'max-w-md mt-2' : 'max-w-md'}>
         <FileInput
           directory="organizations"
           singleOnly

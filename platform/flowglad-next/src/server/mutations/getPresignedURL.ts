@@ -27,11 +27,6 @@ export const getPresignedURL = protectedProcedure
             transaction
           )
 
-        // FIXME (FG-555): This prevents logo uploads during onboarding on the business-details page
-        // where the organization doesn't exist yet. The OrganizationLogoInput component
-        // will fail when users try to upload a logo before creating their organization.
-        // Consider allowing uploads without an organization (e.g., using a temporary
-        // directory or user ID) or deferring the upload until after organization creation.
         if (!organization) {
           throw new Error('User does not belong to any organization')
         }
