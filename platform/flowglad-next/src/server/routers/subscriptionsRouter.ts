@@ -55,6 +55,10 @@ import {
   executeBillingRun,
 } from '@/subscriptions/billingRunHelpers'
 import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
+import {
+  cancelFreeSubscriptionForUpgrade,
+  linkUpgradedSubscriptions,
+} from '@/subscriptions/cancelFreeSubscriptionForUpgrade'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',
@@ -317,6 +321,20 @@ const createSubscriptionProcedure = protectedProcedure
             )
           : undefined
         const trialEnd = input.trialEnd ?? defaultTrialEnd
+        /**
+         * If the price is paid (unitPrice > 0), treat this as a potential
+         * free → paid upgrade and cancel any active free subscription first.
+         * This mirrors the behavior in the checkout flow (processSetupIntent),
+         * but is applied at the API layer before calling the shared workflow.
+         */
+        const canceledFreeSubscription =
+          price.unitPrice > 0
+            ? await cancelFreeSubscriptionForUpgrade(
+                customer.id,
+                transaction
+              )
+            : null
+
         const output = await createSubscriptionWorkflow(
           {
             customer,
@@ -334,9 +352,22 @@ const createSubscriptionProcedure = protectedProcedure
             backupPaymentMethod,
             livemode: ctx.livemode,
             autoStart: true,
+            previousSubscriptionId:
+              canceledFreeSubscription?.id ?? undefined,
           },
           transaction
         )
+        /**
+         * If a free subscription was canceled as part of an upgrade, link
+         * the old and new subscriptions for traceability.
+         */
+        if (canceledFreeSubscription && output.result?.subscription) {
+          await linkUpgradedSubscriptions(
+            canceledFreeSubscription,
+            output.result.subscription.id,
+            transaction
+          )
+        }
         const finalResult = {
           subscription: {
             ...output.result.subscription,
