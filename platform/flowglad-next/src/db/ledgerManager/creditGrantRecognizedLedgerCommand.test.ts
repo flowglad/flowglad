@@ -32,18 +32,30 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - create a billingPeriod for the subscription
     // - create a usageCredit with billingPeriodId set, issuedAmount, and matching usageMeterId
     // - construct command with transactionDescription, transactionMetadata, and all required fields
+    // - record current timestamp before execution
+    // - query initial balance using aggregateBalanceForLedgerAccountFromEntries
     // expects:
     // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
-    // - ledgerTransaction has valid id, matches organizationId, livemode, type from command
+    // - ledgerTransaction has valid id
+    // - ledgerTransaction.organizationId equals command.organizationId
+    // - ledgerTransaction.livemode equals command.livemode
+    // - ledgerTransaction.type equals command.type (LedgerTransactionType.CreditGrantRecognized)
     // - ledgerTransaction.description equals command.transactionDescription
     // - ledgerTransaction.metadata equals command.transactionMetadata
     // - ledgerTransaction.initiatingSourceType equals command.type
     // - ledgerTransaction.initiatingSourceId equals usageCredit.id
     // - ledgerTransaction.subscriptionId equals command.subscriptionId
     // - ledgerEntries array has length 1
-    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
-    // - ledgerEntry.ledgerAccountId matches the ledgerAccount.id
-    // - ledgerEntry matches all expected fields: subscriptionId, organizationId, livemode, status Posted, direction Credit, entryType CreditGrantRecognized
+    // - ledgerEntry has valid id
+    // - ledgerEntry.ledgerTransactionId equals ledgerTransaction.id
+    // - ledgerEntry.ledgerAccountId equals ledgerAccount.id
+    // - ledgerEntry.subscriptionId equals command.subscriptionId
+    // - ledgerEntry.organizationId equals command.organizationId
+    // - ledgerEntry.livemode equals command.livemode
+    // - ledgerEntry.status equals LedgerEntryStatus.Posted
+    // - ledgerEntry.discardedAt is null
+    // - ledgerEntry.direction equals LedgerEntryDirection.Credit
+    // - ledgerEntry.entryType equals LedgerEntryType.CreditGrantRecognized
     // - ledgerEntry.amount equals usageCredit.issuedAmount
     // - ledgerEntry.description equals "Promotional credit {usageCredit.id} granted."
     // - ledgerEntry.sourceUsageCreditId equals usageCredit.id
@@ -51,8 +63,15 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - ledgerEntry.usageMeterId equals usageCredit.usageMeterId
     // - ledgerEntry.claimedByBillingRunId is null
     // - ledgerEntry.metadata equals { ledgerCommandType: command.type }
-    // - query database to verify ledger transaction and entry exist and match returned values
-    // - verify ledger account balance increased by issuedAmount using aggregateBalanceForLedgerAccountFromEntries
+    // - ledgerEntry.entryTimestamp is a valid number (timestamp)
+    // - ledgerEntry.entryTimestamp is approximately equal to Date.now() at execution time (within reasonable tolerance)
+    // - ledgerEntry.sourceUsageEventId is null
+    // - ledgerEntry.sourceCreditApplicationId is null
+    // - all other columns from ledgerEntryNulledSourceIdColumns are null
+    // - query database using selectLedgerTransactions to verify ledger transaction exists and matches returned value
+    // - query database using selectLedgerEntries to verify ledger entry exists and matches returned value
+    // - query final balance using aggregateBalanceForLedgerAccountFromEntries
+    // - final balance equals initial balance plus usageCredit.issuedAmount
   })
 
   it('should successfully process a credit grant without transactionDescription', async () => {
@@ -60,10 +79,23 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
     // - create a usageCredit with issuedAmount and matching usageMeterId
     // - construct command without transactionDescription field
+    // - query initial balance using aggregateBalanceForLedgerAccountFromEntries
     // expects:
-    // - function completes successfully
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
     // - ledgerTransaction.description is null
-    // - all other fields are set correctly
+    // - ledgerTransaction has valid id, matches organizationId, livemode, type from command
+    // - ledgerTransaction.initiatingSourceType equals command.type
+    // - ledgerTransaction.initiatingSourceId equals usageCredit.id
+    // - ledgerTransaction.subscriptionId equals command.subscriptionId
+    // - ledgerEntries array has length 1
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.ledgerAccountId matches ledgerAccount.id
+    // - ledgerEntry matches all expected fields: subscriptionId, organizationId, livemode, status Posted, direction Credit, entryType CreditGrantRecognized
+    // - ledgerEntry.amount equals usageCredit.issuedAmount
+    // - ledgerEntry.description equals "Promotional credit {usageCredit.id} granted."
+    // - ledgerEntry.sourceUsageCreditId equals usageCredit.id
+    // - query final balance using aggregateBalanceForLedgerAccountFromEntries
+    // - final balance equals initial balance plus usageCredit.issuedAmount
   })
 
   it('should successfully process a credit grant without transactionMetadata', async () => {
@@ -71,10 +103,24 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
     // - create a usageCredit with issuedAmount and matching usageMeterId
     // - construct command without transactionMetadata field
+    // - query initial balance using aggregateBalanceForLedgerAccountFromEntries
     // expects:
-    // - function completes successfully
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
     // - ledgerTransaction.metadata is null
-    // - all other fields are set correctly
+    // - ledgerTransaction has valid id, matches organizationId, livemode, type from command
+    // - ledgerTransaction.initiatingSourceType equals command.type
+    // - ledgerTransaction.initiatingSourceId equals usageCredit.id
+    // - ledgerTransaction.subscriptionId equals command.subscriptionId
+    // - ledgerEntries array has length 1
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.ledgerAccountId matches ledgerAccount.id
+    // - ledgerEntry matches all expected fields: subscriptionId, organizationId, livemode, status Posted, direction Credit, entryType CreditGrantRecognized
+    // - ledgerEntry.amount equals usageCredit.issuedAmount
+    // - ledgerEntry.description equals "Promotional credit {usageCredit.id} granted."
+    // - ledgerEntry.sourceUsageCreditId equals usageCredit.id
+    // - ledgerEntry.metadata equals { ledgerCommandType: command.type }
+    // - query final balance using aggregateBalanceForLedgerAccountFromEntries
+    // - final balance equals initial balance plus usageCredit.issuedAmount
   })
 
   it('should successfully process a credit grant without billingPeriodId', async () => {
@@ -82,10 +128,24 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
     // - create a usageCredit with issuedAmount and matching usageMeterId, but billingPeriodId set to null
     // - construct command with all required fields
+    // - query initial balance using aggregateBalanceForLedgerAccountFromEntries
     // expects:
-    // - function completes successfully
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
     // - ledgerEntry.billingPeriodId is null
-    // - all other fields are set correctly
+    // - ledgerTransaction has valid id, matches organizationId, livemode, type from command
+    // - ledgerTransaction.initiatingSourceType equals command.type
+    // - ledgerTransaction.initiatingSourceId equals usageCredit.id
+    // - ledgerTransaction.subscriptionId equals command.subscriptionId
+    // - ledgerEntries array has length 1
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.ledgerAccountId matches ledgerAccount.id
+    // - ledgerEntry matches all expected fields: subscriptionId, organizationId, livemode, status Posted, direction Credit, entryType CreditGrantRecognized
+    // - ledgerEntry.amount equals usageCredit.issuedAmount
+    // - ledgerEntry.description equals "Promotional credit {usageCredit.id} granted."
+    // - ledgerEntry.sourceUsageCreditId equals usageCredit.id
+    // - ledgerEntry.usageMeterId equals usageCredit.usageMeterId
+    // - query final balance using aggregateBalanceForLedgerAccountFromEntries
+    // - final balance equals initial balance plus usageCredit.issuedAmount
   })
 
   it('should throw an error when ledger transaction insertion fails', async () => {
@@ -94,21 +154,20 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - create a usageCredit with issuedAmount and matching usageMeterId
     // - construct command with invalid subscriptionId that doesn't exist or violates foreign key constraint
     // expects:
-    // - function throws Error with message containing "Failed to insert ledger transaction for PromoCreditGranted command or retrieve its ID"
-    // - query database to verify no ledger transaction was created
-    // - query database to verify no ledger entries were created
+    // - function throws Error with message containing "Failed to insert ledger transaction for CreditGrantRecognized command or retrieve its ID"
+    // - query database using selectLedgerTransactions to verify no ledger transaction was created for this command
+    // - query database using selectLedgerEntries to verify no ledger entries were created
   })
 
-  it('should throw an error when ledger account is not found', async () => {
+  it('should throw an error when usage credit has no usageMeterId', async () => {
     // setup:
-    // - use setupUsageLedgerScenario to create organization, subscription, and usageMeter
-    // - create a usageCredit with issuedAmount and matching usageMeterId
-    // - do NOT create a ledgerAccount for this subscription and usageMeter combination
+    // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
+    // - create a usageCredit with issuedAmount but usageMeterId set to null
     // - construct command with all required fields
     // expects:
-    // - function throws Error with message "Failed to select ledger account for Credit Grant Recognized command"
-    // - query database to verify ledger transaction was created (insertion succeeded)
-    // - query database to verify no ledger entries were created
+    // - function throws Error with message containing "Cannot process Credit Grant Recognized command: usage credit must have a usageMeterId"
+    // - query database using selectLedgerTransactions to verify no ledger transaction was created
+    // - query database using selectLedgerEntries to verify no ledger entries were created
   })
 
   it('should successfully process a credit grant with livemode true', async () => {
@@ -116,11 +175,21 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - use setupUsageLedgerScenario with livemode true to create organization, subscription, usageMeter, and ledgerAccount
     // - create a usageCredit with livemode true, issuedAmount and matching usageMeterId
     // - construct command with livemode true
+    // - query initial balance using aggregateBalanceForLedgerAccountFromEntries
     // expects:
-    // - function completes successfully
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
     // - ledgerTransaction.livemode is true
     // - ledgerEntry.livemode is true
-    // - query database to verify records created with livemode true
+    // - ledgerTransaction has valid id, matches organizationId, type from command
+    // - ledgerTransaction.initiatingSourceType equals command.type
+    // - ledgerTransaction.initiatingSourceId equals usageCredit.id
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.ledgerAccountId matches ledgerAccount.id
+    // - ledgerEntry.amount equals usageCredit.issuedAmount
+    // - query database using selectLedgerTransactions to verify ledger transaction exists with livemode true
+    // - query database using selectLedgerEntries to verify ledger entry exists with livemode true
+    // - query final balance using aggregateBalanceForLedgerAccountFromEntries
+    // - final balance equals initial balance plus usageCredit.issuedAmount
   })
 
   it('should successfully process a credit grant with livemode false', async () => {
@@ -128,11 +197,21 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - use setupUsageLedgerScenario with livemode false to create organization, subscription, usageMeter, and ledgerAccount
     // - create a usageCredit with livemode false, issuedAmount and matching usageMeterId
     // - construct command with livemode false
+    // - query initial balance using aggregateBalanceForLedgerAccountFromEntries
     // expects:
-    // - function completes successfully
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
     // - ledgerTransaction.livemode is false
     // - ledgerEntry.livemode is false
-    // - query database to verify records created with livemode false
+    // - ledgerTransaction has valid id, matches organizationId, type from command
+    // - ledgerTransaction.initiatingSourceType equals command.type
+    // - ledgerTransaction.initiatingSourceId equals usageCredit.id
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.ledgerAccountId matches ledgerAccount.id
+    // - ledgerEntry.amount equals usageCredit.issuedAmount
+    // - query database using selectLedgerTransactions to verify ledger transaction exists with livemode false
+    // - query database using selectLedgerEntries to verify ledger entry exists with livemode false
+    // - query final balance using aggregateBalanceForLedgerAccountFromEntries
+    // - final balance equals initial balance plus usageCredit.issuedAmount
   })
 
   it('should successfully process a credit grant with zero amount', async () => {
@@ -140,10 +219,17 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
     // - create a usageCredit with issuedAmount 0 and matching usageMeterId
     // - construct command with all required fields
+    // - query initial balance using aggregateBalanceForLedgerAccountFromEntries
     // expects:
-    // - function completes successfully
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
     // - ledgerEntry.amount equals 0
-    // - verify ledger account balance increased by 0 using aggregateBalanceForLedgerAccountFromEntries
+    // - ledgerTransaction has valid id, matches organizationId, livemode, type from command
+    // - ledgerTransaction.initiatingSourceType equals command.type
+    // - ledgerTransaction.initiatingSourceId equals usageCredit.id
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.ledgerAccountId matches ledgerAccount.id
+    // - query final balance using aggregateBalanceForLedgerAccountFromEntries
+    // - final balance equals initial balance plus 0
   })
 
   it('should successfully process a credit grant with small amount', async () => {
@@ -151,10 +237,17 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
     // - create a usageCredit with issuedAmount 1 and matching usageMeterId
     // - construct command with all required fields
+    // - query initial balance using aggregateBalanceForLedgerAccountFromEntries
     // expects:
-    // - function completes successfully
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
     // - ledgerEntry.amount equals 1
-    // - verify ledger account balance increased by 1 using aggregateBalanceForLedgerAccountFromEntries
+    // - ledgerTransaction has valid id, matches organizationId, livemode, type from command
+    // - ledgerTransaction.initiatingSourceType equals command.type
+    // - ledgerTransaction.initiatingSourceId equals usageCredit.id
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.ledgerAccountId matches ledgerAccount.id
+    // - query final balance using aggregateBalanceForLedgerAccountFromEntries
+    // - final balance equals initial balance plus 1
   })
 
   it('should successfully process a credit grant with large amount', async () => {
@@ -162,10 +255,17 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
     // - create a usageCredit with issuedAmount 999999999 and matching usageMeterId
     // - construct command with all required fields
+    // - query initial balance using aggregateBalanceForLedgerAccountFromEntries
     // expects:
-    // - function completes successfully
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
     // - ledgerEntry.amount equals 999999999
-    // - verify ledger account balance increased by 999999999 using aggregateBalanceForLedgerAccountFromEntries
+    // - ledgerTransaction has valid id, matches organizationId, livemode, type from command
+    // - ledgerTransaction.initiatingSourceType equals command.type
+    // - ledgerTransaction.initiatingSourceId equals usageCredit.id
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.ledgerAccountId matches ledgerAccount.id
+    // - query final balance using aggregateBalanceForLedgerAccountFromEntries
+    // - final balance equals initial balance plus 999999999
   })
 
   it('should successfully process a credit grant with different usage meter', async () => {
@@ -175,68 +275,17 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - create a ledgerAccount for the second usageMeter
     // - create a usageCredit with issuedAmount and usageMeterId matching the second usageMeter
     // - construct command with all required fields
+    // - query initial balance for second ledgerAccount using aggregateBalanceForLedgerAccountFromEntries
     // expects:
-    // - function completes successfully
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
     // - ledgerEntry.usageMeterId equals the second usageMeter.id
     // - ledgerEntry.ledgerAccountId matches the ledgerAccount for the second usageMeter
-    // - verify correct ledger account balance increased using aggregateBalanceForLedgerAccountFromEntries
-  })
-
-  it('should set entryTimestamp to current time', async () => {
-    // setup:
-    // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
-    // - create a usageCredit with issuedAmount and matching usageMeterId
-    // - construct command with all required fields
-    // - record current timestamp before execution
-    // expects:
-    // - function completes successfully
-    // - ledgerEntry.entryTimestamp is a valid number (timestamp)
-    // - ledgerEntry.entryTimestamp is approximately equal to Date.now() at execution time (within reasonable tolerance)
-  })
-
-  it('should correctly set metadata fields', async () => {
-    // setup:
-    // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
-    // - create a usageCredit with issuedAmount and matching usageMeterId
-    // - construct command with transactionMetadata object containing custom key-value pairs
-    // expects:
-    // - function completes successfully
-    // - ledgerTransaction.metadata equals command.transactionMetadata
-    // - ledgerEntry.metadata equals { ledgerCommandType: command.type }
-  })
-
-  it('should correctly set initiating source fields', async () => {
-    // setup:
-    // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
-    // - create a usageCredit with issuedAmount and matching usageMeterId
-    // - construct command with all required fields
-    // expects:
-    // - function completes successfully
+    // - ledgerTransaction has valid id, matches organizationId, livemode, type from command
     // - ledgerTransaction.initiatingSourceType equals command.type
     // - ledgerTransaction.initiatingSourceId equals usageCredit.id
-  })
-
-  it('should set all nulled source ID columns to null', async () => {
-    // setup:
-    // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
-    // - create a usageCredit with issuedAmount and matching usageMeterId
-    // - construct command with all required fields
-    // expects:
-    // - function completes successfully
-    // - ledgerEntry.sourceUsageEventId is null
-    // - ledgerEntry.sourceCreditApplicationId is null
-    // - all other columns from ledgerEntryNulledSourceIdColumns are null
-  })
-
-  it('should correctly update ledger account balance', async () => {
-    // setup:
-    // - use setupUsageLedgerScenario to create organization, subscription, usageMeter, and ledgerAccount
-    // - create a usageCredit with issuedAmount and matching usageMeterId
-    // - query initial balance using aggregateBalanceForLedgerAccountFromEntries
-    // - construct command with all required fields
-    // expects:
-    // - function completes successfully
-    // - query final balance using aggregateBalanceForLedgerAccountFromEntries
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.amount equals usageCredit.issuedAmount
+    // - query final balance for second ledgerAccount using aggregateBalanceForLedgerAccountFromEntries
     // - final balance equals initial balance plus usageCredit.issuedAmount
   })
 
@@ -247,10 +296,18 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - create second ledgerAccount for same subscription and usageMeter (same organizationId and livemode)
     // - create a usageCredit with issuedAmount and matching usageMeterId
     // - construct command with all required fields
+    // - query initial balance for first ledgerAccount using aggregateBalanceForLedgerAccountFromEntries
     // expects:
-    // - function completes successfully
-    // - only one ledger entry is created (not one per account)
-    // - ledgerEntry.ledgerAccountId matches one of the existing ledger accounts
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
+    // - ledgerEntries array has length 1 (not one per account)
+    // - ledgerEntry.ledgerAccountId matches one of the existing ledger accounts (first or second)
+    // - ledgerTransaction has valid id, matches organizationId, livemode, type from command
+    // - ledgerTransaction.initiatingSourceType equals command.type
+    // - ledgerTransaction.initiatingSourceId equals usageCredit.id
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.amount equals usageCredit.issuedAmount
+    // - query final balance for the selected ledgerAccount using aggregateBalanceForLedgerAccountFromEntries
+    // - final balance equals initial balance plus usageCredit.issuedAmount
   })
 
   it('should correctly process credit grant with existing ledger entries', async () => {
@@ -260,9 +317,15 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
     // - create a usageCredit with issuedAmount and matching usageMeterId
     // - construct command with all required fields
     // expects:
-    // - function completes successfully
-    // - new ledger entry is created and linked correctly
+    // - function returns LedgerCommandResult with ledgerTransaction and ledgerEntries array
+    // - ledgerEntries array has length 1
+    // - ledgerEntry has valid id, ledgerTransactionId matches ledgerTransaction.id
+    // - ledgerEntry.ledgerAccountId matches ledgerAccount.id
+    // - ledgerEntry.amount equals usageCredit.issuedAmount
+    // - ledgerTransaction has valid id, matches organizationId, livemode, type from command
+    // - ledgerTransaction.initiatingSourceType equals command.type
+    // - ledgerTransaction.initiatingSourceId equals usageCredit.id
     // - query final balance using aggregateBalanceForLedgerAccountFromEntries
-    // - final balance accounts for both existing entries and new credit grant entry
+    // - final balance accounts for both existing entries and new credit grant entry (equals initial balance plus usageCredit.issuedAmount)
   })
 })
