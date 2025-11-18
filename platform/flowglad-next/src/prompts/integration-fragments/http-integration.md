@@ -3,14 +3,14 @@ title: 'Integrate by HTTP'
 description: 'Integrating Flowglad without using the SDKs'
 ---
 
-Flowglad offers rich full stack SDKs for Typescript. If your backend is written in another language besides Typescript, you can integrate Flowglad via our public APIs. All you need is a way to make HTTP requests. Even without the SDKs, Flowglad provides a simple integration path.
+Flowglad offers rich full stack SDKs for Typescript. If your backend is written in another language besides Typescript, you can integrate Flowglad via our public APIs. All you need is a way to make HTTP requests. Even without the backend SDKs, Flowglad provides a simple integration path.
 
 Implementing Flowglad on your backend will consist of 3 steps (feel free to feed this to AI):
 
 1. Add Flowglad customer creation to your product's account creation flow
   - Call [POST /customers](https://docs.flowglad.com/api-reference/customer/create-customer) to create the customer
 
-2. Create a server route at `/api/flowglad/:subroute` that is publicly accessible and authenticated using your existing server-side authentication logic. Your frontend can make direct HTTP POST requests to this route, or optionally use the [@flowglad/react](https://www.npmjs.com/package/@flowglad/react) SDK which will call this route.
+2. Create a server route at `/api/flowglad/:subroute` that is publicly accessible and authenticated using your existing server-side authentication logic. Your frontend will send requests to this route via the [@flowglad/react](https://www.npmjs.com/package/@flowglad/react) SDK.
 
 3. Implement a set of helper functions in your backend to handle common actions:
    - `findOrCreateCustomerBilling({ name: string, externalId: string, email: string })`:
@@ -42,7 +42,7 @@ When you are not using our SDKs, replicate the same logic in your middleware:
 Once you have the customer, you can reuse the helper functions above to translate frontend requests into Flowglad API calls.
 
 #### Implement the Sub-routes
-Expose a single authenticated route such as `/api/flowglad/:subroute`. Each subroute matches a `FlowgladActionKey` (see [`packages/shared/src/types.ts`](https://github.com/flowglad/flowglad/blob/main/packages/shared/src/types.ts)) and **must** accept a `POST`, even for reads. All routes must return responses in the format `{ data, error? }` in the response body. This contract matches what the React SDK expects, but your frontend can make direct HTTP calls following the same format.
+Expose a single authenticated route such as `/api/flowglad/:subroute`. Each subroute matches a `FlowgladActionKey` (see [`packages/shared/src/types.ts`](https://github.com/flowglad/flowglad/blob/main/packages/shared/src/types.ts)) and **must** accept a `POST`, even for reads—the React SDK always sends `POST` requests and expects `{ data, error? }` in the response body.
 
 **POST /customers/billing**
 - use your authentication logic to derive the customer making the request from your frontend `{ name: string, externalId: string, email: string }`, where the `email` is the email address associated with the owner of the account and `externalId` is the id of the customer in your system
