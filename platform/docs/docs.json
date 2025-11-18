@@ -123,8 +123,8 @@
   },
   "background": {
     "color": {
-      "light": "#ffffff",
-      "dark": "#1b1b1b"
+      "light": "#FBFAF4",
+      "dark": "#2D2A28"
     }
   },
   "navbar": {
