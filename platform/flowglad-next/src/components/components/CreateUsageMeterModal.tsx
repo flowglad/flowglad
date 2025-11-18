@@ -1,13 +1,16 @@
 'use client'
 
 import FormModal from '@/components/forms/FormModal'
-import { createUsageMeterSchema } from '@/db/schema/usageMeters'
+import { createUsageMeterFormSchema } from '@/db/schema/usageMeters'
 import UsageMeterFormFields from '@/components/forms/UsageMeterFormFields'
 import PriceFormFields from '@/components/forms/PriceFormFields'
 import { trpc } from '@/app/_trpc/client'
 import { UsageMeterAggregationType, PriceType } from '@/types'
 import { useAuthenticatedContext } from '@/contexts/authContext'
-import { isCurrencyZeroDecimal } from '@/utils/stripe'
+import {
+  isCurrencyZeroDecimal,
+  rawStringAmountToCountableCurrencyAmount,
+} from '@/utils/stripe'
 import { toast } from 'sonner'
 
 interface CreateUsageMeterModalProps {
@@ -45,7 +48,7 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="Create Usage Meter"
-      formSchema={createUsageMeterSchema}
+      formSchema={createUsageMeterFormSchema}
       defaultValues={{
         usageMeter: {
           name: '',
@@ -60,7 +63,16 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
         __rawPriceString: zeroDecimal ? '0' : '0.00',
       }}
       onSubmit={async (input) => {
-        await createUsageMeter.mutateAsync(input)
+        await createUsageMeter.mutateAsync({
+          usageMeter: input.usageMeter,
+          price: {
+            ...input.price,
+            unitPrice: rawStringAmountToCountableCurrencyAmount(
+              organization!.defaultCurrency,
+              input.__rawPriceString!
+            ),
+          },
+        })
       }}
       onSuccess={() => {
         trpcContext.usageMeters.list.invalidate()

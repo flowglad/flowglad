@@ -24,8 +24,6 @@ import {
 import { z } from 'zod'
 import { errorHandlers } from '../trpcErrorHandler'
 import { createUsageMeterTransaction } from '@/utils/usage'
-import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageMeter',
@@ -48,28 +46,10 @@ export const createUsageMeter = protectedProcedure
         organizationId,
       }) => {
         try {
-          // Convert __rawPriceString to unitPrice if provided
-          let price = input.price
-          if (input.__rawPriceString && organizationId) {
-            const organization = await selectOrganizationById(
-              organizationId,
-              transaction
-            )
-            const unitPrice =
-              rawStringAmountToCountableCurrencyAmount(
-                organization.defaultCurrency,
-                input.__rawPriceString
-              )
-            price = {
-              ...price,
-              unitPrice,
-            }
-          }
-
           const { usageMeter } = await createUsageMeterTransaction(
             {
               usageMeter: input.usageMeter,
-              price,
+              price: input.price,
             },
             { transaction, userId, livemode, organizationId }
           )

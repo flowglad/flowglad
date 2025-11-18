@@ -170,11 +170,19 @@ const usageMeterPriceFieldsSchema = z
 export const createUsageMeterSchema = z.object({
   usageMeter: usageMetersClientInsertSchema,
   price: usageMeterPriceFieldsSchema,
-  __rawPriceString: z.string().optional(),
 })
+
+export const createUsageMeterFormSchema =
+  createUsageMeterSchema.extend({
+    __rawPriceString: z.string(),
+  })
 
 export type CreateUsageMeterInput = z.infer<
   typeof createUsageMeterSchema
+>
+
+export type CreateUsageMeterFormInput = z.infer<
+  typeof createUsageMeterFormSchema
 >
 
 export const editUsageMeterSchema = z.object({
