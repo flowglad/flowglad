@@ -18,7 +18,7 @@ const hasTrials = (
   pricingModelData: SetupPricingModelInput
 ): boolean => {
   return pricingModelData.products.some((product) =>
-    product.prices.some((price) => price.trialPeriodDays !== null)
+    product.prices.some((price) => (price.trialPeriodDays ?? 0) > 0)
   )
 }
 
