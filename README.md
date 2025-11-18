@@ -1,7 +1,10 @@
 <p align="center">
   <a href="https://github.com/flowglad/flowglad">
-    <img width="1440" alt="Light mode" src="./public/github-image-banner-light-mode.jpg#gh-light-mode-only" />
-    <img width="1440" alt="Dark mode" src="./public/github-image-banner-dark-mode.jpg#gh-dark-mode-only" />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="./public/github-image-banner-dark-mode.jpg">
+      <source media="(prefers-color-scheme: light)" srcset="./public/github-image-banner-light-mode.jpg">
+      <img width="1440" alt="Flowglad Banner" src="./public/github-image-banner-light-mode.jpg">
+    </picture>
   </a>
 
   <h3 align="center">Flowglad</h3>
