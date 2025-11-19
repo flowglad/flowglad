@@ -9,10 +9,9 @@ Flowglad provides adapters for these auth providers:
 - Supabase Auth
 - Clerk
 - NextAuth
+- Better Auth
 
 ## Supabase Auth
-
-<CodeGroup>
 
 ```ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
@@ -26,11 +25,7 @@ export const flowgladServer = new FlowgladServer({
 })
 ```
 
-</CodeGroup>
-
 ## Clerk
-
-<CodeGroup>
 
 ```ts
 import { currentUser } from '@clerk/nextjs/server'
@@ -43,11 +38,7 @@ export const flowgladServer = new FlowgladServer({
 })
 ```
 
-</CodeGroup>
-
 ## NextAuth
-
-<CodeGroup>
 
 ```ts
 import { auth } from '@/auth' // your configured NextAuth client
@@ -60,13 +51,23 @@ export const flowgladServer = new FlowgladServer({
 })
 ```
 
-</CodeGroup>
+## Better Auth
+
+```ts
+import { auth } from '@/lib/auth'; // your Better Auth instance in auth.ts
+import { headers } from 'next/headers';
+import { FlowgladServer } from '@flowglad/nextjs/server';
+
+export const flowgladServer = new FlowgladServer({
+  betterAuth: {
+    getSession: async () => auth.api.getSession({ headers: await headers() }),
+  },
+});
+```
 
 ## Custom session loaders
 
 When you already have a helper that returns the signed-in user, pass it through `getRequestingCustomer`.
-
-<CodeGroup>
 
 ```ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
@@ -86,11 +87,7 @@ export const flowgladServer = new FlowgladServer({
 })
 ```
 
-</CodeGroup>
-
 If you need to inspect the incoming request, derive the customer inside a factory that receives the request object.
-
-<CodeGroup>
 
 ```ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
@@ -111,11 +108,7 @@ export const createFlowgladServer = (request: Request) =>
   })
 ```
 
-</CodeGroup>
-
 ## Custom auth example: Firebase
-
-<CodeGroup>
 
 ```ts
 import { FlowgladServer } from '@flowglad/server'
@@ -144,8 +137,6 @@ export const flowgladServer = (request: Request) =>
     }
   })
 ```
-
-</CodeGroup>
 
 ## What happens at runtime?
 

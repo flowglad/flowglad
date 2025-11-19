@@ -80,7 +80,7 @@
             "pages": [
               "sdks/introduction",
               "sdks/setup",
-              "sdks/auth-adaptors",
+              "sdks/auth-adapters",
               "sdks/pricing-models-products",
               "sdks/checkout-sessions",
               "sdks/feature-access-usage",
