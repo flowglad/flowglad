@@ -1,10 +1,8 @@
 node_modules
 .DS_Store
-.changeset
 .changeset-lock.json
 .changeset-lock.yaml
 .changeset-lock.yml
-.changeset-lock.json
 
 .env
 .env.local
