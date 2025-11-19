@@ -1200,7 +1200,7 @@ describe('Scoped FlowgladServer variant', () => {
             user: { email: 'a@b.com', name: 'Test' },
           }),
         },
-      } as any // Using 'as any' to bypass TypeScript checking
+      }
       const server = new FlowgladServer(params)
 
       await expect(server.getSession()).rejects.toThrow(
@@ -1217,7 +1217,7 @@ describe('Scoped FlowgladServer variant', () => {
           name: 'Test',
           email: 'test@example.com',
         }),
-      } as any
+      }
       const server = new FlowgladServer(params)
 
       await expect(server.getSession()).rejects.toThrow(
