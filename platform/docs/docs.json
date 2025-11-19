@@ -18,9 +18,9 @@
   "fonts": {
     "heading": {
       "family": "ABC Arizona",
-      "source": "/fonts/abc-arizona/ABCArizona-Regular.woff2",
+      "source": "/fonts/abc-arizona/ABCArizona-Medium.woff2",
       "format": "woff2",
-      "weight": 400
+      "weight": 500
     },
     "body": {
       "family": "SF Pro",
