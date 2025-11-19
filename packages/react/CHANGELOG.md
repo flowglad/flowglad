@@ -1,5 +1,15 @@
 # @flowglad/react
 
+## 0.12.4
+
+### Patch Changes
+
+- flowglad server with external id
+- cbf28e2: test
+- Updated dependencies
+- Updated dependencies [cbf28e2]
+  - @flowglad/shared@0.12.4
+
 ## 0.12.3
 
 ### Patch Changes
