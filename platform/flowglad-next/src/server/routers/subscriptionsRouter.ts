@@ -265,6 +265,7 @@ const createSubscriptionInputSchema = z.object({
     .describe(
       `The payment method to try if charges for the subscription fail with the default payment method.`
     ),
+  // FIXME: Consider exposing preserveBillingCycleAnchor to the API
 })
 
 const createSubscriptionProcedure = protectedProcedure
@@ -335,6 +336,8 @@ const createSubscriptionProcedure = protectedProcedure
             backupPaymentMethod,
             livemode: ctx.livemode,
             autoStart: true,
+            // FIXME: Uncomment if we decide to expose preserveBillingCycleAnchor in the API
+            // preserveBillingCycleAnchor: input.preserveBillingCycleAnchor ?? false,
           },
           transaction
         )
