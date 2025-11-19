@@ -25,8 +25,10 @@ import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 
 export default function UsageMeterFormFields({
   edit,
+  hidePricingModelSelect,
 }: {
   edit?: boolean
+  hidePricingModelSelect?: boolean
 }) {
   const form = useFormContext<CreateUsageMeterInput>()
   if (!core.IS_PROD) {
@@ -48,7 +50,7 @@ export default function UsageMeterFormFields({
           </FormItem>
         )}
       />
-      {!edit && (
+      {!edit && !hidePricingModelSelect && (
         <div className="w-full relative flex flex-col gap-3">
           <PricingModelSelect
             name="usageMeter.pricingModelId"

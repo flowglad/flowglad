@@ -23,7 +23,6 @@ import {
   type ReferralOption,
 } from '@/utils/referrals'
 import { trpc } from '@/app/_trpc/client'
-import FileInput from '@/components/FileInput'
 import { Textarea } from '../ui/textarea'
 import { Button } from '../ui/button'
 import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
@@ -165,43 +164,7 @@ const OrganizationFormFields = ({
           </FormControl>
         </FormItem>
       )}
-
-      <FormField
-        control={form.control}
-        name="organization.logoURL"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Company logo</FormLabel>
-            <FormControl>
-              <FileInput
-                directory="organizations"
-                singleOnly
-                id="organization-logo-upload"
-                fileTypes={[
-                  'png',
-                  'jpeg',
-                  'jpg',
-                  'gif',
-                  'webp',
-                  'svg',
-                  'avif',
-                ]}
-                initialURL={field.value ?? undefined}
-                onUploadComplete={({ publicURL }) =>
-                  field.onChange(publicURL)
-                }
-                onUploadDeleted={() => field.onChange(undefined)}
-                hint="Recommended square image. Max size 2MB."
-              />
-            </FormControl>
-            <FormDescription>
-              This logo appears in your dashboard navigation and
-              customer-facing invoices.
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {/* FIXME (FG-555): Readd logo upload field once we have a way to upload the logo during organization creation */}
     </div>
   )
 }

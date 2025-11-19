@@ -11,7 +11,7 @@ import {
 } from '@/db/schema/ledgerEntries'
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
-import { selectLedgerAccounts } from '../tableMethods/ledgerAccountMethods'
+import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '../tableMethods/ledgerAccountMethods'
 import {
   CreditGrantRecognizedLedgerCommand,
   LedgerCommandResult,
@@ -38,21 +38,30 @@ export const processCreditGrantRecognizedLedgerCommand = async (
 
   if (!insertedLedgerTransaction || !insertedLedgerTransaction.id) {
     throw new Error(
-      'Failed to insert ledger transaction for PromoCreditGranted command or retrieve its ID'
+      'Failed to insert ledger transaction for CreditGrantRecognized command or retrieve its ID'
     )
   }
-  const [ledgerAccount] = await selectLedgerAccounts(
-    {
-      organizationId: command.organizationId,
-      livemode: command.livemode,
-      subscriptionId: command.subscriptionId!,
-      usageMeterId: command.payload.usageCredit.usageMeterId,
-    },
-    transaction
-  )
+
+  // Ensure usageMeterId exists before creating/finding ledger account
+  if (!command.payload.usageCredit.usageMeterId) {
+    throw new Error(
+      'Cannot process Credit Grant Recognized command: usage credit must have a usageMeterId'
+    )
+  }
+
+  // Find or create ledger account for this subscription and usage meter
+  // This handles the case where a customer on a free plan doesn't have ledger accounts yet
+  const [ledgerAccount] =
+    await findOrCreateLedgerAccountsForSubscriptionAndUsageMeters(
+      {
+        subscriptionId: command.subscriptionId!,
+        usageMeterIds: [command.payload.usageCredit.usageMeterId],
+      },
+      transaction
+    )
   if (!ledgerAccount) {
     throw new Error(
-      'Failed to select ledger account for Credit Grant Recognized command'
+      'Failed to find or create ledger account for Credit Grant Recognized command'
     )
   }
   const ledgerEntryInput: LedgerEntry.CreditGrantRecognizedInsert = {
@@ -72,7 +81,7 @@ export const processCreditGrantRecognizedLedgerCommand = async (
     sourceUsageCreditId: command.payload.usageCredit.id,
     billingPeriodId:
       command.payload.usageCredit.billingPeriodId ?? null,
-    usageMeterId: command.payload.usageCredit.usageMeterId ?? null,
+    usageMeterId: command.payload.usageCredit.usageMeterId,
     claimedByBillingRunId: null,
     metadata: { ledgerCommandType: command.type },
   }

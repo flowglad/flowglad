@@ -15,8 +15,9 @@ import { PaymentMethodType } from '@/types'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Pencil } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
+import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 
 import { InvoicesDataTable } from '../../invoices/data-table'
 import { SubscriptionFeaturesTable } from './SubscriptionFeaturesTable'
@@ -30,6 +31,10 @@ const InnerSubscriptionPage = ({
 }) => {
   const { organization } = useAuthContext()
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isAddFeatureModalOpen, setIsAddFeatureModalOpen] =
+    useState(false)
+
+  const canAddFeature = subscription.subscriptionItems.length > 0
 
   if (!organization) {
     return <div>Loading...</div>
@@ -96,12 +101,22 @@ const InnerSubscriptionPage = ({
           </div>
         </div>
         <SubscriptionItemsDataTable
-          title="Items"
+          title="Subscription Items"
           subscriptionItems={subscription.subscriptionItems}
           currencyCode={organization.defaultCurrency}
         />
         <SubscriptionFeaturesTable
           featureItems={subscription.experimental?.featureItems}
+          toolbarContent={
+            <Button
+              size="sm"
+              onClick={() => setIsAddFeatureModalOpen(true)}
+              disabled={!canAddFeature}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add feature
+            </Button>
+          }
         />
         <InvoicesDataTable
           title="Invoices"
@@ -119,6 +134,12 @@ const InnerSubscriptionPage = ({
         subscriptionId={subscription.id}
         customerId={subscription.customerId}
         currentPaymentMethodId={defaultPaymentMethod?.id}
+      />
+      <AddSubscriptionFeatureModal
+        isOpen={isAddFeatureModalOpen}
+        setIsOpen={setIsAddFeatureModalOpen}
+        subscriptionItems={subscription.subscriptionItems}
+        featureItems={subscription.experimental?.featureItems}
       />
     </InternalPageContainer>
   )
