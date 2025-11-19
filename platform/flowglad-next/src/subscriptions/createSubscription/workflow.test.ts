@@ -2000,6 +2000,9 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
     })
 
     const upgradeStartDate = now
+    // FIXME: we have to do this bc createSubscriptionWorkflow doesn't accept a time argument.
+    // We should consider this as it gets us closer to a "pure" function
+    const beforeWorkflow = Date.now()
 
     const {
       result: { subscription: paidSubscription },
@@ -2024,6 +2027,9 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
         transaction
       )
     })
+    // FIXME: we have to do this bc createSubscriptionWorkflow doesn't accept a time argument.
+    // We should consider this as it gets us closer to a "pure" function
+    const afterWorkflow = Date.now()
 
     await adminTransaction(async ({ transaction }) => {
       const canceledFree = await selectSubscriptionById(
@@ -2041,7 +2047,14 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
         CancellationReason.UpgradedToPaid
       )
       expect(canceledFree.replacedBySubscriptionId).toBe(upgraded.id)
-      expect(canceledFree.canceledAt).toBeDefined()
+      // canceledAt should be set during workflow execution, between beforeWorkflow and afterWorkflow
+      // FIXME: we have to do this bc createSubscriptionWorkflow doesn't accept a time argument.
+      expect(canceledFree.canceledAt).toBeGreaterThanOrEqual(
+        beforeWorkflow
+      )
+      expect(canceledFree.canceledAt).toBeLessThanOrEqual(
+        afterWorkflow
+      )
 
       // Billing cycle anchor and current period should be preserved on the new subscription
       expect(upgraded.billingCycleAnchorDate).toBe(

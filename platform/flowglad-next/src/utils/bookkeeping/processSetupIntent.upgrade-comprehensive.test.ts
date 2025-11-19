@@ -660,7 +660,6 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
         }
       )
-      expect(newSubscriptionId).toBeDefined()
 
       await adminTransaction(async ({ transaction }) => {
         // Free subscription should be canceled
@@ -693,6 +692,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           newSubscriptionId!,
           transaction
         )
+        expect(newSubscriptionId).toBe(newPaidSubscription.id)
         expect(newPaidSubscription.status).toBe(
           SubscriptionStatus.Active
         )
@@ -1964,7 +1964,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             event.type === FlowgladEventType.SubscriptionCreated
         )
         expect(subscriptionCreatedEvents).toHaveLength(1)
-        expect(subscriptionCreatedEvents[0].submittedAt).toBeDefined()
+        // submittedAt should equal occurredAt since they're set to the same timestamp
+        expect(subscriptionCreatedEvents[0].submittedAt).toBe(
+          subscriptionCreatedEvents[0].occurredAt
+        )
 
         // And exactly one PurchaseCompleted event for the paid checkout
         const purchaseCompletedEvents = events.filter(
