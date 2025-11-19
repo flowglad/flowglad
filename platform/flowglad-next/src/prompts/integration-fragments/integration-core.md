@@ -1,73 +1,240 @@
-Please help us add Flowglad's payments and billing layer to our product following the guide below.
+## Prompt: Integrate Flowglad Billing Into a {FRAMEWORK} App
 
-Flowglad is a payment processor that you can integrate without writing any glue code. It allows you to model your business using **pricing models**, which describe your entire business model, pricing, feature access all in a single schema.
+You are an expert {LANGUAGE}/{FRAMEWORK} engineer and Flowglad integrator.  
 
-By default, Flowglad integration requires:
-- No webhooks to listen to FLowglad events.
-- No schema changes to your database
-- No data from Flowglad that you need to store in your database
+You are given a **startup-style {FRAMEWORK} project** that currently has **no real billing or payment processing** wired up (at most: mock pricing data, placeholder billing hooks, or hard-coded plans).
 
-## Core Concepts
-### The Data Flow
+Your task is to **integrate Flowglad end‑to‑end** so that:
 
-In a standard Flowglad integration, data flows from Flowglad's API, to your server, and then from your server to your React frontend. The result is that you no longer need to maintain glue code that syncs the data in your application with the data in Flowglad's servers.
+- Authenticated users have Flowglad customers.
+- Plans and usage meters are driven by a Flowglad pricing model.
+- Usage events are recorded via Flowglad.
+- The features that customers can access are determined by reading from Flowglad what features a given customer has access to
+- The UI (pricing page, dashboard, navbar) reflects real subscription and usage state.
 
+Assume:
 
-Instead of the current webhook-dominant approach, Flowglad is designed to be [reactive](https://en.wikipedia.org/wiki/Reactive_programming). You just read from us the latest billing state for your customer, including what features they are entitled to, what usage credits they have access to. We move the money for you (like a typical payment processor), but then also act as your source of truth for all your customer's billing state.
+- The project uses **{FRAMEWORK}** ({FRAMEWORK_ROUTING_INFO}).
+- Authentication is handled with **{AUTH_LIBRARY}** ({AUTH_FILE_PATHS}) or a comparable session‑based system you can access from both server and client.
+- The project may already have:
+  - A pricing page.
+  - A dashboard or home page.
+  - Mock billing utilities (e.g. `{MOCK_BILLING_PATH}`).
 
-To understand how it works, look at our typical read and write flows.
+Your output should be **code changes only** (no commentary).
 
-#### The Read Flow
-```mermaid
-graph LR
-    A[Flowglad API] --> B[Your Server]
-    B --> C[Your React Frontend via `useBilling`]
+---
+
+### 1. High-Level Objectives
+
+- **Introduce Flowglad billing** into an otherwise billing‑agnostic {FRAMEWORK} app.
+- **Wire Flowglad server-side** so it:
+  - Authenticates the current user via your existing auth system ({AUTH_LIBRARY} in this repo).
+  - Resolves the Flowglad customer from the authenticated user ({CUSTOMER_ID_SOURCE}).
+  - When a customer is created in our app (user registration if B2C, organization/team if B2B), we create a Flowglad customer record based on the id we use for that customer in our app.
+  - Exposes a Flowglad HTTP API surface via `/api/flowglad/[...path]` (or equivalent route pattern).
+- **Wire Flowglad client-side** so {FRONTEND_FRAMEWORK} components:
+  - Use `useBilling` from `{FLOWGLAD_CLIENT_PACKAGE}` as the canonical billing source of truth.
+  - Rely on `billing.loaded`, `billing.loadBilling`, `billing.errors`, `billing.pricingModel`, `billing.currentSubscriptions`, and helpers like `billing.checkUsageBalance`, `billing.checkFeatureAccess`, `billing.getPrice`, `billing.createCheckoutSession`, `billing.cancelSubscription`, `billing.reload`.
+- **Connect a Flowglad pricing model** (defined in `pricing.yaml` or configured in the Flowglad dashboard) to:
+  - Subscription plans.
+  - Usage meters ({USAGE_METER_EXAMPLES}).
+  - Feature toggles ({FEATURE_TOGGLE_EXAMPLES}).
+  - Usage top-ups.
+- **Keep the UI conceptually the same** (pricing page, plan selection, usage meters), but back it with real Flowglad data instead of mocks.
+
+---
+
+### 2. Package & Script Changes (`{PACKAGE_FILE}`)
+
+Update `{PACKAGE_FILE}` to add the Flowglad SDK packages. Prefer using published versions (or local workspace links if you're in a monorepo).
+
+- **Add Flowglad dependencies** under `dependencies`:
+
+{PACKAGE_DEPENDENCIES_CODE}
+
+If you are integrating Flowglad from a **local monorepo** instead of npm, you may instead use `"file:..."` or workspace references. Adjust the versions/paths accordingly.
+
+{PACKAGE_SCRIPTS_CODE}
+
+Do **not** remove unrelated scripts or dependencies; only add/adjust what's required for Flowglad.
+
+---
+
+### 3. Pricing Model Configuration (`pricing.yaml`)
+
+Ensure there is a **Flowglad pricing model** that describes your subscription business model. The simplest pattern is to keep a `pricing.yaml` file in the project root (next to `{PACKAGE_FILE}`) that you can upload to the Flowglad dashboard.
+
+At minimum, your pricing model should define:
+
+- **`features`**:
+  - `usage_credit_grant` items for each usage meter in your product ({USAGE_METER_SLUGS}).
+  - `toggle` items for boolean features ({FEATURE_TOGGLE_SLUGS}).
+- **`products`**:
+  - Subscription products ({PRODUCT_NAMES}), each with:
+    - A subscription price (`type: "subscription"`, `unitPrice`, `slug`).
+    - A list of feature slugs that reference the `features` defined above.
+  - Top-up and usage products (if applicable):
+    - Top-up products for purchasing additional credits.
+    - Usage price products that define cost per usage event for each usage meter.
+    - Usage prices must tie to `usageMeters` via `usageMeterSlug`.
+- **`usageMeters`**:
+  - Define all usage meters your product tracks ({USAGE_METER_DEFINITIONS}).
+
+If the target project already has a `pricing.yaml` or similar, **normalize its structure** to follow this pattern so helpers and UI code can rely on a consistent shape.
+
+---
+
+### 4. Server-Side Flowglad Wiring (`{FLOWGLAD_SERVER_PATH}`)
+
+Create (or update) `{FLOWGLAD_SERVER_PATH}` in the project to centralize server‑side Flowglad access:
+
+{FLOWGLAD_SERVER_CODE}
+
+Requirements:
+
+- Use the project's existing auth system ({AUTH_LIBRARY}).
+- Map your authenticated {CUSTOMER_ENTITY} to Flowglad's `externalId`, `name`, and `email`.
+- Throw if no session/auth so Flowglad routes are protected.
+- For B2B apps, derive the organization/team ID from the request context.
+
+---
+
+### 5. Flowglad API Route (`{FLOWGLAD_ROUTE_PATH}`)
+
+Expose Flowglad's HTTP API using a {FRAMEWORK} route handler:
+
+{FLOWGLAD_ROUTE_CODE}
+
+Make sure this route follows {FRAMEWORK} conventions for API routes.
+
+---
+
+### 6. {FRONTEND_FRAMEWORK} Provider Setup (`{PROVIDER_COMPONENT_PATH}` + `{ROOT_LAYOUT_PATH}`)
+
+{FRONTEND_PROVIDER_SECTION}
+
+**Note**: If the project is server-only (no React/Vue/Svelte frontend), skip this section. Flowglad can be used server-side only via `flowgladServer.getBilling()` calls.
+
+---
+
+### 7. Replace Local Billing Hook (If Present) With Flowglad `useBilling`
+
+Scan the project for any **local billing hooks** or placeholder billing utilities. Typical examples:
+
+- `{MOCK_BILLING_PATH}` exporting `useBilling` and maybe helpers like `decrementUsageBalance`.
+- Components importing `useBilling` from an internal path such as `{MOCK_BILLING_IMPORT_PATH}`.
+
+Replace those imports with Flowglad's `useBilling` hook:
+
+```{LANGUAGE_EXTENSION}
+// before (template)
+import { useBilling } from '{MOCK_BILLING_IMPORT_PATH}';
+
+// after (Flowglad)
+import { useBilling } from '{FLOWGLAD_CLIENT_PACKAGE}';
 ```
-#### The Write Flow
-```mermaid
-graph RL
-    C[Your React Frontend] --> B[Your Server]
-    B --> A[Flowglad API]
+
+Make the same change everywhere the old hook was used (pricing components, navbars, dashboards, etc.).
+
+Then, **delete** the obsolete local billing implementation file(s) that only exist to support mock/local billing.
+
+Preserve all **call sites** and their semantics. Flowglad's `useBilling` is intentionally shaped to make this mostly a drop‑in replacement:
+
+- `billing.loaded`
+- `billing.loadBilling`
+- `billing.errors`
+- `billing.pricingModel`
+- `billing.currentSubscriptions`
+- `billing.checkUsageBalance(slug)`
+- `billing.checkFeatureAccess(slug)`
+- `billing.getPrice(slug)`
+- `billing.createCheckoutSession(...)`
+- `billing.cancelSubscription(...)`
+- `billing.reload()`
+
+If any component previously mutated balances locally (e.g. `decrementUsageBalance` against `localStorage`), remove that direct mutation and instead rely on:
+
+- The `/api/usage-events` route (see below) to create usage events.
+- A subsequent `billing.reload()` to refresh balances.
+
+---
+
+### 8. Billing Helper {TYPE_SYSTEM} (`{BILLING_HELPERS_PATH}`)
+
+Introduce or update billing helpers to use Flowglad's shared types.
+
+{BILLING_HELPERS_CODE}
+
+These helpers let your UI easily:
+
+- Discover usage meters and prices by slug.
+- Compute total included credits per plan.
+- Determine whether a plan is the default/free plan.
+
+---
+
+### 9. Usage Event API (`{USAGE_EVENTS_ROUTE_PATH}`)
+
+If the app tracks usage (e.g. API calls, compute time, storage, {USAGE_EXAMPLES}), introduce or update an API route that records usage via Flowglad instead of a mock store.
+
+- Path: `{USAGE_EVENTS_ROUTE_PATH}`
+
+{USAGE_EVENTS_CODE}
+
+Remove any mock logic that simply echoes back the request or stores usage locally.
+
+---
+
+### 10. UI Components That Consume Billing
+
+Make sure all billing-aware UI components are updated to use Flowglad:
+
+- `{PRICING_COMPONENT_PATH}` (or equivalent pricing UI)
+  - Import `useBilling` from `{FLOWGLAD_CLIENT_PACKAGE}`.
+  - Use `billing.pricingModel.products` to derive subscription plans (filter out default/free products, build `PricingPlan` objects).
+- `{NAVBAR_COMPONENT_PATH}` (or equivalent account menu)
+  - Import `useBilling` from `{FLOWGLAD_CLIENT_PACKAGE}`.
+  - Use `billing.currentSubscriptions?.[0]` to derive the active subscription.
+  - Use `billing.cancelSubscription` to schedule cancellations and show cancellation state.
+- `{DASHBOARD_COMPONENT_PATH}` (or equivalent dashboard)
+  - Import `useBilling` from `{FLOWGLAD_CLIENT_PACKAGE}`.
+  - Use `billing.checkUsageBalance`, `billing.checkFeatureAccess`, `billing.getPrice`, `billing.createCheckoutSession`, and `billing.reload` to:
+    - Gate access to primary features by plan.
+    - Show remaining vs total usage for each meter.
+    - Start checkouts for top‑ups or plan upgrades.
+  - Do **not** manually mutate balances; rely on Flowglad usage events + reload.
+
+If the startup repo did not previously have any billing UI, you may create a minimal pricing page and basic usage meters that follow this pattern.
+
+---
+
+### 11. Environment Variables
+
+Ensure the target project has the Flowglad environment variable configured:
+
+- `{ENV_FILE}` should include:
+
+```env
+FLOWGLAD_SECRET_KEY=sk_test_or_live_from_flowglad
 ```
 
-Similarly, mutations flow in reverse: propagating from your frontend, to your server, to our server. This allows us to deliver the data door-to-door to your frontend code, while ensuring that all the data is scoped to the specific customer.
+Do **not** hard-code secrets in code; only reference `{ENV_VAR_ACCESS}` where required by Flowglad packages (usually inside the Flowglad SDK configuration, not directly in your app code).
 
-### The Lifecycle
-Every Flowglad workflow in your app should start with an attempt to find or create the customer, and then either take an action or check the state.
+---
 
-```mermaid
-graph TD
-    A[Find or Create Customer] --> B{Action or Check}
-    B -- "Create Checkout Session" --> C[Create Checkout Session]
-    B -- "Check Feature Access" --> D[Check Feature Access]
-    B -- "Check Usage Balance" --> E[Check Usage Balance]
-```
+### 12. Final Checklist (What You Must Achieve)
 
-### Authentication Coupling
+When you are done, the project should:
 
-On your backend, Flowglad couples closely with your authentication. Workflows that involve Flowglad should first consider who the customer is that you are making requests for. All customers in your database should have corresponding customer records in Flowglad, regardless of whether they are paying.
+- **Compile and type-check** successfully.
+- **Run** with:
+  - Working authentication ({AUTH_LIBRARY} or equivalent).
+  - Flowglad billing:
+    - Pricing page shows plans derived from the Flowglad pricing model (`pricing.yaml` or equivalent).
+    - Authenticated users are mapped to Flowglad customers.
+    - Usage meters ({USAGE_METER_EXAMPLES}) are driven by Flowglad.
+    - Top‑ups and usage events are created through Flowglad, not local mocks.
+- Have **no leftover mock billing code**: no `localStorage`-based balances, no hard-coded plan entitlements, no unused billing implementations.
 
-To achieve this, start by adding a call to [/create-customer](https://docs.flowglad.com/api-reference/customer/create-customer) in your app's account creation flow.
-
-Flowglad manages the billing state for all your customers, including customers on your free plans. That management includes managing which features your customers can access and what balances they have on your product's usage meters.
-
-#### Account Creation Flow
-
-```mermaid
-graph LR
-    A["Create User<br/>(or Organization for B2B)"] --> B["Create Flowglad Customer"]
-```
-
-When you refer to your customers with Flowglad, you do so using *your* customer id, rather than ours. If your customers are individuals, use their `user.id` from your database. If your customers are businesses, teams, or other organizations, you can use their `organization.id`.
-
-<Note>
-Integrating Flowglad does not require you to make any schema changes to your database. You do not need to store a `flowglad_customer_id` or `flowglad_price_id`.
-</Note>
-
-### Implementation 
-A full integration of Flowglad consists of essentially 3 steps:
-1. Setting up your Flowglad route handler at: `/api/flowglad/(rest...)`
-2. Integrating Flowglad customer creation into your authentication flow
-3. Mounting `FlowgladProvider` in your React frontend so that you can use the `useBilling` hook
-
-The remainder of the guide will explain how to do all of that.
+Apply all necessary edits in one pass so that the resulting project is fully Flowglad‑integrated without requiring additional manual fixes.

@@ -36,6 +36,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
 import { constructIntegrationGuide } from '@/utils/pricingModels/integration-guides/constructIntegrationGuide'
 import yaml from 'json-to-pretty-yaml'
+import { getOrganizationCodebaseMarkdown } from '@/utils/textContent'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'pricingModel',
@@ -339,14 +340,18 @@ const getIntegrationGuideProcedure = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transaction, ctx }) => {
         const pricingModelData = await getPricingModelSetupData(
           input.id,
           transaction
         )
+        const codebaseContext = await getOrganizationCodebaseMarkdown(
+          ctx.organizationId!
+        )
         const integrationGuide = await constructIntegrationGuide({
           pricingModelData,
           isBackendJavascript: true,
+          codebaseContext: codebaseContext ?? undefined,
         })
         return { integrationGuide }
       }
