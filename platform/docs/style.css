@@ -46,52 +46,20 @@
   font-display: swap;
 }
 
-/* SF Pro - Body Font */
+/* SF Pro - Body Font (Variable Font with all weights) */
 @font-face {
   font-family: 'SF Pro';
-  src: url('/fonts/sf-pro/SFPro-Regular.woff2') format('woff2');
-  font-weight: 400;
+  src: url('/fonts/sf-pro/SF-Pro.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
 
-@font-face {
-  font-family: 'SF Pro';
-  src: url('/fonts/sf-pro/SFPro-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'SF Pro';
-  src: url('/fonts/sf-pro/SFPro-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Berkeley Mono - Code Font */
+/* Berkeley Mono - Code Font (Variable Font with all weights) */
 @font-face {
   font-family: 'Berkeley Mono';
-  src: url('/fonts/berkeley-mono/BerkeleyMono-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Berkeley Mono';
-  src: url('/fonts/berkeley-mono/BerkeleyMono-Medium.woff2') format('woff2');
-  font-weight: 450;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Berkeley Mono';
-  src: url('/fonts/berkeley-mono/BerkeleyMono-Bold.woff2') format('woff2');
-  font-weight: 700;
+  src: url('/fonts/berkeley-mono/Berkeley Mono Variable.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
