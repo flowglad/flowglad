@@ -5,6 +5,7 @@ import { type SupabaseFlowgladServerSessionParams } from './types'
 import { type ClerkFlowgladServerSessionParams } from './types'
 import { type BaseFlowgladServerSessionParams } from './types'
 import { type BetterAuthFlowgladServerSessionParams } from './types'
+import { type ScopedFlowgladServerParams } from './types'
 import {
   getSessionFromNextAuth,
   sessionFromSupabaseAuth,
@@ -1064,5 +1065,164 @@ describe('sessionFromBetterAuth (helper)', () => {
     await expect(sessionFromBetterAuth(params)).rejects.toThrow(
       'helper boom'
     )
+  })
+})
+
+describe('Scoped FlowgladServer variant', () => {
+  describe('getSession with scoped customerExternalId', () => {
+    it('returns customer with scoped externalId', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'org_123',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      const session = await server.getSession()
+      expect(session).toBeTruthy()
+      expect(session!.externalId).toBe('org_123')
+    })
+
+    it('skips all auth logic when scoped', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'user_456',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects: should not throw, even though no auth is configured
+      const session = await server.getSession()
+      expect(session).toBeTruthy()
+      expect(session!.externalId).toBe('user_456')
+    })
+
+    it('throws error if customerExternalId is empty string', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: '',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: customerExternalId cannot be empty'
+      )
+    })
+
+    it('throws error if customerExternalId is only whitespace', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: '   ',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: customerExternalId cannot be empty'
+      )
+    })
+  })
+
+  describe('getRequestingCustomerId with scoped customerExternalId', () => {
+    it('returns scoped externalId', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'org_123',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      const customerId = await server.getRequestingCustomerId()
+      expect(customerId).toBe('org_123')
+    })
+  })
+
+  describe('FlowgladServer methods work with scoped variant', () => {
+    it('getSession works with scoped ID', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'org_789',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      const session = await server.getSession()
+      expect(session).toBeTruthy()
+      expect(session!.externalId).toBe('org_789')
+    })
+
+    it('getRequestingCustomerId works with scoped ID', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'user_abc',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      const customerId = await server.getRequestingCustomerId()
+      expect(customerId).toBe('user_abc')
+    })
+  })
+
+  describe('Type safety: scoped params should not mix with auth params', () => {
+    it('type system prevents mixing scoped with other auth types', () => {
+      // This test validates at compile time that you cannot mix
+      // ScopedFlowgladServerParams with other auth params.
+      // If this compiles, the type system is working correctly.
+
+      const scopedParams: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'org_123',
+      }
+
+      // TypeScript should enforce this at compile time
+      expect(scopedParams).toBeTruthy()
+      expect('customerExternalId' in scopedParams).toBe(true)
+      expect('nextAuth' in scopedParams).toBe(false)
+      expect('supabaseAuth' in scopedParams).toBe(false)
+      expect('clerk' in scopedParams).toBe(false)
+      expect('betterAuth' in scopedParams).toBe(false)
+    })
+
+    it('throws error if scoped customerExternalId is mixed with nextAuth at runtime', async () => {
+      const params = {
+        apiKey: 'test',
+        customerExternalId: 'org_123',
+        nextAuth: {
+          auth: async () => ({
+            user: { email: 'a@b.com', name: 'Test' },
+          }),
+        },
+      }
+      const server = new FlowgladServer(params)
+
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: customerExternalId cannot be used with other authentication methods.'
+      )
+    })
+
+    it('throws error if scoped customerExternalId is mixed with getRequestingCustomer', async () => {
+      const params = {
+        apiKey: 'test',
+        customerExternalId: 'org_123',
+        getRequestingCustomer: async () => ({
+          externalId: 'user_1',
+          name: 'Test',
+          email: 'test@example.com',
+        }),
+      }
+      const server = new FlowgladServer(params)
+
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: customerExternalId cannot be used with other authentication methods.'
+      )
+    })
   })
 })

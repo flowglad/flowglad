@@ -96,8 +96,39 @@ export const sessionFromBetterAuth = async (
 }
 
 export const getSessionFromParams = async (
-  params: FlowgladServerSessionParams
+  params: FlowgladServerSessionParams,
+  scopedCustomerExternalId?: string
 ) => {
+  // Short-circuit for scoped variant
+  if (scopedCustomerExternalId !== undefined) {
+    // Check if any other auth provider is also present
+    const hasOtherAuth =
+      'nextAuth' in params ||
+      'supabaseAuth' in params ||
+      'clerk' in params ||
+      'betterAuth' in params ||
+      ('getRequestingCustomer' in params &&
+        params.getRequestingCustomer)
+    if (hasOtherAuth) {
+      throw new Error(
+        'FlowgladError: customerExternalId cannot be used with other authentication methods.'
+      )
+    }
+
+    if (!scopedCustomerExternalId.trim()) {
+      throw new Error(
+        'FlowgladError: customerExternalId cannot be empty'
+      )
+    }
+    // For scoped variant, we bypass all auth logic and return a minimal customer object
+    // The actual customer data will be fetched from the API when needed
+    return {
+      externalId: scopedCustomerExternalId,
+      name: '',
+      email: '',
+    } as CoreCustomerUser
+  }
+
   let coreCustomerUser: CoreCustomerUser | null = null
   const providerCount = [
     'nextAuth' in params,
@@ -110,7 +141,10 @@ export const getSessionFromParams = async (
       'FlowgladError: Only one of nextAuth, supabaseAuth, clerk, or betterAuth may be defined at a time.'
     )
   }
-  if (params.getRequestingCustomer) {
+  if (
+    'getRequestingCustomer' in params &&
+    params.getRequestingCustomer
+  ) {
     coreCustomerUser = await params.getRequestingCustomer()
   } else {
     if ('nextAuth' in params) {
