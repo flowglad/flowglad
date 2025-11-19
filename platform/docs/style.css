@@ -4,20 +4,100 @@
    TABLE OF CONTENTS
    ======================================== */
 /*
-  1. CSS Variables................Line 20
-  2. Text Colors..................Line 120
-  3. Primary Color Overrides......Line 240
-  4. Card Colors..................Line 310
-  5. Code Block Colors............Line 360
-  6. Code Syntax Highlighting.....Line 440
-  7. Border Colors................Line 560
-  8. Tab Button Borders...........Line 710
-  9. Border Radius................Line 760
-  10. Mermaid Diagrams............Line 1190
+  1. Font Declarations.............Line 20
+  2. CSS Variables.................Line 120
+  3. Text Colors...................Line 220
+  4. Primary Color Overrides.......Line 340
+  5. Card Colors...................Line 410
+  6. Code Block Colors.............Line 460
+  7. Code Syntax Highlighting......Line 540
+  8. Border Colors.................Line 660
+  9. Tab Button Borders............Line 810
+  10. Border Radius................Line 860
+  11. Mermaid Diagrams.............Line 1290
 */
 
 /* ========================================
-   1. CSS VARIABLES
+   1. FONT DECLARATIONS
+   ======================================== */
+
+/* ABC Arizona - Heading Font */
+@font-face {
+  font-family: 'ABC Arizona';
+  src: url('/fonts/abc-arizona/ABCArizona-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ABC Arizona';
+  src: url('/fonts/abc-arizona/ABCArizona-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ABC Arizona';
+  src: url('/fonts/abc-arizona/ABCArizona-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* SF Pro - Body Font */
+@font-face {
+  font-family: 'SF Pro';
+  src: url('/fonts/sf-pro/SFPro-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Pro';
+  src: url('/fonts/sf-pro/SFPro-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Pro';
+  src: url('/fonts/sf-pro/SFPro-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Berkeley Mono - Code Font */
+@font-face {
+  font-family: 'Berkeley Mono';
+  src: url('/fonts/berkeley-mono/BerkeleyMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Berkeley Mono';
+  src: url('/fonts/berkeley-mono/BerkeleyMono-Medium.woff2') format('woff2');
+  font-weight: 450;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Berkeley Mono';
+  src: url('/fonts/berkeley-mono/BerkeleyMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ========================================
+   2. CSS VARIABLES
    ======================================== */
 
 :root {
@@ -102,7 +182,206 @@ html.dark {
 }
 
 /* ========================================
-   2. TEXT COLORS
+   FONT APPLICATIONS
+   ======================================== */
+
+/* Apply SF Pro to body text and general content */
+body,
+#content-area,
+#content-area p,
+#content-area .prose,
+#content-area .prose p,
+#content-area li,
+#content-area span:not(code *),
+#sidebar,
+#navbar,
+.card p,
+.callout p {
+  font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+}
+
+/* Apply ABC Arizona to ALL headings with medium weight (EXCEPT card titles) */
+h1:not(.card h1):not(.card h2):not(.card h3):not([data-component-part="card-title"]), 
+h2:not(.card h2):not([data-component-part="card-title"]), 
+h3:not(.card h3):not([data-component-part="card-title"]), 
+h4:not(.card h4):not([data-component-part="card-title"]), 
+h5:not(.card h5):not([data-component-part="card-title"]), 
+h6:not(.card h6):not([data-component-part="card-title"]),
+h1:not(.card h1) span, 
+h2:not(.card h2) span, 
+h3:not(.card h3) span, 
+h4:not(.card h4) span, 
+h5:not(.card h5) span, 
+h6:not(.card h6) span,
+#content-area h1:not([data-component-part="card-title"]),
+#content-area h2:not([data-component-part="card-title"]),
+#content-area h3:not([data-component-part="card-title"]),
+#content-area h4:not([data-component-part="card-title"]),
+#content-area h5:not([data-component-part="card-title"]),
+#content-area h6:not([data-component-part="card-title"]),
+#content-area h1:not([data-component-part="card-title"]) span,
+#content-area h2:not([data-component-part="card-title"]) span,
+#content-area h3:not([data-component-part="card-title"]) span,
+#content-area h4:not([data-component-part="card-title"]) span,
+#content-area h5:not([data-component-part="card-title"]) span,
+#content-area h6:not([data-component-part="card-title"]) span,
+#page-title,
+#page-title span,
+#navbar h1,
+#navbar h2,
+#navbar h3,
+#navbar h1 span,
+#navbar h2 span,
+#navbar h3 span,
+#footer h1,
+#footer h2,
+#footer h3,
+#footer h1 span,
+#footer h2 span,
+#footer h3 span,
+#table-of-contents h1,
+#table-of-contents h2,
+#table-of-contents h3,
+.modal h1,
+.modal h2,
+.modal h3,
+.modal h1 span,
+.modal h2 span,
+.modal h3 span,
+.dialog h1,
+.dialog h2,
+.dialog h3,
+.dialog h1 span,
+.dialog h2 span,
+.dialog h3 span,
+.callout h1,
+.callout h2,
+.callout h3,
+.callout h1 span,
+.callout h2 span,
+.callout h3 span,
+.heading:not([data-component-part="card-title"]),
+.heading:not([data-component-part="card-title"]) span,
+.title:not([data-component-part="card-title"]),
+.title:not([data-component-part="card-title"]) span,
+[role="heading"]:not([data-component-part="card-title"]),
+[role="heading"]:not([data-component-part="card-title"]) span,
+.accordion h1,
+.accordion h2,
+.accordion h3,
+.accordion h1 span,
+.accordion h2 span,
+.accordion h3 span,
+.nav-tabs-item h1,
+.nav-tabs-item h2,
+.nav-tabs-item h3,
+.nav-tabs-item h1 span,
+.nav-tabs-item h2 span,
+.nav-tabs-item h3 span {
+  font-family: 'ABC Arizona', 'Georgia', 'Times New Roman', 'Times', serif !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+}
+
+/* Card titles use SF Pro instead of ABC Arizona */
+.card h1,
+.card h2,
+.card h3,
+.card h4,
+.card h5,
+.card h6,
+.card h1 span,
+.card h2 span,
+.card h3 span,
+.card h4 span,
+.card h5 span,
+.card h6 span,
+[data-component-part="card-title"],
+[data-component-part="card-title"] span {
+  font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: normal !important;
+}
+
+/* Eyebrow - special label style */
+.eyebrow {
+  font-family: 'Berkeley Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace !important;
+  font-weight: 450 !important;
+  font-size: 12px !important;
+}
+
+/* Sidebar Titles - Section headers (NOT navigation links) */
+#sidebar .sidebar-title,
+#sidebar-title,
+#sidebar h5[id="sidebar-title"],
+#sidebar h5:not(a):not(button),
+#sidebar h6:not(a):not(button),
+#sidebar-content .sidebar-title,
+#sidebar-content h5:not(a):not(button),
+#sidebar-content h6:not(a):not(button),
+.sidebar-group h5:not(a):not(button),
+.sidebar-group h6:not(a):not(button) {
+  font-family: 'Berkeley Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace !important;
+  font-weight: 450 !important;
+  font-size: 0.875rem !important; /* text-sm */
+}
+
+/* Apply Berkeley Mono to ALL code elements */
+code,
+pre,
+pre code,
+code span,
+pre span,
+kbd,
+samp,
+var,
+tt,
+#content-area code,
+#content-area pre,
+#content-area pre code,
+#content-area code span,
+#content-area kbd,
+#content-area samp,
+#content-area var,
+.code-block,
+.code-block code,
+.code-block pre,
+.code-block pre code,
+.code-block span,
+.code-group,
+.code-group code,
+.code-group pre,
+.code-group pre code,
+.code-group span,
+[class*="language-"],
+[class*="language-"] code,
+[class*="language-"] span,
+pre[class*="language-"],
+code[class*="language-"],
+.shiki,
+.shiki code,
+.shiki span,
+pre.shiki,
+pre.shiki code,
+pre.shiki span,
+.hljs,
+.hljs code,
+.hljs span,
+.highlight,
+.highlight code,
+.highlight pre,
+div[class*="code"] code,
+div[class*="code"] pre,
+div[class*="code"] span,
+article code,
+article pre,
+section code,
+section pre {
+  font-family: 'Berkeley Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', 'Roboto Mono', 'Droid Sans Mono', 'Source Code Pro', 'Courier New', monospace !important;
+}
+
+/* ========================================
+   3. TEXT COLORS
    ======================================== */
 
 /* PRIMARY TEXT COLORS - Headings, titles, emphasized text */
@@ -186,6 +465,24 @@ nav li a:hover {
   color: var(--text-primary) !important;
 }
 
+/* Remove tracking-tight from sidebar buttons and links */
+#sidebar a,
+#sidebar button,
+#sidebar-content a,
+#sidebar-content button,
+#navigation-items a,
+#navigation-items button,
+.sidebar a,
+.sidebar button,
+aside a,
+aside button,
+nav li a,
+nav li button,
+[role="navigation"] a,
+[role="navigation"] button {
+  letter-spacing: normal !important;
+}
+
 /* ========================================
    3. PRIMARY COLOR OVERRIDES FOR CALLOUTS
    ======================================== */
@@ -252,6 +549,28 @@ div.card-group {
 div.card,
 a.card {
   background-color: var(--bg-card) !important;
+}
+
+/* Card Icon Colors - Fix white icons in light mode */
+/* Override inline background-color on card icon SVGs to use primary text color */
+[data-component-part="card-icon"] svg[style*="background-color"],
+.card svg.bg-primary[style*="background-color"],
+.card svg[class*="bg-primary"][style*="background-color"],
+.card-group svg.bg-primary[style*="background-color"],
+.card-group svg[class*="bg-primary"][style*="background-color"],
+div[class*="card"] svg[style*="background-color"],
+a.card svg[style*="background-color"] {
+  background-color: var(--text-primary) !important;
+}
+
+/* Dark mode card icons - maintain proper contrast */
+.dark [data-component-part="card-icon"] svg[style*="background-color"],
+.dark .card svg.bg-primary[style*="background-color"],
+.dark .card svg[class*="bg-primary"][style*="background-color"],
+html.dark [data-component-part="card-icon"] svg[style*="background-color"],
+html.dark .card svg.bg-primary[style*="background-color"],
+html.dark .card svg[class*="bg-primary"][style*="background-color"] {
+  background-color: var(--text-primary) !important;
 }
 
 /* ========================================
@@ -800,7 +1119,56 @@ img {
 
 /* Modals and dialogs */
 .modal,
-.dialog {
+.dialog,
+[role="dialog"],
+[role="alertdialog"] {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Search modal container - parent of search input and backdrop */
+/* Target modal content containers that come after backdrop */
+div.fixed.inset-0 + div,
+div.fixed.inset-0 ~ div,
+div.fixed.inset-0.bg-background-dark + div,
+div.fixed.inset-0.backdrop-blur-sm + div,
+div.fixed.inset-0.backdrop-blur-sm ~ div,
+/* Target dialog roles */
+[role="dialog"],
+[role="alertdialog"],
+[role="dialog"][aria-modal="true"],
+div[role="dialog"],
+/* Target modal wrappers */
+div:has(> [role="dialog"]),
+div:has(> input[type="search"]),
+div:has(> #search-bar-entry),
+/* Target common modal container patterns */
+div[class*="flex"][class*="justify-center"],
+div[class*="fixed"][class*="z-50"],
+div.fixed.z-50,
+/* Target Radix UI dialog components */
+[data-radix-dialog-content],
+[data-radix-popper-content-wrapper],
+[data-dialog-content],
+/* Override Tailwind rounded classes on modal containers */
+div.fixed ~ div.rounded-lg,
+div.fixed ~ div.rounded-xl,
+div.fixed ~ div.rounded-2xl,
+div.fixed ~ div[class*="rounded-"],
+/* Target containers with overflow hidden (common in modals) */
+div[class*="overflow-hidden"][class*="bg-"],
+/* Broad selector for divs near backdrop */
+div[class*="backdrop"] ~ div {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Override any Tailwind rounded utility classes on modal containers */
+div.fixed.inset-0 ~ div.rounded-lg,
+div.fixed.inset-0 ~ div.rounded-xl,
+div.fixed.inset-0 ~ div.rounded-2xl,
+div.fixed.inset-0 ~ div.rounded-3xl,
+div[class*="fixed"][class*="inset"] ~ div.rounded-lg,
+div[class*="fixed"][class*="inset"] ~ div.rounded-xl,
+div[class*="fixed"][class*="inset"] ~ div.rounded-2xl {
   border-radius: var(--radius-lg) !important;
 }
 
