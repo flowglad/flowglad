@@ -357,11 +357,143 @@ Create a `.js` file in your docs directory:
 
 ## Font Customization
 
-Fonts are configured in `docs.json` via the `fonts` property.
+Fonts are configured in `docs.json` via the `fonts` property and in `style.css` for additional control.
 
-### Google Fonts (Easiest)
+### Current Font Stack
 
-Mintlify automatically loads Google Fonts:
+Our documentation uses a custom font stack:
+
+- **Headings**: ABC Arizona (serif)
+- **Body Text**: SF Pro (sans-serif)
+- **Code/Monospace**: Berkeley Mono
+
+### Local Font Setup (Current Implementation)
+
+We use local font files stored in the `fonts/` directory for optimal performance and control:
+
+**Directory Structure:**
+```
+platform/docs/
+├── fonts/
+│   ├── abc-arizona/
+│   │   ├── ABCArizona-Regular.woff2
+│   │   ├── ABCArizona-Medium.woff2
+│   │   └── ABCArizona-Bold.woff2
+│   ├── sf-pro/
+│   │   ├── SFPro-Regular.woff2
+│   │   ├── SFPro-Medium.woff2
+│   │   └── SFPro-Bold.woff2
+│   └── berkeley-mono/
+│       ├── BerkeleyMono-Regular.woff2
+│       ├── BerkeleyMono-Medium.woff2
+│       └── BerkeleyMono-Bold.woff2
+└── ...
+```
+
+**1. Configure in `docs.json`:**
+
+```json
+"fonts": {
+  "heading": {
+    "family": "ABC Arizona",
+    "source": "/fonts/abc-arizona/ABCArizona-Regular.woff2",
+    "format": "woff2",
+    "weight": 400
+  },
+  "body": {
+    "family": "SF Pro",
+    "source": "/fonts/sf-pro/SFPro-Regular.woff2",
+    "format": "woff2",
+    "weight": 400
+  }
+}
+```
+
+**2. Add `@font-face` declarations in `style.css`:**
+
+The `@font-face` rules are defined at the top of `style.css` for:
+- Multiple font weights (Regular, Medium, Bold)
+- Code/monospace fonts (Berkeley Mono - not directly supported in `docs.json`)
+- Fine-grained control over font loading
+
+```css
+@font-face {
+  font-family: 'ABC Arizona';
+  src: url('/fonts/abc-arizona/ABCArizona-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Berkeley Mono';
+  src: url('/fonts/berkeley-mono/BerkeleyMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+```
+
+**3. Apply fonts to elements in `style.css`:**
+
+```css
+/* Body text */
+body,
+#content-area,
+#content-area p {
+  font-family: 'SF Pro', -apple-system, sans-serif !important;
+}
+
+/* Headings */
+#content-area h1,
+#content-area h2,
+#page-title {
+  font-family: 'ABC Arizona', Georgia, serif !important;
+}
+
+/* Code */
+#content-area code,
+.code-block code {
+  font-family: 'Berkeley Mono', 'SF Mono', monospace !important;
+}
+```
+
+### Code Font Configuration
+
+Since Mintlify doesn't have a direct `monospace` font configuration in `docs.json`, we apply Berkeley Mono via CSS:
+
+```css
+@font-face {
+  font-family: 'Berkeley Mono';
+  src: url('/fonts/berkeley-mono/BerkeleyMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+#content-area code,
+#content-area pre,
+.code-block code {
+  font-family: 'Berkeley Mono', 'SF Mono', monospace !important;
+}
+```
+
+### Font Loading Best Practices
+
+1. **Use `font-display: swap`** - Shows fallback text immediately, swaps to custom font when loaded
+2. **Provide fallback fonts** - Ensures readability if custom fonts fail to load
+3. **Optimize file sizes** - Use WOFF2 format (best compression and browser support)
+4. **Load only needed weights** - Don't include unused font variants
+5. **Organize by family** - Keep each font family in its own subdirectory
+
+### Font File Naming Convention
+
+Follow this naming pattern for consistency:
+- `FontName-Regular.woff2`
+- `FontName-Medium.woff2`
+- `FontName-Bold.woff2`
+- `FontName-Italic.woff2` (if needed)
+
+### Google Fonts (Alternative)
+
+For non-custom fonts, Mintlify automatically loads Google Fonts:
 
 ```json
 "fonts": {
@@ -369,7 +501,7 @@ Mintlify automatically loads Google Fonts:
 }
 ```
 
-### Separate Heading and Body Fonts
+Or separate heading and body fonts:
 
 ```json
 "fonts": {
@@ -398,7 +530,9 @@ Mintlify automatically loads Google Fonts:
 }
 ```
 
-### Externally Hosted Fonts
+### Externally Hosted Fonts (Alternative)
+
+You can also reference externally hosted fonts:
 
 ```json
 {
@@ -410,6 +544,24 @@ Mintlify automatically loads Google Fonts:
   }
 }
 ```
+
+### Troubleshooting Font Issues
+
+**Issue: Fonts not loading**
+- Verify file paths in `docs.json` start with `/fonts/`
+- Check that files exist in the `fonts/` directory
+- Ensure WOFF2 format is correct
+- Clear browser cache and hard refresh
+
+**Issue: Code blocks using wrong font**
+- Check CSS selectors target `#content-area code` and `.code-block`
+- Verify `!important` flag is used to override Mintlify defaults
+- Inspect element in DevTools to see computed font-family
+
+**Issue: Font weights not working**
+- Ensure all weight variants are declared in `@font-face`
+- Check that font files include the requested weights
+- Verify `font-weight` values match file names (400, 500, 700)
 
 ---
 
