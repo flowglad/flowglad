@@ -10,7 +10,7 @@
   - @flowglad/shared@0.12.3
   - @flowglad/react@0.12.3
 
-## 0.12.1
+## 0.12.2
 
 ### Patch Changes
 
