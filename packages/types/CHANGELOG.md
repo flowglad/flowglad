@@ -1,5 +1,12 @@
 # @flowglad/types
 
+## 0.12.4
+
+### Patch Changes
+
+- flowglad server with external id
+- cbf28e2: test
+
 ## 0.12.3
 
 ### Patch Changes
