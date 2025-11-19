@@ -1,5 +1,27 @@
 # @flowglad/express
 
+## 0.12.3
+
+### Patch Changes
+
+- nextjs types
+- Updated dependencies
+  - @flowglad/server@0.12.3
+  - @flowglad/shared@0.12.3
+  - @flowglad/react@0.12.3
+
+## 0.12.1
+
+### Patch Changes
+
+- types
+- types
+- Updated dependencies
+- Updated dependencies
+  - @flowglad/server@0.12.1
+  - @flowglad/shared@0.12.1
+  - @flowglad/react@0.12.1
+
 ## 0.12.1
 
 ### Patch Changes

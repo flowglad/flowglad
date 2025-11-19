@@ -18,6 +18,9 @@ yalc.lock
 
 dist
 
+# TypeScript declaration files in source directories (should only be in dist/)
+**/src/**/*.d.ts
+
 generated/styles.ts
 .turbo
 .cursor
