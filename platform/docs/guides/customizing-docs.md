@@ -514,6 +514,22 @@ Or separate heading and body fonts:
 }
 ```
 
+### Local Fonts
+
+1. Add font files to your project (e.g., `fonts/` directory)
+2. Reference in `docs.json`:
+
+```json
+{
+  "fonts": {
+    "family": "InterDisplay",
+    "source": "/fonts/InterDisplay-Regular.woff2",
+    "format": "woff2",
+    "weight": 400
+  }
+}
+```
+
 ### Externally Hosted Fonts (Alternative)
 
 You can also reference externally hosted fonts:
