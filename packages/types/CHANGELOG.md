@@ -1,5 +1,18 @@
 # @flowglad/types
 
+## 0.12.3
+
+### Patch Changes
+
+- nextjs types
+
+## 0.12.2
+
+### Patch Changes
+
+- types
+- types
+
 ## 0.12.0
 
 ### Minor Changes

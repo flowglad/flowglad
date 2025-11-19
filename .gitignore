@@ -1,10 +1,8 @@
 node_modules
 .DS_Store
-.changeset
 .changeset-lock.json
 .changeset-lock.yaml
 .changeset-lock.yml
-.changeset-lock.json
 
 .env
 .env.local
@@ -17,6 +15,9 @@ node_modules
 yalc.lock
 
 dist
+
+# TypeScript declaration files in source directories (should only be in dist/)
+**/src/**/*.d.ts
 
 generated/styles.ts
 .turbo
