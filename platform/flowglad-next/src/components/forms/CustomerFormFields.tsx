@@ -8,6 +8,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Customer } from '@/db/schema/customers'
+import PricingModelSelect from '@/components/forms/PricingModelSelect'
 
 const CustomerFormFields = () => {
   const form = useFormContext<{
@@ -62,6 +63,10 @@ const CustomerFormFields = () => {
             <FormMessage />
           </FormItem>
         )}
+      />
+      <PricingModelSelect
+        name="customer.pricingModelId"
+        control={form.control}
       />
     </div>
   )
