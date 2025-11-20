@@ -8,7 +8,7 @@ We are trying to add payments and billing to our product using Flowglad.
 - Include **complete, working code examples** from the codebase (not snippets or pseudocode)
 - All code samples must be actual code from the codebase
 - All paths should be relative from the project root (no leading slashes)
-- If information is missing or unknown, note that it's unavailable rather than guessing
+- If information is missing note that it's unavailable rather than guessing
 
 ---
 
@@ -17,7 +17,6 @@ We are trying to add payments and billing to our product using Flowglad.
 What framework does the application use? (e.g., Next.js, Express, FastAPI, Flask, Django, Rails, etc.)
 - If Next.js: Is it using App Router (`src/app`) or Pages Router (`pages`)?
 - If Express: What version and routing pattern?
-- Include specific version numbers if detectable.
 
 What language is the server written in? (TypeScript, JavaScript, Python, Ruby, Go, etc.)
 
@@ -42,9 +41,7 @@ Provide relative paths from the project root:
 
 What authentication library/system is used? (e.g., BetterAuth, Clerk, Supabase Auth, Auth0, custom JWT, session-based, etc.)
 
-Where is the server-side auth configuration? (e.g., `src/lib/auth.ts`, `lib/auth.js`, `auth.py`)
-
-Where is the client-side auth configuration? (e.g., `src/lib/auth-client.ts`, `lib/auth-client.js`)
+Where is the server-side / client-side auth configuration? (e.g., `src/lib/auth.ts`, `lib/auth.js`, `auth.py`, `src/lib/auth-client.ts`)
 
 **Session Extraction Pattern**: How do you extract the authenticated user from a request? Include **complete code samples** showing:
 - How to get the current user/session on the server (complete function/pattern)
@@ -87,20 +84,9 @@ Include version if detectable.
 
 ## 6. Route Handler Pattern
 
-How are API routes defined in this framework?
-- Next.js App Router: `export async function GET/POST(request: Request)`
-- Next.js Pages Router: `export default function handler(req, res)`
-- Express: `app.post('/route', handler)`
-- FastAPI: `@app.post('/route')`
-- Flask: `@app.route('/route', methods=['POST'])`
-- Rails: `def create` in controller
+How are API routes defined (e.g., Next.js App or Pages Router handlers, Express routes, FastAPI/Flask decorators, Rails controllers)?
 
-How are JSON responses returned?
-- Next.js: `NextResponse.json()`
-- Express: `res.json()`
-- FastAPI: `JSONResponse()` or `return {...}`
-- Flask: `jsonify()`
-- Rails: `render json:`
+How are JSON responses returned (e.g., `NextResponse.json`, `res.json`, framework helpers)?
 
 Include a **complete code sample** showing a typical API route handler from the codebase. This should include:
 - Full function implementation
@@ -118,13 +104,13 @@ Include a **complete code sample** showing a typical API route handler from the 
 **Validation Pattern**: Show a **complete example** of how validation is typically done in API routes:
 - How are request bodies validated?
 - How are validation errors formatted and returned?
-- Include a complete code example from an existing API route showing the validation pattern
+- Show example from an existing API route (validation pattern)
 
 **Error Handling Pattern**: Show a **complete example** of how errors are typically handled in API routes:
 - How are errors caught? (try/catch, middleware, decorators, etc.)
 - How are error responses formatted?
 - What HTTP status codes are used for different error types?
-- Include a complete code example from an existing API route showing the error handling pattern
+- Show example from an existing API route (error handling pattern)
 
 ---
 
@@ -136,8 +122,6 @@ Does the project use:
 - Python with type hints
 - Ruby (no types or RBS)
 - Go with structs
-
-If TypeScript, show how types are typically imported (e.g., `import type { ... }`)
 
 ---
 
@@ -187,19 +171,16 @@ How are environment variables accessed?
 
 If there's existing mock billing code, where is it located? (e.g., `src/lib/billing.ts`, `lib/billing.js`)
 
-How is the mock billing hook/utility imported? (e.g., `import { useBilling } from '@/lib/billing'`)
+How is the mock billing hook/utility imported?
 
 **Usage Meter References**: Scan the codebase for usage meter references:
-- What usage meter slugs are referenced? (e.g., `checkUsageBalance('fast_generations')`)
-- Where are they used? (file paths)
+- What usage meter slugs are referenced, and where are they used?
 
 **Feature Toggle References**: Scan for feature toggle references:
-- What feature slugs are referenced? (e.g., `checkFeatureAccess('unlimited_relaxed_images')`)
-- Where are they used? (file paths)
+- What feature slugs are referenced, and where are they used?
 
 **Product/Price References**: Scan for product or price references:
-- What price slugs are referenced? (e.g., `getPrice('pro_monthly')`)
-- Where are they used? (file paths)
+- What price slugs are referenced, and where are they used?
 
 ---
 
@@ -213,22 +194,4 @@ How is the mock billing hook/utility imported? (e.g., `import { useBilling } fro
 
 ## Output Instructions
 
-Create a comprehensive markdown document that covers all of the above sections. For each section:
-
-1. **Provide clear, descriptive information** about how the codebase works
-2. **Include complete code examples** - not snippets, but full, working code from the codebase
-3. **Use proper markdown formatting** - headers, code blocks with language tags, lists, etc.
-4. **Be thorough** - include all relevant details that would help someone understand the codebase patterns
-5. **Note missing information** - if something doesn't exist or can't be determined, clearly state that
-
-The goal is to create a document that provides complete context about:
-- How the application is structured
-- What patterns and conventions it follows
-- How authentication works
-- How API routes are structured
-- How validation and error handling work
-- How helper functions are organized
-- How providers are composed
-- What billing-related code already exists
-
-This document will be used to generate a tailored Flowglad integration guide that matches the codebase's existing patterns and conventions.
+Produce one markdown document covering every section above with complete, working code pulled from the repository (no snippets or pseudocode). Use headers, code fences, relative paths, and explicitly mark any unavailable information. This document powers the Flowglad integration guide, so be thorough.
