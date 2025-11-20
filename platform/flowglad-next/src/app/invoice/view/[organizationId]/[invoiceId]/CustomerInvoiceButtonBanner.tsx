@@ -51,7 +51,7 @@ export const CustomerInvoiceDownloadReceiptButtonBanner = ({
   invoice: Invoice.Record
 }) => {
   return (
-    <div className="space-y-4">
+    <div className="w-full flex items-center justify-between">
       {invoice.pdfURL && (
         <Button
           onClick={() => {
