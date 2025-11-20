@@ -36,11 +36,57 @@ export function PricingModelIntegrationGuideModal({
     useState(false)
   const isConsumingRef = useRef(false)
   const currentDataRef = useRef<typeof data | null>(null)
+  const latestDataRef = useRef<typeof data | null>(null)
   const pricingModelIdRef = useRef(pricingModelId)
   const shouldClearOnNextStreamRef = useRef(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // Helper function to consume a stream, can be called recursively
+  const consumeStreamHelper = async (
+    dataToProcess: typeof data,
+    shouldClear: boolean
+  ) => {
+    if (!dataToProcess) return
+
+    try {
+      let accumulated = ''
+      let firstChunkReceived = false
+      for await (const chunk of dataToProcess) {
+        accumulated += chunk
+        if (!firstChunkReceived) {
+          firstChunkReceived = true
+          // On first chunk, replace old content (if any) with new stream
+          // This ensures smooth transition without flickering
+          setIntegrationGuide(accumulated)
+          setHasReceivedFirstChunk(true)
+        } else {
+          // Continue updating with accumulated content
+          setIntegrationGuide(accumulated)
+        }
+      }
+    } catch (error) {
+      console.error('Error consuming stream:', error)
+    } finally {
+      isConsumingRef.current = false
+      // After consuming finishes, check if new data arrived while we were processing
+      // This handles the case where a new stream arrives after the previous one finishes
+      const latestData = latestDataRef.current
+      if (latestData && latestData !== dataToProcess) {
+        // New data arrived while we were processing, process it recursively
+        currentDataRef.current = latestData
+        isConsumingRef.current = true
+        // Use setTimeout to avoid synchronous recursion and allow React to update
+        setTimeout(() => {
+          consumeStreamHelper(latestData, false)
+        }, 0)
+      }
+    }
+  }
+
   useEffect(() => {
+    // Update latestDataRef whenever data changes
+    latestDataRef.current = data
+
     // Reset state when pricingModelId changes
     if (pricingModelIdRef.current !== pricingModelId) {
       setIntegrationGuide('')
@@ -72,7 +118,8 @@ export function PricingModelIntegrationGuideModal({
 
     // Mark this data as being processed
     const shouldClear = shouldClearOnNextStreamRef.current
-    currentDataRef.current = data
+    const dataToProcess = data
+    currentDataRef.current = dataToProcess
     isConsumingRef.current = true
     shouldClearOnNextStreamRef.current = false
 
@@ -84,32 +131,7 @@ export function PricingModelIntegrationGuideModal({
     // For refetches: keep existing content visible (don't clear or change hasReceivedFirstChunk)
     // This prevents flickering - old content stays visible until first chunk replaces it
 
-    // Handle async iterable from streaming query
-    const consumeStream = async () => {
-      try {
-        let accumulated = ''
-        let firstChunkReceived = false
-        for await (const chunk of data) {
-          accumulated += chunk
-          if (!firstChunkReceived) {
-            firstChunkReceived = true
-            // On first chunk, replace old content (if any) with new stream
-            // This ensures smooth transition without flickering
-            setIntegrationGuide(accumulated)
-            setHasReceivedFirstChunk(true)
-          } else {
-            // Continue updating with accumulated content
-            setIntegrationGuide(accumulated)
-          }
-        }
-      } catch (error) {
-        console.error('Error consuming stream:', error)
-      } finally {
-        isConsumingRef.current = false
-      }
-    }
-
-    consumeStream()
+    consumeStreamHelper(dataToProcess, shouldClear)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, isOpen, pricingModelId])
 

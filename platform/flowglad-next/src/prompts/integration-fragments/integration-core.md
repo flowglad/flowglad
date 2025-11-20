@@ -53,35 +53,19 @@ Update `{PACKAGE_FILE}` to add the Flowglad SDK packages. Prefer using published
 
 {PACKAGE_DEPENDENCIES_CODE}
 
+Note: the Flowglad SDKs are currently for Typescript only. The current latest version is 0.12.4.
+
+Here's what they should install depending on their project:
+- Next.js: @flowglad/nextjs
+- Express: @flowglad/express
+- React: @flowglad/react (note: if they're using Next.js, DO NOT INSTALL @flowglad/react - just use @flowglad/nextjs as it includes /react as a dependency)
+- Any non-Express, non-Next.js Typescript backend: @flowglad/server (note: if they're using Express or Next.js - just use the respective packages, DO NOT INSTALL @flowglad/server as it includes @flowglad/server as a dependency)
+
 If you are integrating Flowglad from a **local monorepo** instead of npm, you may instead use `"file:..."` or workspace references. Adjust the versions/paths accordingly.
 
 {PACKAGE_SCRIPTS_CODE}
 
 Do **not** remove unrelated scripts or dependencies; only add/adjust what's required for Flowglad.
-
----
-
-### 3. Pricing Model Configuration (`pricing.yaml`)
-
-Ensure there is a **Flowglad pricing model** that describes your subscription business model. The simplest pattern is to keep a `pricing.yaml` file in the project root (next to `{PACKAGE_FILE}`) that you can upload to the Flowglad dashboard.
-
-At minimum, your pricing model should define:
-
-- **`features`**:
-  - `usage_credit_grant` items for each usage meter in your product ({USAGE_METER_SLUGS}).
-  - `toggle` items for boolean features ({FEATURE_TOGGLE_SLUGS}).
-- **`products`**:
-  - Subscription products ({PRODUCT_NAMES}), each with:
-    - A subscription price (`type: "subscription"`, `unitPrice`, `slug`).
-    - A list of feature slugs that reference the `features` defined above.
-  - Top-up and usage products (if applicable):
-    - Top-up products for purchasing additional credits.
-    - Usage price products that define cost per usage event for each usage meter.
-    - Usage prices must tie to `usageMeters` via `usageMeterSlug`.
-- **`usageMeters`**:
-  - Define all usage meters your product tracks ({USAGE_METER_DEFINITIONS}).
-
-If the target project already has a `pricing.yaml` or similar, **normalize its structure** to follow this pattern so helpers and UI code can rely on a consistent shape.
 
 ---
 

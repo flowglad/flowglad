@@ -249,9 +249,28 @@ Please fill in all template placeholders based on the codebase context and prici
     }
 
     // Yield content after opening tags are processed
+    // Trim closing fences before yielding to prevent streaming closing markers
     if (openingTagProcessed && buffer.length > 0) {
-      yield buffer
-      buffer = ''
+      // Check if buffer ends with a closing fence marker (after trimming whitespace)
+      const trimmedEnd = buffer.trimEnd()
+      if (trimmedEnd.endsWith('```')) {
+        // Find the last occurrence of ``` in the buffer
+        const lastFenceIndex = buffer.lastIndexOf('```')
+        // Extract content before the closing fence
+        const contentBeforeFence = buffer
+          .slice(0, lastFenceIndex)
+          .trimEnd()
+        // Yield content before the fence (if any)
+        if (contentBeforeFence.length > 0) {
+          yield contentBeforeFence
+        }
+        // Discard the closing fence and any trailing content
+        buffer = ''
+      } else {
+        // No closing fence detected, yield the buffer as-is
+        yield buffer
+        buffer = ''
+      }
     }
   }
 
@@ -292,12 +311,18 @@ export const constructIntegrationGuide = async ({
   // If codebaseContext is provided, use AI to synthesize the guide
   // Otherwise, return the template as-is (backward compatibility)
   if (codebaseContext) {
-    const synthesizedGuide = await synthesizeIntegrationGuide({
-      template: templateWithFragments,
-      codebaseContext,
-      pricingModelYaml,
-    })
-    return synthesizedGuide
+    try {
+      const synthesizedGuide = await synthesizeIntegrationGuide({
+        template: templateWithFragments,
+        codebaseContext,
+        pricingModelYaml,
+      })
+      return synthesizedGuide
+    } catch (error) {
+      // Fall back to locally generated template on transient LLM errors
+      console.error('Error synthesizing integration guide:', error)
+      return templateWithFragments
+    }
   }
 
   // Fallback to original behavior when no codebaseContext is provided
