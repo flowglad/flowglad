@@ -247,7 +247,43 @@ const FormModal = <T extends FieldValues>({
   const id = useId()
   const router = useRouter()
   const form = useForm<T>({
-    resolver: zodResolver(formSchema),
+    resolver: async (data, context, options) => {
+      try {
+        return await zodResolver(formSchema)(data, context, options)
+      } catch (error) {
+        // Catch any errors thrown by zodResolver
+        // This prevents unhandled errors from escaping to React's error boundary
+        console.error('Form validation error:', error)
+        const fieldErrors: Record<string, any> = {}
+        if (error && typeof error === 'object' && 'issues' in error) {
+          const zodError = error as any
+          zodError.issues?.forEach((issue: any) => {
+            const path = issue.path.join('.')
+            if (path) {
+              fieldErrors[path] = {
+                type: 'manual',
+                message: issue.message,
+              }
+            }
+          })
+        }
+        return {
+          values: {},
+          errors:
+            Object.keys(fieldErrors).length > 0
+              ? fieldErrors
+              : {
+                  root: {
+                    type: 'manual',
+                    message:
+                      error instanceof Error
+                        ? error.message
+                        : 'Validation failed',
+                  },
+                },
+        }
+      }
+    },
     defaultValues,
   })
   const {
