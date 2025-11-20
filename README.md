@@ -39,9 +39,6 @@
 </p>
 <div align="center">
   <p>
-    The payment processor for natural language programming.
-  </p>
-  <p>
     Infinite pricing models, one source of truth, zero webhooks.
   </p>
 </div>
