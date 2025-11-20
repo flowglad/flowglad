@@ -5,7 +5,7 @@ import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
 import { PriceType } from '@/types'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 
 interface SubscriptionCheckoutSuccessPageProps {
   checkoutSession: CheckoutSession.Record
@@ -44,11 +44,27 @@ const SubscriptionCheckoutSuccessPage = async ({
       innerPrice = result.price
     }
   }
+
+  // Get customer email from customer record (same source the email system uses)
+  let customerEmail: string | null = null
+  if (checkoutSession.customerId) {
+    const customer = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomerById(
+          checkoutSession.customerId!,
+          transaction
+        )
+      }
+    )
+    customerEmail = customer?.email || null
+  }
+
   if (innerPrice?.type === PriceType.Usage) {
     return (
       <SuccessPageContainer
         title="Thanks for subscribing"
         message={`A payment to ${innerOrganization.name} will appear on your statement, based on your usage.`}
+        customerEmail={customerEmail}
       />
     )
   }
@@ -56,6 +72,7 @@ const SubscriptionCheckoutSuccessPage = async ({
     <SuccessPageContainer
       title="Thanks for subscribing"
       message={`A payment to ${innerOrganization.name} will appear on your statement.`}
+      customerEmail={customerEmail}
     />
   )
 }
