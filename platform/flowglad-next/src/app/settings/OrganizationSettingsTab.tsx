@@ -213,7 +213,7 @@ const OrganizationSettingsTab = () => {
             }
             onChange={(e) => setCodebaseMarkdownValue(e.target.value)}
             placeholder="Paste codebase analysis here..."
-            className="font-mono text-sm"
+            textareaClassName="min-h-[150px] font-mono text-sm"
             disabled={isLoadingMarkdown}
           />
           <div className="flex justify-end">
