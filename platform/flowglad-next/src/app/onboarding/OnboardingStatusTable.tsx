@@ -238,7 +238,7 @@ const OnboardingStatusTable = ({
               className="w-full"
               onClick={() => {
                 window.open(
-                  'https://docs.flowglad.com/setup-by-prompt#2-one-shot-integration',
+                  'https://docs.flowglad.com/integrate-by-prompt',
                   '_blank'
                 )
               }}

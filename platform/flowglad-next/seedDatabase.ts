@@ -192,6 +192,7 @@ export const setupOrg = async (params?: {
       },
       transaction
     )
+
     // Create both live and testmode default pricing models
     const livePricingModel = await insertPricingModel(
       {

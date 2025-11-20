@@ -8,6 +8,8 @@ export {
   FlowgladServerAdmin,
   createRequestHandler,
   RequestHandlerError,
+  verifyWebhook,
+  WebhookVerificationError,
   type RequestHandlerOptions,
   type RequestHandlerInput,
   type RequestHandlerOutput,
