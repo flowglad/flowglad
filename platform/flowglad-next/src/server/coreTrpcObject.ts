@@ -7,6 +7,9 @@ import { extractErrorDetails } from './trpcErrorHandler'
 
 export const t = initTRPC.meta<OpenApiMeta>().create({
   transformer: superjson,
+  jsonl: {
+    pingMs: 1000,
+  },
   errorFormatter({ shape, error }) {
     // Extract better error details from our enhanced errors
     const errorDetails = extractErrorDetails(error)

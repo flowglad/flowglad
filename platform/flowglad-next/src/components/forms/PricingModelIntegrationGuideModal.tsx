@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { DetailLabel } from '@/components/DetailLabel'
 import { trpc } from '@/app/_trpc/client'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { useEffect, useState, useRef } from 'react'
 
 interface PricingModelIntegrationGuideModalProps {
   isOpen: boolean
@@ -30,7 +31,103 @@ export function PricingModelIntegrationGuideModal({
       { enabled: isOpen }
     )
 
-  const integrationGuide = data?.integrationGuide ?? ''
+  const [integrationGuide, setIntegrationGuide] = useState('')
+  const [hasReceivedFirstChunk, setHasReceivedFirstChunk] =
+    useState(false)
+  const isConsumingRef = useRef(false)
+  const currentDataRef = useRef<typeof data | null>(null)
+  const pricingModelIdRef = useRef(pricingModelId)
+  const shouldClearOnNextStreamRef = useRef(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    // Reset state when pricingModelId changes
+    if (pricingModelIdRef.current !== pricingModelId) {
+      setIntegrationGuide('')
+      setHasReceivedFirstChunk(false)
+      currentDataRef.current = null
+      isConsumingRef.current = false
+      shouldClearOnNextStreamRef.current = true
+      pricingModelIdRef.current = pricingModelId
+    }
+
+    // Reset state when modal closes
+    if (!isOpen) {
+      setIntegrationGuide('')
+      setHasReceivedFirstChunk(false)
+      currentDataRef.current = null
+      isConsumingRef.current = false
+      shouldClearOnNextStreamRef.current = true
+      return
+    }
+
+    // Only process if we have data and haven't processed this data yet
+    if (
+      !data ||
+      data === currentDataRef.current ||
+      isConsumingRef.current
+    ) {
+      return
+    }
+
+    // Mark this data as being processed
+    const shouldClear = shouldClearOnNextStreamRef.current
+    currentDataRef.current = data
+    isConsumingRef.current = true
+    shouldClearOnNextStreamRef.current = false
+
+    // Only clear content if we're starting fresh (new pricing model or modal just opened)
+    if (shouldClear) {
+      setIntegrationGuide('')
+      setHasReceivedFirstChunk(false)
+    }
+    // For refetches: keep existing content visible (don't clear or change hasReceivedFirstChunk)
+    // This prevents flickering - old content stays visible until first chunk replaces it
+
+    // Handle async iterable from streaming query
+    const consumeStream = async () => {
+      try {
+        let accumulated = ''
+        let firstChunkReceived = false
+        for await (const chunk of data) {
+          accumulated += chunk
+          if (!firstChunkReceived) {
+            firstChunkReceived = true
+            // On first chunk, replace old content (if any) with new stream
+            // This ensures smooth transition without flickering
+            setIntegrationGuide(accumulated)
+            setHasReceivedFirstChunk(true)
+          } else {
+            // Continue updating with accumulated content
+            setIntegrationGuide(accumulated)
+          }
+        }
+      } catch (error) {
+        console.error('Error consuming stream:', error)
+      } finally {
+        isConsumingRef.current = false
+      }
+    }
+
+    consumeStream()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, isOpen, pricingModelId])
+
+  // Auto-scroll to bottom while streaming
+  useEffect(() => {
+    if (
+      isConsumingRef.current &&
+      textareaRef.current &&
+      integrationGuide
+    ) {
+      const textarea = textareaRef.current
+      // Use requestAnimationFrame for smooth scrolling after DOM update
+      requestAnimationFrame(() => {
+        textarea.scrollTop = textarea.scrollHeight
+      })
+    }
+  }, [integrationGuide])
+
   const copyHandler = useCopyTextHandler({ text: integrationGuide })
 
   return (
@@ -55,21 +152,29 @@ export function PricingModelIntegrationGuideModal({
                     variant="outline"
                     size="sm"
                     onClick={copyHandler}
-                    disabled={isLoading || !integrationGuide}
+                    disabled={
+                      isLoading ||
+                      !hasReceivedFirstChunk ||
+                      !integrationGuide
+                    }
                   >
                     Copy to Clipboard
                   </Button>
                 </div>
                 <div className="flex-1 min-h-[400px] flex flex-col relative">
                   <Textarea
+                    ref={textareaRef}
                     id="integration-guide"
                     readOnly
                     value={
-                      isLoading ? 'Loading...' : integrationGuide
+                      isLoading && !integrationGuide
+                        ? 'Loading integration guide...'
+                        : integrationGuide ||
+                          'Loading integration guide...'
                     }
                     placeholder="No integration guide available"
                     className="absolute inset-0 font-mono text-sm"
-                    textareaClassName="h-full w-full resize-none min-h-0"
+                    textareaClassName="h-full w-full resize-none min-h-0 overflow-y-auto"
                   />
                 </div>
               </div>

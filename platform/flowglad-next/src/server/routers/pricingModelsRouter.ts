@@ -34,7 +34,10 @@ import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { TRPCError } from '@trpc/server'
 import { adminTransaction } from '@/db/adminTransaction'
 import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
-import { constructIntegrationGuide } from '@/utils/pricingModels/integration-guides/constructIntegrationGuide'
+import {
+  constructIntegrationGuide,
+  constructIntegrationGuideStream,
+} from '@/utils/pricingModels/integration-guides/constructIntegrationGuide'
 import yaml from 'json-to-pretty-yaml'
 import { getOrganizationCodebaseMarkdown } from '@/utils/textContent'
 
@@ -331,32 +334,31 @@ const exportPricingModelProcedure = protectedProcedure
 
 const getIntegrationGuideProcedure = protectedProcedure
   .input(idInputSchema)
-  .output(
-    z.object({
-      integrationGuide: z
-        .string()
-        .describe('Integration guide for the pricing model'),
+  .query(async function* ({ input, ctx }) {
+    // Fetch data within a transaction first
+    const { pricingModelData, codebaseContext } =
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const pricingModelData = await getPricingModelSetupData(
+            input.id,
+            transaction
+          )
+          const codebaseContext =
+            await getOrganizationCodebaseMarkdown(ctx.organizationId!)
+          return { pricingModelData, codebaseContext }
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+
+    // Then stream the AI-generated content (doesn't need transaction)
+    yield* constructIntegrationGuideStream({
+      pricingModelData,
+      isBackendJavascript: true,
+      codebaseContext: codebaseContext ?? undefined,
     })
-  )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transaction, ctx }) => {
-        const pricingModelData = await getPricingModelSetupData(
-          input.id,
-          transaction
-        )
-        const codebaseContext = await getOrganizationCodebaseMarkdown(
-          ctx.organizationId!
-        )
-        const integrationGuide = await constructIntegrationGuide({
-          pricingModelData,
-          isBackendJavascript: true,
-          codebaseContext: codebaseContext ?? undefined,
-        })
-        return { integrationGuide }
-      }
-    )
-  )
+  })
 
 export const pricingModelsRouter = router({
   list: listPricingModelsProcedure,
