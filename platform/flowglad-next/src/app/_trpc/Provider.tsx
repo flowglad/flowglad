@@ -3,7 +3,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import { httpBatchLink } from '@trpc/client'
+import { httpBatchStreamLink } from '@trpc/client'
 import React, { useState } from 'react'
 
 import { trpc } from './client'
@@ -33,7 +33,7 @@ export default function Provider({
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [
-        httpBatchLink({
+        httpBatchStreamLink({
           url: `${core.envVariable('APP_URL')}/api/trpc`,
           transformer: SuperJSON,
         }),

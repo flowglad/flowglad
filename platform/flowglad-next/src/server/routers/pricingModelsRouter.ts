@@ -34,7 +34,12 @@ import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { TRPCError } from '@trpc/server'
 import { adminTransaction } from '@/db/adminTransaction'
 import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
+import {
+  constructIntegrationGuide,
+  constructIntegrationGuideStream,
+} from '@/utils/pricingModels/integration-guides/constructIntegrationGuide'
 import yaml from 'json-to-pretty-yaml'
+import { getOrganizationCodebaseMarkdown } from '@/utils/textContent'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'pricingModel',
@@ -327,6 +332,34 @@ const exportPricingModelProcedure = protectedProcedure
     )
   )
 
+const getIntegrationGuideProcedure = protectedProcedure
+  .input(idInputSchema)
+  .query(async function* ({ input, ctx }) {
+    // Fetch data within a transaction first
+    const { pricingModelData, codebaseContext } =
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const pricingModelData = await getPricingModelSetupData(
+            input.id,
+            transaction
+          )
+          const codebaseContext =
+            await getOrganizationCodebaseMarkdown(ctx.organizationId!)
+          return { pricingModelData, codebaseContext }
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+
+    // Then stream the AI-generated content (doesn't need transaction)
+    yield* constructIntegrationGuideStream({
+      pricingModelData,
+      isBackendJavascript: true,
+      codebaseContext: codebaseContext ?? undefined,
+    })
+  })
+
 export const pricingModelsRouter = router({
   list: listPricingModelsProcedure,
   setup: setupPricingModelProcedure,
@@ -337,4 +370,5 @@ export const pricingModelsRouter = router({
   clone: clonePricingModelProcedure,
   getTableRows: getTableRowsProcedure,
   export: exportPricingModelProcedure,
+  getIntegrationGuide: getIntegrationGuideProcedure,
 })
