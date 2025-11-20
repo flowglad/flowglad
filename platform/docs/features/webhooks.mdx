@@ -93,7 +93,165 @@ Every webhook has a unique signing secret per environment. Flowglad sends three 
 - `svix-timestamp`: Unix timestamp (seconds) when the attempt started.
 - `svix-signature`: HMAC SHA-256 signature computed over `<id>.<timestamp>.<raw-body>` using your secret, base64 encoded. Format: `v1,<base64-signature>`.
 
-Verify each request before acting on it. Example (Express + Node):
+**Always verify webhook signatures before processing events.** This ensures the request came from Flowglad and hasn't been tampered with.
+
+### Verification using SDK (Recommended)
+
+Flowglad provides a `verifyWebhook` function in all server SDKs to simplify verification. The function automatically handles signature validation, timestamp checks, and returns the parsed payload.
+
+#### Next.js App Router
+
+```ts
+// app/api/webhook/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyWebhook, WebhookVerificationError } from '@flowglad/nextjs/server'
+
+export async function POST(request: NextRequest) {
+  try {
+    // Get raw body as string (use .text(), not .json())
+    const rawBody = await request.text()
+    
+    // Convert headers to plain object
+    const headers: Record<string, string> = {}
+    request.headers.forEach((value, key) => {
+      headers[key] = value
+    })
+    
+    const payload = verifyWebhook(
+      rawBody,
+      headers,
+      process.env.FLOWGLAD_WEBHOOK_SECRET!
+    )
+    
+    // Process verified payload...
+    console.log('Verified webhook:', payload)
+    
+    return NextResponse.json({ received: true })
+  } catch (err) {
+    if (err instanceof WebhookVerificationError) {
+      return NextResponse.json(
+        { error: 'Invalid webhook' },
+        { status: 400 }
+      )
+    }
+    throw err
+  }
+}
+```
+
+#### Next.js Pages Router
+
+```ts
+// pages/api/webhook.ts
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { verifyWebhook, WebhookVerificationError } from '@flowglad/nextjs/server'
+
+// Disable default body parser to get raw body
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+  
+  try {
+    // Get raw body as Buffer
+    const chunks: Buffer[] = []
+    for await (const chunk of req) {
+      chunks.push(chunk)
+    }
+    const rawBody = Buffer.concat(chunks)
+    
+    const payload = verifyWebhook(
+      rawBody,
+      req.headers,
+      process.env.FLOWGLAD_WEBHOOK_SECRET!
+    )
+    
+    // Process verified payload...
+    console.log('Verified webhook:', payload)
+    
+    res.status(200).json({ received: true })
+  } catch (err) {
+    if (err instanceof WebhookVerificationError) {
+      return res.status(400).json({ error: 'Invalid webhook' })
+    }
+    throw err
+  }
+}
+```
+
+#### Express.js
+
+Make sure to use `express.raw()` middleware for your webhook route. This preserves the raw request body, which is required for signature verification.
+
+```ts
+import express from 'express'
+import { verifyWebhook, WebhookVerificationError } from '@flowglad/express'
+
+const app = express()
+
+// Configure raw body parser for webhook route ONLY
+// This preserves the raw body needed for signature verification
+app.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    try {
+      // req.body is now a Buffer (raw body)
+      const payload = verifyWebhook(
+        req.body, // Buffer from express.raw()
+        req.headers,
+        process.env.FLOWGLAD_WEBHOOK_SECRET!
+      )
+      
+      // Process verified payload...
+      // payload is typed as 'unknown' - validate/type it based on your event structure
+      console.log('Verified webhook:', payload)
+      
+      res.status(200).json({ received: true })
+    } catch (err) {
+      if (err instanceof WebhookVerificationError) {
+        return res.status(400).json({ error: 'Invalid webhook' })
+      }
+      throw err
+    }
+  }
+)
+```
+
+#### Timestamp Validation
+
+By default, `verifyWebhook` validates that webhooks are no older than 5 minutes to prevent replay attacks. You can customize this:
+
+```ts
+// Custom tolerance (10 minutes)
+const payload = verifyWebhook(
+  rawBody,
+  headers,
+  process.env.FLOWGLAD_WEBHOOK_SECRET!,
+  600 // 10 minutes in seconds
+)
+
+// Disable timestamp validation (for testing only, not recommended for production)
+const payload = verifyWebhook(
+  rawBody,
+  headers,
+  process.env.FLOWGLAD_WEBHOOK_SECRET!,
+  null // Explicitly disable
+)
+```
+
+### Manual Verification (Without SDK)
+
+If you're not using a Flowglad SDK, you can verify webhooks manually. Here's how the signature verification works:
 
 ```ts
 import crypto from 'crypto'
@@ -139,11 +297,27 @@ export async function flowgladWebhookHandler(req: Request, res: Response) {
     return res.status(400).send('Invalid signature format')
   }
   
+  // Use timing-safe comparison to prevent timing attacks
   if (!crypto.timingSafeEqual(Buffer.from(sig, 'base64'), Buffer.from(expected, 'base64'))) {
     return res.status(400).send('Invalid signature')
   }
 
-  // Process req.body here
+  // Verify timestamp (optional but recommended)
+  const webhookTime = parseInt(timestamp, 10)
+  const currentTime = Math.floor(Date.now() / 1000)
+  const age = currentTime - webhookTime
+  
+  // Reject if older than 5 minutes
+  if (age > 300) {
+    return res.status(400).send('Webhook timestamp is too old')
+  }
+  
+  // Reject if timestamp is too far in future (clock skew protection)
+  if (webhookTime > currentTime + 60) {
+    return res.status(400).send('Webhook timestamp is too far in the future')
+  }
+
+  // Process verified payload here
   res.status(204).end()
 }
 ```
