@@ -208,6 +208,7 @@ const OrganizationSettingsTab = () => {
         defaultValues={{
           markdown: codebaseMarkdown ?? '',
         }}
+        submitButtonText="Save"
         onSubmit={async (data) => {
           await updateCodebaseMarkdownMutation.mutateAsync({
             markdown: data.markdown,
