@@ -62,15 +62,15 @@ export const CustomerInvoiceDownloadReceiptButtonBanner = ({
         </Button>
       )}
 
-      {/* {invoice.receiptPdfURL && ( */}
-      <Button
-        onClick={() => {
-          window.open(invoice.receiptPdfURL!, '_blank')
-        }}
-      >
-        Download receipt
-      </Button>
-      {/* )} */}
+      {invoice.receiptPdfURL && (
+        <Button
+          onClick={() => {
+            window.open(invoice.receiptPdfURL!, '_blank')
+          }}
+        >
+          Download receipt
+        </Button>
+      )}
     </div>
   )
 }
