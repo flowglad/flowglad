@@ -23,6 +23,7 @@ const OrganizationSettingsTab = () => {
   const [codebaseMarkdownValue, setCodebaseMarkdownValue] =
     useState('')
   const hasInitializedRef = useRef(false)
+  const lastOrgIdRef = useRef<string | null>(null)
 
   const trpcContext = trpc.useContext()
   const utils = trpc.useUtils()
@@ -58,8 +59,15 @@ const OrganizationSettingsTab = () => {
       },
     })
 
-  // Initialize the state when data is loaded
+  // Initialize the state when data is loaded or organization changes
   useEffect(() => {
+    // Reset initialization flag when organization changes
+    if (organization?.id !== lastOrgIdRef.current) {
+      lastOrgIdRef.current = organization?.id ?? null
+      hasInitializedRef.current = false
+    }
+
+    // Initialize state with server data
     if (
       codebaseMarkdown !== undefined &&
       !hasInitializedRef.current
@@ -67,7 +75,7 @@ const OrganizationSettingsTab = () => {
       setCodebaseMarkdownValue(codebaseMarkdown ?? '')
       hasInitializedRef.current = true
     }
-  }, [codebaseMarkdown])
+  }, [organization?.id, codebaseMarkdown])
 
   const handleSaveCodebase = async () => {
     await updateCodebaseMarkdownMutation.mutateAsync({
