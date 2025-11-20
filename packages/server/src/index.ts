@@ -8,3 +8,4 @@ export {
   type RequestHandlerOutput,
   type RequestHandlerOptions,
 } from './requestHandler'
+export { verifyWebhook, WebhookVerificationError } from './webhook'
