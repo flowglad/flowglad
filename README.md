@@ -62,7 +62,10 @@ First, install the packages necessary Flowglad packages based on your project se
 # Next.js Projects
 bun add @flowglad/nextjs
 
-# Vite Projects
+# React + Express projects:
+bun add @flowglad/react @flowglad/express
+
+# All other React + Node Projects
 bun add @flowglad/react @flowglad/server
 ```
 
