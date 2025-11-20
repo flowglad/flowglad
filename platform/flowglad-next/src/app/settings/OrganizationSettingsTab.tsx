@@ -44,7 +44,7 @@ const CodebaseMarkdownFormFields = () => {
           size="sm"
           onClick={copyPromptHandler}
         >
-          Copy analysis prompt
+          Copy prompt
         </Button>
         <Button
           type="button"
@@ -69,7 +69,7 @@ const CodebaseMarkdownFormFields = () => {
             <FormControl>
               <Textarea
                 {...field}
-                placeholder="Enter your codebase overview..."
+                placeholder="Paste your codebase overview output here..."
                 className="font-mono text-sm"
               />
             </FormControl>

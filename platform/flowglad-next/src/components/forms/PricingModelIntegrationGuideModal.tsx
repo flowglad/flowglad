@@ -13,6 +13,7 @@ import { DetailLabel } from '@/components/DetailLabel'
 import { trpc } from '@/app/_trpc/client'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { useEffect, useState, useRef } from 'react'
+import Link from 'next/link'
 
 interface PricingModelIntegrationGuideModalProps {
   isOpen: boolean
@@ -25,10 +26,20 @@ export function PricingModelIntegrationGuideModal({
   setIsOpen,
   pricingModelId,
 }: PricingModelIntegrationGuideModalProps) {
+  const { data: codebaseMarkdown, isLoading: isLoadingCodebase } =
+    trpc.organizations.getCodebaseMarkdown.useQuery(undefined, {
+      enabled: isOpen,
+    })
+
+  const hasCodebaseOverview =
+    !isLoadingCodebase &&
+    typeof codebaseMarkdown === 'string' &&
+    codebaseMarkdown.trim() !== ''
+
   const { data, isLoading } =
     trpc.pricingModels.getIntegrationGuide.useQuery(
       { id: pricingModelId },
-      { enabled: isOpen }
+      { enabled: isOpen && hasCodebaseOverview }
     )
 
   const [integrationGuide, setIntegrationGuide] = useState('')
@@ -151,6 +162,31 @@ export function PricingModelIntegrationGuideModal({
   }, [integrationGuide])
 
   const copyHandler = useCopyTextHandler({ text: integrationGuide })
+
+  // Show empty state if codebase overview is missing
+  if (!isLoadingCodebase && !hasCodebaseOverview) {
+    return (
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-5xl">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Integration Guide</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8">
+            <p className="text-center text-muted-foreground">
+              In order to generate your integration guide for this
+              pricing model, first complete the codebase analysis in{' '}
+              <Link
+                href="/settings"
+                className="text-primary underline"
+              >
+                /settings
+              </Link>
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
