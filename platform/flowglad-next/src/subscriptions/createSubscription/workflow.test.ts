@@ -37,16 +37,15 @@ import {
   CurrencyCode,
   FeatureType,
   FeatureUsageGrantFrequency,
-  LedgerEntryType,
   DiscountAmountType,
   LedgerTransactionType,
+  CancellationReason,
 } from '@/types'
 import { Price } from '@/db/schema/prices'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { core } from '@/utils/core'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
-import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { Organization } from '@/db/schema/organizations'
 import { Product } from '@/db/schema/products'
 import { Customer } from '@/db/schema/customers'
@@ -56,19 +55,14 @@ import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import { BillingPeriod } from '@/db/schema/billingPeriods'
 import { BillingRun } from '@/db/schema/billingRuns'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import {
-  selectLedgerEntries,
-  aggregateBalanceForLedgerAccountFromEntries,
-} from '@/db/tableMethods/ledgerEntryMethods'
 import { PricingModel } from '@/db/schema/pricingModels'
-import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import {
   insertDiscountRedemption,
   selectDiscountRedemptionById,
 } from '@/db/tableMethods/discountRedemptionMethods'
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 
 describe('createSubscriptionWorkflow', async () => {
   let organization: Organization.Record
@@ -1940,6 +1934,269 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         SubscriptionStatus.Incomplete
       )
       expect(workflowResult.ledgerCommand).toBeUndefined()
+    })
+  })
+})
+
+describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
+  it('cancels existing free subscription and preserves billing cycle when preserveBillingCycleAnchor is true', async () => {
+    const { organization, product } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    // Create a free price on a separate product to avoid multiple active prices on the same product
+    const freeProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: product.pricingModelId,
+      name: 'Free Plan Product',
+      livemode: true,
+    })
+    const freePrice = await setupPrice({
+      productId: freeProduct.id,
+      name: 'Free Plan',
+      type: PriceType.Subscription,
+      unitPrice: 0,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: true,
+      currency: CurrencyCode.USD,
+    })
+
+    const paidPrice = await setupPrice({
+      productId: product.id,
+      name: 'Pro Plan',
+      type: PriceType.Subscription,
+      unitPrice: 2900,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: true,
+      currency: CurrencyCode.USD,
+    })
+
+    const now = Date.now()
+    const periodStart = now - 5 * 24 * 60 * 60 * 1000
+    const periodEnd = now + 25 * 24 * 60 * 60 * 1000
+
+    const freeSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: freePrice.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+      isFreePlan: true,
+      currentBillingPeriodStart: periodStart,
+      currentBillingPeriodEnd: periodEnd,
+      billingCycleAnchorDate: periodStart,
+    })
+
+    const upgradeStartDate = now
+    // FIXME: we have to do this bc createSubscriptionWorkflow doesn't accept a time argument.
+    // We should consider this as it gets us closer to a "pure" function
+    const beforeWorkflow = Date.now()
+
+    const {
+      result: { subscription: paidSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_free_upgrade_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: paidPrice,
+          quantity: 1,
+          livemode: true,
+          startDate: upgradeStartDate,
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          preserveBillingCycleAnchor: true,
+        },
+        transaction
+      )
+    })
+    // FIXME: we have to do this bc createSubscriptionWorkflow doesn't accept a time argument.
+    // We should consider this as it gets us closer to a "pure" function
+    const afterWorkflow = Date.now()
+
+    await adminTransaction(async ({ transaction }) => {
+      const canceledFree = await selectSubscriptionById(
+        freeSubscription.id,
+        transaction
+      )
+      const upgraded = await selectSubscriptionById(
+        paidSubscription.id,
+        transaction
+      )
+
+      // Free subscription should be canceled and linked to new paid subscription
+      expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
+      expect(canceledFree.cancellationReason).toBe(
+        CancellationReason.UpgradedToPaid
+      )
+      expect(canceledFree.replacedBySubscriptionId).toBe(upgraded.id)
+      // canceledAt should be set during workflow execution, between beforeWorkflow and afterWorkflow
+      // FIXME: we have to do this bc createSubscriptionWorkflow doesn't accept a time argument.
+      expect(canceledFree.canceledAt).toBeGreaterThanOrEqual(
+        beforeWorkflow
+      )
+      expect(canceledFree.canceledAt).toBeLessThanOrEqual(
+        afterWorkflow
+      )
+
+      // Billing cycle anchor and current period should be preserved on the new subscription
+      expect(upgraded.billingCycleAnchorDate).toBe(
+        canceledFree.billingCycleAnchorDate
+      )
+      expect(upgraded.currentBillingPeriodStart).toBe(
+        canceledFree.currentBillingPeriodStart
+      )
+      expect(upgraded.currentBillingPeriodEnd).toBe(
+        canceledFree.currentBillingPeriodEnd
+      )
+      expect(upgraded.isFreePlan).toBe(false)
+    })
+  })
+
+  it('cancels existing free subscription and resets billing cycle when preserveBillingCycleAnchor is falsey', async () => {
+    const { organization, product } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    // Create a free price on a separate product to avoid multiple active prices on the same product
+    const freeProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: product.pricingModelId,
+      name: 'Free Plan Product',
+      livemode: true,
+    })
+    const freePrice = await setupPrice({
+      productId: freeProduct.id,
+      name: 'Free Plan',
+      type: PriceType.Subscription,
+      unitPrice: 0,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: true,
+      currency: CurrencyCode.USD,
+    })
+
+    const paidPrice = await setupPrice({
+      productId: product.id,
+      name: 'Pro Plan',
+      type: PriceType.Subscription,
+      unitPrice: 2900,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: true,
+      currency: CurrencyCode.USD,
+    })
+
+    const now = Date.now()
+    const freePeriodStart = now - 5 * 24 * 60 * 60 * 1000
+    const freePeriodEnd = now + 25 * 24 * 60 * 60 * 1000
+
+    const freeSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: freePrice.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+      isFreePlan: true,
+      currentBillingPeriodStart: freePeriodStart,
+      currentBillingPeriodEnd: freePeriodEnd,
+      billingCycleAnchorDate: freePeriodStart,
+    })
+
+    const upgradeStartDate = now
+
+    const {
+      result: { subscription: paidSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_free_upgrade_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: paidPrice,
+          quantity: 1,
+          livemode: true,
+          startDate: upgradeStartDate,
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          // preserveBillingCycleAnchor is not set (falsey)
+        },
+        transaction
+      )
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const canceledFree = await selectSubscriptionById(
+        freeSubscription.id,
+        transaction
+      )
+      const upgraded = await selectSubscriptionById(
+        paidSubscription.id,
+        transaction
+      )
+
+      // Free subscription should still be canceled and linked
+      expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
+      expect(canceledFree.cancellationReason).toBe(
+        CancellationReason.UpgradedToPaid
+      )
+      expect(canceledFree.replacedBySubscriptionId).toBe(upgraded.id)
+
+      // Billing cycle should NOT be preserved - should start fresh from upgradeStartDate
+      expect(upgraded.billingCycleAnchorDate).toBe(upgradeStartDate)
+      // Billing period should be recalculated based on the new anchor date, not preserved
+      expect(upgraded.currentBillingPeriodStart).not.toBe(
+        canceledFree.currentBillingPeriodStart
+      )
+      expect(upgraded.currentBillingPeriodEnd).not.toBe(
+        canceledFree.currentBillingPeriodEnd
+      )
+      // New billing period should start from upgradeStartDate
+      expect(upgraded.currentBillingPeriodStart).toBe(
+        upgradeStartDate
+      )
+      // New billing period end should be approximately one month from start
+      const expectedPeriodEnd =
+        upgradeStartDate + 30 * 24 * 60 * 60 * 1000
+      const periodEndTolerance = 2 * 24 * 60 * 60 * 1000 // 2 day tolerance
+      expect(upgraded.currentBillingPeriodEnd).toBeGreaterThanOrEqual(
+        expectedPeriodEnd - periodEndTolerance
+      )
+      expect(upgraded.currentBillingPeriodEnd).toBeLessThanOrEqual(
+        expectedPeriodEnd + periodEndTolerance
+      )
+      expect(upgraded.isFreePlan).toBe(false)
     })
   })
 })
