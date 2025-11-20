@@ -2069,4 +2069,134 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
       expect(upgraded.isFreePlan).toBe(false)
     })
   })
+
+  it('cancels existing free subscription and resets billing cycle when preserveBillingCycleAnchor is falsey', async () => {
+    const { organization, product } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    // Create a free price on a separate product to avoid multiple active prices on the same product
+    const freeProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: product.pricingModelId,
+      name: 'Free Plan Product',
+      livemode: true,
+    })
+    const freePrice = await setupPrice({
+      productId: freeProduct.id,
+      name: 'Free Plan',
+      type: PriceType.Subscription,
+      unitPrice: 0,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: true,
+      currency: CurrencyCode.USD,
+    })
+
+    const paidPrice = await setupPrice({
+      productId: product.id,
+      name: 'Pro Plan',
+      type: PriceType.Subscription,
+      unitPrice: 2900,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: true,
+      currency: CurrencyCode.USD,
+    })
+
+    const now = Date.now()
+    const freePeriodStart = now - 5 * 24 * 60 * 60 * 1000
+    const freePeriodEnd = now + 25 * 24 * 60 * 60 * 1000
+
+    const freeSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: freePrice.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+      isFreePlan: true,
+      currentBillingPeriodStart: freePeriodStart,
+      currentBillingPeriodEnd: freePeriodEnd,
+      billingCycleAnchorDate: freePeriodStart,
+    })
+
+    const upgradeStartDate = now
+
+    const {
+      result: { subscription: paidSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_free_upgrade_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: paidPrice,
+          quantity: 1,
+          livemode: true,
+          startDate: upgradeStartDate,
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          // preserveBillingCycleAnchor is not set (falsey)
+        },
+        transaction
+      )
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const canceledFree = await selectSubscriptionById(
+        freeSubscription.id,
+        transaction
+      )
+      const upgraded = await selectSubscriptionById(
+        paidSubscription.id,
+        transaction
+      )
+
+      // Free subscription should still be canceled and linked
+      expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
+      expect(canceledFree.cancellationReason).toBe(
+        CancellationReason.UpgradedToPaid
+      )
+      expect(canceledFree.replacedBySubscriptionId).toBe(upgraded.id)
+
+      // Billing cycle should NOT be preserved - should start fresh from upgradeStartDate
+      expect(upgraded.billingCycleAnchorDate).toBe(upgradeStartDate)
+      // Billing period should be recalculated based on the new anchor date, not preserved
+      expect(upgraded.currentBillingPeriodStart).not.toBe(
+        canceledFree.currentBillingPeriodStart
+      )
+      expect(upgraded.currentBillingPeriodEnd).not.toBe(
+        canceledFree.currentBillingPeriodEnd
+      )
+      // New billing period should start from upgradeStartDate
+      expect(upgraded.currentBillingPeriodStart).toBe(
+        upgradeStartDate
+      )
+      // New billing period end should be approximately one month from start
+      const expectedPeriodEnd =
+        upgradeStartDate + 30 * 24 * 60 * 60 * 1000
+      const periodEndTolerance = 24 * 60 * 60 * 1000 // 1 day tolerance
+      expect(upgraded.currentBillingPeriodEnd).toBeGreaterThanOrEqual(
+        expectedPeriodEnd - periodEndTolerance
+      )
+      expect(upgraded.currentBillingPeriodEnd).toBeLessThanOrEqual(
+        expectedPeriodEnd + periodEndTolerance
+      )
+      expect(upgraded.isFreePlan).toBe(false)
+    })
+  })
 })
