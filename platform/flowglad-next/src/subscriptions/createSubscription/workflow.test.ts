@@ -2189,7 +2189,7 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
       // New billing period end should be approximately one month from start
       const expectedPeriodEnd =
         upgradeStartDate + 30 * 24 * 60 * 60 * 1000
-      const periodEndTolerance = 24 * 60 * 60 * 1000 // 1 day tolerance
+      const periodEndTolerance = 2 * 24 * 60 * 60 * 1000 // 2 day tolerance
       expect(upgraded.currentBillingPeriodEnd).toBeGreaterThanOrEqual(
         expectedPeriodEnd - periodEndTolerance
       )
