@@ -25,7 +25,7 @@ Enable recurring revenue by charging a fixed amount (`unitPrice`) on a set inter
 
 For billing based on actual usage of your product or service, charged on a recurring interval. Key characteristics:
 
-- Associated with a specific [usage meter](/features/usage-meters). Required via `usageMeterId`.
+- Associated with a specific [usage meter](/features/usage). Required via `usageMeterId`.
 - Usage charges are typically calculated and billed at the end of the billing period (based on `intervalUnit` and `intervalCount`), unlike standard subscriptions which charge at the start.
 - **Usage Events Per Unit**: How many usage events are considered one unit to be charged at the unit price. Required.
 
@@ -47,7 +47,7 @@ Your choice of price type impacts how and when your customers are billed:
 - Use **Subscription** for predictable recurring revenue charged at the start of each period.
 - Use **Usage Meter** for recurring billing cycles where the amount charged reflects actual consumption during the period, typically billed at the end.
 
-Read more about [usage meters](/features/usage-meters) to understand how they work with usage-based pricing.
+Read more about [usage meters](/features/usage) to understand how they work with usage-based pricing.
 
 ## Creating a Price
 
