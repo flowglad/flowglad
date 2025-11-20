@@ -114,9 +114,16 @@ export interface ClerkFlowgladServerSessionParams
   }
 }
 
+export interface ScopedFlowgladServerParams {
+  customerExternalId: string
+  baseURL?: string
+  apiKey?: string
+}
+
 export type FlowgladServerSessionParams =
   | SupabaseFlowgladServerSessionParams
   | NextjsAuthFlowgladServerSessionParams
   | ClerkFlowgladServerSessionParams
   | BetterAuthFlowgladServerSessionParams
   | BaseFlowgladServerSessionParams
+  | ScopedFlowgladServerParams

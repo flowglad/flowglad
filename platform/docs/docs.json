@@ -15,6 +15,20 @@
     "light": "#FFC898",
     "dark": "#BA702E"
   },
+  "fonts": {
+    "heading": {
+      "family": "ABC Arizona",
+      "source": "/fonts/abc-arizona/ABCArizona-Medium.woff2",
+      "format": "woff2",
+      "weight": 500
+    },
+    "body": {
+      "family": "SF Pro",
+      "source": "/fonts/sf-pro/SF-Pro.woff2",
+      "format": "woff2",
+      "weight": 400
+    }
+  },
   "integrations": {
     "posthog": {
         "apiKey": "phc_NDDBDoAw8gMHPIhSfAvlBF6TdnRP2uqSAQ0eBSNXAKk"

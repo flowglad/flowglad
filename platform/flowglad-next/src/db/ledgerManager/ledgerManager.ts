@@ -12,14 +12,21 @@ import {
   LedgerEntryStatus,
   LedgerEntryDirection,
   LedgerEntryType,
+  LedgerTransactionInitiatingSourceType,
 } from '@/types'
 import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import {
   LedgerEntry,
   ledgerEntryNulledSourceIdColumns,
 } from '@/db/schema/ledgerEntries'
-import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
-import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
+import {
+  insertLedgerTransaction,
+  selectLedgerTransactions,
+} from '@/db/tableMethods/ledgerTransactionMethods'
+import {
+  bulkInsertLedgerEntries,
+  selectLedgerEntries,
+} from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerAccounts } from '../tableMethods/ledgerAccountMethods'
 import { processBillingPeriodTransitionLedgerCommand } from './billingPeriodTransitionLedgerCommand'
 import { processUsageEventProcessedLedgerCommand } from './usageEventProcessedLedgerCommand'
@@ -166,11 +173,91 @@ const processPaymentRefundedLedgerCommand = async (
   }
 }
 
+export const extractLedgerManagerIdempotencyKey = (
+  command: LedgerCommand
+): {
+  initiatingSourceType: string
+  initiatingSourceId: string
+} | null => {
+  // Extract idempotency key based on command type
+  switch (command.type) {
+    case LedgerTransactionType.SettleInvoiceUsageCosts:
+      return {
+        initiatingSourceType:
+          LedgerTransactionInitiatingSourceType.InvoiceSettlement,
+        initiatingSourceId: command.payload.invoice.id,
+      }
+    case LedgerTransactionType.BillingPeriodTransition:
+      return {
+        initiatingSourceType: command.type,
+        initiatingSourceId:
+          command.payload.type === 'standard'
+            ? command.payload.newBillingPeriod.id
+            : command.payload.subscription.id,
+      }
+    case LedgerTransactionType.CreditGrantRecognized:
+      return {
+        initiatingSourceType: command.type,
+        initiatingSourceId: command.payload.usageCredit.id,
+      }
+    case LedgerTransactionType.UsageEventProcessed:
+      return {
+        initiatingSourceType:
+          LedgerTransactionInitiatingSourceType.UsageEvent,
+        initiatingSourceId: command.payload.usageEvent.id,
+      }
+    case LedgerTransactionType.AdminCreditAdjusted:
+      return {
+        initiatingSourceType: command.type,
+        initiatingSourceId:
+          command.payload.usageCreditBalanceAdjustment.id,
+      }
+    case LedgerTransactionType.CreditGrantExpired:
+      return {
+        initiatingSourceType: command.type,
+        initiatingSourceId: command.payload.expiredUsageCredit.id,
+      }
+    case LedgerTransactionType.PaymentRefunded:
+      return {
+        initiatingSourceType: command.type,
+        initiatingSourceId: command.payload.refund.id,
+      }
+    default:
+      return null // Should never happen
+  }
+}
+
 export const processLedgerCommand = async (
   rawCommand: LedgerCommand,
   transaction: DbTransaction
 ): Promise<LedgerCommandResult> => {
   const command = ledgerCommandSchema.parse(rawCommand)
+
+  const idempotencyKey = extractLedgerManagerIdempotencyKey(command)
+  if (idempotencyKey) {
+    const [existingTransaction] = await selectLedgerTransactions(
+      {
+        type: command.type,
+        initiatingSourceType: idempotencyKey.initiatingSourceType,
+        initiatingSourceId: idempotencyKey.initiatingSourceId,
+        organizationId: command.organizationId,
+        livemode: command.livemode,
+      },
+      transaction
+    )
+
+    if (existingTransaction) {
+      const existingEntries = await selectLedgerEntries(
+        { ledgerTransactionId: existingTransaction.id },
+        transaction
+      )
+      return {
+        ledgerTransaction: existingTransaction,
+        ledgerEntries: existingEntries,
+      }
+    }
+  }
+
   switch (command.type) {
     case LedgerTransactionType.UsageEventProcessed:
       return processUsageEventProcessedLedgerCommand(

@@ -1,5 +1,49 @@
 # @flowglad/express
 
+## 0.12.4
+
+### Patch Changes
+
+- flowglad server with external id
+- cbf28e2: test
+- Updated dependencies
+- Updated dependencies [cbf28e2]
+  - @flowglad/react@0.12.4
+  - @flowglad/server@0.12.4
+  - @flowglad/shared@0.12.4
+
+## 0.12.3
+
+### Patch Changes
+
+- nextjs types
+- Updated dependencies
+  - @flowglad/server@0.12.3
+  - @flowglad/shared@0.12.3
+  - @flowglad/react@0.12.3
+
+## 0.12.2
+
+### Patch Changes
+
+- types
+- types
+- Updated dependencies
+- Updated dependencies
+  - @flowglad/server@0.12.1
+  - @flowglad/shared@0.12.1
+  - @flowglad/react@0.12.1
+
+## 0.12.1
+
+### Patch Changes
+
+- workspaces fix
+- Updated dependencies
+  - @flowglad/server@0.12.1
+  - @flowglad/shared@0.12.1
+  - @flowglad/react@0.12.1
+
 ## 0.12.0
 
 ### Minor Changes

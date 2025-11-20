@@ -25,29 +25,6 @@ export const processBillingPeriodTransitionLedgerCommand = async (
       ? command.payload.newBillingPeriod.id
       : command.payload.subscription.id
 
-  const [transitionForThisBillingPeriod] =
-    await selectLedgerTransactions(
-      {
-        subscriptionId: command.payload.subscription.id,
-        type: LedgerTransactionType.BillingPeriodTransition,
-        initiatingSourceId: initiatingSourceId,
-      },
-      transaction
-    )
-
-  if (transitionForThisBillingPeriod) {
-    const existingLedgerEntries = await selectLedgerEntries(
-      {
-        ledgerTransactionId: transitionForThisBillingPeriod.id,
-      },
-      transaction
-    )
-    return {
-      ledgerTransaction: transitionForThisBillingPeriod,
-      ledgerEntries: existingLedgerEntries,
-    }
-  }
-
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,

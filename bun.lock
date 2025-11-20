@@ -26,7 +26,7 @@
     },
     "packages/express": {
       "name": "@flowglad/express",
-      "version": "0.11.0",
+      "version": "0.12.2",
       "dependencies": {
         "@flowglad/node": "0.22.0",
         "@flowglad/react": "workspace:*",
@@ -46,7 +46,7 @@
     },
     "packages/nextjs": {
       "name": "@flowglad/nextjs",
-      "version": "0.11.0",
+      "version": "0.12.2",
       "dependencies": {
         "@flowglad/node": "0.22.0",
         "@flowglad/react": "workspace:*",
@@ -67,7 +67,7 @@
     },
     "packages/react": {
       "name": "@flowglad/react",
-      "version": "0.11.0",
+      "version": "0.12.2",
       "dependencies": {
         "@flowglad/node": "0.22.0",
         "@flowglad/shared": "workspace:*",
@@ -94,7 +94,7 @@
     },
     "packages/server": {
       "name": "@flowglad/server",
-      "version": "0.11.0",
+      "version": "0.12.2",
       "dependencies": {
         "@flowglad/node": "0.22.0",
         "@flowglad/shared": "workspace:*",
@@ -111,7 +111,7 @@
     },
     "packages/shared": {
       "name": "@flowglad/shared",
-      "version": "0.11.0",
+      "version": "0.12.2",
       "dependencies": {
         "@flowglad/node": "0.22.0",
         "@flowglad/types": "workspace:*",
@@ -125,7 +125,7 @@
     },
     "packages/types": {
       "name": "@flowglad/types",
-      "version": "0.11.0",
+      "version": "0.12.2",
       "dependencies": {
         "@flowglad/node": "0.22.0",
       },

@@ -20,8 +20,7 @@ import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { Purchase } from '@/db/schema/purchases'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { core, nowTime } from '@/utils/core'
+import { core } from '@/utils/core'
 import {
   setupOrg,
   setupCustomer,
@@ -52,14 +51,10 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { IntentMetadataType } from '@/utils/stripe'
-import {
-  cancelFreeSubscriptionForUpgrade,
-  linkUpgradedSubscriptions,
-} from '@/subscriptions/cancelFreeSubscriptionForUpgrade'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
-import { getUpgradeMetrics } from '@/utils/billing-dashboard/upgradeMetrics'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 
 // Helper function to create mock setup intent
 const mockSucceededSetupIntent = ({
@@ -88,10 +83,16 @@ const getNewPaidSubscriptionId = async (
     { customerId },
     transaction
   )
-  const activePaidSubscriptions = allSubscriptions.filter(
-    (sub) =>
-      sub.status === SubscriptionStatus.Active && !sub.isFreePlan
-  )
+  const activePaidSubscriptions = allSubscriptions
+    .filter(
+      (sub) =>
+        sub.status === SubscriptionStatus.Active && !sub.isFreePlan
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+    )
   return activePaidSubscriptions[0]?.id
 }
 
@@ -427,7 +428,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       })
     })
 
-    it('should handle multiple free subscriptions gracefully', async () => {
+    it('should cancel remaining free subscription when upgrading after one was already canceled', async () => {
       const now = Date.now()
       // Create a second free subscription (edge case scenario)
       const secondFreeSubscription = await setupSubscription({
@@ -587,7 +588,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             transaction
           )
         })
-      ).rejects.toThrow('already has an active paid subscription')
+      ).rejects.toThrow('already has an active subscription')
 
       // Verify that only one paid subscription exists
       await adminTransaction(async ({ transaction }) => {
@@ -604,6 +605,158 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(activePaidSubscriptions[0].id).toBe(
           firstPaidSubscriptionId
         )
+      })
+    })
+  })
+
+  describe('Free Subscription Cancellation Logic', () => {
+    it('should cancel free subscription but leave paid subscription unchanged', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        await updateOrganization(
+          {
+            id: organization.id,
+            allowMultipleSubscriptionsPerCustomer: true,
+          },
+          transaction
+        )
+      })
+
+      // Create an active paid subscription alongside the free subscription
+      const existingPaidSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: paidPrice.id,
+        status: SubscriptionStatus.Active,
+        livemode: true,
+        isFreePlan: false,
+      })
+
+      // Process upgrade
+      const setupIntent = mockSucceededSetupIntent({
+        checkoutSessionId: checkoutSession.id,
+        stripeCustomerId: customer.stripeCustomerId!,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          return await processSetupIntentSucceeded(
+            setupIntent,
+            transaction
+          )
+        }
+      )
+
+      // Get the new subscription ID
+      const newSubscriptionId = await adminTransaction(
+        async ({ transaction }) => {
+          return await getNewPaidSubscriptionId(
+            customer.id,
+            transaction
+          )
+        }
+      )
+
+      await adminTransaction(async ({ transaction }) => {
+        // Free subscription should be canceled
+        const canceledFreeSubscription = await selectSubscriptionById(
+          freeSubscription.id,
+          transaction
+        )
+        expect(canceledFreeSubscription.status).toBe(
+          SubscriptionStatus.Canceled
+        )
+        expect(canceledFreeSubscription.cancellationReason).toBe(
+          CancellationReason.UpgradedToPaid
+        )
+        expect(
+          canceledFreeSubscription.replacedBySubscriptionId
+        ).toBe(newSubscriptionId)
+
+        // Existing paid subscription should remain active and unchanged
+        const existingPaidSub = await selectSubscriptionById(
+          existingPaidSubscription.id,
+          transaction
+        )
+        expect(existingPaidSub.status).toBe(SubscriptionStatus.Active)
+        expect(existingPaidSub.isFreePlan).toBe(false)
+        expect(existingPaidSub.cancellationReason).toBeNull()
+        expect(existingPaidSub.replacedBySubscriptionId).toBeNull()
+
+        // New paid subscription should be created
+        const newPaidSubscription = await selectSubscriptionById(
+          newSubscriptionId!,
+          transaction
+        )
+        expect(newSubscriptionId).toBe(newPaidSubscription.id)
+        expect(newPaidSubscription.status).toBe(
+          SubscriptionStatus.Active
+        )
+        expect(newPaidSubscription.isFreePlan).toBe(false)
+      })
+    })
+
+    it('should prevent creating a second free subscription', async () => {
+      // Test by calling createSubscriptionWorkflow directly with a free price
+      // This should fail because only one free subscription is allowed per customer
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_free_test_${core.nanoid()}`
+        await expect(
+          createSubscriptionWorkflow(
+            {
+              organization,
+              customer,
+              product: {
+                ...freeProduct,
+                default: freeProduct.default ?? false,
+              },
+              price: freePrice,
+              quantity: 1,
+              livemode: true,
+              startDate: Date.now(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: paymentMethod,
+              stripeSetupIntentId,
+              autoStart: true,
+            },
+            transaction
+          )
+        ).rejects.toThrow(
+          'already has an active free subscription. Only one free subscription is allowed per customer.'
+        )
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Original free subscription should remain active and unchanged
+        const originalFreeSubscription = await selectSubscriptionById(
+          freeSubscription.id,
+          transaction
+        )
+        expect(originalFreeSubscription.status).toBe(
+          SubscriptionStatus.Active
+        )
+        expect(originalFreeSubscription.cancellationReason).toBeNull()
+        expect(
+          originalFreeSubscription.replacedBySubscriptionId
+        ).toBeNull()
+
+        // Should still have only one free subscription (the original)
+        const allSubscriptions = await selectSubscriptions(
+          { customerId: customer.id },
+          transaction
+        )
+        const freeSubscriptions = allSubscriptions.filter(
+          (sub) =>
+            sub.isFreePlan === true &&
+            sub.status === SubscriptionStatus.Active
+        )
+        expect(freeSubscriptions.length).toBe(1)
+        expect(freeSubscriptions[0].id).toBe(freeSubscription.id)
       })
     })
   })
@@ -749,7 +902,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             transaction
           )
         })
-      ).rejects.toThrow('already has an active paid subscription')
+      ).rejects.toThrow('already has an active subscription')
 
       // Verify only one paid subscription exists
       await adminTransaction(async ({ transaction }) => {
@@ -1141,94 +1294,6 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(freeSubscriptionRecord.replacedBySubscriptionId).toBe(
           paidSubscriptionId
-        )
-      })
-    })
-  })
-
-  describe('Helper Function Tests', () => {
-    it('should cancel free subscription correctly in cancelFreeSubscriptionForUpgrade', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Call the helper function directly
-        const canceledSubscription =
-          await cancelFreeSubscriptionForUpgrade(
-            customer.id,
-            transaction
-          )
-
-        // Verify the subscription was canceled correctly
-        expect(canceledSubscription).toBeDefined()
-        expect(canceledSubscription!.id).toBe(freeSubscription.id)
-        expect(canceledSubscription!.status).toBe(
-          SubscriptionStatus.Canceled
-        )
-        expect(canceledSubscription!.cancellationReason).toBe(
-          CancellationReason.UpgradedToPaid
-        )
-        expect(canceledSubscription!.canceledAt).toBeDefined()
-
-        // Verify in database
-        const dbSubscription = await selectSubscriptionById(
-          freeSubscription.id,
-          transaction
-        )
-        expect(dbSubscription.status).toBe(
-          SubscriptionStatus.Canceled
-        )
-        expect(dbSubscription.cancellationReason).toBe(
-          CancellationReason.UpgradedToPaid
-        )
-      })
-    })
-
-    it('should link subscriptions correctly in linkUpgradedSubscriptions', async () => {
-      const now = Date.now()
-      // Create a new paid subscription to link to
-      const newPaidSubscription = await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        paymentMethodId: paymentMethod.id,
-        priceId: paidPrice.id,
-        status: SubscriptionStatus.Active,
-        livemode: true,
-        isFreePlan: false,
-        currentBillingPeriodStart: now,
-        currentBillingPeriodEnd: now + 30 * 24 * 60 * 60 * 1000,
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        // First cancel the free subscription
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            renews: false,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-          },
-          transaction
-        )
-
-        // Get the updated free subscription
-        const canceledFreeSubscription = await selectSubscriptionById(
-          freeSubscription.id,
-          transaction
-        )
-
-        // Call the helper function to link them
-        await linkUpgradedSubscriptions(
-          canceledFreeSubscription,
-          newPaidSubscription.id,
-          transaction
-        )
-
-        // Verify the link was created
-        const linkedSubscription = await selectSubscriptionById(
-          freeSubscription.id,
-          transaction
-        )
-        expect(linkedSubscription.replacedBySubscriptionId).toBe(
-          newPaidSubscription.id
         )
       })
     })
@@ -1892,138 +1957,26 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(result.eventsToInsert).toBeDefined()
         expect(Array.isArray(result.eventsToInsert)).toBe(true)
 
-        // For upgrade flow, we might expect specific events
-        // Adjust based on actual implementation
-        if (
-          result.eventsToInsert &&
-          result.eventsToInsert.length > 0
-        ) {
-          const event = result.eventsToInsert[0]
-          expect(event.submittedAt).toBeDefined()
-          expect(event.type).toBe(
-            FlowgladEventType.SubscriptionCreated
-          )
-        }
+        const events = result.eventsToInsert ?? []
+        // Exactly one SubscriptionCreated event per new subscription
+        const subscriptionCreatedEvents = events.filter(
+          (event) =>
+            event.type === FlowgladEventType.SubscriptionCreated
+        )
+        expect(subscriptionCreatedEvents).toHaveLength(1)
+        // submittedAt should equal occurredAt since they're set to the same timestamp
+        expect(subscriptionCreatedEvents[0].submittedAt).toBe(
+          subscriptionCreatedEvents[0].occurredAt
+        )
+
+        // And exactly one PurchaseCompleted event for the paid checkout
+        const purchaseCompletedEvents = events.filter(
+          (event) =>
+            event.type === FlowgladEventType.PurchaseCompleted
+        )
+        expect(purchaseCompletedEvents).toHaveLength(1)
+
         return result
-      })
-    })
-  })
-
-  describe('Linking Robustness', () => {
-    it('should handle idempotent linking without errors', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Cancel free subscription for upgrade
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            renews: false,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-          },
-          transaction
-        )
-
-        // Create a paid subscription
-        const newPaidSub = await setupSubscription({
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: paidPrice.id,
-          status: SubscriptionStatus.Active,
-        })
-
-        // Link them once
-        const canceledSub = await selectSubscriptionById(
-          freeSubscription.id,
-          transaction
-        )
-        await linkUpgradedSubscriptions(
-          canceledSub,
-          newPaidSub.id,
-          transaction
-        )
-
-        // Try linking again (idempotent operation)
-        await linkUpgradedSubscriptions(
-          canceledSub,
-          newPaidSub.id,
-          transaction
-        )
-
-        // Verify the link is still correct and not duplicated/broken
-        const linkedSub = await selectSubscriptionById(
-          freeSubscription.id,
-          transaction
-        )
-        expect(linkedSub.replacedBySubscriptionId).toBe(newPaidSub.id)
-
-        // Verify no data corruption occurred
-        expect(linkedSub.status).toBe(SubscriptionStatus.Canceled)
-        expect(linkedSub.cancellationReason).toBe(
-          CancellationReason.UpgradedToPaid
-        )
-      })
-    })
-
-    it('should not overwrite existing link with different subscription', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Create first paid subscription and link
-        const firstPaidSub = await setupSubscription({
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: paidPrice.id,
-          status: SubscriptionStatus.Active,
-        })
-
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            renews: false,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-            replacedBySubscriptionId: firstPaidSub.id,
-          },
-          transaction
-        )
-
-        // Create second paid subscription
-        const secondPaidSub = await setupSubscription({
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: paidPrice.id,
-          status: SubscriptionStatus.Active,
-        })
-
-        // Try to link with second subscription
-        const canceledSub = await selectSubscriptionById(
-          freeSubscription.id,
-          transaction
-        )
-
-        // This should either throw or not change the existing link
-        // depending on implementation
-        try {
-          await linkUpgradedSubscriptions(
-            canceledSub,
-            secondPaidSub.id,
-            transaction
-          )
-
-          // If it doesn't throw, verify original link is preserved
-          const linkedSub = await selectSubscriptionById(
-            freeSubscription.id,
-            transaction
-          )
-          // Implementation might preserve first link or update to second
-          // Adjust assertion based on actual behavior
-          expect([firstPaidSub.id, secondPaidSub.id]).toContain(
-            linkedSub.replacedBySubscriptionId
-          )
-        } catch (error) {
-          // If it throws, that's also acceptable behavior
-          expect(error).toBeDefined()
-        }
       })
     })
   })
