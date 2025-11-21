@@ -181,7 +181,11 @@ export const updateProduct = protectedProcedure
               const currentPrice = existingPrices.find(
                 (price) => price.active && price.isDefault
               )
-              if (input.price.unitPrice !== currentPrice?.unitPrice) {
+              if (
+                input.price.unitPrice !== currentPrice?.unitPrice ||
+                input.price.usageEventsPerUnit !==
+                  currentPrice?.usageEventsPerUnit
+              ) {
                 await safelyInsertPrice(
                   {
                     ...input.price,
