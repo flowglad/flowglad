@@ -38,6 +38,21 @@ describe('subscriptionsRouteConfigs', () => {
       expect(result).toEqual(testBody)
     })
 
+    it('should accept customerExternalId in POST /subscriptions request body', () => {
+      const routeConfig = findRouteConfig('POST /subscriptions')
+
+      expect(routeConfig).toBeDefined()
+
+      // Test with customerExternalId instead of customerId
+      const testBodyWithExternalId = {
+        customerExternalId: 'ext-cus-123',
+        priceId: 'price-456',
+        quantity: 1,
+      }
+      const result = routeConfig!.mapParams([], testBodyWithExternalId)
+      expect(result).toEqual(testBodyWithExternalId)
+    })
+
     it('should map PUT /subscriptions/:id to subscriptions.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /subscriptions/:id')
 

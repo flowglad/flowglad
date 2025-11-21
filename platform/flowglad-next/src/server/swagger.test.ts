@@ -755,6 +755,62 @@ describe('Swagger Configuration', () => {
     })
   })
 
+  describe('OpenAPI Spec - Customer External ID Support', () => {
+    describe('POST /subscriptions', () => {
+      const basePath = '/api/v1/subscriptions'
+      const subscriptionEndpoint = paths?.[basePath]?.post
+      const schema =
+        subscriptionEndpoint?.requestBody?.content?.['application/json']
+          ?.schema
+
+      it('should include customerId as optional with description', () => {
+        expect(schema).toBeDefined()
+        expect(schema?.properties).toBeDefined()
+        expect(schema?.properties?.customerId).toBeDefined()
+
+        // Verify it's not in required array (it's optional)
+        const required = schema?.required || []
+        expect(required).not.toContain('customerId')
+
+        // Verify it has a description explaining mutual exclusivity
+        const customerIdDesc =
+          schema?.properties?.customerId?.description || ''
+        expect(customerIdDesc).toContain('internal ID')
+        expect(customerIdDesc).toContain('customerExternalId')
+      })
+
+      it('should include customerExternalId as optional with description', () => {
+        expect(schema).toBeDefined()
+        expect(schema?.properties).toBeDefined()
+        expect(schema?.properties?.customerExternalId).toBeDefined()
+
+        // Verify it's not in required array (it's optional)
+        const required = schema?.required || []
+        expect(required).not.toContain('customerExternalId')
+
+        // Verify it has a description explaining mutual exclusivity
+        const customerExternalIdDesc =
+          schema?.properties?.customerExternalId?.description || ''
+        expect(customerExternalIdDesc).toContain('external ID')
+        expect(customerExternalIdDesc).toContain('customerId')
+      })
+
+      it('should have descriptions explaining mutual exclusivity', () => {
+        expect(schema).toBeDefined()
+        expect(schema?.properties).toBeDefined()
+
+        const customerIdDesc =
+          schema?.properties?.customerId?.description || ''
+        const customerExternalIdDesc =
+          schema?.properties?.customerExternalId?.description || ''
+
+        // Both descriptions should mention the other field
+        expect(customerIdDesc).toContain('required')
+        expect(customerExternalIdDesc).toContain('required')
+      })
+    })
+  })
+
   describe('Epoch milliseconds description enforcement', () => {
     const TIMESTAMP_MIN = -9007199254740991
     const TIMESTAMP_MAX = 9007199254740991
