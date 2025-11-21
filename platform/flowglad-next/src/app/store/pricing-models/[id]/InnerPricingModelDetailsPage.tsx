@@ -101,6 +101,7 @@ function InnerPricingModelDetailsPage({
       toast.success('Pricing model exported successfully')
     } else {
       toast.error('Failed to export pricing model')
+      console.error('Failed to export pricing model', result)
     }
   }
 

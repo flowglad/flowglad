@@ -160,7 +160,13 @@ export const updateProduct = protectedProcedure
               { productId: product.id },
               transaction
             )
-            if (product.default && existingPrices.length > 0) {
+            if (
+              product.default &&
+              existingPrices.length > 0 &&
+              existingPrices.some(
+                (price) => price.unitPrice !== input.price?.unitPrice
+              )
+            ) {
               throw new TRPCError({
                 code: 'FORBIDDEN',
                 message:
@@ -171,15 +177,22 @@ export const updateProduct = protectedProcedure
               ctx.organizationId!,
               transaction
             )
-            await safelyInsertPrice(
-              {
-                ...input.price,
-                livemode: ctx.livemode,
-                currency: organization.defaultCurrency,
-                externalId: null,
-              },
-              transaction
-            )
+            if (!product.default) {
+              const currentPrice = existingPrices.find(
+                (price) => price.active && price.isDefault
+              )
+              if (input.price.unitPrice !== currentPrice?.unitPrice) {
+                await safelyInsertPrice(
+                  {
+                    ...input.price,
+                    livemode: ctx.livemode,
+                    currency: organization.defaultCurrency,
+                    externalId: null,
+                  },
+                  transaction
+                )
+              }
+            }
           }
           return {
             product: updatedProduct,
