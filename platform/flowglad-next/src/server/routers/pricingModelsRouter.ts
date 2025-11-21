@@ -370,5 +370,7 @@ export const pricingModelsRouter = router({
   clone: clonePricingModelProcedure,
   getTableRows: getTableRowsProcedure,
   export: exportPricingModelProcedure,
-  getIntegrationGuide: getIntegrationGuideProcedure,
+  getIntegrationGuide: {
+    streaming: getIntegrationGuideProcedure,
+  },
 })

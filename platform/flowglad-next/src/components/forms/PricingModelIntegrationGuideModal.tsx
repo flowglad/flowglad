@@ -37,7 +37,7 @@ export function PricingModelIntegrationGuideModal({
     codebaseMarkdown.trim() !== ''
 
   const { data, isLoading } =
-    trpc.pricingModels.getIntegrationGuide.useQuery(
+    trpc.pricingModels.getIntegrationGuide.streaming.useQuery(
       { id: pricingModelId },
       { enabled: isOpen && hasCodebaseOverview }
     )
