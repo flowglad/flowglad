@@ -1,9 +1,9 @@
 import { config } from 'dotenv'
-import { Turbopuffer } from '@turbopuffer/turbopuffer'
 import { OpenAI } from 'openai'
 import { readFile, readdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
+import { getTurbopufferClient } from '../platform/flowglad-next/src/utils/turbopuffer'
 
 // Load environment variables from .env file in project root
 config({ path: join(process.cwd(), '.env') })
@@ -58,7 +58,10 @@ const readDocFiles = async (
 
   for (const entry of entries) {
     const fullPath = join(dir, entry.name)
-    const relativePath = join(basePath, entry.name)
+    const relativePath = join(basePath, entry.name).replace(
+      /\\/g,
+      '/'
+    )
 
     if (entry.isDirectory()) {
       const subFiles = await readDocFiles(fullPath, relativePath)
@@ -118,10 +121,7 @@ const main = async () => {
   }
 
   // Initialize clients
-  const tpuf = new Turbopuffer({
-    apiKey: process.env.TURBOPUFFER_API_KEY,
-    region: process.env.TURBOPUFFER_REGION || 'gcp-us-central1',
-  })
+  const tpuf = await getTurbopufferClient()
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
