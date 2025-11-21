@@ -27,6 +27,12 @@ export class FlowgladServer {
   private createHandlerParams: FlowgladServerSessionParams
   private flowgladNode: FlowgladNode
   private scopedCustomerExternalId?: string
+  private getCustomerDetails?: (
+    customerExternalId: string
+  ) => Promise<{
+    name: string
+    email: string
+  }>
   constructor(createHandlerParams: FlowgladServerSessionParams) {
     this.createHandlerParams = createHandlerParams
     this.flowgladNode = new FlowgladNode({
@@ -37,6 +43,7 @@ export class FlowgladServer {
     if ('customerExternalId' in createHandlerParams) {
       this.scopedCustomerExternalId =
         createHandlerParams.customerExternalId
+      this.getCustomerDetails = createHandlerParams.getCustomerDetails
     }
   }
 
@@ -104,21 +111,49 @@ export class FlowgladServer {
     } catch (error) {
       const errorCode = (error as any)?.error?.code
       if (errorCode === 'NOT_FOUND') {
-        const session = await getSessionFromParams(
-          this.createHandlerParams,
-          this.scopedCustomerExternalId
-        )
-        if (!session) {
-          throw new Error('User not authenticated')
+        if (this.scopedCustomerExternalId !== undefined) {
+          if (!this.getCustomerDetails) {
+            throw new Error(
+              `FlowgladError: Customer with externalId "${this.scopedCustomerExternalId}" does not exist on Flowglad. ` +
+                `Please include "getCustomerDetails" in your FlowgladServer constructor to allow automatic customer creation. ` +
+                `Example:\n\n` +
+                `new FlowgladServer({\n` +
+                `  customerExternalId: "${this.scopedCustomerExternalId}",\n` +
+                `  getCustomerDetails: async (customerExternalId) => ({\n` +
+                `    name: "Customer Name",\n` +
+                `    email: "customer@example.com"\n` +
+                `  })\n` +
+                `})`
+            )
+          }
+          const customerDetails = await this.getCustomerDetails(
+            this.scopedCustomerExternalId
+          )
+          const createResult = await this.createCustomer({
+            customer: {
+              email: customerDetails.email,
+              name: customerDetails.name,
+              externalId: this.scopedCustomerExternalId,
+            },
+          })
+          customer = createResult.data.customer
+        } else {
+          const session = await getSessionFromParams(
+            this.createHandlerParams,
+            this.scopedCustomerExternalId
+          )
+          if (!session) {
+            throw new Error('User not authenticated')
+          }
+          const createResult = await this.createCustomer({
+            customer: {
+              email: session.email,
+              name: session.name,
+              externalId: session.externalId,
+            },
+          })
+          customer = createResult.data.customer
         }
-        const createResult = await this.createCustomer({
-          customer: {
-            email: session.email,
-            name: session.name,
-            externalId: session.externalId,
-          },
-        })
-        customer = createResult.data.customer
       } else {
         throw error
       }
