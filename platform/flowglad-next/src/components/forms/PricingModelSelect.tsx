@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { useListPricingModelsQuery } from '@/app/hooks/useListPricingModelsQuery'
 import { useEffect } from 'react'
 import { trpc } from '@/app/_trpc/client'
@@ -69,7 +70,13 @@ const PricingModelSelect = ({
                       key={pricingModel.id}
                       value={pricingModel.id}
                     >
-                      {pricingModel.name}
+                      <span className="flex items-center gap-2">
+                        {pricingModel.name}
+                        {pricingModel.id ===
+                          defaultPricingModelId && (
+                          <Badge variant="outline">Default</Badge>
+                        )}
+                      </span>
                     </SelectItem>
                   )) || []}
                 </SelectContent>

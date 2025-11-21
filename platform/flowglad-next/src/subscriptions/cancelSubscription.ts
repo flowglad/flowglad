@@ -185,7 +185,6 @@ export const reassignDefaultSubscription = async (
         trialEnd,
         autoStart: true,
         name: `${defaultProduct.name} Subscription`,
-        previousSubscriptionId: canceledSubscription.id,
       },
       transaction
     )

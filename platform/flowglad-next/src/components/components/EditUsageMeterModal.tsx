@@ -7,6 +7,7 @@ import {
 } from '@/db/schema/usageMeters'
 import UsageMeterFormFields from '@/components/forms/UsageMeterFormFields'
 import { trpc } from '@/app/_trpc/client'
+import { toast } from 'sonner'
 
 interface EditUsageMeterModalProps {
   isOpen: boolean
@@ -19,7 +20,14 @@ const EditUsageMeterModal: React.FC<EditUsageMeterModalProps> = ({
   setIsOpen,
   usageMeter,
 }) => {
-  const editUsageMeter = trpc.usageMeters.update.useMutation()
+  const editUsageMeter = trpc.usageMeters.update.useMutation({
+    onSuccess: () => {
+      toast.success('Usage meter updated successfully')
+    },
+    onError: () => {
+      toast.error('Failed to update usage meter')
+    },
+  })
 
   // Explicitly exclude create-only and read-only fields from defaultValues
   const {

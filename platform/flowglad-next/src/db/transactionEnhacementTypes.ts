@@ -6,4 +6,5 @@ export interface TransactionOutput<T> {
   result: T
   eventsToInsert?: Event.Insert[]
   ledgerCommand?: LedgerCommand
+  ledgerCommands?: LedgerCommand[]
 }

@@ -64,9 +64,10 @@ export interface NextjsAuthFlowgladServerSessionParams
 
 interface BetterAuthSession {
   user: {
-    name?: string | null
-    email?: string | null
-    image?: string | null
+    id: string
+    name?: string | null | undefined
+    email?: string | null | undefined
+    image?: string | null | undefined
   }
 }
 
@@ -113,9 +114,16 @@ export interface ClerkFlowgladServerSessionParams
   }
 }
 
+export interface ScopedFlowgladServerParams {
+  customerExternalId: string
+  baseURL?: string
+  apiKey?: string
+}
+
 export type FlowgladServerSessionParams =
   | SupabaseFlowgladServerSessionParams
   | NextjsAuthFlowgladServerSessionParams
   | ClerkFlowgladServerSessionParams
   | BetterAuthFlowgladServerSessionParams
   | BaseFlowgladServerSessionParams
+  | ScopedFlowgladServerParams

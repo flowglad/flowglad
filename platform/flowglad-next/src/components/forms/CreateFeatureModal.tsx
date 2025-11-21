@@ -21,7 +21,16 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
   setIsOpen,
   defaultPricingModelId,
 }) => {
-  const createFeatureMutation = trpc.features.create.useMutation() // Adjusted endpoint
+  const utils = trpc.useUtils()
+  const createFeatureMutation = trpc.features.create.useMutation({
+    onSuccess: async () => {
+      // Invalidate the features query for this pricing model so AddSubscriptionFeatureModal
+      // always shows the latest available features
+      await utils.features.getFeaturesForPricingModel.invalidate({
+        pricingModelId: defaultPricingModelId,
+      })
+    },
+  })
   const { livemode } = useAuthenticatedContext()
   return (
     <FormModal<CreateFeatureInput>

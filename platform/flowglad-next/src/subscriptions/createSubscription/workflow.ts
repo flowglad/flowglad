@@ -8,14 +8,22 @@ import {
   verifyCanCreateSubscription,
   maybeDefaultPaymentMethodForSubscription,
   safelyProcessCreationForExistingSubscription,
-  setupLedgerAccounts,
   maybeCreateInitialBillingPeriodAndRun,
   ledgerCommandPayload,
 } from './helpers'
 import { insertSubscriptionAndItems } from './initializers'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  selectSubscriptions,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
+import { Subscription } from '@/db/schema/subscriptions'
 import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
-import { PriceType, SubscriptionStatus } from '@/types'
+import {
+  PriceType,
+  SubscriptionStatus,
+  CancellationReason,
+} from '@/types'
 import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
 import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
 import { idempotentSendCustomerSubscriptionUpgradedNotification } from '@/trigger/notifications/send-customer-subscription-upgraded-notification'
@@ -32,7 +40,7 @@ import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerM
 import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
-import { updateCheckoutSessionAutomaticallyUpdateSubscriptions } from '@/db/tableMethods/checkoutSessionMethods'
+import { logger } from '@/utils/logger'
 
 /**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
@@ -81,6 +89,92 @@ export const createSubscriptionWorkflow = async (
       )
     }
   }
+
+  // Check if we're creating a paid plan (unitPrice !== 0)
+  const isCreatingPaidPlan = params.price.unitPrice !== 0
+
+  // If creating a paid plan, check for and cancel any existing free subscriptions
+  let canceledFreeSubscription: Subscription.Record | null = null
+  if (isCreatingPaidPlan) {
+    // Find active free subscriptions for the customer
+    const activeSubscriptions = await selectSubscriptions(
+      {
+        customerId: params.customer.id,
+        status: SubscriptionStatus.Active,
+      },
+      transaction
+    )
+
+    const freeSubscriptions = activeSubscriptions.filter(
+      (sub) => sub.isFreePlan === true
+    )
+
+    if (freeSubscriptions.length > 0) {
+      // If multiple free subscriptions exist (edge case), cancel the most recent one
+      if (freeSubscriptions.length > 1) {
+        logger.warn(
+          `Multiple free subscriptions found for customer ${params.customer.id}. ` +
+            `Canceling the most recent one (${freeSubscriptions.length} total). ` +
+            `This is an edge case that should be investigated.`,
+          {
+            customerId: params.customer.id,
+            freeSubscriptionCount: freeSubscriptions.length,
+          }
+        )
+      }
+      // Find the most recent free subscription to cancel
+      const subscriptionToCancel = freeSubscriptions.reduce(
+        (latest, current) => {
+          const latestTime = new Date(latest.createdAt).getTime()
+          const currentTime = new Date(current.createdAt).getTime()
+          return currentTime > latestTime ? current : latest
+        }
+      )
+
+      // Handle billing cycle preservation if requested
+      // We need to capture billing cycle info BEFORE canceling
+      if (params.preserveBillingCycleAnchor) {
+        const startDate =
+          params.startDate instanceof Date
+            ? params.startDate.getTime()
+            : params.startDate
+
+        // Preserve billing cycle from the free subscription
+        params.billingCycleAnchorDate =
+          subscriptionToCancel.billingCycleAnchorDate || startDate
+        params.preservedBillingPeriodEnd =
+          subscriptionToCancel.currentBillingPeriodEnd || undefined
+        params.preservedBillingPeriodStart =
+          subscriptionToCancel.currentBillingPeriodStart || undefined
+        params.prorateFirstPeriod = true
+
+        // Validate that we're not past the period end
+        if (
+          params.preservedBillingPeriodEnd &&
+          startDate > params.preservedBillingPeriodEnd
+        ) {
+          // If we're past the period, don't preserve (start a new cycle)
+          params.billingCycleAnchorDate = undefined
+          params.preservedBillingPeriodEnd = undefined
+          params.preservedBillingPeriodStart = undefined
+          params.prorateFirstPeriod = false
+        }
+      }
+
+      // Cancel the free subscription
+      canceledFreeSubscription = await updateSubscription(
+        {
+          id: subscriptionToCancel.id,
+          renews: subscriptionToCancel.renews,
+          status: SubscriptionStatus.Canceled,
+          canceledAt: Date.now(),
+          cancellationReason: CancellationReason.UpgradedToPaid,
+        },
+        transaction
+      )
+    }
+  }
+
   await verifyCanCreateSubscription(params, transaction)
   const defaultPaymentMethod =
     await maybeDefaultPaymentMethodForSubscription(
@@ -92,6 +186,19 @@ export const createSubscriptionWorkflow = async (
     )
   const { subscription, subscriptionItems } =
     await insertSubscriptionAndItems(params, transaction)
+
+  // Link the canceled free subscription to the new paid subscription
+  if (canceledFreeSubscription) {
+    await updateSubscription(
+      {
+        id: canceledFreeSubscription.id,
+        renews: canceledFreeSubscription.renews,
+        replacedBySubscriptionId: subscription.id,
+      },
+      transaction
+    )
+  }
+
   if (params.discountRedemption) {
     await updateDiscountRedemption(
       {
@@ -135,12 +242,12 @@ export const createSubscriptionWorkflow = async (
     )
 
     // Send customer notification - choose based on whether this is an upgrade
-    if (params.previousSubscriptionId) {
+    if (canceledFreeSubscription) {
       // This is an upgrade from free to paid
       await idempotentSendCustomerSubscriptionUpgradedNotification({
         customerId: updatedSubscription.customerId,
         newSubscriptionId: updatedSubscription.id,
-        previousSubscriptionId: params.previousSubscriptionId,
+        previousSubscriptionId: canceledFreeSubscription.id,
         organizationId: updatedSubscription.organizationId,
       })
     } else {

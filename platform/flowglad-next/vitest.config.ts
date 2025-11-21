@@ -2,10 +2,39 @@ import { defineConfig } from 'vitest/config'
 import { loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import fs from 'fs'
 
 export default defineConfig(({ mode }) => {
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      /**
+       * Custom plugin to handle markdown file imports in tests.
+       *
+       * Without this, Vite tries to parse .md files as JavaScript during test runs,
+       * causing errors like "Failed to parse source for import analysis because
+       * the content contains invalid JS syntax."
+       *
+       * This plugin intercepts markdown imports and transforms them to export
+       * the file content as a string, matching how Next.js webpack config handles
+       * them (via asset/source type). This allows code like:
+       * `import prompt from '@/prompts/analyze-codebase.md'` to work in tests.
+       */
+      {
+        name: 'markdown-loader',
+        load(id) {
+          if (id.endsWith('.md')) {
+            return `export default ${JSON.stringify(fs.readFileSync(id, 'utf-8'))}`
+          }
+        },
+      },
+    ],
+    /**
+     * Tell Vite to treat .md files as assets.
+     * This works together with the markdown-loader plugin above to ensure
+     * markdown files are properly handled during test execution.
+     */
+    assetsInclude: ['**/*.md'],
     test: {
       include: [
         'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',

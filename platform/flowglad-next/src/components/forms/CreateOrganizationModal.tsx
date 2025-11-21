@@ -48,6 +48,7 @@ const CreateOrganizationModal: React.FC<
       }}
       submitButtonText="Create Organization"
     >
+      {/* FIXME (FG-555): Readd OrganizationLogoInput to this page once we have a way to upload the logo during organization creation */}
       <OrganizationFormFields />
     </FormModal>
   )

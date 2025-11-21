@@ -1,0 +1,1295 @@
+/* Custom styles for Mintlify documentation */
+
+/* ========================================
+   TABLE OF CONTENTS
+   ======================================== */
+/*
+  1. Font Declarations.............Line 20
+  2. CSS Variables.................Line 120
+  3. Text Colors...................Line 220
+  4. Primary Color Overrides.......Line 340
+  5. Card Colors...................Line 410
+  6. Code Block Colors.............Line 460
+  7. Code Syntax Highlighting......Line 540
+  8. Border Colors.................Line 660
+  9. Tab Button Borders............Line 810
+  10. Border Radius................Line 860
+  11. Mermaid Diagrams.............Line 1290
+*/
+
+/* ========================================
+   1. FONT DECLARATIONS
+   ======================================== */
+
+/* ABC Arizona - Heading Font */
+@font-face {
+  font-family: 'ABC Arizona';
+  src: url('/fonts/abc-arizona/ABCArizona-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ABC Arizona';
+  src: url('/fonts/abc-arizona/ABCArizona-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ABC Arizona';
+  src: url('/fonts/abc-arizona/ABCArizona-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* SF Pro - Body Font (Variable Font with all weights) */
+@font-face {
+  font-family: 'SF Pro';
+  src: url('/fonts/sf-pro/SF-Pro.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Berkeley Mono - Code Font (Variable Font with all weights) */
+@font-face {
+  font-family: 'Berkeley Mono';
+  src: url('/fonts/berkeley-mono/Berkeley Mono Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ========================================
+   2. CSS VARIABLES
+   ======================================== */
+
+:root {
+  /* Brand Colors */
+  --color-primary: #DD7D29;
+  --color-primary-light: #FFC898;
+  --color-primary-dark: #BA702E;
+  
+  /* Text Colors (theme-aware) */
+  --text-primary: #141312;
+  --text-secondary: #656359;
+  
+  /* Background Colors (theme-aware) */
+  --bg-page: #FBFAF4;
+  --bg-card: #FFFFFF;
+  --bg-code-container: #F1F0E9;
+  --bg-code-content: #FFFFFF;
+  
+  /* Border Colors (theme-aware) */
+  --border-color: #E6E2E1;
+  --border-code: rgba(0, 0, 0, 0.1);
+  
+  /* Button Colors (theme-aware) */
+  --btn-primary-bg: #2D2A28;
+  --btn-primary-text: #F1EEE0;
+  
+  /* Border Radius */
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  
+  /* Opacity values for rgba colors */
+  --opacity-border: 0.1;
+  --opacity-callout-border-light: 0.2;
+  --opacity-callout-border-dark: 0.3;
+  --opacity-callout-bg-light: 0.05;
+  --opacity-callout-bg-dark: 0.1;
+  --opacity-mermaid-bg-light: 0.1;
+  --opacity-mermaid-bg-dark: 0.15;
+  --opacity-hover: 0.9;
+  
+  /* Code Syntax Colors (theme-aware) */
+  --syntax-keyword: #1F2328;
+  --syntax-function: var(--color-primary);
+  --syntax-string: #0969DA;
+  --syntax-property: #8250DF;
+  --syntax-tag: #1A7F37;
+  --syntax-comment: var(--text-secondary);
+  --syntax-base: #E8E6E3;
+}
+
+/* Dark mode variable overrides */
+.dark,
+html.dark {
+  /* Text Colors - Dark Mode */
+  --text-primary: #FBFAF4;
+  --text-secondary: #CCC2A9;
+  
+  /* Background Colors - Dark Mode */
+  --bg-page: #2D2A28;
+  --bg-card: #3F3935;
+  --bg-code-container: #45403D;
+  --bg-code-content: #3F3935;
+  
+  /* Border Colors - Dark Mode */
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-code: rgba(255, 255, 255, 0.1);
+  
+  /* Button Colors - Dark Mode */
+  --btn-primary-bg: #F1EEE0;
+  --btn-primary-text: #2D2A28;
+  
+  /* Code Syntax Colors - Dark Mode */
+  --syntax-keyword: #E8E6E3;
+  --syntax-function: var(--color-primary-light);
+  --syntax-string: #79C0FF;
+  --syntax-property: #D2A8FF;
+  --syntax-tag: #7EE787;
+  --syntax-comment: var(--text-secondary);
+  --syntax-base: #E8E6E3;
+}
+
+/* ========================================
+   FONT APPLICATIONS
+   ======================================== */
+
+/* Apply SF Pro to body text and general content */
+body,
+#content-area,
+#content-area p,
+#content-area .prose,
+#content-area .prose p,
+#content-area li,
+#content-area span:not(code *),
+#sidebar,
+#navbar,
+.card p,
+.callout p {
+  font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+}
+
+/* Apply ABC Arizona to ALL headings with medium weight (EXCEPT card titles) */
+h1:not(.card h1):not(.card h2):not(.card h3):not([data-component-part="card-title"]), 
+h2:not(.card h2):not([data-component-part="card-title"]), 
+h3:not(.card h3):not([data-component-part="card-title"]), 
+h4:not(.card h4):not([data-component-part="card-title"]), 
+h5:not(.card h5):not([data-component-part="card-title"]), 
+h6:not(.card h6):not([data-component-part="card-title"]),
+h1:not(.card h1) span, 
+h2:not(.card h2) span, 
+h3:not(.card h3) span, 
+h4:not(.card h4) span, 
+h5:not(.card h5) span, 
+h6:not(.card h6) span,
+#content-area h1:not([data-component-part="card-title"]),
+#content-area h2:not([data-component-part="card-title"]),
+#content-area h3:not([data-component-part="card-title"]),
+#content-area h4:not([data-component-part="card-title"]),
+#content-area h5:not([data-component-part="card-title"]),
+#content-area h6:not([data-component-part="card-title"]),
+#content-area h1:not([data-component-part="card-title"]) span,
+#content-area h2:not([data-component-part="card-title"]) span,
+#content-area h3:not([data-component-part="card-title"]) span,
+#content-area h4:not([data-component-part="card-title"]) span,
+#content-area h5:not([data-component-part="card-title"]) span,
+#content-area h6:not([data-component-part="card-title"]) span,
+#page-title,
+#page-title span,
+#navbar h1,
+#navbar h2,
+#navbar h3,
+#navbar h1 span,
+#navbar h2 span,
+#navbar h3 span,
+#footer h1,
+#footer h2,
+#footer h3,
+#footer h1 span,
+#footer h2 span,
+#footer h3 span,
+#table-of-contents h1,
+#table-of-contents h2,
+#table-of-contents h3,
+.modal h1,
+.modal h2,
+.modal h3,
+.modal h1 span,
+.modal h2 span,
+.modal h3 span,
+.dialog h1,
+.dialog h2,
+.dialog h3,
+.dialog h1 span,
+.dialog h2 span,
+.dialog h3 span,
+.callout h1,
+.callout h2,
+.callout h3,
+.callout h1 span,
+.callout h2 span,
+.callout h3 span,
+.heading:not([data-component-part="card-title"]),
+.heading:not([data-component-part="card-title"]) span,
+.title:not([data-component-part="card-title"]),
+.title:not([data-component-part="card-title"]) span,
+[role="heading"]:not([data-component-part="card-title"]),
+[role="heading"]:not([data-component-part="card-title"]) span,
+.accordion h1,
+.accordion h2,
+.accordion h3,
+.accordion h1 span,
+.accordion h2 span,
+.accordion h3 span,
+.nav-tabs-item h1,
+.nav-tabs-item h2,
+.nav-tabs-item h3,
+.nav-tabs-item h1 span,
+.nav-tabs-item h2 span,
+.nav-tabs-item h3 span {
+  font-family: 'ABC Arizona', 'Georgia', 'Times New Roman', 'Times', serif !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+}
+
+/* Card titles use SF Pro instead of ABC Arizona */
+.card h1,
+.card h2,
+.card h3,
+.card h4,
+.card h5,
+.card h6,
+.card h1 span,
+.card h2 span,
+.card h3 span,
+.card h4 span,
+.card h5 span,
+.card h6 span,
+[data-component-part="card-title"],
+[data-component-part="card-title"] span {
+  font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: normal !important;
+}
+
+/* Eyebrow - special label style */
+.eyebrow {
+  font-family: 'Berkeley Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace !important;
+  font-weight: 450 !important;
+  font-size: 12px !important;
+}
+
+/* Sidebar Titles - Section headers (NOT navigation links) */
+#sidebar .sidebar-title,
+#sidebar-title,
+#sidebar h5[id="sidebar-title"],
+#sidebar h5:not(a):not(button),
+#sidebar h6:not(a):not(button),
+#sidebar-content .sidebar-title,
+#sidebar-content h5:not(a):not(button),
+#sidebar-content h6:not(a):not(button),
+.sidebar-group h5:not(a):not(button),
+.sidebar-group h6:not(a):not(button) {
+  font-family: 'Berkeley Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace !important;
+  font-weight: 450 !important;
+  font-size: 0.875rem !important; /* text-sm */
+}
+
+/* Apply Berkeley Mono to ALL code elements */
+code,
+pre,
+pre code,
+code span,
+pre span,
+kbd,
+samp,
+var,
+tt,
+#content-area code,
+#content-area pre,
+#content-area pre code,
+#content-area code span,
+#content-area kbd,
+#content-area samp,
+#content-area var,
+.code-block,
+.code-block code,
+.code-block pre,
+.code-block pre code,
+.code-block span,
+.code-group,
+.code-group code,
+.code-group pre,
+.code-group pre code,
+.code-group span,
+[class*="language-"],
+[class*="language-"] code,
+[class*="language-"] span,
+pre[class*="language-"],
+code[class*="language-"],
+.shiki,
+.shiki code,
+.shiki span,
+pre.shiki,
+pre.shiki code,
+pre.shiki span,
+.hljs,
+.hljs code,
+.hljs span,
+.highlight,
+.highlight code,
+.highlight pre,
+div[class*="code"] code,
+div[class*="code"] pre,
+div[class*="code"] span,
+article code,
+article pre,
+section code,
+section pre {
+  font-family: 'Berkeley Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', 'Roboto Mono', 'Droid Sans Mono', 'Source Code Pro', 'Courier New', monospace !important;
+}
+
+/* ========================================
+   3. TEXT COLORS
+   ======================================== */
+
+/* PRIMARY TEXT COLORS - Headings, titles, emphasized text */
+
+/* Primary text - scoped to content area */
+#content-area .text-gray-900,
+#content-area .text-gray-800,
+#content-area h1, 
+#content-area h2, 
+#content-area h3, 
+#content-area h4, 
+#content-area h5, 
+#content-area h6,
+#content-area .font-semibold.text-gray-900,
+#content-area .font-semibold.text-gray-800,
+#content-area .font-bold.text-gray-900,
+#content-area .font-bold.text-gray-800,
+#page-title,
+.eyebrow,
+.nav-tabs-item:not(#table-of-contents *),
+.card h2,
+[data-component-part="card-title"] {
+  color: var(--text-primary) !important;
+}
+
+/* SECONDARY TEXT COLORS - Body text, descriptions, muted text */
+
+/* Secondary text - scoped to content area */
+#content-area .prose,
+#content-area .prose-gray,
+#content-area .prose-invert,
+#content-area p.text-gray-600,
+#content-area .prose p,
+#content-area .prose-gray p,
+#content-area .prose-invert p,
+#content-area article p,
+#content-area .mdx-content p,
+#content-area p.text-gray-400,
+#content-area .callout,
+#content-area [data-callout-type] p,
+#content-area [data-component-part="callout-content"],
+#content-area .text-sky-900,
+#content-area .text-sky-200,
+#content-area .text-zinc-900,
+#content-area .text-zinc-200,
+[data-component-part="card-content"],
+.card .prose,
+.card p {
+  color: var(--text-secondary) !important;
+}
+
+/* Link hover states in main content area */
+#content-area a:hover.text-gray-600,
+#content-area a:hover.text-gray-400,
+#content-area a:hover[class*="hover:text-gray"] {
+  color: var(--text-primary) !important;
+}
+
+/* SIDEBAR NAVIGATION LINK COLORS */
+
+/* Inactive sidebar links */
+#sidebar a.text-gray-700,
+#sidebar a.text-gray-400,
+#sidebar-content a.text-gray-700,
+#sidebar-content a.text-gray-400,
+#navigation-items a.text-gray-700,
+#navigation-items a.text-gray-400,
+aside a.text-gray-700,
+aside a.text-gray-400,
+nav li a.text-gray-700,
+nav li a.text-gray-400 {
+  color: var(--text-secondary) !important;
+}
+
+/* Sidebar link hover states */
+#sidebar a:hover,
+#sidebar-content a:hover,
+#navigation-items a:hover,
+aside a:hover,
+nav li a:hover {
+  color: var(--text-primary) !important;
+}
+
+/* Remove tracking-tight from sidebar buttons and links */
+#sidebar a,
+#sidebar button,
+#sidebar-content a,
+#sidebar-content button,
+#navigation-items a,
+#navigation-items button,
+.sidebar a,
+.sidebar button,
+aside a,
+aside button,
+nav li a,
+nav li button,
+[role="navigation"] a,
+[role="navigation"] button {
+  letter-spacing: normal !important;
+}
+
+/* ========================================
+   3. PRIMARY COLOR OVERRIDES FOR CALLOUTS
+   ======================================== */
+
+/* Replace sky colors with primary orange colors */
+
+/* Callout borders */
+[class*="border-sky"],
+.border-sky-500\/20,
+.border-sky-500\/30 {
+  border-color: rgba(221, 125, 41, var(--opacity-callout-border-light)) !important;
+}
+
+.dark [class*="border-sky"],
+.dark .border-sky-500\/30,
+html.dark [class*="border-sky"],
+html.dark .border-sky-500\/30 {
+  border-color: rgba(186, 112, 46, var(--opacity-callout-border-dark)) !important;
+}
+
+/* Callout backgrounds */
+[class*="bg-sky"],
+.bg-sky-50,
+.bg-sky-50\/50 {
+  background-color: rgba(221, 125, 41, var(--opacity-callout-bg-light)) !important;
+}
+
+.dark [class*="bg-sky"],
+.dark .bg-sky-500\/10,
+html.dark [class*="bg-sky"],
+html.dark .bg-sky-500\/10 {
+  background-color: rgba(186, 112, 46, var(--opacity-callout-bg-dark)) !important;
+}
+
+/* Callout text colors */
+.text-sky-500,
+.text-sky-900 {
+  color: var(--color-primary) !important;
+}
+
+.dark .text-sky-200,
+.dark .text-sky-500,
+html.dark .text-sky-200,
+html.dark .text-sky-500 {
+  color: var(--color-primary-light) !important;
+}
+
+/* ========================================
+   4. CARD COLORS
+   ======================================== */
+
+/* Card-group container - no background, no radius */
+.card-group,
+div.card-group {
+  background-color: transparent !important;
+  border-radius: 0 !important;
+  background: none !important;
+}
+
+/* Individual card backgrounds */
+.card,
+.card.bg-white,
+.card-group .card,
+div.card,
+a.card {
+  background-color: var(--bg-card) !important;
+}
+
+/* Card Icon Colors - Fix white icons in light mode */
+/* Override inline background-color on card icon SVGs to use primary text color */
+[data-component-part="card-icon"] svg[style*="background-color"],
+.card svg.bg-primary[style*="background-color"],
+.card svg[class*="bg-primary"][style*="background-color"],
+.card-group svg.bg-primary[style*="background-color"],
+.card-group svg[class*="bg-primary"][style*="background-color"],
+div[class*="card"] svg[style*="background-color"],
+a.card svg[style*="background-color"] {
+  background-color: var(--text-primary) !important;
+}
+
+/* Dark mode card icons - maintain proper contrast */
+.dark [data-component-part="card-icon"] svg[style*="background-color"],
+.dark .card svg.bg-primary[style*="background-color"],
+.dark .card svg[class*="bg-primary"][style*="background-color"],
+html.dark [data-component-part="card-icon"] svg[style*="background-color"],
+html.dark .card svg.bg-primary[style*="background-color"],
+html.dark .card svg[class*="bg-primary"][style*="background-color"] {
+  background-color: var(--text-primary) !important;
+}
+
+/* ========================================
+   5. CODE BLOCK COLORS
+   ======================================== */
+
+/* Code block outer container backgrounds */
+.code-block.bg-gray-50,
+.code-group.bg-gray-50,
+div[class*="code"].bg-gray-50 {
+  background-color: var(--bg-code-container) !important;
+}
+
+.dark .code-block,
+.dark .code-group,
+.dark [class*="codeblock-dark"],
+html.dark .code-block,
+html.dark .code-group,
+html.dark [class*="codeblock-dark"] {
+  background-color: var(--bg-code-container) !important;
+}
+
+/* Code block inner content area backgrounds */
+.code-block .bg-white,
+.code-group .bg-white,
+[data-component-part="code-block-root"].bg-white,
+.code-block-background.bg-white,
+pre.shiki,
+pre[class*="shiki"] {
+  background-color: var(--bg-code-content) !important;
+}
+
+.dark .code-block .bg-white,
+.dark .code-group .bg-white,
+.dark [data-component-part="code-block-root"],
+.dark .code-block-background,
+.dark .dark\:bg-codeblock,
+.dark pre.shiki,
+html.dark .code-block .bg-white,
+html.dark .code-group .bg-white,
+html.dark [data-component-part="code-block-root"],
+html.dark .code-block-background,
+html.dark .dark\:bg-codeblock,
+html.dark pre.shiki {
+  background-color: var(--bg-code-content) !important;
+}
+
+/* Override inline styles on shiki code blocks */
+.dark pre.shiki[style*="background-color"],
+html.dark pre.shiki[style*="background-color"] {
+  background-color: var(--bg-code-content) !important;
+}
+
+/* ========================================
+   6. CODE SYNTAX HIGHLIGHTING COLORS
+   ======================================== */
+
+/* Light mode syntax colors */
+
+/* Keywords (import, function, const, return, export) */
+pre code span[style*="color: rgb(207, 34, 46)"],
+pre code span[style*="color: #CF222E"] {
+  color: var(--syntax-keyword) !important;
+}
+
+/* Function names and calls */
+pre code span[style*="color: rgb(130, 80, 223)"],
+pre code span[style*="color: #8250DF"],
+pre code span[style*="color: rgb(149, 56, 0)"],
+pre code span[style*="color: #953800"] {
+  color: var(--syntax-function) !important;
+}
+
+/* Strings */
+pre code span[style*="color: rgb(10, 48, 105)"],
+pre code span[style*="color: #0A3069"] {
+  color: var(--syntax-string) !important;
+}
+
+/* Properties and variables */
+pre code span[style*="color: rgb(5, 80, 174)"],
+pre code span[style*="color: #0550AE"],
+pre code span[style*="color: rgb(31, 35, 40)"][style*="--shiki-dark: #9CDCFE"] {
+  color: var(--syntax-property) !important;
+}
+
+/* HTML/JSX tags */
+pre code span[style*="color: rgb(17, 99, 41)"],
+pre code span[style*="color: #116329"] {
+  color: var(--syntax-tag) !important;
+}
+
+/* Comments */
+pre code span[style*="color: rgb(110, 119, 129)"],
+pre code span[style*="color: #6E7781"] {
+  color: var(--syntax-comment) !important;
+}
+
+/* Dark mode syntax colors */
+
+/* Keywords in dark mode */
+.dark pre code span[style*="--shiki-dark: #C586C0"],
+.dark pre code span[style*="--shiki-dark: #569CD6"],
+html.dark pre code span[style*="--shiki-dark: #C586C0"],
+html.dark pre code span[style*="--shiki-dark: #569CD6"] {
+  color: var(--syntax-keyword) !important;
+}
+
+/* Function names in dark mode */
+.dark pre code span[style*="--shiki-dark: #DCDCAA"],
+html.dark pre code span[style*="--shiki-dark: #DCDCAA"] {
+  color: var(--syntax-function) !important;
+}
+
+/* Strings in dark mode */
+.dark pre code span[style*="--shiki-dark: #CE9178"],
+html.dark pre code span[style*="--shiki-dark: #CE9178"] {
+  color: var(--syntax-string) !important;
+}
+
+/* Properties and variables in dark mode */
+.dark pre code span[style*="--shiki-dark: #9CDCFE"],
+.dark pre code span[style*="--shiki-dark: #4FC1FF"],
+html.dark pre code span[style*="--shiki-dark: #9CDCFE"],
+html.dark pre code span[style*="--shiki-dark: #4FC1FF"] {
+  color: var(--syntax-property) !important;
+}
+
+/* HTML/JSX tags in dark mode */
+.dark pre code span[style*="--shiki-dark: #4EC9B0"],
+html.dark pre code span[style*="--shiki-dark: #4EC9B0"] {
+  color: var(--syntax-tag) !important;
+}
+
+/* Comments in dark mode */
+.dark pre code span[style*="--shiki-dark: #6A9955"],
+html.dark pre code span[style*="--shiki-dark: #6A9955"] {
+  color: var(--syntax-comment) !important;
+}
+
+/* Base text color in code blocks */
+.dark pre code span[style*="--shiki-dark: #D4D4D4"],
+html.dark pre code span[style*="--shiki-dark: #D4D4D4"] {
+  color: var(--syntax-base) !important;
+}
+
+/* ========================================
+   7. BORDER COLORS
+   ======================================== */
+
+/* Code blocks - ALWAYS keep original Mintlify borders */
+.code-block,
+.code-block:hover,
+.code-group,
+.code-group:hover {
+  border-color: var(--border-code) !important;
+}
+
+/* General borders - Light mode */
+.border-gray-200,
+.border-gray-100,
+.border-gray-300,
+button.border:not([role="menuitem"]),
+.callout.border,
+.card.border:not(:hover),
+input.border,
+textarea.border {
+  border-color: var(--border-color) !important;
+}
+
+/* Exclude specific elements that should keep original borders */
+[data-component-part="tabs-list"],
+[role="menu"],
+.code-block,
+.code-group,
+#navbar-transition {
+  /* Reset these to use their original colors */
+}
+
+/* Dark mode borders */
+.dark .border-gray-200:not(:hover),
+.dark .border-gray-100:not(:hover),
+.dark .border-gray-300:not(:hover),
+.dark button.border:not(:hover):not([role="menuitem"]),
+.dark .callout.border,
+.dark .card.border:not(:hover),
+.dark input.border:not(:hover),
+.dark textarea.border:not(:hover),
+html.dark .border-gray-200:not(:hover),
+html.dark .border-gray-100:not(:hover),
+html.dark .border-gray-300:not(:hover),
+html.dark button.border:not(:hover):not([role="menuitem"]),
+html.dark .callout.border,
+html.dark .card.border:not(:hover),
+html.dark input.border:not(:hover),
+html.dark textarea.border:not(:hover) {
+  border-color: var(--border-color) !important;
+}
+
+/* Exclude navbar and code elements from dark mode borders */
+.dark .border-gray-200:not(:hover):not(#navbar *),
+.dark .border-gray-100:not(:hover):not(#navbar *),
+.dark .border-gray-300:not(:hover):not(#navbar *),
+html.dark .border-gray-200:not(:hover):not(#navbar *),
+html.dark .border-gray-100:not(:hover):not(#navbar *),
+html.dark .border-gray-300:not(:hover):not(#navbar *) {
+  border-color: var(--border-color) !important;
+}
+
+/* Card hover borders - show primary color */
+.card:hover,
+a.card:hover {
+  border-color: var(--color-primary) !important;
+}
+
+.dark .card:hover,
+.dark a.card:hover,
+html.dark .card:hover,
+html.dark a.card:hover {
+  border-color: var(--color-primary-light) !important;
+}
+
+/* Navbar and topbar borders */
+#navbar-transition {
+  border-bottom-style: solid !important;
+  border-bottom-color: var(--border-color) !important;
+}
+
+/* Navbar inner content border - ALWAYS dashed */
+#navbar div.h-full.relative.border-b,
+#navbar div.h-full.relative.border-b:hover,
+#navbar div.h-full.flex-1.border-b,
+#navbar div.h-full.flex-1.border-b:hover,
+#navbar .flex-1.border-b.h-full,
+#navbar .flex-1.border-b.h-full:hover {
+  border-bottom-color: var(--border-color) !important;
+  border-bottom-style: dashed !important;
+}
+
+/* ========================================
+   8. TAB BUTTON BORDERS
+   ======================================== */
+
+/* Inactive tab buttons - transparent border by default */
+[data-component-part="tab-button"][data-active="false"],
+[data-component-part="tab-button"][data-active="false"].border-transparent {
+  border-bottom-color: transparent !important;
+}
+
+/* Inactive tab buttons - hover shows custom color */
+[data-component-part="tab-button"][data-active="false"]:hover,
+li:hover [data-component-part="tab-button"][data-active="false"],
+.hover\:border-gray-300:hover,
+.hover\:border-gray-700:hover {
+  border-bottom-color: var(--border-color) !important;
+}
+
+/* Active tab buttons - keep border-current (uses primary color) */
+[data-component-part="tab-button"][data-active="true"],
+[data-component-part="tab-button"][data-active="true"].border-current {
+  /* No override - let it use border-current which applies primary color */
+}
+
+/* Tab button text colors in dark mode */
+.dark [data-component-part="tab-button"][data-active="true"],
+.dark [data-component-part="tab-button"][data-active="true"] *,
+html.dark [data-component-part="tab-button"][data-active="true"],
+html.dark [data-component-part="tab-button"][data-active="true"] * {
+  color: var(--color-primary-light) !important;
+}
+
+.dark [data-component-part="tab-button"][data-active="false"],
+.dark [data-component-part="tab-button"][data-active="false"] *,
+html.dark [data-component-part="tab-button"][data-active="false"],
+html.dark [data-component-part="tab-button"][data-active="false"] * {
+  color: var(--color-primary) !important;
+}
+
+.dark [data-component-part="tab-button"][data-active="false"]:hover,
+.dark [data-component-part="tab-button"][data-active="false"]:hover *,
+html.dark [data-component-part="tab-button"][data-active="false"]:hover,
+html.dark [data-component-part="tab-button"][data-active="false"]:hover * {
+  color: var(--color-primary-light) !important;
+}
+
+/* ========================================
+   9. BORDER RADIUS
+   ======================================== */
+
+/* Buttons */
+button,
+button[type="button"],
+button[type="submit"],
+.btn,
+[role="button"],
+a[role="button"],
+a.button {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Navbar links and buttons */
+.navbar-link,
+a.navbar-link,
+nav a,
+nav button {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Primary action button in topbar/navbar */
+.topbar-cta-button,
+.navbar-primary,
+.navbar-primary button,
+.navbar-primary a,
+.navbar-primary a[role="button"],
+.navbar-primary a.button,
+button.primary,
+a.primary {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Override text-white class on text span inside primary button (light/dark mode) */
+.topbar-cta-button span.text-white,
+.topbar-cta-button .text-white,
+.navbar-primary span.text-white,
+.navbar-primary .text-white,
+.navbar-primary button span.text-white,
+.navbar-primary a span.text-white,
+button.primary span.text-white,
+a.primary span.text-white,
+header a span.text-white,
+header a .text-white,
+nav a span.text-white,
+nav a .text-white,
+a[href*="app.flowglad.com"] span.text-white,
+a[href*="app.flowglad.com"] .text-white,
+a[href*="app.flowglad.com"] svg {
+  color: var(--btn-primary-text) !important;
+}
+
+/* Primary button background span */
+.topbar-cta-button span,
+.navbar-primary span,
+.navbar-primary button span,
+.navbar-primary a span,
+button.primary span,
+a.primary span,
+span.bg-primary,
+span.bg-primary-dark,
+span.bg-primary-light,
+header a span.bg-primary-dark,
+nav a span.bg-primary-dark,
+a[href*="app.flowglad.com"] span.bg-primary-dark {
+  background-color: var(--btn-primary-bg) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* Hover states */
+.topbar-cta-button:hover span,
+.navbar-primary:hover span,
+button.primary:hover span,
+a.primary:hover span {
+  opacity: var(--opacity-hover) !important;
+}
+
+/* Navigation tabs */
+nav [role="tab"],
+nav [role="tabbutton"],
+header [role="tab"],
+header [role="tabbutton"],
+[class*="tabs"] button,
+[class*="tabs"] a {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Header/topbar buttons and links */
+header button,
+header a[role="button"],
+header .button {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Code blocks */
+pre,
+pre code,
+pre[class*="language"],
+div[class*="code"],
+div pre,
+.code-block {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Code block wrapper containers */
+div:has(> pre),
+div:has(> pre code) {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Fallback for code block wrappers */
+div > pre,
+div > pre code,
+article pre,
+article div pre,
+section pre,
+section div pre {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Code fences and syntax highlighting */
+code,
+code[class*="language"],
+.hljs,
+.highlight {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Inline code - smaller radius */
+code:not(pre code),
+code:not(pre > code) {
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Cards and containers */
+.card,
+.container {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Alerts, callouts, and info boxes */
+.alert,
+.callout {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Accordions */
+.accordion,
+details.accordion {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Accordion summary (top rounded when closed) */
+.accordion summary,
+details.accordion > summary {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Accordion summary when expanded (only top corners rounded) */
+.accordion[open] summary,
+details.accordion[open] > summary {
+  border-top-left-radius: var(--radius-lg) !important;
+  border-top-right-radius: var(--radius-lg) !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+/* Input fields and form elements */
+input[type="text"],
+input[type="email"],
+input[type="search"],
+textarea,
+select {
+  border-radius: var(--radius-xl) !important;
+}
+
+/* Navigation elements */
+.navbar {
+  border-radius: 0 !important; /* Keep navbar edges sharp */
+}
+
+/* Sidebar container */
+.sidebar {
+  border-radius: 0 !important; /* Keep sidebar edges sharp */
+}
+
+/* Sidebar right border - dashed */
+#sidebar,
+.sidebar {
+  border-right: 1px dashed var(--border-color) !important;
+}
+
+/* Footer top border - dashed */
+#footer,
+footer {
+  border-top-style: dashed !important;
+  border-top-color: var(--border-color) !important;
+}
+
+/* Sidebar links and navigation items */
+.sidebar a,
+.sidebar button,
+aside a,
+aside button,
+nav li a,
+nav li button,
+[role="navigation"] a,
+[role="navigation"] button {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Override Tailwind's rounded classes on sidebar/navigation */
+.sidebar .rounded,
+.sidebar .rounded-sm,
+.sidebar .rounded-md,
+.sidebar .rounded-lg,
+.sidebar .rounded-xl,
+.sidebar .rounded-2xl,
+.sidebar .rounded-3xl,
+aside .rounded,
+aside .rounded-sm,
+aside .rounded-md,
+aside .rounded-lg,
+aside .rounded-xl,
+aside .rounded-2xl,
+aside .rounded-3xl,
+nav li .rounded,
+nav li .rounded-sm,
+nav li .rounded-md,
+nav li .rounded-lg,
+nav li .rounded-xl,
+nav li .rounded-2xl,
+nav li .rounded-3xl {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Dropdowns and menus */
+.dropdown,
+.menu {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Badges and tags */
+.badge,
+.tag {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Tables */
+table {
+  border-radius: var(--radius-md) !important;
+  overflow: hidden;
+}
+
+/* Images and media */
+img {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Modals and dialogs */
+.modal,
+.dialog,
+[role="dialog"],
+[role="alertdialog"] {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Search modal container - parent of search input and backdrop */
+/* Target modal content containers that come after backdrop */
+div.fixed.inset-0 + div,
+div.fixed.inset-0 ~ div,
+div.fixed.inset-0.bg-background-dark + div,
+div.fixed.inset-0.backdrop-blur-sm + div,
+div.fixed.inset-0.backdrop-blur-sm ~ div,
+/* Target dialog roles */
+[role="dialog"],
+[role="alertdialog"],
+[role="dialog"][aria-modal="true"],
+div[role="dialog"],
+/* Target modal wrappers */
+div:has(> [role="dialog"]),
+div:has(> input[type="search"]),
+div:has(> #search-bar-entry),
+/* Target common modal container patterns */
+div[class*="flex"][class*="justify-center"],
+div[class*="fixed"][class*="z-50"],
+div.fixed.z-50,
+/* Target Radix UI dialog components */
+[data-radix-dialog-content],
+[data-radix-popper-content-wrapper],
+[data-dialog-content],
+/* Override Tailwind rounded classes on modal containers */
+div.fixed ~ div.rounded-lg,
+div.fixed ~ div.rounded-xl,
+div.fixed ~ div.rounded-2xl,
+div.fixed ~ div[class*="rounded-"],
+/* Target containers with overflow hidden (common in modals) */
+div[class*="overflow-hidden"][class*="bg-"],
+/* Broad selector for divs near backdrop */
+div[class*="backdrop"] ~ div {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Override any Tailwind rounded utility classes on modal containers */
+div.fixed.inset-0 ~ div.rounded-lg,
+div.fixed.inset-0 ~ div.rounded-xl,
+div.fixed.inset-0 ~ div.rounded-2xl,
+div.fixed.inset-0 ~ div.rounded-3xl,
+div[class*="fixed"][class*="inset"] ~ div.rounded-lg,
+div[class*="fixed"][class*="inset"] ~ div.rounded-xl,
+div[class*="fixed"][class*="inset"] ~ div.rounded-2xl {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* Tooltips */
+.tooltip {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Text links - no border radius */
+a.link,
+.link {
+  border-radius: 0 !important;
+}
+
+/* Global override for Tailwind rounded classes */
+button.rounded,
+button.rounded-sm,
+button.rounded-md,
+button.rounded-lg,
+button.rounded-xl,
+button.rounded-2xl,
+button.rounded-3xl,
+a.rounded:not(.link),
+a.rounded-sm:not(.link),
+a.rounded-md:not(.link),
+a.rounded-lg:not(.link),
+a.rounded-xl:not(.link),
+a.rounded-2xl:not(.link),
+a.rounded-3xl:not(.link),
+div.rounded,
+div.rounded-sm,
+div.rounded-md,
+div.rounded-lg,
+div.rounded-xl,
+div.rounded-2xl,
+div.rounded-3xl {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Button group - Split radius for copy/dropdown buttons */
+#page-context-menu button.rounded-l-xl,
+#page-context-menu-button,
+button#page-context-menu-button {
+  border-top-left-radius: var(--radius-md) !important;
+  border-bottom-left-radius: var(--radius-md) !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+#page-context-menu button.rounded-r-xl,
+#page-context-menu button.rounded-none.rounded-r-xl,
+#page-context-menu > button:last-child {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-top-right-radius: var(--radius-md) !important;
+  border-bottom-right-radius: var(--radius-md) !important;
+}
+
+/* Button group hover states */
+#page-context-menu-button:hover {
+  border-color: var(--border-color) !important;
+}
+
+#page-context-menu-button:hover + button {
+  border-left-color: var(--border-color) !important;
+}
+
+.dark #page-context-menu > button:last-child:hover,
+html.dark #page-context-menu > button:last-child:hover {
+  border-color: var(--border-color) !important;
+}
+
+/* ========================================
+   10. MERMAID DIAGRAM COLORS
+   ======================================== */
+
+/* Mermaid flowchart styling with orange theme */
+
+/* Node boxes */
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node ellipse,
+.mermaid .node polygon,
+.mermaid .node path {
+  fill: rgba(221, 125, 41, var(--opacity-mermaid-bg-light)) !important;
+  stroke: var(--color-primary) !important;
+  stroke-width: 1px !important;
+  rx: var(--radius-md) !important;
+  ry: var(--radius-md) !important;
+}
+
+/* Text labels */
+.mermaid .label,
+.mermaid .nodeLabel,
+.mermaid .label text,
+.mermaid .nodeLabel text,
+.mermaid text,
+.mermaid span.nodeLabel,
+.mermaid foreignObject div,
+.mermaid foreignObject span,
+.mermaid foreignObject p {
+  fill: var(--text-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Edges (arrows and connectors) */
+.mermaid .edgePath .path,
+.mermaid .flowchart-link {
+  stroke: var(--color-primary) !important;
+  stroke-width: 1px !important;
+}
+
+/* Arrow markers */
+.mermaid .marker,
+.mermaid .arrowMarkerPath {
+  fill: var(--color-primary) !important;
+  stroke: var(--color-primary) !important;
+}
+
+/* Dark mode - Node boxes */
+.dark .mermaid .node rect,
+.dark .mermaid .node circle,
+.dark .mermaid .node ellipse,
+.dark .mermaid .node polygon,
+.dark .mermaid .node path,
+html.dark .mermaid .node rect,
+html.dark .mermaid .node circle,
+html.dark .mermaid .node ellipse,
+html.dark .mermaid .node polygon,
+html.dark .mermaid .node path {
+  fill: rgba(186, 112, 46, var(--opacity-mermaid-bg-dark)) !important;
+  stroke: var(--color-primary-light) !important;
+  stroke-width: 1px !important;
+}
+
+/* Dark mode - Edges */
+.dark .mermaid .edgePath .path,
+.dark .mermaid .flowchart-link,
+html.dark .mermaid .edgePath .path,
+html.dark .mermaid .flowchart-link {
+  stroke: var(--color-primary-light) !important;
+  stroke-width: 1px !important;
+}
+
+/* Dark mode - Arrow markers */
+.dark .mermaid .marker,
+.dark .mermaid .arrowMarkerPath,
+html.dark .mermaid .marker,
+html.dark .mermaid .arrowMarkerPath {
+  fill: var(--color-primary-light) !important;
+  stroke: var(--color-primary-light) !important;
+}
+
+/* Note: To customize specific elements further, use browser dev tools to inspect
+   the rendered HTML and find the exact class names Mintlify uses. Then add
+   more specific selectors above or create additional rules below. */

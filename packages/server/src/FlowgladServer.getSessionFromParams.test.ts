@@ -5,9 +5,11 @@ import { type SupabaseFlowgladServerSessionParams } from './types'
 import { type ClerkFlowgladServerSessionParams } from './types'
 import { type BaseFlowgladServerSessionParams } from './types'
 import { type BetterAuthFlowgladServerSessionParams } from './types'
+import { type ScopedFlowgladServerParams } from './types'
 import {
   getSessionFromNextAuth,
   sessionFromSupabaseAuth,
+  sessionFromBetterAuth,
 } from './serverUtils'
 
 describe('getSessionFromParams', () => {
@@ -109,22 +111,6 @@ describe('getSessionFromParams', () => {
       )
     })
 
-    it('fails validation when constructed name would be empty string (no customerFromAuth and user.name missing)', async () => {
-      // setup:
-      const params: NextjsAuthFlowgladServerSessionParams = {
-        apiKey: 'test',
-        nextAuth: {
-          auth: async () => ({
-            user: { email: 'jane@example.com', name: '' },
-          }),
-        },
-      }
-      const server = new FlowgladServer(params)
-
-      // expects:
-      await expect(server.getSession()).rejects.toThrow(/name/)
-    })
-
     it('propagates errors thrown by nextAuth.auth()', async () => {
       // setup:
       const params: NextjsAuthFlowgladServerSessionParams = {
@@ -199,32 +185,6 @@ describe('getSessionFromParams', () => {
       await expect(server.getSession()).rejects.toThrow(
         /Unable to derive requesting customer/
       )
-    })
-
-    it('fails validation when getUser resolves with user missing name (user_metadata.name empty)', async () => {
-      // setup:
-      const user = {
-        id: 'user_123',
-        email: 'jane@example.com',
-        user_metadata: { name: '' },
-      }
-      const supabaseClient = {
-        auth: {
-          getUser: async () => ({
-            data: { user },
-          }),
-        },
-      }
-      const params: SupabaseFlowgladServerSessionParams = {
-        apiKey: 'test',
-        supabaseAuth: {
-          client: async () => supabaseClient as any,
-        },
-      }
-      const server = new FlowgladServer(params)
-
-      // expects:
-      await expect(server.getSession()).rejects.toThrow(/name/)
     })
 
     it('fails validation when getUser resolves with user null', async () => {
@@ -411,27 +371,6 @@ describe('getSessionFromParams', () => {
       )
     })
 
-    it('fails validation when firstName is empty and no customerFromCurrentUser provided', async () => {
-      // setup:
-      const clerkUser = {
-        id: 'clerk_4',
-        firstName: '',
-        lastName: null,
-        username: null,
-        emailAddresses: [{ emailAddress: 'jane@example.com' }],
-      }
-      const params: ClerkFlowgladServerSessionParams = {
-        apiKey: 'test',
-        clerk: {
-          currentUser: async () => clerkUser as any,
-        },
-      }
-      const server = new FlowgladServer(params)
-
-      // expects:
-      await expect(server.getSession()).rejects.toThrow(/name/)
-    })
-
     it('throws when emailAddresses is empty and no customerFromCurrentUser provided', async () => {
       // setup:
       const clerkUser = {
@@ -517,7 +456,7 @@ describe('getSessionFromParams', () => {
       const badCustomer = {
         externalId: 'ext_base_bad',
         name: '',
-        email: 'user@example.com',
+        email: 'user',
       }
       const params: BaseFlowgladServerSessionParams = {
         apiKey: 'test',
@@ -526,7 +465,7 @@ describe('getSessionFromParams', () => {
       const server = new FlowgladServer(params)
 
       // expects:
-      await expect(server.getSession()).rejects.toThrow(/name/)
+      await expect(server.getSession()).rejects.toThrow()
     })
 
     it('propagates errors thrown by getRequestingCustomer', async () => {
@@ -544,37 +483,68 @@ describe('getSessionFromParams', () => {
     })
   })
 
-  describe('BetterAuth fallback behavior', () => {
-    it('uses getRequestingCustomer when betterAuth is present but branch is not handled and getRequestingCustomer exists', async () => {
+  describe('BetterAuth branch', () => {
+    const buildSession = (
+      overrides?: Partial<{
+        id: string
+        email: string | null
+        name: string | null
+      }>
+    ) => ({
+      user: {
+        id: overrides?.id ?? 'better_1',
+        email: overrides?.email ?? 'better@example.com',
+        name: overrides?.name ?? 'Better User',
+      },
+    })
+
+    it('returns CoreCustomerUser using default mapping when getSession resolves session', async () => {
       // setup:
-      const customer = {
-        externalId: 'ext_ba_1',
-        name: 'BA User',
-        email: 'ba@example.com',
-      }
       const params: BetterAuthFlowgladServerSessionParams = {
         apiKey: 'test',
         betterAuth: {
-          getSession: async () =>
-            ({
-              user: { email: 'ignored@example.com', name: 'Ignored' },
-            }) as any,
+          getSession: async () => buildSession(),
         },
-        getRequestingCustomer: async () => customer,
       }
       const server = new FlowgladServer(params)
 
       // expects:
-      await expect(server.getSession()).resolves.toEqual(customer)
+      await expect(server.getSession()).resolves.toEqual({
+        externalId: 'better_1',
+        name: 'Better User',
+        email: 'better@example.com',
+      })
     })
 
-    it('fails validation when only betterAuth is provided (no getRequestingCustomer)', async () => {
+    it('uses customerFromSession override when provided', async () => {
       // setup:
       const params: BetterAuthFlowgladServerSessionParams = {
         apiKey: 'test',
         betterAuth: {
-          getSession: async () =>
-            ({ user: { email: 'u@example.com', name: 'U' } }) as any,
+          getSession: async () => buildSession(),
+          customerFromSession: async () => ({
+            externalId: 'custom_ext',
+            name: 'Custom Name',
+            email: 'custom@example.com',
+          }),
+        },
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).resolves.toEqual({
+        externalId: 'custom_ext',
+        name: 'Custom Name',
+        email: 'custom@example.com',
+      })
+    })
+
+    it('fails validation when getSession returns null', async () => {
+      // setup:
+      const params: BetterAuthFlowgladServerSessionParams = {
+        apiKey: 'test',
+        betterAuth: {
+          getSession: async () => null,
         },
       }
       const server = new FlowgladServer(params)
@@ -582,6 +552,61 @@ describe('getSessionFromParams', () => {
       // expects:
       await expect(server.getSession()).rejects.toThrow(
         /Unable to derive requesting customer/
+      )
+    })
+
+    it('fails validation when default mapping yields invalid email', async () => {
+      // setup:
+      const params: BetterAuthFlowgladServerSessionParams = {
+        apiKey: 'test',
+        betterAuth: {
+          getSession: async () =>
+            buildSession({ email: 'not-an-email' }),
+        },
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).rejects.toThrow(/email/)
+    })
+
+    it('propagates errors thrown by betterAuth.getSession', async () => {
+      // setup:
+      const params: BetterAuthFlowgladServerSessionParams = {
+        apiKey: 'test',
+        betterAuth: {
+          getSession: async () => {
+            throw new Error('betterAuth boom')
+          },
+        },
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).rejects.toThrow(
+        'betterAuth boom'
+      )
+    })
+
+    it('uses getRequestingCustomer when provided even if betterAuth exists', async () => {
+      // setup:
+      const fallbackCustomer = {
+        externalId: 'ext_ba_1',
+        name: 'BA User',
+        email: 'ba@example.com',
+      }
+      const params: BetterAuthFlowgladServerSessionParams = {
+        apiKey: 'test',
+        betterAuth: {
+          getSession: async () => buildSession(),
+        },
+        getRequestingCustomer: async () => fallbackCustomer,
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).resolves.toEqual(
+        fallbackCustomer
       )
     })
   })
@@ -641,7 +666,7 @@ describe('getSessionFromParams', () => {
 
       // expects:
       await expect(server.getSession()).rejects.toThrow(
-        'FlowgladError: Only one of nextAuth, supabaseAuth, or clerk may be defined at a time.'
+        'FlowgladError: Only one of nextAuth, supabaseAuth, clerk, or betterAuth may be defined at a time.'
       )
     })
 
@@ -668,7 +693,7 @@ describe('getSessionFromParams', () => {
 
       // expects:
       await expect(server.getSession()).rejects.toThrow(
-        'FlowgladError: Only one of nextAuth, supabaseAuth, or clerk may be defined at a time.'
+        'FlowgladError: Only one of nextAuth, supabaseAuth, clerk, or betterAuth may be defined at a time.'
       )
     })
 
@@ -706,7 +731,108 @@ describe('getSessionFromParams', () => {
 
       // expects:
       await expect(server.getSession()).rejects.toThrow(
-        'FlowgladError: Only one of nextAuth, supabaseAuth, or clerk may be defined at a time.'
+        'FlowgladError: Only one of nextAuth, supabaseAuth, clerk, or betterAuth may be defined at a time.'
+      )
+    })
+
+    it('throws exclusivity error if both betterAuth and nextAuth are provided', async () => {
+      // setup:
+      const params = {
+        apiKey: 'test',
+        betterAuth: {
+          getSession: async () =>
+            ({
+              user: {
+                id: 'better_1',
+                email: 'better@example.com',
+                name: 'Better',
+              },
+            }) as any,
+        },
+        nextAuth: {
+          auth: async () => ({
+            user: { email: 'a@b.com', name: 'n' },
+          }),
+        },
+      } satisfies BetterAuthFlowgladServerSessionParams &
+        NextjsAuthFlowgladServerSessionParams
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: Only one of nextAuth, supabaseAuth, clerk, or betterAuth may be defined at a time.'
+      )
+    })
+
+    it('throws exclusivity error if both betterAuth and supabaseAuth are provided', async () => {
+      // setup:
+      const params = {
+        apiKey: 'test',
+        betterAuth: {
+          getSession: async () =>
+            ({
+              user: {
+                id: 'better_1',
+                email: 'better@example.com',
+                name: 'Better',
+              },
+            }) as any,
+        },
+        supabaseAuth: {
+          client: async () =>
+            ({
+              auth: {
+                getUser: async () => ({
+                  data: {
+                    user: {
+                      id: 'supabase_1',
+                      email: 's@b.com',
+                      user_metadata: { name: 'Supa' },
+                    },
+                  },
+                }),
+              },
+            }) as any,
+        },
+      } satisfies BetterAuthFlowgladServerSessionParams &
+        SupabaseFlowgladServerSessionParams
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: Only one of nextAuth, supabaseAuth, clerk, or betterAuth may be defined at a time.'
+      )
+    })
+
+    it('throws exclusivity error if both betterAuth and clerk are provided', async () => {
+      // setup:
+      const params = {
+        apiKey: 'test',
+        betterAuth: {
+          getSession: async () =>
+            ({
+              user: {
+                id: 'better_1',
+                email: 'better@example.com',
+                name: 'Better',
+              },
+            }) as any,
+        },
+        clerk: {
+          currentUser: async () =>
+            ({
+              id: 'clerk_1',
+              firstName: 'Clerk',
+              emailAddresses: [{ emailAddress: 'clerk@example.com' }],
+            }) as any,
+        },
+      } satisfies BetterAuthFlowgladServerSessionParams &
+        ClerkFlowgladServerSessionParams
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: Only one of nextAuth, supabaseAuth, clerk, or betterAuth may be defined at a time.'
       )
     })
   })
@@ -863,6 +989,240 @@ describe('sessionFromClerkAuth (helper)', () => {
       externalId: clerkUser.id,
       name: clerkUser.firstName,
       email: clerkUser.emailAddresses[0].emailAddress,
+    })
+  })
+})
+
+describe('sessionFromBetterAuth (helper)', () => {
+  const buildSession = () => ({
+    user: {
+      id: 'helper_better_1',
+      email: 'helper.better@example.com',
+      name: 'Helper Better',
+    },
+  })
+
+  it('returns CoreCustomerUser using default mapping', async () => {
+    // setup:
+    const params: BetterAuthFlowgladServerSessionParams = {
+      betterAuth: {
+        getSession: async () => buildSession(),
+      },
+    }
+
+    // expects:
+    await expect(sessionFromBetterAuth(params)).resolves.toEqual({
+      externalId: 'helper_better_1',
+      name: 'Helper Better',
+      email: 'helper.better@example.com',
+    })
+  })
+
+  it('uses customerFromSession override when provided', async () => {
+    // setup:
+    const params: BetterAuthFlowgladServerSessionParams = {
+      betterAuth: {
+        getSession: async () => buildSession(),
+        customerFromSession: async () => ({
+          externalId: 'custom_helper',
+          name: 'Custom Helper',
+          email: 'custom.helper@example.com',
+        }),
+      },
+    }
+
+    // expects:
+    await expect(sessionFromBetterAuth(params)).resolves.toEqual({
+      externalId: 'custom_helper',
+      name: 'Custom Helper',
+      email: 'custom.helper@example.com',
+    })
+  })
+
+  it('returns null when getSession resolves null', async () => {
+    // setup:
+    const params: BetterAuthFlowgladServerSessionParams = {
+      betterAuth: {
+        getSession: async () => null,
+      },
+    }
+
+    // expects:
+    await expect(sessionFromBetterAuth(params)).resolves.toBeNull()
+  })
+
+  it('propagates errors thrown by betterAuth.getSession', async () => {
+    // setup:
+    const params: BetterAuthFlowgladServerSessionParams = {
+      betterAuth: {
+        getSession: async () => {
+          throw new Error('helper boom')
+        },
+      },
+    }
+
+    // expects:
+    await expect(sessionFromBetterAuth(params)).rejects.toThrow(
+      'helper boom'
+    )
+  })
+})
+
+describe('Scoped FlowgladServer variant', () => {
+  describe('getSession with scoped customerExternalId', () => {
+    it('returns customer with scoped externalId', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'org_123',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      const session = await server.getSession()
+      expect(session).toBeTruthy()
+      expect(session!.externalId).toBe('org_123')
+    })
+
+    it('skips all auth logic when scoped', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'user_456',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects: should not throw, even though no auth is configured
+      const session = await server.getSession()
+      expect(session).toBeTruthy()
+      expect(session!.externalId).toBe('user_456')
+    })
+
+    it('throws error if customerExternalId is empty string', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: '',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: customerExternalId cannot be empty'
+      )
+    })
+
+    it('throws error if customerExternalId is only whitespace', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: '   ',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: customerExternalId cannot be empty'
+      )
+    })
+  })
+
+  describe('getRequestingCustomerId with scoped customerExternalId', () => {
+    it('returns scoped externalId', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'org_123',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      const customerId = await server.getRequestingCustomerId()
+      expect(customerId).toBe('org_123')
+    })
+  })
+
+  describe('FlowgladServer methods work with scoped variant', () => {
+    it('getSession works with scoped ID', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'org_789',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      const session = await server.getSession()
+      expect(session).toBeTruthy()
+      expect(session!.externalId).toBe('org_789')
+    })
+
+    it('getRequestingCustomerId works with scoped ID', async () => {
+      // setup:
+      const params: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'user_abc',
+      }
+      const server = new FlowgladServer(params)
+
+      // expects:
+      const customerId = await server.getRequestingCustomerId()
+      expect(customerId).toBe('user_abc')
+    })
+  })
+
+  describe('Type safety: scoped params should not mix with auth params', () => {
+    it('type system prevents mixing scoped with other auth types', () => {
+      // This test validates at compile time that you cannot mix
+      // ScopedFlowgladServerParams with other auth params.
+      // If this compiles, the type system is working correctly.
+
+      const scopedParams: ScopedFlowgladServerParams = {
+        apiKey: 'test',
+        customerExternalId: 'org_123',
+      }
+
+      // TypeScript should enforce this at compile time
+      expect(scopedParams).toBeTruthy()
+      expect('customerExternalId' in scopedParams).toBe(true)
+      expect('nextAuth' in scopedParams).toBe(false)
+      expect('supabaseAuth' in scopedParams).toBe(false)
+      expect('clerk' in scopedParams).toBe(false)
+      expect('betterAuth' in scopedParams).toBe(false)
+    })
+
+    it('throws error if scoped customerExternalId is mixed with nextAuth at runtime', async () => {
+      const params = {
+        apiKey: 'test',
+        customerExternalId: 'org_123',
+        nextAuth: {
+          auth: async () => ({
+            user: { email: 'a@b.com', name: 'Test' },
+          }),
+        },
+      }
+      const server = new FlowgladServer(params)
+
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: customerExternalId cannot be used with other authentication methods.'
+      )
+    })
+
+    it('throws error if scoped customerExternalId is mixed with getRequestingCustomer', async () => {
+      const params = {
+        apiKey: 'test',
+        customerExternalId: 'org_123',
+        getRequestingCustomer: async () => ({
+          externalId: 'user_1',
+          name: 'Test',
+          email: 'test@example.com',
+        }),
+      }
+      const server = new FlowgladServer(params)
+
+      await expect(server.getSession()).rejects.toThrow(
+        'FlowgladError: customerExternalId cannot be used with other authentication methods.'
+      )
     })
   })
 })

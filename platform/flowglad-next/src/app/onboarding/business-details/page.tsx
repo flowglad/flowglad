@@ -22,17 +22,15 @@ const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()
   const setReferralSelection =
     trpc.utils.setReferralSelection.useMutation()
-  const { data } = trpc.countries.list.useQuery()
+  const { setOrganization } = useAuthContext()
   const [referralSource, setReferralSource] = useState<
     ReferralOption | undefined
   >()
-  const { setOrganization } = useAuthContext()
   const form = useForm<CreateOrganizationInput>({
     resolver: zodResolver(createOrganizationSchema),
     defaultValues: {
       organization: {
         name: '',
-        logoURL: undefined,
       },
     },
   })
@@ -69,6 +67,7 @@ const BusinessDetails = () => {
               onSubmit={onSubmit}
               className="w-[380px] flex flex-col gap-6"
             >
+              {/* FIXME (FG-555): Readd OrganizationLogoInput to this page once we have a way to upload the logo during organization creation */}
               <OrganizationFormFields
                 setReferralSource={setReferralSource}
                 referralSource={referralSource}
