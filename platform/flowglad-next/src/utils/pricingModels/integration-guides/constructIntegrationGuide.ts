@@ -175,14 +175,23 @@ Please fill in all template placeholders based on the codebase context and prici
   return stripMarkdownCodeBlockTags(result.text)
 }
 
+const getHardcodedDump = async (): Promise<string> => {
+  const hardcodedDump = await import(
+    '@/prompts/integration-fragments/hardcoded-dump.md'
+  )
+  return hardcodedDump.default
+}
+
 const synthesizeIntegrationGuideStream = async function* ({
   template,
   codebaseContext,
   pricingModelYaml,
+  hardcodedDump,
 }: {
   template: string
   codebaseContext: string
   pricingModelYaml: string
+  hardcodedDump: string
 }): AsyncGenerator<string, void, unknown> {
   const result = await streamText({
     model: openai('gpt-4o-mini'),
@@ -217,6 +226,10 @@ Here is the pricing model YAML:
 
 ${pricingModelYaml}
 
+---
+
+Here are some docs you can use to answer any questions you might have:
+${hardcodedDump}
 ---
 
 Please fill in all template placeholders based on the codebase context and pricing model information. Output the complete markdown file with all placeholders replaced.`,
@@ -355,7 +368,7 @@ export const constructIntegrationGuideStream = async function* ({
   const templateWithFragments =
     integrationCoreFragment.default + otherFragments
   const pricingModelYaml = pricingModelYamlFragment(pricingModelData)
-
+  const hardcodedDump = await getHardcodedDump()
   // If codebaseContext is provided, use AI to synthesize the guide with streaming
   // Otherwise, yield the template as-is (backward compatibility)
   if (codebaseContext) {
@@ -363,6 +376,7 @@ export const constructIntegrationGuideStream = async function* ({
       template: templateWithFragments,
       codebaseContext,
       pricingModelYaml,
+      hardcodedDump,
     })
   } else {
     yield templateWithFragments

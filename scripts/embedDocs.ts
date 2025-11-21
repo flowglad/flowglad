@@ -48,31 +48,6 @@ const parseDocFile = (
   return { frontmatter: {}, body: content }
 }
 
-// Strip markdown syntax for better embedding
-const stripMarkdown = (text: string): string => {
-  return (
-    text
-      // Remove code blocks
-      .replace(/```[\s\S]*?```/g, '')
-      // Remove inline code
-      .replace(/`[^`]+`/g, '')
-      // Remove links but keep text
-      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-      // Remove images
-      .replace(/!\[([^\]]*)\]\([^\)]+\)/g, '')
-      // Remove headers
-      .replace(/^#{1,6}\s+/gm, '')
-      // Remove bold/italic
-      .replace(/\*\*([^\*]+)\*\*/g, '$1')
-      .replace(/\*([^\*]+)\*/g, '$1')
-      // Remove HTML-like tags (MDX components)
-      .replace(/<[^>]+>/g, '')
-      // Clean up extra whitespace
-      .replace(/\n{3,}/g, '\n\n')
-      .trim()
-  )
-}
-
 // Recursively read all MDX and MD files
 const readDocFiles = async (
   dir: string,
@@ -95,7 +70,7 @@ const readDocFiles = async (
       try {
         const content = await readFile(fullPath, 'utf-8')
         const { frontmatter, body } = parseDocFile(content)
-        const textContent = stripMarkdown(body)
+        const textContent = body
 
         // Skip empty files
         if (textContent.trim().length === 0) {
