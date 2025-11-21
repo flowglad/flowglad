@@ -967,14 +967,11 @@ describe('Swagger Configuration', () => {
         const required = schemaObject?.required || []
         expect(required).not.toContain('customerId')
 
-        // Verify it has a description explaining mutual exclusivity
+        // Verify exact description from implementation
         const customerIdDesc =
           schemaObject?.properties?.customerId?.description || ''
-        expect(customerIdDesc).toContain('internal ID')
-        expect(customerIdDesc).toContain('customerExternalId')
-        // Verify exact phrase from implementation
-        expect(customerIdDesc).toContain(
-          'If not provided, customerExternalId is required'
+        expect(customerIdDesc).toBe(
+          'The internal ID of the customer. If not provided, customerExternalId is required.'
         )
       })
 
@@ -987,33 +984,65 @@ describe('Swagger Configuration', () => {
         const required = schemaObject?.required || []
         expect(required).not.toContain('customerExternalId')
 
-        // Verify it has a description explaining mutual exclusivity
+        // Verify exact description from implementation
         const customerExternalIdDesc =
           schemaObject?.properties?.customerExternalId?.description ||
           ''
-        expect(customerExternalIdDesc).toContain('external ID')
-        expect(customerExternalIdDesc).toContain('customerId')
-        // Verify exact phrase from implementation
-        expect(customerExternalIdDesc).toContain(
-          'If not provided, customerId is required'
+        expect(customerExternalIdDesc).toBe(
+          'The external ID of the customer. If not provided, customerId is required.'
+        )
+      })
+    })
+  })
+
+  describe('OpenAPI Spec - Price Slug Support', () => {
+    describe('POST /subscriptions', () => {
+      const basePath = '/api/v1/subscriptions'
+      let schemaObject: SchemaObjectWithProperties | undefined
+
+      beforeEach(() => {
+        const subscriptionEndpoint = paths?.[basePath]?.post
+        const requestBody = subscriptionEndpoint?.requestBody
+        const rawSchema = isRequestBodyObject(requestBody)
+          ? requestBody.content?.['application/json']?.schema
+          : undefined
+        // Type guard to narrow from SchemaObject | ReferenceObject to SchemaObject
+        schemaObject =
+          rawSchema && isSchemaObject(rawSchema)
+            ? rawSchema
+            : undefined
+
+        expect(schemaObject).toBeDefined()
+        expect(schemaObject?.properties).toBeDefined()
+      })
+
+      it('should include priceId as optional with description', () => {
+        expect(schemaObject?.properties?.priceId).toBeDefined()
+
+        // Verify it's not in required array (it's optional)
+        const required = schemaObject?.required || []
+        expect(required).not.toContain('priceId')
+
+        // Verify exact description from implementation
+        const priceIdDesc =
+          schemaObject?.properties?.priceId?.description || ''
+        expect(priceIdDesc).toBe(
+          'The id of the price to subscribe to. If not provided, priceSlug is required. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals.'
         )
       })
 
-      it('should have descriptions explaining mutual exclusivity', () => {
-        const customerIdDesc =
-          schemaObject?.properties?.customerId?.description || ''
-        const customerExternalIdDesc =
-          schemaObject?.properties?.customerExternalId?.description ||
-          ''
+      it('should include priceSlug as optional with description', () => {
+        expect(schemaObject?.properties?.priceSlug).toBeDefined()
 
-        // Both descriptions should mention the other field with exact phrases
-        expect(customerIdDesc).toContain('required')
-        expect(customerIdDesc).toContain(
-          'If not provided, customerExternalId is required'
-        )
-        expect(customerExternalIdDesc).toContain('required')
-        expect(customerExternalIdDesc).toContain(
-          'If not provided, customerId is required'
+        // Verify it's not in required array (it's optional)
+        const required = schemaObject?.required || []
+        expect(required).not.toContain('priceSlug')
+
+        // Verify exact description from implementation
+        const priceSlugDesc =
+          schemaObject?.properties?.priceSlug?.description || ''
+        expect(priceSlugDesc).toBe(
+          "The slug of the price to subscribe to. If not provided, priceId is required. Price slugs are scoped to the customer's pricing model. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals."
         )
       })
     })

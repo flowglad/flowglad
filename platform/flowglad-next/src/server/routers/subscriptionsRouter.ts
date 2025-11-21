@@ -46,7 +46,10 @@ import {
   selectCustomerById,
   selectCustomerByExternalIdAndOrganizationId,
 } from '@/db/tableMethods/customerMethods'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import {
+  selectPriceProductAndOrganizationByPriceWhere,
+  selectPriceBySlugAndCustomerId,
+} from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
 import {
   selectPaymentMethodById,
@@ -218,8 +221,16 @@ export const createSubscriptionInputSchema = z
       ),
     priceId: z
       .string()
+      .optional()
       .describe(
-        `The price to subscribe to. Used to determine whether the subscription is ` +
+        `The id of the price to subscribe to. If not provided, priceSlug is required. Used to determine whether the subscription is ` +
+          `usage-based or not, and set other defaults such as trial period and billing intervals.`
+      ),
+    priceSlug: z
+      .string()
+      .optional()
+      .describe(
+        `The slug of the price to subscribe to. If not provided, priceId is required. Price slugs are scoped to the customer's pricing model. Used to determine whether the subscription is ` +
           `usage-based or not, and set other defaults such as trial period and billing intervals.`
       ),
     quantity: z
@@ -291,6 +302,14 @@ export const createSubscriptionInputSchema = z
       path: ['customerId'],
     }
   )
+  .refine(
+    (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
+    {
+      message:
+        'Either priceId or priceSlug must be provided, but not both',
+      path: ['priceId'],
+    }
+  )
 
 const createSubscriptionProcedure = protectedProcedure
   .meta(openApiMetas.POST)
@@ -335,17 +354,44 @@ const createSubscriptionProcedure = protectedProcedure
               'Either customerId or customerExternalId must be provided',
           })
         }
+
+        // Resolve price ID from either priceId or priceSlug
+        let resolvedPriceId: string
+        if (input.priceId) {
+          resolvedPriceId = input.priceId
+        } else if (input.priceSlug) {
+          const price = await selectPriceBySlugAndCustomerId(
+            {
+              slug: input.priceSlug,
+              customerId: customer.id,
+            },
+            transaction
+          )
+          if (!price) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Price with slug "${input.priceSlug}" not found for this customer's pricing model`,
+            })
+          }
+          resolvedPriceId = price.id
+        } else {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Either priceId or priceSlug must be provided',
+          })
+        }
+
         const priceResult =
           await selectPriceProductAndOrganizationByPriceWhere(
             {
-              id: input.priceId,
+              id: resolvedPriceId,
             },
             transaction
           )
         if (priceResult.length === 0) {
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: `Price ${input.priceId} not found`,
+            message: `Price with id "${resolvedPriceId}" not found`,
           })
         }
         const { price, product, organization } = priceResult[0]
@@ -364,7 +410,7 @@ const createSubscriptionProcedure = protectedProcedure
         if (price.type === PriceType.SinglePayment) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message: `Price ${input.priceId} is a single payment price and cannot be used to create a subscription.`,
+            message: `Price ${resolvedPriceId} is a single payment price and cannot be used to create a subscription.`,
           })
         }
         const startDate = input.startDate ?? new Date()

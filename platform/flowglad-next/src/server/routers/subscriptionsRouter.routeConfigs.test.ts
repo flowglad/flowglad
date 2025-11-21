@@ -56,6 +56,21 @@ describe('subscriptionsRouteConfigs', () => {
       expect(result).toEqual(testBodyWithExternalId)
     })
 
+    it('should accept priceSlug in POST /subscriptions request body', () => {
+      const routeConfig = findRouteConfig('POST /subscriptions')
+
+      expect(routeConfig).toBeDefined()
+
+      // Test with priceSlug instead of priceId
+      const testBodyWithPriceSlug = {
+        customerId: 'cus-123',
+        priceSlug: 'price-slug-456',
+        quantity: 1,
+      }
+      const result = routeConfig!.mapParams([], testBodyWithPriceSlug)
+      expect(result).toEqual(testBodyWithPriceSlug)
+    })
+
     it('should map PUT /subscriptions/:id to subscriptions.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /subscriptions/:id')
 
@@ -619,6 +634,54 @@ describe('subscriptionsRouteConfigs', () => {
             ...baseValidInput,
           })
         }).toThrow()
+      })
+    })
+
+    describe('priceSlug support', () => {
+      const baseValidInputWithCustomer = {
+        customerId: 'cus-123',
+      }
+
+      describe('valid inputs', () => {
+        it('should accept priceId only', () => {
+          const result = createSubscriptionInputSchema.parse({
+            ...baseValidInputWithCustomer,
+            priceId: 'price-123',
+          })
+          expect(result.priceId).toBe('price-123')
+          expect(result.priceSlug).toBeUndefined()
+        })
+
+        it('should accept priceSlug only', () => {
+          const result = createSubscriptionInputSchema.parse({
+            ...baseValidInputWithCustomer,
+            priceSlug: 'price-slug-123',
+          })
+          expect(result.priceSlug).toBe('price-slug-123')
+          expect(result.priceId).toBeUndefined()
+        })
+      })
+
+      describe('invalid inputs - mutual exclusivity', () => {
+        it('should reject when both priceId and priceSlug are provided', () => {
+          expect(() => {
+            createSubscriptionInputSchema.parse({
+              ...baseValidInputWithCustomer,
+              priceId: 'price-123',
+              priceSlug: 'price-slug-123',
+            })
+          }).toThrow(
+            'Either priceId or priceSlug must be provided, but not both'
+          )
+        })
+
+        it('should reject when neither priceId nor priceSlug is provided', () => {
+          expect(() => {
+            createSubscriptionInputSchema.parse({
+              ...baseValidInputWithCustomer,
+            })
+          }).toThrow()
+        })
       })
     })
   })
