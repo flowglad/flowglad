@@ -33,6 +33,14 @@ export type InnerPricingModelDetailsPageProps = {
   pricingModel: PricingModel.ClientRecord
 }
 
+/**
+ * Renders the details page for a single pricing model, including management actions, related data tables, and creation/editing modals.
+ *
+ * The page displays the pricing model name and badge, an actions menu (export, integration guide), an edit button, and data tables for products, features, usage meters, and customers; it also mounts modals for editing the pricing model and creating related entities.
+ *
+ * @param pricingModel - The pricing model record to display and manage
+ * @returns The React element for the pricing model details page
+ */
 function InnerPricingModelDetailsPage({
   pricingModel,
 }: InnerPricingModelDetailsPageProps) {

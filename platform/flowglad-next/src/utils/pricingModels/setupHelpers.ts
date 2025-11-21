@@ -9,14 +9,16 @@ import { FeatureType, PriceType } from '@/types'
 import { validateSetupPricingModelInput } from './setupSchemas'
 
 /**
- * Fetches a pricing model and all its related records (usage meters, features, products, prices)
- * and transforms them into the format expected by setupPricingModelSchema.
+ * Load a pricing model and convert it into the shape required to recreate or export its configuration.
  *
- * This function is useful for cloning pricing models or exporting pricing model configurations.
- *
- * @param pricingModelId - The ID of the pricing model to fetch
- * @param transaction - The database transaction to use
- * @returns The pricing model data in setupPricingModelSchema format
+ * @param pricingModelId - ID of the pricing model to load
+ * @param transaction - Database transaction to perform queries within
+ * @returns The validated SetupPricingModelInput containing `name`, `isDefault`, `features`, `products`, and `usageMeters`
+ * @throws Error if the pricing model is not found
+ * @throws Error if any product has no slug
+ * @throws Error if a UsageCreditGrant feature lacks a usageMeterId or its usage meter cannot be resolved
+ * @throws Error if a Usage price lacks a usageMeterId or its usage meter cannot be resolved
+ * @throws Error if an unknown price type is encountered
  */
 export async function getPricingModelSetupData(
   pricingModelId: string,
