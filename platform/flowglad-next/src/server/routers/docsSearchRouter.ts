@@ -119,20 +119,23 @@ const queryMultipleDocs = publicProcedure
     const { fetchMarkdownFromDocs } = await import(
       '@/utils/textContent'
     )
-    // Fetch and concatenate all markdown files from docs.flowglad.com
-    const markdownContents: string[] = []
-    for (const path of deduplicatedPaths) {
-      const markdown = await fetchMarkdownFromDocs(path)
+    // Fetch all markdown files from docs.flowglad.com in parallel
+    const markdownContents = await Promise.all(
+      deduplicatedPaths.map(async (path) => {
+        const markdown = await fetchMarkdownFromDocs(path)
+        if (markdown) {
+          // Add separator with file path
+          return `\n\n${'='.repeat(80)}\nFILE: ${path}\n${'='.repeat(80)}\n\n${markdown}`
+        }
+        return null
+      })
+    )
+    // Filter out null values (failed fetches)
+    const validMarkdownContents = markdownContents.filter(
+      (content): content is string => content !== null
+    )
 
-      if (markdown) {
-        // Add separator with file path
-        markdownContents.push(
-          `\n\n${'='.repeat(80)}\nFILE: ${path}\n${'='.repeat(80)}\n\n${markdown}`
-        )
-      }
-    }
-
-    const concatenatedMarkdown = markdownContents.join('') || ''
+    const concatenatedMarkdown = validMarkdownContents.join('') || ''
 
     return {
       queries: input.queries,

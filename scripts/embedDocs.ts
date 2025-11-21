@@ -150,11 +150,11 @@ const main = async () => {
     )
 
     const upsertRows = await Promise.all(
-      batch.map(async (doc, index) => {
+      batch.map(async (doc) => {
         const embedding = await createEmbedding(openai, doc.content)
 
         return {
-          id: i + index + 1,
+          id: doc.path,
           vector: embedding,
           path: doc.path,
           title: doc.title || doc.path,

@@ -445,19 +445,19 @@ export const constructIntegrationGuideStream = async function* ({
   const templateWithFragments =
     integrationCoreFragment.default + otherFragments
   const pricingModelYaml = pricingModelYamlFragment(pricingModelData)
-  const questions: string[] = [
-    'What is the Flowglad client package name for React useBilling hook?',
-    'How is Flowglad server configured and initialized in Next.js?',
-    'How is FlowgladServer configured with BetterAuth authentication?',
-    'What is the Flowglad API route handler code for Next.js App Router?',
-    'How is FlowgladProvider set up in Next.js layout with BetterAuth?',
-    'How are usage events created with Flowglad server?',
-    'What are the package dependencies and scripts code snippets for Flowglad integration?',
-  ]
-  const contextualDocs = await getContextualDocs({ questions })
   // If codebaseContext is provided, use AI to synthesize the guide with streaming
   // Otherwise, yield the template as-is (backward compatibility)
   if (codebaseContext) {
+    const questions: string[] = [
+      'What is the Flowglad client package name for React useBilling hook?',
+      'How is Flowglad server configured and initialized in Next.js?',
+      'How is FlowgladServer configured with BetterAuth authentication?',
+      'What is the Flowglad API route handler code for Next.js App Router?',
+      'How is FlowgladProvider set up in Next.js layout with BetterAuth?',
+      'How are usage events created with Flowglad server?',
+      'What are the package dependencies and scripts code snippets for Flowglad integration?',
+    ]
+    const contextualDocs = await getContextualDocs({ questions })
     yield* synthesizeIntegrationGuideStream({
       template: templateWithFragments,
       codebaseContext,
