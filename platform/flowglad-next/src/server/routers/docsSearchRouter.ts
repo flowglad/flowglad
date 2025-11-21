@@ -29,8 +29,8 @@ const queryMultipleDocsSchema = z.object({
 const queryDocs = publicProcedure
   .input(queryDocsSchema)
   .query(async ({ input }) => {
-    const tpuf = getTurbopufferClient()
-    const openai = getOpenAIClient()
+    const tpuf = await getTurbopufferClient()
+    const openai = await getOpenAIClient()
 
     const queryResults = await queryTurbopuffer(
       input.query,
@@ -70,8 +70,8 @@ const queryDocs = publicProcedure
 const queryMultipleDocs = publicProcedure
   .input(queryMultipleDocsSchema)
   .query(async ({ input }) => {
-    const tpuf = getTurbopufferClient()
-    const openai = getOpenAIClient()
+    const tpuf = await getTurbopufferClient()
+    const openai = await getOpenAIClient()
 
     // Get query results from turbopuffer
     const queryResults = await queryMultipleTurbopuffer(

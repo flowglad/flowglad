@@ -6,17 +6,21 @@ import {
   getTurbopufferClient,
   getOpenAIClient,
 } from '@/utils/turbopuffer'
+import { fetchMarkdownFromDocs } from '@/utils/textContent'
 
 /**
- * Markdown files and AI SDK packages are imported dynamically to avoid parse-time errors when
- * this module is imported but the function isn't called (e.g., when generating OpenAPI docs with tsx).
+ * AI SDK packages ('ai' and '@ai-sdk/openai') are imported dynamically to avoid parse-time errors
+ * when this module is imported but the function isn't called (e.g., when generating OpenAPI docs with tsx).
  *
- * Specifically, static imports of 'ai' and '@ai-sdk/openai' cause undici to load at module load time.
- * Undici expects the File API to be available, which causes "ReferenceError: File is not defined"
- * when generating OpenAPI docs with tsx in Node.js environments where File is not available.
+ * Static imports of these packages cause undici to load at module load time. Undici expects the File API
+ * to be available, which causes "ReferenceError: File is not defined" when generating OpenAPI docs
+ * with tsx in Node.js environments where File is not available.
  *
  * Dynamic imports are evaluated at runtime, so these packages are only loaded when
  * constructIntegrationGuide functions are actually executed, not when the module is first imported.
+ *
+ * Note: Turbopuffer utilities are safe to import statically because turbopuffer.ts uses type-only
+ * imports and handles dynamic loading internally.
  */
 
 interface PricingModelIntegrationGuideParams {
@@ -203,8 +207,8 @@ const getContextualDocs = async ({
     return ''
   }
 
-  const tpuf = getTurbopufferClient()
-  const openai = getOpenAIClient()
+  const tpuf = await getTurbopufferClient()
+  const openai = await getOpenAIClient()
 
   // Get query results from turbopuffer
   const queryResults = await queryMultipleTurbopuffer(
@@ -230,13 +234,6 @@ const getContextualDocs = async ({
 
   // Sort paths alphabetically
   deduplicatedPaths.sort((a, b) => a.localeCompare(b))
-
-  // Dynamically import fetchMarkdownFromDocs to avoid loading fetch/undici at module load time.
-  // Static imports would cause undici to load when this module is imported (via appRouter),
-  // leading to "ReferenceError: File is not defined" when generating OpenAPI docs with tsx.
-  const { fetchMarkdownFromDocs } = await import(
-    '@/utils/textContent'
-  )
 
   // Fetch and concatenate all markdown files from docs.flowglad.com
   const markdownContents: string[] = []

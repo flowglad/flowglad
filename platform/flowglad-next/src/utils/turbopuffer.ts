@@ -1,23 +1,41 @@
-import { Turbopuffer } from '@turbopuffer/turbopuffer'
-import { OpenAI } from 'openai'
+/**
+ * Turbopuffer and OpenAI packages are imported dynamically to avoid loading undici at module load time.
+ * When this module is statically imported (e.g., by docsSearchRouter -> appRouter -> swagger),
+ * static imports of '@turbopuffer/turbopuffer' and 'openai' cause undici to load, which expects the File API
+ * to be available. This causes "ReferenceError: File is not defined" when generating OpenAPI
+ * docs with tsx in Node.js environments where File is not available.
+ */
 
-export const getTurbopufferClient = () => {
-  if (!process.env.TURBOPUFFER_API_KEY) {
-    throw new Error(
-      'TURBOPUFFER_API_KEY environment variable is required'
+// Type-only imports for TypeScript (these don't cause runtime code to execute)
+import type { Turbopuffer } from '@turbopuffer/turbopuffer'
+import type { OpenAI } from 'openai'
+
+export const getTurbopufferClient =
+  async (): Promise<Turbopuffer> => {
+    if (!process.env.TURBOPUFFER_API_KEY) {
+      throw new Error(
+        'TURBOPUFFER_API_KEY environment variable is required'
+      )
+    }
+
+    // Dynamically import to avoid loading undici at module load time
+    const { Turbopuffer: TurbopufferClass } = await import(
+      '@turbopuffer/turbopuffer'
     )
+
+    return new TurbopufferClass({
+      apiKey: process.env.TURBOPUFFER_API_KEY,
+      region: process.env.TURBOPUFFER_REGION || 'aws-us-east-1',
+    })
   }
 
-  return new Turbopuffer({
-    apiKey: process.env.TURBOPUFFER_API_KEY,
-    region: process.env.TURBOPUFFER_REGION || 'aws-us-east-1',
-  })
-}
-
-export const getOpenAIClient = () => {
+export const getOpenAIClient = async (): Promise<OpenAI> => {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY environment variable is required')
   }
+
+  // Dynamically import to avoid loading undici at module load time
+  const { OpenAI } = await import('openai')
 
   return new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -28,7 +46,7 @@ export const createEmbedding = async (
   text: string,
   openai?: OpenAI
 ): Promise<number[]> => {
-  const client = openai || getOpenAIClient()
+  const client = openai || (await getOpenAIClient())
   const embeddingResponse = await client.embeddings.create({
     model: 'text-embedding-3-small',
     input: text,
@@ -53,7 +71,7 @@ export const queryTurbopuffer = async (
   tpuf?: Turbopuffer,
   openai?: OpenAI
 ): Promise<QueryDocsResult[]> => {
-  const client = tpuf || getTurbopufferClient()
+  const client = tpuf || (await getTurbopufferClient())
   const namespace = client.namespace(namespaceName)
 
   const queryEmbedding = await createEmbedding(queryText, openai)
@@ -87,8 +105,8 @@ export const queryMultipleTurbopuffer = async (
   tpuf?: Turbopuffer,
   openai?: OpenAI
 ): Promise<MultipleQueryResult[]> => {
-  const client = tpuf || getTurbopufferClient()
-  const oaiClient = openai || getOpenAIClient()
+  const client = tpuf || (await getTurbopufferClient())
+  const oaiClient = openai || (await getOpenAIClient())
 
   // Process all queries in parallel
   const queryResults = await Promise.all(
