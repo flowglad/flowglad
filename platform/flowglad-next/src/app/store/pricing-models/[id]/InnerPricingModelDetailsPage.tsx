@@ -6,7 +6,7 @@ import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
-import { Pencil, Plus, Ellipsis } from 'lucide-react'
+import { Pencil, Plus, Ellipsis, Copy, Star } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { CustomersDataTable } from '@/app/customers/data-table'
 import { TableHeader } from '@/components/ui/table-header'
@@ -26,6 +26,8 @@ import PopoverMenu, {
   PopoverMenuItem,
 } from '@/components/PopoverMenu'
 import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
+import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
+import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
 import { trpc } from '@/app/_trpc/client'
 import { toast } from 'sonner'
 
@@ -37,6 +39,8 @@ function InnerPricingModelDetailsPage({
   pricingModel,
 }: InnerPricingModelDetailsPageProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isCloneOpen, setIsCloneOpen] = useState(false)
+  const [isSetDefaultOpen, setIsSetDefaultOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
     useState(false)
   const [isCreateCustomerModalOpen, setIsCreateCustomerModalOpen] =
@@ -105,6 +109,22 @@ function InnerPricingModelDetailsPage({
   }
 
   const moreMenuItems: PopoverMenuItem[] = [
+    {
+      label: 'Duplicate',
+      handler: () => setIsCloneOpen(true),
+      helperText: 'Create a copy of this pricing model',
+      icon: <Copy className="h-4 w-4" />,
+    },
+    ...(!pricingModel.isDefault
+      ? [
+          {
+            label: 'Set Default',
+            handler: () => setIsSetDefaultOpen(true),
+            helperText: 'Make this the default pricing model',
+            icon: <Star className="h-4 w-4" />,
+          },
+        ]
+      : []),
     {
       label: 'Export',
       handler: () => exportPricingModelHandler(),
@@ -218,6 +238,16 @@ function InnerPricingModelDetailsPage({
         isOpen={isGetIntegrationGuideModalOpen}
         setIsOpen={setIsGetIntegrationGuideModalOpen}
         pricingModelId={pricingModel.id}
+      />
+      <ClonePricingModelModal
+        isOpen={isCloneOpen}
+        setIsOpen={setIsCloneOpen}
+        pricingModel={pricingModel}
+      />
+      <SetPricingModelAsDefaultModal
+        isOpen={isSetDefaultOpen}
+        setIsOpen={setIsSetDefaultOpen}
+        pricingModel={pricingModel}
       />
     </InternalPageContainer>
   )
