@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Loader2, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 
-const InternalTurbopufferDemoPage = () => {
+const InternalDocsSearchDemoPage = () => {
   const [activeTab, setActiveTab] = useState('single')
   const [query, setQuery] = useState('')
   const [topK, setTopK] = useState(5)
@@ -30,7 +30,7 @@ const InternalTurbopufferDemoPage = () => {
   const [copied, setCopied] = useState(false)
 
   const { data, isLoading, refetch } =
-    trpc.turbopuffer.queryDocs.useQuery(
+    trpc.docsSearch.queryDocs.useQuery(
       { query, topK },
       {
         enabled: false,
@@ -42,7 +42,7 @@ const InternalTurbopufferDemoPage = () => {
     data: multipleData,
     isLoading: isMultipleLoading,
     refetch: refetchMultiple,
-  } = trpc.turbopuffer.queryMultipleDocs.useQuery(
+  } = trpc.docsSearch.queryMultipleDocs.useQuery(
     {
       queries: multipleQueries
         .split('\n')
@@ -99,12 +99,10 @@ const InternalTurbopufferDemoPage = () => {
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">
-          Turbopuffer Docs Query Demo
-        </h1>
+        <h1 className="text-3xl font-bold mb-2">Docs Search Demo</h1>
         <p className="text-muted-foreground">
-          Query the flowglad-docs namespace in Turbopuffer and view
-          both the search results and original markdown files.
+          Search the documentation using vector similarity search and
+          view both the search results and original markdown files.
         </p>
       </div>
 
@@ -204,7 +202,7 @@ const InternalTurbopufferDemoPage = () => {
                     <Tabs defaultValue="result" className="w-full">
                       <TabsList>
                         <TabsTrigger value="result">
-                          Turbopuffer Result
+                          Search Result
                         </TabsTrigger>
                         <TabsTrigger value="markdown">
                           Original Markdown
@@ -404,4 +402,4 @@ const InternalTurbopufferDemoPage = () => {
   )
 }
 
-export default InternalTurbopufferDemoPage
+export default InternalDocsSearchDemoPage

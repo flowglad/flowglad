@@ -36,7 +36,7 @@ import { featuresRouter } from './routers/featuresRouter'
 import { productFeaturesRouter } from './routers/productFeaturesRouter'
 import { subscriptionItemFeaturesRouter } from './routers/subscriptionItemFeaturesRouter'
 import { customerBillingPortalRouter } from './routers/customerBillingPortalRouter'
-import { turbopufferRouter } from './routers/turbopufferRouter'
+import { docsSearchRouter } from './routers/docsSearchRouter'
 import { logout } from './mutations/logout'
 import { setReferralSelection } from './mutations/setReferralSelection'
 
@@ -90,7 +90,7 @@ export const appRouter = router({
   productFeatures: productFeaturesRouter,
   subscriptionItemFeatures: subscriptionItemFeaturesRouter,
   customerBillingPortal: customerBillingPortalRouter,
-  turbopuffer: turbopufferRouter,
+  docsSearch: docsSearchRouter,
 })
 
 // This would map to REST endpoints like:

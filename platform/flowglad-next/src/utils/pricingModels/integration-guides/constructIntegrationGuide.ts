@@ -3,6 +3,12 @@ import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import yaml from 'json-to-pretty-yaml'
 import { generateText, streamText } from 'ai'
 import { openai } from '@ai-sdk/openai'
+import {
+  queryMultipleTurbopuffer,
+  getTurbopufferClient,
+  getOpenAIClient,
+} from '@/utils/turbopuffer'
+import { fetchMarkdownFromDocs } from '@/utils/textContent'
 
 /**
  * Markdown files are imported dynamically to avoid parse-time errors when
@@ -175,23 +181,72 @@ Please fill in all template placeholders based on the codebase context and prici
   return stripMarkdownCodeBlockTags(result.text)
 }
 
-const getHardcodedDump = async (): Promise<string> => {
-  const hardcodedDump = await import(
-    '@/prompts/integration-fragments/hardcoded-dump.md'
+const getContextualDocs = async ({
+  questions,
+  topK = 2,
+}: {
+  questions: string[]
+  topK?: number
+}): Promise<string> => {
+  // If no questions provided, return empty string
+  if (questions.length === 0) {
+    return ''
+  }
+
+  const tpuf = getTurbopufferClient()
+  const openai = getOpenAIClient()
+
+  // Get query results from turbopuffer
+  const queryResults = await queryMultipleTurbopuffer(
+    questions,
+    topK,
+    'flowglad-docs',
+    tpuf,
+    openai
   )
-  return hardcodedDump.default
+
+  // Flatten and deduplicate paths
+  const pathSet = new Set<string>()
+  const deduplicatedPaths: string[] = []
+
+  queryResults.forEach((queryResult) => {
+    queryResult.results.forEach((result) => {
+      if (result.path && !pathSet.has(result.path)) {
+        pathSet.add(result.path)
+        deduplicatedPaths.push(result.path)
+      }
+    })
+  })
+
+  // Sort paths alphabetically
+  deduplicatedPaths.sort((a, b) => a.localeCompare(b))
+
+  // Fetch and concatenate all markdown files from docs.flowglad.com
+  const markdownContents: string[] = []
+  for (const path of deduplicatedPaths) {
+    const markdown = await fetchMarkdownFromDocs(path)
+
+    if (markdown) {
+      // Add separator with file path
+      markdownContents.push(
+        `\n\n${'='.repeat(80)}\nFILE: ${path}\n${'='.repeat(80)}\n\n${markdown}`
+      )
+    }
+  }
+
+  return markdownContents.join('') || ''
 }
 
 const synthesizeIntegrationGuideStream = async function* ({
   template,
   codebaseContext,
   pricingModelYaml,
-  hardcodedDump,
+  contextualDocs,
 }: {
   template: string
   codebaseContext: string
   pricingModelYaml: string
-  hardcodedDump: string
+  contextualDocs: string
 }): AsyncGenerator<string, void, unknown> {
   const result = await streamText({
     model: openai('gpt-4o-mini'),
@@ -229,7 +284,7 @@ ${pricingModelYaml}
 ---
 
 Here are some docs you can use to answer any questions you might have:
-${hardcodedDump}
+${contextualDocs}
 ---
 
 Please fill in all template placeholders based on the codebase context and pricing model information. Output the complete markdown file with all placeholders replaced.`,
@@ -368,7 +423,16 @@ export const constructIntegrationGuideStream = async function* ({
   const templateWithFragments =
     integrationCoreFragment.default + otherFragments
   const pricingModelYaml = pricingModelYamlFragment(pricingModelData)
-  const hardcodedDump = await getHardcodedDump()
+  const questions: string[] = [
+    'What is the Flowglad client package name for React useBilling hook?',
+    'How is Flowglad server configured and initialized in Next.js?',
+    'How is FlowgladServer configured with BetterAuth authentication?',
+    'What is the Flowglad API route handler code for Next.js App Router?',
+    'How is FlowgladProvider set up in Next.js layout with BetterAuth?',
+    'How are usage events created with Flowglad server?',
+    'What are the package dependencies and scripts code snippets for Flowglad integration?',
+  ]
+  const contextualDocs = await getContextualDocs({ questions })
   // If codebaseContext is provided, use AI to synthesize the guide with streaming
   // Otherwise, yield the template as-is (backward compatibility)
   if (codebaseContext) {
@@ -376,7 +440,7 @@ export const constructIntegrationGuideStream = async function* ({
       template: templateWithFragments,
       codebaseContext,
       pricingModelYaml,
-      hardcodedDump,
+      contextualDocs,
     })
   } else {
     yield templateWithFragments
