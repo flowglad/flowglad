@@ -396,4 +396,93 @@ describe('getPricingModelSetupData', () => {
     expect(fetchedData.features).toHaveLength(0)
     expect(fetchedData.products.length).toBeGreaterThanOrEqual(1)
   })
+
+  it('should only include active default prices in the output', async () => {
+    const input: SetupPricingModelInput = {
+      name: 'Filter Test Model',
+      isDefault: false,
+      usageMeters: [],
+      features: [],
+      products: [
+        {
+          product: {
+            name: 'Test Product',
+            slug: 'test-product',
+            default: false,
+            active: true,
+          },
+          prices: [
+            {
+              type: PriceType.Subscription,
+              slug: 'active-default-price',
+              name: 'Active Default Price',
+              unitPrice: 1000,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            },
+            {
+              type: PriceType.Subscription,
+              slug: 'inactive-non-default-price',
+              name: 'Inactive Non-Default Price',
+              unitPrice: 4000,
+              isDefault: false, // Non-default - should be excluded
+              active: false, // Inactive - should be excluded
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            },
+          ],
+          features: [],
+        },
+      ],
+    }
+
+    const setupResult = await adminTransaction(
+      async ({ transaction }) =>
+        setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
+    )
+
+    const fetchedData = await adminTransaction(
+      async ({ transaction }) =>
+        getPricingModelSetupData(
+          setupResult.pricingModel.id,
+          transaction
+        )
+    )
+
+    // Validate with schema
+    const parseResult = setupPricingModelSchema.safeParse(fetchedData)
+    expect(parseResult.success).toBe(true)
+
+    // Find the test product
+    const fetchedProduct = fetchedData.products.find(
+      (p) => p.product.slug === 'test-product'
+    )
+    expect(fetchedProduct).toBeDefined()
+
+    // Verify only the active default price is included
+    expect(fetchedProduct?.prices).toHaveLength(1)
+    expect(fetchedProduct?.prices[0]?.slug).toBe(
+      'active-default-price'
+    )
+    expect(fetchedProduct?.prices[0]?.isDefault).toBe(true)
+    expect(fetchedProduct?.prices[0]?.active).toBe(true)
+    expect(fetchedProduct?.prices[0]?.unitPrice).toBe(1000)
+
+    // Verify the excluded prices are not present
+    const priceSlugs = fetchedProduct?.prices.map((p) => p.slug) || []
+    expect(priceSlugs).not.toContain('inactive-non-default-price')
+  })
 })
