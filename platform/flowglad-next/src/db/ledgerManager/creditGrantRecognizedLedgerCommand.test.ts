@@ -12,7 +12,6 @@ import {
   setupUsageLedgerScenario,
   setupUsageCredit,
   setupLedgerAccount,
-  setupBillingPeriod,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
@@ -29,8 +28,6 @@ import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { Customer } from '@/db/schema/customers'
 import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { LedgerEntry } from '@/db/schema/ledgerEntries'
-import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
 import core from '@/utils/core'
 import { setupUsageMeter } from '@/../seedDatabase'
 
@@ -98,6 +95,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         command,
         transaction
       )
+      const timestampAfterExecution = Date.now()
 
       expect(result).toBeDefined()
       expect(result.ledgerTransaction).toBeDefined()
@@ -160,7 +158,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         timestampBeforeExecution
       )
       expect(ledgerEntry.entryTimestamp).toBeLessThanOrEqual(
-        Date.now()
+        timestampAfterExecution
       )
       expect(ledgerEntry.sourceUsageEventId).toBeNull()
       expect(ledgerEntry.sourceCreditApplicationId).toBeNull()
@@ -214,6 +212,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         },
       }
 
+      const timestampBeforeExecution = Date.now()
       const initialBalance =
         await aggregateBalanceForLedgerAccountFromEntries(
           { ledgerAccountId: ledgerAccount.id },
@@ -225,6 +224,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         command,
         transaction
       )
+      const timestampAfterExecution = Date.now()
 
       expect(result).toBeDefined()
       expect(result.ledgerTransaction).toBeDefined()
@@ -259,6 +259,7 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       expect(ledgerEntry.organizationId).toBe(command.organizationId)
       expect(ledgerEntry.livemode).toBe(command.livemode)
       expect(ledgerEntry.status).toBe(LedgerEntryStatus.Posted)
+      expect(ledgerEntry.discardedAt).toBeNull()
       expect(ledgerEntry.direction).toBe(LedgerEntryDirection.Credit)
       expect(ledgerEntry.entryType).toBe(
         LedgerEntryType.CreditGrantRecognized
@@ -268,6 +269,39 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         `Promotional credit ${usageCredit.id} granted.`
       )
       expect(ledgerEntry.sourceUsageCreditId).toBe(usageCredit.id)
+      expect(ledgerEntry.billingPeriodId).toBe(
+        usageCredit.billingPeriodId
+      )
+      expect(ledgerEntry.usageMeterId).toBe(usageCredit.usageMeterId)
+      expect(ledgerEntry.claimedByBillingRunId).toBeNull()
+      expect(ledgerEntry.metadata).toEqual({
+        ledgerCommandType: command.type,
+      })
+      expect(ledgerEntry.entryTimestamp).toBeTypeOf('number')
+      expect(ledgerEntry.entryTimestamp).toBeGreaterThanOrEqual(
+        timestampBeforeExecution
+      )
+      expect(ledgerEntry.entryTimestamp).toBeLessThanOrEqual(
+        timestampAfterExecution
+      )
+      expect(ledgerEntry.sourceUsageEventId).toBeNull()
+      expect(ledgerEntry.sourceCreditApplicationId).toBeNull()
+      expect(ledgerEntry.sourceCreditBalanceAdjustmentId).toBeNull()
+      expect(ledgerEntry.sourceBillingPeriodCalculationId).toBeNull()
+
+      const dbLedgerTransaction = await selectLedgerTransactions(
+        { id: ledgerTransaction.id },
+        transaction
+      )
+      expect(dbLedgerTransaction.length).toBe(1)
+      expect(dbLedgerTransaction[0]).toEqual(ledgerTransaction)
+
+      const dbLedgerEntries = await selectLedgerEntries(
+        { id: ledgerEntry.id },
+        transaction
+      )
+      expect(dbLedgerEntries.length).toBe(1)
+      expect(dbLedgerEntries[0]).toEqual(ledgerEntry)
 
       const finalBalance =
         await aggregateBalanceForLedgerAccountFromEntries(
@@ -485,26 +519,31 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
       },
     }
 
-    // When an error occurs inside a transaction, PostgreSQL aborts the transaction.
-    // The adminTransaction wrapper will attempt cleanup (RESET ROLE) which may fail
-    // due to the aborted transaction, but the transaction will rollback automatically.
-    // We verify that an error is thrown. The error might be the original error or
-    // the transaction abort error from cleanup - both indicate the operation failed.
-    let errorCaught = false
-    try {
-      await adminTransaction(async ({ transaction }) => {
+    await expect(
+      adminTransaction(async ({ transaction }) => {
         return await processCreditGrantRecognizedLedgerCommand(
           command,
           transaction
         )
       })
-    } catch (error) {
-      errorCaught = true
-      // The error could be the original database error or the transaction abort error
-      // Both indicate that the operation failed as expected
-      expect(error).toBeDefined()
-    }
-    expect(errorCaught).toBe(true)
+    ).rejects.toThrowError(
+      'Failed query: insert into "ledger_transactions"'
+    )
+
+    // Verify that no partial/rogue transactions were persisted due to the error.
+    // This ensures the database transaction was properly rolled back.
+    const rogueTransactions = await adminTransaction(
+      async ({ transaction }) => {
+        return selectLedgerTransactions(
+          {
+            organizationId: organization.id,
+            subscriptionId: invalidSubscriptionId,
+          },
+          transaction
+        )
+      }
+    )
+    expect(rogueTransactions.length).toBe(0)
   })
 
   it('should throw an error when usage credit has no usageMeterId', async () => {
