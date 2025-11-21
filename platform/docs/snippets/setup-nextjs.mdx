@@ -70,7 +70,7 @@ export const flowgladServer = new FlowgladServer({
 </CodeGroup>
 
 <Info>
-Native constructor params are available for popular auth providers including Supabase Auth, Clerk, Next Auth. Read more about auth adaptors [here](/sdks/auth-adaptors)
+Native constructor params are available for popular auth providers including Supabase Auth, Clerk, NextAuth, Better Auth. Read more about auth adapters [here](/sdks/auth-adapters)
 </Info>
 
 <CodeGroup>
@@ -100,7 +100,7 @@ export const flowgladServer = new FlowgladServer({
 ```
 
 
-```ts Next Auth
+```ts NextAuth
 import { auth } from '@/auth' // your initialized, configured NextAuth client
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
@@ -109,6 +109,19 @@ export const flowgladServer = new FlowgladServer({
     auth,
   },
 })
+```
+
+
+```ts Better Auth
+import { auth } from '@/lib/auth'; // your Better Auth instance in auth.ts
+import { headers } from 'next/headers';
+import { FlowgladServer } from '@flowglad/nextjs/server';
+
+export const flowgladServer = new FlowgladServer({
+  betterAuth: {
+    getSession: async () => auth.api.getSession({ headers: await headers() }),
+  },
+});
 ```
 
 
