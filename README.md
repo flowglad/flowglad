@@ -39,9 +39,6 @@
 </p>
 <div align="center">
   <p>
-    The payment processor for natural language programming.
-  </p>
-  <p>
     Infinite pricing models, one source of truth, zero webhooks.
   </p>
 </div>
@@ -65,7 +62,10 @@ First, install the packages necessary Flowglad packages based on your project se
 # Next.js Projects
 bun add @flowglad/nextjs
 
-# Vite Projects
+# React + Express projects:
+bun add @flowglad/react @flowglad/express
+
+# All other React + Node Projects
 bun add @flowglad/react @flowglad/server
 ```
 
@@ -314,23 +314,16 @@ return (
 ```
 </details>
 
-## Language & Framework SDK Coverage
+## Getting Started
+First, set up a pricing model. You can do so in the [dashboard](https://app.flowglad.com/store/pricing-models) in just a few clicks using a template, that you can then customize to suit your specific needs.
 
-Flowglad aims to have first class support for every language and framework that developers build in.
+We currently have templates for the following pricing models:
+- Usage-limit + Subscription Hybrid (like Cursor)
+- Unlimited Usage (like ChatGPT consumer)
+- Tiered Access and Usage Credits (like Midjourney)
+- Feature-Gated Subscription (like Linear)
 
-If we haven't gotten to your tool of choice yet, we have a [REST API](https://docs.flowglad.com/api-reference/introduction) that anyone can integrate as a fallback.
-
-Here's our progress thus far. If you don't see your framework or language on here, please let us know in [our Discord](https://discord.gg/zsvkVtTXge)!
-
-| Framework   | Support |
-|-------------|---------|
-| Next.js     | ✅      |
-| Express     | ✅      |
-| React       | ✅      |
-| Remix       | 🟡      |
-| Astro       | 🟡      |
-| Hono        | 🟡      |
-| Vue         | 🟡      |
+And more on the way. If you don't see a pricing model from our templates that suits you, you can always make one from scratch. 
 
 ## Authentication Services
 Flowglad couples tightly with your authentication layer, automatically mapping your notion of customers to our notion of customers. To make this effortless, we have adapters for many popular auth services.
