@@ -1,6 +1,9 @@
 import { FeatureType } from '@/types'
 import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import yaml from 'json-to-pretty-yaml'
+import { generateText, streamText, generateObject } from 'ai'
+import { z } from 'zod'
+import { openai } from '@ai-sdk/openai'
 import {
   queryMultipleTurbopuffer,
   getTurbopufferClient,
@@ -9,18 +12,10 @@ import {
 import { fetchMarkdownFromDocs } from '@/utils/textContent'
 
 /**
- * AI SDK packages ('ai' and '@ai-sdk/openai') are imported dynamically to avoid parse-time errors
- * when this module is imported but the function isn't called (e.g., when generating OpenAPI docs with tsx).
- *
- * Static imports of these packages cause undici to load at module load time. Undici expects the File API
- * to be available, which causes "ReferenceError: File is not defined" when generating OpenAPI docs
- * with tsx in Node.js environments where File is not available.
- *
- * Dynamic imports are evaluated at runtime, so these packages are only loaded when
- * constructIntegrationGuide functions are actually executed, not when the module is first imported.
- *
- * Note: Turbopuffer utilities are safe to import statically because turbopuffer.ts uses type-only
- * imports and handles dynamic loading internally.
+ * Markdown files are imported dynamically to avoid parse-time errors when
+ * this module is imported but the function isn't called (e.g., when generating
+ * OpenAPI docs with tsx). Dynamic imports are evaluated at runtime, so the
+ * markdown files are only loaded when constructIntegrationGuide is actually executed.
  */
 
 interface PricingModelIntegrationGuideParams {
@@ -135,6 +130,70 @@ const stripMarkdownCodeBlockTags = (text: string): string => {
   return cleaned
 }
 
+const synthesizeIntegrationQuestions = async ({
+  template,
+  codebaseContext,
+  pricingModelYaml,
+}: {
+  template: string
+  codebaseContext: string
+  pricingModelYaml: string
+}): Promise<string[]> => {
+  const schema = z.object({
+    questions: z
+      .array(z.string())
+      .describe(
+        'A list of strategic questions needed to understand the codebase and fill in the template placeholders'
+      ),
+  })
+
+  const result = await generateObject({
+    model: openai('gpt-4o-mini'),
+    schema,
+    system: `You are an expert technical writer specializing in creating integration guides for Flowglad billing systems.
+
+Your task is to analyze an integration guide template, codebase context, and pricing model to identify gaps in understanding that would prevent you from filling in the template placeholders correctly.
+
+Think like a developer who needs to integrate Flowglad into this codebase. Review the template to understand what information is needed, then examine the codebase context to see what's already known. Identify areas where you lack sufficient context to make informed decisions about how to fill in the placeholders.
+
+Generate strategic, context-seeking questions that would help you understand:
+- The project's architecture, structure, and conventions
+- How authentication and user management works
+- File organization and routing patterns
+- Existing billing or subscription code (if any)
+- How Flowglad concepts (customers, subscriptions, usage meters, features) map to this codebase
+- Framework-specific patterns and conventions being used
+
+These should be high-level questions that reveal gaps in understanding, not just "what is {PLACEHOLDER}". Focus on questions that would help you understand the codebase well enough to make correct decisions about all the placeholders.`,
+    messages: [
+      {
+        role: 'user',
+        content: `Here is the integration guide template with placeholders:
+
+${template}
+
+---
+
+Here is the codebase context that describes the target project:
+
+${codebaseContext}
+
+---
+
+Here is the pricing model YAML:
+
+${pricingModelYaml}
+
+---
+
+Please analyze the template, codebase context, and pricing model. Identify gaps in your understanding that would prevent you from correctly filling in the template placeholders. Generate strategic questions that would help you understand the codebase structure, patterns, and how Flowglad should integrate with it.`,
+      },
+    ],
+  })
+
+  return (result.object as z.infer<typeof schema>).questions
+}
+
 const synthesizeIntegrationGuide = async ({
   template,
   codebaseContext,
@@ -234,6 +293,13 @@ const getContextualDocs = async ({
 
   // Sort paths alphabetically
   deduplicatedPaths.sort((a, b) => a.localeCompare(b))
+
+  // Dynamically import fetchMarkdownFromDocs to avoid loading fetch/undici at module load time.
+  // Static imports would cause undici to load when this module is imported (via appRouter),
+  // leading to "ReferenceError: File is not defined" when generating OpenAPI docs with tsx.
+  const { fetchMarkdownFromDocs } = await import(
+    '@/utils/textContent'
+  )
 
   // Fetch and concatenate all markdown files from docs.flowglad.com
   const markdownContents: string[] = []
@@ -445,19 +511,15 @@ export const constructIntegrationGuideStream = async function* ({
   const templateWithFragments =
     integrationCoreFragment.default + otherFragments
   const pricingModelYaml = pricingModelYamlFragment(pricingModelData)
+  const questions = await synthesizeIntegrationQuestions({
+    template: templateWithFragments,
+    codebaseContext,
+    pricingModelYaml,
+  })
+  const contextualDocs = await getContextualDocs({ questions })
   // If codebaseContext is provided, use AI to synthesize the guide with streaming
   // Otherwise, yield the template as-is (backward compatibility)
   if (codebaseContext) {
-    const questions: string[] = [
-      'What is the Flowglad client package name for React useBilling hook?',
-      'How is Flowglad server configured and initialized in Next.js?',
-      'How is FlowgladServer configured with BetterAuth authentication?',
-      'What is the Flowglad API route handler code for Next.js App Router?',
-      'How is FlowgladProvider set up in Next.js layout with BetterAuth?',
-      'How are usage events created with Flowglad server?',
-      'What are the package dependencies and scripts code snippets for Flowglad integration?',
-    ]
-    const contextualDocs = await getContextualDocs({ questions })
     yield* synthesizeIntegrationGuideStream({
       template: templateWithFragments,
       codebaseContext,
