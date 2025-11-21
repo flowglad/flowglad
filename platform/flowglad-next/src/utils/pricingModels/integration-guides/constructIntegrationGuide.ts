@@ -9,9 +9,14 @@ import {
 
 /**
  * Markdown files and AI SDK packages are imported dynamically to avoid parse-time errors when
- * this module is imported but the function isn't called (e.g., when generating
- * OpenAPI docs with tsx). Dynamic imports are evaluated at runtime, so the
- * markdown files and AI SDK packages are only loaded when constructIntegrationGuide is actually executed.
+ * this module is imported but the function isn't called (e.g., when generating OpenAPI docs with tsx).
+ *
+ * Specifically, static imports of 'ai' and '@ai-sdk/openai' cause undici to load at module load time.
+ * Undici expects the File API to be available, which causes "ReferenceError: File is not defined"
+ * when generating OpenAPI docs with tsx in Node.js environments where File is not available.
+ *
+ * Dynamic imports are evaluated at runtime, so these packages are only loaded when
+ * constructIntegrationGuide functions are actually executed, not when the module is first imported.
  */
 
 interface PricingModelIntegrationGuideParams {
@@ -135,6 +140,11 @@ const synthesizeIntegrationGuide = async ({
   codebaseContext: string
   pricingModelYaml: string
 }): Promise<string> => {
+  // Dynamically import AI SDK packages to avoid loading undici at module load time.
+  // When this module is statically imported (e.g., by pricingModelsRouter -> appRouter -> swagger),
+  // static imports of 'ai' and '@ai-sdk/openai' cause undici to load, which expects the File API
+  // to be available. This causes "ReferenceError: File is not defined" when generating OpenAPI
+  // docs with tsx in Node.js environments where File is not available.
   const { generateText } = await import('ai')
   const { openai } = await import('@ai-sdk/openai')
 
@@ -221,7 +231,9 @@ const getContextualDocs = async ({
   // Sort paths alphabetically
   deduplicatedPaths.sort((a, b) => a.localeCompare(b))
 
-  // Dynamically import fetchMarkdownFromDocs to avoid loading fetch/undici at module load time
+  // Dynamically import fetchMarkdownFromDocs to avoid loading fetch/undici at module load time.
+  // Static imports would cause undici to load when this module is imported (via appRouter),
+  // leading to "ReferenceError: File is not defined" when generating OpenAPI docs with tsx.
   const { fetchMarkdownFromDocs } = await import(
     '@/utils/textContent'
   )
@@ -253,6 +265,11 @@ const synthesizeIntegrationGuideStream = async function* ({
   pricingModelYaml: string
   contextualDocs: string
 }): AsyncGenerator<string, void, unknown> {
+  // Dynamically import AI SDK packages to avoid loading undici at module load time.
+  // When this module is statically imported (e.g., by pricingModelsRouter -> appRouter -> swagger),
+  // static imports of 'ai' and '@ai-sdk/openai' cause undici to load, which expects the File API
+  // to be available. This causes "ReferenceError: File is not defined" when generating OpenAPI
+  // docs with tsx in Node.js environments where File is not available.
   const { streamText } = await import('ai')
   const { openai } = await import('@ai-sdk/openai')
 

@@ -9,8 +9,11 @@ import {
 } from '@/utils/turbopuffer'
 
 /**
- * fetchMarkdownFromDocs is imported dynamically to avoid loading fetch/undici
- * at module load time (e.g., when generating OpenAPI docs with tsx).
+ * fetchMarkdownFromDocs is imported dynamically within procedures to avoid loading fetch/undici
+ * at module load time. When this router is statically imported (via appRouter -> swagger),
+ * static imports would cause undici to load, which expects the File API to be available.
+ * This causes "ReferenceError: File is not defined" when generating OpenAPI docs with tsx
+ * in Node.js environments where File is not available.
  */
 
 const queryDocsSchema = z.object({
@@ -37,7 +40,8 @@ const queryDocs = publicProcedure
       openai
     )
 
-    // Get original markdown files for each result from docs.flowglad.com
+    // Dynamically import fetchMarkdownFromDocs to avoid loading fetch/undici at module load time.
+    // See module-level comment for explanation.
     const { fetchMarkdownFromDocs } = await import(
       '@/utils/textContent'
     )
@@ -110,10 +114,12 @@ const queryMultipleDocs = publicProcedure
       .map((p) => p.path)
       .sort((a, b) => a.localeCompare(b))
 
-    // Fetch and concatenate all markdown files from docs.flowglad.com
+    // Dynamically import fetchMarkdownFromDocs to avoid loading fetch/undici at module load time.
+    // See module-level comment for explanation.
     const { fetchMarkdownFromDocs } = await import(
       '@/utils/textContent'
     )
+    // Fetch and concatenate all markdown files from docs.flowglad.com
     const markdownContents: string[] = []
     for (const path of deduplicatedPaths) {
       const markdown = await fetchMarkdownFromDocs(path)
