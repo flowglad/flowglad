@@ -3028,7 +3028,7 @@ describe('editProductTransaction - Price Updates', () => {
     ).toBe(true)
   })
 
-  it('should not insert new price record when non-immutable price fields are updated', async () => {
+  it('should not insert new price record when no important price fields are updated', async () => {
     // Get initial price count
     const initialPrices = await adminTransaction(
       async ({ transaction }) => {
@@ -3060,11 +3060,12 @@ describe('editProductTransaction - Price Updates', () => {
       intervalUnit: currentPrice.intervalUnit ?? IntervalUnit.Month, // Same - immutable field unchanged
       intervalCount: currentPrice.intervalCount ?? 1, // Same - immutable field unchanged
       isDefault: currentPrice.isDefault,
-      name: 'Updated Price Name', // Changed - non-immutable field
+      name: currentPrice.name ?? null, // Same - non-immutable field
       trialPeriodDays: currentPrice.trialPeriodDays ?? null,
       usageEventsPerUnit: null,
       usageMeterId: null,
-      active: !currentPrice.active, // Changed - non-immutable field
+      active: currentPrice.active, // Same - non-immutable field
+      slug: currentPrice.slug ?? null, // Same - preserve slug
     }
 
     await authenticatedTransaction(

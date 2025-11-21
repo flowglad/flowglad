@@ -60,10 +60,26 @@ const isPriceChanged = (
     return true
   }
   // Compare all immutable/create-only fields
-  return priceImmutableFields.some((field) => {
-    const key = field as keyof Price.ClientInsert &
-      keyof Price.ClientRecord
-    return newPrice[key] !== currentPrice[key]
+  const immutableFieldsChanged = priceImmutableFields.some(
+    (field) => {
+      const key = field as keyof Price.ClientInsert &
+        keyof Price.ClientRecord
+      return newPrice[key] !== currentPrice[key]
+    }
+  )
+  if (immutableFieldsChanged) {
+    return true
+  }
+  // Also check for changes in other important fields
+  const additionalFields: (keyof Price.ClientInsert &
+    keyof Price.ClientRecord)[] = [
+    'isDefault',
+    'name',
+    'active',
+    'slug',
+  ]
+  return additionalFields.some((field) => {
+    return newPrice[field] !== currentPrice[field]
   })
 }
 
