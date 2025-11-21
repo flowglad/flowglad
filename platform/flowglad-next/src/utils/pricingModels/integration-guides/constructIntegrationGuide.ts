@@ -1,20 +1,17 @@
 import { FeatureType } from '@/types'
 import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import yaml from 'json-to-pretty-yaml'
-import { generateText, streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
 import {
   queryMultipleTurbopuffer,
   getTurbopufferClient,
   getOpenAIClient,
 } from '@/utils/turbopuffer'
-import { fetchMarkdownFromDocs } from '@/utils/textContent'
 
 /**
- * Markdown files are imported dynamically to avoid parse-time errors when
+ * Markdown files and AI SDK packages are imported dynamically to avoid parse-time errors when
  * this module is imported but the function isn't called (e.g., when generating
  * OpenAPI docs with tsx). Dynamic imports are evaluated at runtime, so the
- * markdown files are only loaded when constructIntegrationGuide is actually executed.
+ * markdown files and AI SDK packages are only loaded when constructIntegrationGuide is actually executed.
  */
 
 interface PricingModelIntegrationGuideParams {
@@ -138,6 +135,9 @@ const synthesizeIntegrationGuide = async ({
   codebaseContext: string
   pricingModelYaml: string
 }): Promise<string> => {
+  const { generateText } = await import('ai')
+  const { openai } = await import('@ai-sdk/openai')
+
   const result = await generateText({
     model: openai('gpt-4o-mini'),
     system: `You are an expert technical writer specializing in creating integration guides for Flowglad billing systems.
@@ -221,6 +221,11 @@ const getContextualDocs = async ({
   // Sort paths alphabetically
   deduplicatedPaths.sort((a, b) => a.localeCompare(b))
 
+  // Dynamically import fetchMarkdownFromDocs to avoid loading fetch/undici at module load time
+  const { fetchMarkdownFromDocs } = await import(
+    '@/utils/textContent'
+  )
+
   // Fetch and concatenate all markdown files from docs.flowglad.com
   const markdownContents: string[] = []
   for (const path of deduplicatedPaths) {
@@ -248,6 +253,9 @@ const synthesizeIntegrationGuideStream = async function* ({
   pricingModelYaml: string
   contextualDocs: string
 }): AsyncGenerator<string, void, unknown> {
+  const { streamText } = await import('ai')
+  const { openai } = await import('@ai-sdk/openai')
+
   const result = await streamText({
     model: openai('gpt-4o-mini'),
     system: `You are an expert technical writer specializing in creating integration guides for Flowglad billing systems.

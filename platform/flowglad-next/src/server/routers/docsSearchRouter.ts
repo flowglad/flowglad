@@ -7,7 +7,11 @@ import {
   getTurbopufferClient,
   getOpenAIClient,
 } from '@/utils/turbopuffer'
-import { fetchMarkdownFromDocs } from '@/utils/textContent'
+
+/**
+ * fetchMarkdownFromDocs is imported dynamically to avoid loading fetch/undici
+ * at module load time (e.g., when generating OpenAPI docs with tsx).
+ */
 
 const queryDocsSchema = z.object({
   query: z.string().min(1),
@@ -34,6 +38,9 @@ const queryDocs = publicProcedure
     )
 
     // Get original markdown files for each result from docs.flowglad.com
+    const { fetchMarkdownFromDocs } = await import(
+      '@/utils/textContent'
+    )
     const resultsWithMarkdown = await Promise.all(
       queryResults.map(async (row) => {
         const markdown = await fetchMarkdownFromDocs(row.path)
@@ -104,6 +111,9 @@ const queryMultipleDocs = publicProcedure
       .sort((a, b) => a.localeCompare(b))
 
     // Fetch and concatenate all markdown files from docs.flowglad.com
+    const { fetchMarkdownFromDocs } = await import(
+      '@/utils/textContent'
+    )
     const markdownContents: string[] = []
     for (const path of deduplicatedPaths) {
       const markdown = await fetchMarkdownFromDocs(path)
