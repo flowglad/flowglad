@@ -6,7 +6,7 @@ import { useState } from 'react'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
-import { Pencil, Plus, Ellipsis, Copy, Star } from 'lucide-react'
+import { Pencil, Plus, Ellipsis, Copy, Star, Download, Sparkles } from 'lucide-react'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
 import { CustomersDataTable } from '@/app/customers/data-table'
 import { TableHeader } from '@/components/ui/table-header'
@@ -112,7 +112,6 @@ function InnerPricingModelDetailsPage({
     {
       label: 'Duplicate',
       handler: () => setIsCloneOpen(true),
-      helperText: 'Create a copy of this pricing model',
       icon: <Copy className="h-4 w-4" />,
     },
     ...(!pricingModel.isDefault
@@ -120,20 +119,19 @@ function InnerPricingModelDetailsPage({
           {
             label: 'Set Default',
             handler: () => setIsSetDefaultOpen(true),
-            helperText: 'Make this the default pricing model',
             icon: <Star className="h-4 w-4" />,
           },
         ]
       : []),
     {
-      label: 'Export',
+      label: 'Export as YAML',
       handler: () => exportPricingModelHandler(),
-      helperText: 'Export pricing model as YAML file',
+      icon: <Download className="h-4 w-4" />,
     },
     {
       label: 'Integrate via Prompt',
       handler: () => setIsGetIntegrationGuideModalOpen(true),
-      helperText: 'Integrate into your app in one shot',
+      icon: <Sparkles className="h-4 w-4" />,
     },
   ]
 

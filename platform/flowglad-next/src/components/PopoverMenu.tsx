@@ -41,32 +41,48 @@ const PopoverMenuItem = ({
   const content = (
     <div
       className={cn(
-        'relative flex cursor-default select-none items-start rounded-[4px] px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
-        helperText ? 'flex-col gap-1' : 'items-center gap-1.5',
+        'relative flex cursor-default select-none rounded-[4px] px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+        helperText ? 'items-start flex-col gap-1' : 'items-center gap-2',
         className,
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
       )}
       onClick={disabled ? undefined : onClick}
       aria-disabled={disabled}
     >
-      {icon && <span className="flex-shrink-0">{icon}</span>}
-      <div className={cn('flex flex-col', helperText ? 'gap-1' : '')}>
-        <div
-          className={cn(
-            'whitespace-normal break-words',
-            state === PopoverMenuItemState.Danger
-              ? 'text-destructive'
-              : ''
-          )}
-        >
-          {children}
-        </div>
-        {helperText && (
-          <p className="text-xs text-muted-foreground whitespace-normal break-words">
-            {helperText}
-          </p>
-        )}
-      </div>
+      {helperText ? (
+        <>
+          {icon && <span className="flex-shrink-0">{icon}</span>}
+          <div className="flex flex-col gap-1">
+            <div
+              className={cn(
+                'whitespace-normal break-words',
+                state === PopoverMenuItemState.Danger
+                  ? 'text-destructive'
+                  : ''
+              )}
+            >
+              {children}
+            </div>
+            <p className="text-xs text-muted-foreground whitespace-normal break-words">
+              {helperText}
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          {icon && <span className="flex-shrink-0">{icon}</span>}
+          <div
+            className={cn(
+              'whitespace-normal break-words',
+              state === PopoverMenuItemState.Danger
+                ? 'text-destructive'
+                : ''
+            )}
+          >
+            {children}
+          </div>
+        </>
+      )}
     </div>
   )
 
