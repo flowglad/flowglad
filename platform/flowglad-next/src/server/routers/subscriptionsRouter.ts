@@ -42,7 +42,10 @@ import { cancelSubscriptionProcedureTransaction } from '@/subscriptions/cancelSu
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { z } from 'zod'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import {
+  selectCustomerById,
+  selectCustomerByExternalIdAndOrganizationId,
+} from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
 import {
@@ -199,74 +202,95 @@ const getSubscriptionProcedure = protectedProcedure
     )
   })
 
-const createSubscriptionInputSchema = z.object({
-  customerId: z
-    .string()
-    .describe('The customer for the subscription.'),
-  priceId: z
-    .string()
-    .describe(
-      `The price to subscribe to. Used to determine whether the subscription is ` +
-        `usage-based or not, and set other defaults such as trial period and billing intervals.`
-    ),
-  quantity: z
-    .number()
-    .optional()
-    .describe(
-      'The quantity of the price purchased. If not provided, defaults to 1.'
-    ),
-  startDate: z
-    .date()
-    .optional()
-    .describe(
-      'The time when the subscription starts. If not provided, defaults to current time.'
-    ),
-  interval: z
-    .nativeEnum(IntervalUnit)
-    .optional()
-    .describe(
-      'The interval of the subscription. If not provided, defaults to the interval of the price provided by ' +
-        '`priceId`.'
-    ),
-  intervalCount: z
-    .number()
-    .optional()
-    .describe(
-      'The number of intervals that each billing period will last. If not provided, defaults to 1'
-    ),
-  trialEnd: z
-    .number()
-    .optional()
-    .describe(
-      `Epoch time in milliseconds of when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`
-    ),
-  metadata: metadataSchema.optional(),
-  name: z
-    .string()
-    .optional()
-    .describe(
-      `The name of the subscription. If not provided, defaults ` +
-        `to the name of the product associated with the price provided by 'priceId'.`
-    ),
-  defaultPaymentMethodId: z
-    .string()
-    .optional()
-    .describe(
-      `The default payment method to use when attempting to run charges for the subscription.` +
-        `If not provided, the customer's default payment method will be used. ` +
-        `If no default payment method is present, charges will not run. ` +
-        `If no default payment method is provided and there is a trial ` +
-        `period for the subscription, ` +
-        `the subscription will enter 'trial_ended' status at the end of the trial period.`
-    ),
-  backupPaymentMethodId: z
-    .string()
-    .optional()
-    .describe(
-      `The payment method to try if charges for the subscription fail with the default payment method.`
-    ),
-  // FIXME: Consider exposing preserveBillingCycleAnchor to the API
-})
+export const createSubscriptionInputSchema = z
+  .object({
+    customerId: z
+      .string()
+      .optional()
+      .describe(
+        'The internal ID of the customer. If not provided, customerExternalId is required.'
+      ),
+    customerExternalId: z
+      .string()
+      .optional()
+      .describe(
+        'The external ID of the customer. If not provided, customerId is required.'
+      ),
+    priceId: z
+      .string()
+      .describe(
+        `The price to subscribe to. Used to determine whether the subscription is ` +
+          `usage-based or not, and set other defaults such as trial period and billing intervals.`
+      ),
+    quantity: z
+      .number()
+      .optional()
+      .describe(
+        'The quantity of the price purchased. If not provided, defaults to 1.'
+      ),
+    startDate: z
+      .date()
+      .optional()
+      .describe(
+        'The time when the subscription starts. If not provided, defaults to current time.'
+      ),
+    interval: z
+      .nativeEnum(IntervalUnit)
+      .optional()
+      .describe(
+        'The interval of the subscription. If not provided, defaults to the interval of the price provided by ' +
+          '`priceId`.'
+      ),
+    intervalCount: z
+      .number()
+      .optional()
+      .describe(
+        'The number of intervals that each billing period will last. If not provided, defaults to 1'
+      ),
+    trialEnd: z
+      .number()
+      .optional()
+      .describe(
+        `Epoch time in milliseconds of when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays`
+      ),
+    metadata: metadataSchema.optional(),
+    name: z
+      .string()
+      .optional()
+      .describe(
+        `The name of the subscription. If not provided, defaults ` +
+          `to the name of the product associated with the price provided by 'priceId'.`
+      ),
+    defaultPaymentMethodId: z
+      .string()
+      .optional()
+      .describe(
+        `The default payment method to use when attempting to run charges for the subscription.` +
+          `If not provided, the customer's default payment method will be used. ` +
+          `If no default payment method is present, charges will not run. ` +
+          `If no default payment method is provided and there is a trial ` +
+          `period for the subscription, ` +
+          `the subscription will enter 'trial_ended' status at the end of the trial period.`
+      ),
+    backupPaymentMethodId: z
+      .string()
+      .optional()
+      .describe(
+        `The payment method to try if charges for the subscription fail with the default payment method.`
+      ),
+    // FIXME: Consider exposing preserveBillingCycleAnchor to the API
+  })
+  .refine(
+    (data) =>
+      data.customerId
+        ? !data.customerExternalId
+        : !!data.customerExternalId,
+    {
+      message:
+        'Either customerId or customerExternalId must be provided, but not both',
+      path: ['customerId'],
+    }
+  )
 
 const createSubscriptionProcedure = protectedProcedure
   .meta(openApiMetas.POST)
@@ -275,10 +299,42 @@ const createSubscriptionProcedure = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, transaction, ctx }) => {
-        const customer = await selectCustomerById(
-          input.customerId,
-          transaction
-        )
+        if (!ctx.organization) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Organization not found',
+          })
+        }
+
+        // Resolve customer ID from either customerId or customerExternalId
+        let customer
+        if (input.customerId) {
+          customer = await selectCustomerById(
+            input.customerId,
+            transaction
+          )
+        } else if (input.customerExternalId) {
+          customer =
+            await selectCustomerByExternalIdAndOrganizationId(
+              {
+                externalId: input.customerExternalId,
+                organizationId: ctx.organization.id,
+              },
+              transaction
+            )
+          if (!customer) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Customer with externalId ${input.customerExternalId} not found`,
+            })
+          }
+        } else {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Either customerId or customerExternalId must be provided',
+          })
+        }
         const priceResult =
           await selectPriceProductAndOrganizationByPriceWhere(
             {
