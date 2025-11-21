@@ -5,14 +5,24 @@ import {
   setupPricingModel,
   setupProduct,
   setupPrice,
+  setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
+import {
+  PriceType,
+  IntervalUnit,
+  CurrencyCode,
+  FeatureType,
+} from '@/types'
 import {
   insertProduct,
   selectProductById,
   updateProduct,
 } from '@/db/tableMethods/productMethods'
-import { insertPrice } from '@/db/tableMethods/priceMethods'
+import {
+  insertPrice,
+  selectPrices,
+  selectPriceById,
+} from '@/db/tableMethods/priceMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import core from '@/utils/core'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
@@ -21,6 +31,8 @@ import {
   validateDefaultProductUpdate,
 } from '@/utils/defaultProductValidation'
 import { TRPCError } from '@trpc/server'
+import { productsRouter } from './productsRouter'
+import { Price } from '@/db/schema/prices'
 
 describe('productsRouter - Default Product Constraints', () => {
   let organizationId: string
@@ -43,6 +55,7 @@ describe('productsRouter - Default Product Constraints', () => {
             name: 'Test Pricing Model',
             isDefault: false, // Can't have multiple defaults per org
           },
+          defaultPlanIntervalUnit: IntervalUnit.Month, // Create a subscription price
         },
         {
           transaction,
@@ -302,6 +315,96 @@ describe('productsRouter - Default Product Constraints', () => {
       })
     })
 
+    it('should throw error when attempting to change price immutable fields on default products', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true,
+        path: '',
+      }
+      const currentPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(defaultPriceId, transaction)
+        }
+      )
+      if (!currentPrice) {
+        throw new Error('Default price not found')
+      }
+      // Create a modified price by changing immutable fields from the existing price
+      const modifiedPrice: Price.ClientInsert = {
+        productId: defaultProductId,
+        type: PriceType.Subscription,
+        unitPrice: currentPrice.unitPrice + 1000, // Increment unit price (immutable field)
+        intervalUnit:
+          currentPrice.intervalUnit === IntervalUnit.Month
+            ? IntervalUnit.Year
+            : IntervalUnit.Month, // Change interval unit (immutable field)
+        intervalCount: currentPrice.intervalCount ?? 1,
+        isDefault: currentPrice.isDefault,
+        name: currentPrice.name ?? undefined,
+        trialPeriodDays: currentPrice.trialPeriodDays ?? undefined,
+        usageEventsPerUnit: null,
+        usageMeterId: null,
+        active: currentPrice.active,
+      }
+
+      // Call the router's updateProduct procedure with the modified price
+      // This should throw the error for default products
+      await expect(
+        productsRouter.createCaller(ctx).update({
+          id: defaultProductId,
+          product: {
+            id: defaultProductId,
+            name: 'Updated Name',
+            active: true,
+            default: true, // Add this - the router checks product.default from input
+          },
+          price: modifiedPrice,
+        })
+      ).rejects.toThrow(
+        'Cannot create additional prices for the default plan'
+      )
+    })
+
+    it('should allow updating allowed fields on default products using router', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true,
+        path: '',
+      }
+
+      // Call the router's updateProduct procedure with allowed fields only
+      const result = await productsRouter.createCaller(ctx).update({
+        id: defaultProductId,
+        product: {
+          id: defaultProductId,
+          name: 'Updated Base Plan Name',
+          description: 'Updated description',
+          active: true,
+          default: true,
+        },
+      })
+
+      expect(result).toBeDefined()
+      expect(result.product).toBeDefined()
+      expect(result.product.name).toBe('Updated Base Plan Name')
+      expect(result.product.description).toBe('Updated description')
+      expect(result.product.default).toBe(true) // Should remain default
+    })
+
     it('should allow updating any field on non-default products', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
@@ -336,6 +439,173 @@ describe('productsRouter - Default Product Constraints', () => {
       expect(result).toBeDefined()
       expect(result.name).toBe('Updated Regular Product')
       expect(result.active).toBe(false)
+    })
+
+    it('should insert new price record when price immutable fields are updated on non-default products', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true,
+        path: '',
+      }
+
+      // Get initial price count
+      const initialPrices = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPrices(
+            { productId: regularProductId },
+            transaction
+          )
+        }
+      )
+      const initialPriceCount = initialPrices.length
+
+      // Get the current default price
+      const currentPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(regularPriceId, transaction)
+        }
+      )
+      if (!currentPrice) {
+        throw new Error('Regular price not found')
+      }
+
+      // Create a modified price with changed immutable fields
+      const modifiedPrice: Price.ClientInsert = {
+        productId: regularProductId,
+        type: PriceType.Subscription,
+        unitPrice: currentPrice.unitPrice + 2000, // Change immutable field
+        intervalUnit:
+          currentPrice.intervalUnit === IntervalUnit.Month
+            ? IntervalUnit.Year
+            : IntervalUnit.Month, // Change immutable field
+        intervalCount: currentPrice.intervalCount ?? 1,
+        isDefault: currentPrice.isDefault,
+        name: currentPrice.name ?? undefined,
+        trialPeriodDays: currentPrice.trialPeriodDays ?? undefined,
+        usageEventsPerUnit: null,
+        usageMeterId: null,
+        active: currentPrice.active,
+      }
+
+      // Call the router's updateProduct procedure with the modified price
+      await productsRouter.createCaller(ctx).update({
+        id: regularProductId,
+        product: {
+          id: regularProductId,
+          name: 'Updated Regular Product',
+          active: true,
+          default: false,
+        },
+        price: modifiedPrice,
+      })
+
+      // Verify a new price was inserted
+      const finalPrices = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPrices(
+            { productId: regularProductId },
+            transaction
+          )
+        }
+      )
+      const finalPriceCount = finalPrices.length
+
+      expect(finalPriceCount).toBe(initialPriceCount + 1)
+      expect(
+        finalPrices.some(
+          (p) => p.unitPrice === modifiedPrice.unitPrice
+        )
+      ).toBe(true)
+      expect(
+        finalPrices.some(
+          (p) => p.intervalUnit === modifiedPrice.intervalUnit
+        )
+      ).toBe(true)
+    })
+
+    it('should not insert new price record when non-immutable price fields are updated', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true,
+        path: '',
+      }
+
+      // Get initial price count
+      const initialPrices = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPrices(
+            { productId: regularProductId },
+            transaction
+          )
+        }
+      )
+      const initialPriceCount = initialPrices.length
+
+      // Get the current default price
+      const currentPrice = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPriceById(regularPriceId, transaction)
+        }
+      )
+
+      if (!currentPrice) {
+        throw new Error('Regular price not found')
+      }
+
+      // Create a modified price with only non-immutable fields changed
+      // (name, active, isDefault are not immutable)
+      const modifiedPrice: Price.ClientInsert = {
+        productId: regularProductId,
+        type: PriceType.Subscription,
+        unitPrice: currentPrice.unitPrice, // Same - immutable field unchanged
+        intervalUnit: currentPrice.intervalUnit ?? IntervalUnit.Month, // Same - immutable field unchanged
+        intervalCount: currentPrice.intervalCount ?? 1, // Same - immutable field unchanged
+        isDefault: currentPrice.isDefault,
+        name: 'Updated Price Name', // Changed - non-immutable field
+        trialPeriodDays: currentPrice.trialPeriodDays ?? null,
+        usageEventsPerUnit: null,
+        usageMeterId: null,
+        active: !currentPrice.active, // Changed - non-immutable field
+      }
+
+      // Call the router's updateProduct procedure with the modified price
+      await productsRouter.createCaller(ctx).update({
+        id: regularProductId,
+        product: {
+          id: regularProductId,
+          name: 'Updated Regular Product',
+          active: true,
+          default: false,
+        },
+        price: modifiedPrice,
+      })
+
+      // Verify no new price was inserted
+      const finalPrices = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectPrices(
+            { productId: regularProductId },
+            transaction
+          )
+        }
+      )
+      const finalPriceCount = finalPrices.length
+
+      expect(finalPriceCount).toBe(initialPriceCount)
     })
   })
 })

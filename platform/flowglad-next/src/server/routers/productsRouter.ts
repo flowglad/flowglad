@@ -13,6 +13,7 @@ import {
   validateDefaultPriceUpdate,
 } from '@/utils/defaultProductValidation'
 import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
+import { Price, priceImmutableFields } from '@/db/schema/prices'
 import {
   createProductTransaction,
   editProduct as editProductPricingModel,
@@ -65,6 +66,21 @@ export const productsRouteConfigs = {
 const singleProductOutputSchema = z.object({
   product: productsClientSelectSchema,
 })
+
+const isPriceChanged = (
+  newPrice: Price.ClientInsert,
+  currentPrice: Price.ClientRecord | undefined
+): boolean => {
+  if (!currentPrice) {
+    return true
+  }
+  // Compare all immutable/create-only fields
+  return priceImmutableFields.some((field) => {
+    const key = field as keyof Price.ClientInsert &
+      keyof Price.ClientRecord
+    return newPrice[key] !== currentPrice[key]
+  })
+}
 
 export const createProduct = protectedProcedure
   .meta(openApiMetas.POST)
@@ -163,8 +179,8 @@ export const updateProduct = protectedProcedure
             if (
               product.default &&
               existingPrices.length > 0 &&
-              existingPrices.some(
-                (price) => price.unitPrice !== input.price?.unitPrice
+              existingPrices.some((price) =>
+                isPriceChanged(input.price!, price)
               )
             ) {
               throw new TRPCError({
@@ -181,11 +197,7 @@ export const updateProduct = protectedProcedure
               const currentPrice = existingPrices.find(
                 (price) => price.active && price.isDefault
               )
-              if (
-                input.price.unitPrice !== currentPrice?.unitPrice ||
-                input.price.usageEventsPerUnit !==
-                  currentPrice?.usageEventsPerUnit
-              ) {
+              if (isPriceChanged(input.price, currentPrice)) {
                 await safelyInsertPrice(
                   {
                     ...input.price,
