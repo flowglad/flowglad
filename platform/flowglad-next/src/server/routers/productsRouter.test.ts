@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  setupOrg,
-  setupPricingModel,
-  setupProduct,
-  setupPrice,
-} from '@/../seedDatabase'
-import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
+import { setupOrg } from '@/../seedDatabase'
+import { PriceType, IntervalUnit } from '@/types'
 import {
   insertProduct,
   selectProductById,
@@ -20,7 +15,6 @@ import {
   validateProductCreation,
   validateDefaultProductUpdate,
 } from '@/utils/defaultProductValidation'
-import { TRPCError } from '@trpc/server'
 
 describe('productsRouter - Default Product Constraints', () => {
   let organizationId: string
@@ -43,6 +37,7 @@ describe('productsRouter - Default Product Constraints', () => {
             name: 'Test Pricing Model',
             isDefault: false, // Can't have multiple defaults per org
           },
+          defaultPlanIntervalUnit: IntervalUnit.Month, // Create a subscription price
         },
         {
           transaction,

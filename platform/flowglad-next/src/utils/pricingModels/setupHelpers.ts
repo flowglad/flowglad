@@ -141,61 +141,63 @@ export async function getPricingModelSetupData(
   // Transform products with prices (omit pricingModelId from product, productId from prices)
   const transformedProducts = productsWithPrices.map(
     ({ prices, ...product }) => {
-      const transformedPrices = prices.map((price) => {
-        // Base price fields common to all price types
-        const basePrice = {
-          name: price.name ?? undefined,
-          slug: price.slug ?? undefined,
-          unitPrice: price.unitPrice,
-          isDefault: price.isDefault,
-          active: price.active,
-        }
+      const transformedPrices = prices
+        .filter((price) => price.active && price.isDefault)
+        .map((price) => {
+          // Base price fields common to all price types
+          const basePrice = {
+            name: price.name ?? undefined,
+            slug: price.slug ?? undefined,
+            unitPrice: price.unitPrice,
+            isDefault: price.isDefault,
+            active: price.active,
+          }
 
-        if (price.type === PriceType.Usage) {
-          if (!price.usageMeterId) {
+          if (price.type === PriceType.Usage) {
+            if (!price.usageMeterId) {
+              throw new Error(
+                `Price ${price.id} is a Usage price but has no usageMeterId`
+              )
+            }
+            const usageMeterSlug = usageMeterIdToSlug.get(
+              price.usageMeterId
+            )
+            if (!usageMeterSlug) {
+              throw new Error(
+                `Usage meter with ID ${price.usageMeterId} not found`
+              )
+            }
+            return {
+              ...basePrice,
+              type: PriceType.Usage as const,
+              usageMeterSlug,
+              intervalCount: price.intervalCount!,
+              intervalUnit: price.intervalUnit!,
+              usageEventsPerUnit: price.usageEventsPerUnit!,
+              trialPeriodDays: null,
+            }
+          } else if (price.type === PriceType.Subscription) {
+            return {
+              ...basePrice,
+              type: PriceType.Subscription as const,
+              intervalCount: price.intervalCount!,
+              intervalUnit: price.intervalUnit!,
+              trialPeriodDays: price.trialPeriodDays ?? undefined,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            }
+          } else if (price.type === PriceType.SinglePayment) {
+            return {
+              ...basePrice,
+              type: PriceType.SinglePayment as const,
+              trialPeriodDays: price.trialPeriodDays ?? undefined,
+            }
+          } else {
             throw new Error(
-              `Price ${price.id} is a Usage price but has no usageMeterId`
+              `Unknown price type: ${(price as any).type}`
             )
           }
-          const usageMeterSlug = usageMeterIdToSlug.get(
-            price.usageMeterId
-          )
-          if (!usageMeterSlug) {
-            throw new Error(
-              `Usage meter with ID ${price.usageMeterId} not found`
-            )
-          }
-          return {
-            ...basePrice,
-            type: PriceType.Usage as const,
-            usageMeterSlug,
-            intervalCount: price.intervalCount!,
-            intervalUnit: price.intervalUnit!,
-            usageEventsPerUnit: price.usageEventsPerUnit!,
-            trialPeriodDays: null,
-          }
-        } else if (price.type === PriceType.Subscription) {
-          return {
-            ...basePrice,
-            type: PriceType.Subscription as const,
-            intervalCount: price.intervalCount!,
-            intervalUnit: price.intervalUnit!,
-            trialPeriodDays: price.trialPeriodDays ?? undefined,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
-          }
-        } else if (price.type === PriceType.SinglePayment) {
-          return {
-            ...basePrice,
-            type: PriceType.SinglePayment as const,
-            trialPeriodDays: price.trialPeriodDays ?? undefined,
-          }
-        } else {
-          throw new Error(
-            `Unknown price type: ${(price as any).type}`
-          )
-        }
-      })
+        })
 
       return {
         product: {

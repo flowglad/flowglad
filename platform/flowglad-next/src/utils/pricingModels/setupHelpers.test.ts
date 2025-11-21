@@ -114,12 +114,24 @@ describe('getPricingModelSetupData', () => {
               usageMeterId: null,
               usageEventsPerUnit: null,
             },
+          ],
+          features: ['basic-feature', 'api-credits'],
+        },
+        {
+          product: {
+            name: 'API Usage',
+            slug: 'api-usage',
+            description: 'Pay per API call',
+            default: false,
+            active: true,
+          },
+          prices: [
             {
               type: PriceType.Usage,
               name: 'Extra API Calls',
-              slug: 'pro-api-usage',
+              slug: 'api-usage-price',
               unitPrice: 10,
-              isDefault: false,
+              isDefault: true,
               active: true,
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
@@ -127,12 +139,24 @@ describe('getPricingModelSetupData', () => {
               usageEventsPerUnit: 100,
               trialPeriodDays: null,
             },
+          ],
+          features: [],
+        },
+        {
+          product: {
+            name: 'Storage Usage',
+            slug: 'storage-usage',
+            description: 'Pay per storage',
+            default: false,
+            active: true,
+          },
+          prices: [
             {
               type: PriceType.Usage,
               name: 'Storage Overages',
-              slug: 'pro-storage-usage',
+              slug: 'storage-usage-price',
               unitPrice: 5,
-              isDefault: false,
+              isDefault: true,
               active: true,
               intervalCount: 1,
               intervalUnit: IntervalUnit.Month,
@@ -141,7 +165,7 @@ describe('getPricingModelSetupData', () => {
               trialPeriodDays: null,
             },
           ],
-          features: ['basic-feature', 'api-credits'],
+          features: [],
         },
         {
           product: {
@@ -224,8 +248,8 @@ describe('getPricingModelSetupData', () => {
       expect(creditFeature.amount).toBe(1000)
     }
 
-    // Verify products (should include auto-generated default + our 3 products)
-    expect(fetchedData.products.length).toBeGreaterThanOrEqual(3)
+    // Verify products (should include auto-generated default + our 5 products)
+    expect(fetchedData.products.length).toBeGreaterThanOrEqual(5)
 
     const starterProduct = fetchedData.products.find(
       (p) => p.product.slug === 'starter'
@@ -253,36 +277,43 @@ describe('getPricingModelSetupData', () => {
       expect(starterPrice.usageEventsPerUnit).toBe(null)
     }
 
-    // Verify product with usage price
+    // Verify Pro product (now only has subscription price)
     const proProduct = fetchedData.products.find(
       (p) => p.product.slug === 'pro'
     )
     expect(proProduct).toBeDefined()
-    expect(proProduct?.prices).toHaveLength(3)
+    expect(proProduct?.prices).toHaveLength(1)
 
-    const usagePrices =
-      proProduct?.prices.filter((p) => p.type === PriceType.Usage) ??
-      []
-    expect(usagePrices).toHaveLength(2)
-
-    const apiUsagePrice = usagePrices.find(
-      (p) => p.slug === 'pro-api-usage'
+    // Verify API Usage product
+    const apiUsageProduct = fetchedData.products.find(
+      (p) => p.product.slug === 'api-usage'
     )
-    expect(apiUsagePrice).toBeDefined()
+    expect(apiUsageProduct).toBeDefined()
+    expect(apiUsageProduct?.prices).toHaveLength(1)
+    const apiUsagePrice = apiUsageProduct?.prices[0]
+    expect(apiUsagePrice?.type).toBe(PriceType.Usage)
     if (apiUsagePrice?.type === PriceType.Usage) {
       expect(apiUsagePrice.usageMeterSlug).toBe('api-calls')
       expect(apiUsagePrice.usageEventsPerUnit).toBe(100)
       expect(apiUsagePrice.trialPeriodDays).toBe(null)
+      expect(apiUsagePrice.isDefault).toBe(true)
+      expect(apiUsagePrice.active).toBe(true)
     }
 
-    const storageUsagePrice = usagePrices.find(
-      (p) => p.slug === 'pro-storage-usage'
+    // Verify Storage Usage product
+    const storageUsageProduct = fetchedData.products.find(
+      (p) => p.product.slug === 'storage-usage'
     )
-    expect(storageUsagePrice).toBeDefined()
+    expect(storageUsageProduct).toBeDefined()
+    expect(storageUsageProduct?.prices).toHaveLength(1)
+    const storageUsagePrice = storageUsageProduct?.prices[0]
+    expect(storageUsagePrice?.type).toBe(PriceType.Usage)
     if (storageUsagePrice?.type === PriceType.Usage) {
       expect(storageUsagePrice.usageMeterSlug).toBe('storage')
       expect(storageUsagePrice.usageEventsPerUnit).toBe(50)
       expect(storageUsagePrice.trialPeriodDays).toBe(null)
+      expect(storageUsagePrice.isDefault).toBe(true)
+      expect(storageUsagePrice.active).toBe(true)
     }
 
     // Verify single payment product
@@ -364,5 +395,94 @@ describe('getPricingModelSetupData', () => {
     expect(fetchedData.usageMeters).toHaveLength(0)
     expect(fetchedData.features).toHaveLength(0)
     expect(fetchedData.products.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('should only include active default prices in the output', async () => {
+    const input: SetupPricingModelInput = {
+      name: 'Filter Test Model',
+      isDefault: false,
+      usageMeters: [],
+      features: [],
+      products: [
+        {
+          product: {
+            name: 'Test Product',
+            slug: 'test-product',
+            default: false,
+            active: true,
+          },
+          prices: [
+            {
+              type: PriceType.Subscription,
+              slug: 'active-default-price',
+              name: 'Active Default Price',
+              unitPrice: 1000,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            },
+            {
+              type: PriceType.Subscription,
+              slug: 'inactive-non-default-price',
+              name: 'Inactive Non-Default Price',
+              unitPrice: 4000,
+              isDefault: false, // Non-default - should be excluded
+              active: false, // Inactive - should be excluded
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            },
+          ],
+          features: [],
+        },
+      ],
+    }
+
+    const setupResult = await adminTransaction(
+      async ({ transaction }) =>
+        setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
+    )
+
+    const fetchedData = await adminTransaction(
+      async ({ transaction }) =>
+        getPricingModelSetupData(
+          setupResult.pricingModel.id,
+          transaction
+        )
+    )
+
+    // Validate with schema
+    const parseResult = setupPricingModelSchema.safeParse(fetchedData)
+    expect(parseResult.success).toBe(true)
+
+    // Find the test product
+    const fetchedProduct = fetchedData.products.find(
+      (p) => p.product.slug === 'test-product'
+    )
+    expect(fetchedProduct).toBeDefined()
+
+    // Verify only the active default price is included
+    expect(fetchedProduct?.prices).toHaveLength(1)
+    expect(fetchedProduct?.prices[0]?.slug).toBe(
+      'active-default-price'
+    )
+    expect(fetchedProduct?.prices[0]?.isDefault).toBe(true)
+    expect(fetchedProduct?.prices[0]?.active).toBe(true)
+    expect(fetchedProduct?.prices[0]?.unitPrice).toBe(1000)
+
+    // Verify the excluded prices are not present
+    const priceSlugs = fetchedProduct?.prices.map((p) => p.slug) || []
+    expect(priceSlugs).not.toContain('inactive-non-default-price')
   })
 })
