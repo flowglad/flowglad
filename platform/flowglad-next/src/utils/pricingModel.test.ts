@@ -16,7 +16,7 @@ import {
   clonePricingModelTransaction,
   createPriceTransaction,
   createProductTransaction,
-  editProduct,
+  editProductTransaction,
 } from './pricingModel'
 import {
   IntervalUnit,
@@ -31,7 +31,11 @@ import {
   selectPricingModelById,
   selectPricingModels,
 } from '@/db/tableMethods/pricingModelMethods'
-import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import {
+  selectPricesAndProductsByProductWhere,
+  selectPrices,
+  selectPriceById,
+} from '@/db/tableMethods/priceMethods'
 import { Product } from '@/db/schema/products'
 import { Price } from '@/db/schema/prices'
 import { Organization } from '@/db/schema/organizations'
@@ -2649,15 +2653,27 @@ describe('createProductTransaction', () => {
   })
 })
 
-describe('editProduct', () => {
+describe('editProductTransaction - Feature Updates', () => {
   let organization: Organization.Record
   let product: Product.Record
   let features: Feature.Record[]
+  let userId: string
+  let apiKeyToken: string
 
   beforeEach(async () => {
     const orgSetup = await setupOrg()
     organization = orgSetup.organization
     product = orgSetup.product
+
+    const userApiKeyOrg = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    if (!userApiKeyOrg.apiKey.token) {
+      throw new Error('API key token not found after setup')
+    }
+    userId = userApiKeyOrg.user.id
+    apiKeyToken = userApiKeyOrg.apiKey.token
 
     const featureA = await setupToggleFeature({
       name: 'Feature A',
@@ -2682,15 +2698,18 @@ describe('editProduct', () => {
 
   it('should add features to a product', async () => {
     const featureIds = [features[0].id, features[1].id]
-    await adminTransaction(async ({ transaction }) => {
-      return editProduct(
-        {
-          product: { id: product.id, name: 'Updated Product' },
-          featureIds,
-        },
-        transaction
-      )
-    })
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return editProductTransaction(
+          {
+            product: { id: product.id, name: 'Updated Product' },
+            featureIds,
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
 
     const productFeatures = await adminTransaction(
       async ({ transaction }) => {
@@ -2709,26 +2728,32 @@ describe('editProduct', () => {
 
   it('should remove features from a product', async () => {
     // First, add features
-    await adminTransaction(async ({ transaction, livemode }) => {
-      await editProduct(
-        {
-          product: { id: product.id },
-          featureIds: [features[0].id, features[1].id],
-        },
-        transaction
-      )
-    })
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        await editProductTransaction(
+          {
+            product: { id: product.id },
+            featureIds: [features[0].id, features[1].id],
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
 
     // Then, remove one
-    await adminTransaction(async ({ transaction }) => {
-      await editProduct(
-        {
-          product: { id: product.id },
-          featureIds: [features[0].id],
-        },
-        transaction
-      )
-    })
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        await editProductTransaction(
+          {
+            product: { id: product.id },
+            featureIds: [features[0].id],
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
 
     const productFeatures = await adminTransaction(
       async ({ transaction }) => {
@@ -2750,25 +2775,31 @@ describe('editProduct', () => {
 
   it('should not change features if featureIds is not provided', async () => {
     // First, add features
-    await adminTransaction(async ({ transaction }) => {
-      await editProduct(
-        {
-          product: { id: product.id },
-          featureIds: [features[0].id, features[1].id],
-        },
-        transaction
-      )
-    })
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        await editProductTransaction(
+          {
+            product: { id: product.id },
+            featureIds: [features[0].id, features[1].id],
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
 
     // Then, edit product without featureIds
-    await adminTransaction(async ({ transaction }) => {
-      await editProduct(
-        {
-          product: { id: product.id, name: 'New Name' },
-        },
-        transaction
-      )
-    })
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        await editProductTransaction(
+          {
+            product: { id: product.id, name: 'New Name' },
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
 
     const productFeatures = await adminTransaction(
       async ({ transaction }) => {
@@ -2782,5 +2813,289 @@ describe('editProduct', () => {
     expect(
       productFeatures.filter((pf) => !pf.expiredAt)
     ).toHaveLength(2)
+  })
+})
+
+describe('editProductTransaction - Price Updates', () => {
+  let organizationId: string
+  let pricingModelId: string
+  let defaultProductId: string
+  let defaultPriceId: string
+  let regularProductId: string
+  let regularPriceId: string
+  let apiKeyToken: string
+  const livemode = true
+
+  beforeEach(async () => {
+    // Set up organization and pricing model with default product
+    const result = await setupOrg()
+
+    organizationId = result.organization.id
+    pricingModelId = result.pricingModel.id
+    defaultProductId = result.product.id
+    defaultPriceId = result.price.id
+
+    // Create a regular (non-default) product and price for testing
+    const regularSetup = await adminTransaction(
+      async ({ transaction }) => {
+        const product = await setupProduct({
+          organizationId,
+          livemode,
+          pricingModelId,
+          name: 'Regular Product',
+        })
+        const price = await setupPrice({
+          productId: product.id,
+          name: 'Regular Price',
+          livemode,
+          isDefault: true,
+          type: PriceType.Subscription,
+          unitPrice: 5000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+        })
+        return { product, price }
+      }
+    )
+
+    regularProductId = regularSetup.product.id
+    regularPriceId = regularSetup.price.id
+
+    // Set up API key for authenticated transaction
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    if (!apiKey.token) {
+      throw new Error('API key token not found')
+    }
+    apiKeyToken = apiKey.token
+  })
+
+  it('should throw error when attempting to change price immutable fields on default products', async () => {
+    const currentPrice = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPriceById(defaultPriceId, transaction)
+      }
+    )
+    if (!currentPrice) {
+      throw new Error('Default price not found')
+    }
+
+    // Create a modified price by changing immutable fields from the existing price
+    const modifiedPrice: Price.ClientInsert = {
+      productId: defaultProductId,
+      type: PriceType.Subscription,
+      unitPrice: currentPrice.unitPrice + 1000, // Increment unit price (immutable field)
+      intervalUnit:
+        currentPrice.intervalUnit === IntervalUnit.Month
+          ? IntervalUnit.Year
+          : IntervalUnit.Month, // Change interval unit (immutable field)
+      intervalCount: currentPrice.intervalCount ?? 1,
+      isDefault: currentPrice.isDefault,
+      name: currentPrice.name ?? undefined,
+      trialPeriodDays: currentPrice.trialPeriodDays ?? undefined,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      active: currentPrice.active,
+    }
+
+    await expect(
+      authenticatedTransaction(
+        async ({ userId, transaction, livemode, organizationId }) => {
+          return await editProductTransaction(
+            {
+              product: {
+                id: defaultProductId,
+                name: 'Updated Name',
+                active: true,
+                default: true,
+              },
+              price: modifiedPrice,
+            },
+            { userId, transaction, livemode, organizationId }
+          )
+        },
+        { apiKey: apiKeyToken }
+      )
+    ).rejects.toThrow(
+      'Cannot create additional prices for the default plan'
+    )
+  })
+
+  it('should allow updating allowed fields on default products', async () => {
+    const result = await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return await editProductTransaction(
+          {
+            product: {
+              id: defaultProductId,
+              name: 'Updated Base Plan Name',
+              description: 'Updated description',
+              active: true,
+              default: true,
+            },
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
+
+    expect(result).toBeDefined()
+    expect(result.name).toBe('Updated Base Plan Name')
+    expect(result.description).toBe('Updated description')
+    expect(result.default).toBe(true)
+  })
+
+  it('should insert new price record when price immutable fields are updated on non-default products', async () => {
+    // Get initial price count
+    const initialPrices = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPrices(
+          { productId: regularProductId },
+          transaction
+        )
+      }
+    )
+    const initialPriceCount = initialPrices.length
+
+    // Get the current default price
+    const currentPrice = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPriceById(regularPriceId, transaction)
+      }
+    )
+    if (!currentPrice) {
+      throw new Error('Regular price not found')
+    }
+
+    // Create a modified price with changed immutable fields
+    const modifiedPrice: Price.ClientInsert = {
+      productId: regularProductId,
+      type: PriceType.Subscription,
+      unitPrice: currentPrice.unitPrice + 2000, // Change immutable field
+      intervalUnit:
+        currentPrice.intervalUnit === IntervalUnit.Month
+          ? IntervalUnit.Year
+          : IntervalUnit.Month, // Change immutable field
+      intervalCount: currentPrice.intervalCount ?? 1,
+      isDefault: currentPrice.isDefault,
+      name: currentPrice.name ?? undefined,
+      trialPeriodDays: currentPrice.trialPeriodDays ?? undefined,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      active: currentPrice.active,
+    }
+
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return await editProductTransaction(
+          {
+            product: {
+              id: regularProductId,
+              name: 'Updated Regular Product',
+              active: true,
+              default: false,
+            },
+            price: modifiedPrice,
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
+
+    // Verify a new price was inserted
+    const finalPrices = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPrices(
+          { productId: regularProductId },
+          transaction
+        )
+      }
+    )
+    const finalPriceCount = finalPrices.length
+
+    expect(finalPriceCount).toBe(initialPriceCount + 1)
+    expect(
+      finalPrices.some((p) => p.unitPrice === modifiedPrice.unitPrice)
+    ).toBe(true)
+    expect(
+      finalPrices.some(
+        (p) => p.intervalUnit === modifiedPrice.intervalUnit
+      )
+    ).toBe(true)
+  })
+
+  it('should not insert new price record when non-immutable price fields are updated', async () => {
+    // Get initial price count
+    const initialPrices = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPrices(
+          { productId: regularProductId },
+          transaction
+        )
+      }
+    )
+    const initialPriceCount = initialPrices.length
+
+    // Get the current default price
+    const currentPrice = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPriceById(regularPriceId, transaction)
+      }
+    )
+
+    if (!currentPrice) {
+      throw new Error('Regular price not found')
+    }
+
+    // Create a modified price with only non-immutable fields changed
+    // (name, active, isDefault are not immutable)
+    const modifiedPrice: Price.ClientInsert = {
+      productId: regularProductId,
+      type: PriceType.Subscription,
+      unitPrice: currentPrice.unitPrice, // Same - immutable field unchanged
+      intervalUnit: currentPrice.intervalUnit ?? IntervalUnit.Month, // Same - immutable field unchanged
+      intervalCount: currentPrice.intervalCount ?? 1, // Same - immutable field unchanged
+      isDefault: currentPrice.isDefault,
+      name: 'Updated Price Name', // Changed - non-immutable field
+      trialPeriodDays: currentPrice.trialPeriodDays ?? null,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      active: !currentPrice.active, // Changed - non-immutable field
+    }
+
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return await editProductTransaction(
+          {
+            product: {
+              id: regularProductId,
+              name: 'Updated Regular Product',
+              active: true,
+              default: false,
+            },
+            price: modifiedPrice,
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
+
+    // Verify no new price was inserted
+    const finalPrices = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPrices(
+          { productId: regularProductId },
+          transaction
+        )
+      }
+    )
+    const finalPriceCount = finalPrices.length
+
+    expect(finalPriceCount).toBe(initialPriceCount)
   })
 })

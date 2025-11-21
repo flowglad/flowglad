@@ -1,22 +1,13 @@
 import { protectedProcedure, router } from '../trpc'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   selectProductsPaginated,
-  selectProductById,
   selectProductsCursorPaginated,
   selectProductPriceAndFeaturesByProductId,
 } from '@/db/tableMethods/productMethods'
-import { syncProductFeatures } from '@/db/tableMethods/productFeatureMethods'
-import {
-  validateProductCreation,
-  validateDefaultProductUpdate,
-  validateDefaultPriceUpdate,
-} from '@/utils/defaultProductValidation'
-import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
-import { Price, priceImmutableFields } from '@/db/schema/prices'
+import { validateProductCreation } from '@/utils/defaultProductValidation'
 import {
   createProductTransaction,
-  editProduct as editProductPricingModel,
+  editProductTransaction as editProductPricingModel,
 } from '@/utils/pricingModel'
 import { errorHandlers } from '../trpcErrorHandler'
 import { TRPCError } from '@trpc/server'
@@ -38,12 +29,6 @@ import {
   productsPaginatedListSchema,
   productsPaginatedSelectSchema,
 } from '@/db/schema/products'
-import {
-  safelyInsertPrice,
-  safelyUpdatePrice,
-  selectPrices,
-  selectPriceById,
-} from '@/db/tableMethods/priceMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
 import * as R from 'ramda'
 import {
@@ -66,21 +51,6 @@ export const productsRouteConfigs = {
 const singleProductOutputSchema = z.object({
   product: productsClientSelectSchema,
 })
-
-const isPriceChanged = (
-  newPrice: Price.ClientInsert,
-  currentPrice: Price.ClientRecord | undefined
-): boolean => {
-  if (!currentPrice) {
-    return true
-  }
-  // Compare all immutable/create-only fields
-  return priceImmutableFields.some((field) => {
-    const key = field as keyof Price.ClientInsert &
-      keyof Price.ClientRecord
-    return newPrice[key] !== currentPrice[key]
-  })
-}
 
 export const createProduct = protectedProcedure
   .meta(openApiMetas.POST)
@@ -134,82 +104,23 @@ export const updateProduct = protectedProcedure
   .output(singleProductOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ transaction, input, ctx }) => {
+      async ({
+        transaction,
+        input,
+        livemode,
+        organizationId,
+        userId,
+      }) => {
         try {
-          const { product, featureIds } = input
-
-          // Fetch the existing product to check if it's a default product
-          const existingProduct = await selectProductById(
-            product.id,
-            transaction
-          )
-          if (!existingProduct) {
-            throw new Error('Product not found')
-          }
-
-          // If default product, always force active=true on edit to auto-correct bad states
-          const enforcedProduct = existingProduct.default
-            ? { ...product, active: true }
-            : product
-
-          // Validate that default products can only have certain fields updated
-          validateDefaultProductUpdate(
-            enforcedProduct,
-            existingProduct
-          )
-
           const updatedProduct = await editProductPricingModel(
-            { product: enforcedProduct, featureIds },
-            transaction
+            {
+              product: input.product,
+              featureIds: input.featureIds,
+              price: input.price,
+            },
+            { transaction, livemode, organizationId, userId }
           )
 
-          if (!updatedProduct) {
-            errorHandlers.product.handle(
-              new Error('Product not found or update failed'),
-              { operation: 'update', id: product.id }
-            )
-          }
-
-          if (input.price) {
-            // Forbid creating additional prices for default products
-            const existingPrices = await selectPrices(
-              { productId: product.id },
-              transaction
-            )
-            if (
-              product.default &&
-              existingPrices.length > 0 &&
-              existingPrices.some((price) =>
-                isPriceChanged(input.price!, price)
-              )
-            ) {
-              throw new TRPCError({
-                code: 'FORBIDDEN',
-                message:
-                  'Cannot create additional prices for the default plan',
-              })
-            }
-            const organization = await selectOrganizationById(
-              ctx.organizationId!,
-              transaction
-            )
-            if (!product.default) {
-              const currentPrice = existingPrices.find(
-                (price) => price.active && price.isDefault
-              )
-              if (isPriceChanged(input.price, currentPrice)) {
-                await safelyInsertPrice(
-                  {
-                    ...input.price,
-                    livemode: ctx.livemode,
-                    currency: organization.defaultCurrency,
-                    externalId: null,
-                  },
-                  transaction
-                )
-              }
-            }
-          }
           return {
             product: updatedProduct,
           }
