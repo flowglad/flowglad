@@ -202,7 +202,7 @@ const getSubscriptionProcedure = protectedProcedure
     )
   })
 
-const createSubscriptionInputSchema = z
+export const createSubscriptionInputSchema = z
   .object({
     customerId: z
       .string()
@@ -309,15 +309,19 @@ const createSubscriptionProcedure = protectedProcedure
         // Resolve customer ID from either customerId or customerExternalId
         let customer
         if (input.customerId) {
-          customer = await selectCustomerById(input.customerId, transaction)
-        } else if (input.customerExternalId) {
-          customer = await selectCustomerByExternalIdAndOrganizationId(
-            {
-              externalId: input.customerExternalId,
-              organizationId: ctx.organization.id,
-            },
+          customer = await selectCustomerById(
+            input.customerId,
             transaction
           )
+        } else if (input.customerExternalId) {
+          customer =
+            await selectCustomerByExternalIdAndOrganizationId(
+              {
+                externalId: input.customerExternalId,
+                organizationId: ctx.organization.id,
+              },
+              transaction
+            )
           if (!customer) {
             throw new TRPCError({
               code: 'NOT_FOUND',

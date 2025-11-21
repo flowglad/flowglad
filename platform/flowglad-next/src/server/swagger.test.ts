@@ -1,4 +1,4 @@
-import { expect, describe, it } from 'vitest'
+import { expect, describe, it, beforeEach } from 'vitest'
 import { createFlowgladOpenApiDocument } from './swagger'
 import type { OpenAPIV3Document } from './swagger'
 
@@ -908,9 +908,7 @@ describe('Swagger Configuration', () => {
 
   // Type guards for OpenAPI types
   // ReferenceObject has $ref, RequestBodyObject has content
-  function isRequestBodyObject(
-    requestBody: unknown
-  ): requestBody is {
+  function isRequestBodyObject(requestBody: unknown): requestBody is {
     content: Record<string, { schema?: unknown }>
   } {
     return (
@@ -944,18 +942,25 @@ describe('Swagger Configuration', () => {
   describe('OpenAPI Spec - Customer External ID Support', () => {
     describe('POST /subscriptions', () => {
       const basePath = '/api/v1/subscriptions'
-      const subscriptionEndpoint = paths?.[basePath]?.post
-      const requestBody = subscriptionEndpoint?.requestBody
-      const rawSchema = isRequestBodyObject(requestBody)
-        ? requestBody.content?.['application/json']?.schema
-        : undefined
-      // Type guard to narrow from SchemaObject | ReferenceObject to SchemaObject
-      const schemaObject =
-        rawSchema && isSchemaObject(rawSchema) ? rawSchema : undefined
+      let schemaObject: SchemaObjectWithProperties | undefined
 
-      it('should include customerId as optional with description', () => {
+      beforeEach(() => {
+        const subscriptionEndpoint = paths?.[basePath]?.post
+        const requestBody = subscriptionEndpoint?.requestBody
+        const rawSchema = isRequestBodyObject(requestBody)
+          ? requestBody.content?.['application/json']?.schema
+          : undefined
+        // Type guard to narrow from SchemaObject | ReferenceObject to SchemaObject
+        schemaObject =
+          rawSchema && isSchemaObject(rawSchema)
+            ? rawSchema
+            : undefined
+
         expect(schemaObject).toBeDefined()
         expect(schemaObject?.properties).toBeDefined()
+      })
+
+      it('should include customerId as optional with description', () => {
         expect(schemaObject?.properties?.customerId).toBeDefined()
 
         // Verify it's not in required array (it's optional)
@@ -974,8 +979,6 @@ describe('Swagger Configuration', () => {
       })
 
       it('should include customerExternalId as optional with description', () => {
-        expect(schemaObject).toBeDefined()
-        expect(schemaObject?.properties).toBeDefined()
         expect(
           schemaObject?.properties?.customerExternalId
         ).toBeDefined()
@@ -997,9 +1000,6 @@ describe('Swagger Configuration', () => {
       })
 
       it('should have descriptions explaining mutual exclusivity', () => {
-        expect(schemaObject).toBeDefined()
-        expect(schemaObject?.properties).toBeDefined()
-
         const customerIdDesc =
           schemaObject?.properties?.customerId?.description || ''
         const customerExternalIdDesc =
