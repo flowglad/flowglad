@@ -1,4 +1,4 @@
-import { expect, describe, it } from 'vitest'
+import { expect, describe, it, beforeEach } from 'vitest'
 import { createFlowgladOpenApiDocument } from './swagger'
 import type { OpenAPIV3Document } from './swagger'
 
@@ -903,6 +903,119 @@ describe('Swagger Configuration', () => {
           )
         }
       )
+    })
+  })
+
+  // Type guards for OpenAPI types
+  // ReferenceObject has $ref, RequestBodyObject has content
+  function isRequestBodyObject(requestBody: unknown): requestBody is {
+    content: Record<string, { schema?: unknown }>
+  } {
+    return (
+      requestBody !== null &&
+      typeof requestBody === 'object' &&
+      'content' in requestBody &&
+      !('$ref' in requestBody)
+    )
+  }
+
+  // ReferenceObject has $ref, SchemaObject has properties
+  // This type guard narrows from SchemaObject | ReferenceObject to just SchemaObject
+  type SchemaObjectWithProperties = {
+    properties?: Record<
+      string,
+      { description?: string; type?: string }
+    >
+    required?: string[]
+  }
+  function isSchemaObject(
+    schema: unknown
+  ): schema is SchemaObjectWithProperties {
+    return (
+      schema !== null &&
+      typeof schema === 'object' &&
+      'properties' in schema &&
+      !('$ref' in schema)
+    )
+  }
+
+  describe('OpenAPI Spec - Customer External ID Support', () => {
+    describe('POST /subscriptions', () => {
+      const basePath = '/api/v1/subscriptions'
+      let schemaObject: SchemaObjectWithProperties | undefined
+
+      beforeEach(() => {
+        const subscriptionEndpoint = paths?.[basePath]?.post
+        const requestBody = subscriptionEndpoint?.requestBody
+        const rawSchema = isRequestBodyObject(requestBody)
+          ? requestBody.content?.['application/json']?.schema
+          : undefined
+        // Type guard to narrow from SchemaObject | ReferenceObject to SchemaObject
+        schemaObject =
+          rawSchema && isSchemaObject(rawSchema)
+            ? rawSchema
+            : undefined
+
+        expect(schemaObject).toBeDefined()
+        expect(schemaObject?.properties).toBeDefined()
+      })
+
+      it('should include customerId as optional with description', () => {
+        expect(schemaObject?.properties?.customerId).toBeDefined()
+
+        // Verify it's not in required array (it's optional)
+        const required = schemaObject?.required || []
+        expect(required).not.toContain('customerId')
+
+        // Verify it has a description explaining mutual exclusivity
+        const customerIdDesc =
+          schemaObject?.properties?.customerId?.description || ''
+        expect(customerIdDesc).toContain('internal ID')
+        expect(customerIdDesc).toContain('customerExternalId')
+        // Verify exact phrase from implementation
+        expect(customerIdDesc).toContain(
+          'If not provided, customerExternalId is required'
+        )
+      })
+
+      it('should include customerExternalId as optional with description', () => {
+        expect(
+          schemaObject?.properties?.customerExternalId
+        ).toBeDefined()
+
+        // Verify it's not in required array (it's optional)
+        const required = schemaObject?.required || []
+        expect(required).not.toContain('customerExternalId')
+
+        // Verify it has a description explaining mutual exclusivity
+        const customerExternalIdDesc =
+          schemaObject?.properties?.customerExternalId?.description ||
+          ''
+        expect(customerExternalIdDesc).toContain('external ID')
+        expect(customerExternalIdDesc).toContain('customerId')
+        // Verify exact phrase from implementation
+        expect(customerExternalIdDesc).toContain(
+          'If not provided, customerId is required'
+        )
+      })
+
+      it('should have descriptions explaining mutual exclusivity', () => {
+        const customerIdDesc =
+          schemaObject?.properties?.customerId?.description || ''
+        const customerExternalIdDesc =
+          schemaObject?.properties?.customerExternalId?.description ||
+          ''
+
+        // Both descriptions should mention the other field with exact phrases
+        expect(customerIdDesc).toContain('required')
+        expect(customerIdDesc).toContain(
+          'If not provided, customerExternalId is required'
+        )
+        expect(customerExternalIdDesc).toContain('required')
+        expect(customerExternalIdDesc).toContain(
+          'If not provided, customerId is required'
+        )
+      })
     })
   })
 })

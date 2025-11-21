@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { subscriptionsRouteConfigs } from './subscriptionsRouter'
+import {
+  subscriptionsRouteConfigs,
+  createSubscriptionInputSchema,
+} from './subscriptionsRouter'
 import {
   findRouteConfigInArray,
   getAllRouteKeysFromArray,
-  findRouteConfigInObject,
-  getAllRouteKeysFromObject,
   validateRouteConfigStructure,
-  validateStandardCrudMappings,
 } from './routeConfigs.test-utils'
 
 describe('subscriptionsRouteConfigs', () => {
@@ -36,6 +36,24 @@ describe('subscriptionsRouteConfigs', () => {
       }
       const result = routeConfig!.mapParams([], testBody)
       expect(result).toEqual(testBody)
+    })
+
+    it('should accept customerExternalId in POST /subscriptions request body', () => {
+      const routeConfig = findRouteConfig('POST /subscriptions')
+
+      expect(routeConfig).toBeDefined()
+
+      // Test with customerExternalId instead of customerId
+      const testBodyWithExternalId = {
+        customerExternalId: 'ext-cus-123',
+        priceId: 'price-456',
+        quantity: 1,
+      }
+      const result = routeConfig!.mapParams(
+        [],
+        testBodyWithExternalId
+      )
+      expect(result).toEqual(testBodyWithExternalId)
     })
 
     it('should map PUT /subscriptions/:id to subscriptions.update procedure', () => {
@@ -553,6 +571,54 @@ describe('subscriptionsRouteConfigs', () => {
 
       baseRoutes.forEach((route) => {
         expect(routeKeys).toContain(route)
+      })
+    })
+  })
+
+  describe('createSubscriptionInputSchema validation', () => {
+    const baseValidInput = {
+      priceId: 'price-123',
+    }
+
+    describe('valid inputs', () => {
+      it('should accept customerId only', () => {
+        const result = createSubscriptionInputSchema.parse({
+          ...baseValidInput,
+          customerId: 'cus-123',
+        })
+        expect(result.customerId).toBe('cus-123')
+        expect(result.customerExternalId).toBeUndefined()
+      })
+
+      it('should accept customerExternalId only', () => {
+        const result = createSubscriptionInputSchema.parse({
+          ...baseValidInput,
+          customerExternalId: 'ext-cus-123',
+        })
+        expect(result.customerExternalId).toBe('ext-cus-123')
+        expect(result.customerId).toBeUndefined()
+      })
+    })
+
+    describe('invalid inputs - mutual exclusivity', () => {
+      it('should reject when both customerId and customerExternalId are provided', () => {
+        expect(() => {
+          createSubscriptionInputSchema.parse({
+            ...baseValidInput,
+            customerId: 'cus-123',
+            customerExternalId: 'ext-cus-123',
+          })
+        }).toThrow(
+          'Either customerId or customerExternalId must be provided, but not both'
+        )
+      })
+
+      it('should reject when neither customerId nor customerExternalId is provided', () => {
+        expect(() => {
+          createSubscriptionInputSchema.parse({
+            ...baseValidInput,
+          })
+        }).toThrow()
       })
     })
   })

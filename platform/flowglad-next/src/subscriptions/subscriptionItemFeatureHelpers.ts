@@ -411,10 +411,12 @@ export const addFeatureToSubscriptionItem = async (
     subscriptionItem.priceId,
     transaction
   )
+
   const product = await selectProductById(
     price.productId,
     transaction
   )
+
   ensureFeatureBelongsToProductPricingModel({ product, feature })
 
   if (

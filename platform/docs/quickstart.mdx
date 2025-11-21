@@ -87,6 +87,19 @@ export const flowgladServer = new FlowgladServer({
 ```
 
 
+```ts Better Auth
+import { auth } from '@/lib/auth'; // your Better Auth instance in auth.ts
+import { headers } from 'next/headers';
+import { FlowgladServer } from '@flowglad/nextjs/server';
+
+export const flowgladServer = new FlowgladServer({
+  betterAuth: {
+    getSession: async () => auth.api.getSession({ headers: await headers() }),
+  },
+});
+```
+
+
 ```ts Custom Auth
 import { FlowgladServer } from '@flowglad/nextjs/server'
 // or whatever function you use to retrieve your session
