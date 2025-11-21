@@ -272,7 +272,8 @@ export const editProductTransaction = async (
   }
 
   // If default product, always force active=true on edit to auto-correct bad states
-  const enforcedProduct = existingProduct.default
+  const isDefaultProduct = existingProduct.default
+  const enforcedProduct = isDefaultProduct
     ? { ...product, active: true }
     : product
 
@@ -305,7 +306,7 @@ export const editProductTransaction = async (
       transaction
     )
     if (
-      product.default &&
+      isDefaultProduct &&
       existingPrices.length > 0 &&
       existingPrices.some((existingPrice) =>
         isPriceChanged(price, existingPrice)
@@ -319,7 +320,7 @@ export const editProductTransaction = async (
       organizationId,
       transaction
     )
-    if (!product.default) {
+    if (!isDefaultProduct) {
       const currentPrice = existingPrices.find(
         (p) => p.active && p.isDefault
       )
