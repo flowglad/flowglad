@@ -10,6 +10,7 @@ import {
   getOpenAIClient,
 } from '@/utils/turbopuffer'
 import { fetchMarkdownFromDocs } from '@/utils/textContent'
+import { logger } from '@/utils/logger'
 
 /**
  * Markdown files are imported dynamically to avoid parse-time errors when
@@ -139,6 +140,11 @@ const synthesizeIntegrationQuestions = async ({
   codebaseContext: string
   pricingModelYaml: string
 }): Promise<string[]> => {
+  // Early return if codebaseContext is empty or only whitespace
+  if (!codebaseContext || codebaseContext.trim() === '') {
+    return []
+  }
+
   const schema = z.object({
     questions: z
       .array(z.string())
@@ -516,7 +522,20 @@ export const constructIntegrationGuideStream = async function* ({
     codebaseContext,
     pricingModelYaml,
   })
-  const contextualDocs = await getContextualDocs({ questions })
+  let contextualDocs = ''
+  try {
+    contextualDocs = await getContextualDocs({ questions })
+  } catch (error) {
+    logger.debug(
+      'Failed to fetch contextual docs, falling back to empty string',
+      {
+        error: error instanceof Error ? error.message : String(error),
+        error_name:
+          error instanceof Error ? error.name : 'UnknownError',
+      }
+    )
+    contextualDocs = ''
+  }
   // If codebaseContext is provided, use AI to synthesize the guide with streaming
   // Otherwise, yield the template as-is (backward compatibility)
   if (codebaseContext) {
