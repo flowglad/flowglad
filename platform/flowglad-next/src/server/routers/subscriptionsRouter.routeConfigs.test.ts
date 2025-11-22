@@ -59,7 +59,7 @@ describe('subscriptionsRouteConfigs', () => {
     it('should accept priceSlug in POST /subscriptions request body', () => {
       const routeConfig = findRouteConfig('POST /subscriptions')
 
-      expect(routeConfig).toBeDefined()
+      expect(routeConfig?.procedure).toBe('subscriptions.create')
 
       // Test with priceSlug instead of priceId
       const testBodyWithPriceSlug = {

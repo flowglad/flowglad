@@ -327,6 +327,7 @@ export const selectPriceProductAndOrganizationByPriceWhere = async (
  * @param params - Object containing slug and customerId
  * @param transaction - Database transaction
  * @returns The price client record if found, null otherwise
+ * @throws {Error} If the customer's pricing model cannot be found (e.g., no default pricing model exists for the organization)
  */
 export const selectPriceBySlugAndCustomerId = async (
   params: { slug: string; customerId: string },

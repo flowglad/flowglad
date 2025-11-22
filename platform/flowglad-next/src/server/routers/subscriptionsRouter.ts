@@ -250,7 +250,7 @@ export const createSubscriptionInputSchema = z
       .optional()
       .describe(
         'The interval of the subscription. If not provided, defaults to the interval of the price provided by ' +
-          '`priceId`.'
+          '`priceId` or `priceSlug`.'
       ),
     intervalCount: z
       .number()
@@ -270,7 +270,7 @@ export const createSubscriptionInputSchema = z
       .optional()
       .describe(
         `The name of the subscription. If not provided, defaults ` +
-          `to the name of the product associated with the price provided by 'priceId'.`
+          `to the name of the product associated with the price provided by 'priceId' or 'priceSlug'.`
       ),
     defaultPaymentMethodId: z
       .string()

@@ -961,8 +961,6 @@ describe('Swagger Configuration', () => {
       })
 
       it('should include customerId as optional with description', () => {
-        expect(schemaObject?.properties?.customerId).toBeDefined()
-
         // Verify it's not in required array (it's optional)
         const required = schemaObject?.required || []
         expect(required).not.toContain('customerId')
@@ -976,10 +974,6 @@ describe('Swagger Configuration', () => {
       })
 
       it('should include customerExternalId as optional with description', () => {
-        expect(
-          schemaObject?.properties?.customerExternalId
-        ).toBeDefined()
-
         // Verify it's not in required array (it's optional)
         const required = schemaObject?.required || []
         expect(required).not.toContain('customerExternalId')
@@ -1012,13 +1006,10 @@ describe('Swagger Configuration', () => {
             ? rawSchema
             : undefined
 
-        expect(schemaObject).toBeDefined()
         expect(schemaObject?.properties).toBeDefined()
       })
 
       it('should include priceId as optional with description', () => {
-        expect(schemaObject?.properties?.priceId).toBeDefined()
-
         // Verify it's not in required array (it's optional)
         const required = schemaObject?.required || []
         expect(required).not.toContain('priceId')
@@ -1032,8 +1023,6 @@ describe('Swagger Configuration', () => {
       })
 
       it('should include priceSlug as optional with description', () => {
-        expect(schemaObject?.properties?.priceSlug).toBeDefined()
-
         // Verify it's not in required array (it's optional)
         const required = schemaObject?.required || []
         expect(required).not.toContain('priceSlug')
