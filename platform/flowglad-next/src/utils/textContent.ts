@@ -172,3 +172,30 @@ export const getPricingModelIntegrationMarkdown = async ({
     key,
   })
 }
+
+export const fetchMarkdownFromDocs = async (
+  path: string
+): Promise<string | null> => {
+  // Convert .mdx to .md for the URL
+  const urlPath = path.endsWith('.mdx')
+    ? path.slice(0, -1) // Remove 'x' from .mdx to make it .md
+    : path
+
+  const url = `https://docs.flowglad.com/${urlPath}`
+
+  try {
+    const response = await fetch(url)
+    if (response.ok) {
+      return await response.text()
+    } else {
+      console.warn(
+        `Could not fetch markdown file from ${url}: ${response.status} ${response.statusText}`
+      )
+      return null
+    }
+  } catch (error) {
+    // File might not exist or there was a network error
+    console.warn(`Could not fetch markdown file from ${url}:`, error)
+    return null
+  }
+}
