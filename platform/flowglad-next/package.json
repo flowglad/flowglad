@@ -113,6 +113,7 @@
     "@trpc/client": "11.5.0",
     "@trpc/react-query": "11.5.0",
     "@trpc/server": "11.5.0",
+    "@turbopuffer/turbopuffer": "^1.7.0",
     "@unkey/api": "^0.31.0",
     "@unkey/nextjs": "^0.18.5",
     "@upstash/redis": "^1.35.3",
