@@ -3,6 +3,7 @@
 // will include client modules in server code
 export { createAppRouterRouteHandler } from './createAppRouterRouteHandler'
 export { createPagesRouterRouteHandler } from './createPagesRouterRouteHandler'
+export { nextRouteHandler } from './nextRouteHandler'
 export {
   FlowgladServer,
   FlowgladServerAdmin,
@@ -13,6 +14,7 @@ export {
   type RequestHandlerOptions,
   type RequestHandlerInput,
   type RequestHandlerOutput,
+  type NextRouteHandlerOptions,
 } from '@flowglad/server'
 
 export {
