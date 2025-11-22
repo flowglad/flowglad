@@ -680,7 +680,9 @@ describe('subscriptionsRouteConfigs', () => {
             createSubscriptionInputSchema.parse({
               ...baseValidInputWithCustomer,
             })
-          }).toThrow()
+          }).toThrow(
+            'Either priceId or priceSlug must be provided, but not both'
+          )
         })
       })
     })

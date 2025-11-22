@@ -1,6 +1,10 @@
 import { expect, describe, it, beforeEach } from 'vitest'
 import { createFlowgladOpenApiDocument } from './swagger'
 import type { OpenAPIV3Document } from './swagger'
+import {
+  PRICE_ID_DESCRIPTION,
+  PRICE_SLUG_DESCRIPTION,
+} from '@/db/schema/prices'
 
 describe('Swagger Configuration', () => {
   const openApiDoc: OpenAPIV3Document =
@@ -1017,9 +1021,7 @@ describe('Swagger Configuration', () => {
         // Verify exact description from implementation
         const priceIdDesc =
           schemaObject?.properties?.priceId?.description || ''
-        expect(priceIdDesc).toBe(
-          'The id of the price to subscribe to. If not provided, priceSlug is required. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals.'
-        )
+        expect(priceIdDesc).toBe(PRICE_ID_DESCRIPTION)
       })
 
       it('should include priceSlug as optional with description', () => {
@@ -1030,9 +1032,7 @@ describe('Swagger Configuration', () => {
         // Verify exact description from implementation
         const priceSlugDesc =
           schemaObject?.properties?.priceSlug?.description || ''
-        expect(priceSlugDesc).toBe(
-          "The slug of the price to subscribe to. If not provided, priceId is required. Price slugs are scoped to the customer's pricing model. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals."
-        )
+        expect(priceSlugDesc).toBe(PRICE_SLUG_DESCRIPTION)
       })
     })
   })

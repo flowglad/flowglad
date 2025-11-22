@@ -50,6 +50,10 @@ import {
   selectPriceProductAndOrganizationByPriceWhere,
   selectPriceBySlugAndCustomerId,
 } from '@/db/tableMethods/priceMethods'
+import {
+  PRICE_ID_DESCRIPTION,
+  PRICE_SLUG_DESCRIPTION,
+} from '@/db/schema/prices'
 import { TRPCError } from '@trpc/server'
 import {
   selectPaymentMethodById,
@@ -219,20 +223,8 @@ export const createSubscriptionInputSchema = z
       .describe(
         'The external ID of the customer. If not provided, customerId is required.'
       ),
-    priceId: z
-      .string()
-      .optional()
-      .describe(
-        `The id of the price to subscribe to. If not provided, priceSlug is required. Used to determine whether the subscription is ` +
-          `usage-based or not, and set other defaults such as trial period and billing intervals.`
-      ),
-    priceSlug: z
-      .string()
-      .optional()
-      .describe(
-        `The slug of the price to subscribe to. If not provided, priceId is required. Price slugs are scoped to the customer's pricing model. Used to determine whether the subscription is ` +
-          `usage-based or not, and set other defaults such as trial period and billing intervals.`
-      ),
+    priceId: z.string().optional().describe(PRICE_ID_DESCRIPTION),
+    priceSlug: z.string().optional().describe(PRICE_SLUG_DESCRIPTION),
     quantity: z
       .number()
       .optional()
