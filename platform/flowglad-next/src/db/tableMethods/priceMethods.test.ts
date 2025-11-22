@@ -1247,5 +1247,59 @@ describe('priceMethods.ts', () => {
         expect(defaultResult).toBeNull()
       })
     })
+
+    it('should return active price when both active and inactive prices exist with same slug', async () => {
+      // NOTE: Database constraints prevent multiple ACTIVE prices with same slug,
+      await adminTransaction(async ({ transaction }) => {
+        const slug = 'shared-slug'
+
+        // Deactivate the original price (created in beforeEach)
+        await updatePrice(
+          {
+            id: price.id,
+            active: false,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+
+        // Create a second product
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          livemode: true,
+          pricingModelId: pricingModelId,
+        })
+
+        // Create an active price with the same slug on the second product
+        // This is allowed because the original price is now inactive
+        const activePrice = await setupPrice({
+          productId: secondProduct.id,
+          name: 'Active Price',
+          type: PriceType.Subscription,
+          unitPrice: 1500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+          trialPeriodDays: 0,
+          currency: CurrencyCode.USD,
+          slug: slug,
+        })
+
+        // Should return the active price, not the inactive one
+        const result = await selectPriceBySlugAndCustomerId(
+          {
+            slug: slug,
+            customerId: customer.id,
+          },
+          transaction
+        )
+
+        expect(result).not.toBeNull()
+        expect(result?.id).toBe(activePrice.id)
+        expect(result?.active).toBe(true)
+      })
+    })
   })
 })
