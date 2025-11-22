@@ -252,6 +252,13 @@ const PRICES_INSERT_SCHEMA_DESCRIPTION =
 const PRICES_UPDATE_SCHEMA_DESCRIPTION =
   'A price record, which describes a price for a product. Products can have multiple prices.'
 
+// Description constants for subscription creation input schema
+export const PRICE_ID_DESCRIPTION =
+  'The id of the price to subscribe to. If not provided, priceSlug is required. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals.'
+
+export const PRICE_SLUG_DESCRIPTION =
+  "The slug of the price to subscribe to. If not provided, priceId is required. Price slugs are scoped to the customer's pricing model. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals."
+
 // subtype schemas are built via buildSchemas below
 
 // ---------- buildSchemas subtypes (Subscription / SinglePayment / Usage) ----------

@@ -46,7 +46,14 @@ import {
   selectCustomerById,
   selectCustomerByExternalIdAndOrganizationId,
 } from '@/db/tableMethods/customerMethods'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import {
+  selectPriceProductAndOrganizationByPriceWhere,
+  selectPriceBySlugAndCustomerId,
+} from '@/db/tableMethods/priceMethods'
+import {
+  PRICE_ID_DESCRIPTION,
+  PRICE_SLUG_DESCRIPTION,
+} from '@/db/schema/prices'
 import { TRPCError } from '@trpc/server'
 import {
   selectPaymentMethodById,
@@ -216,12 +223,8 @@ export const createSubscriptionInputSchema = z
       .describe(
         'The external ID of the customer. If not provided, customerId is required.'
       ),
-    priceId: z
-      .string()
-      .describe(
-        `The price to subscribe to. Used to determine whether the subscription is ` +
-          `usage-based or not, and set other defaults such as trial period and billing intervals.`
-      ),
+    priceId: z.string().optional().describe(PRICE_ID_DESCRIPTION),
+    priceSlug: z.string().optional().describe(PRICE_SLUG_DESCRIPTION),
     quantity: z
       .number()
       .optional()
@@ -239,7 +242,7 @@ export const createSubscriptionInputSchema = z
       .optional()
       .describe(
         'The interval of the subscription. If not provided, defaults to the interval of the price provided by ' +
-          '`priceId`.'
+          '`priceId` or `priceSlug`.'
       ),
     intervalCount: z
       .number()
@@ -259,7 +262,7 @@ export const createSubscriptionInputSchema = z
       .optional()
       .describe(
         `The name of the subscription. If not provided, defaults ` +
-          `to the name of the product associated with the price provided by 'priceId'.`
+          `to the name of the product associated with the price provided by 'priceId' or 'priceSlug'.`
       ),
     defaultPaymentMethodId: z
       .string()
@@ -289,6 +292,14 @@ export const createSubscriptionInputSchema = z
       message:
         'Either customerId or customerExternalId must be provided, but not both',
       path: ['customerId'],
+    }
+  )
+  .refine(
+    (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
+    {
+      message:
+        'Either priceId or priceSlug must be provided, but not both',
+      path: ['priceId'],
     }
   )
 
@@ -335,17 +346,44 @@ const createSubscriptionProcedure = protectedProcedure
               'Either customerId or customerExternalId must be provided',
           })
         }
+
+        // Resolve price ID from either priceId or priceSlug
+        let resolvedPriceId: string
+        if (input.priceId) {
+          resolvedPriceId = input.priceId
+        } else if (input.priceSlug) {
+          const price = await selectPriceBySlugAndCustomerId(
+            {
+              slug: input.priceSlug,
+              customerId: customer.id,
+            },
+            transaction
+          )
+          if (!price) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Price with slug "${input.priceSlug}" not found for this customer's pricing model`,
+            })
+          }
+          resolvedPriceId = price.id
+        } else {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Either priceId or priceSlug must be provided',
+          })
+        }
+
         const priceResult =
           await selectPriceProductAndOrganizationByPriceWhere(
             {
-              id: input.priceId,
+              id: resolvedPriceId,
             },
             transaction
           )
         if (priceResult.length === 0) {
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: `Price ${input.priceId} not found`,
+            message: `Price with id "${resolvedPriceId}" not found`,
           })
         }
         const { price, product, organization } = priceResult[0]
@@ -364,7 +402,7 @@ const createSubscriptionProcedure = protectedProcedure
         if (price.type === PriceType.SinglePayment) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message: `Price ${input.priceId} is a single payment price and cannot be used to create a subscription.`,
+            message: `Price ${resolvedPriceId} is a single payment price and cannot be used to create a subscription.`,
           })
         }
         const startDate = input.startDate ?? new Date()

@@ -5,7 +5,6 @@ import {
   pricesSelectSchema,
   pricesUpdateSchema,
   ProductWithPrices,
-  pricesTableRowDataSchema,
   pricesClientSelectSchema,
 } from '@/db/schema/prices'
 import {
@@ -45,6 +44,8 @@ import {
   featuresSelectSchema,
 } from '../schema/features'
 import { productFeatures } from '../schema/productFeatures'
+import { selectPricingModelForCustomer } from './pricingModelMethods'
+import { selectCustomerById } from './customerMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -313,6 +314,50 @@ export const selectPriceProductAndOrganizationByPriceWhere = async (
       result.organization
     ),
   }))
+}
+
+/**
+ * Selects a price by slug for a given customer.
+ * Price slugs are scoped to the customer's pricing model (customer.pricingModelId or default pricing model).
+ *
+ * Returns Price.ClientRecord (not Price.Record) because it uses data from selectPricingModelForCustomer
+ * which returns client records. The client record has all business logic fields but omits metadata fields
+ * (externalId, position, createdByCommit, updatedByCommit).
+ *
+ * @param params - Object containing slug and customerId
+ * @param transaction - Database transaction
+ * @returns The price client record if found, null otherwise
+ * @throws {Error} If the customer's pricing model cannot be found (e.g., no default pricing model exists for the organization)
+ */
+export const selectPriceBySlugAndCustomerId = async (
+  params: { slug: string; customerId: string },
+  transaction: DbTransaction
+): Promise<Price.ClientRecord | null> => {
+  // First, get the customer to determine their pricing model
+  const customer = await selectCustomerById(
+    params.customerId,
+    transaction
+  )
+
+  // Get the pricing model for the customer (includes products and prices)
+  // Note: selectPricingModelForCustomer already filters for active prices
+  const pricingModel = await selectPricingModelForCustomer(
+    customer,
+    transaction
+  )
+
+  // Search through all products in the pricing model to find a price with the matching slug
+  // Use find() for cleaner code - prices are already filtered to active ones
+  for (const product of pricingModel.products) {
+    const price = product.prices.find((p) => p.slug === params.slug)
+    if (price) {
+      // Return the price directly from the pricing model
+      // This avoids a redundant database call since we already have the price data
+      return price
+    }
+  }
+
+  return null
 }
 
 export const selectPricesPaginated = createPaginatedSelectFunction(
