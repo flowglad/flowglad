@@ -1250,14 +1250,16 @@ describe('priceMethods.ts', () => {
 
     it('should return active price when both active and inactive prices exist with same slug', async () => {
       // NOTE: Database constraints prevent multiple ACTIVE prices with same slug,
+      // but allow multiple inactive prices and one active + multiple inactive with same slug
       await adminTransaction(async ({ transaction }) => {
         const slug = 'shared-slug'
 
-        // Deactivate the original price (created in beforeEach)
+        // Update and deactivate the original price to use the shared slug
         await updatePrice(
           {
             id: price.id,
             active: false,
+            slug: slug,
             type: PriceType.Subscription,
           },
           transaction
