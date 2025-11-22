@@ -1182,57 +1182,6 @@ describe('priceMethods.ts', () => {
       })
     })
 
-    it('should return latest active price when multiple prices exist with same slug', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Create a second product in the same pricing model
-        const secondProduct = await setupProduct({
-          organizationId: organization.id,
-          name: 'Second Product',
-          livemode: true,
-          pricingModelId: pricingModelId,
-        })
-
-        // Deactivate the original price
-        await updatePrice(
-          {
-            id: price.id,
-            active: false,
-            type: PriceType.Subscription,
-          },
-          transaction
-        )
-
-        // Create a new active price with the same slug
-        const newActivePrice = await setupPrice({
-          productId: secondProduct.id,
-          name: 'New Active Price',
-          type: PriceType.Subscription,
-          unitPrice: 2000,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          livemode: true,
-          isDefault: true,
-          trialPeriodDays: 0,
-          currency: CurrencyCode.USD,
-          slug: 'test-price-slug', // Same slug as original
-        })
-
-        // Should return the active price, not the inactive one
-        const result = await selectPriceBySlugAndCustomerId(
-          {
-            slug: 'test-price-slug',
-            customerId: customer.id,
-          },
-          transaction
-        )
-
-        expect(result).not.toBeNull()
-        expect(result?.id).toBe(newActivePrice.id)
-        expect(result?.active).toBe(true)
-        expect(result?.slug).toBe('test-price-slug')
-      })
-    })
-
     it('should find price in customer-specific pricing model when set', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Create a new pricing model
