@@ -12,6 +12,8 @@ Your task is to **integrate Flowglad end‑to‑end** so that:
 - The features that customers can access are determined by reading from Flowglad what features a given customer has access to
 - The UI (pricing page, dashboard, navbar) reflects real subscription and usage state.
 
+**PLEASE RESOLVE ALL LINTER ERRORS BEFORE YOU ARE FINISHED**
+
 Assume:
 
 - The project uses **{FRAMEWORK}** ({FRAMEWORK_ROUTING_INFO}).
