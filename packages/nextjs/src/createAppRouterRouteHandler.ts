@@ -15,9 +15,14 @@ export const createAppRouterRouteHandler = (
 
   return async (
     req: NextRequest,
-    { params }: { params: Promise<{ path: string[] }> }
+    {
+      params,
+    }: { params: Promise<{ path: string[] }> | { path: string[] } }
   ): Promise<NextResponse> => {
-    const { path } = await params
+    // Support both Next 14 and 15
+    // in Next.js 14 params is a plain object, in Next.js 15 params is a Promise (breaking change)
+    const resolvedParams = 'then' in params ? await params : params
+    const { path } = resolvedParams
     const result = await handler({
       path,
       method: req.method as HTTPMethod,

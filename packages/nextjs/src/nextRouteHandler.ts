@@ -110,7 +110,9 @@ export const nextRouteHandler = (
 
   return async (
     req: NextRequest,
-    { params }: { params: Promise<{ path: string[] }> }
+    {
+      params,
+    }: { params: Promise<{ path: string[] }> | { path: string[] } }
   ): Promise<NextResponse> => {
     try {
       // Extract customer ID from request
@@ -127,8 +129,10 @@ export const nextRouteHandler = (
         afterRequest,
       })
 
-      // Extract request details (same as createAppRouterRouteHandler)
-      const { path } = await params
+      // Support both Next 14 and 15
+      // in Next.js 14 params is a plain object, in Next.js 15 params is a Promise (breaking change)
+      const resolvedParams = 'then' in params ? await params : params
+      const { path } = resolvedParams
       const result = await handler({
         path,
         method: req.method as HTTPMethod,
@@ -139,7 +143,6 @@ export const nextRouteHandler = (
         body: req.method !== 'GET' ? await req.json() : undefined,
       })
 
-      // Return JSON response
       return NextResponse.json(
         {
           error: result.error,
