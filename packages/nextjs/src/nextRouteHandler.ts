@@ -112,41 +112,59 @@ export const nextRouteHandler = (
     req: NextRequest,
     { params }: { params: Promise<{ path: string[] }> }
   ): Promise<NextResponse> => {
-    // Extract customer ID from request
-    const customerExternalId = await getCustomerExternalId(req)
+    try {
+      // Extract customer ID from request
+      const customerExternalId = await getCustomerExternalId(req)
 
-    // Create scoped FlowgladServer instance for this customer
-    const flowgladServer = await flowglad(customerExternalId)
+      // Create scoped FlowgladServer instance for this customer
+      const flowgladServer = await flowglad(customerExternalId)
 
-    // Create request handler with the scoped server
-    const handler = createRequestHandler({
-      flowgladServer,
-      onError,
-      beforeRequest,
-      afterRequest,
-    })
+      // Create request handler with the scoped server
+      const handler = createRequestHandler({
+        flowgladServer,
+        onError,
+        beforeRequest,
+        afterRequest,
+      })
 
-    // Extract request details (same as createAppRouterRouteHandler)
-    const { path } = await params
-    const result = await handler({
-      path,
-      method: req.method as HTTPMethod,
-      query:
-        req.method === 'GET'
-          ? Object.fromEntries(req.nextUrl.searchParams)
-          : undefined,
-      body: req.method !== 'GET' ? await req.json() : undefined,
-    })
+      // Extract request details (same as createAppRouterRouteHandler)
+      const { path } = await params
+      const result = await handler({
+        path,
+        method: req.method as HTTPMethod,
+        query:
+          req.method === 'GET'
+            ? Object.fromEntries(req.nextUrl.searchParams)
+            : undefined,
+        body: req.method !== 'GET' ? await req.json() : undefined,
+      })
 
-    // Return JSON response
-    return NextResponse.json(
-      {
-        error: result.error,
-        data: result.data,
-      },
-      {
-        status: result.status,
+      // Return JSON response
+      return NextResponse.json(
+        {
+          error: result.error,
+          data: result.data,
+        },
+        {
+          status: result.status,
+        }
+      )
+    } catch (error) {
+      if (onError) {
+        onError(error)
       }
-    )
+      return NextResponse.json(
+        {
+          error: {
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Internal server error',
+          },
+          data: null,
+        },
+        { status: 500 }
+      )
+    }
   }
 }
