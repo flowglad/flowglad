@@ -7,6 +7,5 @@ export {
   type RequestHandlerInput,
   type RequestHandlerOutput,
   type RequestHandlerOptions,
-  type NextRouteHandlerOptions,
 } from './requestHandler'
 export { verifyWebhook, WebhookVerificationError } from './webhook'

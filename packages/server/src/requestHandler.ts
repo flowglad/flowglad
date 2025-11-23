@@ -55,38 +55,6 @@ export interface RequestHandlerOptions {
   afterRequest?: () => Promise<void>
 }
 
-/**
- * Options for creating a Next.js App Router route handler with scoped FlowgladServer instances.
- */
-export interface NextRouteHandlerOptions {
-  /**
-   * Function to extract the customer external ID from the Next.js request.
-   * @param req - The Next.js request object
-   * @returns The customer external ID
-   */
-  getCustomerExternalId: (req: NextRequest) => Promise<string>
-  /**
-   * Function that creates a FlowgladServer instance for a specific customer.
-   * @param customerExternalId - The customer's external ID
-   * @returns A FlowgladServer instance scoped to that customer
-   */
-  flowglad: (
-    customerExternalId: string
-  ) => Promise<FlowgladServer> | FlowgladServer
-  /**
-   * Function to run when an error occurs.
-   */
-  onError?: (error: unknown) => void
-  /**
-   * Side effect to run before the request is processed.
-   */
-  beforeRequest?: () => Promise<void>
-  /**
-   * Side effect to run after the request is processed.
-   */
-  afterRequest?: () => Promise<void>
-}
-
 export class RequestHandlerError extends Error {
   constructor(
     message: string,
