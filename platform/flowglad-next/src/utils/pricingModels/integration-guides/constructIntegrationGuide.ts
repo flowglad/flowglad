@@ -1,7 +1,8 @@
 import { FeatureType } from '@/types'
 import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import yaml from 'json-to-pretty-yaml'
-import { generateText, streamText, generateObject } from 'ai'
+import { generateObject, generateText } from 'ai'
+import { fetchMarkdownFromDocs } from '@/utils/textContent'
 import { z } from 'zod'
 import { openai } from '@ai-sdk/openai'
 import {
@@ -9,7 +10,6 @@ import {
   getTurbopufferClient,
   getOpenAIClient,
 } from '@/utils/turbopuffer'
-import { fetchMarkdownFromDocs } from '@/utils/textContent'
 import { logger } from '@/utils/logger'
 
 /**
@@ -214,8 +214,6 @@ const synthesizeIntegrationGuide = async ({
   // static imports of 'ai' and '@ai-sdk/openai' cause undici to load, which expects the File API
   // to be available. This causes "ReferenceError: File is not defined" when generating OpenAPI
   // docs with tsx in Node.js environments where File is not available.
-  const { generateText } = await import('ai')
-  const { openai } = await import('@ai-sdk/openai')
 
   const result = await generateText({
     model: openai('gpt-4o-mini'),
@@ -299,13 +297,6 @@ const getContextualDocs = async ({
 
   // Sort paths alphabetically
   deduplicatedPaths.sort((a, b) => a.localeCompare(b))
-
-  // Dynamically import fetchMarkdownFromDocs to avoid loading fetch/undici at module load time.
-  // Static imports would cause undici to load when this module is imported (via appRouter),
-  // leading to "ReferenceError: File is not defined" when generating OpenAPI docs with tsx.
-  const { fetchMarkdownFromDocs } = await import(
-    '@/utils/textContent'
-  )
 
   // Fetch and concatenate all markdown files from docs.flowglad.com
   const markdownContents: string[] = []
