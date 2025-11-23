@@ -119,14 +119,11 @@ export interface ScopedFlowgladServerParams {
   baseURL?: string
   apiKey?: string
   /**
-   * Optional handler to retrieve customer details from your database.
+   * Handler to retrieve customer details from your database.
    *
    * This function is called when attempting to create a customer record in Flowglad
    * for a customer that doesn't yet exist. Implement this to fetch the customer's
    * name and email from your database based on their customer ID.
-   *
-   * If not provided and a customer needs to be created, an error will be thrown
-   * with instructions on how to add this handler.
    *
    * @param customerExternalId - The external customer ID from your system
    * @returns Promise resolving to an object containing the customer's name and email
@@ -144,7 +141,7 @@ export interface ScopedFlowgladServerParams {
    *   },
    * })
    *    */
-  getCustomerDetails?: (customerExternalId: string) => Promise<{
+  getCustomerDetails: (customerExternalId: string) => Promise<{
     name: string
     email: string
   }>

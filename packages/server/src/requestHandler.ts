@@ -2,6 +2,7 @@ import { routeToHandlerMap } from './subrouteHandlers'
 import type { SubRouteHandler } from './subrouteHandlers/types'
 import { FlowgladServer } from './FlowgladServer'
 import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
+import { NextRequest } from 'next/server'
 
 /**
  * Input for the request handler.
@@ -63,7 +64,7 @@ export interface NextRouteHandlerOptions {
    * @param req - The Next.js request object
    * @returns The customer external ID
    */
-  getCustomerExternalId: (req: any) => Promise<string>
+  getCustomerExternalId: (req: NextRequest) => Promise<string>
   /**
    * Function that creates a FlowgladServer instance for a specific customer.
    * @param customerExternalId - The customer's external ID
