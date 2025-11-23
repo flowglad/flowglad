@@ -1,7 +1,7 @@
 import { FeatureType } from '@/types'
 import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import yaml from 'json-to-pretty-yaml'
-import { generateObject, generateText } from 'ai'
+import { generateObject, generateText, streamText } from 'ai'
 import { fetchMarkdownFromDocs } from '@/utils/textContent'
 import { z } from 'zod'
 import { openai } from '@ai-sdk/openai'
@@ -209,12 +209,6 @@ const synthesizeIntegrationGuide = async ({
   codebaseContext: string
   pricingModelYaml: string
 }): Promise<string> => {
-  // Dynamically import AI SDK packages to avoid loading undici at module load time.
-  // When this module is statically imported (e.g., by pricingModelsRouter -> appRouter -> swagger),
-  // static imports of 'ai' and '@ai-sdk/openai' cause undici to load, which expects the File API
-  // to be available. This causes "ReferenceError: File is not defined" when generating OpenAPI
-  // docs with tsx in Node.js environments where File is not available.
-
   const result = await generateText({
     model: openai('gpt-4o-mini'),
     system: `You are an expert technical writer specializing in creating integration guides for Flowglad billing systems.
@@ -325,14 +319,6 @@ const synthesizeIntegrationGuideStream = async function* ({
   pricingModelYaml: string
   contextualDocs: string
 }): AsyncGenerator<string, void, unknown> {
-  // Dynamically import AI SDK packages to avoid loading undici at module load time.
-  // When this module is statically imported (e.g., by pricingModelsRouter -> appRouter -> swagger),
-  // static imports of 'ai' and '@ai-sdk/openai' cause undici to load, which expects the File API
-  // to be available. This causes "ReferenceError: File is not defined" when generating OpenAPI
-  // docs with tsx in Node.js environments where File is not available.
-  const { streamText } = await import('ai')
-  const { openai } = await import('@ai-sdk/openai')
-
   const result = await streamText({
     model: openai('gpt-4o-mini'),
     system: `You are an expert technical writer specializing in creating integration guides for Flowglad billing systems.
