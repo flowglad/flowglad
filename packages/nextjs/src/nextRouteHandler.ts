@@ -1,4 +1,7 @@
-'use server'
+import {
+  createRequestHandler,
+  FlowgladServer,
+} from '@flowglad/nextjs';
 import {
   createRequestHandler,
   FlowgladServer,
