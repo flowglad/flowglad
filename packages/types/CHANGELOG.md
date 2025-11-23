@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.13.0
+
+### Minor Changes
+
+- Next.js route handler pattern, customerExternalId pattern with mandatory constructory
+
 ## 0.12.4
 
 ### Patch Changes
