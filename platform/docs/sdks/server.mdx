@@ -56,91 +56,43 @@ new FlowgladServer(options: FlowgladServerOptions)
 See [types.ts](https://github.com/flowglad/flowglad/blob/main/packages/server/src/types.ts) for more details.
 
 ```typescript
-type FlowgladServerOptions =
-  | BaseFlowgladServerSessionParams
-  | SupabaseFlowgladServerSessionParams
-  | ClerkFlowgladServerSessionParams
-  | NextjsAuthFlowgladServerSessionParams
+type FlowgladServerOptions = ScopedFlowgladServerParams
 
-interface CoreCustomerUser {
+interface ScopedFlowgladServerParams {
   /**
-    * the ID of the customer in your system, e.g.
-    * if they are a consumer, your user.id
-    * if they are a business, your organization.id
-    */
-  externalId: string
-  name: string
-  email: string
-}
-
-interface BaseFlowgladServerSessionParams {
-  apiKey?: string
+   * The customer ID from YOUR app's database (e.g., user.id or organization.id).
+   * This is NOT Flowglad's customer ID—Flowglad uses this external ID to identify
+   * and create customers in its system.
+   * 
+   * For B2C apps: Use your user.id
+   * For B2B apps: Use your organization.id or team.id
+   */
+  customerExternalId: string
   baseURL?: string
-  getRequestingCustomer: () => Promise<CoreCustomerUser | null>
-}
-
-interface SupabaseClient {
-  auth: {
-    getUser: () => Promise<
-      | {
-          data: {
-            user: {
-              id: string
-              email?: string
-              user_metadata: Record<string, any>
-            }
-          }
-        }
-      | { data: { user: null }; error: unknown }
-    >
-  }
-}
-
-interface SupabaseFlowgladServerSessionParams {
   apiKey?: string
-  baseURL?: string
-  getRequestingCustomer?: () => Promise<CoreCustomerUser | null>
-  supabaseAuth: {
-    client: () => Promise<SupabaseClient> | SupabaseClient
-  }
-}
-
-interface ClerkUser {
-  id: string
-  firstName: string | null
-  lastName: string | null
-  username: string | null
-  emailAddresses: { emailAddress: string }[]
-}
-
-interface ClerkFlowgladServerSessionParams {
-  apiKey?: string
-  baseURL?: string
-  getRequestingCustomer?: () => Promise<CoreCustomerUser | null>
-  clerk: {
-    currentUser: () => Promise<ClerkUser | null>
-    customerFromCurrentUser?: (user: ClerkUser) => Promise<CoreCustomerUser | null>
-  }
-}
-
-interface NextAuthSession {
-  user: {
-    name?: string | null
-    email?: string | null
-    image?: string | null
-  }
-}
-
-interface NextjsAuthFlowgladServerSessionParams {
-  apiKey?: string
-  baseURL?: string
-  getRequestingCustomer?: () => Promise<CoreCustomerUser | null>
-  nextAuth: {
-    auth: () => Promise<NextAuthSession | null>
-    customerFromAuth?: (session: NextAuthSession) => Promise<CoreCustomerUser | null>
-  }
+  /**
+   * Handler to retrieve customer details from your database.
+   *
+   * This function is called when attempting to create a customer record in Flowglad
+   * for a customer that doesn't yet exist. Implement this to fetch the customer's
+   * name and email from your database based on their customer ID.
+   *
+   * @param customerExternalId - The external customer ID from YOUR system (not Flowglad's)
+   * @returns Promise resolving to an object containing the customer's name and email
+   */
+  getCustomerDetails: (customerExternalId: string) => Promise<{
+    name: string
+    email: string
+  }>
 }
 ```
+
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
+
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+</Note>
 
 ### Customer Methods
 
@@ -149,7 +101,8 @@ interface NextjsAuthFlowgladServerSessionParams {
 Find an existing Flowglad customer associated with the current requesting customer (per your app's authentication) or create a new one if none is found.
 
 ```typescript
-const customer = await flowgladServer.findOrCreateCustomer()
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const customer = await flowglad(userId).findOrCreateCustomer()
 ```
 
 ### Billing Methods
@@ -159,7 +112,8 @@ const customer = await flowgladServer.findOrCreateCustomer()
 Get comprehensive billing information for the customer, including helper functions like `checkFeatureAccess`, `checkUsageBalance`, `getProduct`, and `getPrice`.
 
 ```typescript
-const billing = await flowgladServer.getBilling()
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const billing = await flowglad(userId).getBilling()
 const hasPremium = billing.checkFeatureAccess('premium_feature')
 const invoiceCount = billing.invoices.length
 ```
@@ -169,7 +123,8 @@ const invoiceCount = billing.invoices.length
 Get the default pricing model with products, prices, and features.
 
 ```typescript
-const pricingModel = await flowgladServer.getPricingModel()
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const pricingModel = await flowglad(userId).getPricingModel()
 // Returns products, prices, and features available for purchase
 ```
 
@@ -180,7 +135,8 @@ const pricingModel = await flowgladServer.getPricingModel()
 Create a new subscription for the customer.
 
 ```typescript
-const subscription = await flowgladServer.createSubscription({
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const subscription = await flowglad(userId).createSubscription({
   priceId: 'price_123',
   metadata: {
     source: 'upgrade_flow',
@@ -214,7 +170,8 @@ interface CreateSubscriptionParams {
 Cancel an existing subscription.
 
 ```typescript
-const canceledSubscription = await flowgladServer.cancelSubscription({
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const canceledSubscription = await flowglad(userId).cancelSubscription({
   id: 'sub_123',
   cancellation: {
     timing: 'at_end_of_current_billing_period',
@@ -241,7 +198,8 @@ interface CancelSubscriptionParams {
 Create a checkout session for payments.
 
 ```typescript
-const checkoutSession = await flowgladServer.createCheckoutSession({
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const checkoutSession = await flowglad(userId).createCheckoutSession({
   priceSlug: 'price_123',
   successUrl: 'https://example.com/success',
   cancelUrl: 'https://example.com/cancel',
@@ -277,7 +235,8 @@ interface CreateCheckoutSessionParams {
 Create a checkout session that collects a payment method for the current customer.
 
 ```typescript
-const session = await flowgladServer.createAddPaymentMethodCheckoutSession({
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const session = await flowglad(userId).createAddPaymentMethodCheckoutSession({
   successUrl: 'https://example.com/payment-methods/success',
   cancelUrl: 'https://example.com/payment-methods/cancel',
   targetSubscriptionId: 'sub_123', // optional
@@ -289,8 +248,9 @@ const session = await flowgladServer.createAddPaymentMethodCheckoutSession({
 Create a checkout session that activates a provisioning or imported subscription.
 
 ```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
 const activationSession =
-  await flowgladServer.createActivateSubscriptionCheckoutSession({
+  await flowglad(userId).createActivateSubscriptionCheckoutSession({
     targetSubscriptionId: 'sub_123', // optional, attaches the paymentMethod to the subscription for future payments
     priceId: 'price_123',
     successUrl: 'https://example.com/subscriptions/success',
@@ -305,7 +265,8 @@ const activationSession =
 Update the stored customer record in Flowglad.
 
 ```typescript
-await flowgladServer.updateCustomer({
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+await flowglad(userId).updateCustomer({
   customer: {
     id: 'cust_abc',
     name: 'New Name',
@@ -321,7 +282,9 @@ await flowgladServer.updateCustomer({
 Check if the customer has access to a specific feature.
 
 ```typescript
-const hasAccess = await flowgladServer.checkFeatureAccess('advanced_analytics')
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const billing = await flowglad(userId).getBilling()
+const hasAccess = billing.checkFeatureAccess('advanced_analytics')
 
 if (hasAccess) {
   // Grant access to feature
@@ -335,7 +298,8 @@ if (hasAccess) {
 Record a usage event for metered billing.
 
 ```typescript
-const usageEvent = await flowgladServer.createUsageEvent({
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const usageEvent = await flowglad(userId).createUsageEvent({
   amount: 125,
   priceId: 'price_usage_meter',
   subscriptionId: 'sub_123',
@@ -394,8 +358,9 @@ app.get('/api/premium-endpoint', requireFeature('premium_feature'), (req, res) =
 ### Usage Metering
 
 ```typescript
-export async function trackAPIUsage(endpoint: string) {
-  await flowgladServer.createUsageEvent({
+export async function trackAPIUsage(endpoint: string, customerExternalId: string) {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  await flowglad(customerExternalId).createUsageEvent({
     priceId: 'price_usage_api_calls',
     usageMeterId: 'usage_meter_api_calls',
     subscriptionId: 'sub_current',
@@ -416,8 +381,9 @@ app.get('/api/data', async (req, res) => {
 ### Customer Portal Generation
 
 ```typescript
-export async function getCustomerPortalData() {
-  const billing = await flowgladServer.getBilling()
+export async function getCustomerPortalData(customerExternalId: string) {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  const billing = await flowglad(customerExternalId).getBilling()
 
   return {
     customer: billing.customer,
@@ -433,70 +399,40 @@ export async function getCustomerPortalData() {
 
 ## Integration Examples
 
-<Info>
-Native constructor params are available for popular auth providers including Supabase Auth, Clerk, NextAuth, Better Auth. Read more about auth adapters [here](/sdks/auth-adapters)
-</Info>
-
-### With Supabase Auth
+### Basic Setup
 
 ```typescript
 import { FlowgladServer } from '@flowglad/server'
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-)
-
-export const flowgladServer = new FlowgladServer({
-  supabaseAuth: {
-    client: () => supabase,
-  },
-})
-```
-
-### With Firebase Auth
-
-```typescript
-import { FlowgladServer } from '@flowglad/server'
-import admin from 'firebase-admin'
-
-admin.initializeApp()
-
-export const flowgladServer = (request: Request) =>
-  new FlowgladServer({
-    getRequestingCustomer: async () => {
-      const token = request.headers.authorization?.replace('Bearer ', '')
-
-      if (!token) return null
-
-      try {
-        const decodedToken = await admin.auth().verifyIdToken(token)
-
-        return {
-          externalId: decodedToken.uid,
-          name: decodedToken.name || decodedToken.email!,
-          email: decodedToken.email!,
-        }
-      } catch (error) {
-        return null
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
       }
     },
   })
+}
+
+// Usage:
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const billing = await flowglad(userId).getBilling()
 ```
 
-### With Clerk
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
 
-```typescript
-import { currentUser } from '@clerk/nextjs/server'
-import { FlowgladServer } from '@flowglad/server'
-
-export const flowgladServer = new FlowgladServer({
-  clerk: {
-    currentUser,
-  },
-})
-```
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+</Note>
 
 ## Next Steps
 

@@ -57,26 +57,29 @@ import { requireAuth } from './middleware/auth'
 
 const app = express()
 
-const flowgladServerConstructor = (req: Request) =>
-  new FlowgladServer({
-    getRequestingCustomer: async () => {
-      const user = req.user as {
-        id: string
-        name: string
-        email: string
-      } | null
-
-      if (!user) {
-        return null
-      }
-
+const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      const user = await db.users.findOne({ id: externalId })
       return {
-        externalId: user.id,
-        name: user.name,
         email: user.email,
+        name: user.name,
       }
     },
   })
+}
+
+const flowgladServerConstructor = (req: Request) => {
+  // Extract customerExternalId from your auth/session
+  // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+  const user = req.user as { id: string } | null
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+  return flowglad(user.id)
+}
 
 // Mount at /api/flowglad
 app.use(
@@ -141,26 +144,29 @@ app.post('/api/flowglad/*', flowgladHandler)
 import { FlowgladServer } from '@flowglad/server'
 import type { Request } from 'express'
 
-export const flowgladServerConstructor = (req: Request) =>
-  new FlowgladServer({
-    getRequestingCustomer: async () => {
-      const user = req.user as {
-        id: string
-        name: string
-        email: string
-      } | undefined
-
-      if (!user) {
-        return null
-      }
-
+const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      const user = await db.users.findOne({ id: externalId })
       return {
-        externalId: user.id,
-        name: user.name,
         email: user.email,
+        name: user.name,
       }
     },
   })
+}
+
+export const flowgladServerConstructor = (req: Request) => {
+  // Extract customerExternalId from your auth/session
+  // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+  const user = req.user as { id: string } | undefined
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+  return flowglad(user.id)
+}
 ```
 
 ### JWT Auth Example
@@ -170,33 +176,37 @@ import { FlowgladServer } from '@flowglad/server'
 import type { Request } from 'express'
 import jwt from 'jsonwebtoken'
 
-export const flowgladServerConstructor = (req: Request) =>
-  new FlowgladServer({
-    getRequestingCustomer: async () => {
-      const token =
-        req.headers.authorization?.replace('Bearer ', '')
-
-      if (!token) {
-        return null
-      }
-
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-          userId: string
-          name: string
-          email: string
-        }
-
-        return {
-          externalId: decoded.userId,
-          name: decoded.name,
-          email: decoded.email,
-        }
-      } catch (error) {
-        return null
+const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      const user = await db.users.findOne({ id: externalId })
+      return {
+        email: user.email,
+        name: user.name,
       }
     },
   })
+}
+
+export const flowgladServerConstructor = (req: Request) => {
+  // Extract customerExternalId from your auth/session
+  // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  if (!token) {
+    throw new Error('User not authenticated')
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      userId: string
+    }
+    return flowglad(decoded.userId)
+  } catch (error) {
+    throw new Error('Invalid token')
+  }
+}
 ```
 
 ### Session-Based Auth Example
@@ -205,27 +215,28 @@ export const flowgladServerConstructor = (req: Request) =>
 import { FlowgladServer } from '@flowglad/server'
 import type { Request } from 'express'
 
-export const flowgladServerConstructor = (req: Request) =>
-  new FlowgladServer({
-    getRequestingCustomer: async () => {
-      if (!req.session?.userId) {
-        return null
-      }
-
-      // Fetch user from database
-      const user = await db.users.findById(req.session.userId)
-
-      if (!user) {
-        return null
-      }
-
+const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      const user = await db.users.findOne({ id: externalId })
       return {
-        externalId: user.id,
-        name: user.name,
         email: user.email,
+        name: user.name,
       }
     },
   })
+}
+
+export const flowgladServerConstructor = (req: Request) => {
+  // Extract customerExternalId from your auth/session
+  // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+  if (!req.session?.userId) {
+    throw new Error('User not authenticated')
+  }
+  return flowglad(req.session.userId)
+}
 ```
 
 ## Complete Example
@@ -250,21 +261,30 @@ app.use(
   })
 )
 
-// Create Flowglad server constructor
-const flowgladServerConstructor = (req: Request) =>
-  new FlowgladServer({
-    getRequestingCustomer: async () => {
-      if (!req.session?.userId) {
-        return null
-      }
-
+// Create Flowglad server factory function
+const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      const user = await db.users.findOne({ id: externalId })
       return {
-        externalId: req.session.userId,
-        name: req.session.userName,
-        email: req.session.userEmail,
+        email: user.email,
+        name: user.name,
       }
     },
   })
+}
+
+// Create Flowglad server constructor
+const flowgladServerConstructor = (req: Request) => {
+  // Extract customerExternalId from your auth/session
+  // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+  if (!req.session?.userId) {
+    throw new Error('User not authenticated')
+  }
+  return flowglad(req.session.userId)
+}
 
 // Mount Flowglad routes
 app.use(

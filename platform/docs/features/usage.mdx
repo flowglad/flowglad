@@ -67,12 +67,20 @@ You'll use the `FlowgladServer.createUsageEvent` method. Here's a TypeScript exa
 ```typescript
 import { FlowgladServer } from '@flowglad/server'; // Adjust import based on your setup
 
-// Initialize FlowgladServer with your API key and any other necessary params
-// This might be done once in your server setup
-const flowglad = new FlowgladServer({
-  apiKey: process.env.FLOWGLAD_API_KEY!,
-  // other params like getRequestingCustomer if needed by your auth model
-});
+// Create a FlowgladServer factory function
+// customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+const flowglad = (customerExternalId: string) => {
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      const user = await db.users.findOne({ id: externalId })
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
 
 export const reportUsage = async (data: {
   customerId: string;       // The Flowglad Customer ID

@@ -83,17 +83,22 @@ Implementing Flowglad on your backend will consist of 3 steps (feel free to feed
 
 ### Authenticate and Derive the Requesting Customer
 
-Every server-originated Flowglad call needs the customer scoped using your ids. The `FlowgladServer` class ([`packages/server/src/FlowgladServer.ts`](https://github.com/flowglad/flowglad/blob/main/packages/server/src/FlowgladServer.ts)) shows the contract we enforce in the SDKs:
+Every server-originated Flowglad call needs the customer scoped using your ids. The `FlowgladServer` class uses a scoped pattern:
 
-- derive a `{ externalId, name, email }` triple either from your auth provider (NextAuth, Supabase, Clerk) or a custom `getRequestingCustomer`.
-- only one auth provider can populate a request. If you support multiple providers, branch before instantiating your handler.
-- validate the triple: `externalId` must be a non-empty string and `email` must be present, otherwise the request should fail fast with a helpful error because the React SDK expects authenticated users.
+- Create a factory function that takes `customerExternalId` (from **your app's database**, not Flowglad's) and returns a `FlowgladServer` instance
+- Provide a `getCustomerDetails` function that fetches customer name and email from your database
+- Use the scoped instance: `await flowglad(customerExternalId).getBilling()`
 
-When you are not using our SDKs, replicate the same logic in your middleware:
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
 
-1. Run your normal authentication, error out with `401` if no session.
-2. Map the session object to Flowglad's customer shape.
-3. Pass that shape into every helper that talks to Flowglad's API.
+**B2C apps:** Use `user.id` as `customerExternalId`  
+**B2B apps:** Use `organization.id` or `team.id` as `customerExternalId`
+
+When you are not using our SDKs, replicate the same logic:
+
+1. Extract the `customerExternalId` from your authentication (user ID for B2C, organization ID for B2B) - this is **your app's ID**, not Flowglad's
+2. Fetch customer details (name, email) from your database
+3. Pass `customerExternalId` (your app's ID) and customer details to every Flowglad API call
 
 Once you have the customer, you can reuse the helper functions above to translate frontend requests into Flowglad API calls.
 

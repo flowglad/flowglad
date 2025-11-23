@@ -6,7 +6,7 @@ description: "Learn how to surface your pricing models and product catalogs in y
 ## Overview
 
 Flowglad makes it simple to fetch [pricing models](/features/pricing-models) and [products](/features/products) to present to your customers. 
-If you're building in React or Next.js, use the `useBilling` hook to access pricing data client-side; on the server, call `flowgladServer.getBilling()` or `flowgladServer.getPricingModel()` to retrieve the same pricing model data.
+If you're building in React or Next.js, use the `useBilling` hook to access pricing data client-side; on the server, call `flowglad(customerExternalId).getBilling()` or `flowglad(customerExternalId).getPricingModel()` to retrieve the same pricing model data. Pass YOUR app's user/organization ID as `customerExternalId`, not Flowglad's customer ID.
 Refer to the [pricing model response object](/api-reference/customer/get-billing-details#response-pricing-model) for the data fields returned.
 
 
@@ -74,27 +74,25 @@ Refer to the [pricing model response object](/api-reference/customer/get-billing
   import { FlowgladServer } from '@flowglad/server'
   import { auth } from '@/lib/auth'
 
-  const flowgladServer = new FlowgladServer({
-    // Reads from FLOWGLAD_SECRET_KEY by default
-    apiKey: process.env.FLOWGLAD_SECRET_KEY,
-    getRequestingCustomer: async () => {
-      const user = await auth()
-      if (!user) {
-        throw new Error('Unauthorized')
-      }
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
 
-      return {
-        externalId: user.id,
-        name: user.name,
-        email: user.email,
-      }
-    },
-  })
-
-  export async function GET() {
-    const { pricingModel } = await flowgladServer.getPricingModel()
+  export async function GET(customerExternalId: string) {
+    // Pass YOUR app's user/organization ID, not Flowglad's customer ID
+    const { pricingModel } = await flowglad(customerExternalId).getPricingModel()
     // Alternative: You can also get the pricing model with getBilling
-    // const { pricingModel: billingPricingModel } = await flowgladServer.getBilling()
+    // const { pricingModel: billingPricingModel } = await flowglad(customerExternalId).getBilling()
 
     if (!pricingModel) {
       return NextResponse.json({ products: [] })

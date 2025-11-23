@@ -67,55 +67,58 @@ The main provider component. See the [React SDK documentation](/sdks/react) for 
 
 Access billing data and functions. See the [React SDK documentation](/sdks/react) for full API reference.
 
-## Integration with Authentication
+## Server Setup
 
-<Info>
-Native constructor params are available for popular auth providers including Supabase Auth, Clerk, NextAuth, Better Auth. Read more about auth adapters [here](/sdks/auth-adapters)
-</Info>
-
-### Supabase Auth Example
-
-```ts app/lib/flowglad.ts
+```ts utils/flowglad.ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
-import { createClient } from '@/utils/supabase/server'
 
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) return null
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
+```
 
-    return {
-      externalId: user.id,
-      name: user.user_metadata.full_name,
-      email: user.email!,
+```ts app/api/flowglad/[...path]/route.ts
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    // For B2C: return user.id (from your database)
+    // For B2B: return organization.id (from your database)
+    const userId = await getUserIdFromRequest(req)
+    if (!userId) {
+      throw new Error('User not authenticated')
     }
+    return userId
   },
 })
 ```
 
-### NextAuth Example
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
 
-```ts app/lib/flowglad.ts
-import { FlowgladServer } from '@flowglad/nextjs/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
 
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user) return null
-
-    return {
-      externalId: session.user.id,
-      name: session.user.name!,
-      email: session.user.email!,
-    }
-  },
-})
-```
+Flowglad doesn't need to know how you authenticate—just provide the ID from your system that represents the billing entity.
+</Note>
 
 ## Complete Example
 

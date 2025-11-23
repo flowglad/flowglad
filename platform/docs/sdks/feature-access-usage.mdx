@@ -67,29 +67,28 @@ export function FeatureAccessGate({
   ```ts
   import { NextResponse } from 'next/server'
   import { FlowgladServer } from '@flowglad/server'
-  import { getSessionUser } from '@/lib/auth'
-
-  const flowgladServer = new FlowgladServer({
-    apiKey: process.env.FLOWGLAD_SECRET_KEY,
-    getRequestingCustomer: async () => {
-      const user = await getSessionUser()
-      if (!user) {
-        throw new Error('Unauthorized')
-      }
-
-      return {
-        externalId: user.id,
-        email: user.email,
-        name: user.name,
-      }
-    },
-  })
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
 
   export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const featureSlug = searchParams.get('featureSlug') ?? 'ai-copilot'
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    const userId = await getUserIdFromRequest(request)
 
-    const billing = await flowgladServer.getBilling()
+    const billing = await flowglad(userId).getBilling()
     const hasAccess = billing.checkFeatureAccess(featureSlug)
 
     return NextResponse.json({ featureSlug, hasAccess })
@@ -149,29 +148,28 @@ export function FeatureAccessGate({
   ```ts
   import { NextResponse } from 'next/server'
   import { FlowgladServer } from '@flowglad/server'
-  import { getSessionUser } from '@/lib/auth'
-
-  const flowgladServer = new FlowgladServer({
-    apiKey: process.env.FLOWGLAD_SECRET_KEY,
-    getRequestingCustomer: async () => {
-      const user = await getSessionUser()
-      if (!user) {
-        throw new Error('Unauthorized')
-      }
-
-      return {
-        externalId: user.id,
-        email: user.email,
-        name: user.name,
-      }
-    },
-  })
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
 
   export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const usageMeterSlug = searchParams.get('usageMeterSlug') ?? 'api-calls'
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    const userId = await getUserIdFromRequest(request)
 
-    const billing = await flowgladServer.getBilling()
+    const billing = await flowglad(userId).getBilling()
     const usage = billing.checkUsageBalance(usageMeterSlug)
 
     return NextResponse.json({
@@ -195,21 +193,19 @@ import { getSessionUser } from './auth'
 
 const fastify = Fastify()
 
-const flowgladServer = new FlowgladServer({
-  apiKey: process.env.FLOWGLAD_SECRET_KEY,
-  getRequestingCustomer: async () => {
-    const user = await getSessionUser()
-    if (!user) {
-      throw new Error('Unauthorized')
-    }
-
-    return {
-      externalId: user.id,
-      email: user.email,
-      name: user.name,
-    }
-  },
-})
+const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      const user = await db.users.findOne({ id: externalId })
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
 
 fastify.post('/api/usage', async (request, reply) => {
   const {
@@ -221,8 +217,11 @@ fastify.post('/api/usage', async (request, reply) => {
     usageDate,
     properties,
   } = request.body as CreateUsageEventParams
+  // Extract customerExternalId from your auth/session
+  // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+  const userId = await getUserIdFromRequest(request)
 
-  const usageEvent = await flowgladServer.createUsageEvent({
+  const usageEvent = await flowglad(userId).createUsageEvent({
     amount,
     priceId,
     subscriptionId,

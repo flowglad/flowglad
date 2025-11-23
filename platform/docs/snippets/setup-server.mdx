@@ -24,164 +24,64 @@ bun add @flowglad/server
 FLOWGLAD_SECRET_KEY="sk_test_..."
 ```
 
-### 2. Create a FlowgladServer Instance
+### 2. Create a FlowgladServer Factory Function
 
 ```ts
 import { FlowgladServer } from '@flowglad/server'
 
-export const flowgladServer = new FlowgladServer({
-  // Optional: apiKey defaults to FLOWGLAD_SECRET_KEY
-  // apiKey: process.env.FLOWGLAD_SECRET_KEY,
-  // Optional: baseURL defaults to https://app.flowglad.com
-  // baseURL: 'https://app.flowglad.com',
-  getRequestingCustomer: async () => ({
-    externalId: 'user-123',
-    name: 'John Doe',
-    email: 'john@example.com',
-  }),
-})
-```
-
-<Info>
-Native constructor params are available for popular auth providers including Supabase Auth, Clerk, NextAuth, Better Auth. Read more about auth adapters [here](/sdks/auth-adapters)
-</Info>
-
-<CodeGroup>
-
-```ts Supabase Auth
-import { FlowgladServer } from '@flowglad/server'
-// or wherever you initialize your supabase client
-import { createClient } from '@/utils/supabase'
-
-export const flowgladServer = new FlowgladServer({
-  supabaseAuth: {
-    client: createClient
-  },
-})
-```
-
-
-```ts Clerk
-import { currentUser } from '@clerk/nextjs/server'
-import { FlowgladServer } from '@flowglad/server'
-
-export const flowgladServer = new FlowgladServer({
-  clerk: {
-    currentUser,
-  },
-})
-```
-
-
-```ts NextAuth
-import { auth } from '@/auth' // your initialized, configured NextAuth client
-import { FlowgladServer } from '@flowglad/server'
-
-export const flowgladServer = new FlowgladServer({
-  nextAuth: {
-    auth,
-  },
-})
-```
-
-
-```ts Better Auth
-import { auth } from '@/lib/auth'; // your Better Auth instance in auth.ts
-import { headers } from 'next/headers';
-import { FlowgladServer } from '@flowglad/nextjs/server';
-
-export const flowgladServer = new FlowgladServer({
-  betterAuth: {
-    getSession: async () => auth.api.getSession({ headers: await headers() }),
-  },
-});
-```
-
-
-```ts Custom Auth
-import { FlowgladServer } from '@flowglad/server'
-// or whatever function you use to retrieve your session
-import { getBespokeSession } from '@/utils/auth'
-
-// if you can load sessions using an enclosed function
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    const customSessionObject = await getBespokeSession()
-    return {
-      externalId: customSessionObject.id,
-      name: customSessionObject.name,
-      email: customSessionObject.email,
-    }
-  }
-})
-
-// if you derive your session from a request / cookies / headers object:
-const flowgladServer = (request: Request) => {
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
   return new FlowgladServer({
-  getRequestingCustomer: async () => {
-    const customSessionObject = await getBespokeSession(request)
-    return {
-      externalId: customSessionObject.id,
-      name: customSessionObject.name,
-      email: customSessionObject.email,
-    }
-  }
-})
-}
-```
-
-```ts Custom Auth Example: Firebase
-import { FlowgladServer } from '@flowglad/server'
-import admin from 'firebase-admin'
-
-admin.initializeApp()
-
-export const flowgladServer = (request: Request) =>
-  new FlowgladServer({
-    getRequestingCustomer: async () => {
-      const token = request.headers.authorization?.replace('Bearer ', '')
-
-      if (!token) return null
-
-      try {
-        const decodedToken = await admin.auth().verifyIdToken(token)
-
-        return {
-          externalId: decodedToken.uid,
-          name: decodedToken.name || decodedToken.email!,
-          email: decodedToken.email!,
-        }
-      } catch (error) {
-        return null
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
       }
-    }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
   })
+}
+
+// Usage:
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const billing = await flowglad(userId).getBilling()
 ```
 
-</CodeGroup>
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
 
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+</Note>
 
 ### 3. Call Server Methods
 
 ```ts
 // Fetch billing details (customers, subscriptions, invoices, etc.)
-const billing = await flowgladServer.getBilling()
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const billing = await flowglad(userId).getBilling()
 
 // Ensure the Flowglad customer exists
-const customer = await flowgladServer.findOrCreateCustomer()
+const customer = await flowglad(userId).findOrCreateCustomer()
 
 // Create a hosted checkout session
-const checkoutSession = await flowgladServer.createCheckoutSession({
+const checkoutSession = await flowglad(userId).createCheckoutSession({
   priceId: 'price_123',
   successUrl: 'https://example.com/success',
   cancelUrl: 'https://example.com/cancel',
 })
 
 // Check feature access for gating premium functionality
-const hasPremium = await flowgladServer.checkFeatureAccess('premium_feature')
+const billing = await flowglad(userId).getBilling()
+const hasPremium = billing.checkFeatureAccess('premium_feature')
 
 // Record metered usage
-await flowgladServer.createUsageEvent({
+await flowglad(userId).createUsageEvent({
   priceId: 'usage_price_id',
   amount: 1,
   transactionId: 'idempotency-key',

@@ -69,21 +69,19 @@ To create anonymous checkout sessions, you can call the [create checkout session
 
   const fastify = Fastify()
 
-  const flowgladServer = new FlowgladServer({
-    apiKey: process.env.FLOWGLAD_SECRET_KEY,
-    getRequestingCustomer: async () => {
-      const user = await getSessionUser()
-      if (!user) {
-        throw new Error('Unauthorized')
-      }
-
-      return {
-        externalId: user.id,
-        name: user.name,
-        email: user.email,
-      }
-    },
-  })
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
 
   fastify.post('/api/checkout/session', async (request, reply) => {
     const { priceId, successUrl, cancelUrl } = request.body as {
@@ -91,8 +89,11 @@ To create anonymous checkout sessions, you can call the [create checkout session
       successUrl: string
       cancelUrl: string
     }
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    const userId = await getUserIdFromRequest(request)
 
-    const { checkoutSession } = await flowgladServer.createCheckoutSession({
+    const { checkoutSession } = await flowglad(userId).createCheckoutSession({
       priceId,
       successUrl,
       cancelUrl,
@@ -150,29 +151,30 @@ To create anonymous checkout sessions, you can call the [create checkout session
 
   const fastify = Fastify()
 
-  const flowgladServer = new FlowgladServer({
-    apiKey: process.env.FLOWGLAD_SECRET_KEY,
-    getRequestingCustomer: async () => {
-      const user = await getSessionUser()
-      if (!user) {
-        throw new Error('Unauthorized')
-      }
-
-      return {
-        externalId: user.id,
-        name: user.name,
-        email: user.email,
-      }
-    },
-  })
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
 
   fastify.post('/api/checkout/add-payment-method', async (request, reply) => {
     const { targetSubscriptionId } = request.body as {
       targetSubscriptionId?: string
     }
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    const userId = await getUserIdFromRequest(request)
 
     const { checkoutSession } =
-      await flowgladServer.createAddPaymentMethodCheckoutSession({
+      await flowglad(userId).createAddPaymentMethodCheckoutSession({
         targetSubscriptionId,
         successUrl: `${process.env.APP_URL ?? 'https://example.com'}/billing/payment-method/success`,
         cancelUrl: `${process.env.APP_URL ?? 'https://example.com'}/billing/payment-method/cancel`,

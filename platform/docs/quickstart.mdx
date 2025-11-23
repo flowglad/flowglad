@@ -44,131 +44,63 @@ bun add @flowglad/react @flowglad/server
 
 ## 4. Server Setup
 
-First, set up a Flowglad server client.
+First, set up a Flowglad server factory function.
 Do this in a file that can be imported wherever you need to access billing data, or make calls to Flowglad.
-Flowglad's premade backend modules use the Flowglad Server in sessionful contexts to determine who you're loading billing data for:
 
-<CodeGroup>
-
-```ts Supabase Auth
-import { FlowgladServer } from '@flowglad/nextjs/server'
-// or wherever you initialize your supabase client
-import { createClient } from '@/utils/supabase'
-
-export const flowgladServer = new FlowgladServer({
-  supabaseAuth: {
-    client: createClient
-  },
-})
-```
-
-
-```ts Clerk
-import { currentUser } from '@clerk/nextjs/server'
+```ts utils/flowglad.ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
-export const flowgladServer = new FlowgladServer({
-  clerk: {
-    currentUser,
-  },
-})
-```
-
-
-```ts Next Auth
-import { auth } from '@/auth' // your initialized, configured NextAuth client
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowgladServer = new FlowgladServer({
-  nextAuth: {
-    auth,
-  },
-})
-```
-
-
-```ts Better Auth
-import { auth } from '@/lib/auth'; // your Better Auth instance in auth.ts
-import { headers } from 'next/headers';
-import { FlowgladServer } from '@flowglad/nextjs/server';
-
-export const flowgladServer = new FlowgladServer({
-  betterAuth: {
-    getSession: async () => auth.api.getSession({ headers: await headers() }),
-  },
-});
-```
-
-
-```ts Custom Auth
-import { FlowgladServer } from '@flowglad/nextjs/server'
-// or whatever function you use to retrieve your session
-import { getBespokeSession } from '@/utils/auth'
-
-// if you can load sessions using an enclosed function
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: () => {
-    const customSessionObject = await getBespokeSession()
-    return {
-      externalId: customSessionObject.id,
-      name: customSessionObject.name,
-      email: customSessionObject.email,
-    }
-  }
-})
-
-// if you derive your session from a request / cookies / headers object:
-const flowgladServer = (request: Request) => {
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
   return new FlowgladServer({
-  getRequestingCustomer: () => {
-    const customSessionObject = await getBespokeSession(request)
-    return {
-      externalId: customSessionObject.id,
-      name: customSessionObject.name,
-      email: customSessionObject.email,
-    }
-  }
-})
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
 }
 ```
 
-</CodeGroup>
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
+
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+</Note>
 
 Next, set up your Flowglad API route at `/api/flowglad/[...path]`. Your app will use this to send and receive data from Flowglad.
 
-<CodeGroup>
+```ts app/api/flowglad/[...path]/route.ts
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
 
-```ts Next.js
-// /api/flowglad/[...path]/route.ts
-import { createAppRouterRouteHandler } from '@flowglad/nextjs/server';
-import { flowgladServer } from '@/app/flowglad';
-
-const routeHandler = createAppRouterRouteHandler(flowgladServer);
-
-export { routeHandler as GET, routeHandler as POST }
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    // For B2C: return user.id (from your database)
+    // For B2B: return organization.id (from your database)
+    const userId = await getUserIdFromRequest(req)
+    if (!userId) {
+      throw new Error('User not authenticated')
+    }
+    return userId
+  },
+})
 ```
 
-
-```ts Other React Frameworks
-import { createFetchRequestHandler } from '@flowglad/nextjs/server'
-import { flowgladServer } from '@/app/flowglad'
-
-const flowgladFetchRequestHandler =
-  createFetchRequestHandler({
-    flowgladServer
-    // optional fields: onError, beforeRequest, afterRequest
-  })
-
-export const flowgladRouteHandler = async (
-  req: Request,
-  res: Response
-) => {
-  const result = await flowgladFetchRequestHandler(req)
-  return result
-}
-```
-
-</CodeGroup>
+<Note>
+The `getCustomerExternalId` function extracts the customer ID from **your app's database** (via your authentication system). Flowglad doesn't care how you authenticate—just return the ID from your system that represents the billing entity (user ID for B2C, organization ID for B2B). This is **not** Flowglad's customer ID.
+</Note>
 
 <Info>
   You can mount Flowglad's handler at a different route, but you'll
