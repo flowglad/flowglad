@@ -1,4 +1,3 @@
-'use server'
 import {
   FlowgladServer,
   createRequestHandler,
@@ -13,7 +12,7 @@ export const createAppRouterRouteHandler = (
 ) => {
   const handler = createRequestHandler({ flowgladServer, ...options })
 
-  return async (
+  const routeHandler = async (
     req: NextRequest,
     {
       params,
@@ -41,5 +40,9 @@ export const createAppRouterRouteHandler = (
         status: result.status,
       }
     )
+  }
+  return {
+    GET: routeHandler,
+    POST: routeHandler,
   }
 }

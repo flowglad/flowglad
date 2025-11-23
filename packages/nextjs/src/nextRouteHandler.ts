@@ -37,6 +37,13 @@ export interface NextRouteHandlerOptions {
   afterRequest?: () => Promise<void>
 }
 
+type NextRouteHandler = (
+  request: NextRequest,
+  {
+    params,
+  }: { params: Promise<{ path: string[] }> | { path: string[] } }
+) => Promise<NextResponse>
+
 /**
  * Creates a Next.js App Router route handler with per-request scoped FlowgladServer instances.
  *
@@ -72,7 +79,7 @@ export interface NextRouteHandlerOptions {
  * import { flowglad } from '@/lib/flowglad'
  * import { verifyToken } from '@/lib/auth'
  *
- * const handler = nextRouteHandler({
+ * export const { GET, POST } = nextRouteHandler({
  *   getCustomerExternalId: async (req) => {
  *     const token = req.headers.get('authorization')?.split(' ')[1]
  *     if (!token) throw new Error('Unauthorized')
@@ -82,7 +89,6 @@ export interface NextRouteHandlerOptions {
  *   flowglad,
  * })
  *
- * export { handler as GET, handler as POST }
  * ```
  *
  * @remarks
@@ -92,13 +98,16 @@ export interface NextRouteHandlerOptions {
  * - You have your own auth/session mechanism to extract customer ID
  * - You need flexibility in how the customer ID is determined (JWT, headers, cookies, etc.)
  *
- * Use `createAppRouterRouteHandler` instead when:
+ * Use `createAppRouterRouteHandler` instead if you are on the deprecated FlowgladServer integration pattern:
  * - You have a single FlowgladServer instance with built-in auth (Supabase, Clerk, etc.)
  * - Your auth is handled within FlowgladServer constructor params
  */
 export const nextRouteHandler = (
   options: NextRouteHandlerOptions
-) => {
+): {
+  GET: NextRouteHandler
+  POST: NextRouteHandler
+} => {
   const {
     getCustomerExternalId,
     flowglad,
@@ -107,7 +116,7 @@ export const nextRouteHandler = (
     afterRequest,
   } = options
 
-  return async (
+  const routeHandler = async (
     req: NextRequest,
     {
       params,
@@ -168,5 +177,9 @@ export const nextRouteHandler = (
         { status: 500 }
       )
     }
+  }
+  return {
+    GET: routeHandler,
+    POST: routeHandler,
   }
 }

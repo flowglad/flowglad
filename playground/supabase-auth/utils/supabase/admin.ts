@@ -1,6 +1,6 @@
 import { toDateTime } from '@/utils/helpers';
 import { createClient } from '@supabase/supabase-js';
-import type { Database, Tables, TablesInsert } from 'types_db';
+import type { Database, Tables, TablesInsert } from '@/types_db';
 
 type Product = Tables<'products'>;
 type Price = Tables<'prices'>;

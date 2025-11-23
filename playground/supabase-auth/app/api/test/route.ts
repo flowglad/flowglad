@@ -1,9 +1,18 @@
-import { flowgladServer } from '@/utils/flowglad';
+import { flowglad } from '@/utils/flowglad';
+import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
 export const GET = async () => {
   // get billing
-  const billing = await flowgladServer.getBilling();
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user?.id) {
+    throw new Error('User not found');
+  }
+  const scopedFlowglad = flowglad(user.id);
+  const billing = await scopedFlowglad.getBilling();
   // get current subscriptions and usage meter id
   const currentSubscriptions = billing.currentSubscriptions;
   const usageMeterId = billing.catalog.usageMeters[0]?.id;
@@ -28,7 +37,7 @@ export const GET = async () => {
   let currentSubscriptionId: string | undefined;
   if (!currentSubscriptions || currentSubscriptions.length === 0 || true) {
     const { subscription: newSubscription } =
-      await flowgladServer.createSubscription({
+      await scopedFlowglad.createSubscription({
         priceId,
         trialEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).getTime()
       });

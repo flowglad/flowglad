@@ -117,7 +117,7 @@ export const flowgladServer = new FlowgladServer({
 2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
 
 `// /api/flowglad/[...path]/route.ts
-'use server'
+
 import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
 import { flowgladServer } from '@/flowglad'
 
@@ -276,7 +276,7 @@ export const flowgladServer = new FlowgladServer({
 2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
 
 `// /api/flowglad/[...path]/route.ts
-'use server'
+
 import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
 import { flowgladServer } from '@/flowglad'
 

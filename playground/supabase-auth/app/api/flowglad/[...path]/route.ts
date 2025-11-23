@@ -1,9 +1,18 @@
-'use server';
-import { createAppRouterRouteHandler } from '@flowglad/nextjs/server';
-import { flowgladServer } from '@/utils/flowglad';
+import { nextRouteHandler } from '@flowglad/nextjs/server';
+import { flowglad } from '@/utils/flowglad';
+import { createClient } from '@/utils/supabase/server';
 
-const routeHandler = createAppRouterRouteHandler(flowgladServer);
-
-export const GET = routeHandler;
-
-export const POST = routeHandler;
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    const supabase = await createClient();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+    const userId = user?.id;
+    if (!userId) {
+      throw new Error('User not found');
+    }
+    return userId;
+  }
+});
