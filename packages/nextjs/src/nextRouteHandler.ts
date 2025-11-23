@@ -1,10 +1,6 @@
 import {
   createRequestHandler,
   FlowgladServer,
-} from '@flowglad/nextjs';
-import {
-  createRequestHandler,
-  FlowgladServer,
 } from '@flowglad/server'
 import { HTTPMethod } from '@flowglad/shared'
 import { NextRequest, NextResponse } from 'next/server'
