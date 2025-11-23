@@ -1259,7 +1259,7 @@ describe('priceMethods.ts', () => {
           {
             id: price.id,
             active: false,
-            slug: slug,
+            slug,
             type: PriceType.Subscription,
           },
           transaction
