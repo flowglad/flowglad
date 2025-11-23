@@ -105,7 +105,7 @@ export const reportUsage = async (data: {
       ...(data.properties && { properties: data.properties }),
     };
 
-    const result = await flowglad.createUsageEvent(usageEventPayload);
+    const result = await flowglad(data.customerId).createUsageEvent(usageEventPayload);
 
     console.log('Usage event created successfully:', result.usageEvent.id);
     return result.usageEvent;
