@@ -1,7 +1,7 @@
 import { FeatureType } from '@/types'
 import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import yaml from 'json-to-pretty-yaml'
-import { generateText, streamText, generateObject } from 'ai'
+import { generateObject } from 'ai'
 import { z } from 'zod'
 import { openai } from '@ai-sdk/openai'
 import {
@@ -9,7 +9,6 @@ import {
   getTurbopufferClient,
   getOpenAIClient,
 } from '@/utils/turbopuffer'
-import { fetchMarkdownFromDocs } from '@/utils/textContent'
 import { logger } from '@/utils/logger'
 
 /**
