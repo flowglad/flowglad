@@ -1286,7 +1286,7 @@ describe('priceMethods.ts', () => {
           isDefault: true,
           trialPeriodDays: 0,
           currency: CurrencyCode.USD,
-          slug: slug,
+          slug,
         })
 
         // Should return the active price, not the inactive one
