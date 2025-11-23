@@ -2,7 +2,6 @@ import { routeToHandlerMap } from './subrouteHandlers'
 import type { SubRouteHandler } from './subrouteHandlers/types'
 import { FlowgladServer } from './FlowgladServer'
 import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
-import { NextRequest } from 'next/server'
 
 /**
  * Input for the request handler.
