@@ -1292,7 +1292,7 @@ describe('priceMethods.ts', () => {
         // Should return the active price, not the inactive one
         const result = await selectPriceBySlugAndCustomerId(
           {
-            slug: slug,
+            slug,
             customerId: customer.id,
           },
           transaction
