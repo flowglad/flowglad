@@ -1,5 +1,4 @@
-import { router } from '@/server/trpc'
-import { publicProcedure } from '@/server/trpc'
+import { devOnlyProcedure, router } from '@/server/trpc'
 import { z } from 'zod'
 import {
   queryTurbopuffer,
@@ -26,7 +25,7 @@ const queryMultipleDocsSchema = z.object({
   topK: z.number().min(1).max(20).default(5),
 })
 
-const queryDocs = publicProcedure
+const queryDocs = devOnlyProcedure
   .input(queryDocsSchema)
   .query(async ({ input }) => {
     const tpuf = await getTurbopufferClient()
@@ -67,7 +66,7 @@ const queryDocs = publicProcedure
     }
   })
 
-const queryMultipleDocs = publicProcedure
+const queryMultipleDocs = devOnlyProcedure
   .input(queryMultipleDocsSchema)
   .query(async ({ input }) => {
     const tpuf = await getTurbopufferClient()
