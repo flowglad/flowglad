@@ -1075,6 +1075,10 @@ describe('Scoped FlowgladServer variant', () => {
       const params: ScopedFlowgladServerParams = {
         apiKey: 'test',
         customerExternalId: 'org_123',
+        getCustomerDetails: async () => ({
+          name: 'Org 123',
+          email: 'org_123@example.com',
+        }),
       }
       const server = new FlowgladServer(params)
 
@@ -1089,6 +1093,10 @@ describe('Scoped FlowgladServer variant', () => {
       const params: ScopedFlowgladServerParams = {
         apiKey: 'test',
         customerExternalId: 'user_456',
+        getCustomerDetails: async () => ({
+          name: 'User 456',
+          email: 'user_456@example.com',
+        }),
       }
       const server = new FlowgladServer(params)
 
@@ -1103,6 +1111,10 @@ describe('Scoped FlowgladServer variant', () => {
       const params: ScopedFlowgladServerParams = {
         apiKey: 'test',
         customerExternalId: '',
+        getCustomerDetails: async () => ({
+          name: '',
+          email: '',
+        }),
       }
       const server = new FlowgladServer(params)
 
@@ -1117,6 +1129,10 @@ describe('Scoped FlowgladServer variant', () => {
       const params: ScopedFlowgladServerParams = {
         apiKey: 'test',
         customerExternalId: '   ',
+        getCustomerDetails: async () => ({
+          name: '',
+          email: '',
+        }),
       }
       const server = new FlowgladServer(params)
 
@@ -1133,6 +1149,10 @@ describe('Scoped FlowgladServer variant', () => {
       const params: ScopedFlowgladServerParams = {
         apiKey: 'test',
         customerExternalId: 'org_123',
+        getCustomerDetails: async () => ({
+          name: 'Org 123',
+          email: 'org_123@example.com',
+        }),
       }
       const server = new FlowgladServer(params)
 
@@ -1148,6 +1168,10 @@ describe('Scoped FlowgladServer variant', () => {
       const params: ScopedFlowgladServerParams = {
         apiKey: 'test',
         customerExternalId: 'org_789',
+        getCustomerDetails: async () => ({
+          name: 'Org 789',
+          email: 'org_789@example.com',
+        }),
       }
       const server = new FlowgladServer(params)
 
@@ -1162,6 +1186,10 @@ describe('Scoped FlowgladServer variant', () => {
       const params: ScopedFlowgladServerParams = {
         apiKey: 'test',
         customerExternalId: 'user_abc',
+        getCustomerDetails: async () => ({
+          name: 'User ABC',
+          email: 'user_abc@example.com',
+        }),
       }
       const server = new FlowgladServer(params)
 
@@ -1180,6 +1208,10 @@ describe('Scoped FlowgladServer variant', () => {
       const scopedParams: ScopedFlowgladServerParams = {
         apiKey: 'test',
         customerExternalId: 'org_123',
+        getCustomerDetails: async () => ({
+          name: 'Org 123',
+          email: 'org_123@example.com',
+        }),
       }
 
       // TypeScript should enforce this at compile time
