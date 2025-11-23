@@ -1,4 +1,5 @@
 import { adminTransaction } from '@/db/adminTransaction'
+import { logger } from '@/utils/logger'
 import {
   selectOrganizationById,
   updateOrganization,
@@ -197,5 +198,17 @@ export const fetchMarkdownFromDocs = async (
     // File might not exist or there was a network error
     console.warn(`Could not fetch markdown file from ${url}:`, error)
     return null
+  }
+}
+
+export const getDocsLLMsText = async (): Promise<string> => {
+  const result = await fetch('https://docs.flowglad.com/llms.txt')
+  if (result.ok) {
+    return result.text()
+  } else {
+    logger.warn(
+      `Could not fetch LLMs text from https://docs.flowglad.com/llms.txt: ${result.status} ${result.statusText}`
+    )
+    return ''
   }
 }
