@@ -21,7 +21,10 @@ const queryDocsSchema = z.object({
 })
 
 const queryMultipleDocsSchema = z.object({
-  queries: z.array(z.string().min(1)).min(1),
+  /**
+   * reasonable defaults to avoid abuse
+   */
+  queries: z.array(z.string().min(1)).min(1).max(10),
   topK: z.number().min(1).max(20).default(5),
 })
 
