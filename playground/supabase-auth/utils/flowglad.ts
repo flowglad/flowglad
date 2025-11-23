@@ -8,7 +8,7 @@ export const flowglad = (customerExternalId: string) => {
       const supabase = await createClient();
       const {
         data: { user }
-      } = await supabase.auth.getUser(externalId);
+      } = await supabase.auth.getUser();
       return {
         email: user?.email || '',
         name: user?.user_metadata.name || user?.email || ''
