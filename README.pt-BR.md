@@ -112,7 +112,7 @@ export const flowgladServer = new FlowgladServer({
 2. Crie um manipulador de rota em `/api/flowglad/[...path]/route.ts`:
 
 `// /api/flowglad/[...path]/route.ts
-'use server'
+
 import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
 import { flowgladServer } from '@/flowglad'
 
@@ -270,7 +270,7 @@ export const flowgladServer = new FlowgladServer({
 2. Crie um manipulador de rota em `/api/flowglad/[...path]/route.ts`:
 
 `// /api/flowglad/[...path]/route.ts
-'use server'
+
 import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
 import { flowgladServer } from '@/flowglad'
 

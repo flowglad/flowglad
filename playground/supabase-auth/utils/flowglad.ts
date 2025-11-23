@@ -1,16 +1,19 @@
 import { FlowgladServer } from '@flowglad/nextjs/server';
 import { createClient } from '@/utils/supabase/server';
 
-export const flowgladServer = new FlowgladServer({
-  supabaseAuth: {
-    client: createClient
-  },
-  // getRequestingCustomer: async () => {
-  //   return {
-  //     email: 'test_lklkajsdlfkjasdfjalsfdjasdf@test.com',
-  //     name: 'Test User',
-  //     externalId: '___IPasdkfasdfasdfasdfjalks123'
-  //   };
-  // },
-  baseURL: 'http://localhost:3000'
-});
+export const flowglad = (customerExternalId: string) => {
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      const supabase = await createClient();
+      const {
+        data: { user }
+      } = await supabase.auth.getUser(externalId);
+      return {
+        email: user?.email || '',
+        name: user?.user_metadata.name || user?.email || ''
+      };
+    },
+    baseURL: 'http://localhost:3000'
+  });
+};
