@@ -8,6 +8,7 @@
 
 // Type-only imports for TypeScript (these don't cause runtime code to execute)
 import type { Turbopuffer } from '@turbopuffer/turbopuffer'
+import type { Row } from '@turbopuffer/turbopuffer/resources/namespaces'
 import type { OpenAI } from 'openai'
 
 export const getTurbopufferClient =
@@ -83,13 +84,13 @@ export const queryTurbopuffer = async (
     include_attributes: true,
   })
 
-  return (queryResult.rows || []).map((row: any) => ({
+  return (queryResult.rows || []).map((row: Row) => ({
     id: row.id,
-    $dist: row.$dist,
+    $dist: row.$dist!,
     path: (row.path as string) || '',
-    title: row.title,
-    description: row.description,
-    text: row.text,
+    title: row.title as string,
+    description: row.description as string,
+    text: row.text as string,
   }))
 }
 
