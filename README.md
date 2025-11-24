@@ -200,7 +200,9 @@ export function UsageBalanceIndicator({ usageMeterSlug }) {
 ```ts
 import { NextResponse } from 'next/server'
 import { flowglad } from '@/utils/flowglad'
-// ...
+
+const hasFastGenerations = async () => {
+  // ...
   const user = await getUser()
 
   const billing = await flowglad(user.id).getBilling()
@@ -210,12 +212,13 @@ import { flowglad } from '@/utils/flowglad'
   } else {
     // fall back to normal generations
   }
+}
 ```
 
 ```ts
 import { flowglad } from '@/utils/flowglad'
 
-+const processChatMessage = async (params: { chat: string }) => {
+const processChatMessage = async (params: { chat: string }) => {
   // Extract your app's user/org/team ID,
   // whichever corresponds to your customer
   const user = await getUser()
