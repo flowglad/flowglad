@@ -1,14 +1,26 @@
 import { createMcpHandler, withMcpAuth } from 'mcp-handler'
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
-import { toolSet } from '@/mcp/toolSet'
 import core from '@/utils/core'
 import { verifyApiKey } from '@/utils/unkey'
+import { z } from 'zod/v3'
 
 // Create MCP handler with tools
 const handler = createMcpHandler(
   (server) => {
     // Register all tools - mcp-handler will auto-discover them
-    toolSet(server, '')
+    // toolSet(server, '')
+    server.registerTool(
+      'echoTest',
+      {
+        description: 'Echo a test message',
+        inputSchema: {
+          message: z.string(),
+        },
+      },
+      async ({ message }) => ({
+        content: [{ type: 'text', text: `Tool echo: ${message}` }],
+      })
+    )
   },
   {},
   {
