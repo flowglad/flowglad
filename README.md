@@ -143,7 +143,7 @@ That’s it—Flowglad will use your app’s internal user IDs for all billing l
 
 _Flowglad does not require you to change your authentication system or manage Flowglad customer IDs. Just pass your own!_
 
-4. Use `useBilling` on your frontend, and `flowglad().getBilling()` on your backend
+4. Use `useBilling` on your frontend, and `flowglad(userId).getBilling()` on your backend
 
 ### Frontend Example: Checking Feature Access and Usage
 ```tsx
