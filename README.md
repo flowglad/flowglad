@@ -145,7 +145,7 @@ _Flowglad does not require you to change your authentication system or manage Fl
 
 4. Use `useBilling` on your frontend, and `flowglad().getBilling()` on your backend
 
-**Frontend Example: Checking Feature Access and Usage**
+### Frontend Example: Checking Feature Access and Usage
 ```tsx
 'use client'
 
@@ -196,7 +196,7 @@ export function UsageBalanceIndicator({ usageMeterSlug }) {
 }
 ```
 
-**Backend Example: Server-side Feature and Usage Checks**
+### Backend Example: Server-side Feature and Usage Checks
 ```ts
 import { NextResponse } from 'next/server'
 import { flowglad } from '@/utils/flowglad'

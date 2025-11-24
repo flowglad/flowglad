@@ -49,11 +49,19 @@ export const { GET, POST } = nextRouteHandler({
     // for B2B apps, provide organization or team id instead
     const user = await getUserForReq(req)
     return user.id
+  },
+  // optional hooks for custom behavior
+  beforeRequest: async () => {
+    // side effect to run before the request is processed
+  },
+  afterRequest: async () => {
+    // side effect to run after the request is processed
+  },
+  onError: (error) => {
+    // handle errors
   }
 })
 ```
-
-You can pass a second argument with `beforeRequest`, `afterRequest`, or `onError` hooks if you need custom behavior.
 
 ### Client Exports
 

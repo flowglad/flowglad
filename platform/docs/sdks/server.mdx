@@ -332,22 +332,6 @@ interface CreateUsageEventParams {
 
 ```typescript
 import { FlowgladServer } from '@flowglad/server'
-
-export function requireFeature(featureId: string) {
-  return async (req, res, next) => {
-    const billing = await flowgladServer.getBilling()
-    const hasAccess = billing.checkFeatureAccess(featureId)
-
-    if (!hasAccess) {
-      return res.status(403).json({
-        error: 'Feature not available',
-        message: 'Please upgrade your plan to access this feature',
-      })
-    }
-
-    next()
-  }
-import { FlowgladServer } from '@flowglad/server'
 import { db } from './db'
 
 // Factory function to create scoped instance
