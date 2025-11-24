@@ -6,6 +6,8 @@ import {
   validateRouteConfigStructure,
   validateStandardCrudMappings,
 } from './routeConfigs.test-utils'
+import { z } from 'zod'
+import { usageEventsClientInsertSchema } from '@/db/schema/usageEvents'
 
 describe('usageEventsRouteConfigs', () => {
   // Helper function to find route config in the array
@@ -311,6 +313,118 @@ describe('usageEventsRouteConfigs', () => {
         'usage-events',
         'usageEvents'
       )
+    })
+  })
+
+  describe('POST /usage-events schema validation', () => {
+    it('should accept priceSlug in POST /usage-events request body', () => {
+      const routeConfig = findRouteConfig('POST /usage-events')
+
+      expect(routeConfig?.procedure).toBe('usageEvents.create')
+
+      // Test with priceSlug instead of priceId
+      const testBodyWithPriceSlug = {
+        usageEvent: {
+          subscriptionId: 'sub-123',
+          priceSlug: 'price-slug-456',
+          amount: 100,
+          transactionId: 'txn-123',
+        },
+      }
+      const result = routeConfig!.mapParams([], testBodyWithPriceSlug)
+      expect(result).toEqual(testBodyWithPriceSlug)
+    })
+
+    describe('priceSlug support schema validation', () => {
+      // Create the schema that matches what's used in the router
+      const createUsageEventWithSlugSchema = z
+        .object({
+          usageEvent: usageEventsClientInsertSchema
+            .omit({ priceId: true })
+            .extend({
+              priceId: z
+                .string()
+                .optional()
+                .describe(
+                  'The internal ID of the price. If not provided, priceSlug is required.'
+                ),
+              priceSlug: z
+                .string()
+                .optional()
+                .describe(
+                  'The slug of the price. If not provided, priceId is required.'
+                ),
+            }),
+        })
+        .refine(
+          (data) =>
+            data.usageEvent.priceId
+              ? !data.usageEvent.priceSlug
+              : !!data.usageEvent.priceSlug,
+          {
+            message:
+              'Either priceId or priceSlug must be provided, but not both',
+            path: ['usageEvent', 'priceId'],
+          }
+        )
+
+      const baseValidInput = {
+        subscriptionId: 'sub-123',
+        amount: 100,
+        transactionId: 'txn-123',
+      }
+
+      describe('valid inputs', () => {
+        it('should accept priceId only', () => {
+          const result = createUsageEventWithSlugSchema.parse({
+            usageEvent: {
+              ...baseValidInput,
+              priceId: 'price-123',
+            },
+          })
+          expect(result.usageEvent.priceId).toBe('price-123')
+          expect(result.usageEvent.priceSlug).toBeUndefined()
+        })
+
+        it('should accept priceSlug only', () => {
+          const result = createUsageEventWithSlugSchema.parse({
+            usageEvent: {
+              ...baseValidInput,
+              priceSlug: 'price-slug-123',
+            },
+          })
+          expect(result.usageEvent.priceSlug).toBe('price-slug-123')
+          expect(result.usageEvent.priceId).toBeUndefined()
+        })
+      })
+
+      describe('invalid inputs - mutual exclusivity', () => {
+        it('should reject when both priceId and priceSlug are provided', () => {
+          expect(() => {
+            createUsageEventWithSlugSchema.parse({
+              usageEvent: {
+                ...baseValidInput,
+                priceId: 'price-123',
+                priceSlug: 'price-slug-123',
+              },
+            })
+          }).toThrow(
+            'Either priceId or priceSlug must be provided, but not both'
+          )
+        })
+
+        it('should reject when neither priceId nor priceSlug is provided', () => {
+          expect(() => {
+            createUsageEventWithSlugSchema.parse({
+              usageEvent: {
+                ...baseValidInput,
+              },
+            })
+          }).toThrow(
+            'Either priceId or priceSlug must be provided, but not both'
+          )
+        })
+      })
     })
   })
 })

@@ -1035,5 +1035,61 @@ describe('Swagger Configuration', () => {
         expect(priceSlugDesc).toBe(PRICE_SLUG_DESCRIPTION)
       })
     })
+
+    describe('POST /usage-events', () => {
+      const basePath = '/api/v1/usage-events'
+      let schemaObject: SchemaObjectWithProperties | undefined
+
+      beforeEach(() => {
+        const usageEventEndpoint = paths?.[basePath]?.post
+        const requestBody = usageEventEndpoint?.requestBody
+        const rawSchema = isRequestBodyObject(requestBody)
+          ? requestBody.content?.['application/json']?.schema
+          : undefined
+        // Type guard to narrow from SchemaObject | ReferenceObject to SchemaObject
+        schemaObject =
+          rawSchema && isSchemaObject(rawSchema)
+            ? rawSchema
+            : undefined
+
+        expect(schemaObject?.properties).toBeDefined()
+      })
+
+      it('should include priceId as optional with description in usageEvent', () => {
+        // Navigate to usageEvent.properties
+        const usageEventSchema =
+          schemaObject?.properties?.usageEvent as SchemaObjectWithProperties
+        expect(usageEventSchema?.properties).toBeDefined()
+
+        // Verify it's not in required array (it's optional)
+        const required = usageEventSchema?.required || []
+        expect(required).not.toContain('priceId')
+
+        // Verify exact description from implementation
+        const priceIdDesc =
+          usageEventSchema?.properties?.priceId?.description || ''
+        expect(priceIdDesc).toBe(
+          'The internal ID of the price. If not provided, priceSlug is required.'
+        )
+      })
+
+      it('should include priceSlug as optional with description in usageEvent', () => {
+        // Navigate to usageEvent.properties
+        const usageEventSchema =
+          schemaObject?.properties?.usageEvent as SchemaObjectWithProperties
+        expect(usageEventSchema?.properties).toBeDefined()
+
+        // Verify it's not in required array (it's optional)
+        const required = usageEventSchema?.required || []
+        expect(required).not.toContain('priceSlug')
+
+        // Verify exact description from implementation
+        const priceSlugDesc =
+          usageEventSchema?.properties?.priceSlug?.description || ''
+        expect(priceSlugDesc).toBe(
+          'The slug of the price. If not provided, priceId is required.'
+        )
+      })
+    })
   })
 })

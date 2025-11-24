@@ -28,6 +28,7 @@ import { usageEventsRouter } from './usageEventsRouter'
 import { http, HttpResponse } from 'msw'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
+import { updatePrice } from '@/db/tableMethods/priceMethods'
 
 describe('usageEventsRouter', () => {
   let org1Data: Awaited<ReturnType<typeof setupOrg>>
@@ -509,6 +510,155 @@ describe('usageEventsRouter', () => {
       // Should return empty results
       expect(result.items).toEqual([])
       expect(result.total).toBe(0)
+    })
+  })
+
+  describe('create procedure with price slug support', () => {
+    it('should create usage event with priceId (existing behavior)', async () => {
+      const caller = usageEventsRouter.createCaller({
+        organizationId: org1Data.organization.id,
+        apiKey: org1ApiKeyToken,
+        livemode: true,
+        environment: 'live',
+        isApi: true,
+        path: '',
+        user: null,
+        session: null,
+      } as any)
+
+      const result = await caller.create({
+        usageEvent: {
+          subscriptionId: subscription1.id,
+          priceId: price1.id,
+          amount: 150,
+          transactionId: `txn_create_with_priceId_${Date.now()}`,
+        },
+      })
+
+      expect(result.usageEvent).toBeDefined()
+      expect(result.usageEvent.priceId).toBe(price1.id)
+      expect(result.usageEvent.amount).toBe(150)
+      expect(result.usageEvent.subscriptionId).toBe(subscription1.id)
+    })
+
+    it('should create usage event with priceSlug (new behavior)', async () => {
+      // First, update price1 to have a slug
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await updatePrice(
+            {
+              id: price1.id,
+              slug: 'test-price-slug',
+              type: price1.type,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+
+      const caller = usageEventsRouter.createCaller({
+        organizationId: org1Data.organization.id,
+        apiKey: org1ApiKeyToken,
+        livemode: true,
+        environment: 'live',
+        isApi: true,
+        path: '',
+        user: null,
+        session: null,
+      } as any)
+
+      const result = await caller.create({
+        usageEvent: {
+          subscriptionId: subscription1.id,
+          priceSlug: 'test-price-slug',
+          amount: 200,
+          transactionId: `txn_create_with_priceSlug_${Date.now()}`,
+        },
+      })
+
+      expect(result.usageEvent).toBeDefined()
+      expect(result.usageEvent.priceId).toBe(price1.id)
+      expect(result.usageEvent.amount).toBe(200)
+      expect(result.usageEvent.subscriptionId).toBe(subscription1.id)
+    })
+
+    it('should throw error when invalid priceSlug is provided', async () => {
+      const caller = usageEventsRouter.createCaller({
+        organizationId: org1Data.organization.id,
+        apiKey: org1ApiKeyToken,
+        livemode: true,
+        environment: 'live',
+        isApi: true,
+        path: '',
+        user: null,
+        session: null,
+      } as any)
+
+      await expect(
+        caller.create({
+          usageEvent: {
+            subscriptionId: subscription1.id,
+            priceSlug: 'invalid-slug-does-not-exist',
+            amount: 250,
+            transactionId: `txn_invalid_slug_${Date.now()}`,
+          },
+        })
+      ).rejects.toThrow(
+        "Price with slug invalid-slug-does-not-exist not found for this customer's pricing model"
+      )
+    })
+
+    it('should throw error when both priceId and priceSlug are provided', async () => {
+      const caller = usageEventsRouter.createCaller({
+        organizationId: org1Data.organization.id,
+        apiKey: org1ApiKeyToken,
+        livemode: true,
+        environment: 'live',
+        isApi: true,
+        path: '',
+        user: null,
+        session: null,
+      } as any)
+
+      await expect(
+        caller.create({
+          usageEvent: {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            priceSlug: 'test-price-slug',
+            amount: 300,
+            transactionId: `txn_both_provided_${Date.now()}`,
+          },
+        })
+      ).rejects.toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
+
+    it('should throw error when neither priceId nor priceSlug is provided', async () => {
+      const caller = usageEventsRouter.createCaller({
+        organizationId: org1Data.organization.id,
+        apiKey: org1ApiKeyToken,
+        livemode: true,
+        environment: 'live',
+        isApi: true,
+        path: '',
+        user: null,
+        session: null,
+      } as any)
+
+      await expect(
+        caller.create({
+          usageEvent: {
+            subscriptionId: subscription1.id,
+            amount: 350,
+            transactionId: `txn_neither_provided_${Date.now()}`,
+          },
+        })
+      ).rejects.toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
     })
   })
 })
