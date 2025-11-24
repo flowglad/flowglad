@@ -43,7 +43,7 @@
   </p>
 </div>
 
-![nav-demo](/./public/nat-lang-demo.gif)
+![nav-demo](/./public/fg-demo.gif)
 
 ## Features
 
