@@ -299,7 +299,7 @@ export function requireFeature(featureSlug: string) {
         return res.status(401).json({ error: 'Unauthorized' })
       }
 
-      const billing = await getFlowgladServer(userId).getBilling()
+      const billing = await flowglad(userId).getBilling()
       const hasAccess = billing.checkFeatureAccess(featureSlug)
 
       if (!hasAccess) {
