@@ -809,5 +809,119 @@ describe('usageEventsRouter', () => {
         'Either priceId or priceSlug must be provided, but not both'
       )
     })
+
+    it('should bulk insert usage events for multiple customers and subscriptions', async () => {
+      // Setup a second customer and subscription in org1
+      const customer1b = await setupCustomer({
+        organizationId: org1Data.organization.id,
+        email: `customer1b+${Date.now()}@test.com`,
+      })
+
+      const paymentMethod1b = await setupPaymentMethod({
+        organizationId: org1Data.organization.id,
+        customerId: customer1b.id,
+        type: PaymentMethodType.Card,
+      })
+
+      const subscription1b = await setupSubscription({
+        organizationId: org1Data.organization.id,
+        customerId: customer1b.id,
+        paymentMethodId: paymentMethod1b.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+      })
+
+      const billingPeriod1b = await setupBillingPeriod({
+        subscriptionId: subscription1b.id,
+        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+      })
+
+      // Setup price slugs for both customers
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await updatePrice(
+            {
+              id: price1.id,
+              slug: 'multi-customer-price-slug',
+              type: price1.type,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      const timestamp = Date.now()
+      const result = await caller.bulkInsert({
+        usageEvents: [
+          {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            amount: 100,
+            transactionId: `txn_multi_customer_1_${timestamp}`,
+          },
+          {
+            subscriptionId: subscription1b.id,
+            priceId: price1.id,
+            amount: 200,
+            transactionId: `txn_multi_customer_2_${timestamp}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            priceSlug: 'multi-customer-price-slug',
+            amount: 150,
+            transactionId: `txn_multi_customer_3_${timestamp}`,
+          },
+          {
+            subscriptionId: subscription1b.id,
+            priceSlug: 'multi-customer-price-slug',
+            amount: 250,
+            transactionId: `txn_multi_customer_4_${timestamp}`,
+          },
+        ],
+      })
+
+      // Should successfully insert all 4 events
+      expect(result.usageEvents).toHaveLength(4)
+
+      // Verify each event has the correct customer and subscription
+      const eventsForSub1 = result.usageEvents.filter(
+        (e) => e.subscriptionId === subscription1.id
+      )
+      const eventsForSub1b = result.usageEvents.filter(
+        (e) => e.subscriptionId === subscription1b.id
+      )
+
+      expect(eventsForSub1).toHaveLength(2)
+      expect(eventsForSub1b).toHaveLength(2)
+
+      // Verify customer IDs are correctly assigned
+      eventsForSub1.forEach((event) => {
+        expect(event.customerId).toBe(customer1.id)
+        expect(event.billingPeriodId).toBe(billingPeriod1.id)
+      })
+
+      eventsForSub1b.forEach((event) => {
+        expect(event.customerId).toBe(customer1b.id)
+        expect(event.billingPeriodId).toBe(billingPeriod1b.id)
+      })
+
+      // Verify all events resolved to the correct price
+      result.usageEvents.forEach((event) => {
+        expect(event.priceId).toBe(price1.id)
+      })
+
+      // Verify amounts match the input
+      expect(result.usageEvents[0].amount).toBe(100)
+      expect(result.usageEvents[1].amount).toBe(200)
+      expect(result.usageEvents[2].amount).toBe(150)
+      expect(result.usageEvents[3].amount).toBe(250)
+    })
   })
 })

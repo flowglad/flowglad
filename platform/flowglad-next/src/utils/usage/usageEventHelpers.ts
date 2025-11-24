@@ -33,7 +33,10 @@ export const createUsageEventWithSlugSchema = z
     usageEvent: usageEventsClientInsertSchema
       .omit({ priceId: true })
       .extend({
-        priceId: z.string().optional().describe(USAGE_EVENT_PRICE_ID_DESCRIPTION),
+        priceId: z
+          .string()
+          .optional()
+          .describe(USAGE_EVENT_PRICE_ID_DESCRIPTION),
         priceSlug: z
           .string()
           .optional()
