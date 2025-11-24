@@ -33,181 +33,58 @@ FLOWGLAD_SECRET_KEY="sk_test_..."
 
 ### 2. Create Server Client
 
-Create a Flowglad server instance in a shared file:
+Create a Flowglad server factory function in a shared file:
 
-<CodeGroup>
-
-```ts app/lib/flowglad.ts (App Router)
+```ts utils/flowglad.ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    // Return customer information based on your auth
-    return {
-      externalId: 'user-123',
-      name: 'John Doe',
-      email: 'john@example.com',
-    }
-  },
-})
-```
-
-```ts lib/flowglad.ts (Pages Router)
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    // Return customer information based on your auth
-    return {
-      externalId: 'user-123',
-      name: 'John Doe',
-      email: 'john@example.com',
-    }
-  },
-})
-```
-
-</CodeGroup>
-
-<Info>
-Native constructor params are available for popular auth providers including Supabase Auth, Clerk, NextAuth, Better Auth. Read more about auth adapters [here](/sdks/auth-adapters)
-</Info>
-
-<CodeGroup>
-
-```ts Supabase Auth
-import { FlowgladServer } from '@flowglad/nextjs/server'
-// or wherever you initialize your supabase client
-import { createClient } from '@/utils/supabase'
-
-export const flowgladServer = new FlowgladServer({
-  supabaseAuth: {
-    client: createClient
-  },
-})
-```
-
-
-```ts Clerk
-import { currentUser } from '@clerk/nextjs/server'
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowgladServer = new FlowgladServer({
-  clerk: {
-    currentUser,
-  },
-})
-```
-
-
-```ts NextAuth
-import { auth } from '@/auth' // your initialized, configured NextAuth client
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowgladServer = new FlowgladServer({
-  nextAuth: {
-    auth,
-  },
-})
-```
-
-
-```ts Better Auth
-import { auth } from '@/lib/auth'; // your Better Auth instance in auth.ts
-import { headers } from 'next/headers';
-import { FlowgladServer } from '@flowglad/nextjs/server';
-
-export const flowgladServer = new FlowgladServer({
-  betterAuth: {
-    getSession: async () => auth.api.getSession({ headers: await headers() }),
-  },
-});
-```
-
-
-```ts Custom Auth
-import { FlowgladServer } from '@flowglad/nextjs/server'
-// or whatever function you use to retrieve your session
-import { getBespokeSession } from '@/utils/auth'
-
-// if you can load sessions using an enclosed function
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: async () => {
-    const customSessionObject = await getBespokeSession()
-    return {
-      externalId: customSessionObject.id,
-      name: customSessionObject.name,
-      email: customSessionObject.email,
-    }
-  }
-})
-
-// if you derive your session from a request / cookies / headers object:
-const flowgladServer = (request: Request) => {
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
   return new FlowgladServer({
-    getRequestingCustomer: async () => {
-      const customSessionObject = await getBespokeSession(request)
-      return {
-        externalId: customSessionObject.id,
-        name: customSessionObject.name,
-        email: customSessionObject.email,
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
       }
-    }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
   })
 }
 ```
 
-```ts Custom Auth Example: Firebase
-import { FlowgladServer } from '@flowglad/server'
-import admin from 'firebase-admin'
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
 
-admin.initializeApp()
-
-export const flowgladServer = (request: Request) =>
-  new FlowgladServer({
-    getRequestingCustomer: async () => {
-      const token = request.headers.get('authorization')?.replace('Bearer ', '')
-
-      if (!token) return null
-
-      try {
-        const decodedToken = await admin.auth().verifyIdToken(token)
-
-        return {
-          externalId: decodedToken.uid,
-          name: decodedToken.name || decodedToken.email!,
-          email: decodedToken.email!,
-        }
-      } catch (error) {
-        return null
-      }
-    }
-  })
-```
-
-</CodeGroup>
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+</Note>
 
 ### 3. Create API Route Handler
 
-<CodeGroup>
-
 ```ts app/api/flowglad/[...path]/route.ts (App Router)
-import { flowgladServer } from '@/app/lib/flowglad'
-import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
 
-const { GET, POST } = createAppRouterRouteHandler(flowgladServer)
-
-export { GET, POST }
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    // For B2C: return user.id (from your database)
+    // For B2B: return organization.id (from your database)
+    const userId = await getUserIdFromRequest(req)
+    if (!userId) {
+      throw new Error('User not authenticated')
+    }
+    return userId
+  },
+})
 ```
-
-```ts pages/api/flowglad/[...path].ts (Pages Router)
-import { flowgladServer } from '@/lib/flowglad'
-import { createPagesRouterRouteHandler } from '@flowglad/nextjs/server'
-
-export default createPagesRouterRouteHandler(flowgladServer)
-```
-
-</CodeGroup>
 
 ### 4. Wrap Your App with FlowgladProvider
 

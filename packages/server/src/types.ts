@@ -115,6 +115,14 @@ export interface ClerkFlowgladServerSessionParams
 }
 
 export interface ScopedFlowgladServerParams {
+  /**
+   * The customer ID from YOUR app's database (e.g., user.id or organization.id).
+   * This is NOT Flowglad's customer ID—Flowglad uses this external ID to identify
+   * and create customers in its system.
+   *
+   * For B2C apps: Use your user.id
+   * For B2B apps: Use your organization.id or team.id
+   */
   customerExternalId: string
   baseURL?: string
   apiKey?: string
@@ -125,7 +133,7 @@ export interface ScopedFlowgladServerParams {
    * for a customer that doesn't yet exist. Implement this to fetch the customer's
    * name and email from your database based on their customer ID.
    *
-   * @param customerExternalId - The external customer ID from your system
+   * @param customerExternalId - The external customer ID from YOUR system (not Flowglad's)
    * @returns Promise resolving to an object containing the customer's name and email
    *
    * @example

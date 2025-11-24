@@ -34,31 +34,60 @@ A Next.js app with authentication and billing interation, demonstrating a pricin
 
 ## Complete Integration Examples
 
-### Next.js with Supabase Auth
+### Next.js Setup
 
-Full setup for a Next.js application with Supabase authentication:
+Full setup for a Next.js application:
 
 <CodeGroup>
 
 ```ts utils/flowglad.ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
-import { createClient } from '@/utils/supabase/server'
 
-export const flowgladServer = new FlowgladServer({
-  supabaseAuth: {
-    client: createClient,
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
+```
+
+```ts app/api/flowglad/[...path]/route.ts
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    // For B2C: return user.id (from your database)
+    // For B2B: return organization.id (from your database)
+    const userId = await getUserIdFromRequest(req)
+    if (!userId) {
+      throw new Error('User not authenticated')
+    }
+    return userId
   },
 })
 ```
 
-```ts app/api/flowglad/[...path]/route.ts
-import { flowgladServer } from '@/utils/flowglad'
-import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
 
-const { GET, POST } = createAppRouterRouteHandler({ flowgladServer })
-
-export { GET, POST }
-```
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+</Note>
 
 ```tsx app/layout.tsx
 import { FlowgladProvider } from '@flowglad/nextjs'
@@ -169,21 +198,34 @@ import { createFlowgladExpressRouter } from '@flowglad/express'
 
 const app = express()
 
-const flowgladServerConstructor = (req: Request) =>
-  new FlowgladServer({
-    getRequestingCustomer: async () => {
-      const token = req.headers.authorization?.replace('Bearer ', '')
-      const user = await verifyToken(token)
-      
-      return user
-        ? {
-            externalId: user.id,
-            name: user.name,
-            email: user.email,
-          }
-        : null
+const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
+      }
     },
   })
+}
+
++const flowgladServerConstructor = async (req: Request) => {
+  // Extract customerExternalId from your auth/session
+  // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  const user = await verifyToken(token)
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+  return flowglad(user.id)
+}
 
 app.use(
   '/api/flowglad',
@@ -235,12 +277,29 @@ export function FeatureGate({
 ```
 
 ```ts Server Middleware
-import { flowgladServer } from './flowglad'
+import { FlowgladServer } from '@flowglad/server'
+import { db } from './db'
+
+// Factory function to create scoped instance
+function flowglad(customerExternalId: string) {
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (id) => {
+      const user = await db.users.findOne({ id })
+      return { name: user.name, email: user.email }
+    },
+  })
+}
 
 export function requireFeature(featureSlug: string) {
   return async (req, res, next) => {
     try {
-      const billing = await flowgladServer.getBilling()
+      const userId = req.user?.id
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
+      const billing = await flowglad(userId).getBilling()
       const hasAccess = billing.checkFeatureAccess(featureSlug)
 
       if (!hasAccess) {
@@ -268,13 +327,15 @@ app.get('/api/premium-data', requireFeature('premium_feature'), (req, res) => {
 ### Usage Metering
 
 ```ts
-import { flowgladServer } from './flowglad'
+import { flowglad } from './flowglad'
 
 export async function trackAPICall(
   endpoint: string,
+  customerExternalId: string,
   quantity: number = 1
 ) {
-  await flowgladServer.createUsageEvent({
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  await flowglad(customerExternalId).createUsageEvent({
     usageMeterId: 'usage_meter_api_calls',
     subscriptionId: 'sub_123',
     priceId: 'price_usage_meter',
@@ -290,7 +351,9 @@ export async function trackAPICall(
 
 // Usage in API routes
 app.get('/api/data', async (req, res) => {
-  await trackAPICall('/api/data')
+  // Extract customerExternalId from your auth/session
+  const userId = await getUserIdFromRequest(req)
+  await trackAPICall('/api/data', userId)
   
   const data = await fetchData()
   res.json(data)

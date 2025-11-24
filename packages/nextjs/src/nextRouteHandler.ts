@@ -11,8 +11,11 @@ import { NextRequest, NextResponse } from 'next/server'
 export interface NextRouteHandlerOptions {
   /**
    * Function to extract the customer external ID from the Next.js request.
+   * The customerExternalId should be from YOUR app's database (e.g., user.id or organization.id),
+   * NOT Flowglad's customer ID.
+   *
    * @param req - The Next.js request object
-   * @returns The customer external ID
+   * @returns The customer external ID from your app's database
    */
   getCustomerExternalId: (req: NextRequest) => Promise<string>
   /**
