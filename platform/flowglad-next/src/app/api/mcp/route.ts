@@ -3,6 +3,11 @@ import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
 import core from '@/utils/core'
 import { verifyApiKey } from '@/utils/unkey'
 import { z } from 'zod/v3'
+import {
+  queryTurbopuffer,
+  getTurbopufferClient,
+  getOpenAIClient,
+} from '@/utils/turbopuffer'
 
 // Create MCP handler with tools
 const handler = createMcpHandler(
@@ -20,6 +25,85 @@ const handler = createMcpHandler(
       async ({ message }) => ({
         content: [{ type: 'text', text: `Tool echo: ${message}` }],
       })
+    )
+
+    // Query Flowglad documentation using Turbopuffer vector search
+    server.registerTool(
+      'queryDocs',
+      {
+        description:
+          'Search Flowglad documentation using semantic vector search. Returns relevant documentation sections based on the query.',
+        inputSchema: {
+          query: z
+            .string()
+            .min(1)
+            .describe(
+              'The search query to find relevant documentation'
+            ),
+          topK: z
+            .number()
+            .min(1)
+            .max(20)
+            .default(5)
+            .optional()
+            .describe(
+              'Number of results to return (default: 5, max: 20)'
+            ),
+        },
+      },
+      async ({ query, topK = 5 }) => {
+        try {
+          const tpuf = await getTurbopufferClient()
+          const openai = await getOpenAIClient()
+
+          const results = await queryTurbopuffer(
+            query,
+            topK,
+            'flowglad-docs',
+            tpuf,
+            openai
+          )
+
+          if (results.length === 0) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `No documentation found for query: "${query}"`,
+                },
+              ],
+            }
+          }
+
+          // Format results nicely
+          const formattedResults = results
+            .map((result, index) => {
+              const distance = (1 - result.$dist).toFixed(4) // Convert distance to similarity score
+              return `Result ${index + 1} (similarity: ${distance}):
+Path: ${result.path}
+${result.title ? `Title: ${result.title}\n` : ''}${result.description ? `Description: ${result.description}\n` : ''}${result.text ? `Content: ${result.text.substring(0, 500)}${result.text.length > 500 ? '...' : ''}\n` : ''}`
+            })
+            .join('\n' + '='.repeat(80) + '\n\n')
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Found ${results.length} result(s) for query: "${query}"\n\n${formattedResults}`,
+              },
+            ],
+          }
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error querying documentation: ${error instanceof Error ? error.message : String(error)}`,
+              },
+            ],
+          }
+        }
+      }
     )
   },
   {},
