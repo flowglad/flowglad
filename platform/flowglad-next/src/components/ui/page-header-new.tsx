@@ -36,7 +36,7 @@ import { cn } from '@/lib/utils'
 interface StatusBadge {
   icon?: React.ReactNode
   label: React.ReactNode
-  variant?: 'active' | 'muted'
+  variant?: 'active' | 'muted' | 'destructive' | 'warning'
 }
 
 interface PageHeaderAction {
@@ -130,7 +130,11 @@ export function PageHeaderNew({
                   badge.variant === 'active' &&
                     'text-[hsl(var(--jade-muted-foreground))]',
                   badge.variant === 'muted' &&
-                    'text-muted-foreground opacity-80'
+                    'text-muted-foreground opacity-80',
+                  badge.variant === 'destructive' &&
+                    'text-destructive',
+                  badge.variant === 'warning' &&
+                    'text-yellow-600 dark:text-yellow-400'
                 )}
               >
                 {badge.icon && (
