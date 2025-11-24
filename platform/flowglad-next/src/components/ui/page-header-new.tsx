@@ -190,6 +190,7 @@ export function PageHeaderNew({
               size="icon"
               onClick={onMoreMenuClick}
               className="w-9 h-9 min-w-9 max-w-9 shrink-0"
+              aria-label="More options"
             >
               <MoreHorizontal className="w-4 h-4" />
             </Button>
