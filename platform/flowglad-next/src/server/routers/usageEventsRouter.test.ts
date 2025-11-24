@@ -485,7 +485,7 @@ describe('usageEventsRouter', () => {
   })
 
   describe('create procedure with price slug support', () => {
-    it('should create usage event with priceId (existing behavior)', async () => {
+    it('should create usage event with priceId', async () => {
       const caller = createCaller(
         org1Data.organization,
         org1ApiKeyToken
