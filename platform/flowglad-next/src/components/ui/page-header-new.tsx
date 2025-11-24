@@ -114,7 +114,7 @@ export function PageHeaderNew({
         )}
 
         {/* Page title */}
-        <h1 className=" text-2xl text-foreground leading-[1.35] w-full">
+        <h1 className="text-2xl text-foreground leading-[1.35] w-full">
           {title}
         </h1>
       </div>
