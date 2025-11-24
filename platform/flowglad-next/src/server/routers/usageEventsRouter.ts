@@ -7,7 +7,6 @@ import {
   usageEventsPaginatedTableRowInputSchema,
   usageEventsPaginatedTableRowOutputSchema,
   UsageEvent,
-  usageEventsClientInsertSchema,
 } from '@/db/schema/usageEvents'
 import {
   bulkInsertOrDoNothingUsageEventsByTransactionId,
@@ -28,11 +27,13 @@ import { idInputSchema } from '@/db/tableUtils'
 import { z } from 'zod'
 import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
-import { selectPrices, selectPriceBySlugAndCustomerId } from '@/db/tableMethods/priceMethods'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { PriceType } from '@/types'
-import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
-import { TRPCError } from '@trpc/server'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import {
+  ingestAndProcessUsageEvent,
+  createUsageEventWithSlugSchema,
+  resolveUsageEventInput,
+} from '@/utils/usage/usageEventHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageEvent',
@@ -41,32 +42,6 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 
 export const usageEventsRouteConfigs = routeConfigs
 
-const PRICE_ID_DESCRIPTION =
-  'The internal ID of the price. If not provided, priceSlug is required.'
-const PRICE_SLUG_DESCRIPTION =
-  'The slug of the price. If not provided, priceId is required.'
-
-// Create a new schema that allows either priceId or priceSlug
-const createUsageEventWithSlugSchema = z
-  .object({
-    usageEvent: usageEventsClientInsertSchema
-      .omit({ priceId: true })
-      .extend({
-        priceId: z.string().optional().describe(PRICE_ID_DESCRIPTION),
-        priceSlug: z.string().optional().describe(PRICE_SLUG_DESCRIPTION),
-      }),
-  })
-  .refine(
-    (data) =>
-      data.usageEvent.priceId
-        ? !data.usageEvent.priceSlug
-        : !!data.usageEvent.priceSlug,
-    {
-      message: 'Either priceId or priceSlug must be provided, but not both',
-      path: ['usageEvent', 'priceId'],
-    }
-  )
-
 export const createUsageEvent = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createUsageEventWithSlugSchema)
@@ -74,42 +49,10 @@ export const createUsageEvent = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transaction }) => {
-        // Resolve priceSlug to priceId if provided
-        let priceId = input.usageEvent.priceId
-        if (!priceId && input.usageEvent.priceSlug) {
-          // First get the subscription to determine the customerId
-          const subscription = await selectSubscriptionById(
-            input.usageEvent.subscriptionId,
-            transaction
-          )
-
-          // Look up the price by slug and customerId
-          const price = await selectPriceBySlugAndCustomerId(
-            {
-              slug: input.usageEvent.priceSlug,
-              customerId: subscription.customerId,
-            },
-            transaction
-          )
-
-          if (!price) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: `Price with slug ${input.usageEvent.priceSlug} not found for this customer's pricing model`,
-            })
-          }
-
-          priceId = price.id
-        }
-
-        // Create the input with resolved priceId
-        const resolvedInput = {
-          usageEvent: {
-            ...input.usageEvent,
-            priceId: priceId!,
-            priceSlug: undefined, // Remove priceSlug before passing to ingestAndProcessUsageEvent
-          },
-        }
+        const resolvedInput = await resolveUsageEventInput(
+          input,
+          transaction
+        )
 
         return ingestAndProcessUsageEvent(
           { input: resolvedInput, livemode: ctx.livemode },
