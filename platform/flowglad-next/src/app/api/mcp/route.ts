@@ -75,15 +75,42 @@ const handler = createMcpHandler(
             }
           }
 
-          // Format results nicely
-          const formattedResults = results
-            .map((result, index) => {
-              const distance = (1 - result.$dist).toFixed(4) // Convert distance to similarity score
-              return `Result ${index + 1} (similarity: ${distance}):
-Path: ${result.path}
-${result.title ? `Title: ${result.title}\n` : ''}${result.description ? `Description: ${result.description}\n` : ''}${result.text ? `Content: ${result.text.substring(0, 500)}${result.text.length > 500 ? '...' : ''}\n` : ''}`
+          // Dynamically import fetchMarkdownFromDocs to avoid loading fetch/undici at module load time.
+          // See docsSearchRouter for explanation.
+          const { fetchMarkdownFromDocs } = await import(
+            '@/utils/textContent'
+          )
+
+          // Fetch full markdown content for each result
+          const resultsWithMarkdown = await Promise.all(
+            results.map(async (result) => {
+              const markdown = await fetchMarkdownFromDocs(
+                result.path
+              )
+              const similarity = (1 - result.$dist).toFixed(4)
+
+              return {
+                similarity,
+                path: result.path,
+                title: result.title,
+                description: result.description,
+                markdown:
+                  markdown || result.text || 'Content not available',
+              }
             })
-            .join('\n' + '='.repeat(80) + '\n\n')
+          )
+
+          // Format results nicely with full content
+          const formattedResults = resultsWithMarkdown
+            .map((result, index) => {
+              return `Result ${index + 1} (similarity: ${result.similarity})
+Path: ${result.path}
+${result.title ? `Title: ${result.title}\n` : ''}${result.description ? `Description: ${result.description}\n` : ''}
+${'='.repeat(80)}
+${result.markdown}
+${'='.repeat(80)}`
+            })
+            .join('\n\n')
 
           return {
             content: [
