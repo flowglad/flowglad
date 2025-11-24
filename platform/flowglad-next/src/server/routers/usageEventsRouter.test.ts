@@ -506,7 +506,7 @@ describe('usageEventsRouter', () => {
       expect(result.usageEvent.subscriptionId).toBe(subscription1.id)
     })
 
-    it('should create usage event with priceSlug (new behavior)', async () => {
+    it('should create usage event with priceSlug', async () => {
       // First, update price1 to have a slug
       await authenticatedTransaction(
         async ({ transaction }) => {
