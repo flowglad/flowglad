@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ChevronLeft, Check, MoreHorizontal } from 'lucide-react'
+import { ChevronLeft, MoreHorizontal } from 'lucide-react'
 import { Button } from './button'
 import { cn } from '@/lib/utils'
 
@@ -157,11 +157,7 @@ export function PageHeaderNew({
 
               {/* Separator (if not last badge or if description follows) */}
               {(index < badges.length - 1 || description) && (
-                <div className="flex items-center justify-center w-0 h-0">
-                  <div className="rotate-90">
-                    <div className="w-[22px] h-px bg-muted-foreground opacity-10" />
-                  </div>
-                </div>
+                <div className="h-[22px] w-px bg-muted-foreground opacity-10" />
               )}
             </div>
           ))}
@@ -206,30 +202,4 @@ export function PageHeaderNew({
       )}
     </div>
   )
-}
-
-/**
- * Active status badge component for convenience
- */
-export function ActiveStatusBadge(): StatusBadge {
-  return {
-    icon: (
-      <Check
-        className="w-full h-full stroke-[hsl(var(--jade-muted-foreground))]"
-        strokeWidth={3}
-      />
-    ),
-    label: 'Active',
-    variant: 'active',
-  }
-}
-
-/**
- * Muted status badge component for convenience
- */
-export function MutedStatusBadge(label: string): StatusBadge {
-  return {
-    label,
-    variant: 'muted',
-  }
 }
