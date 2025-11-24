@@ -86,18 +86,6 @@ export const { GET, POST } = nextRouteHandler({
 })
 ```
 
-```ts pages/api/flowglad/[...path].ts (Pages Router)
-import { flowglad } from '@/utils/flowglad'
-import { createPagesRouterRouteHandler } from '@flowglad/nextjs/server'
-
-// For Pages Router, you'll need to extract customerExternalId from the request
-// and use it to create a scoped FlowgladServer instance
-export default createPagesRouterRouteHandler(async (req) => {
-  const userId = await getUserIdFromRequest(req)
-  return flowglad(userId)
-})
-```
-
 ### 4. Wrap Your App with FlowgladProvider
 
 <CodeGroup>

@@ -77,7 +77,6 @@ const checkoutSession = await flowglad(userId).createCheckoutSession({
 })
 
 // Check feature access for gating premium functionality
-const billing = await flowglad(userId).getBilling()
 const hasPremium = billing.checkFeatureAccess('premium_feature')
 
 // Record metered usage
