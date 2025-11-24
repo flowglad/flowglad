@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { ChevronLeft, Check, MoreHorizontal } from 'lucide-react'
 import { Button } from './button'
 import { cn } from '@/lib/utils'
@@ -34,8 +35,8 @@ import { cn } from '@/lib/utils'
  */
 
 interface StatusBadge {
-  icon?: React.ReactNode
-  label: React.ReactNode
+  icon?: ReactNode
+  label: ReactNode
   variant?: 'active' | 'muted' | 'destructive' | 'warning'
 }
 
@@ -202,7 +203,7 @@ export function PageHeaderNew({
 /**
  * Active status badge component for convenience
  */
-export function ActiveStatusBadge() {
+export function ActiveStatusBadge(): StatusBadge {
   return {
     icon: (
       <Check
@@ -211,16 +212,16 @@ export function ActiveStatusBadge() {
       />
     ),
     label: 'Active',
-    variant: 'active' as const,
+    variant: 'active',
   }
 }
 
 /**
  * Muted status badge component for convenience
  */
-export function MutedStatusBadge(label: string) {
+export function MutedStatusBadge(label: string): StatusBadge {
   return {
     label,
-    variant: 'muted' as const,
+    variant: 'muted',
   }
 }

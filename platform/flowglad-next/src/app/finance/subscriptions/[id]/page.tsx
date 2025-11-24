@@ -7,6 +7,7 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
+import { notFound } from 'next/navigation'
 
 const SubscriptionPage = async ({
   params,
@@ -23,6 +24,10 @@ const SubscriptionPage = async ({
   } = await authenticatedTransaction(async ({ transaction }) => {
     const [subscription] =
       await selectRichSubscriptionsAndActiveItems({ id }, transaction)
+
+    if (!subscription) {
+      notFound()
+    }
 
     const defaultPaymentMethod = subscription.defaultPaymentMethodId
       ? await selectPaymentMethodById(
@@ -56,7 +61,7 @@ const SubscriptionPage = async ({
       }
     }
 
-    if (product) {
+    if (product && product.pricingModelId) {
       pricingModel = await selectPricingModelById(
         product.pricingModelId,
         transaction
