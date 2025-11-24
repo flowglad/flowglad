@@ -267,6 +267,7 @@ describe('Swagger Configuration', () => {
       '/api/v1/payment-methods',
       '/api/v1/usage-meters',
       '/api/v1/usage-events',
+      '/api/v1/usage-events/bulk',
       '/api/v1/webhooks',
     ]
 
@@ -1057,8 +1058,8 @@ describe('Swagger Configuration', () => {
 
       it('should include priceId as optional with description in usageEvent', () => {
         // Navigate to usageEvent.properties
-        const usageEventSchema =
-          schemaObject?.properties?.usageEvent as SchemaObjectWithProperties
+        const usageEventSchema = schemaObject?.properties
+          ?.usageEvent as SchemaObjectWithProperties
         expect(usageEventSchema?.properties).toBeDefined()
 
         // Verify it's not in required array (it's optional)
@@ -1075,8 +1076,8 @@ describe('Swagger Configuration', () => {
 
       it('should include priceSlug as optional with description in usageEvent', () => {
         // Navigate to usageEvent.properties
-        const usageEventSchema =
-          schemaObject?.properties?.usageEvent as SchemaObjectWithProperties
+        const usageEventSchema = schemaObject?.properties
+          ?.usageEvent as SchemaObjectWithProperties
         expect(usageEventSchema?.properties).toBeDefined()
 
         // Verify it's not in required array (it's optional)
@@ -1137,7 +1138,8 @@ describe('Swagger Configuration', () => {
 
         // Verify exact description from implementation
         const priceIdDesc =
-          usageEventsArrayItems?.properties?.priceId?.description || ''
+          usageEventsArrayItems?.properties?.priceId?.description ||
+          ''
         expect(priceIdDesc).toBe(
           'The internal ID of the price. If not provided, priceSlug is required.'
         )
@@ -1160,7 +1162,8 @@ describe('Swagger Configuration', () => {
       it('should have descriptions explaining mutual exclusivity', () => {
         // Verify priceId description mentions the requirement
         const priceIdDesc =
-          usageEventsArrayItems?.properties?.priceId?.description || ''
+          usageEventsArrayItems?.properties?.priceId?.description ||
+          ''
         expect(priceIdDesc).toContain('If not provided')
         expect(priceIdDesc).toContain('priceSlug is required')
 

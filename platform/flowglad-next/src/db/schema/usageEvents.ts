@@ -175,7 +175,7 @@ const columnRefinements = {
     ),
   properties: z
     .record(z.string(), z.unknown())
-    .optional()
+    .nullish()
     .describe(
       'Properties for the usage event. Only required when using the "count_distinct_properties" aggregation type.'
     ),
@@ -251,7 +251,10 @@ export const USAGE_EVENT_PRICE_SLUG_DESCRIPTION =
 const usageEventWithSlugSchema = usageEventsClientInsertSchema
   .omit({ priceId: true })
   .extend({
-    priceId: z.string().optional().describe(USAGE_EVENT_PRICE_ID_DESCRIPTION),
+    priceId: z
+      .string()
+      .optional()
+      .describe(USAGE_EVENT_PRICE_ID_DESCRIPTION),
     priceSlug: z
       .string()
       .optional()
