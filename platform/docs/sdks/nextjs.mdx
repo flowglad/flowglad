@@ -34,30 +34,30 @@ Import from `@flowglad/nextjs/server`:
 
 The main server class for backend operations. See the [Server SDK documentation](/sdks/server) for full details.
 
-#### `createAppRouterRouteHandler(flowgladServer, options?)`
+#### Route Handler
 
 Creates GET and POST handlers for App Router:
 
 ```ts
-const { GET, POST } = createAppRouterRouteHandler(flowgladServer)
-export { GET, POST }
+import { nextRouteHandler} from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  // derive customer external id from the request
+  getCustomerExternalId: async (req) => {
+    // for B2B apps, provide organization or team id instead
+    const user = await getUserForReq(req)
+    return user.id
+  }
+})
 ```
 
 You can pass a second argument with `beforeRequest`, `afterRequest`, or `onError` hooks if you need custom behavior.
 
-#### `createPagesRouterRouteHandler(flowgladServer, options?)`
-
-Creates a single handler for Pages Router:
-
-```ts
-export default createPagesRouterRouteHandler(flowgladServer)
-```
-
-As with the App Router helper, you may provide an optional options object to run request lifecycle hooks.
-
 ### Client Exports
 
-Import from `@flowglad/nextjs`:
+You can import the following from `@flowglad/nextjs`:
 
 #### `FlowgladProvider`
 
@@ -117,7 +117,7 @@ export const { GET, POST } = nextRouteHandler({
 **B2C apps:** Pass `user.id` as `customerExternalId`  
 **B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
 
-Flowglad doesn't need to know how you authenticate—just provide the ID from your system that represents the billing entity.
+Flowglad doesn't need to know how you authenticate—just provide the ID from your system that represents the customer entity which will be billed.
 </Note>
 
 ## Complete Example
