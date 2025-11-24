@@ -100,10 +100,10 @@ export function PageHeaderNew({
       {/* Headline wrapper */}
       <div className="flex flex-col gap-0.5 items-start w-full">
         {/* Breadcrumb navigation */}
-        {breadcrumb && (
+        {breadcrumb && onBreadcrumbClick ? (
           <button
             onClick={onBreadcrumbClick}
-            className="flex items-center gap-1 h-5 hover:opacity-70 transition-opacity"
+            className="flex items-center gap-1 h-5 hover:opacity-70 transition-opacity cursor-pointer"
             type="button"
           >
             <ChevronLeft size={14} />
@@ -111,7 +111,14 @@ export function PageHeaderNew({
               {breadcrumb}
             </span>
           </button>
-        )}
+        ) : breadcrumb ? (
+          <div className="flex items-center gap-1 h-5">
+            <ChevronLeft size={14} />
+            <span className="font-mono font-medium text-sm text-muted-foreground leading-[1.2]">
+              {breadcrumb}
+            </span>
+          </div>
+        ) : null}
 
         {/* Page title */}
         <h1 className="text-2xl text-foreground leading-[1.35] w-full">
@@ -161,7 +168,7 @@ export function PageHeaderNew({
 
           {/* Optional description */}
           {description && (
-            <p className="font-sans font-medium text-sm text-muted-foreground opacity-80 leading-5 whitespace-nowrap">
+            <p className="font-sans font-medium text-sm text-muted-foreground opacity-80 leading-5">
               {description}
             </p>
           )}
