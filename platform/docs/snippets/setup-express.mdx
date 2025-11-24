@@ -49,7 +49,7 @@ export const flowglad = (customerExternalId: string) => {
 export const flowgladServerConstructor = (req: Request) => {
   // Extract customerExternalId from your auth/session
   // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
-  const userId = req.user?.id || req.query.userId as string
+  const userId = req.user?.id
   if (!userId) {
     throw new Error('User not authenticated')
   }
