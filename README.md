@@ -215,7 +215,7 @@ import { flowglad } from '@/utils/flowglad'
 ```ts
 import { flowglad } from '@/utils/flowglad'
 
-const processChatMessage = (params: { chat: string }) => {
++const processChatMessage = async (params: { chat: string }) => {
   // Extract your app's user/org/team ID,
   // whichever corresponds to your customer
   const user = await getUser()
