@@ -169,10 +169,7 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
 
         if (eventsWithSlugs.length > 0) {
           // Group by customer and collect unique slugs per customer
-          const customerSlugsMap = new Map<
-            string,
-            Set<string>
-          >()
+          const customerSlugsMap = new Map<string, Set<string>>()
 
           eventsWithSlugs.forEach(({ customerId, slug }) => {
             if (!customerSlugsMap.has(customerId)) {
@@ -187,11 +184,10 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
             slugs,
           ] of customerSlugsMap.entries()) {
             for (const slug of slugs) {
-              const price =
-                await selectPriceBySlugAndCustomerId(
-                  { slug, customerId },
-                  transaction
-                )
+              const price = await selectPriceBySlugAndCustomerId(
+                { slug, customerId },
+                transaction
+              )
 
               if (!price) {
                 throw new TRPCError({
@@ -267,20 +263,47 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
         })
 
         const usageInsertsWithBillingPeriodId: UsageEvent.Insert[] =
-          resolvedUsageEvents.map((usageEvent) => ({
-            ...usageEvent,
-            customerId: subscriptionsMap.get(
+          resolvedUsageEvents.map((usageEvent, index) => {
+            const subscription = subscriptionsMap.get(
               usageEvent.subscriptionId
-            )?.customerId!,
-            billingPeriodId: billingPeriodsMap.get(
+            )
+            if (!subscription) {
+              throw new Error(
+                `Subscription ${usageEvent.subscriptionId} not found for usage event at index ${index}`
+              )
+            }
+
+            const billingPeriod = billingPeriodsMap.get(
               usageEvent.subscriptionId
-            )?.id!,
-            usageMeterId: pricesMap.get(usageEvent.priceId)
-              ?.usageMeterId!,
-            usageDate: usageEvent.usageDate
-              ? usageEvent.usageDate
-              : Date.now(),
-          }))
+            )
+            if (!billingPeriod) {
+              throw new Error(
+                `Billing period not found for subscription ${usageEvent.subscriptionId} at index ${index}`
+              )
+            }
+
+            const price = pricesMap.get(usageEvent.priceId)
+            if (!price) {
+              throw new Error(
+                `Price ${usageEvent.priceId} not found for usage event at index ${index}`
+              )
+            }
+            if (!price.usageMeterId) {
+              throw new Error(
+                `Usage meter not found for price ${usageEvent.priceId} at index ${index}`
+              )
+            }
+
+            return {
+              ...usageEvent,
+              customerId: subscription.customerId,
+              billingPeriodId: billingPeriod.id,
+              usageMeterId: price.usageMeterId,
+              usageDate: usageEvent.usageDate
+                ? usageEvent.usageDate
+                : Date.now(),
+            }
+          })
         return await bulkInsertOrDoNothingUsageEventsByTransactionId(
           usageInsertsWithBillingPeriodId,
           transaction
