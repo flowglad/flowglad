@@ -35,7 +35,6 @@ Quicklinks to add your key to your secrets:
 bun add @flowglad/nextjs
 ```
 
-
 ```bash Other React Frameworks
 bun add @flowglad/react @flowglad/server
 ```
@@ -110,7 +109,7 @@ The `getCustomerExternalId` function extracts the customer ID from **your app's 
 
 ## 5. Set up React
 
-Next, you need to set up the FlowgladProvider component. For the fastest possible demo, make your success route the home page you load once customers sign in.
+Next, you need to set up the FlowgladProvider component.
 
 <CodeGroup>
 
@@ -152,11 +151,13 @@ export default async function RootLayout({
 }>) {
   const user = await currentUser()
   return (
-    <FlowgladProvider loadBilling={!!user}>
       <html lang="en">
-        <body>{children}</body>
+        <body>
+          <FlowgladProvider loadBilling={!!user}>
+            {children}
+          </FlowgladProvider>
+        </body>
       </html>
-    </FlowgladProvider>
   )
 }
 ```
@@ -185,12 +186,6 @@ export default async function RootLayout({
 ```
 
 </CodeGroup>
-
-<Info>
-  If you are using custom route for your Flowglad handler instead of
-  `/api/flowglad`, set it on FlowgladProvider's `serverRoute` prop,
-  using `/path/to/your/route`.
-</Info>
 
 ## 6. `useBilling`
 
