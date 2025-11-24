@@ -1,6 +1,5 @@
 import { router } from '../trpc'
 import {
-  createUsageEventSchema,
   bulkInsertUsageEventsSchema,
   usageEventPaginatedSelectSchema,
   usageEventPaginatedListSchema,
@@ -29,7 +28,11 @@ import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingP
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { PriceType } from '@/types'
-import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
+import {
+  ingestAndProcessUsageEvent,
+  createUsageEventWithSlugSchema,
+  resolveUsageEventInput,
+} from '@/utils/usage/usageEventHelpers'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageEvent',
@@ -40,13 +43,18 @@ export const usageEventsRouteConfigs = routeConfigs
 
 export const createUsageEvent = protectedProcedure
   .meta(openApiMetas.POST)
-  .input(createUsageEventSchema)
+  .input(createUsageEventWithSlugSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transaction }) => {
+        const resolvedInput = await resolveUsageEventInput(
+          input,
+          transaction
+        )
+
         return ingestAndProcessUsageEvent(
-          { input, livemode: ctx.livemode },
+          { input: resolvedInput, livemode: ctx.livemode },
           transaction
         )
       }
