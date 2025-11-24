@@ -1,22 +1,19 @@
-import * as R from 'ramda'
-import { pgTable, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, boolean } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import {
   tableBase,
   notNullStringForeignKey,
   constructIndex,
-  ommittedColumnsForInsertSchema,
   pgEnumColumn,
   livemodePolicy,
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
+  enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
-  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
 import core from '@/utils/core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { BillingPeriodStatus } from '@/types'
 import { sql } from 'drizzle-orm'
 import { buildSchemas } from '../createZodSchemas'
@@ -50,7 +47,13 @@ export const billingPeriods = pgTable(
         {
           as: 'permissive',
           to: 'all',
-          using: sql`"subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
+          using: sql`"subscription_id" in (select "id" from "subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
+        }
+      ),
+      enableCustomerReadPolicy(
+        `Enable read for customers (${TABLE_NAME})`,
+        {
+          using: sql`"subscription_id" in (select "id" from "subscriptions" where "customer_id" in (select "id" from "customers"))`,
         }
       ),
       livemodePolicy(TABLE_NAME),

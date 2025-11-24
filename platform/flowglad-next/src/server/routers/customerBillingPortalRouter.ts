@@ -5,7 +5,10 @@ import {
 } from '../trpc'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   selectCustomers,
@@ -18,7 +21,6 @@ import {
   setDefaultPaymentMethodForCustomer,
 } from '@/utils/bookkeeping/customerBilling'
 import {
-  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
@@ -34,37 +36,23 @@ import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices
 import {
   selectSubscriptionById,
   isSubscriptionCurrent,
-  safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
+  isSubscriptionInTerminalState,
 } from '@/db/tableMethods/subscriptionMethods'
-import {
-  cancelSubscriptionImmediately,
-  cancelSubscriptionProcedureTransaction,
-  scheduleSubscriptionCancellation,
-} from '@/subscriptions/cancelSubscription'
+import { scheduleSubscriptionCancellation } from '@/subscriptions/cancelSubscription'
+import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import { SubscriptionCancellationArrangement } from '@/types'
 import { auth } from '@/utils/auth'
-import {
-  selectUserById,
-  selectUsers,
-} from '@/db/tableMethods/userMethods'
+import { selectUsers } from '@/db/tableMethods/userMethods'
 import core from '@/utils/core'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import { setCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import { headers } from 'next/headers'
-import { stripe } from '@/utils/stripe'
-import {
-  selectPaymentMethodById,
-  safelyUpdatePaymentMethod,
-} from '@/db/tableMethods/paymentMethodMethods'
-import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
-import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import {
   checkoutSessionClientSelectSchema,
   customerBillingCreatePricedCheckoutSessionInputSchema,
 } from '@/db/schema/checkoutSessions'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
 
 // Enhanced getBilling procedure with pagination support for invoices
 const getBillingProcedure = customerProtectedProcedure
@@ -193,27 +181,116 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(async (params) => {
-      const { input, transaction, ctx } = params
-      const { customer } = ctx
-      // First verify the subscription belongs to the customer
-      const subscription = await selectSubscriptionById(
-        input.id,
-        transaction
-      )
+  .mutation(async ({ input, ctx }) => {
+    const { customer, livemode } = ctx
 
-      if (subscription.customerId !== customer.id) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message:
-            'You do not have permission to cancel this subscription',
-        })
+    // First transaction: Validate cancellation is allowed (customer-scoped RLS)
+    await authenticatedTransaction(
+      async ({ transaction }) => {
+        // Verify the subscription belongs to the customer
+        const subscription = await selectSubscriptionById(
+          input.id,
+          transaction
+        )
+
+        if (subscription.customerId !== customer.id) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'You do not have permission to cancel this subscription',
+          })
+        }
+
+        // Check subscription is not in terminal state
+        if (isSubscriptionInTerminalState(subscription.status)) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Subscription is already in a terminal state and cannot be cancelled',
+          })
+        }
+
+        // Check subscription renews (non-renewing subscriptions can't be cancelled)
+        if (!subscription.renews) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Non-renewing subscriptions cannot be cancelled',
+          })
+        }
+
+        // Customers can only cancel at end of billing period
+        if (
+          input.cancellation.timing ===
+          SubscriptionCancellationArrangement.Immediately
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Immediate cancellation is not available through the customer billing portal',
+          })
+        }
+
+        if (
+          input.cancellation.timing ===
+          SubscriptionCancellationArrangement.AtFutureDate
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Future date cancellation is not available through the customer billing portal',
+          })
+        }
+
+        // Verify current billing period exists (required for end of billing period cancellation)
+        if (
+          input.cancellation.timing ===
+          SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod
+        ) {
+          const currentBillingPeriod =
+            await selectCurrentBillingPeriodForSubscription(
+              subscription.id,
+              transaction
+            )
+          if (!currentBillingPeriod) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'No current billing period found for this subscription',
+            })
+          }
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
       }
+    )
 
-      return cancelSubscriptionProcedureTransaction(params)
-    })
-  )
+    // Second transaction: Actually perform the cancellation (admin-scoped, bypasses RLS)
+    // Note: Validation above ensures only AtEndOfCurrentBillingPeriod reaches here
+    return await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const subscription = await scheduleSubscriptionCancellation(
+          input,
+          transaction
+        )
+        return {
+          result: {
+            subscription: {
+              ...subscription,
+              current: isSubscriptionCurrent(
+                subscription.status,
+                subscription.cancellationReason
+              ),
+            },
+          },
+          eventsToInsert: [],
+        }
+      },
+      {
+        livemode,
+      }
+    )
+  })
 
 // requestMagicLink procedure
 const requestMagicLinkProcedure = publicProcedure
