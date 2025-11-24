@@ -602,4 +602,212 @@ describe('usageEventsRouter', () => {
       )
     })
   })
+
+  describe('bulkInsert procedure with price slug support', () => {
+    it('should bulk insert usage events with priceId', async () => {
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      const result = await caller.bulkInsert({
+        usageEvents: [
+          {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            amount: 100,
+            transactionId: `txn_bulk_priceId_1_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            amount: 200,
+            transactionId: `txn_bulk_priceId_2_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            amount: 300,
+            transactionId: `txn_bulk_priceId_3_${Date.now()}`,
+          },
+        ],
+      })
+
+      expect(result.usageEvents).toHaveLength(3)
+      expect(result.usageEvents[0].priceId).toBe(price1.id)
+      expect(result.usageEvents[0].amount).toBe(100)
+      expect(result.usageEvents[1].amount).toBe(200)
+      expect(result.usageEvents[2].amount).toBe(300)
+    })
+
+    it('should bulk insert usage events with priceSlug', async () => {
+      // First, update price1 to have a slug
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await updatePrice(
+            {
+              id: price1.id,
+              slug: 'bulk-test-price-slug',
+              type: price1.type,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      const result = await caller.bulkInsert({
+        usageEvents: [
+          {
+            subscriptionId: subscription1.id,
+            priceSlug: 'bulk-test-price-slug',
+            amount: 150,
+            transactionId: `txn_bulk_priceSlug_1_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            priceSlug: 'bulk-test-price-slug',
+            amount: 250,
+            transactionId: `txn_bulk_priceSlug_2_${Date.now()}`,
+          },
+        ],
+      })
+
+      expect(result.usageEvents).toHaveLength(2)
+      expect(result.usageEvents[0].priceId).toBe(price1.id)
+      expect(result.usageEvents[0].amount).toBe(150)
+      expect(result.usageEvents[1].priceId).toBe(price1.id)
+      expect(result.usageEvents[1].amount).toBe(250)
+    })
+
+    it('should bulk insert usage events with mixed priceId and priceSlug', async () => {
+      // First, update price1 to have a slug
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await updatePrice(
+            {
+              id: price1.id,
+              slug: 'mixed-test-price-slug',
+              type: price1.type,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      const result = await caller.bulkInsert({
+        usageEvents: [
+          {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            amount: 100,
+            transactionId: `txn_bulk_mixed_1_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            priceSlug: 'mixed-test-price-slug',
+            amount: 200,
+            transactionId: `txn_bulk_mixed_2_${Date.now()}`,
+          },
+          {
+            subscriptionId: subscription1.id,
+            priceId: price1.id,
+            amount: 300,
+            transactionId: `txn_bulk_mixed_3_${Date.now()}`,
+          },
+        ],
+      })
+
+      expect(result.usageEvents).toHaveLength(3)
+      result.usageEvents.forEach((event) => {
+        expect(event.priceId).toBe(price1.id)
+      })
+      expect(result.usageEvents[0].amount).toBe(100)
+      expect(result.usageEvents[1].amount).toBe(200)
+      expect(result.usageEvents[2].amount).toBe(300)
+    })
+
+    it('should throw error when invalid priceSlug is provided in bulk insert', async () => {
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      await expect(
+        caller.bulkInsert({
+          usageEvents: [
+            {
+              subscriptionId: subscription1.id,
+              priceId: price1.id,
+              amount: 100,
+              transactionId: `txn_bulk_invalid_1_${Date.now()}`,
+            },
+            {
+              subscriptionId: subscription1.id,
+              priceSlug: 'invalid-slug-bulk',
+              amount: 200,
+              transactionId: `txn_bulk_invalid_2_${Date.now()}`,
+            },
+          ],
+        })
+      ).rejects.toThrow(
+        "Price with slug invalid-slug-bulk not found for customer's pricing model"
+      )
+    })
+
+    it('should throw error when both priceId and priceSlug are provided in bulk event', async () => {
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      await expect(
+        caller.bulkInsert({
+          usageEvents: [
+            {
+              subscriptionId: subscription1.id,
+              priceId: price1.id,
+              priceSlug: 'test-slug',
+              amount: 100,
+              transactionId: `txn_bulk_both_${Date.now()}`,
+            },
+          ],
+        })
+      ).rejects.toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
+
+    it('should throw error when neither priceId nor priceSlug is provided in bulk event', async () => {
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
+
+      await expect(
+        caller.bulkInsert({
+          usageEvents: [
+            {
+              subscriptionId: subscription1.id,
+              amount: 100,
+              transactionId: `txn_bulk_neither_${Date.now()}`,
+            },
+          ],
+        })
+      ).rejects.toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
+  })
 })

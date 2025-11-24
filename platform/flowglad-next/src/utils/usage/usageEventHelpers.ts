@@ -17,6 +17,8 @@ import { DbTransaction } from '@/db/types'
 import {
   CreateUsageEventInput,
   usageEventsClientInsertSchema,
+  USAGE_EVENT_PRICE_ID_DESCRIPTION,
+  USAGE_EVENT_PRICE_SLUG_DESCRIPTION,
 } from '@/db/schema/usageEvents'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { UsageEvent } from '@/db/schema/usageEvents'
@@ -25,22 +27,17 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import core from '@/utils/core'
 
-const PRICE_ID_DESCRIPTION =
-  'The internal ID of the price. If not provided, priceSlug is required.'
-const PRICE_SLUG_DESCRIPTION =
-  'The slug of the price. If not provided, priceId is required.'
-
 // Schema that allows either priceId or priceSlug
 export const createUsageEventWithSlugSchema = z
   .object({
     usageEvent: usageEventsClientInsertSchema
       .omit({ priceId: true })
       .extend({
-        priceId: z.string().optional().describe(PRICE_ID_DESCRIPTION),
+        priceId: z.string().optional().describe(USAGE_EVENT_PRICE_ID_DESCRIPTION),
         priceSlug: z
           .string()
           .optional()
-          .describe(PRICE_SLUG_DESCRIPTION),
+          .describe(USAGE_EVENT_PRICE_SLUG_DESCRIPTION),
       }),
   })
   .refine(
