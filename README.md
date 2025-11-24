@@ -92,38 +92,50 @@ import { FlowgladServer } from '@flowglad/server'
 import { FlowgladServer } from '@flowglad/nextjs/server'
 import { currentUser } from '@clerk/nextjs/server'
 
-export const flowgladServer = new FlowgladServer({
-  clerk: {
-    currentUser,
-  },
-})
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  // For B2C: pass user.id (from Clerk)
+  // For B2B: pass organization.id or team.id (from your database)
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await currentUser()
+      if (!user || user.id !== externalId) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.emailAddresses[0]?.emailAddress || '',
+        name: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.username || user.emailAddresses[0]?.emailAddress || '',
+      }
+    },
+  })
+}
 `
-<Important>
-If your customers are organizations rather than individual users, you should use the `getRequestingCustomer` initializer method:
-
-`ts flowglad.ts
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: () => {
-   // whatever logic you currently use to 
-   // derive the organization associated with a given request
-  }
-})
-
-`
-</Important>
 
 2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
 
 `// /api/flowglad/[...path]/route.ts
 
-import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
-import { flowgladServer } from '@/flowglad'
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/flowglad'
+import { currentUser } from '@clerk/nextjs/server'
 
-const routeHandler = createAppRouterRouteHandler(flowgladServer)
-
-export { routeHandler as GET, routeHandler as POST }
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract customerExternalId from Clerk auth
+    // For B2C: return user.id
+    // For B2B: return organization.id (from your database)
+    const user = await currentUser()
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+    return user.id // or organization.id for B2B apps
+  },
+})
 `
 
 3. Add the following to the`app/layout.tsx`file. Preserve the existing layout JSX code. Just:
@@ -170,37 +182,49 @@ import { FlowgladServer } from '@flowglad/server'
 import { FlowgladServer } from '@flowglad/nextjs/server'
 import { createClient } from '@/utils/supabase/server' // or wherever you store your supabase server client constructor.
 
-export const flowgladServer = new FlowgladServer({
-  supabaseAuth: {
-    client: createClient,
-  },
-})
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  // For B2C: pass user.id (from Supabase Auth)
+  // For B2B: pass organization.id or team.id (from your database)
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || user.id !== externalId) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email || '',
+        name: user.user_metadata?.name || user.email || '',
+      }
+    },
+  })
+}
 `
-
-#### IMPORTANT NOTE
-If your customers are organizations rather than individual users, you should use the `getRequestingCustomer` initializer method:
-`ts flowglad.ts
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: () => {
-   // whatever logic you currently use to 
-   // derive the organization associated with a given request
-  }
-})
-
-`
-
 
 2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
 
 `ts
-import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
-import { flowgladServer } from '@/flowglad'
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/flowglad'
+import { createClient } from '@/utils/supabase/server'
 
-const routeHandler = createAppRouterRouteHandler(flowgladServer)
-
-export { routeHandler as GET, routeHandler as POST }
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract customerExternalId from Supabase Auth
+    // For B2C: return user.id
+    // For B2B: return organization.id (from your database)
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+    return user.id // or organization.id for B2B apps
+  },
+})
 `
 
 3. Add the following to the`app/layout.tsx`file. Preserve the existing layout JSX code. Just:
@@ -250,39 +274,48 @@ import { FlowgladServer } from '@flowglad/server'
 import { FlowgladServer } from '@flowglad/nextjs/server'
 import { auth } from '@/auth' // your initialized, configured NextAuth client
 
-export const flowgladServer = new FlowgladServer({
-  nextAuth: {
-    auth,
-  },
-})
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  // For B2C: pass user.id (from NextAuth session)
+  // For B2B: pass organization.id or team.id (from your database)
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const session = await auth()
+      if (!session?.user || session.user.id !== externalId) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: session.user.email || '',
+        name: session.user.name || session.user.email || '',
+      }
+    },
+  })
+}
 `
-
-<Important>
-If your customers are organizations rather than individual users, you should use the `getRequestingCustomer` initializer method:
-
-`ts flowglad.ts
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowgladServer = new FlowgladServer({
-  getRequestingCustomer: () => {
-   // whatever logic you currently use to 
-   // derive the organization associated with a given request
-  }
-})
-
-`
-</Important>
 
 2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
 
 `// /api/flowglad/[...path]/route.ts
 
-import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
-import { flowgladServer } from '@/flowglad'
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/flowglad'
+import { auth } from '@/auth'
 
-const routeHandler = createAppRouterRouteHandler(flowgladServer)
-
-export { routeHandler as GET, routeHandler as POST }
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract customerExternalId from NextAuth session
+    // For B2C: return user.id
+    // For B2B: return organization.id (from your database)
+    const session = await auth()
+    if (!session?.user) {
+      throw new Error('User not authenticated')
+    }
+    return session.user.id // or organization.id for B2B apps
+  },
+})
 `
 
 3. Add the following to the`app/layout.tsx`file. Preserve the existing layout JSX code. Just:
@@ -325,18 +358,6 @@ We currently have templates for the following pricing models:
 
 And more on the way. If you don't see a pricing model from our templates that suits you, you can always make one from scratch. 
 
-## Authentication Services
-Flowglad couples tightly with your authentication layer, automatically mapping your notion of customers to our notion of customers. To make this effortless, we have adapters for many popular auth services.
-
-If you have a custom auth setup or need to support team-based billing, you can tell Flowglad how to derive the customer record on your server by setting `getRequestingCustomer`.
-
-| Authentication Service | Support |
-|------------------------|---------|
-| Supabase Auth          | ✅      |
-| Clerk                  | ✅      |
-| NextAuth               | ✅      |
-| Better Auth            | 🟡      |
-| Firebase Auth          | 🟡      |
 
 
 ## Built With
@@ -367,6 +388,3 @@ We're building a payments layer that lets you:
 
 Achieving this mission will take time. It will be hard. It might even make some people unhappy. But with AI bringing more and more developers on line and exploding the complexity of startup billing, the need is more urgent than ever.
 
-## Other languages
-
-This README is also [available in Brazilian Portuguese](README.pt-BR.md).
