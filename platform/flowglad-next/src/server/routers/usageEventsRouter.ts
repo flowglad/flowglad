@@ -1,6 +1,5 @@
 import { router } from '../trpc'
 import {
-  createUsageEventSchema,
   bulkInsertUsageEventsSchema,
   usageEventPaginatedSelectSchema,
   usageEventPaginatedListSchema,
