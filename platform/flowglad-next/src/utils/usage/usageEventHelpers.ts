@@ -1,4 +1,7 @@
-import { selectPriceById, selectPriceBySlugAndCustomerId } from '@/db/tableMethods/priceMethods'
+import {
+  selectPriceById,
+  selectPriceBySlugAndCustomerId,
+} from '@/db/tableMethods/priceMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import {
   LedgerTransactionType,
@@ -11,12 +14,16 @@ import {
 } from '@/db/tableMethods/usageEventMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { DbTransaction } from '@/db/types'
-import { CreateUsageEventInput, usageEventsClientInsertSchema } from '@/db/schema/usageEvents'
+import {
+  CreateUsageEventInput,
+  usageEventsClientInsertSchema,
+} from '@/db/schema/usageEvents'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { UsageEvent } from '@/db/schema/usageEvents'
 import { selectUsageMeterById } from '@/db/tableMethods/usageMeterMethods'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import core from '@/utils/core'
 
 const PRICE_ID_DESCRIPTION =
   'The internal ID of the price. If not provided, priceSlug is required.'
@@ -30,7 +37,10 @@ export const createUsageEventWithSlugSchema = z
       .omit({ priceId: true })
       .extend({
         priceId: z.string().optional().describe(PRICE_ID_DESCRIPTION),
-        priceSlug: z.string().optional().describe(PRICE_SLUG_DESCRIPTION),
+        priceSlug: z
+          .string()
+          .optional()
+          .describe(PRICE_SLUG_DESCRIPTION),
       }),
   })
   .refine(
@@ -39,7 +49,8 @@ export const createUsageEventWithSlugSchema = z
         ? !data.usageEvent.priceSlug
         : !!data.usageEvent.priceSlug,
     {
-      message: 'Either priceId or priceSlug must be provided, but not both',
+      message:
+        'Either priceId or priceSlug must be provided, but not both',
       path: ['usageEvent', 'priceId'],
     }
   )
@@ -89,9 +100,8 @@ export const resolveUsageEventInput = async (
   // Create the input with resolved priceId
   return {
     usageEvent: {
-      ...input.usageEvent,
+      ...core.omit(['priceSlug'], input.usageEvent),
       priceId: priceId!,
-      priceSlug: undefined, // Remove priceSlug before passing to ingestAndProcessUsageEvent
     },
   }
 }

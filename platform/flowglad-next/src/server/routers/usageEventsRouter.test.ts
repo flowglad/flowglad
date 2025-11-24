@@ -29,6 +29,25 @@ import { http, HttpResponse } from 'msw'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
+import { TRPCApiContext } from '@/server/trpcContext'
+
+const createCaller = (
+  organization: Organization.Record,
+  apiKeyToken: string,
+  livemode: boolean = true
+) => {
+  return usageEventsRouter.createCaller({
+    organizationId: organization.id,
+    organization,
+    apiKey: apiKeyToken,
+    livemode,
+    environment: livemode ? ('live' as const) : ('test' as const),
+    isApi: true,
+    path: '',
+    user: null,
+    session: null,
+  } as TRPCApiContext)
+}
 
 describe('usageEventsRouter', () => {
   let org1Data: Awaited<ReturnType<typeof setupOrg>>
@@ -191,16 +210,10 @@ describe('usageEventsRouter', () => {
       }
 
       // Call list procedure with org1 API key
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       const result = await caller.list({
         cursor: undefined,
@@ -224,16 +237,10 @@ describe('usageEventsRouter', () => {
 
     it('should handle empty results when no usage events exist', async () => {
       // Create no usage events for organization 1
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       const result = await caller.list({
         cursor: undefined,
@@ -263,16 +270,10 @@ describe('usageEventsRouter', () => {
         createdEvents.push(event)
       }
 
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       const result = await caller.list({
         cursor: undefined,
@@ -317,16 +318,10 @@ describe('usageEventsRouter', () => {
         createdEvents.push(event)
       }
 
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       const result = await caller.getTableRows({
         pageSize: 10,
@@ -359,16 +354,10 @@ describe('usageEventsRouter', () => {
     })
 
     it('should handle empty results when no usage events exist', async () => {
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       const result = await caller.getTableRows({
         pageSize: 10,
@@ -395,16 +384,10 @@ describe('usageEventsRouter', () => {
         })
       }
 
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       // First call with pageSize of 3
       const firstResult = await caller.getTableRows({
@@ -456,16 +439,10 @@ describe('usageEventsRouter', () => {
         transactionId: 'txn_org1_allowed',
       })
 
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       const result = await caller.list({
         cursor: undefined,
@@ -491,16 +468,10 @@ describe('usageEventsRouter', () => {
         transactionId: 'txn_org2_denied',
       })
 
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       const result = await caller.list({
         cursor: undefined,
@@ -515,16 +486,10 @@ describe('usageEventsRouter', () => {
 
   describe('create procedure with price slug support', () => {
     it('should create usage event with priceId (existing behavior)', async () => {
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       const result = await caller.create({
         usageEvent: {
@@ -557,16 +522,10 @@ describe('usageEventsRouter', () => {
         { apiKey: org1ApiKeyToken }
       )
 
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       const result = await caller.create({
         usageEvent: {
@@ -584,16 +543,10 @@ describe('usageEventsRouter', () => {
     })
 
     it('should throw error when invalid priceSlug is provided', async () => {
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       await expect(
         caller.create({
@@ -610,16 +563,10 @@ describe('usageEventsRouter', () => {
     })
 
     it('should throw error when both priceId and priceSlug are provided', async () => {
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       await expect(
         caller.create({
@@ -637,16 +584,10 @@ describe('usageEventsRouter', () => {
     })
 
     it('should throw error when neither priceId nor priceSlug is provided', async () => {
-      const caller = usageEventsRouter.createCaller({
-        organizationId: org1Data.organization.id,
-        apiKey: org1ApiKeyToken,
-        livemode: true,
-        environment: 'live',
-        isApi: true,
-        path: '',
-        user: null,
-        session: null,
-      } as any)
+      const caller = createCaller(
+        org1Data.organization,
+        org1ApiKeyToken
+      )
 
       await expect(
         caller.create({

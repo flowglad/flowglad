@@ -818,12 +818,14 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(async ({ transaction }) => {
-        return resolveUsageEventInput(input, transaction)
-      })
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(input, transaction)
+        }
+      )
 
       expect(result.usageEvent.priceId).toBe(usagePrice.id)
-      expect(result.usageEvent.priceSlug).toBeUndefined()
+      expect(result.usageEvent).not.toHaveProperty('priceSlug')
     })
 
     it('should resolve priceSlug to priceId when priceSlug is provided', async () => {
@@ -876,12 +878,16 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      const result = await adminTransaction(async ({ transaction }) => {
-        return resolveUsageEventInput(input, transaction)
-      })
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(input, transaction)
+        }
+      )
 
-      expect(result.usageEvent.priceId).toBe(priceWithSlug.testPrice.id)
-      expect(result.usageEvent.priceSlug).toBeUndefined()
+      expect(result.usageEvent.priceId).toBe(
+        priceWithSlug.testPrice.id
+      )
+      expect(result.usageEvent).not.toHaveProperty('priceSlug')
     })
 
     it('should throw NOT_FOUND error when priceSlug does not exist', async () => {
@@ -898,9 +904,7 @@ describe('usageEventHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           return resolveUsageEventInput(input, transaction)
         })
-      ).rejects.toThrow(
-        'Price with slug non-existent-slug not found'
-      )
+      ).rejects.toThrow('Price with slug non-existent-slug not found')
     })
   })
 })
