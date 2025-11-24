@@ -101,6 +101,9 @@ const getBillingProcedure = customerProtectedProcedure
         .describe(
           'The current subscriptions for the customer. By default, customers can only have one active subscription at a time. This will only return multiple subscriptions if you have enabled multiple subscriptions per customer.'
         ),
+      currentSubscription: richSubscriptionClientSelectSchema.describe(
+        'The most recently created current subscription for the customer. If createdAt timestamps tie, the most recently updated subscription will be returned. If updatedAt also ties, subscription id is used as the final tiebreaker.'
+      ),
       catalog: pricingModelWithProductsAndUsageMetersSchema,
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
     })
@@ -120,6 +123,7 @@ const getBillingProcedure = customerProtectedProcedure
       invoices,
       paymentMethods,
       currentSubscriptions,
+      currentSubscription,
       purchases,
       subscriptions,
     } = await authenticatedTransaction(
@@ -173,6 +177,8 @@ const getBillingProcedure = customerProtectedProcedure
       currentSubscriptions: currentSubscriptions.map((item) =>
         richSubscriptionClientSelectSchema.parse(item)
       ),
+      currentSubscription:
+        richSubscriptionClientSelectSchema.parse(currentSubscription),
       purchases,
       subscriptions,
       catalog: pricingModel,

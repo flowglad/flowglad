@@ -71,6 +71,30 @@ export const customerBillingTransaction = async (
   const currentSubscriptions = subscriptions.filter((item) => {
     return isSubscriptionCurrent(item.status, item.cancellationReason)
   })
+
+  // Sort currentSubscriptions by createdAt descending (most recent first)
+  // If createdAt ties, use updatedAt as tiebreaker
+  // If updatedAt also ties, use id as final tiebreaker
+  const sortedCurrentSubscriptions = [...currentSubscriptions].sort((a, b) => {
+    const createdAtDiff = b.createdAt.getTime() - a.createdAt.getTime()
+    if (createdAtDiff !== 0) return createdAtDiff
+
+    const updatedAtDiff = b.updatedAt.getTime() - a.updatedAt.getTime()
+    if (updatedAtDiff !== 0) return updatedAtDiff
+
+    return b.id.localeCompare(a.id)
+  })
+
+  // Extract the most recently created subscription
+  const currentSubscription = sortedCurrentSubscriptions[0]
+
+  if (!currentSubscription) {
+    throw new TRPCError({
+      code: 'PRECONDITION_FAILED',
+      message: 'Customer has no current subscriptions',
+    })
+  }
+
   return {
     customer,
     purchases,
@@ -79,6 +103,7 @@ export const customerBillingTransaction = async (
     pricingModel,
     subscriptions,
     currentSubscriptions,
+    currentSubscription,
   }
 }
 
