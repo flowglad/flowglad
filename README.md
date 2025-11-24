@@ -69,283 +69,166 @@ bun add @flowglad/react @flowglad/express
 bun add @flowglad/react @flowglad/server
 ```
 
-Flowglad couples tightly with your auth. Here are some prompts that you can use to integrate Flowglad, based on your auth provider, in about 30 seconds:
+Flowglad integrates seamlessly with your authentication system and requires only a few lines of code to get started in your Next.js app. Setup typically takes under a minute:
 
-<details>
-<summary><strong>Clerk</strong></summary>
+### Integration
+1. **Configure Your Flowglad Server Client**
 
-```txt
-Please set up billing for our app according to the following instructions. Note that this assumes a Next.js application. If our project uses a different stack, you will need to adapt it accordingly. Specifically, you will need to change the following:
-`bash
-# replace @flowglad/nextjs with @flowglad/react and @flowglad/server
-bun add @flowglad/react @flowglad/server # or whatever package manager we use
-`
+Create a utility to generate your Flowglad server instance. Pass your own customer/user/organization IDs—Flowglad never requires its own customer IDs to be managed in your app:
 
-`ts
-// replace all imports of @flowglad/nextjs/server -> @flowglad/server
-import { FlowgladServer } from '@flowglad/server'
-`
-
-1. Create a `flowglad.ts` file in /src, that looks like this:
-
-`// flowglad.ts
+```ts
+// utils/flowglad.ts
 import { FlowgladServer } from '@flowglad/nextjs/server'
-import { currentUser } from '@clerk/nextjs/server'
 
 export const flowglad = (customerExternalId: string) => {
-  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
-  // For B2C: pass user.id (from Clerk)
-  // For B2B: pass organization.id or team.id (from your database)
   return new FlowgladServer({
     customerExternalId,
     getCustomerDetails: async (externalId) => {
-      // Fetch customer details from YOUR database using YOUR app's ID
-      const user = await currentUser()
-      if (!user || user.id !== externalId) {
-        throw new Error('Customer not found')
-      }
-      return {
-        email: user.emailAddresses[0]?.emailAddress || '',
-        name: user.firstName && user.lastName 
-          ? `${user.firstName} ${user.lastName}` 
-          : user.username || user.emailAddresses[0]?.emailAddress || '',
-      }
+      // e.g. Fetch user info from your DB using your user/org/team ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) throw new Error('User not found')
+      return { email: user.email, name: user.name }
     },
   })
 }
-`
+```
 
-2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
+2. **Expose the Flowglad API Handler**
 
-`// /api/flowglad/[...path]/route.ts
+Add an API route so the Flowglad client can communicate securely with your backend:
 
+```ts
+// app/api/flowglad/[...path]/route.ts
 import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/flowglad'
-import { currentUser } from '@clerk/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
 
 export const { GET, POST } = nextRouteHandler({
   flowglad,
   getCustomerExternalId: async (req) => {
-    // Extract customerExternalId from Clerk auth
-    // For B2C: return user.id
-    // For B2B: return organization.id (from your database)
-    const user = await currentUser()
-    if (!user) {
-      throw new Error('User not authenticated')
-    }
-    return user.id // or organization.id for B2B apps
+    // Extract your user/org/team ID from session/auth.
+    // For B2C: return user.id from your DB
+    // For B2B: return organization.id or team.id
+    const userId = await getUserIdFromRequest(req)
+    if (!userId) throw new Error('User not authenticated')
+    return userId
   },
 })
-`
-
-3. Add the following to the`app/layout.tsx`file. Preserve the existing layout JSX code. Just:
-
-- get the user via clerk auth
-- mount the `FlowgladProvider` with the user
-- pass the user to the `FlowgladProvider`
-
-`
-// /app/layout.tsx
-import { currentUser } from '@clerk/nextjs/server'
-// ... existing code ...
-// inside of the layout component:
-const user = await currentUser()
-
-return (
-
-<FlowgladProvider loadBilling={!!user}>
-  {/* ... existing layout JSX ... */}
-  {children}
-  {/* ... existing layout JSX ... */}
-</FlowgladProvider>
-) `
 ```
-</details>
-<details>
-<summary><strong>Supabase Auth</strong></summary>
 
-```txt
-Please set up billing for our app according to the following instructions. Note that this assumes a Next.js application. If our project uses a different stack, you will need to adapt it accordingly. Specifically, you will need to change the following:
-`bash
-# replace @flowglad/nextjs with @flowglad/react and @flowglad/server
-bun add @flowglad/react @flowglad/server # or whatever package manager we use
-`
+3. **Wrap Your App with the Provider**
 
-`ts
-// replace all imports of @flowglad/nextjs/server -> @flowglad/server
-import { FlowgladServer } from '@flowglad/server'
-`
+In your root layout (App Router) or _app (Pages Router):
 
-1. Create a `flowglad.ts` file in your project directory, that looks like this:
+```tsx
+import { FlowgladProvider } from '@flowglad/nextjs'
 
-`ts
-import { FlowgladServer } from '@flowglad/nextjs/server'
-import { createClient } from '@/utils/supabase/server' // or wherever you store your supabase server client constructor.
-
-export const flowglad = (customerExternalId: string) => {
-  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
-  // For B2C: pass user.id (from Supabase Auth)
-  // For B2B: pass organization.id or team.id (from your database)
-  return new FlowgladServer({
-    customerExternalId,
-    getCustomerDetails: async (externalId) => {
-      // Fetch customer details from YOUR database using YOUR app's ID
-      const supabase = await createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || user.id !== externalId) {
-        throw new Error('Customer not found')
-      }
-      return {
-        email: user.email || '',
-        name: user.user_metadata?.name || user.email || '',
-      }
-    },
-  })
+// App Router example (app/layout.tsx)
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <FlowgladProvider loadBilling={true}>
+          {children}
+        </FlowgladProvider>
+      </body>
+    </html>
+  )
 }
-`
-
-2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
-
-`ts
-import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/flowglad'
-import { createClient } from '@/utils/supabase/server'
-
-export const { GET, POST } = nextRouteHandler({
-  flowglad,
-  getCustomerExternalId: async (req) => {
-    // Extract customerExternalId from Supabase Auth
-    // For B2C: return user.id
-    // For B2B: return organization.id (from your database)
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      throw new Error('User not authenticated')
-    }
-    return user.id // or organization.id for B2B apps
-  },
-})
-`
-
-3. Add the following to the`app/layout.tsx`file. Preserve the existing layout JSX code. Just:
-
-- get the user via supabase auth
-- mount the `FlowgladProvider` with the user
-- pass the user to the `FlowgladProvider`
-
-`tsx
-// /app/layout.tsx
-import { createClient } from '@/utils/supabase/server' // or wherever we create our supabase client
-// ... existing code ...
-// inside of the layout component:
-const supabase = createClient()
-const {
-data: { user }
-} = await supabase.auth.getUser()
-
-return (
-<FlowgladProvider loadBilling={!!user}>
-  {/* ... existing layout JSX ... */}
-  {children}
-  {/* ... existing layout JSX ... */}
-</FlowgladProvider>
-)
-`
 ```
-</details>
-<details>
-<summary><strong>Next Auth</strong></summary>
 
-```txt
-Please set up billing for our app according to the following instructions. Note that this assumes a Next.js application. If our project uses a different stack, you will need to adapt it accordingly. Specifically, you will need to change the following:
-`bash
-# replace @flowglad/nextjs with @flowglad/react and @flowglad/server
-bun add @flowglad/react @flowglad/server # or whatever package manager we use
-`
+That’s it—Flowglad will use your app’s internal user IDs for all billing logic and integrate billing status into your frontend in real time.
 
-`ts
-// replace all imports of @flowglad/nextjs/server -> @flowglad/server
-import { FlowgladServer } from '@flowglad/server'
-`
+**B2C apps:** Use `user.id` as the customer ID.  
+**B2B apps:** Use `organization.id` or `team.id` as the customer ID.
 
-1. Create a `flowglad.ts` file in /src, that looks like this:
+_Flowglad does not require you to change your authentication system or manage Flowglad customer IDs. Just pass your own!_
 
-`// flowglad.ts
-import { FlowgladServer } from '@flowglad/nextjs/server'
-import { auth } from '@/auth' // your initialized, configured NextAuth client
+4. Use `useBilling` on your frontend, and `flowglad().getBilling()` on your backend
 
-export const flowglad = (customerExternalId: string) => {
-  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
-  // For B2C: pass user.id (from NextAuth session)
-  // For B2B: pass organization.id or team.id (from your database)
-  return new FlowgladServer({
-    customerExternalId,
-    getCustomerDetails: async (externalId) => {
-      // Fetch customer details from YOUR database using YOUR app's ID
-      const session = await auth()
-      if (!session?.user || session.user.id !== externalId) {
-        throw new Error('Customer not found')
-      }
-      return {
-        email: session.user.email || '',
-        name: session.user.name || session.user.email || '',
-      }
-    },
-  })
+**Frontend Example: Checking Feature Access and Usage**
+```tsx
+'use client'
+
+import { useBilling } from '@flowglad/nextjs'
+
+export function FeatureGate({ featureSlug, children }) {
+  const { loaded, errors, checkFeatureAccess } = useBilling()
+
+  if (!loaded || !checkFeatureAccess) {
+    return <p>Loading billing state…</p>
+  }
+
+  if (errors?.length) {
+    return <p>Unable to load billing data right now.</p>
+  }
+
+  return checkFeatureAccess(featureSlug)
+    ? children
+    : <p>You need to upgrade to unlock this feature.</p>
 }
-`
-
-2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
-
-`// /api/flowglad/[...path]/route.ts
-
-import { nextRouteHandler } from '@flowglad/nextjs/server'
-import { flowglad } from '@/flowglad'
-import { auth } from '@/auth'
-
-export const { GET, POST } = nextRouteHandler({
-  flowglad,
-  getCustomerExternalId: async (req) => {
-    // Extract customerExternalId from NextAuth session
-    // For B2C: return user.id
-    // For B2B: return organization.id (from your database)
-    const session = await auth()
-    if (!session?.user) {
-      throw new Error('User not authenticated')
-    }
-    return session.user.id // or organization.id for B2B apps
-  },
-})
-`
-
-3. Add the following to the`app/layout.tsx`file. Preserve the existing layout JSX code. Just:
-
-- get the session via next-auth
-- mount the `FlowgladProvider` with the session status
-- wrap everything in SessionProvider
-
-`
-// /app/layout.tsx
-import { auth } from '@/auth'
-import { SessionProvider } from 'next-auth/react'
-// ... existing code ...
-// inside of the layout component:
-const session = await auth()
-
-return (
-
-<SessionProvider session={session}>
-  <FlowgladProvider
-    loadBilling={session?.status === 'authenticated'}
-  >
-    {/* ... existing layout JSX ... */}
-    {children}
-    {/* ... existing layout JSX ... */}
-  </FlowgladProvider>
-</SessionProvider>
-) `
 ```
-</details>
+
+```tsx
+import { useBilling } from '@flowglad/nextjs'
+
+export function UsageBalanceIndicator({ usageMeterSlug }) {
+  const { loaded, errors, checkUsageBalance, createCheckoutSession } = useBilling()
+
+  if (!loaded || !checkUsageBalance) {
+    return <p>Loading usage…</p>
+  }
+
+  const usage = checkUsageBalance(usageMeterSlug)
+
+  return (
+    <div>
+      <h3>Usage Balance</h3>
+      <p>
+        Remaining:{' '}
+        {usage ? `${usage.availableBalance} credits available` : <button onClick={() => createCheckoutSession({ 
+            priceSlug: 'pro_plan',
+            autoRedirect: true
+          })}
+        />}
+      </p>
+    </div>
+  )
+}
+```
+
+**Backend Example: Server-side Feature and Usage Checks**
+```ts
+import { NextResponse } from 'next/server'
+import { flowglad } from '@/utils/flowglad'
+// ...
+  const user = await getUser()
+
+  const billing = await flowglad(user.id).getBilling()
+  const hasAccess = billing.checkFeatureAccess('fast_generations')
+  if (hasAccess) {
+    // run fast generations
+  } else {
+    // fall back to normal generations
+  }
+```
+
+```ts
+import { flowglad } from '@/utils/flowglad'
+
+const processChatMessage = (params: { chat: string }) => {
+  // Extract your app's user/org/team ID,
+  // whichever corresponds to your customer
+  const user = await getUser()
+
+  const billing = await flowglad(user.id).getBilling()
+  const usage = billing.checkUsageBalance('chat_messages')
+  if (usage.availableBalance > 0) {
+    // run chat request
+  } else {
+    throw Error(`User ${user.id} does not have sufficient usage credits`)
+  }
+}
+```
 
 ## Getting Started
 First, set up a pricing model. You can do so in the [dashboard](https://app.flowglad.com/store/pricing-models) in just a few clicks using a template, that you can then customize to suit your specific needs.
