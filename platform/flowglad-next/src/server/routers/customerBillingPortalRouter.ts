@@ -39,7 +39,6 @@ import {
   isSubscriptionInTerminalState,
 } from '@/db/tableMethods/subscriptionMethods'
 import { scheduleSubscriptionCancellation } from '@/subscriptions/cancelSubscription'
-import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import { SubscriptionCancellationArrangement } from '@/types'
 import { auth } from '@/utils/auth'
@@ -239,25 +238,6 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
             message:
               'Future date cancellation is not available through the customer billing portal',
           })
-        }
-
-        // Verify current billing period exists (required for end of billing period cancellation)
-        if (
-          input.cancellation.timing ===
-          SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod
-        ) {
-          const currentBillingPeriod =
-            await selectCurrentBillingPeriodForSubscription(
-              subscription.id,
-              transaction
-            )
-          if (!currentBillingPeriod) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message:
-                'No current billing period found for this subscription',
-            })
-          }
         }
       },
       {

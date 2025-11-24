@@ -9,7 +9,6 @@ import {
   SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
-  enableCustomerReadPolicy,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { subscriptions } from '@/db/schema/subscriptions'
@@ -48,12 +47,6 @@ export const billingPeriods = pgTable(
           as: 'permissive',
           to: 'all',
           using: sql`"subscription_id" in (select "id" from "subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
-        }
-      ),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"subscription_id" in (select "id" from "subscriptions" where "customer_id" in (select "id" from "customers"))`,
         }
       ),
       livemodePolicy(TABLE_NAME),
