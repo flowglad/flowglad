@@ -18,7 +18,11 @@ import {
   insertCheckoutSession,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import {
+  selectPriceProductAndOrganizationByPriceWhere,
+  selectPriceBySlugAndCustomerId,
+  selectPriceBySlugAndOrganizationId,
+} from '@/db/tableMethods/priceMethods'
 import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
 import { Customer } from '@/db/schema/customers'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -33,12 +37,14 @@ export const checkoutSessionInsertFromInput = ({
   organizationId,
   livemode,
   activateSubscriptionPriceId,
+  resolvedPriceId,
 }: {
   checkoutSessionInput: CreateCheckoutSessionObject
   customer: Customer.Record | null
   organizationId: string
   livemode: boolean
   activateSubscriptionPriceId?: string | null
+  resolvedPriceId?: string
 }): CheckoutSession.Insert => {
   const coreFields: Pick<
     CheckoutSession.Insert,
@@ -76,7 +82,7 @@ export const checkoutSessionInsertFromInput = ({
       automaticallyUpdateSubscriptions: null,
       type: CheckoutSessionType.Product,
       invoiceId: null,
-      priceId: checkoutSessionInput.priceId,
+      priceId: resolvedPriceId ?? checkoutSessionInput.priceId!,
       targetSubscriptionId: null,
       customerId: isAnonymous ? null : customer!.id,
       customerEmail: isAnonymous ? null : customer!.email,
@@ -167,10 +173,63 @@ export const createCheckoutSessionTransaction = async (
   let product: Product.Record | null = null
   let organization: Organization.Record | null = null
   let activateSubscriptionPriceId: string | null = null
+  let resolvedPriceId: string | undefined = undefined
+
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
+    // Resolve price ID from either priceId or priceSlug
+    if (
+      'priceSlug' in checkoutSessionInput &&
+      checkoutSessionInput.priceSlug
+    ) {
+      const isAnonymous =
+        'anonymous' in checkoutSessionInput &&
+        checkoutSessionInput.anonymous === true
+
+      if (isAnonymous) {
+        // Anonymous checkout: use organization's default pricing model
+        const priceFromSlug =
+          await selectPriceBySlugAndOrganizationId(
+            {
+              slug: checkoutSessionInput.priceSlug,
+              organizationId,
+              livemode,
+            },
+            transaction
+          )
+        if (!priceFromSlug) {
+          throw new Error(
+            `Price with slug "${checkoutSessionInput.priceSlug}" not found in organization's default pricing model`
+          )
+        }
+        resolvedPriceId = priceFromSlug.id
+      } else {
+        // Identified customer: use customer's pricing model
+        if (!customer) {
+          throw new Error(
+            'Customer is required to resolve price slug for identified checkout sessions'
+          )
+        }
+        const priceFromSlug = await selectPriceBySlugAndCustomerId(
+          {
+            slug: checkoutSessionInput.priceSlug,
+            customerId: customer.id,
+          },
+          transaction
+        )
+        if (!priceFromSlug) {
+          throw new Error(
+            `Price with slug "${checkoutSessionInput.priceSlug}" not found for customer's pricing model`
+          )
+        }
+        resolvedPriceId = priceFromSlug.id
+      }
+    } else if (checkoutSessionInput.priceId) {
+      resolvedPriceId = checkoutSessionInput.priceId
+    }
+
     const [result] =
       await selectPriceProductAndOrganizationByPriceWhere(
-        { id: checkoutSessionInput.priceId },
+        { id: resolvedPriceId! },
         transaction
       )
     price = result.price
@@ -237,6 +296,7 @@ export const createCheckoutSessionTransaction = async (
       organizationId,
       livemode,
       activateSubscriptionPriceId,
+      resolvedPriceId,
     }),
     transaction
   )

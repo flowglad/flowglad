@@ -159,3 +159,145 @@ describe('createCheckoutSessionInputSchema – non-product shapes ignore anonymo
     )
   })
 })
+
+describe('createCheckoutSessionInputSchema – price slug support', () => {
+  describe('identified product checkout (anonymous=false)', () => {
+    it('accepts priceId', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceId: 'price_123',
+        successUrl,
+        cancelUrl,
+        customerExternalId: 'cust_ext_1',
+        anonymous: false,
+      })
+      const result = createCheckoutSessionInputSchema.parse(input)
+      expect(result.checkoutSession).toBeDefined()
+      if (
+        result.checkoutSession.type === CheckoutSessionType.Product
+      ) {
+        expect(result.checkoutSession.priceId).toBe('price_123')
+        expect(result.checkoutSession.priceSlug).toBeUndefined()
+      }
+    })
+
+    it('accepts priceSlug', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceSlug: 'basic-plan',
+        successUrl,
+        cancelUrl,
+        customerExternalId: 'cust_ext_1',
+        anonymous: false,
+      })
+      const result = createCheckoutSessionInputSchema.parse(input)
+      expect(result.checkoutSession).toBeDefined()
+      if (
+        result.checkoutSession.type === CheckoutSessionType.Product
+      ) {
+        expect(result.checkoutSession.priceSlug).toBe('basic-plan')
+        expect(result.checkoutSession.priceId).toBeUndefined()
+      }
+    })
+
+    it('should reject when both priceId and priceSlug are provided', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceId: 'price_123',
+        priceSlug: 'basic-plan',
+        successUrl,
+        cancelUrl,
+        customerExternalId: 'cust_ext_1',
+        anonymous: false,
+      })
+      expect(() =>
+        createCheckoutSessionInputSchema.parse(input)
+      ).toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
+
+    it('should reject when neither priceId nor priceSlug is provided', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        successUrl,
+        cancelUrl,
+        customerExternalId: 'cust_ext_1',
+        anonymous: false,
+      })
+      expect(() =>
+        createCheckoutSessionInputSchema.parse(input)
+      ).toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
+  })
+
+  describe('anonymous product checkout (anonymous=true)', () => {
+    it('accepts priceId', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceId: 'price_123',
+        successUrl,
+        cancelUrl,
+        anonymous: true,
+      })
+      const result = createCheckoutSessionInputSchema.parse(input)
+      expect(result.checkoutSession).toBeDefined()
+      if (
+        result.checkoutSession.type === CheckoutSessionType.Product
+      ) {
+        expect(result.checkoutSession.priceId).toBe('price_123')
+        expect(result.checkoutSession.priceSlug).toBeUndefined()
+      }
+    })
+
+    it('accepts priceSlug', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceSlug: 'basic-plan',
+        successUrl,
+        cancelUrl,
+        anonymous: true,
+      })
+      const result = createCheckoutSessionInputSchema.parse(input)
+      expect(result.checkoutSession).toBeDefined()
+      if (
+        result.checkoutSession.type === CheckoutSessionType.Product
+      ) {
+        expect(result.checkoutSession.priceSlug).toBe('basic-plan')
+        expect(result.checkoutSession.priceId).toBeUndefined()
+      }
+    })
+
+    it('should reject when both priceId and priceSlug are provided', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceId: 'price_123',
+        priceSlug: 'basic-plan',
+        successUrl,
+        cancelUrl,
+        anonymous: true,
+      })
+      expect(() =>
+        createCheckoutSessionInputSchema.parse(input)
+      ).toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
+
+    it('should reject when neither priceId nor priceSlug is provided', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        successUrl,
+        cancelUrl,
+        anonymous: true,
+      })
+      expect(() =>
+        createCheckoutSessionInputSchema.parse(input)
+      ).toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
+  })
+})

@@ -6,6 +6,7 @@ import {
   pricesUpdateSchema,
   ProductWithPrices,
   pricesClientSelectSchema,
+  PricingModelWithProductsAndUsageMeters,
 } from '@/db/schema/prices'
 import {
   createSelectById,
@@ -44,7 +45,10 @@ import {
   featuresSelectSchema,
 } from '../schema/features'
 import { productFeatures } from '../schema/productFeatures'
-import { selectPricingModelForCustomer } from './pricingModelMethods'
+import {
+  selectPricingModelForCustomer,
+  selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
+} from './pricingModelMethods'
 import { selectCustomerById } from './customerMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -353,6 +357,69 @@ export const selectPriceBySlugAndCustomerId = async (
     if (price) {
       // Return the price directly from the pricing model
       // This avoids a redundant database call since we already have the price data
+      return price
+    }
+  }
+
+  return null
+}
+
+/**
+ * Select a price by slug and organizationId (uses the organization's default pricing model)
+ * This is used for anonymous checkout sessions where we don't have a customer
+ * Returns Price.ClientRecord (not Price.Record) because it uses data from selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere
+ */
+export const selectPriceBySlugAndOrganizationId = async (
+  params: { slug: string; organizationId: string; livemode: boolean },
+  transaction: DbTransaction
+): Promise<Price.ClientRecord | null> => {
+  // Get the organization's default pricing model
+  const [pricingModel] =
+    await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+      {
+        isDefault: true,
+        organizationId: params.organizationId,
+        livemode: params.livemode,
+      },
+      transaction
+    )
+
+  if (!pricingModel) {
+    throw new Error(
+      `No default pricing model found for organization ${params.organizationId}`
+    )
+  }
+
+  // Filter to active products and prices, similar to selectPricingModelForCustomer
+  const filteredProducts: PricingModelWithProductsAndUsageMeters['products'] =
+    pricingModel.products
+      .filter(
+        (
+          product: PricingModelWithProductsAndUsageMeters['products'][number]
+        ) => product.active
+      )
+      .map(
+        (
+          product: PricingModelWithProductsAndUsageMeters['products'][number]
+        ) => ({
+          ...product,
+          prices: product.prices.filter(
+            (price: Price.ClientRecord) => price.active
+          ),
+        })
+      )
+      .filter(
+        (
+          product: PricingModelWithProductsAndUsageMeters['products'][number]
+        ) => product.prices.length > 0
+      )
+
+  // Search through all products in the pricing model to find a price with the matching slug
+  for (const product of filteredProducts) {
+    const price = product.prices.find(
+      (p: Price.ClientRecord) => p.slug === params.slug
+    )
+    if (price) {
       return price
     }
   }
