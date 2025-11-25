@@ -322,7 +322,7 @@ export function TemplatePreviewContent({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <Button
-            onClick={() => onConfirm({ isDefault: false })}
+            onClick={() => onConfirm({ isDefault })}
             disabled={isCreating}
             variant="default"
             className="rounded-[4px]"
