@@ -267,6 +267,7 @@ describe('Swagger Configuration', () => {
       '/api/v1/payment-methods',
       '/api/v1/usage-meters',
       '/api/v1/usage-events',
+      '/api/v1/usage-events/bulk',
       '/api/v1/webhooks',
     ]
 
@@ -1057,8 +1058,8 @@ describe('Swagger Configuration', () => {
 
       it('should include priceId as optional with description in usageEvent', () => {
         // Navigate to usageEvent.properties
-        const usageEventSchema =
-          schemaObject?.properties?.usageEvent as SchemaObjectWithProperties
+        const usageEventSchema = schemaObject?.properties
+          ?.usageEvent as SchemaObjectWithProperties
         expect(usageEventSchema?.properties).toBeDefined()
 
         // Verify it's not in required array (it's optional)
@@ -1075,8 +1076,8 @@ describe('Swagger Configuration', () => {
 
       it('should include priceSlug as optional with description in usageEvent', () => {
         // Navigate to usageEvent.properties
-        const usageEventSchema =
-          schemaObject?.properties?.usageEvent as SchemaObjectWithProperties
+        const usageEventSchema = schemaObject?.properties
+          ?.usageEvent as SchemaObjectWithProperties
         expect(usageEventSchema?.properties).toBeDefined()
 
         // Verify it's not in required array (it's optional)
@@ -1089,6 +1090,89 @@ describe('Swagger Configuration', () => {
         expect(priceSlugDesc).toBe(
           'The slug of the price. If not provided, priceId is required.'
         )
+      })
+    })
+
+    describe('POST /usage-events/bulk', () => {
+      const basePath = '/api/v1/usage-events/bulk'
+      let schemaObject: SchemaObjectWithProperties | undefined
+      let usageEventsArrayItems:
+        | SchemaObjectWithProperties
+        | undefined
+
+      beforeEach(() => {
+        const bulkEndpoint = paths?.[basePath]?.post
+        const requestBody = bulkEndpoint?.requestBody
+        const rawSchema = isRequestBodyObject(requestBody)
+          ? requestBody.content?.['application/json']?.schema
+          : undefined
+        // Type guard to narrow from SchemaObject | ReferenceObject to SchemaObject
+        schemaObject =
+          rawSchema && isSchemaObject(rawSchema)
+            ? rawSchema
+            : undefined
+
+        expect(schemaObject?.properties).toBeDefined()
+
+        // Navigate to usageEvents array items
+        const usageEventsProperty = schemaObject?.properties
+          ?.usageEvents as any
+        expect(usageEventsProperty).toBeDefined()
+        expect(usageEventsProperty.type).toBe('array')
+        expect(usageEventsProperty.items).toBeDefined()
+
+        // Get the items schema for the array
+        usageEventsArrayItems = isSchemaObject(
+          usageEventsProperty.items
+        )
+          ? usageEventsProperty.items
+          : undefined
+
+        expect(usageEventsArrayItems?.properties).toBeDefined()
+      })
+
+      it('should include priceId as optional with description in array items', () => {
+        // Verify it's not in required array (it's optional)
+        const required = usageEventsArrayItems?.required || []
+        expect(required).not.toContain('priceId')
+
+        // Verify exact description from implementation
+        const priceIdDesc =
+          usageEventsArrayItems?.properties?.priceId?.description ||
+          ''
+        expect(priceIdDesc).toBe(
+          'The internal ID of the price. If not provided, priceSlug is required.'
+        )
+      })
+
+      it('should include priceSlug as optional with description in array items', () => {
+        // Verify it's not in required array (it's optional)
+        const required = usageEventsArrayItems?.required || []
+        expect(required).not.toContain('priceSlug')
+
+        // Verify exact description from implementation
+        const priceSlugDesc =
+          usageEventsArrayItems?.properties?.priceSlug?.description ||
+          ''
+        expect(priceSlugDesc).toBe(
+          'The slug of the price. If not provided, priceId is required.'
+        )
+      })
+
+      it('should have descriptions explaining mutual exclusivity', () => {
+        // Verify priceId description mentions the requirement
+        const priceIdDesc =
+          usageEventsArrayItems?.properties?.priceId?.description ||
+          ''
+        expect(priceIdDesc).toContain('If not provided')
+        expect(priceIdDesc).toContain('priceSlug is required')
+
+        // Verify priceSlug description mentions the requirement
+        const priceSlugDesc =
+          usageEventsArrayItems?.properties?.priceSlug?.description ||
+          ''
+        expect(priceSlugDesc).toContain('If not provided')
+        expect(priceSlugDesc).toContain('priceId is required')
       })
     })
   })

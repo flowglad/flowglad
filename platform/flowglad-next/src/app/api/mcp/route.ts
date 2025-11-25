@@ -1,14 +1,125 @@
 import { createMcpHandler, withMcpAuth } from 'mcp-handler'
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
-import { toolSet } from '@/mcp/toolSet'
-import core from '@/utils/core'
 import { verifyApiKey } from '@/utils/unkey'
+import { z } from 'zod/v3'
+import {
+  queryTurbopuffer,
+  getTurbopufferClient,
+  getOpenAIClient,
+} from '@/utils/turbopuffer'
 
 // Create MCP handler with tools
 const handler = createMcpHandler(
   (server) => {
-    // Register all tools - mcp-handler will auto-discover them
-    toolSet(server, '')
+    // Register MCP tools directly on the server instance
+    server.registerTool(
+      'echoTest',
+      {
+        description: 'Echo a test message',
+        inputSchema: {
+          message: z.string(),
+        },
+      },
+      async ({ message }) => ({
+        content: [{ type: 'text', text: `Tool echo: ${message}` }],
+      })
+    )
+
+    // Query Flowglad documentation using Turbopuffer vector search
+    server.registerTool(
+      'queryDocs',
+      {
+        description:
+          'Search Flowglad documentation using semantic vector search. Returns relevant documentation sections based on the query.',
+        inputSchema: {
+          query: z
+            .string()
+            .min(1)
+            .describe(
+              'The search query to find relevant documentation'
+            ),
+        },
+      },
+      async ({ query }) => {
+        try {
+          const [tpuf, openai] = await Promise.all([
+            getTurbopufferClient(),
+            getOpenAIClient(),
+          ])
+
+          const results = await queryTurbopuffer(
+            query,
+            2,
+            'flowglad-docs',
+            tpuf,
+            openai
+          )
+
+          if (results.length === 0) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `No documentation found for query: "${query}"`,
+                },
+              ],
+            }
+          }
+
+          // Dynamically import fetchMarkdownFromDocs to avoid loading fetch/undici at module load time.
+          // See docsSearchRouter for explanation.
+          const { fetchMarkdownFromDocs } = await import(
+            '@/utils/textContent'
+          )
+
+          // Fetch full markdown content for each result
+          const resultsWithMarkdown = await Promise.all(
+            results.map(async (result) => {
+              const markdown = await fetchMarkdownFromDocs(
+                result.path
+              )
+
+              return {
+                path: result.path,
+                title: result.title,
+                description: result.description,
+                markdown:
+                  markdown || result.text || 'Content not available',
+              }
+            })
+          )
+
+          // Format results nicely with full content
+          const formattedResults = resultsWithMarkdown
+            .map((result, index) => {
+              return `${result.title ? `Title: ${result.title}\n` : ''}${result.description ? `Description: ${result.description}\n` : ''}
+${'='.repeat(80)}
+${result.markdown}
+${'='.repeat(80)}`
+            })
+            .join('\n\n')
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Found ${results.length} result(s) for query: "${query}"\n\n${formattedResults}`,
+              },
+            ],
+          }
+        } catch (error) {
+          console.error('[MCP] queryDocs error', error)
+          return {
+            content: [
+              {
+                type: 'text',
+                text: 'Error querying documentation. Please try again later or contact support if the problem persists.',
+              },
+            ],
+          }
+        }
+      }
+    )
   },
   {},
   {
@@ -76,17 +187,13 @@ const verifyToken = async (
  * Example MCP client configuration:
  *   "Authorization": "Bearer sk_test_..."
  */
+// Let withMcpAuth handle authentication using verifyToken
+const authHandler = withMcpAuth(handler, verifyToken, {
+  required: true, // Auth is required and we verify it via verifyToken
+})
+
 export async function POST(req: Request) {
   try {
-    if (core.IS_PROD) {
-      throw Error('Unauthorized: MCP not enabled')
-    }
-
-    // Let withMcpAuth handle authentication using verifyToken
-    const authHandler = withMcpAuth(handler, verifyToken, {
-      required: true, // Auth is required and we verify it via verifyToken
-    })
-
     // Ensure Accept header is set (required by mcp-handler)
     const acceptHeader = req.headers.get('Accept')
     if (!acceptHeader || !acceptHeader.includes('application/json')) {
