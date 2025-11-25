@@ -684,30 +684,63 @@ const coreCheckoutSessionInputSchema = z.object({
     ),
 })
 
+const identifiedProductCheckoutSessionInputSchemaBase =
+  coreCheckoutSessionInputSchema.extend({
+    type: z.literal(CheckoutSessionType.Product),
+    priceId: z
+      .string()
+      .optional()
+      .describe(
+        'The ID of the price the customer shall purchase. If not provided, priceSlug is required.'
+      ),
+    priceSlug: z
+      .string()
+      .optional()
+      .describe(
+        'The slug of the price the customer shall purchase. If not provided, priceId is required.'
+      ),
+    quantity: z
+      .number()
+      .optional()
+      .describe(
+        'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+      ),
+    anonymous: z.literal(false).optional(),
+    preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
+  })
+
 export const identifiedProductCheckoutSessionInputSchema =
-  coreCheckoutSessionInputSchema
-    .extend({
-      type: z.literal(CheckoutSessionType.Product),
-      priceId: z
-        .string()
-        .describe('The ID of the price the customer shall purchase'),
-      quantity: z
-        .number()
-        .optional()
-        .describe(
-          'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
-        ),
-      anonymous: z.literal(false).optional(),
-      preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
-    })
+  identifiedProductCheckoutSessionInputSchemaBase
+    .refine(
+      (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
+      {
+        message:
+          'Either priceId or priceSlug must be provided, but not both',
+        path: ['priceId'],
+      }
+    )
     .meta({ id: 'IdentifiedProductCheckoutSessionInput' })
 
 export const anonymousProductCheckoutSessionInputSchema =
-  identifiedProductCheckoutSessionInputSchema
+  identifiedProductCheckoutSessionInputSchemaBase
     .extend({
       anonymous: z.literal(true),
       customerExternalId: z.null().optional(),
+      priceSlug: z
+        .string()
+        .optional()
+        .describe(
+          "The slug of the price the customer shall purchase from the organization's default pricing model. If not provided, priceId is required."
+        ),
     })
+    .refine(
+      (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
+      {
+        message:
+          'Either priceId or priceSlug must be provided, but not both',
+        path: ['priceId'],
+      }
+    )
     .meta({ id: 'AnonymousProductCheckoutSessionInput' })
 
 export const productCheckoutSessionInputSchema = z
