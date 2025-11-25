@@ -327,6 +327,17 @@ describe('Customer Billing Portal Router', () => {
         organizationId: organization.id,
         livemode: true,
       })
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: newCustomerSetup.customer.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+        livemode: true,
+        currentBillingPeriodStart:
+          Date.now() - 15 * 24 * 60 * 60 * 1000,
+        currentBillingPeriodEnd:
+          Date.now() + 15 * 24 * 60 * 60 * 1000,
+      })
 
       vi.spyOn(
         databaseAuthentication,

@@ -75,15 +75,17 @@ export const customerBillingTransaction = async (
   // Sort currentSubscriptions by createdAt descending (most recent first)
   // If createdAt ties, use updatedAt as tiebreaker
   // If updatedAt also ties, use id as final tiebreaker
-  const sortedCurrentSubscriptions = [...currentSubscriptions].sort((a, b) => {
-    const createdAtDiff = b.createdAt.getTime() - a.createdAt.getTime()
-    if (createdAtDiff !== 0) return createdAtDiff
+  const sortedCurrentSubscriptions = [...currentSubscriptions].sort(
+    (a, b) => {
+      const createdAtDiff = b.createdAt - a.createdAt
+      if (createdAtDiff !== 0) return createdAtDiff
 
-    const updatedAtDiff = b.updatedAt.getTime() - a.updatedAt.getTime()
-    if (updatedAtDiff !== 0) return updatedAtDiff
+      const updatedAtDiff = b.updatedAt - a.updatedAt
+      if (updatedAtDiff !== 0) return updatedAtDiff
 
-    return b.id.localeCompare(a.id)
-  })
+      return a.id < b.id ? -1 : 1
+    }
+  )
 
   // Extract the most recently created subscription
   const currentSubscription = sortedCurrentSubscriptions[0]
