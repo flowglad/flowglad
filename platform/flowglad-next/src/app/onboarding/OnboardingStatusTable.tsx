@@ -246,7 +246,7 @@ const OnboardingStatusTable = ({
       </OnboardingStatusRow>
       <OnboardingStatusRow
         key={'create-pricing-model'}
-        completed={pricingModelsCount > 2}
+        completed={pricingModelsCount > 1}
         title={'2. Create pricing model'}
         description={
           'Create your first pricing model to define products, plans, and features.'
