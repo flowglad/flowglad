@@ -73,11 +73,7 @@ import {
 } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
 import { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
-import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
-import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
-import type { CoreStripePaymentIntent } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
@@ -341,12 +337,19 @@ export const billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts =
 
 export const processOutstandingBalanceForBillingPeriod = async (
   billingPeriod: BillingPeriod.Record,
+  invoice: Invoice.Record,
   transaction: DbTransaction
 ): Promise<BillingPeriod.Record> => {
   if (
     Date.now() > billingPeriod.endDate &&
     billingPeriod.status !== BillingPeriodStatus.PastDue
   ) {
+    await safelyUpdateInvoiceStatus(
+      invoice,
+      InvoiceStatus.Open,
+      transaction
+    )
+
     return updateBillingPeriod(
       {
         id: billingPeriod.id,
@@ -886,51 +889,12 @@ export const executeBillingRun = async (billingRunId: string) => {
       confirmationResult.status === 'succeeded' ||
       confirmationResult.status === 'requires_payment_method'
     ) {
-      await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          // Update invoice status based on payment intent status
-          const [invoice] = await selectInvoices(
-            {
-              billingPeriodId: billingRun.billingPeriodId,
-            },
-            transaction
-          )
-
-          if (invoice) {
-            let targetInvoiceStatus: InvoiceStatus
-
-            if (confirmationResult.status === 'succeeded') {
-              const totalPaid =
-                totalAmountPaid + confirmationResult.amount_received
-
-              // Only mark as Paid if fully paid
-              targetInvoiceStatus =
-                totalPaid >= totalDueAmount
-                  ? InvoiceStatus.Paid
-                  : InvoiceStatus.Open
-            } else {
-              // For failed payments, mark as Open
-              targetInvoiceStatus = InvoiceStatus.Open
-            }
-
-            await safelyUpdateInvoiceStatus(
-              invoice,
-              targetInvoiceStatus,
-              transaction
-            )
-          }
-
-          // Process terminal payment intent for ledger commands
-          return await processTerminalPaymentIntent(
-            confirmationResult,
-            billingRun,
-            transaction
-          )
-        },
-        {
-          livemode: billingRun.livemode,
-        }
-      )
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        return await processPaymentIntentEventForBillingRun(
+          confirmationResult,
+          transaction
+        )
+      })
     }
 
     return {
@@ -1029,90 +993,4 @@ export const scheduleBillingRunRetry = async (
     return
   }
   return safelyInsertBillingRun(retryBillingRun, transaction)
-}
-
-export const processTerminalPaymentIntent = async (
-  paymentIntent: CoreStripePaymentIntent,
-  billingRun: BillingRun.Record,
-  transaction: DbTransaction
-): Promise<TransactionOutput<{ commandCreated: boolean }>> => {
-  // Fetch the required data
-  const { subscription, billingPeriod, organization } =
-    await selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId(
-      billingRun.billingPeriodId,
-      transaction
-    )
-
-  const [invoice] = await selectInvoices(
-    {
-      billingPeriodId: billingRun.billingPeriodId,
-    },
-    transaction
-  )
-
-  if (!invoice) {
-    throw new Error(
-      `Invoice not found for billing period ${billingRun.billingPeriodId}`
-    )
-  }
-
-  let ledgerCommand: BillingPeriodTransitionLedgerCommand | undefined
-
-  // Only create billing period transition command if payment succeeded, invoice is paid
-  if (
-    paymentIntent.status === 'succeeded' &&
-    invoice.status === InvoiceStatus.Paid
-  ) {
-    const activeSubscriptionItems =
-      await selectCurrentlyActiveSubscriptionItems(
-        { subscriptionId: subscription.id },
-        billingPeriod.startDate,
-        transaction
-      )
-
-    const subscriptionItemFeatures =
-      await selectSubscriptionItemFeatures(
-        {
-          subscriptionItemId: activeSubscriptionItems.map(
-            (item) => item.id
-          ),
-          type: FeatureType.UsageCreditGrant,
-        },
-        transaction
-      )
-
-    // Find previous billing period (if any)
-    const allBillingPeriods = await selectBillingPeriods(
-      { subscriptionId: subscription.id },
-      transaction
-    )
-
-    // Find the billing period that comes before this one (by startDate)
-    const previousBillingPeriod =
-      allBillingPeriods
-        .filter((bp) => bp.startDate < billingPeriod.startDate)
-        .sort((a, b) => b.startDate - a.startDate)[0] || null
-
-    // Construct the billing period transition command
-    ledgerCommand = {
-      type: LedgerTransactionType.BillingPeriodTransition,
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      livemode: billingPeriod.livemode,
-      payload: {
-        type: 'standard',
-        subscription,
-        previousBillingPeriod,
-        newBillingPeriod: billingPeriod,
-        subscriptionFeatureItems: subscriptionItemFeatures.filter(
-          (item) => item.type === FeatureType.UsageCreditGrant
-        ),
-      },
-    }
-  }
-
-  return {
-    result: { commandCreated: !!ledgerCommand },
-    ledgerCommand,
-  }
 }
