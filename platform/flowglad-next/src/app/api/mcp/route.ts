@@ -8,6 +8,84 @@ import {
   getTurbopufferClient,
   getOpenAIClient,
 } from '@/utils/turbopuffer'
+import { readFile } from 'fs/promises'
+import { join } from 'path'
+
+// Integration step metadata
+const INTEGRATION_STEPS = [
+  {
+    step: 0,
+    name: 'prerequisites',
+    file: '00-prerequisites.md',
+    title: 'Prerequisites & Environment Setup',
+    description:
+      'Set up your environment with the necessary Flowglad credentials',
+  },
+  {
+    step: 1,
+    name: 'install-packages',
+    file: '01-install-packages.md',
+    title: 'Install Flowglad Packages',
+    description:
+      'Install the correct Flowglad SDK packages for your framework',
+  },
+  {
+    step: 2,
+    name: 'server-factory',
+    file: '02-server-factory.md',
+    title: 'Server Factory Setup',
+    description:
+      'Create a Flowglad server factory function that integrates with your auth',
+  },
+  {
+    step: 3,
+    name: 'api-route',
+    file: '03-api-route.md',
+    title: 'API Route Setup',
+    description:
+      'Create an API route that handles communication between frontend and Flowglad',
+  },
+  {
+    step: 4,
+    name: 'frontend-provider',
+    file: '04-frontend-provider.md',
+    title: 'Frontend Provider Setup',
+    description:
+      'Wrap your application with FlowgladProvider for client-side billing access',
+  },
+  {
+    step: 5,
+    name: 'use-billing-hook',
+    file: '05-use-billing-hook.md',
+    title: 'Using the useBilling Hook',
+    description:
+      'Access billing data and functions in your React components',
+  },
+  {
+    step: 6,
+    name: 'feature-access-usage',
+    file: '06-feature-access-usage.md',
+    title: 'Feature Access & Usage Tracking',
+    description: 'Implement feature gating and usage-based billing',
+  },
+  {
+    step: 7,
+    name: 'migrate-existing-billing',
+    file: '07-migrate-existing-billing.md',
+    title: 'Migrate Existing Billing Code',
+    description: 'Replace existing mock billing with Flowglad',
+  },
+  {
+    step: 8,
+    name: 'final-verification',
+    file: '08-final-verification.md',
+    title: 'Final Verification',
+    description:
+      'Verify your Flowglad integration is complete and functioning',
+  },
+]
+
+const STEPS_DIR = join(process.cwd(), 'src/prompts/integration-steps')
 
 // Create MCP handler with tools
 const handler = createMcpHandler(
@@ -129,6 +207,202 @@ ${'='.repeat(80)}`
               },
             ],
           }
+        }
+      }
+    )
+
+    // Get step-by-step integration instructions
+    server.registerTool(
+      'getSetupInstructions',
+      {
+        description:
+          'Get detailed step-by-step instructions for integrating Flowglad. Use this tool to work through the integration one step at a time, getting focused context for each step. Call without arguments to list all available steps.',
+        inputSchema: {
+          step: z
+            .union([z.number().min(0).max(8), z.string()])
+            .optional()
+            .describe(
+              'Step number (0-8) or step name (e.g., "server-factory", "api-route"). Omit to list all steps.'
+            ),
+        },
+      },
+      async ({ step }) => {
+        try {
+          // If no step provided, return list of all steps
+          if (step === undefined || step === null) {
+            const stepList = INTEGRATION_STEPS.map(
+              (s) =>
+                `Step ${s.step}: ${s.title}\n  Name: "${s.name}"\n  ${s.description}`
+            ).join('\n\n')
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `# Flowglad Integration Steps
+
+Use this tool to get detailed instructions for each step.
+Call with step number (0-8) or step name.
+
+## Available Steps
+
+${stepList}
+
+## Recommended Flow
+
+1. **New Project**: Steps 0 → 1 → 2 → 3 → 4 → 5 → 6 → 8
+2. **Existing Project with Mock Billing**: Steps 0 → 1 → 2 → 3 → 4 → 5 → 7 → 6 → 8
+3. **Server-Only Integration**: Steps 0 → 1 → 2 → 3 → 6 → 8
+
+## Example Usage
+
+\`\`\`
+getSetupInstructions({ step: 0 })
+getSetupInstructions({ step: "server-factory" })
+\`\`\``,
+                },
+              ],
+            }
+          }
+
+          // Find the requested step
+          let stepInfo
+          if (typeof step === 'number') {
+            stepInfo = INTEGRATION_STEPS.find((s) => s.step === step)
+          } else {
+            const stepLower = step.toLowerCase()
+            stepInfo = INTEGRATION_STEPS.find(
+              (s) =>
+                s.name === stepLower ||
+                s.title.toLowerCase().includes(stepLower) ||
+                s.file.includes(stepLower)
+            )
+          }
+
+          if (!stepInfo) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Step not found: "${step}". Available steps: ${INTEGRATION_STEPS.map((s) => `${s.step} (${s.name})`).join(', ')}`,
+                },
+              ],
+            }
+          }
+
+          // Read the step file
+          const filePath = join(STEPS_DIR, stepInfo.file)
+          const content = await readFile(filePath, 'utf-8')
+
+          // Add navigation context
+          const prevStep = INTEGRATION_STEPS.find(
+            (s) => s.step === stepInfo.step - 1
+          )
+          const nextStep = INTEGRATION_STEPS.find(
+            (s) => s.step === stepInfo.step + 1
+          )
+
+          const navigation = `
+---
+
+## Navigation
+
+${prevStep ? `← Previous: Step ${prevStep.step} - ${prevStep.title} (name: "${prevStep.name}")` : '(This is the first step)'}
+${nextStep ? `→ Next: Step ${nextStep.step} - ${nextStep.title} (name: "${nextStep.name}")` : '(This is the final step)'}
+
+To get another step, call: getSetupInstructions({ step: <number or name> })`
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: content + navigation,
+              },
+            ],
+          }
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error getting setup instructions: ${error instanceof Error ? error.message : String(error)}`,
+              },
+            ],
+          }
+        }
+      }
+    )
+
+    // Get the default pricing model
+    server.registerTool(
+      'getDefaultPricingModel',
+      {
+        description:
+          'Get the default pricing model for the organization. This returns the pricing model with products, prices, features, and usage meters.',
+        inputSchema: {},
+      },
+      async () => {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'To get the pricing model, use the Flowglad dashboard or call flowglad(customerExternalId).getPricingModel() in your server code.',
+            },
+          ],
+        }
+      }
+    )
+
+    // Setup pricing model tool
+    server.registerTool(
+      'setupPricingModel',
+      {
+        description:
+          'Get instructions for setting up a pricing model in Flowglad.',
+        inputSchema: {},
+      },
+      async () => {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `# Setting Up a Pricing Model
+
+## Steps
+
+1. **Log in to Flowglad Dashboard**
+   Visit https://app.flowglad.com and log in
+
+2. **Navigate to Pricing Models**
+   Go to Store > Pricing Models
+
+3. **Create Products**
+   - Click "Create Product"
+   - Add name, description
+   - Create multiple products for different tiers (Free, Pro, Enterprise)
+
+4. **Create Prices**
+   - Within each product, click "Create Price"
+   - Set price type: Subscription or Single Payment
+   - Set billing interval (monthly, yearly)
+   - Set unit price
+
+5. **Create Features (Optional)**
+   - Add features for feature gating
+   - Assign features to products
+
+6. **Create Usage Meters (Optional)**
+   - For usage-based billing
+   - Choose aggregation type: Sum or Count Distinct
+   - Link to usage prices
+
+## After Setup
+
+- Use product/price slugs in your code
+- Test with test mode payments
+- Switch to live mode when ready`,
+            },
+          ],
         }
       }
     )
