@@ -1,6 +1,5 @@
 import { createMcpHandler, withMcpAuth } from 'mcp-handler'
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
-import core from '@/utils/core'
 import { verifyApiKey } from '@/utils/unkey'
 import { z } from 'zod/v3'
 import {
@@ -79,10 +78,8 @@ const handler = createMcpHandler(
               const markdown = await fetchMarkdownFromDocs(
                 result.path
               )
-              const similarity = (1 - result.$dist).toFixed(4)
 
               return {
-                similarity,
                 path: result.path,
                 title: result.title,
                 description: result.description,
@@ -190,13 +187,13 @@ const verifyToken = async (
  * Example MCP client configuration:
  *   "Authorization": "Bearer sk_test_..."
  */
+// Let withMcpAuth handle authentication using verifyToken
+const authHandler = withMcpAuth(handler, verifyToken, {
+  required: true, // Auth is required and we verify it via verifyToken
+})
+
 export async function POST(req: Request) {
   try {
-    // Let withMcpAuth handle authentication using verifyToken
-    const authHandler = withMcpAuth(handler, verifyToken, {
-      required: true, // Auth is required and we verify it via verifyToken
-    })
-
     // Ensure Accept header is set (required by mcp-handler)
     const acceptHeader = req.headers.get('Accept')
     if (!acceptHeader || !acceptHeader.includes('application/json')) {
