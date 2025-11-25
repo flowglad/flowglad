@@ -369,7 +369,7 @@ export const selectPriceBySlugAndCustomerId = async (
  * This is used for anonymous checkout sessions where we don't have a customer
  * Returns Price.ClientRecord (not Price.Record) because it uses data from selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere
  */
-export const selectPriceBySlugAndOrganizationId = async (
+export const selectPriceBySlugForDefaultPricingModel = async (
   params: { slug: string; organizationId: string; livemode: boolean },
   transaction: DbTransaction
 ): Promise<Price.ClientRecord | null> => {

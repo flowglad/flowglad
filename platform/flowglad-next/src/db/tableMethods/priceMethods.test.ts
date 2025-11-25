@@ -16,7 +16,7 @@ import {
   insertPrice,
   updatePrice,
   selectPriceBySlugAndCustomerId,
-  selectPriceBySlugAndOrganizationId,
+  selectPriceBySlugForDefaultPricingModel,
 } from './priceMethods'
 import { updatePricingModel } from './pricingModelMethods'
 import { nulledPriceColumns, Price } from '../schema/prices'
@@ -1307,7 +1307,7 @@ describe('priceMethods.ts', () => {
     })
   })
 
-  describe('selectPriceBySlugAndOrganizationId', () => {
+  describe('selectPriceBySlugForDefaultPricingModel', () => {
     let organization: Organization.Record
     let product: Product.Record
     let price: Price.Record
@@ -1344,7 +1344,7 @@ describe('priceMethods.ts', () => {
 
     it('should find price by slug for organization in default pricing model', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const result = await selectPriceBySlugAndOrganizationId(
+        const result = await selectPriceBySlugForDefaultPricingModel(
           {
             slug: 'test-price-slug',
             organizationId: organization.id,
@@ -1362,7 +1362,7 @@ describe('priceMethods.ts', () => {
 
     it('should return null when slug does not exist', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const result = await selectPriceBySlugAndOrganizationId(
+        const result = await selectPriceBySlugForDefaultPricingModel(
           {
             slug: 'non-existent-slug',
             organizationId: organization.id,
@@ -1387,7 +1387,7 @@ describe('priceMethods.ts', () => {
           transaction
         )
 
-        const result = await selectPriceBySlugAndOrganizationId(
+        const result = await selectPriceBySlugForDefaultPricingModel(
           {
             slug: 'test-price-slug',
             organizationId: organization.id,
@@ -1404,7 +1404,7 @@ describe('priceMethods.ts', () => {
       await adminTransaction(async ({ transaction }) => {
         // Should find livemode price when livemode is true
         const livemodeResult =
-          await selectPriceBySlugAndOrganizationId(
+          await selectPriceBySlugForDefaultPricingModel(
             {
               slug: 'test-price-slug',
               organizationId: organization.id,
@@ -1419,7 +1419,7 @@ describe('priceMethods.ts', () => {
         // Should return null when searching in test mode (livemode: false)
         // because there's no default test mode pricing model with this price
         const testModeResult =
-          await selectPriceBySlugAndOrganizationId(
+          await selectPriceBySlugForDefaultPricingModel(
             {
               slug: 'test-price-slug',
               organizationId: organization.id,
@@ -1476,7 +1476,7 @@ describe('priceMethods.ts', () => {
           )
 
           // This should throw an error because there's no default pricing model
-          await selectPriceBySlugAndOrganizationId(
+          await selectPriceBySlugForDefaultPricingModel(
             {
               slug: 'non-default-price-slug',
               organizationId: organization.id,
@@ -1530,7 +1530,7 @@ describe('priceMethods.ts', () => {
         })
 
         // Should return the active price, not the inactive one
-        const result = await selectPriceBySlugAndOrganizationId(
+        const result = await selectPriceBySlugForDefaultPricingModel(
           {
             slug,
             organizationId: organization.id,

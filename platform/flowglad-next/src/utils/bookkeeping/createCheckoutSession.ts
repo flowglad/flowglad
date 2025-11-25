@@ -21,7 +21,7 @@ import {
 import {
   selectPriceProductAndOrganizationByPriceWhere,
   selectPriceBySlugAndCustomerId,
-  selectPriceBySlugAndOrganizationId,
+  selectPriceBySlugForDefaultPricingModel,
 } from '@/db/tableMethods/priceMethods'
 import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
 import { Customer } from '@/db/schema/customers'
@@ -188,7 +188,7 @@ export const createCheckoutSessionTransaction = async (
       if (isAnonymous) {
         // Anonymous checkout: use organization's default pricing model
         const priceFromSlug =
-          await selectPriceBySlugAndOrganizationId(
+          await selectPriceBySlugForDefaultPricingModel(
             {
               slug: checkoutSessionInput.priceSlug,
               organizationId,
