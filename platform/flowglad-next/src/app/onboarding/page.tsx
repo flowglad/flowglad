@@ -13,6 +13,7 @@ import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceM
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { redirect } from 'next/navigation'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
+import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { ApiKey } from '@/db/schema/apiKeys'
 import { auth, getSession } from '@/utils/auth'
@@ -44,7 +45,17 @@ const OnboardingPage = async () => {
         { organizationId: organization.id },
         transaction
       )
-      return { organization, countries, products, discounts }
+      const pricingModels = await selectPricingModels(
+        { organizationId: organization.id },
+        transaction
+      )
+      return {
+        organization,
+        countries,
+        products,
+        discounts,
+        pricingModels,
+      }
     }
   )
   const { countries } = results
@@ -132,7 +143,7 @@ const OnboardingPage = async () => {
     {
       title: 'Setup payments',
       description:
-        'Verify identity and connect your bank to receive payments.',
+        'Verify identity and connect your bank to process live payments.',
       completed: organization.payoutsEnabled,
       action: 'Setup',
       type: OnboardingItemType.Stripe,
@@ -158,6 +169,7 @@ const OnboardingPage = async () => {
             onboardingChecklistItems={onboardingChecklistItems}
             countries={countries}
             secretApiKey={secretApiKey.token}
+            pricingModelsCount={results.pricingModels?.length ?? 0}
           />
         </div>
       </div>
