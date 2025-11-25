@@ -54,7 +54,7 @@ export const flowglad = (customerExternalId: string) => {
 const billing = await flowglad(userId).getBilling()
 ```
 
-```ts example: Better Auth
+```ts Example: Better Auth
 import { FlowgladServer } from '@flowglad/server'
 import { auth } from '@/utils/auth'
 
@@ -75,7 +75,7 @@ export const flowglad = (customerExternalId: string) => {
 }
 ```
 
-```ts example: Supabase Auth
+```ts Example: Supabase Auth
 import { FlowgladServer } from '@flowglad/server'
 import { createClient } from '@/utils/supabase/server'
 
@@ -97,11 +97,11 @@ export const flowglad = (customerExternalId: string) => {
 }
 ```
 
-```ts example: B2B (Organization-based)
+```ts Example: B2B (Organization-based)
 import { FlowgladServer } from '@flowglad/server'
 
 export const flowglad = (organizationId: string) => {
-  // For B2B apps: organizationId is YOUR org/team ID, NOT Flowglad's customer ID
+  // For B2B apps: organizationId is ID from YOUR app's database
   return new FlowgladServer({
     customerExternalId: organizationId,
     getCustomerDetails: async (customerExternalId) => {

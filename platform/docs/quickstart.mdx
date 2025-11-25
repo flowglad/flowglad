@@ -70,7 +70,7 @@ export const flowglad = (customerExternalId: string) => {
 }
 ```
 
-```ts example: Better Auth
+```ts Example: Better Auth
 import { FlowgladServer } from '@flowglad/nextjs/server'
 import { auth } from '@/utils/auth'
 import { headers } from 'next/headers'
@@ -94,7 +94,7 @@ export const flowglad = (customerExternalId: string) => {
 }
 ```
 
-```ts example: Supabase Auth
+```ts Example: Supabase Auth
 import { FlowgladServer } from '@flowglad/nextjs/server'
 import { createClient } from '@/utils/supabase/server'
 
@@ -116,11 +116,11 @@ export const flowglad = (customerExternalId: string) => {
 }
 ```
 
-```ts example: B2B (Organization-based)
+```ts Example: B2B (Organization-based)
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
 export const flowglad = (organizationId: string) => {
-  // For B2B apps: organizationId is YOUR org/team ID, NOT Flowglad's customer ID
+  // For B2B apps: organizationId is ID from YOUR app's database
   return new FlowgladServer({
     customerExternalId: organizationId,
     getCustomerDetails: async (customerExternalId) => {
@@ -149,7 +149,9 @@ export const flowglad = (organizationId: string) => {
 
 Next, set up your Flowglad API route at `/api/flowglad/[...path]`. Your app will use this to send and receive data from Flowglad.
 
-```ts app/api/flowglad/[...path]/route.ts
+<CodeGroup>
+
+```ts app/api/flowglad/[...path]/route.ts (App Router)
 import { nextRouteHandler } from '@flowglad/nextjs/server'
 import { flowglad } from '@/utils/flowglad'
 
@@ -169,9 +171,57 @@ export const { GET, POST } = nextRouteHandler({
 })
 ```
 
+```ts Example: Better Auth
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+import { auth } from '@/utils/auth'
+import { headers } from 'next/headers'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+    const userId = session?.user?.id
+    if (!userId) {
+      throw new Error('User not found')
+    }
+    return userId
+  },
+})
+```
+
+```ts Example: Supabase Auth
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+import { createClient } from '@/utils/supabase/server'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    const supabase = await createClient()
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    const userId = user?.id
+    if (!userId) {
+      throw new Error('User not found')
+    }
+    return userId
+  },
+})
+```
+
+</CodeGroup>
+
 <Note>
 The `getCustomerExternalId` function extracts the customer ID from **your app's database** (via your authentication system). Flowglad doesn't care how you authenticate—just return the ID from your system that represents the billing entity (user ID for B2C, organization ID for B2B). This is **not** Flowglad's customer ID.
 </Note>
+
+<Info>
+Flowglad integrates seamlessly with your auth provider. Read more about auth options [here](/sdks/auth).
+</Info>
 
 <Info>
   You can mount Flowglad's handler at a different route, but you'll

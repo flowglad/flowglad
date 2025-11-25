@@ -59,7 +59,7 @@ export const flowglad = (customerExternalId: string) => {
 }
 ```
 
-```ts example: Better Auth
+```ts Example: Better Auth
 import { FlowgladServer } from '@flowglad/nextjs/server'
 import { auth } from '@/utils/auth'
 import { headers } from 'next/headers'
@@ -83,7 +83,7 @@ export const flowglad = (customerExternalId: string) => {
 }
 ```
 
-```ts example: Supabase Auth
+```ts Example: Supabase Auth
 import { FlowgladServer } from '@flowglad/nextjs/server'
 import { createClient } from '@/utils/supabase/server'
 
@@ -105,11 +105,11 @@ export const flowglad = (customerExternalId: string) => {
 }
 ```
 
-```ts example: B2B (Organization-based)
+```ts Example: B2B (Organization-based)
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
 export const flowglad = (organizationId: string) => {
-  // For B2B apps: organizationId is YOUR org/team ID, NOT Flowglad's customer ID
+  // For B2B apps: organizationId is ID from YOUR app's database
   return new FlowgladServer({
     customerExternalId: organizationId,
     getCustomerDetails: async (customerExternalId) => {
@@ -142,6 +142,8 @@ Flowglad integrates seamlessly with your auth provider. Read more about auth opt
 
 ### 3. Create API Route Handler
 
+<CodeGroup>
+
 ```ts app/api/flowglad/[...path]/route.ts (App Router)
 import { nextRouteHandler } from '@flowglad/nextjs/server'
 import { flowglad } from '@/utils/flowglad'
@@ -161,6 +163,54 @@ export const { GET, POST } = nextRouteHandler({
   },
 })
 ```
+
+```ts Example: Better Auth
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+import { auth } from '@/utils/auth'
+import { headers } from 'next/headers'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+    const userId = session?.user?.id
+    if (!userId) {
+      throw new Error('User not found')
+    }
+    return userId
+  },
+})
+```
+
+```ts Example: Supabase Auth
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+import { createClient } from '@/utils/supabase/server'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    const supabase = await createClient()
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    const userId = user?.id
+    if (!userId) {
+      throw new Error('User not found')
+    }
+    return userId
+  },
+})
+```
+
+</CodeGroup>
+
+<Info>
+Flowglad integrates seamlessly with your auth provider. Read more about auth options [here](/sdks/auth).
+</Info>
 
 ### 4. Wrap Your App with FlowgladProvider
 
