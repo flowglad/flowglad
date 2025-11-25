@@ -14,8 +14,6 @@ import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestS
 import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
 import { Country } from '@/db/schema/countries'
 import Markdown from 'react-markdown'
-import Link from 'next/link'
-import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import core from '@/utils/core'
 import { CursorLogo } from '@/components/icons/CursorLogo'
