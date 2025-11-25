@@ -95,9 +95,7 @@ const handler = createMcpHandler(
           // Format results nicely with full content
           const formattedResults = resultsWithMarkdown
             .map((result, index) => {
-              return `Result ${index + 1} (similarity: ${result.similarity})
-Path: ${result.path}
-${result.title ? `Title: ${result.title}\n` : ''}${result.description ? `Description: ${result.description}\n` : ''}
+              return `${result.title ? `Title: ${result.title}\n` : ''}${result.description ? `Description: ${result.description}\n` : ''}
 ${'='.repeat(80)}
 ${result.markdown}
 ${'='.repeat(80)}`
@@ -194,10 +192,6 @@ const verifyToken = async (
  */
 export async function POST(req: Request) {
   try {
-    if (core.IS_PROD) {
-      throw Error('Unauthorized: MCP not enabled')
-    }
-
     // Let withMcpAuth handle authentication using verifyToken
     const authHandler = withMcpAuth(handler, verifyToken, {
       required: true, // Auth is required and we verify it via verifyToken
