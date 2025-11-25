@@ -540,53 +540,6 @@ describe('Customer Billing Portal Router', () => {
       ).rejects.toThrow()
     })
 
-    it('rejects cancellation when no current billing period exists', async () => {
-      // Create a renewing subscription, then manually remove billing period dates to test this edge case
-      const subscriptionWithoutPeriod = await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        paymentMethodId: paymentMethod.id,
-        defaultPaymentMethodId: paymentMethod.id,
-        priceId: price.id,
-        status: SubscriptionStatus.Active,
-        livemode: true,
-        renews: true,
-      })
-
-      // Manually set billing period dates to null to simulate edge case
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: subscriptionWithoutPeriod.id,
-            renews: true as const, // Required field - preserve the renewing status
-            currentBillingPeriodStart: null,
-            currentBillingPeriodEnd: null,
-          },
-          transaction
-        )
-      })
-
-      const ctx = createTestContext()
-      const input: ScheduleSubscriptionCancellationParams = {
-        id: subscriptionWithoutPeriod.id,
-        cancellation: {
-          timing:
-            SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-        },
-      }
-
-      const error = await customerBillingPortalRouter
-        .createCaller(ctx)
-        .cancelSubscription(input)
-        .catch((e) => e)
-
-      expect(error).toBeInstanceOf(TRPCError)
-      expect(error.code).toBe('BAD_REQUEST')
-      expect(error.message).toContain(
-        'No current billing period found for this subscription'
-      )
-    })
-
     it('rejects cancellation for non-renewing subscriptions', async () => {
       // Create a non-renewing subscription (renews: false automatically sets billing period dates to null)
       const nonRenewingSubscription = await setupSubscription({

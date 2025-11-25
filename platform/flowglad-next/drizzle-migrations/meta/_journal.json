@@ -1737,20 +1737,6 @@
       "when": 1763232536125,
       "tag": "0248_safe_wallflower",
       "breakpoints": true
-    },
-    {
-      "idx": 250,
-      "version": "7",
-      "when": 1764010246950,
-      "tag": "0250_brave_nightcrawler",
-      "breakpoints": true
-    },
-    {
-      "idx": 251,
-      "version": "7",
-      "when": 1764024991020,
-      "tag": "0251_absent_flatman",
-      "breakpoints": true
     }
   ]
 }
