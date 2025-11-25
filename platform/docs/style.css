@@ -1293,3 +1293,14 @@ html.dark .mermaid .arrowMarkerPath {
 /* Note: To customize specific elements further, use browser dev tools to inspect
    the rendered HTML and find the exact class names Mintlify uses. Then add
    more specific selectors above or create additional rules below. */
+
+/* ========================================
+   11. LOGO SIZE OVERRIDE
+   ======================================== */
+
+/* Make logo smaller than default h-7 (28px) */
+.nav-logo,
+img.nav-logo {
+  height: 1.25rem !important; /* 20px instead of 28px (h-5 in Tailwind) */
+  max-height: 1.25rem !important;
+}
