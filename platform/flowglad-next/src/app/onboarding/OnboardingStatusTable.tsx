@@ -11,12 +11,14 @@ import {
 import { Check, Copy } from 'lucide-react'
 import NounVerbModal from '@/components/forms/NounVerbModal'
 import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
+import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
 import { Country } from '@/db/schema/countries'
 import Markdown from 'react-markdown'
 import Link from 'next/link'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import core from '@/utils/core'
+import { CursorLogo } from '@/components/icons/CursorLogo'
 
 interface OnboardingStatusRowProps extends OnboardingChecklistItem {
   onClick?: () => void
@@ -92,15 +94,23 @@ const OnboardingStatusRow = ({
 
 const OnboardingCodeblock = ({
   markdownText,
+  isJson = false,
 }: {
   markdownText: string
+  isJson?: boolean
 }) => {
   return (
     <div className="flex flex-col gap-2 w-full">
-      <div className="flex flex-row items-center gap-1 text-sm font-mono bg-card border border-border h-10 pl-4 pr-[1px] rounded-[4px] w-full justify-between">
-        <Markdown className={'flex-1 overflow-x-auto'}>
-          {markdownText}
-        </Markdown>
+      <div className="flex flex-row items-center gap-1 text-sm font-mono bg-card border border-border min-h-10 p-4 rounded-[4px] w-full justify-between">
+        {isJson ? (
+          <pre className="flex-1 overflow-x-auto whitespace-pre-wrap text-xs">
+            {markdownText}
+          </pre>
+        ) : (
+          <Markdown className={'flex-1 overflow-x-auto'}>
+            {markdownText}
+          </Markdown>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -171,10 +181,12 @@ const OnboardingStatusTable = ({
   onboardingChecklistItems,
   countries,
   secretApiKey,
+  pricingModelsCount,
 }: {
   onboardingChecklistItems: OnboardingChecklistItem[]
   countries: Country.Record[]
   secretApiKey: string
+  pricingModelsCount: number
 }) => {
   const [isNounVerbModalOpen, setIsNounVerbModalOpen] =
     useState(false)
@@ -189,82 +201,78 @@ const OnboardingStatusTable = ({
     isRequestStripeConnectOnboardingLinkModalOpen,
     setIsRequestStripeConnectOnboardingLinkModalOpen,
   ] = useState(false)
+  const [
+    isCreatePricingModelModalOpen,
+    setIsCreatePricingModelModalOpen,
+  ] = useState(false)
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
-  const mcpServerConfig = {
-    url: core.safeUrl('/mcp', core.NEXT_PUBLIC_APP_URL),
-    headers: {
-      Authorization: `Bearer ${secretApiKey}`,
+
+  // MCP configuration for Cursor deep link (server config only)
+  const mcpServerConfigForDeepLink = {
+    flowglad: {
+      url: 'https://app.flowglad.com/api/mcp',
+      headers: {
+        Authorization: `Bearer ${secretApiKey}`,
+        Accept: 'application/json, text/event-stream',
+      },
     },
   }
+
+  // MCP configuration for copying (full mcp.json format)
+  const mcpConfigForCopy = {
+    mcpServers: {
+      flowglad: {
+        url: 'https://app.flowglad.com/api/mcp',
+        headers: {
+          Authorization: `Bearer ${secretApiKey}`,
+          Accept: 'application/json, text/event-stream',
+        },
+      },
+    },
+  }
+
+  // Generate Cursor deep link
+  const generateCursorDeepLink = () => {
+    const configJson = JSON.stringify(mcpServerConfigForDeepLink)
+    const base64Config = btoa(configJson)
+    return `cursor://anysphere.cursor-deeplink/mcp/install?name=flowglad&config=${base64Config}`
+  }
+
+  const cursorDeepLink = generateCursorDeepLink()
+  const mcpConfigText = JSON.stringify(mcpConfigForCopy, null, 2)
 
   return (
     <div className="flex flex-col w-full gap-4">
       <OnboardingStatusRow
         key={'copy-keys'}
         completed={false}
-        title={'1. Copy your keys'}
-        description={'Copy these keys to your local .env file'}
+        title={'1. Copy your key'}
+        description={'Copy your secret key to your env vars'}
       >
         <OnboardingCodeblock markdownText={apiKeyText} />
       </OnboardingStatusRow>
       <OnboardingStatusRow
-        key={'install-packages'}
-        completed={false}
-        title={'2. Install packages'}
-        description={''}
-      >
-        <CodeblockGroup
-          sections={[
-            {
-              title: 'Next.js',
-              code: NEXT_INSTALL_COMMAND,
-            },
-            {
-              title: 'Other React',
-              code: REACT_INSTALL_COMMAND,
-            },
-          ]}
-        />
-      </OnboardingStatusRow>
-      <OnboardingStatusRow
-        key={'integrate-flowglad'}
-        completed={false}
-        title={'3. Choose Integration Method'}
-        description={''}
+        key={'create-pricing-model'}
+        completed={pricingModelsCount > 2}
+        title={'2. Create pricing model'}
+        description={
+          'Create your first pricing model to define products, plans, and features.'
+        }
         actionNode={
-          <div className="flex flex-row gap-2">
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={() => {
-                window.open(
-                  'https://docs.flowglad.com/integrate-by-prompt',
-                  '_blank'
-                )
-              }}
-            >
-              Prompt
-            </Button>
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={() => {
-                window.open(
-                  'https://docs.flowglad.com/quickstart#4-server-setup',
-                  '_blank'
-                )
-              }}
-            >
-              Manually
-            </Button>
-          </div>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => setIsCreatePricingModelModalOpen(true)}
+          >
+            Create Pricing Model
+          </Button>
         }
       />
       {onboardingChecklistItems.map((item, index) => (
         <OnboardingStatusRow
           key={item.title}
           completed={item.completed}
-          title={`${index + 4}. ${item.title}`}
+          title={`${index + 3}. ${item.title}`}
           description={item.description}
           action={item.action}
           type={item.type}
@@ -287,27 +295,45 @@ const OnboardingStatusTable = ({
           }}
         />
       ))}
-      {/* Temporarily disabled MCP Server setup
       <OnboardingStatusRow
-        key={'setup-flowglad-mcp-server'}
+        key={'add-flowglad-mcp-server'}
         completed={false}
-        title={`5. Setup Flowglad MCP Server`}
-        description={'Get set up in localhost in a few minutes'}
+        title={`${3 + onboardingChecklistItems.length}. Add Flowglad MCP Server`}
+        description={
+          'Add Flowglad as an MCP server in Cursor to enable AI-powered integration assistance.'
+        }
         actionNode={
-          <a
-            href={`https://cursor.com/install-mcp?name=flowglad&config=${encodeURIComponent(JSON.stringify(mcpServerConfig))}`}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-      {/* <img
-              src="https://cursor.com/deeplink/mcp-install-light.svg"
-              alt="Add flowglad MCP server to Cursor"
-              height="40"
-              style={{ height: '40px' }}
+          <div className="flex flex-col gap-2">
+            <OnboardingCodeblock
+              markdownText={mcpConfigText}
+              isJson={true}
             />
-          </a>
+            <div className="flex flex-row gap-2">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  navigator.clipboard.writeText(mcpConfigText)
+                  toast.success('Configuration copied to clipboard')
+                }}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Config
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  window.location.href = cursorDeepLink
+                }}
+              >
+                Add to
+                <CursorLogo />
+              </Button>
+            </div>
+          </div>
         }
       />
-      */}
       <NounVerbModal
         isOpen={isNounVerbModalOpen}
         setIsOpen={setIsNounVerbModalOpen}
@@ -317,6 +343,10 @@ const OnboardingStatusTable = ({
         isOpen={isRequestStripeConnectOnboardingLinkModalOpen}
         setIsOpen={setIsRequestStripeConnectOnboardingLinkModalOpen}
         countries={countries}
+      />
+      <CreatePricingModelModal
+        isOpen={isCreatePricingModelModalOpen}
+        setIsOpen={setIsCreatePricingModelModalOpen}
       />
     </div>
   )
