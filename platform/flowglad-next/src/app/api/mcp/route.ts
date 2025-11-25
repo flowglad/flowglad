@@ -17,7 +17,7 @@ const handler = createMcpHandler(
       {
         description: 'Echo a test message',
         inputSchema: {
-          message: z.string() as any,
+          message: z.string(),
         },
       },
       async ({ message }) => ({
@@ -37,7 +37,7 @@ const handler = createMcpHandler(
             .min(1)
             .describe(
               'The search query to find relevant documentation'
-            ) as any,
+            ),
         },
       },
       async ({ query }) => {
