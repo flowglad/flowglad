@@ -230,7 +230,7 @@ const OnboardingStatusTable = ({
       },
     })
     const base64Config = btoa(configJson)
-    return `cursor://anysphere.cursor-deeplink/mcp/install?name=flowglad&config=${base64Config}`
+    return `cursor://anysphere.cursor-deeplink/mcp/install?name=flowglad&config=${encodeURIComponent(base64Config)}`
   }
 
   const cursorDeepLink = generateCursorDeepLink()
