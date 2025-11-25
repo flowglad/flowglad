@@ -34,6 +34,50 @@ describe('featuresRouteConfigs', () => {
       expect(result).toEqual(testBody)
     })
 
+    it('should accept usageMeterSlug in request body for usage credit grant features', () => {
+      const routeConfig = findRouteConfig('POST /features')
+
+      expect(routeConfig).toBeDefined()
+
+      // Test mapParams with usageMeterSlug
+      const testBody = {
+        feature: {
+          type: 'usage_credit_grant',
+          name: 'API Credits',
+          slug: 'api-credits',
+          description: 'Monthly API call credits',
+          amount: 1000,
+          pricingModelId: 'pricing-model-123',
+          renewalFrequency: 'every_billing_period',
+          usageMeterSlug: 'api-calls',
+        },
+      }
+      const result = routeConfig!.mapParams([], testBody)
+      expect(result).toEqual(testBody)
+    })
+
+    it('should accept usageMeterId in request body for usage credit grant features', () => {
+      const routeConfig = findRouteConfig('POST /features')
+
+      expect(routeConfig).toBeDefined()
+
+      // Test mapParams with usageMeterId
+      const testBody = {
+        feature: {
+          type: 'usage_credit_grant',
+          name: 'API Credits',
+          slug: 'api-credits',
+          description: 'Monthly API call credits',
+          amount: 1000,
+          pricingModelId: 'pricing-model-123',
+          renewalFrequency: 'every_billing_period',
+          usageMeterId: 'usage-meter-123',
+        },
+      }
+      const result = routeConfig!.mapParams([], testBody)
+      expect(result).toEqual(testBody)
+    })
+
     it('should map PUT /features/:id to features.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /features/:id')
 

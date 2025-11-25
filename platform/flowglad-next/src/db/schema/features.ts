@@ -114,33 +114,72 @@ export const {
 /*
  * Usage Credit Grant Feature schemas via buildSchemas
  */
-const usageCreditGrantFeatureSharedColumns = {
-  type: z.literal(FeatureType.UsageCreditGrant),
-  amount: z.number().int(),
-  usageMeterId: z.string(),
-  renewalFrequency: core.createSafeZodEnum(
-    FeatureUsageGrantFrequency
-  ),
-}
 
-export const {
+const {
   insert: usageCreditGrantFeatureInsertSchema,
   select: usageCreditGrantFeatureSelectSchema,
   update: usageCreditGrantFeatureUpdateSchema,
   client: {
-    insert: usageCreditGrantFeatureClientInsertSchema,
+    insert: usageCreditGrantFeatureClientInsertSchemaBase,
     select: usageCreditGrantFeatureClientSelectSchema,
     update: usageCreditGrantFeatureClientUpdateSchema,
   },
 } = buildSchemas(features, {
   discriminator: 'type',
-  refine: usageCreditGrantFeatureSharedColumns,
+  refine: {
+    type: z.literal(FeatureType.UsageCreditGrant),
+    amount: z.number().int(),
+    usageMeterId: z
+      .string()
+      .optional()
+      .describe(
+        'The internal ID of the usage meter. If not provided, usageMeterSlug is required.'
+      ),
+    renewalFrequency: core.createSafeZodEnum(
+      FeatureUsageGrantFrequency
+    ),
+  },
   client: {
     hiddenColumns: hiddenColumnsForClientSchema,
     readOnlyColumns: { organizationId: true, livemode: true },
   },
   entityName: 'UsageCreditGrantFeature',
 })
+
+// Add usageMeterSlug field and validation for usageMeterId/usageMeterSlug mutual exclusivity
+export const usageCreditGrantFeatureClientInsertSchema =
+  usageCreditGrantFeatureClientInsertSchemaBase
+    .extend({
+      usageMeterSlug: z
+        .string()
+        .optional()
+        .describe(
+          'The slug of the usage meter. If not provided, usageMeterId is required.'
+        ),
+    })
+    .refine(
+      (data: {
+        usageMeterId?: string
+        usageMeterSlug?: string
+        [key: string]: unknown
+      }) =>
+        data.usageMeterId
+          ? !data.usageMeterSlug
+          : !!data.usageMeterSlug,
+      {
+        message:
+          'Either usageMeterId or usageMeterSlug must be provided, but not both',
+        path: ['usageMeterId'],
+      }
+    )
+
+export {
+  usageCreditGrantFeatureInsertSchema,
+  usageCreditGrantFeatureSelectSchema,
+  usageCreditGrantFeatureUpdateSchema,
+  usageCreditGrantFeatureClientSelectSchema,
+  usageCreditGrantFeatureClientUpdateSchema,
+}
 
 /*
  * Combined discriminated union schemas (internal)
@@ -267,11 +306,8 @@ export const toggleFeatureDefaultColumns: Pick<
   renewalFrequency: null,
 }
 
-export const usageCreditGrantFeatureDefaultColumns: Pick<
-  Feature.UsageCreditGrantInsert,
-  keyof typeof usageCreditGrantFeatureSharedColumns
-> = {
-  type: FeatureType.UsageCreditGrant,
+export const usageCreditGrantFeatureDefaultColumns = {
+  type: FeatureType.UsageCreditGrant as const,
   amount: 0,
   usageMeterId: '',
   renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,

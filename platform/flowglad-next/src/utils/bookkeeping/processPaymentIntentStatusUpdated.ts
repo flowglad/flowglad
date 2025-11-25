@@ -399,6 +399,11 @@ export const ledgerCommandForPaymentSucceeded = async (
     return undefined
   }
   const { payment } = params
+  if (!usageCreditFeature.usageMeterId) {
+    throw new Error(
+      `Usage credit feature ${usageCreditFeature.id} has no usageMeterId`
+    )
+  }
   const usageCreditInsert: UsageCredit.Insert = {
     issuedAmount: usageCreditFeature.amount,
     organizationId: subscription.organizationId,

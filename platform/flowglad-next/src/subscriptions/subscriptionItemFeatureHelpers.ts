@@ -129,6 +129,11 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
   ): SubscriptionItemFeature.Insert => {
     switch (feature.type) {
       case FeatureType.UsageCreditGrant:
+        if (!feature.usageMeterId) {
+          throw new Error(
+            `Feature ${feature.id} is of type UsageCreditGrant but has no usageMeterId`
+          )
+        }
         return {
           subscriptionItemId: subscriptionItem.id,
           featureId: feature.id,

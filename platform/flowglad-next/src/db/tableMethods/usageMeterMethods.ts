@@ -81,6 +81,24 @@ export const bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId =
 export const selectUsageMetersPaginated =
   createPaginatedSelectFunction(usageMeters, config)
 
+/**
+ * Select a usage meter by slug and pricingModelId
+ * Usage meter slugs are unique within (organizationId, pricingModelId)
+ */
+export const selectUsageMeterBySlugAndPricingModelId = async (
+  params: { slug: string; pricingModelId: string },
+  transaction: DbTransaction
+): Promise<UsageMeter.Record | null> => {
+  const [usageMeter] = await selectUsageMeters(
+    {
+      slug: params.slug,
+      pricingModelId: params.pricingModelId,
+    },
+    transaction
+  )
+  return usageMeter ?? null
+}
+
 export const selectUsageMetersCursorPaginated =
   createCursorPaginatedSelectFunction(
     usageMeters,

@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { router } from '../trpc'
 import {
   createFeatureSchema,
@@ -58,9 +59,41 @@ export const createFeature = protectedProcedure
             },
             transaction
           )
+
+        // Resolve usage meter slug to ID if provided
+        let featureInput = input.feature
+        if (
+          featureInput.type === 'usage_credit_grant' &&
+          'usageMeterSlug' in featureInput &&
+          featureInput.usageMeterSlug
+        ) {
+          const { selectUsageMeterBySlugAndPricingModelId } =
+            await import('@/db/tableMethods/usageMeterMethods')
+          const usageMeter =
+            await selectUsageMeterBySlugAndPricingModelId(
+              {
+                slug: featureInput.usageMeterSlug,
+                pricingModelId: featureInput.pricingModelId,
+              },
+              transaction
+            )
+          if (!usageMeter) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Usage meter with slug "${featureInput.usageMeterSlug}" not found for this pricing model`,
+            })
+          }
+          // Replace usageMeterSlug with resolved usageMeterId
+          featureInput = {
+            ...featureInput,
+            usageMeterId: usageMeter.id,
+            usageMeterSlug: undefined,
+          }
+        }
+
         const feature = await insertFeature(
           {
-            ...input.feature,
+            ...featureInput,
             organizationId: organization.id,
             livemode,
           },
