@@ -1,2 +1,0 @@
-CREATE POLICY "Enable read for customers (billing_periods)" ON "billing_periods" AS PERMISSIVE FOR SELECT TO "customer" USING ("subscription_id" in (select "id" from "subscriptions" where "customer_id" in (select "id" from "customers")));--> statement-breakpoint
-ALTER POLICY "Enable read for own organizations (billing_periods)" ON "billing_periods" TO merchant USING ("subscription_id" in (select "id" from "subscriptions" where "organization_id" in (select "organization_id" from "memberships")));
