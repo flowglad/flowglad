@@ -108,13 +108,18 @@ const CreatePricingModelModal: React.FC<
     setSelectedTemplate(null)
   }
 
-  const handleConfirmTemplate = async () => {
+  const handleConfirmTemplate = async ({
+    isDefault,
+  }: {
+    isDefault: boolean
+  }) => {
     if (!selectedTemplate) return
 
     // Modify template name to be unique for this user
     const customizedInput = {
       ...selectedTemplate.input,
       name: generateTemplateName(selectedTemplate.input.name),
+      isDefault,
     }
 
     await setupPricingModelMutation.mutateAsync(customizedInput)
