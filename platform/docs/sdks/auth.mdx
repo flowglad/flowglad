@@ -65,6 +65,28 @@ export const flowglad = (customerExternalId: string) => {
 }
 ```
 
+```ts Custom
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (customerExternalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: customerExternalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
+```
+
 ```ts B2B (Organization-based)
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
@@ -180,6 +202,24 @@ export const { GET, POST } = nextRouteHandler({
 })
 ```
 
+```ts Custom Auth
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+import { yourAuthFunction } from '@/utils/auth'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract user/customer ID from your auth system
+    const userId = await yourAuthFunction(req)
+    if (!userId) {
+      throw new Error('User not found')
+    }
+    return userId
+  },
+})
+```
+
 </CodeGroup>
 
 ## Legacy Auth Adapters Pattern
@@ -243,7 +283,7 @@ export const flowgladServer = new FlowgladServer({
 })
 ```
 
-```ts Custom Adapters
+```ts Custom Auth
 // Example 1: Custom Session Loader
 import { FlowgladServer } from '@flowglad/nextjs/server'
 import { getBespokeSession } from '@/utils/auth'
