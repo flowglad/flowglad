@@ -36,7 +36,7 @@ Your output should be **code changes only** (no commentary).
 - **Wire Flowglad client-side** so {FRONTEND_FRAMEWORK} components:
   - Use `useBilling` from `{FLOWGLAD_CLIENT_PACKAGE}` as the canonical billing source of truth.
   - Rely on `billing.loaded`, `billing.loadBilling`, `billing.errors`, `billing.pricingModel`, `billing.currentSubscriptions`, and helpers like `billing.checkUsageBalance`, `billing.checkFeatureAccess`, `billing.getPrice`, `billing.createCheckoutSession`, `billing.cancelSubscription`, `billing.reload`.
-- **Connect a Flowglad pricing model** (defined in `pricing.yaml` or configured in the Flowglad dashboard) to:
+- **Connect a Flowglad pricing model** to:
   - Subscription plans.
   - Usage meters ({USAGE_METER_EXAMPLES}).
   - Feature toggles ({FEATURE_TOGGLE_EXAMPLES}).
@@ -53,7 +53,7 @@ Update `{PACKAGE_FILE}` to add the Flowglad SDK packages. Prefer using published
 
 {PACKAGE_DEPENDENCIES_CODE}
 
-Note: the Flowglad SDKs are currently for Typescript only. The current latest version is 0.12.4.
+Note: the Flowglad SDKs are currently for Typescript only. The current latest version is 0.13.0.
 
 Here's what they should install depending on their project:
 - Next.js: @flowglad/nextjs
@@ -211,11 +211,11 @@ Do **not** hard-code secrets in code; only reference `{ENV_VAR_ACCESS}` where re
 
 When you are done, the project should:
 
-- **Compile and type-check** successfully.
+- **Compile and type-check** successfully - verify this by running the project's compilation / lint / typechecking step.
 - **Run** with:
   - Working authentication ({AUTH_LIBRARY} or equivalent).
   - Flowglad billing:
-    - Pricing page shows plans derived from the Flowglad pricing model (`pricing.yaml` or equivalent).
+    - Pricing page shows plans derived from the Flowglad pricing model (based on the `pricing.yaml` included here).
     - Authenticated users are mapped to Flowglad customers.
     - Usage meters ({USAGE_METER_EXAMPLES}) are driven by Flowglad.
     - Top‑ups and usage events are created through Flowglad, not local mocks.

@@ -21,6 +21,7 @@ import {
   Price,
   pricesInsertSchema,
   ProductWithPrices,
+  priceImmutableFields,
 } from '@/db/schema/prices'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
@@ -49,6 +50,38 @@ import { Feature } from '@/db/schema/features'
 import { ProductFeature } from '@/db/schema/productFeatures'
 import { DestinationEnvironment } from '@/types'
 import { TRPCError } from '@trpc/server'
+import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
+
+const isPriceChanged = (
+  newPrice: Price.ClientInsert,
+  currentPrice: Price.ClientRecord | undefined
+): boolean => {
+  if (!currentPrice) {
+    return true
+  }
+  // Compare all immutable/create-only fields
+  const immutableFieldsChanged = priceImmutableFields.some(
+    (field) => {
+      const key = field as keyof Price.ClientInsert &
+        keyof Price.ClientRecord
+      return newPrice[key] !== currentPrice[key]
+    }
+  )
+  if (immutableFieldsChanged) {
+    return true
+  }
+  // Also check for changes in other important fields
+  const additionalFields: (keyof Price.ClientInsert &
+    keyof Price.ClientRecord)[] = [
+    'isDefault',
+    'name',
+    'active',
+    'slug',
+  ]
+  return additionalFields.some((field) => {
+    return newPrice[field] !== currentPrice[field]
+  })
+}
 
 export const createPrice = async (
   payload: Price.Insert,
@@ -214,23 +247,97 @@ export const createProductTransaction = async (
   }
 }
 
-export const editProduct = async (
-  payload: { product: Product.Update; featureIds?: string[] },
-  transaction: DbTransaction
+export const editProductTransaction = async (
+  payload: {
+    product: Product.Update
+    featureIds?: string[]
+    price?: Price.ClientInsert
+  },
+  {
+    transaction,
+    livemode,
+    organizationId,
+    userId,
+  }: AuthenticatedTransactionParams
 ) => {
-  const updatedProduct = await updateProduct(
-    payload.product,
+  const { product, featureIds, price } = payload
+
+  // Fetch the existing product to check if it's a default product
+  const existingProduct = await selectProductById(
+    product.id,
     transaction
   )
-  if (updatedProduct && payload.featureIds !== undefined) {
+  if (!existingProduct) {
+    throw new Error('Product not found')
+  }
+
+  // If default product, always force active=true on edit to auto-correct bad states
+  const isDefaultProduct = existingProduct.default
+  const enforcedProduct = isDefaultProduct
+    ? { ...product, active: true }
+    : product
+
+  // Validate that default products can only have certain fields updated
+  validateDefaultProductUpdate(enforcedProduct, existingProduct)
+
+  const updatedProduct = await updateProduct(
+    enforcedProduct,
+    transaction
+  )
+
+  if (!updatedProduct) {
+    throw new Error('Product not found or update failed')
+  }
+
+  if (featureIds !== undefined) {
     await syncProductFeatures(
       {
         product: updatedProduct,
-        desiredFeatureIds: payload.featureIds,
+        desiredFeatureIds: featureIds,
       },
       transaction
     )
   }
+
+  if (price) {
+    // Forbid creating additional prices for default products
+    const existingPrices = await selectPrices(
+      { productId: product.id },
+      transaction
+    )
+    if (
+      isDefaultProduct &&
+      existingPrices.length > 0 &&
+      existingPrices.some((existingPrice) =>
+        isPriceChanged(price, existingPrice)
+      )
+    ) {
+      throw new Error(
+        'Cannot create additional prices for the default plan'
+      )
+    }
+    const organization = await selectOrganizationById(
+      organizationId,
+      transaction
+    )
+    if (!isDefaultProduct) {
+      const currentPrice = existingPrices.find(
+        (p) => p.active && p.isDefault
+      )
+      if (isPriceChanged(price, currentPrice)) {
+        await safelyInsertPrice(
+          {
+            ...price,
+            livemode,
+            currency: organization.defaultCurrency,
+            externalId: null,
+          },
+          transaction
+        )
+      }
+    }
+  }
+
   return updatedProduct
 }
 

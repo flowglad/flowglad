@@ -1,4 +1,3 @@
-'use server'
 import {
   FlowgladServer,
   createRequestHandler,
@@ -13,11 +12,16 @@ export const createAppRouterRouteHandler = (
 ) => {
   const handler = createRequestHandler({ flowgladServer, ...options })
 
-  return async (
+  const routeHandler = async (
     req: NextRequest,
-    { params }: { params: Promise<{ path: string[] }> }
+    {
+      params,
+    }: { params: Promise<{ path: string[] }> | { path: string[] } }
   ): Promise<NextResponse> => {
-    const { path } = await params
+    // Support both Next 14 and 15
+    // in Next.js 14 params is a plain object, in Next.js 15 params is a Promise (breaking change)
+    const resolvedParams = 'then' in params ? await params : params
+    const { path } = resolvedParams
     const result = await handler({
       path,
       method: req.method as HTTPMethod,
@@ -36,5 +40,9 @@ export const createAppRouterRouteHandler = (
         status: result.status,
       }
     )
+  }
+  return {
+    GET: routeHandler,
+    POST: routeHandler,
   }
 }

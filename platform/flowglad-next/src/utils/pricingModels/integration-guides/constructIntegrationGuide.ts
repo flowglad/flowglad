@@ -1,8 +1,16 @@
 import { FeatureType } from '@/types'
 import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import yaml from 'json-to-pretty-yaml'
-import { generateText, streamText } from 'ai'
+import { generateObject, generateText, streamText } from 'ai'
+import { fetchMarkdownFromDocs } from '@/utils/textContent'
+import { z } from 'zod'
 import { openai } from '@ai-sdk/openai'
+import {
+  queryMultipleTurbopuffer,
+  getTurbopufferClient,
+  getOpenAIClient,
+} from '@/utils/turbopuffer'
+import { logger } from '@/utils/logger'
 
 /**
  * Markdown files are imported dynamically to avoid parse-time errors when
@@ -123,6 +131,75 @@ const stripMarkdownCodeBlockTags = (text: string): string => {
   return cleaned
 }
 
+const synthesizeIntegrationQuestions = async ({
+  template,
+  codebaseContext,
+  pricingModelYaml,
+}: {
+  template: string
+  codebaseContext: string
+  pricingModelYaml: string
+}): Promise<string[]> => {
+  // Early return if codebaseContext is empty or only whitespace
+  if (!codebaseContext || codebaseContext.trim() === '') {
+    return []
+  }
+
+  const schema = z.object({
+    questions: z
+      .array(z.string())
+      .describe(
+        'A list of strategic questions needed to understand the codebase and fill in the template placeholders'
+      ),
+  })
+
+  const result = await generateObject({
+    model: openai('gpt-4o-mini'),
+    schema,
+    system: `You are an expert technical writer specializing in creating integration guides for Flowglad billing systems.
+
+Your task is to analyze an integration guide template, codebase context, and pricing model to identify gaps in understanding that would prevent you from filling in the template placeholders correctly.
+
+Think like a developer who needs to integrate Flowglad into this codebase. Review the template to understand what information is needed, then examine the codebase context to see what's already known. Identify areas where you lack sufficient context to make informed decisions about how to fill in the placeholders.
+
+Generate strategic, context-seeking questions that would help you understand:
+- The project's architecture, structure, and conventions
+- How authentication and user management works
+- File organization and routing patterns
+- Existing billing or subscription code (if any)
+- How Flowglad concepts (customers, subscriptions, usage meters, features) map to this codebase
+- Framework-specific patterns and conventions being used
+
+These should be high-level questions that reveal gaps in understanding, not just "what is {PLACEHOLDER}". Focus on questions that would help you understand the codebase well enough to make correct decisions about all the placeholders.`,
+    messages: [
+      {
+        role: 'user',
+        content: `Here is the integration guide template with placeholders:
+
+${template}
+
+---
+
+Here is the codebase context that describes the target project:
+
+${codebaseContext}
+
+---
+
+Here is the pricing model YAML:
+
+${pricingModelYaml}
+
+---
+
+Please analyze the template, codebase context, and pricing model. Identify gaps in your understanding that would prevent you from correctly filling in the template placeholders. Generate strategic questions that would help you understand the codebase structure, patterns, and how Flowglad should integrate with it.`,
+      },
+    ],
+  })
+
+  return (result.object as z.infer<typeof schema>).questions
+}
+
 const synthesizeIntegrationGuide = async ({
   template,
   codebaseContext,
@@ -175,14 +252,72 @@ Please fill in all template placeholders based on the codebase context and prici
   return stripMarkdownCodeBlockTags(result.text)
 }
 
+const getContextualDocs = async ({
+  questions,
+  topK = 2,
+}: {
+  questions: string[]
+  topK?: number
+}): Promise<string> => {
+  // If no questions provided, return empty string
+  if (questions.length === 0) {
+    return ''
+  }
+
+  const tpuf = await getTurbopufferClient()
+  const openai = await getOpenAIClient()
+
+  // Get query results from turbopuffer
+  const queryResults = await queryMultipleTurbopuffer(
+    questions,
+    topK,
+    'flowglad-docs',
+    tpuf,
+    openai
+  )
+
+  // Flatten and deduplicate paths
+  const pathSet = new Set<string>()
+  const deduplicatedPaths: string[] = []
+
+  queryResults.forEach((queryResult) => {
+    queryResult.results.forEach((result) => {
+      if (result.path && !pathSet.has(result.path)) {
+        pathSet.add(result.path)
+        deduplicatedPaths.push(result.path)
+      }
+    })
+  })
+
+  // Sort paths alphabetically
+  deduplicatedPaths.sort((a, b) => a.localeCompare(b))
+
+  // Fetch and concatenate all markdown files from docs.flowglad.com
+  const markdownContents: string[] = []
+  for (const path of deduplicatedPaths) {
+    const markdown = await fetchMarkdownFromDocs(path)
+
+    if (markdown) {
+      // Add separator with file path
+      markdownContents.push(
+        `\n\n${'='.repeat(80)}\nFILE: ${path}\n${'='.repeat(80)}\n\n${markdown}`
+      )
+    }
+  }
+
+  return markdownContents.join('') || ''
+}
+
 const synthesizeIntegrationGuideStream = async function* ({
   template,
   codebaseContext,
   pricingModelYaml,
+  contextualDocs,
 }: {
   template: string
   codebaseContext: string
   pricingModelYaml: string
+  contextualDocs: string
 }): AsyncGenerator<string, void, unknown> {
   const result = await streamText({
     model: openai('gpt-4o-mini'),
@@ -217,6 +352,10 @@ Here is the pricing model YAML:
 
 ${pricingModelYaml}
 
+---
+
+Here are some docs you can use to answer any questions you might have:
+${contextualDocs}
 ---
 
 Please fill in all template placeholders based on the codebase context and pricing model information. Output the complete markdown file with all placeholders replaced.`,
@@ -355,7 +494,25 @@ export const constructIntegrationGuideStream = async function* ({
   const templateWithFragments =
     integrationCoreFragment.default + otherFragments
   const pricingModelYaml = pricingModelYamlFragment(pricingModelData)
-
+  const questions = await synthesizeIntegrationQuestions({
+    template: templateWithFragments,
+    codebaseContext,
+    pricingModelYaml,
+  })
+  let contextualDocs = ''
+  try {
+    contextualDocs = await getContextualDocs({ questions })
+  } catch (error) {
+    logger.debug(
+      'Failed to fetch contextual docs, falling back to empty string',
+      {
+        error: error instanceof Error ? error.message : String(error),
+        error_name:
+          error instanceof Error ? error.name : 'UnknownError',
+      }
+    )
+    contextualDocs = ''
+  }
   // If codebaseContext is provided, use AI to synthesize the guide with streaming
   // Otherwise, yield the template as-is (backward compatibility)
   if (codebaseContext) {
@@ -363,6 +520,7 @@ export const constructIntegrationGuideStream = async function* ({
       template: templateWithFragments,
       codebaseContext,
       pricingModelYaml,
+      contextualDocs,
     })
   } else {
     yield templateWithFragments

@@ -4,6 +4,10 @@
 export { createAppRouterRouteHandler } from './createAppRouterRouteHandler'
 export { createPagesRouterRouteHandler } from './createPagesRouterRouteHandler'
 export {
+  nextRouteHandler,
+  type NextRouteHandlerOptions,
+} from './nextRouteHandler'
+export {
   FlowgladServer,
   FlowgladServerAdmin,
   createRequestHandler,

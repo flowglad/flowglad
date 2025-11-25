@@ -94,7 +94,7 @@ export default async function RootLayout({
       )}
       suppressHydrationWarning
     >
-      <body className={cn(sfPro.className, 'h-full')}>
+      <body className={cn(sfPro.className, 'h-full antialiased')}>
         <Providers
           authContext={{
             organization,

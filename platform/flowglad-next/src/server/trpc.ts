@@ -13,6 +13,7 @@ import {
   selectCustomers,
 } from '@/db/tableMethods/customerMethods'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
+import { IS_DEV } from '@/utils/core'
 
 // Create tracing middleware factory
 const tracingMiddlewareFactory = createTracingMiddleware()
@@ -140,6 +141,16 @@ const isCustomerBillingAuthed = t.middleware(
 
 // Protected procedure with tracing
 export const protectedProcedure = baseProcedure.use(isAuthed)
+
+export const devOnlyProcedure = baseProcedure.use(({ next, ctx }) => {
+  if (!IS_DEV) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Procedure unavailable',
+    })
+  }
+  return next({ ctx })
+})
 
 export const customerProtectedProcedure =
   baseProcedure.use(isCustomerAuthed)

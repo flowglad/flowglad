@@ -38,7 +38,7 @@
   /* Apply heading font to all heading elements */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading), serif;
-    font-weight: 400;
+    font-weight: 500;
   }
 
   /* Apply monospace font to code elements */
@@ -154,6 +154,9 @@
     --sidebar-accent-foreground: 24 5.9% 16.7%;
     --sidebar-border: 12 9.1% 89.2%;
     --sidebar-ring: 43 25.5% 73.1%;
+    --jade-foreground: 152 41.3% 24.7%;
+    --jade-muted-foreground: 152 37.8% 38.4%;
+    --jade-background: 153 61% 90%;
   }
 
   .dark {
@@ -188,6 +191,9 @@
     --sidebar-accent-foreground: 51 47% 97%;
     --sidebar-border: 0 0% 100% / 10%;
     --sidebar-ring: 35 15.2% 40.2%;
+    --jade-foreground: 153 48% 83%;
+    --jade-muted-foreground: 152 45% 66%;
+    --jade-background: 152 39% 31%;
   }
 }
 

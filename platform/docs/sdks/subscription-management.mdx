@@ -100,24 +100,24 @@ You can cancel a subscription with `useBilling`'s `cancelSubscription` from clie
 
   ```ts
   import { FlowgladServer } from '@flowglad/server'
-  import { auth } from '@/lib/auth'
 
-  const flowgladServer = new FlowgladServer({
-    getRequestingCustomer: async () => {
-      const session = await auth()
-      if (!session?.user) {
-        throw new Error('Unauthorized')
-      }
-      return {
-        externalId: session.user.id,
-        email: session.user.email ?? '',
-        name: session.user.name ?? '',
-      }
-    },
-  })
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
 
-  export async function createSubscription() {
-    const response = await flowgladServer.createSubscription({
+  export async function createSubscription(customerExternalId: string) {
+    // Pass YOUR app's user/organization ID, not Flowglad's customer ID
+    const response = await flowglad(customerExternalId).createSubscription({
       priceId: 'price_123',
       quantity: 1,
       metadata: {
@@ -203,22 +203,23 @@ You can cancel a subscription with `useBilling`'s `cancelSubscription` from clie
 * from your frontend, your Flowglad route handler
 * will handle this automatically
 */
-  const flowgladServer = new FlowgladServer({
-    getRequestingCustomer: async () => {
-      const session = await auth()
-      if (!session?.user) {
-        throw new Error('Unauthorized')
-      }
-      return {
-        externalId: session.user.id,
-        email: session.user.email ?? '',
-        name: session.user.name ?? '',
-      }
-    },
-  })
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
 
-  export async function cancelSubscription(subscriptionId: string) {
-    const response = await flowgladServer.cancelSubscription({
+  export async function cancelSubscription(subscriptionId: string, customerExternalId: string) {
+    // Pass YOUR app's user/organization ID, not Flowglad's customer ID
+    const response = await flowglad(customerExternalId).cancelSubscription({
       id: subscriptionId,
       cancellation: {
         timing: 'at_end_of_current_billing_period',

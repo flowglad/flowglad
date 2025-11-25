@@ -1,5 +1,16 @@
 # @flowglad/react
 
+## 0.13.0
+
+### Minor Changes
+
+- Next.js route handler pattern, customerExternalId pattern with mandatory constructory
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/shared@0.13.0
+
 ## 0.12.4
 
 ### Patch Changes
