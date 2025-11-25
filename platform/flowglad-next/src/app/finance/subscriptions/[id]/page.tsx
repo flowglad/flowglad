@@ -4,7 +4,10 @@ import InnerSubscriptionPage from './InnerSubscriptionPage'
 import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectProductById } from '@/db/tableMethods/productMethods'
+import {
+  selectProductById,
+  selectProducts,
+} from '@/db/tableMethods/productMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { notFound } from 'next/navigation'
@@ -21,6 +24,7 @@ const SubscriptionPage = async ({
     customer,
     product,
     pricingModel,
+    productNames,
   } = await authenticatedTransaction(async ({ transaction }) => {
     const [subscription] =
       await selectRichSubscriptionsAndActiveItems({ id }, transaction)
@@ -68,12 +72,29 @@ const SubscriptionPage = async ({
       )
     }
 
+    // Fetch all products for subscription items
+    const productIds = [
+      ...new Set(
+        subscription.subscriptionItems.map(
+          (item) => item.price.productId
+        )
+      ),
+    ]
+    const products =
+      productIds.length > 0
+        ? await selectProducts({ id: productIds }, transaction)
+        : []
+
+    // Create a map of productId to product name
+    const productNames = new Map(products.map((p) => [p.id, p.name]))
+
     return {
       subscription,
       defaultPaymentMethod,
       customer,
       product,
       pricingModel,
+      productNames,
     }
   })
   return (
@@ -83,6 +104,7 @@ const SubscriptionPage = async ({
       customer={customer}
       product={product}
       pricingModel={pricingModel}
+      productNames={productNames}
     />
   )
 }
