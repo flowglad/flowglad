@@ -12,8 +12,7 @@ import {
 // Create MCP handler with tools
 const handler = createMcpHandler(
   (server) => {
-    // Register all tools - mcp-handler will auto-discover them
-    // toolSet(server, '')
+    // Register MCP tools directly on the server instance
     server.registerTool(
       'echoTest',
       {
@@ -40,25 +39,18 @@ const handler = createMcpHandler(
             .describe(
               'The search query to find relevant documentation'
             ),
-          topK: z
-            .number()
-            .min(1)
-            .max(20)
-            .default(5)
-            .optional()
-            .describe(
-              'Number of results to return (default: 5, max: 20)'
-            ),
         },
       },
-      async ({ query, topK = 5 }) => {
+      async ({ query }) => {
         try {
-          const tpuf = await getTurbopufferClient()
-          const openai = await getOpenAIClient()
+          const [tpuf, openai] = await Promise.all([
+            getTurbopufferClient(),
+            getOpenAIClient(),
+          ])
 
           const results = await queryTurbopuffer(
             query,
-            topK,
+            2,
             'flowglad-docs',
             tpuf,
             openai
@@ -121,11 +113,12 @@ ${'='.repeat(80)}`
             ],
           }
         } catch (error) {
+          console.error('[MCP] queryDocs error', error)
           return {
             content: [
               {
                 type: 'text',
-                text: `Error querying documentation: ${error instanceof Error ? error.message : String(error)}`,
+                text: 'Error querying documentation. Please try again later or contact support if the problem persists.',
               },
             ],
           }
