@@ -207,17 +207,6 @@ const OnboardingStatusTable = ({
   ] = useState(false)
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
 
-  // MCP configuration for Cursor deep link (server config only)
-  const mcpServerConfigForDeepLink = {
-    flowglad: {
-      url: 'https://app.flowglad.com/api/mcp',
-      headers: {
-        Authorization: `Bearer ${secretApiKey}`,
-        Accept: 'application/json, text/event-stream',
-      },
-    },
-  }
-
   // MCP configuration for copying (full mcp.json format)
   const mcpConfigForCopy = {
     mcpServers: {
@@ -233,7 +222,13 @@ const OnboardingStatusTable = ({
 
   // Generate Cursor deep link
   const generateCursorDeepLink = () => {
-    const configJson = JSON.stringify(mcpServerConfigForDeepLink)
+    const configJson = JSON.stringify({
+      url: core.safeUrl('/api/mcp', core.NEXT_PUBLIC_APP_URL),
+      headers: {
+        Authorization: `Bearer ${secretApiKey}`,
+        Accept: 'application/json, text/event-stream',
+      },
+    })
     const base64Config = btoa(configJson)
     return `cursor://anysphere.cursor-deeplink/mcp/install?name=flowglad&config=${base64Config}`
   }
