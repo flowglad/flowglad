@@ -33,11 +33,11 @@ FLOWGLAD_SECRET_KEY="sk_test_..."
 
 ### 2. Create Server Client
 
-Create a Flowglad server factory function in a shared file:
+Create a Flowglad server factory function in a shared file, eg. `utils/flowglad.ts`:
 
 <CodeGroup>
 
-```ts utils/flowglad.ts
+```ts Generic
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
 export const flowglad = (customerExternalId: string) => {
