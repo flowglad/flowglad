@@ -23,7 +23,7 @@ import { InvoicesDataTable } from '../../invoices/data-table'
 import { SubscriptionFeaturesTable } from './SubscriptionFeaturesTable'
 import { ExpandSection } from '@/components/ExpandSection'
 import { ProductCard } from '@/components/ProductCard'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { getCurrencyParts } from '@/utils/stripe'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -38,7 +38,7 @@ const InnerSubscriptionPage = ({
   customer: Customer.Record
   product: Product.Record | null
   pricingModel: PricingModel.Record | null
-  productNames: Map<string, string>
+  productNames: Record<string, string>
 }) => {
   const { organization } = useAuthContext()
   const router = useRouter()
@@ -131,27 +131,16 @@ const InnerSubscriptionPage = ({
           {subscription.subscriptionItems.length > 0 ? (
             <div className="flex w-full flex-col gap-4">
               {subscription.subscriptionItems.map((item) => {
-                const formattedPrice =
-                  stripeCurrencyAmountToHumanReadableCurrencyAmount(
+                const { symbol: currencySymbol, value: priceValue } =
+                  getCurrencyParts(
                     organization.defaultCurrency,
                     item.unitPrice * item.quantity
                   )
-                // Extract currency symbol (first non-numeric, non-space character)
-                const currencyMatch =
-                  formattedPrice.match(/[^\d\s.,]/)
-                const currencySymbol = currencyMatch
-                  ? currencyMatch[0]
-                  : '$'
-                // Remove currency symbol to get numeric value
-                const priceValue = formattedPrice.replace(
-                  /[^0-9.,]/g,
-                  ''
-                )
 
                 // Get product ID and name from the price
                 const productId = item.price.productId
                 const productName =
-                  productNames.get(productId) || 'Unnamed Product'
+                  productNames[productId] || 'Unnamed Product'
 
                 // Format renewal date (only for renewing subscriptions)
                 const renewalDate =

@@ -85,8 +85,10 @@ const SubscriptionPage = async ({
         ? await selectProducts({ id: productIds }, transaction)
         : []
 
-    // Create a map of productId to product name
-    const productNames = new Map(products.map((p) => [p.id, p.name]))
+    // Create a record of productId to product name (plain object for serialization)
+    const productNames: Record<string, string> = Object.fromEntries(
+      products.map((p) => [p.id, p.name])
+    )
 
     return {
       subscription,

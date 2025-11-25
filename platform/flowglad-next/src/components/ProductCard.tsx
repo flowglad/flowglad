@@ -163,6 +163,7 @@ const ProductCard = React.forwardRef<
       return (
         <Link
           href={href}
+          // Type assertion is safe: when href is provided, Link renders an anchor element
           ref={ref as React.Ref<HTMLAnchorElement>}
           className={cardClassName}
           {...commonProps}

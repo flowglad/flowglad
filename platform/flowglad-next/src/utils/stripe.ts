@@ -303,6 +303,36 @@ export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
   return formatter.format(amount)
 }
 
+/**
+ * Returns currency symbol and formatted numeric value separately for a given amount.
+ * Uses Intl.NumberFormat.formatToParts() for reliable i18n support with multi-character
+ * currency symbols (e.g., CHF, SEK, CN¥, R$).
+ */
+export const getCurrencyParts = (
+  currency: CurrencyCode,
+  amount: number
+): { symbol: string; value: string } => {
+  const adjustedAmount = isCurrencyZeroDecimal(currency)
+    ? amount
+    : amount / 100
+
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+  })
+
+  const parts = formatter.formatToParts(adjustedAmount)
+  const symbol = parts.find((p) => p.type === 'currency')?.value ?? '$'
+  const value = parts
+    .filter((p) =>
+      ['integer', 'group', 'decimal', 'fraction'].includes(p.type)
+    )
+    .map((p) => p.value)
+    .join('')
+
+  return { symbol, value }
+}
+
 // Constants for readability and maintainability
 const THRESHOLDS = {
   SMALL_AMOUNT: 100,
