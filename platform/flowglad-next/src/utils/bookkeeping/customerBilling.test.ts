@@ -1450,20 +1450,21 @@ describe('customerBillingTransaction - currentSubscription field', () => {
     ).toBeUndefined()
   })
 
-  it('should throw error when customer has no current subscriptions', async () => {
-    // Customer has no subscriptions at all
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        return await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-      })
-    ).rejects.toThrow('Customer has no current subscriptions')
-  })
+  // FIXME: Uncomment once we migrate all non-subscribed customers to subscriptions
+  // it('should throw error when customer has no current subscriptions', async () => {
+  //   // Customer has no subscriptions at all
+  //   await expect(
+  //     adminTransaction(async ({ transaction }) => {
+  //       return await customerBillingTransaction(
+  //         {
+  //           externalId: customer.externalId,
+  //           organizationId: organization.id,
+  //         },
+  //         transaction
+  //       )
+  //     })
+  //   ).rejects.toThrow('Customer has no current subscriptions')
+  // })
 
   it('should use updatedAt as tiebreaker when createdAt is the same', async () => {
     // Create a subscription

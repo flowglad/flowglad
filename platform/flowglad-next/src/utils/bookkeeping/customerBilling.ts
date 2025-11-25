@@ -10,17 +10,14 @@ import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMetho
 import {
   isSubscriptionCurrent,
   safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
-  subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
+import type { RichSubscription } from '@/subscriptions/schemas'
 import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { CheckoutSessionType, InvoiceStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { Customer } from '@/db/schema/customers'
 import { TRPCError } from '@trpc/server'
-import {
-  CreateCheckoutSessionInput,
-  customerBillingCreatePricedCheckoutSessionInputSchema,
-} from '@/db/schema/checkoutSessions'
+import { customerBillingCreatePricedCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
 import { Price } from '@/db/schema/prices'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -88,14 +85,16 @@ export const customerBillingTransaction = async (
   )
 
   // Extract the most recently created subscription
-  const currentSubscription = sortedCurrentSubscriptions[0]
+  const currentSubscription: RichSubscription | undefined =
+    sortedCurrentSubscriptions[0]
 
-  if (!currentSubscription) {
-    throw new TRPCError({
-      code: 'PRECONDITION_FAILED',
-      message: 'Customer has no current subscriptions',
-    })
-  }
+  // FIXME: Uncomment once we migrate all non-subscribed customers to subscriptions
+  // if (!currentSubscription) {
+  //   throw new TRPCError({
+  //     code: 'PRECONDITION_FAILED',
+  //     message: 'Customer has no current subscriptions',
+  //   })
+  // }
 
   return {
     customer,
