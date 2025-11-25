@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Nouns,
@@ -98,29 +97,18 @@ const OnboardingCodeblock = ({
   isJson?: boolean
 }) => {
   return (
-    <div className="flex flex-col gap-2 w-full">
-      <div className="flex flex-row items-center gap-1 text-sm font-mono bg-card border border-border min-h-10 p-4 rounded-[4px] w-full justify-between">
-        {isJson ? (
-          <pre className="flex-1 overflow-x-auto whitespace-pre-wrap text-xs">
-            {markdownText}
-          </pre>
-        ) : (
-          <Markdown className={'flex-1 overflow-x-auto'}>
-            {markdownText}
-          </Markdown>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="flex-shrink-0"
-          onClick={() => {
-            toast.success('Copied to clipboard')
-            navigator.clipboard.writeText(markdownText)
-          }}
-        >
-          <Copy className="w-4 h-4" />
-        </Button>
-      </div>
+    // Note: Do not add padding to this container div
+    // Instead, padding should be added to the child elements below (pre and Markdown)
+    <div className="relative w-full rounded-[4px] border bg-card">
+      {isJson ? (
+        <pre className="overflow-x-auto text-sm font-mono whitespace-pre-wrap p-2">
+          {markdownText}
+        </pre>
+      ) : (
+        <Markdown className="overflow-x-auto text-sm font-mono p-2">
+          {markdownText}
+        </Markdown>
+      )}
     </div>
   )
 }
@@ -200,6 +188,8 @@ const OnboardingStatusTable = ({
     isCreatePricingModelModalOpen,
     setIsCreatePricingModelModalOpen,
   ] = useState(false)
+  const [isApiKeyCopied, setIsApiKeyCopied] = useState(false)
+  const [isMcpConfigCopied, setIsMcpConfigCopied] = useState(false)
   const apiKeyText = `FLOWGLAD_SECRET_KEY="${secretApiKey}"`
 
   // MCP configuration for copying (full mcp.json format)
@@ -236,18 +226,37 @@ const OnboardingStatusTable = ({
       <OnboardingStatusRow
         key={'copy-keys'}
         completed={false}
-        title={'1. Copy your key'}
-        description={'Copy your secret key to your env vars'}
+        title={'1. Copy API Key'}
+        description={'Add your secret key to .env'}
       >
         <OnboardingCodeblock markdownText={apiKeyText} />
+        <Button
+          variant="secondary"
+          className="w-full"
+          onClick={() => {
+            navigator.clipboard.writeText(apiKeyText)
+            setIsApiKeyCopied(true)
+            setTimeout(() => setIsApiKeyCopied(false), 2000)
+          }}
+        >
+          {isApiKeyCopied ? (
+            <>
+              <Check className="w-4 h-4 mr-2" />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4 mr-2" />
+              Copy
+            </>
+          )}
+        </Button>
       </OnboardingStatusRow>
       <OnboardingStatusRow
         key={'create-pricing-model'}
         completed={pricingModelsCount > 1}
-        title={'2. Create pricing model'}
-        description={
-          'Create your first pricing model to define products, plans, and features.'
-        }
+        title={'2. Define Your Pricing'}
+        description={'Set up products, plans, and features.'}
         actionNode={
           <Button
             variant="secondary"
@@ -288,9 +297,9 @@ const OnboardingStatusTable = ({
       <OnboardingStatusRow
         key={'add-flowglad-mcp-server'}
         completed={false}
-        title={`${3 + onboardingChecklistItems.length}. Add Flowglad MCP Server`}
+        title={`${3 + onboardingChecklistItems.length}. Install MCP Server`}
         description={
-          'Add Flowglad as an MCP server in Cursor to enable AI-powered integration assistance.'
+          'Use our MCP server for easy and precise integrations with your codebase'
         }
         actionNode={
           <div className="flex flex-col gap-2">
@@ -304,11 +313,21 @@ const OnboardingStatusTable = ({
                 className="flex-1"
                 onClick={() => {
                   navigator.clipboard.writeText(mcpConfigText)
-                  toast.success('Configuration copied to clipboard')
+                  setIsMcpConfigCopied(true)
+                  setTimeout(() => setIsMcpConfigCopied(false), 2000)
                 }}
               >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy Config
+                {isMcpConfigCopied ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy
+                  </>
+                )}
               </Button>
               <Button
                 variant="secondary"

@@ -141,11 +141,10 @@ const OnboardingPage = async () => {
     //   type: OnboardingItemType.Discount,
     // },
     {
-      title: 'Setup payments',
-      description:
-        'Verify identity and connect your bank to process live payments.',
+      title: 'Connect Your Bank',
+      description: 'Verify identity and enable live payments.',
       completed: organization.payoutsEnabled,
-      action: 'Setup',
+      action: 'Connect',
       type: OnboardingItemType.Stripe,
     },
   ]
@@ -162,7 +161,7 @@ const OnboardingPage = async () => {
               Integrate Flowglad
             </h2>
             <p className="text-sm text-foreground">
-              Complete just a few steps to get up and running.
+              Complete these steps to start accepting payments.
             </p>
           </div>
           <OnboardingStatusTable
