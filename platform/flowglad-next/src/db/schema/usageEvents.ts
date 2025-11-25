@@ -175,7 +175,7 @@ const columnRefinements = {
     ),
   properties: z
     .record(z.string(), z.unknown())
-    .optional()
+    .nullish()
     .describe(
       'Properties for the usage event. Only required when using the "count_distinct_properties" aggregation type.'
     ),
@@ -242,8 +242,35 @@ export type CreateUsageEventInput = z.infer<
   typeof createUsageEventSchema
 >
 
+export const USAGE_EVENT_PRICE_ID_DESCRIPTION =
+  'The internal ID of the price. If not provided, priceSlug is required.'
+export const USAGE_EVENT_PRICE_SLUG_DESCRIPTION =
+  'The slug of the price. If not provided, priceId is required.'
+
+// Schema for individual usage event that allows either priceId or priceSlug
+const usageEventWithSlugSchema = usageEventsClientInsertSchema
+  .omit({ priceId: true })
+  .extend({
+    priceId: z
+      .string()
+      .optional()
+      .describe(USAGE_EVENT_PRICE_ID_DESCRIPTION),
+    priceSlug: z
+      .string()
+      .optional()
+      .describe(USAGE_EVENT_PRICE_SLUG_DESCRIPTION),
+  })
+  .refine(
+    (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
+    {
+      message:
+        'Either priceId or priceSlug must be provided, but not both',
+      path: ['priceId'],
+    }
+  )
+
 export const bulkInsertUsageEventsSchema = z.object({
-  usageEvents: z.array(usageEventsClientInsertSchema),
+  usageEvents: z.array(usageEventWithSlugSchema),
 })
 
 export type BulkInsertUsageEventsInput = z.infer<
