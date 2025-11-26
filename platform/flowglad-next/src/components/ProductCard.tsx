@@ -38,7 +38,7 @@ const productCardVariants = cva(
 )
 
 export interface ProductCardProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onClick'>,
+  extends Omit<React.HTMLAttributes<HTMLElement>, 'onClick'>,
     VariantProps<typeof productCardVariants> {
   /** The name of the product */
   productName: string
@@ -80,7 +80,7 @@ export interface ProductCardProps
  * ```
  */
 const ProductCard = React.forwardRef<
-  HTMLDivElement,
+  HTMLElement,
   ProductCardProps
 >(
   (
@@ -99,9 +99,21 @@ const ProductCard = React.forwardRef<
       renewalDate,
       ...props
     },
-    ref
+    forwardedRef
   ) => {
     const [isHovered, setIsHovered] = React.useState(false)
+
+    // Callback ref that forwards to the parent ref with proper typing
+    const setRef = React.useCallback(
+      (element: HTMLDivElement | HTMLAnchorElement | null) => {
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(element)
+        } else if (forwardedRef) {
+          forwardedRef.current = element
+        }
+      },
+      [forwardedRef]
+    )
     const currentState = isHovered ? 'hover' : state
     const isClickable = Boolean(href || onClick)
     const isSubscriptionVariant = variant === 'subscription'
@@ -165,11 +177,10 @@ const ProductCard = React.forwardRef<
       return (
         <Link
           href={href}
-          // Type assertion is safe: when href is provided, Link renders an anchor element
-          ref={ref as React.Ref<HTMLAnchorElement>}
+          ref={setRef}
           className={cardClassName}
           {...commonProps}
-          {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+          {...props}
         >
           {content}
         </Link>
@@ -180,7 +191,7 @@ const ProductCard = React.forwardRef<
     if (onClick) {
       return (
         <div
-          ref={ref}
+          ref={setRef}
           className={cardClassName}
           onClick={onClick}
           role="button"
@@ -202,7 +213,7 @@ const ProductCard = React.forwardRef<
     // Default: non-interactive card
     return (
       <div
-        ref={ref}
+        ref={setRef}
         className={cardClassName}
         {...commonProps}
         {...props}
