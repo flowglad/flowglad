@@ -18,7 +18,10 @@ import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getSubscriptionStatusBadge } from '@/lib/subscription-utils'
+import {
+  getSubscriptionStatusBadge,
+  getSubscriptionDateInfo,
+} from '@/lib/subscription-utils'
 import { InvoicesDataTable } from '../../invoices/data-table'
 import { SubscriptionFeaturesTable } from './SubscriptionFeaturesTable'
 import { ExpandSection } from '@/components/ExpandSection'
@@ -143,11 +146,12 @@ const InnerSubscriptionPage = ({
                 const productName =
                   productNames[productId] || 'Unnamed Product'
 
-                // Format renewal date (only for renewing subscriptions)
+                // Get appropriate date info based on subscription lifecycle state
+                // (handles active/renewing, cancellation scheduled, and canceled states)
+                const dateInfo = getSubscriptionDateInfo(subscription)
                 const renewalDate =
-                  subscription.renews &&
-                  subscription.currentBillingPeriodEnd
-                    ? `Renews ${core.formatDate(subscription.currentBillingPeriodEnd)}`
+                  dateInfo.label && dateInfo.date
+                    ? `${dateInfo.label} ${core.formatDate(dateInfo.date)}`
                     : undefined
 
                 return (

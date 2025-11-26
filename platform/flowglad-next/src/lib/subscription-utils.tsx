@@ -20,6 +20,96 @@ export interface StatusBadge {
 }
 
 /**
+ * Represents date information for a subscription based on its lifecycle state
+ */
+export interface SubscriptionDateInfo {
+  /** The label to display before the date (e.g., "Renews", "Ends", "Ended") */
+  label: string | undefined
+  /** The timestamp to display */
+  date: number | undefined
+  /** The variant indicating the type of date for styling purposes */
+  variant: 'renewal' | 'ending' | 'ended' | 'none'
+}
+
+/**
+ * Determines what date information to show for a subscription
+ * based on its current status and cancellation state.
+ *
+ * @param subscription - The subscription object with status and date fields
+ * @returns SubscriptionDateInfo with label, date, and variant
+ *
+ * @example
+ * ```tsx
+ * const dateInfo = getSubscriptionDateInfo(subscription)
+ * if (dateInfo.label && dateInfo.date) {
+ *   return `${dateInfo.label} ${formatDate(dateInfo.date)}`
+ * }
+ * ```
+ */
+export function getSubscriptionDateInfo(subscription: {
+  status: SubscriptionStatus
+  renews: boolean
+  currentBillingPeriodEnd?: number | null
+  cancelScheduledAt?: number | null
+  canceledAt?: number | null
+}): SubscriptionDateInfo {
+  const {
+    status,
+    renews,
+    currentBillingPeriodEnd,
+    cancelScheduledAt,
+    canceledAt,
+  } = subscription
+
+  // Already canceled - show when it ended
+  if (status === SubscriptionStatus.Canceled) {
+    return {
+      label: canceledAt ? 'Ended' : undefined,
+      date: canceledAt ?? undefined,
+      variant: 'ended',
+    }
+  }
+
+  // Cancellation is scheduled - show when it will end
+  if (status === SubscriptionStatus.CancellationScheduled) {
+    const endDate = cancelScheduledAt ?? currentBillingPeriodEnd
+    return {
+      label: endDate ? 'Ends' : undefined,
+      date: endDate ?? undefined,
+      variant: 'ending',
+    }
+  }
+
+  // Terminal/non-active states - no date shown
+  if (
+    status === SubscriptionStatus.IncompleteExpired ||
+    status === SubscriptionStatus.Paused ||
+    status === SubscriptionStatus.Incomplete
+  ) {
+    return {
+      label: undefined,
+      date: undefined,
+      variant: 'none',
+    }
+  }
+
+  // Active/renewing subscription - show renewal date
+  if (renews && currentBillingPeriodEnd) {
+    return {
+      label: 'Renews',
+      date: currentBillingPeriodEnd,
+      variant: 'renewal',
+    }
+  }
+
+  return {
+    label: undefined,
+    date: undefined,
+    variant: 'none',
+  }
+}
+
+/**
  * Converts a subscription status to a badge configuration with appropriate icon and variant
  * @param status - The subscription status to convert
  * @returns StatusBadge configuration for the PageHeaderNew component
@@ -122,3 +212,4 @@ export function getSubscriptionStatusBadge(
     variant,
   }
 }
+
