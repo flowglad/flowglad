@@ -44,7 +44,11 @@ export interface ProductCardProps
   productName: string
   /** The status of the product (e.g., "Active", "Paused") */
   productStatus?: string
-  /** The price amount */
+  /**
+   * The formatted/literal price amount to display.
+   * Use the human-readable value, not cents. For example, pass "1" or 1 for "$1.00",
+   * not "100". For fractional amounts, use a string (e.g., "1.50" for "$1.50").
+   */
   price: string | number
   /** The billing period (e.g., "month", "year") */
   period: string

@@ -28,7 +28,7 @@ export interface SubscriptionDateInfo {
   /** The timestamp to display */
   date: number | undefined
   /** The variant indicating the type of date for styling purposes */
-  variant: 'renewal' | 'ending' | 'ended' | 'none'
+  variant: 'renewing' | 'ending' | 'ended' | 'none'
 }
 
 /**
@@ -98,7 +98,7 @@ export function getSubscriptionDateInfo(subscription: {
     return {
       label: 'Renews',
       date: currentBillingPeriodEnd,
-      variant: 'renewal',
+      variant: 'renewing',
     }
   }
 
