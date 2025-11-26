@@ -310,15 +310,23 @@ export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
  */
 export const getCurrencyParts = (
   currency: CurrencyCode,
-  amount: number
+  amount: number,
+  options?: { hideZeroCents?: boolean }
 ): { symbol: string; value: string } => {
   const adjustedAmount = isCurrencyZeroDecimal(currency)
     ? amount
     : amount / 100
 
+  // When hideZeroCents is true, use 0-2 fraction digits to automatically
+  // hide unnecessary .00 (e.g., $40.00 → $40, but $39.99 stays $39.99)
+  const fractionDigits = options?.hideZeroCents
+    ? { minimumFractionDigits: 0, maximumFractionDigits: 2 }
+    : {}
+
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
+    ...fractionDigits,
   })
 
   const parts = formatter.formatToParts(adjustedAmount)

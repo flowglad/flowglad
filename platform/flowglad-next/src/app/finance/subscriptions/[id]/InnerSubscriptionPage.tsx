@@ -134,7 +134,8 @@ const InnerSubscriptionPage = ({
                 const { symbol: currencySymbol, value: priceValue } =
                   getCurrencyParts(
                     organization.defaultCurrency,
-                    item.unitPrice * item.quantity
+                    item.unitPrice * item.quantity,
+                    { hideZeroCents: true }
                   )
 
                 // Get product ID and name from the price
