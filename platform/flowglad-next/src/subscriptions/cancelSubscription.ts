@@ -513,7 +513,10 @@ export const cancelSubscriptionProcedureTransaction = async ({
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
   // Fetch subscription first to check if it's a free plan
-  const subscription = await selectSubscriptionById(input.id, transaction)
+  const subscription = await selectSubscriptionById(
+    input.id,
+    transaction
+  )
 
   /**
    * Prevent cancellation of free plans through the API/UI.
@@ -527,7 +530,8 @@ export const cancelSubscriptionProcedureTransaction = async ({
   if (subscription.isFreePlan) {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: 'Cannot cancel the default free plan. Please upgrade to a paid plan instead.',
+      message:
+        'Cannot cancel the default free plan. Please upgrade to a paid plan instead.',
     })
   }
 
@@ -551,17 +555,17 @@ export const cancelSubscriptionProcedureTransaction = async ({
       eventsToInsert,
     }
   }
-  const subscription = await scheduleSubscriptionCancellation(
+  const updatedSubscription = await scheduleSubscriptionCancellation(
     input,
     transaction
   )
   return {
     result: {
       subscription: {
-        ...subscription,
+        ...updatedSubscription,
         current: isSubscriptionCurrent(
-          subscription.status,
-          subscription.cancellationReason
+          updatedSubscription.status,
+          updatedSubscription.cancellationReason
         ),
       },
     },
