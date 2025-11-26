@@ -23,6 +23,10 @@ import {
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import {
+  selectSubscriptionItems,
+  expireSubscriptionItem,
+} from '@/db/tableMethods/subscriptionItemMethods'
+import {
   BillingPeriodStatus,
   BillingRunStatus,
   SubscriptionCancellationArrangement,
@@ -337,6 +341,19 @@ export const cancelSubscriptionImmediately = async (
    * Abort all scheduled billing runs for the subscription
    */
   await abortScheduledBillingRuns(subscription.id, transaction)
+
+  /**
+   * Expire all subscription items and their features
+   */
+  const subscriptionItems = await selectSubscriptionItems(
+    { subscriptionId: subscription.id },
+    transaction
+  )
+  for (const item of subscriptionItems) {
+    if (!item.expiredAt) {
+      await expireSubscriptionItem(item.id, endDate, transaction)
+    }
+  }
 
   if (result) {
     updatedSubscription = result

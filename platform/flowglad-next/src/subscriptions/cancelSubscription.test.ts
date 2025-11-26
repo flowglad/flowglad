@@ -26,6 +26,10 @@ import {
   setupOrg,
   setupProduct,
   setupPrice,
+  setupSubscriptionItem,
+  setupUsageMeter,
+  setupUsageCreditGrantFeature,
+  setupSubscriptionItemFeature,
 } from '@/../seedDatabase'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
@@ -40,9 +44,13 @@ import {
   safelyUpdateSubscriptionStatus,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
+import {
+  selectSubscriptionItems,
+  selectSubscriptionItemFeatures,
+} from '@/db/tableMethods/subscriptionItemMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { PriceType, IntervalUnit } from '@/types'
+import { PriceType, IntervalUnit, SubscriptionItemType, FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import { updateProduct } from '@/db/tableMethods/productMethods'
 import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-canceled-notification'
 import { eq } from 'drizzle-orm'
@@ -1954,6 +1962,264 @@ describe('Subscription Cancellation Test Suite', async () => {
         expect(updatedBillingRun2.status).toBe(
           BillingRunStatus.Aborted
         )
+      })
+    })
+  })
+
+  /* --------------------------------------------------------------------------
+     Subscription Item Expiration Tests
+  --------------------------------------------------------------------------- */
+  describe('Subscription Item Expiration on Cancellation', () => {
+    it('should expire subscription items and their features when canceling immediately', async () => {
+      // Setup
+      const { organization, pricingModel } = await setupOrg()
+      const paidProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Paid Plan',
+      })
+      const paidPrice = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Paid Plan Price',
+        type: PriceType.Subscription,
+        unitPrice: 5000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice.id,
+        paymentMethodId: paymentMethod.id,
+        isFreePlan: false,
+        status: SubscriptionStatus.Active,
+      })
+
+      const subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        priceId: paidPrice.id,
+        name: paidPrice.name ?? 'Test Item',
+        quantity: 1,
+        unitPrice: paidPrice.unitPrice,
+        type: SubscriptionItemType.Static,
+      })
+
+      // Create a feature on the subscription item
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Meter',
+      })
+
+      const feature = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Test Feature',
+        usageMeterId: usageMeter.id,
+        amount: 1000,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: true,
+      })
+
+      await setupSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        featureId: feature.id,
+        type: FeatureType.UsageCreditGrant,
+      })
+
+      await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: Date.now() - 60 * 60 * 1000,
+        endDate: Date.now() + 60 * 60 * 1000,
+      })
+
+      // Cancel subscription
+      const canceledAt = await adminTransaction(
+        async ({ transaction }) => {
+          const { result } = await cancelSubscriptionImmediately(
+            subscription,
+            transaction
+          )
+          return result.canceledAt
+        }
+      )
+
+      // Verify subscription items are expired
+      await adminTransaction(async ({ transaction }) => {
+        const items = await selectSubscriptionItems(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+        expect(items).toHaveLength(1)
+        expect(items[0].expiredAt).toBe(canceledAt)
+
+        // Verify features are expired
+        const features = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: subscriptionItem.id },
+          transaction
+        )
+        expect(features).toHaveLength(1)
+        expect(features[0].expiredAt).toBe(canceledAt)
+      })
+    })
+
+    it('should expire multiple subscription items and features when canceling immediately', async () => {
+      // Setup
+      const { organization, pricingModel } = await setupOrg()
+      const paidProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Paid Plan',
+      })
+      const paidPrice1 = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Paid Plan Price 1',
+        type: PriceType.Subscription,
+        unitPrice: 5000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+      const paidPrice2 = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Paid Plan Price 2',
+        type: PriceType.Subscription,
+        unitPrice: 3000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice1.id,
+        paymentMethodId: paymentMethod.id,
+        isFreePlan: false,
+        status: SubscriptionStatus.Active,
+      })
+
+      // Create multiple subscription items
+      const subscriptionItem1 = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        priceId: paidPrice1.id,
+        name: paidPrice1.name ?? 'Test Item 1',
+        quantity: 1,
+        unitPrice: paidPrice1.unitPrice,
+        type: SubscriptionItemType.Static,
+      })
+
+      const subscriptionItem2 = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        priceId: paidPrice2.id,
+        name: paidPrice2.name ?? 'Test Item 2',
+        quantity: 2,
+        unitPrice: paidPrice2.unitPrice,
+        type: SubscriptionItemType.Static,
+      })
+
+      // Create features on the subscription items
+      const usageMeter1 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Meter 1',
+      })
+
+      const usageMeter2 = await setupUsageMeter({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Meter 2',
+      })
+
+      const feature1 = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Test Feature 1',
+        usageMeterId: usageMeter1.id,
+        amount: 1000,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: true,
+      })
+
+      const feature2 = await setupUsageCreditGrantFeature({
+        organizationId: organization.id,
+        name: 'Test Feature 2',
+        usageMeterId: usageMeter2.id,
+        amount: 2000,
+        renewalFrequency: FeatureUsageGrantFrequency.Once,
+        livemode: true,
+      })
+
+      await setupSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem1.id,
+        featureId: feature1.id,
+        type: FeatureType.UsageCreditGrant,
+      })
+
+      await setupSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem2.id,
+        featureId: feature2.id,
+        type: FeatureType.UsageCreditGrant,
+      })
+
+      await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: Date.now() - 60 * 60 * 1000,
+        endDate: Date.now() + 60 * 60 * 1000,
+      })
+
+      // Cancel subscription
+      const canceledAt = await adminTransaction(
+        async ({ transaction }) => {
+          const { result } = await cancelSubscriptionImmediately(
+            subscription,
+            transaction
+          )
+          return result.canceledAt
+        }
+      )
+
+      // Verify all subscription items are expired
+      await adminTransaction(async ({ transaction }) => {
+        const items = await selectSubscriptionItems(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+        expect(items).toHaveLength(2)
+        expect(items[0].expiredAt).toBe(canceledAt)
+        expect(items[1].expiredAt).toBe(canceledAt)
+
+        // Verify all features are expired
+        const features1 = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: subscriptionItem1.id },
+          transaction
+        )
+        expect(features1).toHaveLength(1)
+        expect(features1[0].expiredAt).toBe(canceledAt)
+
+        const features2 = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: subscriptionItem2.id },
+          transaction
+        )
+        expect(features2).toHaveLength(1)
+        expect(features2[0].expiredAt).toBe(canceledAt)
       })
     })
   })
