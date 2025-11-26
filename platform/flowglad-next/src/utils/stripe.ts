@@ -317,11 +317,13 @@ export const getCurrencyParts = (
     ? amount
     : amount / 100
 
-  // When hideZeroCents is true, use 0-2 fraction digits to automatically
-  // hide unnecessary .00 (e.g., $40.00 → $40, but $39.99 stays $39.99)
-  const fractionDigits = options?.hideZeroCents
-    ? { minimumFractionDigits: 0, maximumFractionDigits: 2 }
-    : {}
+  // When hideZeroCents is true, only hide .00 for whole amounts
+  // (e.g., $40.00 → $40, but $39.50 stays $39.50, not $39.5)
+  const isWholeAmount = adjustedAmount % 1 === 0
+  const fractionDigits =
+    options?.hideZeroCents && isWholeAmount
+      ? { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+      : {}
 
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
