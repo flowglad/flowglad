@@ -303,6 +303,46 @@ export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
   return formatter.format(amount)
 }
 
+/**
+ * Returns currency symbol and formatted numeric value separately for a given amount.
+ * Uses Intl.NumberFormat.formatToParts() for reliable i18n support with multi-character
+ * currency symbols (e.g., CHF, SEK, CN¥, R$).
+ */
+export const getCurrencyParts = (
+  currency: CurrencyCode,
+  amount: number,
+  options?: { hideZeroCents?: boolean }
+): { symbol: string; value: string } => {
+  const adjustedAmount = isCurrencyZeroDecimal(currency)
+    ? amount
+    : amount / 100
+
+  // When hideZeroCents is true, only hide .00 for whole amounts
+  // (e.g., $40.00 → $40, but $39.50 stays $39.50, not $39.5)
+  const isWholeAmount = adjustedAmount % 1 === 0
+  const fractionDigits =
+    options?.hideZeroCents && isWholeAmount
+      ? { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+      : {}
+
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    ...fractionDigits,
+  })
+
+  const parts = formatter.formatToParts(adjustedAmount)
+  const symbol = parts.find((p) => p.type === 'currency')?.value ?? '$'
+  const value = parts
+    .filter((p) =>
+      ['minusSign', 'integer', 'group', 'decimal', 'fraction'].includes(p.type)
+    )
+    .map((p) => p.value)
+    .join('')
+
+  return { symbol, value }
+}
+
 // Constants for readability and maintainability
 const THRESHOLDS = {
   SMALL_AMOUNT: 100,

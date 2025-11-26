@@ -26,11 +26,21 @@ import {
 } from '@/components/ui/form'
 import { useFormContext } from 'react-hook-form'
 import { encodeCursor } from '@/db/tableUtils'
+import Link from 'next/link'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface EditSubscriptionPaymentMethodModalProps
   extends ModalInterfaceProps {
   subscriptionId: string
   customerId: string
+  customerName: string
   currentPaymentMethodId?: string | null
 }
 
@@ -97,6 +107,7 @@ export function EditSubscriptionPaymentMethodModal({
   setIsOpen,
   subscriptionId,
   customerId,
+  customerName,
   currentPaymentMethodId,
 }: EditSubscriptionPaymentMethodModalProps) {
   const router = useRouter()
@@ -137,6 +148,36 @@ export function EditSubscriptionPaymentMethodModal({
     paymentMethodId: currentPaymentMethodId || '',
   }
 
+  const hasNoPaymentMethods =
+    !isLoading && paymentMethodsData?.data?.length === 0
+
+  // Show simple dialog with "Okay" button when there are no payment methods
+  if (hasNoPaymentMethods) {
+    return (
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>No Payment Methods Available</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              <Link
+                href={`/customers/${customerId}`}
+                className="text-muted-foreground hover:text-foreground hover:underline transition-colors"
+              >
+                {customerName}
+              </Link>{' '}
+              has not added any payment methods yet.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsOpen(false)}>Okay</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
   return (
     <FormModal
       isOpen={isOpen}
@@ -150,29 +191,24 @@ export function EditSubscriptionPaymentMethodModal({
       allowContentOverflow={false}
     >
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Select a payment method for this subscription.
-        </p>
-
         {isLoading && (
           <p className="text-sm text-muted-foreground">
             Loading payment methods...
           </p>
         )}
 
-        {!isLoading && paymentMethodsData?.data?.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No payment methods available for this customer.
-          </p>
-        )}
-
         {!isLoading &&
           paymentMethodsData?.data &&
           paymentMethodsData.data.length > 0 && (
-            <PaymentMethodSelector
-              paymentMethods={paymentMethodsData.data}
-              currentPaymentMethodId={currentPaymentMethodId}
-            />
+            <>
+              <p className="text-sm text-muted-foreground">
+                Select a payment method for this subscription.
+              </p>
+              <PaymentMethodSelector
+                paymentMethods={paymentMethodsData.data}
+                currentPaymentMethodId={currentPaymentMethodId}
+              />
+            </>
           )}
       </div>
     </FormModal>

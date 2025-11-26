@@ -52,17 +52,29 @@ function SubscriptionActionsMenu({
 }) {
   const [isCancelOpen, setIsCancelOpen] = React.useState(false)
 
+  const isCanceled = subscription.status === SubscriptionStatus.Canceled
+  const isFreePlan = subscription.isFreePlan === true
+  const cannotCancel = isCanceled || isFreePlan
+
+  // Get the appropriate helper text for why cancel is disabled
+  const getCancelHelperText = (): string | undefined => {
+    if (isFreePlan) {
+      return 'Default free plans cannot be canceled'
+    }
+    if (isCanceled) {
+      return 'Subscription is already canceled'
+    }
+    return undefined
+  }
+
   const actionItems: ActionMenuItem[] = [
     {
       label: 'Cancel Subscription',
       icon: <X className="h-4 w-4" />,
       handler: () => setIsCancelOpen(true),
       destructive: true,
-      disabled: subscription.status === SubscriptionStatus.Canceled,
-      helperText:
-        subscription.status === SubscriptionStatus.Canceled
-          ? 'Subscription is already canceled'
-          : undefined,
+      disabled: cannotCancel,
+      helperText: getCancelHelperText(),
     },
   ]
 
