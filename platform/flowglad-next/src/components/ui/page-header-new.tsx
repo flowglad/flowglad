@@ -128,9 +128,12 @@ export function PageHeaderNew({
 
       {/* Status badges and description */}
       {(badges.length > 0 || description) && (
-        <div className="flex items-center gap-2 w-full px-0 py-2">
+        <div className="flex flex-wrap items-center gap-2 w-full px-0 py-2">
           {badges.map((badge, index) => (
-            <div key={index} className="flex items-center gap-2">
+            <div
+              key={index}
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
               {/* Badge */}
               <div
                 className={cn(
@@ -164,7 +167,7 @@ export function PageHeaderNew({
 
           {/* Optional description */}
           {description && (
-            <p className="font-sans font-medium text-sm text-muted-foreground opacity-80 leading-5">
+            <p className="font-sans font-medium text-sm text-muted-foreground opacity-80 leading-5 whitespace-nowrap">
               {description}
             </p>
           )}
@@ -173,13 +176,13 @@ export function PageHeaderNew({
 
       {/* Action buttons */}
       {(actions.length > 0 || showMoreMenu) && (
-        <div className="flex items-center gap-2 w-full px-0 pt-2 pb-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full px-0 pt-2 pb-4">
           {actions.map((action, index) => (
             <Button
               key={index}
               variant={action.variant || 'secondary'}
               onClick={action.onClick}
-              className="flex-1 basis-0 grow shrink min-w-0 h-9"
+              className="w-full sm:flex-1 sm:basis-0 sm:grow sm:shrink sm:min-w-0 h-9"
               disabled={action.disabled}
             >
               {action.label}
@@ -192,7 +195,7 @@ export function PageHeaderNew({
               variant="secondary"
               size="icon"
               onClick={onMoreMenuClick}
-              className="w-9 h-9 min-w-9 max-w-9 shrink-0"
+              className="w-full sm:w-9 h-9 sm:min-w-9 sm:max-w-9 shrink-0"
               aria-label="More options"
             >
               <MoreHorizontal className="w-4 h-4" />
