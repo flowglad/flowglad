@@ -141,7 +141,7 @@ const OnboardingPage = async () => {
     //   type: OnboardingItemType.Discount,
     // },
     {
-      title: 'Connect Stripe',
+      title: 'Enable Payments',
       description: 'Set up Stripe Connect to process payments',
       completed: organization.payoutsEnabled,
       action: 'Connect',
