@@ -23,8 +23,8 @@ import {
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import {
+  expireSubscriptionItems,
   selectSubscriptionItems,
-  expireSubscriptionItem,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   BillingPeriodStatus,
@@ -344,17 +344,27 @@ export const cancelSubscriptionImmediately = async (
 
   /**
    * Expire all subscription items and their features
+   *
+   * Performance optimization: Process items in batches of 20 with Promise.all()
+   * to balance economizing simultaneous DB hits with execution speed.
+   * This prevents overwhelming the database with too many concurrent operations
+   * while still achieving significant parallelism compared to sequential processing.
    */
+  // Fetch all subscription items for this subscription
   const subscriptionItems = await selectSubscriptionItems(
     { subscriptionId: subscription.id },
     transaction
   )
-  for (const item of subscriptionItems) {
-    if (!item.expiredAt) {
-      await expireSubscriptionItem(item.id, endDate, transaction)
-    }
-  }
+  // Filter to only items that haven't been expired yet
+  const itemsToExpire = subscriptionItems.filter(
+    (item) => !item.expiredAt
+  )
 
+  await expireSubscriptionItems(
+    itemsToExpire.map((item) => item.id),
+    endDate,
+    transaction
+  )
   if (result) {
     updatedSubscription = result
   }

@@ -7,11 +7,11 @@ import {
   bulkInsertSubscriptionItems,
   selectSubscriptionAndItems,
   selectSubscriptionItemsAndSubscriptionBySubscriptionId,
-  expireSubscriptionItem,
   selectRichSubscriptionsAndActiveItems,
   bulkInsertOrDoNothingSubscriptionItemsByExternalId,
   selectCurrentlyActiveSubscriptionItems,
   bulkCreateOrUpdateSubscriptionItems,
+  expireSubscriptionItems,
 } from './subscriptionItemMethods'
 import {
   setupOrg,
@@ -432,8 +432,8 @@ describe('subscriptionItemMethods', async () => {
           transaction
         )
 
-        await expireSubscriptionItem(
-          subscriptionItem.id,
+        await expireSubscriptionItems(
+          [subscriptionItem.id],
           expiryDate,
           transaction
         )

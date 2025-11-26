@@ -162,9 +162,9 @@ export const expireSubscriptionItemFeature = async (
   )
 }
 
-export const expireSubscriptionItemFeaturesForSubscriptionItem =
+export const expireSubscriptionItemFeaturesForSubscriptionItems =
   async (
-    subscriptionItemId: string,
+    subscriptionItemIds: string[],
     expiredAt: Date | number,
     transaction: DbTransaction
   ) => {
@@ -174,15 +174,13 @@ export const expireSubscriptionItemFeaturesForSubscriptionItem =
         expiredAt: new Date(expiredAt).getTime(),
       })
       .where(
-        eq(
+        inArray(
           subscriptionItemFeatures.subscriptionItemId,
-          subscriptionItemId
+          subscriptionItemIds
         )
       )
       .returning()
-    return result.map((row) =>
-      subscriptionItemFeaturesSelectSchema.parse(row)
-    )
+    return subscriptionItemFeaturesSelectSchema.array().parse(result)
   }
 
 /**

@@ -30,6 +30,7 @@ import {
   setupUsageMeter,
   setupUsageCreditGrantFeature,
   setupSubscriptionItemFeature,
+  setupProductFeature,
 } from '@/../seedDatabase'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
@@ -44,13 +45,17 @@ import {
   safelyUpdateSubscriptionStatus,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
-import {
-  selectSubscriptionItems,
-  selectSubscriptionItemFeatures,
-} from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { PriceType, IntervalUnit, SubscriptionItemType, FeatureType, FeatureUsageGrantFrequency } from '@/types'
+import {
+  PriceType,
+  IntervalUnit,
+  SubscriptionItemType,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@/types'
 import { updateProduct } from '@/db/tableMethods/productMethods'
 import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-canceled-notification'
 import { eq } from 'drizzle-orm'
@@ -2029,11 +2034,19 @@ describe('Subscription Cancellation Test Suite', async () => {
         renewalFrequency: FeatureUsageGrantFrequency.Once,
         livemode: true,
       })
+      const productFeature = await setupProductFeature({
+        organizationId: organization.id,
+        productId: paidProduct.id,
+        featureId: feature.id,
+        livemode: true,
+      })
 
       await setupSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem.id,
         featureId: feature.id,
         type: FeatureType.UsageCreditGrant,
+        usageMeterId: usageMeter.id,
+        productFeatureId: productFeature.id,
       })
 
       await setupBillingPeriod({
@@ -2166,17 +2179,32 @@ describe('Subscription Cancellation Test Suite', async () => {
         renewalFrequency: FeatureUsageGrantFrequency.Once,
         livemode: true,
       })
-
+      const productFeature1 = await setupProductFeature({
+        organizationId: organization.id,
+        productId: paidProduct.id,
+        featureId: feature1.id,
+        livemode: true,
+      })
+      const productFeature2 = await setupProductFeature({
+        organizationId: organization.id,
+        productId: paidProduct.id,
+        featureId: feature2.id,
+        livemode: true,
+      })
       await setupSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem1.id,
         featureId: feature1.id,
         type: FeatureType.UsageCreditGrant,
+        usageMeterId: usageMeter1.id,
+        productFeatureId: productFeature1.id,
       })
 
       await setupSubscriptionItemFeature({
         subscriptionItemId: subscriptionItem2.id,
         featureId: feature2.id,
         type: FeatureType.UsageCreditGrant,
+        usageMeterId: usageMeter2.id,
+        productFeatureId: productFeature2.id,
       })
 
       await setupBillingPeriod({
