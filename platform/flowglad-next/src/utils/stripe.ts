@@ -335,7 +335,7 @@ export const getCurrencyParts = (
   const symbol = parts.find((p) => p.type === 'currency')?.value ?? '$'
   const value = parts
     .filter((p) =>
-      ['integer', 'group', 'decimal', 'fraction'].includes(p.type)
+      ['minusSign', 'integer', 'group', 'decimal', 'fraction'].includes(p.type)
     )
     .map((p) => p.value)
     .join('')
