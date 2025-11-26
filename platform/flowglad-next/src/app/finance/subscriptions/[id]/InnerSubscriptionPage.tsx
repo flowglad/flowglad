@@ -136,7 +136,7 @@ const InnerSubscriptionPage = ({
               {subscription.subscriptionItems.map((item) => {
                 const { symbol: currencySymbol, value: priceValue } =
                   getCurrencyParts(
-                    organization.defaultCurrency,
+                    item.price.currency,
                     item.unitPrice * item.quantity,
                     { hideZeroCents: true }
                   )
