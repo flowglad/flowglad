@@ -52,6 +52,22 @@ const InnerSubscriptionPage = ({
 
   const canAddFeature = subscription.subscriptionItems.length > 0
 
+  // Determine if cancel should be disabled and why
+  const isCanceled = subscription.status === SubscriptionStatus.Canceled
+  const isFreePlan = subscription.isFreePlan === true
+  const cannotCancel = isCanceled || isFreePlan
+
+  // Get the appropriate tooltip message for why cancel is disabled
+  const getCancelDisabledTooltip = (): string | undefined => {
+    if (isFreePlan) {
+      return 'Default free plans cannot be canceled.'
+    }
+    if (isCanceled) {
+      return 'This subscription has already been canceled.'
+    }
+    return undefined
+  }
+
   // Handlers for page header actions
   const handleChangePaymentMethod = () => {
     setIsEditDialogOpen(true)
@@ -125,8 +141,8 @@ const InnerSubscriptionPage = ({
               label: 'Cancel',
               onClick: handleCancel,
               variant: 'secondary',
-              disabled:
-                subscription.status === SubscriptionStatus.Canceled,
+              disabled: cannotCancel,
+              disabledTooltip: getCancelDisabledTooltip(),
             },
           ]}
         />
@@ -206,6 +222,7 @@ const InnerSubscriptionPage = ({
         setIsOpen={setIsEditDialogOpen}
         subscriptionId={subscription.id}
         customerId={subscription.customerId}
+        customerName={customer.name}
         currentPaymentMethodId={defaultPaymentMethod?.id}
       />
       <AddSubscriptionFeatureModal

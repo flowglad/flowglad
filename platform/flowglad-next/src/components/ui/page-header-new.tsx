@@ -2,6 +2,12 @@ import type { ReactNode } from 'react'
 import { ChevronLeft, MoreHorizontal } from 'lucide-react'
 import { Button } from './button'
 import { cn } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './tooltip'
 
 /**
  * Design Tokens Extracted from Figma:
@@ -45,6 +51,8 @@ interface PageHeaderAction {
   onClick?: () => void
   variant?: 'default' | 'secondary' | 'destructive' | 'outline'
   disabled?: boolean
+  /** Tooltip text to display when button is disabled */
+  disabledTooltip?: string
 }
 
 interface PageHeaderNewProps {
@@ -177,17 +185,40 @@ export function PageHeaderNew({
       {/* Action buttons */}
       {(actions.length > 0 || showMoreMenu) && (
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full px-0 pt-2 pb-4">
-          {actions.map((action, index) => (
-            <Button
-              key={index}
-              variant={action.variant || 'secondary'}
-              onClick={action.onClick}
-              className="w-full sm:flex-1 sm:basis-0 sm:grow sm:shrink sm:min-w-0 h-9"
-              disabled={action.disabled}
-            >
-              {action.label}
-            </Button>
-          ))}
+          <TooltipProvider delayDuration={0}>
+            {actions.map((action, index) => {
+              const button = (
+                <Button
+                  key={index}
+                  variant={action.variant || 'secondary'}
+                  onClick={action.onClick}
+                  className="w-full sm:flex-1 sm:basis-0 sm:grow sm:shrink sm:min-w-0 h-9"
+                  disabled={action.disabled}
+                >
+                  {action.label}
+                </Button>
+              )
+
+              // Wrap disabled buttons with tooltip if disabledTooltip is provided
+              if (action.disabled && action.disabledTooltip) {
+                return (
+                  <Tooltip key={index}>
+                    <TooltipTrigger asChild>
+                      {/* Wrapper div needed because disabled buttons don't fire events */}
+                      <div className="w-full sm:flex-1 sm:basis-0 sm:grow sm:shrink sm:min-w-0">
+                        {button}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{action.disabledTooltip}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              }
+
+              return button
+            })}
+          </TooltipProvider>
 
           {/* More menu button */}
           {showMoreMenu && (
