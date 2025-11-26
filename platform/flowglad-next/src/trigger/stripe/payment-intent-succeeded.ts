@@ -16,8 +16,6 @@ import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bo
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
 import { Event } from '@/db/schema/events'
 import { storeTelemetry } from '@/utils/redis'
-import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
-import { processTerminalPaymentIntent } from '@/subscriptions/billingRunHelpers'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -40,19 +38,6 @@ export const stripePaymentIntentSucceededTask = task({
           )
         }
       )
-
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        const billingRun = await selectBillingRunById(
-          metadata.billingRunId,
-          transaction
-        )
-        return await processTerminalPaymentIntent(
-          payload.data.object,
-          billingRun,
-          transaction
-        )
-      })
-
       return result
     }
 
