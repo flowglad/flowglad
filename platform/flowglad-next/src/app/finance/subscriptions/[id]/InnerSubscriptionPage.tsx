@@ -201,7 +201,7 @@ const InnerSubscriptionPage = ({
             variant="simple"
             name={customer.name}
             email={customer.email}
-            onClick={() => router.push(`/customers/${customer.id}`)}
+            href={`/customers/${customer.id}`}
           />
         </ExpandSection>
         <SubscriptionFeaturesTable

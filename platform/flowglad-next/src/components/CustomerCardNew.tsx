@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -24,14 +25,15 @@ const customerCardVariants = cva(
 )
 
 export interface CustomerCardNewProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onClick' | 'onKeyDown'>,
-    VariantProps<typeof customerCardVariants> {
+  extends VariantProps<typeof customerCardVariants> {
   /** Customer's display name */
   name: string
   /** Customer's email address */
   email: string
   /** Optional avatar image URL */
   avatarUrl?: string | null
+  /** Optional href to make the card a link (preferred for navigation) */
+  href?: string
   /** Click/activate handler (mouse or keyboard activation) */
   onClick?: (
     event:
@@ -40,6 +42,8 @@ export interface CustomerCardNewProps
   ) => void
   /** Optional additional keydown handler */
   onKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void
+  /** Optional className */
+  className?: string
 }
 
 /**
@@ -58,11 +62,23 @@ const getFirstLetter = (name: string) => {
  * - default: Standard card with more padding and shadow hover
  * - simple: Compact card with background/border hover states
  */
-const CustomerCardNew = React.forwardRef<HTMLDivElement, CustomerCardNewProps>(
+const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
   (
-    { className, variant, name, email, avatarUrl, onClick, onKeyDown, ...props },
-    ref
+    { className, variant, name, email, avatarUrl, href, onClick, onKeyDown },
+    forwardedRef
   ) => {
+    // Callback ref that forwards to the parent ref with proper typing
+    const setRef = React.useCallback(
+      (element: HTMLDivElement | HTMLAnchorElement | null) => {
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(element)
+        } else if (forwardedRef) {
+          forwardedRef.current = element
+        }
+      },
+      [forwardedRef]
+    )
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (onClick && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault()
@@ -71,20 +87,10 @@ const CustomerCardNew = React.forwardRef<HTMLDivElement, CustomerCardNewProps>(
       onKeyDown?.(e)
     }
 
-    return (
-      <div
-        ref={ref}
-        role={onClick ? 'button' : undefined}
-        tabIndex={onClick ? 0 : undefined}
-        onClick={onClick}
-        onKeyDown={onClick || onKeyDown ? handleKeyDown : undefined}
-        className={cn(
-          customerCardVariants({ variant }),
-          onClick && 'cursor-pointer',
-          className
-        )}
-        {...props}
-      >
+    const isClickable = Boolean(href || onClick)
+
+    const content = (
+      <>
         {/* Avatar - 40px with border, bg-muted fallback with first letter */}
         <Avatar
           className={cn(
@@ -114,6 +120,51 @@ const CustomerCardNew = React.forwardRef<HTMLDivElement, CustomerCardNewProps>(
             {email}
           </p>
         </div>
+      </>
+    )
+
+    const cardClassName = cn(
+      customerCardVariants({ variant }),
+      isClickable && 'cursor-pointer',
+      className
+    )
+
+    // If href is provided, wrap in Link
+    if (href) {
+      return (
+        <Link
+          href={href}
+          ref={setRef}
+          className={cardClassName}
+        >
+          {content}
+        </Link>
+      )
+    }
+
+    // If onClick is provided, make it a button-like div
+    if (onClick) {
+      return (
+        <div
+          ref={setRef}
+          role="button"
+          tabIndex={0}
+          onClick={onClick}
+          onKeyDown={handleKeyDown}
+          className={cardClassName}
+        >
+          {content}
+        </div>
+      )
+    }
+
+    // Default: non-interactive card
+    return (
+      <div
+        ref={setRef}
+        className={cardClassName}
+      >
+        {content}
       </div>
     )
   }
