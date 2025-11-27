@@ -17,6 +17,9 @@ const nextConfig = {
     '@aws-sdk/s3-request-presigner',
     'chromium-bidi',
     'ws',
+    // Turbopuffer and OpenAI depend on undici, which needs to be externalized
+    // to avoid bundling issues in production (Vercel)
+    'undici',
   ],
   images: {
     remotePatterns: process.env.NEXT_PUBLIC_CDN_URL
