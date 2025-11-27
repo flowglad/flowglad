@@ -91,12 +91,12 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
 
     const content = (
       <>
-        {/* Avatar - 40px, bg-muted fallback with first letter */}
+        {/* Avatar - 40px, bg-accent fallback with first letter */}
         <Avatar
           className="h-10 w-10 shrink-0"
         >
           {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
-          <AvatarFallback className="bg-muted text-sm font-normal leading-5 text-foreground">
+          <AvatarFallback className="bg-accent text-sm font-normal leading-5 text-foreground">
             {getFirstLetter(name)}
           </AvatarFallback>
         </Avatar>
