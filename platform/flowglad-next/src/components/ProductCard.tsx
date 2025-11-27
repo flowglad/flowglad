@@ -12,7 +12,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
  * and different card types (default, see all, subscription)
  */
 const productCardVariants = cva(
-  'relative box-border rounded-md border transition-all duration-200 w-full',
+  'relative box-border rounded-[6px] border transition-all duration-200 w-full',
   {
     variants: {
       variant: {
