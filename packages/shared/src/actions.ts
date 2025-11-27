@@ -75,15 +75,28 @@ export const cancelSubscriptionSchema = z.object({
   cancellation: cancellationParametersSchema,
 })
 
-export const createUsageEventSchema = z.object({
+const baseUsageEventFields = z.object({
   amount: z.number(),
-  priceId: z.string(),
   subscriptionId: z.string(),
-  usageMeterId: z.string(),
   properties: z.record(z.string(), z.unknown()).optional(),
   transactionId: z.string(),
   usageDate: z.number().optional(),
 })
+
+const usageEventWithPriceId = baseUsageEventFields.extend({
+  priceId: z.string(),
+  priceSlug: z.never().optional(), // Explicitly disallow
+})
+
+const usageEventWithPriceSlug = baseUsageEventFields.extend({
+  priceSlug: z.string(),
+  priceId: z.never().optional(), // Explicitly disallow
+})
+
+export const createUsageEventSchema = z.union([
+  usageEventWithPriceId,
+  usageEventWithPriceSlug,
+])
 
 export type CreateUsageEventParams = z.infer<
   typeof createUsageEventSchema
