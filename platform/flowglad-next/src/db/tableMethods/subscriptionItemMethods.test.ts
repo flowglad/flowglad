@@ -406,7 +406,7 @@ describe('subscriptionItemMethods', async () => {
     })
   })
 
-  describe('expireSubscriptionItem', () => {
+  describe('expireSubscriptionItems', () => {
     it('should update the expiredAt field of the specified subscription item and its features', async () => {
       const expiryDate = new Date()
       let feature: SubscriptionItemFeature.Record | undefined =
@@ -448,6 +448,165 @@ describe('subscriptionItemMethods', async () => {
           .from(subscriptionItemFeatures)
           .where(eq(subscriptionItemFeatures.id, feature!.id))
         expect(updatedFeature?.expiredAt).toEqual(
+          expiryDate.getTime()
+        )
+      })
+    })
+
+    it('should expire multiple subscription items and all their features', async () => {
+      const expiryDate = new Date()
+
+      // Setup features
+      const featureSetup = await setupTestFeaturesAndProductFeatures({
+        organizationId: organization.id,
+        productId: price.productId,
+        livemode: true,
+        featureSpecs: [
+          {
+            name: 'Feature 1',
+            type: FeatureType.Toggle,
+          },
+          {
+            name: 'Feature 2',
+            type: FeatureType.Toggle,
+          },
+          {
+            name: 'Feature 3',
+            type: FeatureType.Toggle,
+          },
+        ],
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Create additional subscription items
+        const item2 = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Item 2',
+          quantity: 1,
+          unitPrice: 200,
+          priceId: price.id,
+        })
+
+        const item3 = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Item 3',
+          quantity: 1,
+          unitPrice: 300,
+          priceId: price.id,
+        })
+
+        // Add features to item 1 (subscriptionItem)
+        const item1Feature1 = await insertSubscriptionItemFeature(
+          subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+            subscriptionItem,
+            featureSetup[0].feature,
+            featureSetup[0].productFeature
+          ),
+          transaction
+        )
+
+        const item1Feature2 = await insertSubscriptionItemFeature(
+          subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+            subscriptionItem,
+            featureSetup[1].feature,
+            featureSetup[1].productFeature
+          ),
+          transaction
+        )
+
+        // Add features to item 2
+        const item2Feature1 = await insertSubscriptionItemFeature(
+          subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+            item2,
+            featureSetup[0].feature,
+            featureSetup[0].productFeature
+          ),
+          transaction
+        )
+
+        const item2Feature2 = await insertSubscriptionItemFeature(
+          subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+            item2,
+            featureSetup[2].feature,
+            featureSetup[2].productFeature
+          ),
+          transaction
+        )
+
+        // Add feature to item 3
+        const item3Feature1 = await insertSubscriptionItemFeature(
+          subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+            item3,
+            featureSetup[1].feature,
+            featureSetup[1].productFeature
+          ),
+          transaction
+        )
+
+        // Expire all items at once
+        await expireSubscriptionItems(
+          [subscriptionItem.id, item2.id, item3.id],
+          expiryDate,
+          transaction
+        )
+
+        // Verify all items are expired
+        const updatedItem1 = await selectSubscriptionItemById(
+          subscriptionItem.id,
+          transaction
+        )
+        expect(updatedItem1?.expiredAt).toEqual(expiryDate.getTime())
+
+        const updatedItem2 = await selectSubscriptionItemById(
+          item2.id,
+          transaction
+        )
+        expect(updatedItem2?.expiredAt).toEqual(expiryDate.getTime())
+
+        const updatedItem3 = await selectSubscriptionItemById(
+          item3.id,
+          transaction
+        )
+        expect(updatedItem3?.expiredAt).toEqual(expiryDate.getTime())
+
+        // Verify all features are expired
+        const [updatedItem1Feature1] = await transaction
+          .select()
+          .from(subscriptionItemFeatures)
+          .where(eq(subscriptionItemFeatures.id, item1Feature1.id))
+        expect(updatedItem1Feature1?.expiredAt).toEqual(
+          expiryDate.getTime()
+        )
+
+        const [updatedItem1Feature2] = await transaction
+          .select()
+          .from(subscriptionItemFeatures)
+          .where(eq(subscriptionItemFeatures.id, item1Feature2.id))
+        expect(updatedItem1Feature2?.expiredAt).toEqual(
+          expiryDate.getTime()
+        )
+
+        const [updatedItem2Feature1] = await transaction
+          .select()
+          .from(subscriptionItemFeatures)
+          .where(eq(subscriptionItemFeatures.id, item2Feature1.id))
+        expect(updatedItem2Feature1?.expiredAt).toEqual(
+          expiryDate.getTime()
+        )
+
+        const [updatedItem2Feature2] = await transaction
+          .select()
+          .from(subscriptionItemFeatures)
+          .where(eq(subscriptionItemFeatures.id, item2Feature2.id))
+        expect(updatedItem2Feature2?.expiredAt).toEqual(
+          expiryDate.getTime()
+        )
+
+        const [updatedItem3Feature1] = await transaction
+          .select()
+          .from(subscriptionItemFeatures)
+          .where(eq(subscriptionItemFeatures.id, item3Feature1.id))
+        expect(updatedItem3Feature1?.expiredAt).toEqual(
           expiryDate.getTime()
         )
       })
