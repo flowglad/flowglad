@@ -91,12 +91,9 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
 
     const content = (
       <>
-        {/* Avatar - 40px with border, bg-muted fallback with first letter */}
+        {/* Avatar - 40px, bg-muted fallback with first letter */}
         <Avatar
-          className={cn(
-            'h-10 w-10 shrink-0 border border-border transition-colors',
-            variant === 'simple' && '[div:hover>&]:border-muted-foreground'
-          )}
+          className="h-10 w-10 shrink-0"
         >
           {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
           <AvatarFallback className="bg-muted text-sm font-normal leading-5 text-foreground">
