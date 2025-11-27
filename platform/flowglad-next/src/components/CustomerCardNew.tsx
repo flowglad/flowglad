@@ -111,7 +111,7 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
           <p
             className={cn(
               'truncate text-sm font-normal leading-5 text-muted-foreground transition-colors',
-              variant === 'simple' && '[div:hover>&]:text-foreground'
+              variant === 'simple' && 'group-hover:text-foreground'
             )}
           >
             {email}
@@ -123,6 +123,7 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
     const cardClassName = cn(
       customerCardVariants({ variant }),
       isClickable && 'cursor-pointer',
+      'group',
       className
     )
 
