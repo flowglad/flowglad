@@ -123,25 +123,6 @@ const nextConfig = {
           }
         )
       )
-
-      // Ensure undici and related packages are externalized for server builds
-      // serverExternalPackages should handle this, but we add webpack externals as a fallback
-      if (!config.externals) {
-        config.externals = []
-      }
-      if (Array.isArray(config.externals)) {
-        // Add function-based external handler for undici and related packages
-        config.externals.push(({ request }, callback) => {
-          if (
-            request === 'undici' ||
-            request === '@turbopuffer/turbopuffer' ||
-            request === 'openai'
-          ) {
-            return callback(null, `commonjs ${request}`)
-          }
-          callback()
-        })
-      }
     }
 
     return config
