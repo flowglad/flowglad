@@ -115,6 +115,18 @@ const nextConfig = {
           }
         )
       )
+
+      // Ensure undici and related packages are externalized for server builds
+      // This prevents webpack from trying to bundle them
+      config.externals = config.externals || []
+      if (Array.isArray(config.externals)) {
+        config.externals.push({
+          undici: 'commonjs undici',
+          '@turbopuffer/turbopuffer':
+            'commonjs @turbopuffer/turbopuffer',
+          openai: 'commonjs openai',
+        })
+      }
     }
 
     return config
