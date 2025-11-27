@@ -20,6 +20,8 @@ const nextConfig = {
     // Turbopuffer and OpenAI depend on undici, which needs to be externalized
     // to avoid bundling issues in production (Vercel)
     'undici',
+    '@turbopuffer/turbopuffer',
+    'openai',
   ],
   images: {
     remotePatterns: process.env.NEXT_PUBLIC_CDN_URL
