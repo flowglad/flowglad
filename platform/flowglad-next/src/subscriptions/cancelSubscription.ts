@@ -344,11 +344,6 @@ export const cancelSubscriptionImmediately = async (
 
   /**
    * Expire all subscription items and their features
-   *
-   * Performance optimization: Process items in batches of 20 with Promise.all()
-   * to balance economizing simultaneous DB hits with execution speed.
-   * This prevents overwhelming the database with too many concurrent operations
-   * while still achieving significant parallelism compared to sequential processing.
    */
   // Fetch all subscription items for this subscription
   const subscriptionItems = await selectSubscriptionItems(
