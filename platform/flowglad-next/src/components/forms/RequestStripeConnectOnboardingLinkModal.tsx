@@ -1,10 +1,10 @@
-import FormModal from './FormModal'
 import { trpc } from '@/app/_trpc/client'
+import RequestStripeConnectOnboardingLinkFormFields from '@/components/forms/RequestStripeConnectOnboardingLinkFormFields'
 import {
-  Country,
+  type Country,
   requestStripeConnectOnboardingLinkInputSchema,
 } from '@/db/schema/countries'
-import RequestStripeConnectOnboardingLinkFormFields from '@/components/forms/RequestStripeConnectOnboardingLinkFormFields'
+import FormModal from './FormModal'
 
 const RequestStripeConnectOnboardingLinkModal = ({
   isOpen,

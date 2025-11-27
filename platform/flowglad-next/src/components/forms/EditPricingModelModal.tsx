@@ -1,12 +1,12 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import {
-  PricingModel,
-  editPricingModelSchema,
-} from '@/db/schema/pricingModels'
-import PricingModelFormFields from '@/components/forms/PricingModelFormFields'
 import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
+import PricingModelFormFields from '@/components/forms/PricingModelFormFields'
+import {
+  editPricingModelSchema,
+  type PricingModel,
+} from '@/db/schema/pricingModels'
 
 interface EditPricingModelModalProps {
   isOpen: boolean

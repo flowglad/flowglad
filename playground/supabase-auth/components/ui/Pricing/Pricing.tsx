@@ -1,20 +1,20 @@
-'use client';
+'use client'
 
-import LogoCloud from '@/components/ui/LogoCloud';
-import { User } from '@supabase/supabase-js';
-import { useBilling } from '@flowglad/nextjs';
+import { useBilling } from '@flowglad/nextjs'
+import type { User } from '@supabase/supabase-js'
+import LogoCloud from '@/components/ui/LogoCloud'
 import {
-  SubscriptionDemoCard,
+  AddPaymentMethodButton,
   SubscribeButton,
-  AddPaymentMethodButton
-} from '../SubscriptionCardDemo';
+  SubscriptionDemoCard,
+} from '../SubscriptionCardDemo'
 
 interface Props {
-  user: User | null | undefined;
+  user: User | null | undefined
 }
 
 export default function Pricing({ user }: Props) {
-  const billing = useBilling();
+  const billing = useBilling()
   if (!billing.loaded) {
     return (
       <section className="bg-black">
@@ -22,7 +22,7 @@ export default function Pricing({ user }: Props) {
           <div className="sm:flex sm:flex-col sm:align-center"></div>
         </div>
       </section>
-    );
+    )
   } else if (billing.errors) {
     return (
       <section className="bg-black">
@@ -30,10 +30,10 @@ export default function Pricing({ user }: Props) {
           <div className="sm:flex sm:flex-col sm:align-center"></div>
         </div>
       </section>
-    );
+    )
   }
   if (!billing.createAddPaymentMethodCheckoutSession) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   }
   const products = billing.catalog?.products.map((item) => {
     return {
@@ -42,11 +42,11 @@ export default function Pricing({ user }: Props) {
       prices: item.prices.map((price) => {
         return {
           ...price,
-          currency: 'USD' as const
-        };
-      })
-    };
-  });
+          currency: 'USD' as const,
+        }
+      }),
+    }
+  })
   return (
     <section className="bg-black">
       <div className="max-w-6xl px-4 py-8 mx-auto sm:py-24 sm:px-6 lg:px-8">
@@ -58,5 +58,5 @@ export default function Pricing({ user }: Props) {
       <SubscriptionDemoCard />
       <LogoCloud />
     </section>
-  );
+  )
 }

@@ -1,6 +1,6 @@
-import { defineConfig } from 'vitest/config'
 import { config } from 'dotenv'
 import { resolve } from 'path'
+import { defineConfig } from 'vitest/config'
 
 // Load .env.test if not in GitHub Actions
 if (!process.env.GITHUB_ACTIONS) {

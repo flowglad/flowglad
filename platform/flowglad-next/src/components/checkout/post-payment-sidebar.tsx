@@ -1,11 +1,11 @@
 'use client'
 
-import * as React from 'react'
-import { cn } from '@/lib/utils'
-import { Organization } from '@/db/schema/organizations'
 import Image from 'next/image'
-import { PoweredByFlowglad } from '../powered-by-flowglad'
+import * as React from 'react'
 import { Card } from '@/components/ui/card'
+import type { Organization } from '@/db/schema/organizations'
+import { cn } from '@/lib/utils'
+import { PoweredByFlowglad } from '../powered-by-flowglad'
 
 export interface PostPaymentSidebarProps {
   className?: string

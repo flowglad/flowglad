@@ -1,49 +1,49 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  ORMMethodCreatorConfig,
-  createSelectFunction,
-  createBulkUpsertFunction,
-  createPaginatedSelectFunction,
-  SelectConditions,
-  whereClauseFromObject,
-  createCursorPaginatedSelectFunction,
-} from '@/db/tableUtils'
-import {
-  Payment,
-  payments,
-  paymentsInsertSchema,
-  paymentsSelectSchema,
-  paymentsTableRowDataSchema,
-  paymentsUpdateSchema,
-  RevenueDataItem,
-  paymentsPaginatedTableRowDataSchema,
-} from '@/db/schema/payments'
-import { PaymentStatus } from '@/types'
-import { DbTransaction } from '@/db/types'
-import {
   and,
+  count,
   desc,
   eq,
   gte,
   inArray,
-  sql,
-  count,
   lte,
+  sql,
 } from 'drizzle-orm'
-import { invoices } from '../schema/invoices'
-import { GetRevenueDataInput } from '../schema/payments'
-import { customers } from '../schema/customers'
-import { getCurrentMonthStartTimestamp } from '@/utils/core'
 import {
-  PaymentMethod,
+  type Payment,
+  payments,
+  paymentsInsertSchema,
+  paymentsPaginatedTableRowDataSchema,
+  paymentsSelectSchema,
+  paymentsTableRowDataSchema,
+  paymentsUpdateSchema,
+  type RevenueDataItem,
+} from '@/db/schema/payments'
+import {
+  createBulkUpsertFunction,
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  type SelectConditions,
+  whereClauseFromObject,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import { PaymentStatus } from '@/types'
+import { getCurrentMonthStartTimestamp } from '@/utils/core'
+import { customers } from '../schema/customers'
+import { invoices } from '../schema/invoices'
+import {
+  type PaymentMethod,
   paymentMethods,
   paymentMethodsSelectSchema,
 } from '../schema/paymentMethods'
-import { selectCustomers } from './customerMethods'
+import type { GetRevenueDataInput } from '../schema/payments'
 import { prices } from '../schema/prices'
 import { purchases } from '../schema/purchases'
+import { selectCustomers } from './customerMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof payments,

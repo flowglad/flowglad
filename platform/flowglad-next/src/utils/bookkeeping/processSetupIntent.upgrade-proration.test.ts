@@ -1,61 +1,61 @@
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  beforeAll,
   afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
   vi,
 } from 'vitest'
 import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PaymentMethodType,
-  PurchaseStatus,
-  SubscriptionStatus,
-  IntervalUnit,
-  PriceType,
-  CurrencyCode,
-  CancellationReason,
-  FlowgladEventType,
-} from '@/types'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { Purchase } from '@/db/schema/purchases'
-import { core } from '@/utils/core'
-import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
   setupCheckoutSession,
-  setupProduct,
+  setupCustomer,
+  setupOrg,
+  setupPaymentMethod,
   setupPrice,
+  setupProduct,
   setupPurchase,
+  setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  processSetupIntentSucceeded,
-  CoreSripeSetupIntent,
-} from '@/utils/bookkeeping/processSetupIntent'
-import {
-  selectSubscriptions,
-  selectSubscriptionById,
-} from '@/db/tableMethods/subscriptionMethods'
-import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
-import { IntentMetadataType } from '@/utils/stripe'
-import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  selectSubscriptionById,
+  selectSubscriptions,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
 import { calculateSplitInBillingPeriodBasedOnAdjustmentDate } from '@/subscriptions/adjustSubscription'
-import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
+import {
+  CancellationReason,
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  CurrencyCode,
+  FlowgladEventType,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  PurchaseStatus,
+  SubscriptionStatus,
+} from '@/types'
+import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
+import {
+  type CoreSripeSetupIntent,
+  processSetupIntentSucceeded,
+} from '@/utils/bookkeeping/processSetupIntent'
+import { core } from '@/utils/core'
+import { IntentMetadataType } from '@/utils/stripe'
 
 // Helper function to create mock setup intent
 const mockSucceededSetupIntent = ({

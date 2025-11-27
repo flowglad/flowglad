@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg } from '@/../seedDatabase'
-import { PriceType, IntervalUnit } from '@/types'
+import { adminTransaction } from '@/db/adminTransaction'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { insertPrice } from '@/db/tableMethods/priceMethods'
 import {
   insertProduct,
   selectProductById,
   updateProduct,
 } from '@/db/tableMethods/productMethods'
-import { insertPrice } from '@/db/tableMethods/priceMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import core from '@/utils/core'
+import { IntervalUnit, PriceType } from '@/types'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
+import core from '@/utils/core'
 import {
-  validateProductCreation,
   validateDefaultProductUpdate,
+  validateProductCreation,
 } from '@/utils/defaultProductValidation'
 
 describe('productsRouter - Default Product Constraints', () => {

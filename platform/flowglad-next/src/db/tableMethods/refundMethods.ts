@@ -1,16 +1,16 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import {
   refunds,
   refundsInsertSchema,
   refundsSelectSchema,
   refundsUpdateSchema,
 } from '@/db/schema/refunds'
+import {
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
 
 const config: ORMMethodCreatorConfig<
   typeof refunds,

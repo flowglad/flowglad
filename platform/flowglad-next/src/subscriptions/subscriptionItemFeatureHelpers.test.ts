@@ -1,46 +1,48 @@
-import { describe, it, beforeEach, expect } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import * as R from 'ramda'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  setupOrg,
   setupCustomer,
+  setupLedgerAccount,
+  setupOrg,
   setupPaymentMethod,
+  setupPrice,
+  setupProduct,
   setupSubscription,
   setupSubscriptionItem,
-  setupProduct,
-  setupPrice,
   setupUsageMeter,
-  setupLedgerAccount,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
 import {
-  addFeatureToSubscriptionItem,
-  createSubscriptionFeatureItems,
-} from '@/subscriptions/subscriptionItemFeatureHelpers'
+  type Feature,
+  features as featuresTable,
+} from '@/db/schema/features'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { ProductFeature } from '@/db/schema/productFeatures'
+import type { Product } from '@/db/schema/products'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { Feature } from '@/db/schema/features'
-import { ProductFeature } from '@/db/schema/productFeatures'
 import {
-  FeatureType,
-  IntervalUnit,
+  addFeatureToSubscriptionItem,
+  createSubscriptionFeatureItems,
+} from '@/subscriptions/subscriptionItemFeatureHelpers'
+import {
   CurrencyCode,
-  PriceType,
+  FeatureType,
   FeatureUsageGrantFrequency,
+  IntervalUnit,
   LedgerTransactionType,
+  PriceType,
+  UsageCreditSourceReferenceType,
   UsageCreditStatus,
   UsageCreditType,
-  UsageCreditSourceReferenceType,
 } from '@/types'
-import * as R from 'ramda'
 import { core } from '@/utils/core'
-import { features as featuresTable } from '@/db/schema/features'
 
 // Helper to create features and productFeatures for tests
 const setupTestFeaturesAndProductFeatures = async (

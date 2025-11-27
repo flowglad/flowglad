@@ -1,6 +1,9 @@
-import { describe, it, expect } from 'vitest'
-import { Price, pricesClientInsertSchema } from '@/db/schema/prices'
-import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
+import { describe, expect, it } from 'vitest'
+import {
+  type Price,
+  pricesClientInsertSchema,
+} from '@/db/schema/prices'
+import { type CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { parseEditPriceDefaultValues } from './EditPriceModal'
 
 describe('parseEditPriceDefaultValues', () => {

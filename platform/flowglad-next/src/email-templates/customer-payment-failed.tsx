@@ -1,7 +1,9 @@
-import { CurrencyCode } from '@/types'
+import * as React from 'react'
+import type { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
 import { calculateInvoiceTotalsWithDiscounts } from '@/utils/discountHelpers'
-import * as React from 'react'
+import { EmailButton } from './components/EmailButton'
+import TestModeBanner from './components/TestBanner'
 import {
   DetailItem,
   DetailSection,
@@ -12,8 +14,6 @@ import {
   Signature,
   TotalSection,
 } from './components/themed'
-import { EmailButton } from './components/EmailButton'
-import TestModeBanner from './components/TestBanner'
 
 export const PaymentFailedEmail = ({
   invoiceNumber,

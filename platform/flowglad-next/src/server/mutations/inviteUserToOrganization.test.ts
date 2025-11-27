@@ -1,27 +1,27 @@
 import {
+  afterEach,
+  beforeEach,
   describe,
+  expect,
   it,
   vi,
-  beforeEach,
-  expect,
-  afterEach,
 } from 'vitest'
-import { innerInviteUserToOrganizationHandler } from './inviteUserToOrganization'
 import {
   setupOrg,
   setupUserAndApiKey,
   teardownOrg,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { type Membership, memberships } from '@/db/schema/memberships'
 import {
-  Organization,
+  type Organization,
   organizations,
 } from '@/db/schema/organizations'
-import { User, users } from '@/db/schema/users'
-import { Membership, memberships } from '@/db/schema/memberships'
-import { sendOrganizationInvitationEmail } from '@/utils/email'
+import { type User, users } from '@/db/schema/users'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
-import { adminTransaction } from '@/db/adminTransaction'
+import { sendOrganizationInvitationEmail } from '@/utils/email'
+import { innerInviteUserToOrganizationHandler } from './inviteUserToOrganization'
 
 vi.mock('@/utils/email', () => ({
   sendOrganizationInvitationEmail: vi.fn(),

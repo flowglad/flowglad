@@ -16,7 +16,7 @@
       "description": "Use @apply to inline any existing utility classes into your own custom CSS.",
       "references": [
         {
-          "name": "Tailwind Documentation", 
+          "name": "Tailwind Documentation",
           "url": "https://tailwindcss.com/docs/functions-and-directives#apply"
         }
       ]

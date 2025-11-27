@@ -1,5 +1,5 @@
-import * as React from 'react'
 import { Check, X } from 'lucide-react'
+import * as React from 'react'
 import { cn } from '@/registry/lib/cn'
 import type { PricingFeature as PricingFeatureType } from './types'
 

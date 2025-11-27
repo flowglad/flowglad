@@ -1,21 +1,21 @@
 'use client'
+import { Check, Copy } from 'lucide-react'
 import { useState } from 'react'
+import Markdown from 'react-markdown'
+import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
+import NounVerbModal from '@/components/forms/NounVerbModal'
+import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
+import { CursorLogo } from '@/components/icons/CursorLogo'
 import { Button } from '@/components/ui/button'
+import type { Country } from '@/db/schema/countries'
+import { cn } from '@/lib/utils'
 import {
   Nouns,
-  OnboardingChecklistItem,
+  type OnboardingChecklistItem,
   OnboardingItemType,
   Verbs,
 } from '@/types'
-import { Check, Copy } from 'lucide-react'
-import NounVerbModal from '@/components/forms/NounVerbModal'
-import RequestStripeConnectOnboardingLinkModal from '@/components/forms/RequestStripeConnectOnboardingLinkModal'
-import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
-import { Country } from '@/db/schema/countries'
-import Markdown from 'react-markdown'
-import { cn } from '@/lib/utils'
 import core from '@/utils/core'
-import { CursorLogo } from '@/components/icons/CursorLogo'
 
 interface OnboardingStatusRowProps extends OnboardingChecklistItem {
   onClick?: () => void

@@ -1,8 +1,8 @@
 import { Nouns, Verbs } from '@/types'
-import CreateDiscountModal from './CreateDiscountModal'
-import CreateProductModal from './CreateProductModal'
-import CreatePriceModal from './CreatePriceModal'
 import CreateCustomerFormModal from './CreateCustomerFormModal'
+import CreateDiscountModal from './CreateDiscountModal'
+import CreatePriceModal from './CreatePriceModal'
+import CreateProductModal from './CreateProductModal'
 import CreatePostPurchaseFileModal from './EditFileModal'
 
 const NounVerbModalMap = {
@@ -66,7 +66,7 @@ const NounVerbModal = ({
     }
   }
   return (
-    // @ts-ignore - this fails lint because ModalProps is untyped, but it's merely a routing layer
+    // @ts-expect-error - this fails lint because ModalProps is untyped, but it's merely a routing layer
     <ModalComponent
       isOpen={isOpen}
       setIsOpen={setIsOpen}

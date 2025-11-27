@@ -1,19 +1,27 @@
 'use client'
 
-import * as React from 'react'
 import {
-  ColumnFiltersState,
-  ColumnSizingState,
-  SortingState,
-  VisibilityState,
+  type ColumnFiltersState,
+  type ColumnSizingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from '@tanstack/react-table'
+import { Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import * as React from 'react'
+import { toast } from 'sonner'
+import { trpc } from '@/app/_trpc/client'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { Button } from '@/components/ui/button'
 import { CollapsibleSearch } from '@/components/ui/collapsible-search'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import {
   Table,
   TableBody,
@@ -22,16 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import type { CustomerTableRowData } from '@/db/schema/customers'
 import { columns } from './columns'
-import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
-import { trpc } from '@/app/_trpc/client'
-import { CustomerTableRowData } from '@/db/schema/customers'
-import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
-import { toast } from 'sonner'
 
 export interface CustomersTableFilters {
   archived?: boolean

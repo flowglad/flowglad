@@ -1,16 +1,16 @@
 import { FlowgladActionKey } from '@flowglad/shared'
 import {
+  createActivateSubscriptionCheckoutSession,
+  createAddPaymentMethodCheckoutSession,
+  createCheckoutSession,
+} from './checkoutSessionHandlers'
+import {
   findOrCreateCustomer,
   getCustomerBilling,
   updateCustomer,
 } from './customerHandlers'
-import {
-  createCheckoutSession,
-  createAddPaymentMethodCheckoutSession,
-  createActivateSubscriptionCheckoutSession,
-} from './checkoutSessionHandlers'
-import { SubRouteHandler } from './types'
 import { cancelSubscription } from './subscriptionHandlers'
+import type { SubRouteHandler } from './types'
 
 export const routeToHandlerMap: {
   [K in FlowgladActionKey]: SubRouteHandler<K>

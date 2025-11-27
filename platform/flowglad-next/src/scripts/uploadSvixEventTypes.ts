@@ -3,10 +3,11 @@
 run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/uploadSvixEventTypes.ts svix_secret_key=...
 */
+
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { Svix } from 'svix'
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
 import { FlowgladEventType } from '@/types'
+import runScript from './scriptRunner'
 
 const uploadSvixEventTypes = async (db: PostgresJsDatabase) => {
   const args = process.argv.slice(2)

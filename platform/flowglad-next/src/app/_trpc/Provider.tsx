@@ -4,15 +4,15 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import {
-  httpBatchStreamLink,
   httpBatchLink,
+  httpBatchStreamLink,
   splitLink,
 } from '@trpc/client'
-import React, { useState } from 'react'
-
-import { trpc } from './client'
+import type React from 'react'
+import { useState } from 'react'
 import SuperJSON from 'superjson'
 import core from '@/utils/core'
+import { trpc } from './client'
 
 export default function Provider({
   children,

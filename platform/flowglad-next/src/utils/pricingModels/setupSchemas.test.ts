@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { PRICING_MODEL_TEMPLATES } from '@/constants/pricingModelTemplates'
+import { PriceType } from '@/types'
 import {
   sanitizedStringSchema,
   validateSetupPricingModelInput,
 } from './setupSchemas'
-import { PRICING_MODEL_TEMPLATES } from '@/constants/pricingModelTemplates'
-import { PriceType } from '@/types'
 
 describe('sanitizedStringSchema', () => {
   it('should validate basic string requirements', () => {

@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server'
-import core from '@/utils/core'
-import {
-  SupabasePayloadType,
-  SupabaseUpdatePayload,
-  SupabaseInsertPayload,
-} from '@/types'
-import { invoiceUpdatedTask } from '@/trigger/supabase/invoice-updated'
+import type { Customer } from '@/db/schema/customers'
+import type { Event } from '@/db/schema/events'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Membership } from '@/db/schema/memberships'
+import type { Organization } from '@/db/schema/organizations'
 import { customerCreatedTask } from '@/trigger/supabase/customer-inserted'
 import { eventInsertedTask } from '@/trigger/supabase/event-inserted'
-import { organizationUpdatedTask } from '@/trigger/supabase/organization-updated'
-import { Invoice } from '@/db/schema/invoices'
-import { Customer } from '@/db/schema/customers'
-import { Event } from '@/db/schema/events'
-import { Organization } from '@/db/schema/organizations'
-import { Membership } from '@/db/schema/memberships'
+import { invoiceUpdatedTask } from '@/trigger/supabase/invoice-updated'
 import { memberInsertedTask } from '@/trigger/supabase/member-inserted'
+import { organizationUpdatedTask } from '@/trigger/supabase/organization-updated'
+import {
+  type SupabaseInsertPayload,
+  SupabasePayloadType,
+  type SupabaseUpdatePayload,
+} from '@/types'
+import core from '@/utils/core'
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get('Authorization')

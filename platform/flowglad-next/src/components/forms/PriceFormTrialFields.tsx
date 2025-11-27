@@ -1,6 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Switch } from '@/components/ui/switch'
+import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -9,15 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
+import { Switch } from '@/components/ui/switch'
 
 const TrialFields = ({
   disabled = false,

@@ -1,28 +1,28 @@
+import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  createUpsertFunction,
-  createPaginatedSelectFunction,
-  ORMMethodCreatorConfig,
-  whereClauseFromObject,
-  createBulkInsertFunction,
-  createBulkInsertOrDoNothingFunction,
-} from '@/db/tableUtils'
-import { DbTransaction } from '@/db/types'
-import {
+  type ProductFeature,
   productFeatures,
   productFeaturesInsertSchema,
   productFeaturesSelectSchema,
   productFeaturesUpdateSchema,
-  ProductFeature,
 } from '@/db/schema/productFeatures'
-import { and, eq, inArray, isNotNull } from 'drizzle-orm'
-import { createDateNotPassedFilter } from '../tableUtils'
+import {
+  createBulkInsertFunction,
+  createBulkInsertOrDoNothingFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+  whereClauseFromObject,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 import { features, featuresSelectSchema } from '../schema/features'
+import type { Product } from '../schema/products'
+import { createDateNotPassedFilter } from '../tableUtils'
 import { detachSubscriptionItemFeaturesFromProductFeature } from './subscriptionItemFeatureMethods'
-import { Product } from '../schema/products'
 
 const config: ORMMethodCreatorConfig<
   typeof productFeatures,

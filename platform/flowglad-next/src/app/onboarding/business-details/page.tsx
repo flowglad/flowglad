@@ -1,22 +1,22 @@
 'use client'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { trpc } from '@/app/_trpc/client'
+import ErrorLabel from '@/components/ErrorLabel'
+import OrganizationFormFields from '@/components/forms/OrganizationFormFields'
+import { Button } from '@/components/ui/button'
+import { Form } from '@/components/ui/form'
+import { useAuthContext } from '@/contexts/authContext'
+import {
+  type CreateOrganizationInput,
+  createOrganizationSchema,
+} from '@/db/schema/organizations'
 import {
   REFERRAL_OPTIONS,
   type ReferralOption,
 } from '@/utils/referrals'
-import { Button } from '@/components/ui/button'
-import { trpc } from '@/app/_trpc/client'
-import {
-  createOrganizationSchema,
-  type CreateOrganizationInput,
-} from '@/db/schema/organizations'
-import ErrorLabel from '@/components/ErrorLabel'
-import { useRouter } from 'next/navigation'
-import { useAuthContext } from '@/contexts/authContext'
-import { Form } from '@/components/ui/form'
-import OrganizationFormFields from '@/components/forms/OrganizationFormFields'
 
 const BusinessDetails = () => {
   const createOrganization = trpc.organizations.create.useMutation()

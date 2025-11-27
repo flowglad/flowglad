@@ -1,21 +1,22 @@
+import { ChevronLeft } from 'lucide-react'
+import Link from 'next/link'
+import { notFound, redirect } from 'next/navigation'
+import CheckoutForm from '@/components/CheckoutForm'
+import { LightThemeWrapper } from '@/components/LightThemeWrapper'
+import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import {
-  CheckoutSessionStatus,
   CheckoutFlowType,
+  CheckoutSessionStatus,
   CheckoutSessionType,
 } from '@/types'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
-import { notFound, redirect } from 'next/navigation'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import CheckoutForm from '@/components/CheckoutForm'
-import CheckoutPageProvider from '@/contexts/checkoutPageContext'
-import { LightThemeWrapper } from '@/components/LightThemeWrapper'
-import { ChevronLeft } from 'lucide-react'
-import Link from 'next/link'
+
 const CheckoutSessionPage = async ({
   params,
 }: {

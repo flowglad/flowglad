@@ -1,9 +1,9 @@
 'use client'
 
+import { Building2, Calendar, Check } from 'lucide-react'
 import * as React from 'react'
-import { Check, Building2, Calendar } from 'lucide-react'
-import { cn } from '@/registry/lib/cn'
 import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/registry/lib/cn'
 import { formatDate } from '@/registry/lib/date'
 import { CustomerAvatar } from './customer-avatar'
 import type { CustomerCardProps } from './types'

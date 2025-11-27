@@ -1,8 +1,7 @@
 import { ReactRenderer } from '@tiptap/react'
 import tippy from 'tippy.js'
-
+import type { ProperNoun } from '@/db/schema/properNouns'
 import MentionList from './MentionList'
-import { ProperNoun } from '@/db/schema/properNouns'
 
 const createMentionSuggestions = (
   getSuggestions: (

@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import {
   Table,
@@ -9,10 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
+import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import { cn } from '@/lib/utils'
-import { ReactNode } from 'react'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 
 const FEATURE_TYPE_LABELS: Record<FeatureType, string> = {
   [FeatureType.Toggle]: 'Toggle',

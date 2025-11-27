@@ -1,24 +1,24 @@
+import { inArray } from 'drizzle-orm'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createBulkInsertFunction,
-  createBulkInsertOrDoNothingFunction,
-} from '@/db/tableUtils'
-import {
+  type UsageCredit,
   usageCredits,
   usageCreditsInsertSchema,
   usageCreditsSelectSchema,
   usageCreditsUpdateSchema,
-  UsageCredit,
 } from '@/db/schema/usageCredits'
-import { DbTransaction } from '../types'
+import {
+  createBulkInsertFunction,
+  createBulkInsertOrDoNothingFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
 import { UsageCreditStatus } from '@/types'
-import { Payment } from '../schema/payments'
-import { inArray } from 'drizzle-orm'
-import { UsageMeter } from '../schema/usageMeters'
+import type { Payment } from '../schema/payments'
+import type { UsageMeter } from '../schema/usageMeters'
+import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
   typeof usageCredits,

@@ -1,27 +1,27 @@
-import { DbTransaction } from '@/db/types'
+import { z } from 'zod'
+import {
+  checkoutSessionClientSelectSchema,
+  type GetIntentStatusInput,
+} from '@/db/schema/checkoutSessions'
+import {
+  PaymentMethod,
+  paymentMethodClientSelectSchema,
+} from '@/db/schema/paymentMethods'
 import {
   selectCheckoutSessionById,
   selectCheckoutSessions,
 } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
+import type { DbTransaction } from '@/db/types'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PaymentStatus,
   SubscriptionStatus,
 } from '@/types'
-import { getSetupIntent, stripeIdFromObjectOrId } from '../stripe'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
-import {
-  PaymentMethod,
-  paymentMethodClientSelectSchema,
-} from '@/db/schema/paymentMethods'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
-import {
-  checkoutSessionClientSelectSchema,
-  GetIntentStatusInput,
-} from '@/db/schema/checkoutSessions'
-import { z } from 'zod'
+import { getSetupIntent, stripeIdFromObjectOrId } from '../stripe'
 
 export const getCheckoutSessionIntentStatus = async (
   checkoutSessionId: string,

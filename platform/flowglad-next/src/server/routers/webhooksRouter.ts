@@ -1,34 +1,32 @@
-import { router } from '../trpc'
+import { z } from 'zod'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import {
+  createWebhookInputSchema,
   editWebhookInputSchema,
+  webhookClientSelectSchema,
   webhooksTableRowDataSchema,
 } from '@/db/schema/webhooks'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
-  selectWebhookById,
   insertWebhook,
-  updateWebhook as updateWebhookDB,
   selectWebhookAndOrganizationByWebhookId,
+  selectWebhookById,
   selectWebhooksTableRowData,
+  updateWebhook as updateWebhookDB,
 } from '@/db/tableMethods/webhookMethods'
-import { generateOpenApiMetas } from '@/utils/openapi'
-import {
-  webhookClientSelectSchema,
-  createWebhookInputSchema,
-} from '@/db/schema/webhooks'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
+  idInputSchema,
 } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
-import { idInputSchema } from '@/db/tableUtils'
-import { z } from 'zod'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import {
   createSvixEndpoint,
   getSvixSigningSecret,
   updateSvixEndpoint,
 } from '@/utils/svix'
+import { router } from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'webhook',

@@ -1,4 +1,5 @@
-import { type Flowglad } from '@flowglad/node'
+import type { Flowglad } from '@flowglad/node'
+
 /**
  * Base fields shared by all product checkout session variants
  */

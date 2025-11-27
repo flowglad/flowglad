@@ -1,21 +1,21 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
-import { Pencil, Copy, Star } from 'lucide-react'
+import { Copy, Pencil, Star } from 'lucide-react'
+import * as React from 'react'
+import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
+import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
+import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
 // UI components last
 import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
+  type ActionMenuItem,
   EnhancedDataTableActionsMenu,
-  ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
 // Other imports
-import { PricingModel } from '@/db/schema/pricingModels'
-import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
-import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
-import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
+import type { PricingModel } from '@/db/schema/pricingModels'
 
 function PricingModelActionsMenu({
   pricingModel,

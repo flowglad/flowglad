@@ -3,8 +3,8 @@
  * This avoids re-implementing the same database query functions in multiple test files
  */
 
-import { DbTransaction } from '@/db/types'
 import { selectEvents } from '@/db/tableMethods/eventMethods'
+import type { DbTransaction } from '@/db/types'
 
 // Helper function to query events by customer
 export async function selectEventsByCustomer(

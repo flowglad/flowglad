@@ -1,20 +1,17 @@
 'use client'
 
-import { useFormContext, Controller } from 'react-hook-form'
+import { Controller, useFormContext } from 'react-hook-form'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import {
-  CreateFeatureInput,
-  toggleFeatureDefaultColumns,
-  usageCreditGrantFeatureDefaultColumns,
-} from '@/db/schema/features'
-import { Input } from '@/components/ui/input'
-import {
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -22,13 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
-import UsageMetersSelect from './UsageMetersSelect'
-import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
-
-import core, { titleCase } from '@/utils/core'
 import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import {
+  type CreateFeatureInput,
+  toggleFeatureDefaultColumns,
+  usageCreditGrantFeatureDefaultColumns,
+} from '@/db/schema/features'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
+import core, { titleCase } from '@/utils/core'
+import UsageMetersSelect from './UsageMetersSelect'
 
 const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
   const form = useFormContext<CreateFeatureInput>()

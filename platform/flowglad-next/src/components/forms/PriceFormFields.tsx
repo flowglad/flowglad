@@ -1,8 +1,18 @@
 'use client'
 import React from 'react'
+import { useFormContext } from 'react-hook-form'
+import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import { CurrencyInput } from '@/components/ui/currency-input'
-import { IntervalUnit, PriceType } from '@/types'
-import { Switch } from '@/components/ui/switch'
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -10,31 +20,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
+  type CreateProductSchema,
   singlePaymentPriceDefaultColumns,
   subscriptionPriceDefaultColumns,
   usagePriceDefaultColumns,
 } from '@/db/schema/prices'
-import { Input } from '@/components/ui/input'
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form'
-import { useAuthenticatedContext } from '@/contexts/authContext'
-import UsageMetersSelect from './UsageMetersSelect'
-import { getPriceConstraints } from '@/utils/priceConstraints'
-import core from '@/utils/core'
-import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
-import { useFormContext } from 'react-hook-form'
-import { CreateProductSchema } from '@/db/schema/prices'
-import TrialFields from './PriceFormTrialFields'
-import { isCurrencyZeroDecimal } from '@/utils/stripe'
 import { currencyCharacter } from '@/registry/lib/currency'
-import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
+import { IntervalUnit, PriceType } from '@/types'
+import core from '@/utils/core'
+import { getPriceConstraints } from '@/utils/priceConstraints'
+import { isCurrencyZeroDecimal } from '@/utils/stripe'
+import TrialFields from './PriceFormTrialFields'
+import UsageMetersSelect from './UsageMetersSelect'
 
 const SubscriptionFields = ({
   defaultPriceLocked,

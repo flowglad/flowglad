@@ -1,13 +1,13 @@
-import { describe, it, expect } from 'vitest'
-import {
-  subscriptionsRouteConfigs,
-  createSubscriptionInputSchema,
-} from './subscriptionsRouter'
+import { describe, expect, it } from 'vitest'
 import {
   findRouteConfigInArray,
   getAllRouteKeysFromArray,
   validateRouteConfigStructure,
 } from './routeConfigs.test-utils'
+import {
+  createSubscriptionInputSchema,
+  subscriptionsRouteConfigs,
+} from './subscriptionsRouter'
 
 describe('subscriptionsRouteConfigs', () => {
   // Helper function to find route config in the array

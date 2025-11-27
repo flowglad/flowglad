@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { createCustomersCsv } from '@/utils/csv-export'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  CustomerTableRowData,
+  type CustomerTableRowData,
   InferredCustomerStatus,
 } from '@/db/schema/customers'
-import { CurrencyCode } from '@/types'
 import {
+  createCustomersWithAllStatuses,
   createMockCustomerTableRowData,
   customerTestScenarios,
-  createCustomersWithAllStatuses,
 } from '@/test/helpers/customerMocks'
+import { CurrencyCode } from '@/types'
+import { createCustomersCsv } from '@/utils/csv-export'
 
 describe('createCustomersCsv', () => {
   let mockCustomerTableRowData: CustomerTableRowData[]

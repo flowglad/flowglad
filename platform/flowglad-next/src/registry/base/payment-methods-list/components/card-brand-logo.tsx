@@ -1,14 +1,14 @@
-import React from 'react'
 import { CreditCard } from 'lucide-react'
+import React from 'react'
 import { cn } from '@/lib/utils'
 import {
-  VisaLogo,
-  MastercardLogo,
   AmericanExpressLogo,
-  DiscoverLogo,
   DinersClubLogo,
+  DiscoverLogo,
   JCBLogo,
+  MastercardLogo,
   UnionPayLogo,
+  VisaLogo,
 } from '../logos'
 import type { CardBrandLogoProps } from '../types'
 

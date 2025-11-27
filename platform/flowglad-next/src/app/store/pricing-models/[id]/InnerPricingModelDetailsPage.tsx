@@ -1,35 +1,43 @@
 'use client'
-import { Button } from '@/components/ui/button'
-import { ProductsDataTable } from '@/app/store/products/data-table'
-import { PricingModel } from '@/db/schema/pricingModels'
+import {
+  Copy,
+  Download,
+  Ellipsis,
+  Pencil,
+  Plus,
+  Sparkles,
+  Star,
+} from 'lucide-react'
 import { useState } from 'react'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
-import { PageHeader } from '@/components/ui/page-header'
-import { Pencil, Plus, Ellipsis, Copy, Star, Download, Sparkles } from 'lucide-react'
-import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
+import { toast } from 'sonner'
+import { trpc } from '@/app/_trpc/client'
 import { CustomersDataTable } from '@/app/customers/data-table'
-import { TableHeader } from '@/components/ui/table-header'
 import { FeaturesDataTable } from '@/app/features/data-table'
-import CreateProductModal from '@/components/forms/CreateProductModal'
-import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
-import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
-import DefaultBadge from '@/components/DefaultBadge'
+import { ProductsDataTable } from '@/app/store/products/data-table'
 import { UsageMetersDataTable } from '@/app/store/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
+import DefaultBadge from '@/components/DefaultBadge'
+import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
+import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
+import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
+import CreateProductModal from '@/components/forms/CreateProductModal'
+import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
+import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
+import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
+import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
+import PopoverMenu, {
+  type PopoverMenuItem,
+} from '@/components/PopoverMenu'
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import PopoverMenu, {
-  PopoverMenuItem,
-} from '@/components/PopoverMenu'
-import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
-import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
-import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
-import { trpc } from '@/app/_trpc/client'
-import { toast } from 'sonner'
+import { TableHeader } from '@/components/ui/table-header'
+import type { PricingModel } from '@/db/schema/pricingModels'
 
 export type InnerPricingModelDetailsPageProps = {
   pricingModel: PricingModel.ClientRecord

@@ -1,10 +1,10 @@
-import { mcpUserFromRequest } from '@/utils/auth-helpers/server';
 import {
   FlowgladServer,
   mcpHandlerWithFlowglad,
-  toolWithFeatureAccessCheck
-} from '@flowglad/nextjs/server';
-import { z } from 'zod';
+  toolWithFeatureAccessCheck,
+} from '@flowglad/nextjs/server'
+import { z } from 'zod'
+import { mcpUserFromRequest } from '@/utils/auth-helpers/server'
 
 const handler = mcpHandlerWithFlowglad(
   async (server, flowglad) => {
@@ -12,29 +12,29 @@ const handler = mcpHandlerWithFlowglad(
       'echo',
       'description',
       {
-        message: z.string()
+        message: z.string(),
       },
       toolWithFeatureAccessCheck(
         async ({ message }) => ({
-          content: [{ type: 'text', text: `Tool echo: ${message}` }]
+          content: [{ type: 'text', text: `Tool echo: ${message}` }],
         }),
         {
           featureSlug: 'echo',
           flowgladServer: flowglad,
           upgradePriceSlug: 'pro_plan',
           successUrl: 'http://localhost:3001/purchase/post-payment',
-          cancelUrl: 'http://localhost:3001/purchase/post-payment'
+          cancelUrl: 'http://localhost:3001/purchase/post-payment',
         }
       )
-    );
+    )
   },
   async (request) => {
-    const user = await mcpUserFromRequest(request);
+    const user = await mcpUserFromRequest(request)
     return new FlowgladServer({
       baseURL: 'http://localhost:3000',
-      getRequestingCustomer: () => Promise.resolve(user)
-    });
+      getRequestingCustomer: () => Promise.resolve(user),
+    })
   }
-);
+)
 
-export { handler as GET, handler as POST, handler as DELETE };
+export { handler as GET, handler as POST, handler as DELETE }

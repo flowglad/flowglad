@@ -1,6 +1,6 @@
-import { StandardLogger } from '@/types'
-import { verifyCustomerContract } from './customerContract'
+import type { StandardLogger } from '@/types'
 import { verifyCheckoutSessionContract } from './checkoutSessionContract'
+import { verifyCustomerContract } from './customerContract'
 
 const verifyApiContract = async (logger: StandardLogger) => {
   const { customer } = await verifyCustomerContract(logger)

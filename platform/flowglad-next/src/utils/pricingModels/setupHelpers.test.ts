@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { getPricingModelSetupData } from './setupHelpers'
-import { setupPricingModelTransaction } from './setupTransaction'
-import {
-  setupPricingModelSchema,
-  type SetupPricingModelInput,
-} from './setupSchemas'
+import type { Organization } from '@/db/schema/organizations'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
-  PriceType,
   IntervalUnit,
+  PriceType,
 } from '@/types'
-import type { Organization } from '@/db/schema/organizations'
+import { getPricingModelSetupData } from './setupHelpers'
+import {
+  type SetupPricingModelInput,
+  setupPricingModelSchema,
+} from './setupSchemas'
+import { setupPricingModelTransaction } from './setupTransaction'
 
 let organization: Organization.Record
 

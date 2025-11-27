@@ -1,13 +1,13 @@
-import { createClient } from '@/utils/supabase/server';
-import s from './Navbar.module.css';
-import Navlinks from './Navlinks';
+import { createClient } from '@/utils/supabase/server'
+import s from './Navbar.module.css'
+import Navlinks from './Navlinks'
 
 export default async function Navbar() {
-  const supabase = await createClient();
+  const supabase = await createClient()
 
   const {
-    data: { user }
-  } = await supabase.auth.getUser();
+    data: { user },
+  } = await supabase.auth.getUser()
 
   return (
     <nav className={s.root}>
@@ -18,5 +18,5 @@ export default async function Navbar() {
         <Navlinks user={user} />
       </div>
     </nav>
-  );
+  )
 }

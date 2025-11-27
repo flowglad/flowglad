@@ -1,46 +1,46 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  authenticatedTransaction,
-  comprehensiveAuthenticatedTransaction,
-  authenticatedProcedureTransaction,
-  authenticatedProcedureComprehensiveTransaction,
-} from './authenticatedTransaction'
-import { selectOrganizations } from './tableMethods/organizationMethods'
-import {
-  selectProducts,
-  insertProduct,
-  updateProduct,
-  getProductTableRows,
-} from './tableMethods/productMethods'
-import {
-  selectPricingModels,
-  insertPricingModel,
-  updatePricingModel,
-} from './tableMethods/pricingModelMethods'
-import {
-  insertMembership,
-  selectMemberships,
-  updateMembership,
-} from './tableMethods/membershipMethods'
-import { adminTransaction } from './adminTransaction'
-import {
+  setupMemberships,
   setupOrg,
   setupUserAndApiKey,
-  setupMemberships,
 } from '@/../seedDatabase'
-import { Organization } from './schema/organizations'
-import { User } from './schema/users'
-import { ApiKey } from './schema/apiKeys'
-import { insertApiKey } from './tableMethods/apiKeyMethods'
-import { Membership } from './schema/memberships'
 import {
   EventNoun,
   FlowgladApiKeyType,
   FlowgladEventType,
 } from '@/types'
-import { Event } from './schema/events'
 import { hashData } from '@/utils/backendCore'
-import { PricingModel } from './schema/pricingModels'
+import { adminTransaction } from './adminTransaction'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
+} from './authenticatedTransaction'
+import type { ApiKey } from './schema/apiKeys'
+import type { Event } from './schema/events'
+import type { Membership } from './schema/memberships'
+import type { Organization } from './schema/organizations'
+import type { PricingModel } from './schema/pricingModels'
+import type { User } from './schema/users'
+import { insertApiKey } from './tableMethods/apiKeyMethods'
+import {
+  insertMembership,
+  selectMemberships,
+  updateMembership,
+} from './tableMethods/membershipMethods'
+import { selectOrganizations } from './tableMethods/organizationMethods'
+import {
+  insertPricingModel,
+  selectPricingModels,
+  updatePricingModel,
+} from './tableMethods/pricingModelMethods'
+import {
+  getProductTableRows,
+  insertProduct,
+  selectProducts,
+  updateProduct,
+} from './tableMethods/productMethods'
 
 describe('authenticatedTransaction', () => {
   // Global test state variables

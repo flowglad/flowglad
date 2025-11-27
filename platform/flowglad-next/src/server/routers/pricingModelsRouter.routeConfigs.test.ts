@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  pricingModelsRouteConfigs,
   getDefaultPricingModelRouteConfig,
+  pricingModelsRouteConfigs,
 } from './pricingModelsRouter'
 import {
   findRouteConfigInArray,

@@ -1,11 +1,11 @@
+import type { verifyKey } from '@unkey/api'
 import { Redis } from '@upstash/redis'
-import core from './core'
-import { verifyKey } from '@unkey/api'
-import { hashData } from './backendCore'
 import { z } from 'zod'
+import type { TelemetryEntityType, TelemetryRecord } from '@/types'
 import { referralOptionEnum } from '@/utils/referrals'
+import { hashData } from './backendCore'
+import core from './core'
 import { logger } from './logger'
-import { TelemetryRecord, TelemetryEntityType } from '@/types'
 
 export const referralSelectionSchema = z.object({
   // The organization/user selecting the referral option; can be used to partition keys

@@ -1,8 +1,8 @@
 import { Img, Section } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
-import { EmailLayout, Header, Paragraph } from './components/themed'
 import TestModeBanner from './components/TestBanner'
+import { EmailLayout, Header, Paragraph } from './components/themed'
 
 export interface CustomerBillingPortalMagicLinkEmailProps {
   customerName?: string

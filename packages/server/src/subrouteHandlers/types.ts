@@ -1,7 +1,9 @@
-import { FlowgladActionKey } from '@flowglad/shared'
-import type { flowgladActionValidators } from '@flowglad/shared'
+import type {
+  FlowgladActionKey,
+  flowgladActionValidators,
+} from '@flowglad/shared'
+import type { z } from 'zod'
 import type { FlowgladServer } from '../FlowgladServer'
-import { z } from 'zod'
 
 export type InferRouteHandlerParams<T extends FlowgladActionKey> = {
   method: (typeof flowgladActionValidators)[T]['method']

@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import { PageHeader } from '@/components/ui/page-header'
-import OrganizationSettingsTab from '@/app/settings/OrganizationSettingsTab'
 import ApiSettingsTab from '@/app/settings/ApiSettingsTab'
+import OrganizationSettingsTab from '@/app/settings/OrganizationSettingsTab'
+import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import { PageHeader } from '@/components/ui/page-header'
 
 const SettingsPage = () => {
   const [activeSection, setActiveSection] = useState('overview')

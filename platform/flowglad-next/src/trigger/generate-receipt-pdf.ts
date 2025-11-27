@@ -1,7 +1,4 @@
-import cloudflareMethods from '@/utils/cloudflare'
-import core from '@/utils/core'
 import { task } from '@trigger.dev/sdk'
-import { generatePdf } from '@/pdf-generation/generatePDF'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectInvoiceById,
@@ -11,6 +8,9 @@ import {
   selectPaymentById,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
+import { generatePdf } from '@/pdf-generation/generatePDF'
+import cloudflareMethods from '@/utils/cloudflare'
+import core from '@/utils/core'
 
 export const generatePaymentReceiptPdfTask = task({
   id: 'generate-payment-receipt-pdf',

@@ -1,13 +1,13 @@
 'use client'
 
+import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import {
-  Feature,
-  EditFeatureInput,
+  type EditFeatureInput,
   editFeatureSchema,
+  type Feature,
 } from '@/db/schema/features'
 import FeatureFormFields from './FeatureFormFields' // Adjusted import
-import { trpc } from '@/app/_trpc/client'
 
 interface EditFeatureModalProps {
   isOpen: boolean

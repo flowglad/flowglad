@@ -1,28 +1,28 @@
+import { eq } from 'drizzle-orm'
 import * as R from 'ramda'
 import {
+  type DiscountRedemption,
+  discountRedemptions,
+  discountRedemptionsInsertSchema,
+  discountRedemptionsSelectSchema,
+  discountRedemptionsUpdateSchema,
+} from '@/db/schema/discountRedemptions'
+import {
+  createInsertFunction,
   createSelectById,
   createSelectFunction,
-  createInsertFunction,
   createUpdateFunction,
-  ORMMethodCreatorConfig,
   createUpsertFunction,
+  type ORMMethodCreatorConfig,
   whereClauseFromObject,
 } from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 import {
-  discountRedemptions,
-  discountRedemptionsSelectSchema,
-  discountRedemptionsInsertSchema,
-  discountRedemptionsUpdateSchema,
-  DiscountRedemption,
-} from '@/db/schema/discountRedemptions'
-import { Purchase } from '../schema/purchases'
-import {
-  Discount,
+  type Discount,
   discounts,
   discountsSelectSchema,
 } from '../schema/discounts'
-import { DbTransaction } from '@/db/types'
-import { eq } from 'drizzle-orm'
+import type { Purchase } from '../schema/purchases'
 
 const config: ORMMethodCreatorConfig<
   typeof discountRedemptions,

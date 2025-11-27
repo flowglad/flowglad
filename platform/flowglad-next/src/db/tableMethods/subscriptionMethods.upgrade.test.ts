@@ -1,40 +1,40 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  setupBillingPeriod,
+  setupCustomer,
+  setupOrg,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupSubscription,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { Subscription } from '@/db/schema/subscriptions'
+import {
+  CancellationReason,
+  CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
+import { calculateSubscriberBreakdown } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
+import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import core from '@/utils/core'
+import { selectActiveBillingPeriodsForDateRange } from './billingPeriodMethods'
+import {
+  getActiveSubscriptionsForPeriod,
   isSubscriptionCurrent,
   selectActiveSubscriptionsForCustomer,
   selectCurrentSubscriptionForCustomer,
   subscriptionWithCurrent,
   updateSubscription,
-  getActiveSubscriptionsForPeriod,
 } from './subscriptionMethods'
-import { selectActiveBillingPeriodsForDateRange } from './billingPeriodMethods'
-import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
-import { calculateSubscriberBreakdown } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
-import {
-  CancellationReason,
-  SubscriptionStatus,
-  IntervalUnit,
-  CurrencyCode,
-  PriceType,
-} from '@/types'
-import { adminTransaction } from '@/db/adminTransaction'
-import {
-  setupOrg,
-  setupCustomer,
-  setupProduct,
-  setupPrice,
-  setupSubscription,
-  setupPaymentMethod,
-  setupBillingPeriod,
-} from '@/../seedDatabase'
-import { Organization } from '@/db/schema/organizations'
-import { Customer } from '@/db/schema/customers'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import core from '@/utils/core'
 
 describe('Subscription Upgrade Selection Logic', () => {
   let organization: Organization.Record

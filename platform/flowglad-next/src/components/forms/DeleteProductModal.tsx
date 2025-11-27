@@ -1,7 +1,7 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
 import { z } from 'zod'
+import FormModal from '@/components/forms/FormModal'
 
 interface DeleteProductModalProps {
   onDelete: () => Promise<void>

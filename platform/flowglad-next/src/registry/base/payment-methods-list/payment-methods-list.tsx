@@ -1,10 +1,10 @@
 'use client'
 
 import React from 'react'
-import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
-import { PaymentMethodRow } from './components/payment-method-row'
+import { cn } from '@/lib/utils'
 import { AddPaymentMethodButton } from './components/add-payment-method-button'
+import { PaymentMethodRow } from './components/payment-method-row'
 import type { PaymentMethodsListProps } from './types'
 
 export function PaymentMethodsList({

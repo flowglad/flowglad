@@ -1,43 +1,43 @@
-import { z } from 'zod'
+import { sql } from 'drizzle-orm'
 import {
+  boolean,
+  integer,
   jsonb,
   pgTable,
   text,
-  integer,
-  boolean,
 } from 'drizzle-orm/pg-core'
-import {
-  tableBase,
-  pgEnumColumn,
-  constructIndex,
-  notNullStringForeignKey,
-  nullableStringForeignKey,
-  livemodePolicy,
-  createPaginatedSelectSchema,
-  createPaginatedListQuerySchema,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantPolicy,
-  customerPolicy,
-  timestampWithTimezoneColumn,
-  metadataSchema,
-} from '@/db/tableUtils'
+import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { billingAddressSchema } from '@/db/schema/organizations'
-import core from '@/utils/core'
-import { prices } from './prices'
 import {
-  PaymentMethodType,
+  constructIndex,
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  customerPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  metadataSchema,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
+  timestampWithTimezoneColumn,
+} from '@/db/tableUtils'
+import {
   CheckoutSessionStatus,
   CheckoutSessionType,
+  PaymentMethodType,
 } from '@/types'
-import { organizations } from './organizations'
-import { purchases } from './purchases'
-import { discounts } from './discounts'
-import { customers } from './customers'
-import { sql } from 'drizzle-orm'
-import { invoices } from './invoices'
+import core from '@/utils/core'
 import { zodEpochMs } from '../timestampMs'
+import { customers } from './customers'
+import { discounts } from './discounts'
+import { invoices } from './invoices'
+import { organizations } from './organizations'
+import { prices } from './prices'
+import { purchases } from './purchases'
 
 const TABLE_NAME = 'checkout_sessions'
 

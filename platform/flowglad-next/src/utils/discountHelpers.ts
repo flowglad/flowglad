@@ -1,9 +1,9 @@
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
-import { CurrencyCode } from '@/types'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import type { CurrencyCode } from '@/types'
 import { calculateInvoiceBaseAmount } from '@/utils/bookkeeping/fees/common'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export interface DiscountInfo {
   discountName: string

@@ -1,32 +1,34 @@
-import React from 'react'
 import {
-  Section,
-  Text,
-  Row,
+  Body,
   Column,
-  Img,
   Container,
   Head,
-  Body,
   Html,
+  Img,
   Link,
+  Row,
+  Section,
+  Text,
 } from '@react-email/components'
-import { Organization } from '@/db/schema/organizations'
-import { Invoice } from '@/db/schema/invoices'
-import { Payment } from '@/db/schema/payments'
-import { Customer } from '@/db/schema/customers'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type React from 'react'
+import type { Customer } from '@/db/schema/customers'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type {
+  BillingAddress,
+  Organization,
+} from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Payment } from '@/db/schema/payments'
+import type { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
+import type { CurrencyCode } from '@/types'
 import { formatDate, titleCase } from '@/utils/core'
-import { BillingAddress } from '@/db/schema/organizations'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { paymentMethodSummaryLabel } from '@/utils/paymentMethodHelpers'
-import { PaymentAndPaymentMethod } from '@/db/tableMethods/paymentMethods'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import {
-  calculateInvoiceTotalsRaw,
   calculateDiscountAmountSafe,
+  calculateInvoiceTotalsRaw,
 } from '@/utils/discountHelpers'
-import { CurrencyCode } from '@/types'
+import { paymentMethodSummaryLabel } from '@/utils/paymentMethodHelpers'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 /**
  * Use the

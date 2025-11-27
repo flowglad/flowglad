@@ -1,11 +1,11 @@
 'use client'
 
+import { Loader2 } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import { CustomerSelector } from '@/registry/base/customer-selector/customer-selector'
 import { useSession } from '@/utils/authClient'
-import { Loader2 } from 'lucide-react'
 
 export default function SelectCustomerPage() {
   const router = useRouter()

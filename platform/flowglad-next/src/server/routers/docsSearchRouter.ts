@@ -1,10 +1,10 @@
-import { devOnlyProcedure, router } from '@/server/trpc'
 import { z } from 'zod'
+import { devOnlyProcedure, router } from '@/server/trpc'
 import {
-  queryTurbopuffer,
-  queryMultipleTurbopuffer,
-  getTurbopufferClient,
   getOpenAIClient,
+  getTurbopufferClient,
+  queryMultipleTurbopuffer,
+  queryTurbopuffer,
 } from '@/utils/turbopuffer'
 
 /**

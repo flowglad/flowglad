@@ -1,18 +1,23 @@
 'use client'
 
-import * as React from 'react'
 import {
-  ColumnFiltersState,
-  ColumnSizingState,
-  SortingState,
-  VisibilityState,
+  type ColumnFiltersState,
+  type ColumnSizingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from '@tanstack/react-table'
+import { Plus } from 'lucide-react'
+import * as React from 'react'
+import { trpc } from '@/app/_trpc/client'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { Button } from '@/components/ui/button'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import {
   Table,
   TableBody,
@@ -21,13 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns, ApiKeyTableRowData } from './columns'
-import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { trpc } from '@/app/_trpc/client'
-import { Plus } from 'lucide-react'
-import { FlowgladApiKeyType } from '@/types'
+import type { FlowgladApiKeyType } from '@/types'
+import { type ApiKeyTableRowData, columns } from './columns'
 
 export interface ApiKeysTableFilters {
   type?: FlowgladApiKeyType

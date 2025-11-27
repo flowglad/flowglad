@@ -1,17 +1,17 @@
-import { useForm } from 'react-hook-form'
-import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
-import { useState, useCallback, useEffect, useRef } from 'react'
 import debounce from 'debounce'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { CheckoutFlowType } from '@/types'
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
-  FormControl,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
+import { CheckoutFlowType } from '@/types'
 
 interface DiscountCodeFormData {
   discountCode: string
@@ -168,7 +168,7 @@ export default function DiscountCodeInput() {
     return null
   }
 
-  let hint: string | undefined = undefined
+  let hint: string | undefined
   const currentCode = discountCode?.trim()
   const isCurrentCodeApplied =
     !!currentCode &&

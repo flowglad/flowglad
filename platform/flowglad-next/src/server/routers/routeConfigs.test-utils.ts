@@ -1,5 +1,5 @@
 import { expect } from 'vitest'
-import { RouteConfig } from '@/utils/openapi'
+import type { RouteConfig } from '@/utils/openapi'
 
 /**
  * Helper function to find a route config in an array of route config objects

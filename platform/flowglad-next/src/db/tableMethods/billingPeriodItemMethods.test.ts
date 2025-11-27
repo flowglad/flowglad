@@ -1,21 +1,21 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
-import { DbTransaction } from '@/db/types'
-import { selectBillingPeriodsWithItemsAndSubscriptionForDateRange } from './billingPeriodItemMethods'
+import { addDays, addMonths, subMonths } from 'date-fns'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
   setupBillingPeriod,
   setupBillingPeriodItem,
+  setupCustomer,
+  setupOrg,
+  setupPaymentMethod,
+  setupSubscription,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { DbTransaction } from '@/db/types'
 import {
+  BillingPeriodStatus,
   IntervalUnit,
   SubscriptionStatus,
-  BillingPeriodStatus,
 } from '@/types'
-import { addDays, addMonths, subMonths } from 'date-fns'
+import { selectBillingPeriodsWithItemsAndSubscriptionForDateRange } from './billingPeriodItemMethods'
 
 describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
   it('should return empty array if no billing periods found', async () => {

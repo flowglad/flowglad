@@ -1,7 +1,7 @@
 'use client'
 
-import { cn } from '@/registry/lib/cn'
 import { CreditCard, FileText, Package } from 'lucide-react'
+import { cn } from '@/registry/lib/cn'
 
 interface BillingPortalNavProps {
   activeSection: 'subscription' | 'payment-methods' | 'invoices'

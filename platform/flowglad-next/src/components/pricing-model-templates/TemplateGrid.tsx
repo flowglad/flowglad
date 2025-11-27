@@ -1,7 +1,7 @@
 'use client'
 
-import { TemplateCard } from './TemplateCard'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
+import { TemplateCard } from './TemplateCard'
 
 interface TemplateGridProps {
   templates: ReadonlyArray<PricingModelTemplate>

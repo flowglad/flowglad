@@ -3,8 +3,7 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/upsertCatalogsAndPurchases.ts
 */
 
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import {
   productToProperNounUpsert,
   selectProducts,
@@ -14,6 +13,7 @@ import {
   purchaseToProperNounUpsert,
   selectPurchases,
 } from '@/db/tableMethods/purchaseMethods'
+import runScript from './scriptRunner'
 
 async function example(db: PostgresJsDatabase) {
   return db.transaction(async (tx) => {

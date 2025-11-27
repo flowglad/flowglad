@@ -1,25 +1,25 @@
-import CustomerPortalForm from '@/components/ui/AccountForms/CustomerPortalForm';
-import EmailForm from '@/components/ui/AccountForms/EmailForm';
-import NameForm from '@/components/ui/AccountForms/NameForm';
-import { redirect } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+import { redirect } from 'next/navigation'
+import CustomerPortalForm from '@/components/ui/AccountForms/CustomerPortalForm'
+import EmailForm from '@/components/ui/AccountForms/EmailForm'
+import NameForm from '@/components/ui/AccountForms/NameForm'
 import {
-  getUserDetails,
   getSubscription,
-  getUser
-} from '@/utils/supabase/queries';
-import { FeatureCheck } from './FeatureCheck';
+  getUser,
+  getUserDetails,
+} from '@/utils/supabase/queries'
+import { createClient } from '@/utils/supabase/server'
+import { FeatureCheck } from './FeatureCheck'
 
 export default async function Account() {
-  const supabase = await createClient();
+  const supabase = await createClient()
   const [user, userDetails, subscription] = await Promise.all([
     getUser(supabase),
     getUserDetails(supabase),
-    getSubscription(supabase)
-  ]);
+    getSubscription(supabase),
+  ])
 
   if (!user) {
-    return redirect('/signin');
+    return redirect('/signin')
   }
 
   return (
@@ -41,5 +41,5 @@ export default async function Account() {
         <EmailForm userEmail={user.email} />
       </div>
     </section>
-  );
+  )
 }

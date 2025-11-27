@@ -1,7 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { SupabaseUpdatePayload } from '@/types'
-import { Organization } from '@/db/schema/organizations'
+import type { Organization } from '@/db/schema/organizations'
 import { idempotentSendOrganizationPayoutsEnabledNotification } from '@/trigger/notifications/send-organization-payouts-enabled-notification'
+import type { SupabaseUpdatePayload } from '@/types'
 
 interface ChangeCheckerParams {
   oldRecord: Organization.Record

@@ -54,11 +54,7 @@ export default {
   // Configure variant generation for our custom prefix
   plugins: [
     tailwindAnimate,
-    function ({
-      matchUtilities,
-      addUtilities,
-      addVariant,
-    }: PluginAPI) {
+    ({ matchUtilities, addUtilities, addVariant }: PluginAPI) => {
       // Add debug utility to test generation
       addUtilities({
         '.debug': {

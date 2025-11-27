@@ -1,25 +1,25 @@
 'use client'
 
+import { Key, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import z from 'zod'
+import ErrorLabel from '@/components/ErrorLabel'
 import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   CardDescription,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useState } from 'react'
-import { Loader2, Key } from 'lucide-react'
-import { authClient, signIn } from '@/utils/authClient'
-import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import ErrorLabel from '@/components/ErrorLabel'
-import { toast } from 'sonner'
-import z from 'zod'
+import { authClient, signIn } from '@/utils/authClient'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')

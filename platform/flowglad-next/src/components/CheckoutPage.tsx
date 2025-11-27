@@ -1,14 +1,14 @@
 'use client'
-import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { useEffect, useRef } from 'react'
+import { trpc } from '@/app/_trpc/client'
+import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSessionCookieEffect'
 import CheckoutForm from '@/components/CheckoutForm'
 import { CheckoutDetails } from '@/components/checkout/checkout-details'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
-import { trpc } from '@/app/_trpc/client'
-import { useEffect, useRef } from 'react'
+import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import { cn } from '@/lib/utils'
-import core from '@/utils/core'
 import { CheckoutFlowType } from '@/types'
-import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSessionCookieEffect'
+import core from '@/utils/core'
 
 const CheckoutPage = ({
   checkoutInfo,

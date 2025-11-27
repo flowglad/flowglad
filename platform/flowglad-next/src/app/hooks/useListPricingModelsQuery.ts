@@ -1,6 +1,6 @@
-import { trpc } from '../_trpc/client'
-import { encodeCursor } from '@/db/tableUtils'
 import { useAuthContext } from '@/contexts/authContext'
+import { encodeCursor } from '@/db/tableUtils'
+import { trpc } from '../_trpc/client'
 
 export const useListPricingModelsQuery = () => {
   const { organization } = useAuthContext()

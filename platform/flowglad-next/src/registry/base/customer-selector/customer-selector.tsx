@@ -1,10 +1,10 @@
 'use client'
 
-import * as React from 'react'
 import { Search } from 'lucide-react'
-import { cn } from '@/registry/lib/cn'
+import * as React from 'react'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/registry/base/skeleton/skeleton'
+import { cn } from '@/registry/lib/cn'
 import { CustomerCard } from './customer-card'
 import type { CustomerSelectorProps } from './types'
 

@@ -1,22 +1,25 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
-import { Pencil, ExternalLink, Copy } from 'lucide-react'
+import { Copy, ExternalLink, Pencil } from 'lucide-react'
+import * as React from 'react'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import EditCustomerModal from '@/components/forms/EditCustomerModal'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
+  type ActionMenuItem,
   EnhancedDataTableActionsMenu,
-  ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import type {
+  Customer,
+  CustomerTableRowData,
+} from '@/db/schema/customers'
+import { CurrencyCode } from '@/types'
 // Other imports
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import EditCustomerModal from '@/components/forms/EditCustomerModal'
-import { Customer, CustomerTableRowData } from '@/db/schema/customers'
-import { CurrencyCode } from '@/types'
 
 function CustomerActionsMenu({
   customer,

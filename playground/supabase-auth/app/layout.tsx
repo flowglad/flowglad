@@ -1,15 +1,15 @@
-import { Metadata } from 'next';
-import Footer from '@/components/ui/Footer';
-import Navbar from '@/components/ui/Navbar';
-import { Toaster } from '@/components/ui/Toasts/toaster';
-import { PropsWithChildren, Suspense } from 'react';
-import { getURL } from '@/utils/helpers';
-import { createClient } from '@/utils/supabase/server';
-import '@/styles/main.css';
-import { FlowgladProvider } from '@flowglad/nextjs';
+import type { Metadata } from 'next'
+import { type PropsWithChildren, Suspense } from 'react'
+import Footer from '@/components/ui/Footer'
+import Navbar from '@/components/ui/Navbar'
+import { Toaster } from '@/components/ui/Toasts/toaster'
+import { getURL } from '@/utils/helpers'
+import { createClient } from '@/utils/supabase/server'
+import '@/styles/main.css'
+import { FlowgladProvider } from '@flowglad/nextjs'
 
-const title = 'Next.js Subscription Starter';
-const description = 'Brought to you by Vercel, Stripe, and Supabase.';
+const title = 'Next.js Subscription Starter'
+const description = 'Brought to you by Vercel, Stripe, and Supabase.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(getURL()),
@@ -17,15 +17,17 @@ export const metadata: Metadata = {
   description: description,
   openGraph: {
     title: title,
-    description: description
-  }
-};
+    description: description,
+  },
+}
 
-export default async function RootLayout({ children }: PropsWithChildren) {
-  const supabase = await createClient();
+export default async function RootLayout({
+  children,
+}: PropsWithChildren) {
+  const supabase = await createClient()
   const {
-    data: { user }
-  } = await supabase.auth.getUser();
+    data: { user },
+  } = await supabase.auth.getUser()
   return (
     <html lang="en">
       <body>
@@ -33,8 +35,8 @@ export default async function RootLayout({ children }: PropsWithChildren) {
           loadBilling={!!user}
           requestConfig={{
             headers: {
-              test: 'lol'
-            }
+              test: 'lol',
+            },
           }}
         >
           <Navbar />
@@ -51,5 +53,5 @@ export default async function RootLayout({ children }: PropsWithChildren) {
         </FlowgladProvider>
       </body>
     </html>
-  );
+  )
 }

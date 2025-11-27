@@ -1,9 +1,9 @@
 'use client'
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Invoice } from '@/db/schema/invoices'
 import CheckoutModal from '@/components/CheckoutModal'
-import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { Button } from '@/components/ui/button'
+import type { Invoice } from '@/db/schema/invoices'
+import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 
 export const CustomerInvoicePayButtonBanner = ({
   invoice,

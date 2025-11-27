@@ -1,34 +1,34 @@
+import { eq, inArray } from 'drizzle-orm'
 import uniqBy from 'ramda/src/uniqBy'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  ORMMethodCreatorConfig,
-  createInsertManyFunction,
-  createSelectFunction,
-  whereClauseFromObject,
-  createPaginatedSelectFunction,
-  createBulkUpsertFunction,
-} from '@/db/tableUtils'
-import {
-  InvoiceLineItem,
+  type InvoiceLineItem,
+  type InvoiceWithLineItems,
   invoiceLineItems,
   invoiceLineItemsInsertSchema,
   invoiceLineItemsSelectSchema,
   invoiceLineItemsUpdateSchema,
-  InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
-import { DbTransaction } from '@/db/types'
-import { eq, inArray } from 'drizzle-orm'
 import {
-  Invoice,
+  createBulkUpsertFunction,
+  createInsertFunction,
+  createInsertManyFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  whereClauseFromObject,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import core from '@/utils/core'
+import {
+  type Invoice,
   invoices,
   invoicesSelectSchema,
 } from '../schema/invoices'
-import core from '@/utils/core'
 import {
-  selectInvoiceById,
   invoiceIsInTerminalState,
+  selectInvoiceById,
 } from './invoiceMethods'
 
 const config: ORMMethodCreatorConfig<

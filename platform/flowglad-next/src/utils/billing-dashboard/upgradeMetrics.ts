@@ -1,20 +1,21 @@
-import { DbTransaction } from '@/db/types'
-import { Subscription } from '@/db/schema/subscriptions'
-import { Price } from '@/db/schema/prices'
-import { CancellationReason } from '@/types'
+import { differenceInDays } from 'date-fns'
 import {
   and,
-  eq,
   between,
-  isNotNull,
+  eq,
   gte,
-  lte,
   inArray,
+  isNotNull,
+  lte,
 } from 'drizzle-orm'
-import { subscriptions } from '@/db/schema/subscriptions'
-import { prices } from '@/db/schema/prices'
+import { Price, prices } from '@/db/schema/prices'
+import {
+  type Subscription,
+  subscriptions,
+} from '@/db/schema/subscriptions'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
-import { differenceInDays } from 'date-fns'
+import type { DbTransaction } from '@/db/types'
+import { CancellationReason } from '@/types'
 
 export interface UpgradeMetrics {
   totalUpgrades: number

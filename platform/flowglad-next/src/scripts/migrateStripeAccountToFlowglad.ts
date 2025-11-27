@@ -4,10 +4,38 @@ NODE_ENV=production bunx tsx src/scripts/migrateStripeAccountToFlowglad.ts conne
 */
 /* eslint-disable no-console */
 
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as R from 'ramda'
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
-import Stripe from 'stripe'
+import type Stripe from 'stripe'
+import type { Customer } from '@/db/schema/customers'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
+import {
+  bulkInsertOrDoNothingCustomersByStripeCustomerId,
+  selectCustomers,
+} from '@/db/tableMethods/customerMethods'
+import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
+import {
+  bulkUpsertPaymentMethodsByExternalId,
+  selectPaymentMethods,
+} from '@/db/tableMethods/paymentMethodMethods'
+import {
+  bulkInsertOrDoNothingPricesByExternalId,
+  selectPrices,
+} from '@/db/tableMethods/priceMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import {
+  bulkInsertOrDoNothingProductsByExternalId,
+  selectProducts,
+} from '@/db/tableMethods/productMethods'
+import { bulkInsertOrDoNothingSubscriptionItemsByExternalId } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  bulkInsertOrDoNothingSubscriptionsByExternalId,
+  selectSubscriptions,
+} from '@/db/tableMethods/subscriptionMethods'
 import {
   stripeCustomerToCustomerInsert,
   stripePaymentMethodToPaymentMethodInsert,
@@ -16,37 +44,9 @@ import {
   stripeSubscriptionItemToSubscriptionItemInsert,
   stripeSubscriptionToSubscriptionInsert,
 } from '@/migration-helpers/stripeMigrations'
-import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
-import {
-  bulkInsertOrDoNothingProductsByExternalId,
-  selectProducts,
-} from '@/db/tableMethods/productMethods'
 import core from '@/utils/core'
 import { stripe, stripeIdFromObjectOrId } from '@/utils/stripe'
-import { Price } from '@/db/schema/prices'
-import {
-  bulkInsertOrDoNothingPricesByExternalId,
-  selectPrices,
-} from '@/db/tableMethods/priceMethods'
-import {
-  bulkInsertOrDoNothingCustomersByStripeCustomerId,
-  selectCustomers,
-} from '@/db/tableMethods/customerMethods'
-import { Customer } from '@/db/schema/customers'
-import { Product } from '@/db/schema/products'
-import { Subscription } from '@/db/schema/subscriptions'
-import {
-  bulkInsertOrDoNothingSubscriptionsByExternalId,
-  selectSubscriptions,
-} from '@/db/tableMethods/subscriptionMethods'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { bulkInsertOrDoNothingSubscriptionItemsByExternalId } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import {
-  bulkUpsertPaymentMethodsByExternalId,
-  selectPaymentMethods,
-} from '@/db/tableMethods/paymentMethodMethods'
+import runScript from './scriptRunner'
 
 const getAllStripeRecords = async <
   T extends { id: string },
@@ -323,13 +323,11 @@ const migrateStripeSubscriptionDataToFlowglad = async (
     )
     const priceRecords = await selectPrices(
       {
-        externalId: stripeSubscriptions
-          .map((subscription) =>
-            subscription.items.data.map((item) =>
-              stripeIdFromObjectOrId(item.price)
-            )
+        externalId: stripeSubscriptions.flatMap((subscription) =>
+          subscription.items.data.map((item) =>
+            stripeIdFromObjectOrId(item.price)
           )
-          .flat(),
+        ),
       },
       transaction
     )
@@ -337,42 +335,40 @@ const migrateStripeSubscriptionDataToFlowglad = async (
       priceRecords.map((price) => [price.externalId!, price])
     )
     const subscriptionItemInserts: SubscriptionItem.Insert[] =
-      stripeSubscriptions
-        .map((subscription) => {
-          return subscription.items.data.map((item) => {
-            const priceRecord = priceRecordsByExternalId.get(
-              stripeIdFromObjectOrId(item.price)
+      stripeSubscriptions.flatMap((subscription) => {
+        return subscription.items.data.map((item) => {
+          const priceRecord = priceRecordsByExternalId.get(
+            stripeIdFromObjectOrId(item.price)
+          )
+          if (!priceRecord) {
+            console.error(
+              'Error: price record not found for subscription item',
+              item
             )
-            if (!priceRecord) {
-              console.error(
-                'Error: price record not found for subscription item',
-                item
-              )
-              process.exit(1)
-            }
-            const subscriptionRecord =
-              subcriptionRecordsByStripeSubscriptionId.get(
-                stripeIdFromObjectOrId(subscription.id)
-              )!
-            if (!subscriptionRecord) {
-              console.error(
-                'Error: subscription record not found for subscription item',
-                item
-              )
-              process.exit(1)
-            }
-            return stripeSubscriptionItemToSubscriptionItemInsert(
-              item,
-              subscriptionRecord,
-              priceRecord,
-              {
-                livemode: true,
-                organizationId: flowgladOrganizationId,
-              }
+            process.exit(1)
+          }
+          const subscriptionRecord =
+            subcriptionRecordsByStripeSubscriptionId.get(
+              stripeIdFromObjectOrId(subscription.id)
+            )!
+          if (!subscriptionRecord) {
+            console.error(
+              'Error: subscription record not found for subscription item',
+              item
             )
-          })
+            process.exit(1)
+          }
+          return stripeSubscriptionItemToSubscriptionItemInsert(
+            item,
+            subscriptionRecord,
+            priceRecord,
+            {
+              livemode: true,
+              organizationId: flowgladOrganizationId,
+            }
+          )
         })
-        .flat()
+      })
 
     await bulkInsertOrDoNothingSubscriptionItemsByExternalId(
       subscriptionItemInserts,

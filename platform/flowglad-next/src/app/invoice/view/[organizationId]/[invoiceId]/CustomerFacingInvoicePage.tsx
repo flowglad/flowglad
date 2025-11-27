@@ -1,10 +1,10 @@
+import { notFound } from 'next/navigation'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { notFound } from 'next/navigation'
-import { InvoiceTemplateProps } from '@/pdf-generation/invoices'
 import { selectPaymentsAndPaymentMethodsByPaymentsWhere } from '@/db/tableMethods/paymentMethods'
+import type { InvoiceTemplateProps } from '@/pdf-generation/invoices'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 
 export const CustomerFacingInvoicePage = (

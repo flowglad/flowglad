@@ -1,16 +1,18 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { FlowgladServer } from './FlowgladServer'
-import { type NextjsAuthFlowgladServerSessionParams } from './types'
-import { type SupabaseFlowgladServerSessionParams } from './types'
-import { type ClerkFlowgladServerSessionParams } from './types'
-import { type BaseFlowgladServerSessionParams } from './types'
-import { type BetterAuthFlowgladServerSessionParams } from './types'
-import { type ScopedFlowgladServerParams } from './types'
 import {
   getSessionFromNextAuth,
-  sessionFromSupabaseAuth,
   sessionFromBetterAuth,
+  sessionFromSupabaseAuth,
 } from './serverUtils'
+import type {
+  BaseFlowgladServerSessionParams,
+  BetterAuthFlowgladServerSessionParams,
+  ClerkFlowgladServerSessionParams,
+  NextjsAuthFlowgladServerSessionParams,
+  ScopedFlowgladServerParams,
+  SupabaseFlowgladServerSessionParams,
+} from './types'
 
 describe('getSessionFromParams', () => {
   describe('NextAuth branch', () => {

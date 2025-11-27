@@ -1,5 +1,6 @@
 'use client'
 
+import { Controller, useFormContext } from 'react-hook-form'
 import {
   Select,
   SelectContent,
@@ -7,11 +8,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
+import type {
   Country,
   RequestStripeConnectOnboardingLinkInput,
 } from '@/db/schema/countries'
-import { Controller, useFormContext } from 'react-hook-form'
 
 const RequestStripeConnectOnboardingLinkFormFields: React.FC<{
   resumeOnboarding?: boolean

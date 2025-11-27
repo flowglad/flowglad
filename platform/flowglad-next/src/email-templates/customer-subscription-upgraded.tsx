@@ -1,14 +1,13 @@
-import { CurrencyCode, IntervalUnit } from '@/types'
-import { formatDate } from '@/utils/core'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import * as React from 'react'
+import { type CurrencyCode, IntervalUnit } from '@/types'
+import core, { formatDate } from '@/utils/core'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { EmailButton } from './components/EmailButton'
-import core from '@/utils/core'
 import {
+  DetailItem,
+  DetailSection,
   EmailLayout,
   Header,
-  DetailSection,
-  DetailItem,
   Paragraph,
   Signature,
 } from './components/themed'

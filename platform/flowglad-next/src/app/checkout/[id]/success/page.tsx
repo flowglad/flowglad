@@ -1,10 +1,10 @@
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { CheckoutSessionType } from '@/types'
-import PurchaseCheckoutSuccessPage from './PurchaseCheckoutSuccessPage'
-import InvoiceCheckoutSuccessPage from './InvoiceCheckoutSuccessPage'
 import AddPaymentCheckoutSuccessPage from './AddPaymentCheckoutSuccessPage'
+import InvoiceCheckoutSuccessPage from './InvoiceCheckoutSuccessPage'
 import ProductCheckoutSuccessPage from './ProductCheckoutSuccessPage'
+import PurchaseCheckoutSuccessPage from './PurchaseCheckoutSuccessPage'
 
 async function CheckoutSuccessPage({
   params,

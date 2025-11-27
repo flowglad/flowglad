@@ -1,7 +1,7 @@
-import { TabsTrigger } from '@/components/ui/tabs'
-import { PaymentStatus } from '@/types'
-import { usePaymentCountsByStatusMap } from '../hooks/usePaymentCountsByStatusMap'
 import { sentenceCase } from 'change-case'
+import { TabsTrigger } from '@/components/ui/tabs'
+import type { PaymentStatus } from '@/types'
+import { usePaymentCountsByStatusMap } from '../hooks/usePaymentCountsByStatusMap'
 
 interface PaymentsTabProps {
   status: PaymentStatus | 'all'

@@ -1,15 +1,15 @@
 'use client'
 
 import { useFormContext } from 'react-hook-form'
-import { CreateLinkInput } from '@/db/schema/links'
-import { Input } from '@/components/ui/input'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import type { CreateLinkInput } from '@/db/schema/links'
 
 interface LinkFormFieldsProps {
   /**

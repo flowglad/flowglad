@@ -3,26 +3,26 @@
 Run the script using the following command:
 NODE_ENV=production bunx tsx src/scripts/migrateSingleSubscriptionBillingPeriod.ts stripe_subscription_id=sub_...
 */
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
-import { stripe, stripeIdFromObjectOrId } from '@/utils/stripe'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import type Stripe from 'stripe'
+import { Customer } from '@/db/schema/customers'
+import { PaymentMethod } from '@/db/schema/paymentMethods'
+import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   isSubscriptionInTerminalState,
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
-import { createBillingPeriodAndItems } from '@/subscriptions/billingPeriodHelpers'
-import { stripeSubscriptionToSubscriptionInsert } from '@/migration-helpers/stripeMigrations'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
-import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import type { DbTransaction } from '@/db/types'
-import Stripe from 'stripe'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
+import { stripeSubscriptionToSubscriptionInsert } from '@/migration-helpers/stripeMigrations'
+import { createBillingPeriodAndItems } from '@/subscriptions/billingPeriodHelpers'
+import { stripe, stripeIdFromObjectOrId } from '@/utils/stripe'
+import runScript from './scriptRunner'
 
 /**
  * Migrates a single subscription's billing period from Stripe to Flowglad

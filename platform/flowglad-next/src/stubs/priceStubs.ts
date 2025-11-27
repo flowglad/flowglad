@@ -1,6 +1,6 @@
 import {
   nulledPriceColumns,
-  Price,
+  type Price,
   singlePaymentPriceDefaultColumns,
   usagePriceDefaultColumns,
 } from '@/db/schema/prices'

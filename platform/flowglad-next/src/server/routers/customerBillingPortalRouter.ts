@@ -1,57 +1,57 @@
-import {
-  router,
-  publicProcedure,
-  customerProtectedProcedure,
-} from '../trpc'
-import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { headers } from 'next/headers'
+import { z } from 'zod'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
+import {
+  checkoutSessionClientSelectSchema,
+  customerBillingCreatePricedCheckoutSessionInputSchema,
+} from '@/db/schema/checkoutSessions'
+import { customerClientSelectSchema } from '@/db/schema/customers'
+import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
+import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
+import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
+import { purchaseClientSelectSchema } from '@/db/schema/purchases'
+import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
+import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
   selectCustomers,
   setUserIdForCustomerRecords,
 } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import {
+  isSubscriptionCurrent,
+  isSubscriptionInTerminalState,
+  selectSubscriptionById,
+} from '@/db/tableMethods/subscriptionMethods'
+import { selectUsers } from '@/db/tableMethods/userMethods'
+import { scheduleSubscriptionCancellation } from '@/subscriptions/cancelSubscription'
+import {
+  richSubscriptionClientSelectSchema,
+  subscriptionCancellationParametersSchema,
+} from '@/subscriptions/schemas'
+import { SubscriptionCancellationArrangement } from '@/types'
+import { auth } from '@/utils/auth'
+import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import {
   customerBillingCreateAddPaymentMethodSession,
   customerBillingCreatePricedCheckoutSession,
   customerBillingTransaction,
   setDefaultPaymentMethodForCustomer,
 } from '@/utils/bookkeeping/customerBilling'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
-import { customerClientSelectSchema } from '@/db/schema/customers'
-import {
-  richSubscriptionClientSelectSchema,
-  subscriptionCancellationParametersSchema,
-} from '@/subscriptions/schemas'
-import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
-import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
-import { purchaseClientSelectSchema } from '@/db/schema/purchases'
-import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
-import {
-  selectSubscriptionById,
-  isSubscriptionCurrent,
-  isSubscriptionInTerminalState,
-} from '@/db/tableMethods/subscriptionMethods'
-import { scheduleSubscriptionCancellation } from '@/subscriptions/cancelSubscription'
-import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
-import { SubscriptionCancellationArrangement } from '@/types'
-import { auth } from '@/utils/auth'
-import { selectUsers } from '@/db/tableMethods/userMethods'
 import core from '@/utils/core'
-import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import { setCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
-import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
-import { headers } from 'next/headers'
 import {
-  checkoutSessionClientSelectSchema,
-  customerBillingCreatePricedCheckoutSessionInputSchema,
-} from '@/db/schema/checkoutSessions'
+  customerProtectedProcedure,
+  publicProcedure,
+  router,
+} from '../trpc'
 
 // Enhanced getBilling procedure with pagination support for invoices
 const getBillingProcedure = customerProtectedProcedure
@@ -138,7 +138,7 @@ const getBillingProcedure = customerProtectedProcedure
           totalCount: number
           totalPages: number
         }
-      | undefined = undefined
+      | undefined
 
     if (input.invoicePagination) {
       const { page, pageSize } = input.invoicePagination

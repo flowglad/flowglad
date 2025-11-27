@@ -1,29 +1,29 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  setupOrg,
-  setupProduct,
-  setupPrice,
   setupCustomer,
+  setupOrg,
+  setupPrice,
   setupPricingModel,
+  setupProduct,
 } from '@/../seedDatabase'
-import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
+import { adminTransaction } from '@/db/adminTransaction'
+import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
+import { core } from '@/utils/core'
+import type { Organization } from '../schema/organizations'
+import { nulledPriceColumns, type Price } from '../schema/prices'
+import type { Product } from '../schema/products'
+import { updateCustomer } from './customerMethods'
 import {
+  insertPrice,
   safelyInsertPrice,
   safelyUpdatePrice,
   selectPriceById,
-  selectPricesAndProductByProductId,
-  insertPrice,
-  updatePrice,
   selectPriceBySlugAndCustomerId,
   selectPriceBySlugForDefaultPricingModel,
+  selectPricesAndProductByProductId,
+  updatePrice,
 } from './priceMethods'
 import { updatePricingModel } from './pricingModelMethods'
-import { nulledPriceColumns, Price } from '../schema/prices'
-import { Organization } from '../schema/organizations'
-import { Product } from '../schema/products'
-import { core } from '@/utils/core'
-import { updateCustomer } from './customerMethods'
 
 describe('priceMethods.ts', () => {
   let organization: Organization.Record

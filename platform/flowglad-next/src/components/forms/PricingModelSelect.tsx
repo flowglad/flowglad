@@ -1,9 +1,13 @@
-import { Control, useFormContext } from 'react-hook-form'
+import { useEffect } from 'react'
+import { type Control, useFormContext } from 'react-hook-form'
+import { trpc } from '@/app/_trpc/client'
+import { useListPricingModelsQuery } from '@/app/hooks/useListPricingModelsQuery'
+import { Badge } from '@/components/ui/badge'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
 import {
@@ -13,10 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { useListPricingModelsQuery } from '@/app/hooks/useListPricingModelsQuery'
-import { useEffect } from 'react'
-import { trpc } from '@/app/_trpc/client'
 import { Skeleton } from '../ui/skeleton'
 
 interface PricingModelSelectProps {

@@ -1,5 +1,8 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+import { trpc } from '@/app/_trpc/client'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -8,13 +11,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { useRouter } from 'next/navigation'
-import { trpc } from '@/app/_trpc/client'
 import {
   EditPriceInput,
   editPriceSchema,
-  Price,
+  type Price,
 } from '@/db/schema/prices'
 import { idInputSchema } from '@/db/tableUtils'
 

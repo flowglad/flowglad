@@ -1,8 +1,8 @@
 import { Img, Section } from '@react-email/components'
 import * as React from 'react'
+import { emailBaseUrl } from '@/utils/core'
 import { EmailButton } from '../components/EmailButton'
 import { EmailLayout, Header, Paragraph } from '../components/themed'
-import { emailBaseUrl } from '@/utils/core'
 
 export interface OrganizationInvitationEmailProps {
   organizationName: string

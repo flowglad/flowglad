@@ -1,25 +1,24 @@
-import { PricingModel } from '@/db/schema/pricingModels'
-import { Customer } from '@/db/schema/customers'
-import { nulledPriceColumns } from '@/db/schema/prices'
-import { BillingAddress } from '@/db/schema/organizations'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Price } from '@/db/schema/prices'
-import { Product } from '@/db/schema/products'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { Subscription } from '@/db/schema/subscriptions'
+import type Stripe from 'stripe'
+import type { Customer } from '@/db/schema/customers'
+import type { BillingAddress } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import { nulledPriceColumns, type Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
 import {
-  CurrencyCode,
-  IntervalUnit,
-  PaymentMethodType,
+  type CurrencyCode,
+  type IntervalUnit,
+  type PaymentMethodType,
   PriceType,
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
 import {
-  stripeIdFromObjectOrId,
   dateFromStripeTimestamp,
+  stripeIdFromObjectOrId,
 } from '@/utils/stripe'
-import Stripe from 'stripe'
 
 interface CoreMigrationParams {
   organizationId: string

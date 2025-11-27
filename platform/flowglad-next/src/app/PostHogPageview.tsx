@@ -1,9 +1,9 @@
 'use client'
 
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
 import { usePostHog } from 'posthog-js/react'
-import { AuthContextValues } from '@/contexts/authContext'
+import { useEffect } from 'react'
+import type { AuthContextValues } from '@/contexts/authContext'
 
 export default function PostHogPageView({
   user,

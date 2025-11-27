@@ -1,6 +1,8 @@
+import { and, eq, sql } from 'drizzle-orm'
 import * as R from 'ramda'
+import { z } from 'zod'
 import {
-  Membership,
+  type Membership,
   memberships,
   membershipsClientSelectSchema,
   membershipsInsertSchema,
@@ -8,26 +10,24 @@ import {
   membershipsTableRowDataSchema,
   membershipsUpdateSchema,
 } from '@/db/schema/memberships'
+import type { User } from '@/db/schema/users'
 import {
-  createUpsertFunction,
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
   createSelectById,
   createSelectFunction,
-  createInsertFunction,
-  ORMMethodCreatorConfig,
   createUpdateFunction,
-  createCursorPaginatedSelectFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
   whereClauseFromObject,
 } from '@/db/tableUtils'
-import { and, eq, sql } from 'drizzle-orm'
+import type { DbTransaction } from '@/db/types'
 import {
   organizations,
   organizationsSelectSchema,
 } from '../schema/organizations'
-import { DbTransaction } from '@/db/types'
 import { users, usersSelectSchema } from '../schema/users'
-import { z } from 'zod'
 import { selectUsers } from './userMethods'
-import { User } from '@/db/schema/users'
 
 const config: ORMMethodCreatorConfig<
   typeof memberships,
@@ -92,7 +92,7 @@ export const selectMembershipAndOrganizations = async (
 
 export const selectMembershipAndOrganizationsByBetterAuthUserId =
   async (betterAuthUserId: string, transaction: DbTransaction) => {
-    let query = transaction
+    const query = transaction
       .select({
         membership: memberships,
         organization: organizations,

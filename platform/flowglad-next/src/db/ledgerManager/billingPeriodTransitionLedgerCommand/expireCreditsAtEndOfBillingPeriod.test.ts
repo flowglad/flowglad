@@ -1,55 +1,57 @@
 import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
 } from 'vitest'
-import { expireCreditsAtEndOfBillingPeriod } from '@/db/ledgerManager/billingPeriodTransitionLedgerCommand/expireCreditsAtEndOfBillingPeriod'
-import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
-import { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
-  LedgerEntryStatus,
-  LedgerEntryDirection,
-  LedgerEntryType,
-  SubscriptionStatus,
-  LedgerTransactionType,
-  IntervalUnit,
+  setupBillingPeriod,
+  setupBillingRun,
+  setupCreditLedgerEntry,
+  setupCustomer,
+  setupLedgerAccount,
+  setupLedgerEntries,
+  setupLedgerTransaction,
+  setupOrg,
+  setupPaymentMethod,
+  setupSubscription,
+  setupUsageCredit,
+  setupUsageCreditApplication,
+  setupUsageEvent,
+  setupUsageMeter,
+  teardownOrg,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { expireCreditsAtEndOfBillingPeriod } from '@/db/ledgerManager/billingPeriodTransitionLedgerCommand/expireCreditsAtEndOfBillingPeriod'
+import type {
+  BillingPeriodTransitionLedgerCommand,
+  StandardBillingPeriodTransitionPayload,
+} from '@/db/ledgerManager/ledgerManagerTypes'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { Customer } from '@/db/schema/customers'
+import type { LedgerAccount } from '@/db/schema/ledgerAccounts'
+import type { LedgerTransaction } from '@/db/schema/ledgerTransactions'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { UsageMeter } from '@/db/schema/usageMeters'
+import {
   BillingRunStatus,
+  IntervalUnit,
+  LedgerEntryDirection,
+  LedgerEntryStatus,
+  LedgerEntryType,
+  LedgerTransactionType,
+  SubscriptionStatus,
   UsageCreditStatus,
   UsageCreditType,
 } from '@/types'
-import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
-  setupUsageMeter,
-  setupLedgerAccount,
-  setupLedgerTransaction,
-  setupBillingPeriod,
-  teardownOrg,
-  setupBillingRun,
-  setupUsageCredit,
-  setupCreditLedgerEntry,
-  setupUsageEvent,
-  setupUsageCreditApplication,
-  setupLedgerEntries,
-} from '@/../seedDatabase'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { PricingModel } from '@/db/schema/pricingModels'
 import { core } from '@/utils/core'
-import { adminTransaction } from '@/db/adminTransaction'
-import { StandardBillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 
 let organization: Organization.Record
 let pricingModel: PricingModel.Record
@@ -221,9 +223,8 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     })
 
     const futureExpiryDate = new Date(
-      (
-        testCommand.payload as StandardBillingPeriodTransitionPayload
-      ).previousBillingPeriod!.endDate
+      (testCommand.payload as StandardBillingPeriodTransitionPayload)
+        .previousBillingPeriod!.endDate
     )
     futureExpiryDate.setDate(futureExpiryDate.getDate() + 5)
     const nonExpiringCredit2 = await setupUsageCredit({
@@ -266,9 +267,8 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
   it('should correctly expire credits that expire exactly at the previous billing period end date', async () => {
     const expiringCreditAmount = 75
     const exactExpiryDate = new Date(
-      (
-        testCommand.payload as StandardBillingPeriodTransitionPayload
-      ).previousBillingPeriod!.endDate
+      (testCommand.payload as StandardBillingPeriodTransitionPayload)
+        .previousBillingPeriod!.endDate
     )
 
     const expiringCredit = await setupUsageCredit({
@@ -336,9 +336,8 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     const usedAmount = 400
     const remainingAmount = issuedAmount - usedAmount
     const expiryDate = new Date(
-      (
-        testCommand.payload as StandardBillingPeriodTransitionPayload
-      ).previousBillingPeriod!.endDate
+      (testCommand.payload as StandardBillingPeriodTransitionPayload)
+        .previousBillingPeriod!.endDate
     )
     expiryDate.setDate(expiryDate.getDate() - 1)
 
@@ -430,9 +429,8 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
   it('should correctly expire credits that expire before the previous billing period end date', async () => {
     const earlyExpiryAmount = 120
     const earlyExpiryDate = new Date(
-      (
-        testCommand.payload as StandardBillingPeriodTransitionPayload
-      ).previousBillingPeriod!.endDate
+      (testCommand.payload as StandardBillingPeriodTransitionPayload)
+        .previousBillingPeriod!.endDate
     )
     earlyExpiryDate.setDate(earlyExpiryDate.getDate() - 1)
 
@@ -627,9 +625,8 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
 
     const detailCheckAmount = 99
     const detailCheckExpiryDate = new Date(
-      (
-        testCommand.payload as StandardBillingPeriodTransitionPayload
-      ).previousBillingPeriod!.endDate
+      (testCommand.payload as StandardBillingPeriodTransitionPayload)
+        .previousBillingPeriod!.endDate
     )
     detailCheckExpiryDate.setDate(detailCheckExpiryDate.getDate() - 1)
 

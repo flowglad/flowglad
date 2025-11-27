@@ -1,33 +1,32 @@
-import { Price } from '@/db/schema/prices'
 import { cookies } from 'next/headers'
+import { z } from 'zod'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Price } from '@/db/schema/prices'
+import type { Purchase } from '@/db/schema/purchases'
 import {
-  selectCheckoutSessions,
   insertCheckoutSession,
+  selectCheckoutSessions,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectProductById } from '@/db/tableMethods/productMethods'
+import { idInputSchema } from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 import {
-  createPaymentIntentForInvoiceCheckoutSession,
-  createPaymentIntentForCheckoutSession,
-  createSetupIntentForCheckoutSession,
-} from '@/utils/stripe'
-import {
-  PriceType,
   CheckoutSessionStatus,
   CheckoutSessionType,
+  PriceType,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { selectProductById } from '@/db/tableMethods/productMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { Purchase } from '@/db/schema/purchases'
-
-import { z } from 'zod'
-import { idInputSchema } from '@/db/tableUtils'
+import {
+  createPaymentIntentForCheckoutSession,
+  createPaymentIntentForInvoiceCheckoutSession,
+  createSetupIntentForCheckoutSession,
+} from '@/utils/stripe'
 import core from './core'
-import { Invoice } from '@/db/schema/invoices'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 
 const productCheckoutSessionCookieNameParamsSchema = z.object({
   type: z.literal('product'),

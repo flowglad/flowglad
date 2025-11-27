@@ -1,13 +1,13 @@
+import { TRPCError } from '@trpc/server'
 import { describe, expect, it } from 'vitest'
-import { validatePriceImmutableFields } from './validateImmutableFields'
+import type { Price } from '@/db/schema/prices'
 import {
-  subscriptionDummyPrice,
   singlePaymentDummyPrice,
+  subscriptionDummyPrice,
   usageDummyPrice,
 } from '@/stubs/priceStubs'
-import { PriceType, IntervalUnit } from '@/types'
-import { TRPCError } from '@trpc/server'
-import { Price } from '@/db/schema/prices'
+import { IntervalUnit, PriceType } from '@/types'
+import { validatePriceImmutableFields } from './validateImmutableFields'
 
 describe('validatePriceImmutableFields', () => {
   describe('successful validation', () => {

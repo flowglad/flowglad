@@ -2,12 +2,12 @@
 import '@testing-library/jest-dom/vitest'
 import { webcrypto } from 'node:crypto'
 import { cleanup } from '@testing-library/react'
+import { afterAll, afterEach, beforeAll, vi } from 'vitest'
 import { stripeServer } from './mocks/stripeServer'
-import { triggerServer } from './mocks/triggerServer'
-import { beforeAll, afterAll, afterEach, vi } from 'vitest'
-import { seedDatabase } from './seedDatabase'
 import { svixServer } from './mocks/svixServer'
+import { triggerServer } from './mocks/triggerServer'
 import { unkeyServer } from './mocks/unkeyServer'
+import { seedDatabase } from './seedDatabase'
 
 // Polyfill crypto for Node.js environment
 // needed for github actions

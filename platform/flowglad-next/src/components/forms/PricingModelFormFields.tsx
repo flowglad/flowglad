@@ -1,18 +1,16 @@
 'use client'
 
-import { useFormContext } from '@/components/ui/form'
 import { Controller } from 'react-hook-form'
-import { CreatePricingModelInput } from '@/db/schema/pricingModels'
-import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
+  useFormContext,
 } from '@/components/ui/form'
-import { Switch } from '@/components/ui/switch'
-import { IntervalUnit } from '@/types'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -20,7 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card } from '@/components/ui/card'
+import { Switch } from '@/components/ui/switch'
+import type { CreatePricingModelInput } from '@/db/schema/pricingModels'
+import { IntervalUnit } from '@/types'
 
 export default function PricingModelFormFields({
   edit,

@@ -1,18 +1,18 @@
 'use client'
 import { differenceInHours } from 'date-fns'
 import React from 'react'
-import { TooltipCallbackProps } from '@/components/charts/AreaChart'
+import { trpc } from '@/app/_trpc/client'
+import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { RevenueTooltip } from '@/components/RevenueTooltip'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import { RevenueChartIntervalUnit } from '@/types'
+import core from '@/utils/core'
 import {
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
   stripeCurrencyAmountToShortReadableCurrencyAmount,
 } from '@/utils/stripe'
-import core from '@/utils/core'
-import { RevenueChartIntervalUnit } from '@/types'
-import { trpc } from '@/app/_trpc/client'
-import { Skeleton } from './ui/skeleton'
-import { useAuthenticatedContext } from '@/contexts/authContext'
 import { LineChart } from './charts/LineChart'
+import { Skeleton } from './ui/skeleton'
 
 /**
  * Two dots make a graph principle: this is the minimum range duration required

@@ -1,20 +1,20 @@
+import { ilike, or, sql } from 'drizzle-orm'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createBulkUpsertFunction,
-} from '@/db/tableUtils'
-import {
-  ProperNoun,
+  type ProperNoun,
   properNouns,
   properNounsInsertSchema,
   properNounsSelectSchema,
   properNounsUpdateSchema,
 } from '@/db/schema/properNouns'
-import { DbTransaction } from '@/db/types'
-import { ilike, or, sql } from 'drizzle-orm'
+import {
+  createBulkUpsertFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<
   typeof properNouns,

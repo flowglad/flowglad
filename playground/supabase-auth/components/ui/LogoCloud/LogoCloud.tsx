@@ -52,5 +52,5 @@ export default function LogoCloud() {
         </div>
       </div>
     </div>
-  );
+  )
 }

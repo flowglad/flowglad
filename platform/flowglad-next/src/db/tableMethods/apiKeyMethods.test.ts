@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
 import { FlowgladApiKeyType } from '@/types'
 import { nanoid } from '@/utils/core'
+import type { ApiKey } from '../schema/apiKeys'
+import type { Organization } from '../schema/organizations'
 import {
   insertApiKey,
-  select7DaysExpiredBillingPortalApiKeys,
   safelyFilterExpiredBillingPortalApiKeys,
+  select7DaysExpiredBillingPortalApiKeys,
 } from './apiKeyMethods'
-import { ApiKey } from '../schema/apiKeys'
-import { Organization } from '../schema/organizations'
 
 describe('apiKeyMethods.ts', () => {
   let organization: Organization.Record

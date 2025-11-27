@@ -1,65 +1,63 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { eq } from 'drizzle-orm'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  cancelSubscriptionImmediately,
-  scheduleSubscriptionCancellation,
-  abortScheduledBillingRuns,
-  reassignDefaultSubscription,
-  cancelSubscriptionProcedureTransaction,
-} from '@/subscriptions/cancelSubscription'
-import { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
-import {
-  SubscriptionCancellationArrangement,
-  SubscriptionStatus,
-  BillingPeriodStatus,
-  BillingRunStatus,
-  EventNoun,
-  FlowgladEventType,
-} from '@/types'
-import { adminTransaction } from '@/db/adminTransaction'
-import {
-  setupSubscription,
-  setupBillingRun,
   setupBillingPeriod,
   setupBillingPeriodItem,
+  setupBillingRun,
   setupCustomer,
-  setupPaymentMethod,
   setupOrg,
-  setupProduct,
+  setupPaymentMethod,
   setupPrice,
-  setupSubscriptionItem,
-  setupUsageMeter,
-  setupUsageCreditGrantFeature,
-  setupSubscriptionItemFeature,
+  setupProduct,
   setupProductFeature,
+  setupSubscription,
+  setupSubscriptionItem,
+  setupSubscriptionItemFeature,
+  setupUsageCreditGrantFeature,
+  setupUsageMeter,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { Customer } from '@/db/schema/customers'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import { prices } from '@/db/schema/prices'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Customer } from '@/db/schema/customers'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { updatePrice } from '@/db/tableMethods/priceMethods'
+import { updateProduct } from '@/db/tableMethods/productMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   currentSubscriptionStatuses,
   safelyUpdateSubscriptionStatus,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { updatePrice } from '@/db/tableMethods/priceMethods'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import {
-  PriceType,
-  IntervalUnit,
-  SubscriptionItemType,
+  abortScheduledBillingRuns,
+  cancelSubscriptionImmediately,
+  cancelSubscriptionProcedureTransaction,
+  reassignDefaultSubscription,
+  scheduleSubscriptionCancellation,
+} from '@/subscriptions/cancelSubscription'
+import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
+import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-canceled-notification'
+import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  EventNoun,
   FeatureType,
   FeatureUsageGrantFrequency,
+  FlowgladEventType,
+  IntervalUnit,
+  PriceType,
+  SubscriptionCancellationArrangement,
+  SubscriptionItemType,
+  SubscriptionStatus,
 } from '@/types'
-import { updateProduct } from '@/db/tableMethods/productMethods'
-import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-canceled-notification'
-import { eq } from 'drizzle-orm'
-import { prices } from '@/db/schema/prices'
 
 describe('Subscription Cancellation Test Suite', async () => {
   const { organization, price } = await setupOrg()

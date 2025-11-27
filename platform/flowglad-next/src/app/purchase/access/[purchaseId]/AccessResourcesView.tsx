@@ -1,13 +1,13 @@
 'use client'
 import JSZip from 'jszip'
-import { TableHeader } from '@/components/ui/table-header'
+import { Download, SquareArrowOutUpRight } from 'lucide-react'
 import {
   FilePostPurchaseAssetRow,
   LinkPostPurchaseAssetRow,
 } from '@/components/PostPurchaseAssetRow'
-import { File } from '@/db/schema/files'
-import { Link } from '@/db/schema/links'
-import { SquareArrowOutUpRight, Download } from 'lucide-react'
+import { TableHeader } from '@/components/ui/table-header'
+import type { File } from '@/db/schema/files'
+import type { Link } from '@/db/schema/links'
 
 const AccessResourcesView = ({
   files,

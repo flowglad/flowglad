@@ -1,28 +1,28 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
+import { sentenceCase } from 'change-case'
 // Icons come next
-import { Link, Pencil, Mail } from 'lucide-react'
+import { Link, Mail, Pencil } from 'lucide-react'
+import * as React from 'react'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import EditInvoiceModal from '@/components/forms/EditInvoiceModal'
+import SendInvoiceReminderEmailModal from '@/components/forms/SendInvoiceReminderEmailModal'
 // UI components last
 import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import {
+  type ActionMenuItem,
   EnhancedDataTableActionsMenu,
-  ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 // Other imports
-import { Invoice } from '@/db/schema/invoices'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import EditInvoiceModal from '@/components/forms/EditInvoiceModal'
+import type { Invoice } from '@/db/schema/invoices'
 import { invoiceIsInTerminalState } from '@/db/tableMethods/invoiceMethods'
 import { InvoiceStatus } from '@/types'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import SendInvoiceReminderEmailModal from '@/components/forms/SendInvoiceReminderEmailModal'
 import core from '@/utils/core'
-import { sentenceCase } from 'change-case'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export type InvoiceTableRowData = {
   invoice: Invoice.ClientRecord

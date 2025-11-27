@@ -1,13 +1,13 @@
 'use client'
 
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/registry/lib/cn'
-import { SubscriptionHeaderProps } from './types'
 import { formatDaysRemaining } from '@/registry/lib/billing-interval'
+import { cn } from '@/registry/lib/cn'
 import {
   getStatusBadgeVariant,
   getStatusLabel,
 } from '@/registry/lib/subscription-status'
+import type { SubscriptionHeaderProps } from './types'
 
 export function SubscriptionHeader({
   name,

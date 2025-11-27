@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { innerSetReferralSelectionHandler } from './setReferralSelection'
-import { REFERRAL_OPTIONS } from '@/utils/referrals'
-import { setReferralSelection as setReferralSelectionInRedis } from '@/utils/redis'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
   setupUserAndApiKey,
   teardownOrg,
 } from '@/../seedDatabase'
-import { Organization } from '@/db/schema/organizations'
+import type { Organization } from '@/db/schema/organizations'
+import { setReferralSelection as setReferralSelectionInRedis } from '@/utils/redis'
+import { REFERRAL_OPTIONS } from '@/utils/referrals'
+import { innerSetReferralSelectionHandler } from './setReferralSelection'
 
 describe('innerSetReferralSelectionHandler', () => {
   let organization: Organization.Record

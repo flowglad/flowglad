@@ -1,20 +1,20 @@
-import { pgTable, boolean } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { boolean, pgTable } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
+import { subscriptions } from '@/db/schema/subscriptions'
 import {
-  tableBase,
-  notNullStringForeignKey,
   constructIndex,
-  pgEnumColumn,
-  livemodePolicy,
-  SelectConditions,
   hiddenColumnsForClientSchema,
+  livemodePolicy,
   merchantPolicy,
+  notNullStringForeignKey,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import { subscriptions } from '@/db/schema/subscriptions'
-import core from '@/utils/core'
 import { BillingPeriodStatus } from '@/types'
-import { sql } from 'drizzle-orm'
+import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'billing_periods'

@@ -1,22 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
-  setupProduct,
   setupPrice,
+  setupProduct,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { createUsageMeterTransaction } from './usage'
-import { Organization } from '@/db/schema/organizations'
-import { PricingModel } from '@/db/schema/pricingModels'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Organization } from '@/db/schema/organizations'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { selectProducts } from '@/db/tableMethods/productMethods'
+import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import {
   IntervalUnit,
   PriceType,
   UsageMeterAggregationType,
 } from '@/types'
-import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import { selectProducts } from '@/db/tableMethods/productMethods'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { createUsageMeterTransaction } from './usage'
 
 describe('createUsageMeterTransaction', () => {
   let organization: Organization.Record

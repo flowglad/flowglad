@@ -1,14 +1,14 @@
-import { protectedProcedure } from '@/server/trpc'
-import { File } from '@/db/schema/files'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { insertFile } from '@/db/tableMethods/fileMethods'
-import { safeObjectKeyToFileInsert } from '@/utils/fileStorage'
+import type { File } from '@/db/schema/files'
 import {
   createPostPurchaseAssetInputSchema,
-  Link,
+  type Link,
 } from '@/db/schema/links'
+import { insertFile } from '@/db/tableMethods/fileMethods'
 import { insertLink } from '@/db/tableMethods/linkMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { protectedProcedure } from '@/server/trpc'
+import { safeObjectKeyToFileInsert } from '@/utils/fileStorage'
 
 export const createPostPurchaseAsset = protectedProcedure
   .input(createPostPurchaseAssetInputSchema)

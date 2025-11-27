@@ -1,21 +1,21 @@
-import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
-  EditInvoiceInput,
-  InvoiceLineItem,
+  type EditInvoiceInput,
+  type InvoiceLineItem,
   invoiceLineItemsUpdateSchema,
 } from '@/db/schema/invoiceLineItems'
+import { deleteIncompleteCheckoutSessionsForInvoice } from '@/db/tableMethods/checkoutSessionMethods'
 import {
   deleteInvoiceLineItems,
+  insertInvoiceLineItem,
+  selectInvoiceLineItems,
   updateInvoiceLineItem,
 } from '@/db/tableMethods/invoiceLineItemMethods'
-import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   invoiceIsInTerminalState,
   selectInvoiceById,
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
-import { DbTransaction } from '@/db/types'
-import { deleteIncompleteCheckoutSessionsForInvoice } from '@/db/tableMethods/checkoutSessionMethods'
+import type { DbTransaction } from '@/db/types'
 import { SubscriptionItemType } from '@/types'
 
 /**

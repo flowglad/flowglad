@@ -1,14 +1,14 @@
 'use client'
 
-import {
-  SubscriptionsDataTable,
-  SubscriptionsTableFilters,
-} from './data-table'
-import { SubscriptionStatus } from '@/types'
-import InternalPageContainer from '@/components/InternalPageContainer'
 import { useState } from 'react'
+import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
+import { SubscriptionStatus } from '@/types'
+import {
+  SubscriptionsDataTable,
+  type SubscriptionsTableFilters,
+} from './data-table'
 
 function InternalSubscriptionsPage() {
   const [activeFilter, setActiveFilter] = useState<string>('all')

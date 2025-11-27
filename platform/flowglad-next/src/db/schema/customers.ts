@@ -1,4 +1,4 @@
-import * as R from 'ramda'
+import { sql } from 'drizzle-orm'
 import {
   boolean,
   jsonb,
@@ -6,37 +6,37 @@ import {
   pgTable,
   text,
 } from 'drizzle-orm/pg-core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
 import {
+  billingAddressSchema,
+  organizations,
+} from '@/db/schema/organizations'
+import {
+  clientWriteOmitsConstructor,
+  constructGinIndex,
   constructIndex,
   constructUniqueIndex,
-  ommittedColumnsForInsertSchema,
-  notNullStringForeignKey,
-  tableBase,
-  createSupabaseWebhookSchema,
-  livemodePolicy,
-  createPaginatedSelectSchema,
   createPaginatedListQuerySchema,
-  nullableStringForeignKey,
-  SelectConditions,
+  createPaginatedSelectSchema,
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
-  hiddenColumnsForClientSchema,
-  constructGinIndex,
-  merchantPolicy,
+  createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
-  clientWriteOmitsConstructor,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  ommittedColumnsForInsertSchema,
+  type SelectConditions,
+  tableBase,
 } from '@/db/tableUtils'
-import {
-  organizations,
-  billingAddressSchema,
-} from '@/db/schema/organizations'
 import { createInvoiceNumberBase } from '@/utils/core'
-import { z } from 'zod'
-import { users } from './users'
-import { pricingModels } from './pricingModels'
-import { sql } from 'drizzle-orm'
 import { buildSchemas } from '../createZodSchemas'
+import { pricingModels } from './pricingModels'
+import { users } from './users'
 
 const TABLE_NAME = 'customers'
 

@@ -1,17 +1,17 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import { createUsageMeterFormSchema } from '@/db/schema/usageMeters'
-import UsageMeterFormFields from '@/components/forms/UsageMeterFormFields'
-import PriceFormFields from '@/components/forms/PriceFormFields'
+import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
-import { UsageMeterAggregationType, PriceType } from '@/types'
+import FormModal from '@/components/forms/FormModal'
+import PriceFormFields from '@/components/forms/PriceFormFields'
+import UsageMeterFormFields from '@/components/forms/UsageMeterFormFields'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import { createUsageMeterFormSchema } from '@/db/schema/usageMeters'
+import { PriceType, UsageMeterAggregationType } from '@/types'
 import {
   isCurrencyZeroDecimal,
   rawStringAmountToCountableCurrencyAmount,
 } from '@/utils/stripe'
-import { toast } from 'sonner'
 
 interface CreateUsageMeterModalProps {
   isOpen: boolean

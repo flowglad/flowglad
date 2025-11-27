@@ -1,19 +1,19 @@
 {
-    "compilerOptions": {
-      "jsx": "react-jsx",
-      "declaration": true,
-      "target": "ES6",
-      "module": "NodeNext",
-      "moduleResolution": "NodeNext",  
-      "strict": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true,
-      "baseUrl": "./src",
-      "paths": {
-        "@/*": ["./*"]
-      }  
-    },
-    "types": ["vitest/globals", "@testing-library/jest-dom"],
-    "include": ["src", "./vitest.setup.ts"]
-  }
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "declaration": true,
+    "target": "ES6",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "types": ["vitest/globals", "@testing-library/jest-dom"],
+  "include": ["src", "./vitest.setup.ts"]
+}

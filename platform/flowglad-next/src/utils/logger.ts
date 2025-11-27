@@ -1,13 +1,13 @@
 // utils/logger.ts
 import { log as logtailLog } from '@logtail/next'
-import { trace, context, SpanStatusCode } from '@opentelemetry/api'
-import core, { IS_DEV } from './core'
-import {
-  ServiceContext,
+import { context, SpanStatusCode, trace } from '@opentelemetry/api'
+import type {
   ApiEnvironment,
   LogData,
   LoggerData,
+  ServiceContext,
 } from '@/types'
+import core, { IS_DEV } from './core'
 
 const log = IS_DEV || !core.IS_PROD ? console : logtailLog
 

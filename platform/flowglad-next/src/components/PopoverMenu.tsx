@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils'
 import { PopoverClose } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 export enum PopoverMenuItemState {
   Default = 'default',
@@ -42,7 +42,9 @@ const PopoverMenuItem = ({
     <div
       className={cn(
         'relative flex cursor-default select-none rounded-[4px] px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
-        helperText ? 'items-start flex-col gap-1' : 'items-center gap-2',
+        helperText
+          ? 'items-start flex-col gap-1'
+          : 'items-center gap-2',
         className,
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
       )}

@@ -1,17 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import { useAuthContext } from '@/contexts/authContext'
-import { useIsMobile } from '@/hooks/use-mobile'
+import CreateOrganizationModal from '@/components/forms/CreateOrganizationModal'
 import { Button } from '@/components/ui/button'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import {
   Command,
   CommandEmpty,
@@ -20,8 +15,13 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react'
-import CreateOrganizationModal from '@/components/forms/CreateOrganizationModal'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { useAuthContext } from '@/contexts/authContext'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 const OrganizationSwitcher = () => {
   const router = useRouter()

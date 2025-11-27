@@ -1,11 +1,11 @@
 'use client'
 
-import InternalDashboard from './InternalDashboard'
 import {
   ClientAuthGuard,
   DashboardLoadingFallback,
 } from '@/components/ClientAuthGuard'
 import { useAuthContext } from '@/contexts/authContext'
+import InternalDashboard from './InternalDashboard'
 
 export default function Home() {
   const { organization } = useAuthContext()

@@ -1,13 +1,13 @@
 'use client'
 
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { type ReactNode, useState } from 'react'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { useState, type ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 
 interface ExpandSectionProps {
   /** Section title displayed in the header */

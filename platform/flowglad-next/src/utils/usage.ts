@@ -1,10 +1,10 @@
-import { AuthenticatedTransactionParams } from '@/db/types'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { UsageMeter } from '@/db/schema/usageMeters'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
-import { createProductTransaction } from '@/utils/pricingModel'
+import type { AuthenticatedTransactionParams } from '@/db/types'
 import { IntervalUnit, PriceType } from '@/types'
+import { createProductTransaction } from '@/utils/pricingModel'
 
 /** Price fields used in usage meter creation/updates */
 type UsageMeterPriceFields = {

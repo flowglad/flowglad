@@ -1,5 +1,5 @@
-import { IntervalUnit } from '@/types'
 import { isLeapYear } from 'date-fns'
+import { IntervalUnit } from '@/types'
 
 interface GenerateNextBillingPeriodParams {
   billingCycleAnchorDate: Date | number

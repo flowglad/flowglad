@@ -1,17 +1,17 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  createUpsertFunction,
-  ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import {
   purchaseAccessSessions,
   purchaseAccessSessionsInsertSchema,
   purchaseAccessSessionsSelectSchema,
   purchaseAccessSessionsUpdateSchema,
 } from '@/db/schema/purchaseAccessSessions'
+import {
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
 
 const config: ORMMethodCreatorConfig<
   typeof purchaseAccessSessions,

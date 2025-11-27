@@ -1,5 +1,5 @@
 interface SeparatorProps {
-  text: string;
+  text: string
 }
 
 export default function Separator({ text }: SeparatorProps) {
@@ -13,5 +13,5 @@ export default function Separator({ text }: SeparatorProps) {
         <div className="grow border-t border-zinc-700"></div>
       </div>
     </div>
-  );
+  )
 }

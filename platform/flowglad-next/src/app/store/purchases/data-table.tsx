@@ -1,17 +1,21 @@
 'use client'
 
-import * as React from 'react'
 import {
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
+  type ColumnFiltersState,
+  type ColumnSizingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
-  ColumnSizingState,
+  type VisibilityState,
 } from '@tanstack/react-table'
+import * as React from 'react'
+import { trpc } from '@/app/_trpc/client'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import {
   Table,
   TableBody,
@@ -20,13 +24,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import type { Purchase } from '@/db/schema/purchases'
+import type { PurchaseStatus } from '@/types'
 import { columns } from './columns'
-import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { trpc } from '@/app/_trpc/client'
-import { Purchase } from '@/db/schema/purchases'
-import { PurchaseStatus } from '@/types'
 
 export interface PurchasesTableFilters {
   customerId?: string

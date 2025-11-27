@@ -1,16 +1,16 @@
-import { PaymentMethodType } from '@/types'
+import type Stripe from 'stripe'
 import {
-  PaymentMethod,
+  type PaymentMethod,
   paymentMethodsInsertSchema,
 } from '@/db/schema/paymentMethods'
-import { DbTransaction } from '@/db/types'
-import { getStripePaymentMethod } from '@/utils/stripe'
 import {
   safelyInsertPaymentMethod,
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
+import type { DbTransaction } from '@/db/types'
+import { PaymentMethodType } from '@/types'
 import { titleCase } from '@/utils/core'
-import Stripe from 'stripe'
+import { getStripePaymentMethod } from '@/utils/stripe'
 
 export const paymentMethodInsertFromStripeCardPaymentMethod = (
   stripePaymentMethod: Stripe.PaymentMethod,

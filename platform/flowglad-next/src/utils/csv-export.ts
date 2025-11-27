@@ -1,8 +1,8 @@
-import { CustomerTableRowData } from '@/db/schema/customers'
+import { format } from 'date-fns'
+import type { CustomerTableRowData } from '@/db/schema/customers'
+import { CurrencyCode } from '@/types'
 import { titleCase } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { CurrencyCode } from '@/types'
-import { format } from 'date-fns'
 
 const CSV_HEADERS = [
   'name',

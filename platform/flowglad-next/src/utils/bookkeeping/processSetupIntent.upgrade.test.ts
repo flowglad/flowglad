@@ -1,46 +1,47 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupCheckoutSession,
+  setupCustomer,
+  setupFeeCalculation,
+  setupOrg,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupPurchase,
+  setupSubscription,
+} from '@/../seedDatabase'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import {
+  selectSubscriptionById,
+  selectSubscriptions,
+} from '@/db/tableMethods/subscriptionMethods'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
+  CurrencyCode,
+  IntervalUnit,
   PaymentMethodType,
+  PriceType,
   PurchaseStatus,
   SubscriptionStatus,
-  IntervalUnit,
-  PriceType,
-  CurrencyCode,
 } from '@/types'
 import {
+  type CoreSripeSetupIntent,
   processSetupIntentSucceeded,
-  CoreSripeSetupIntent,
 } from '@/utils/bookkeeping/processSetupIntent'
-import {
-  setupCustomer,
-  setupOrg,
-  setupPaymentMethod,
-  setupPurchase,
-  setupSubscription,
-  setupCheckoutSession,
-  setupProduct,
-  setupPrice,
-  setupFeeCalculation,
-} from '@/../seedDatabase'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { PricingModel } from '@/db/schema/pricingModels'
 import { core } from '@/utils/core'
-import {
-  comprehensiveAdminTransaction,
-  adminTransaction,
-} from '@/db/adminTransaction'
-import {
-  selectSubscriptions,
-  selectSubscriptionById,
-} from '@/db/tableMethods/subscriptionMethods'
 import { IntentMetadataType } from '@/utils/stripe'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+
 // Helper function to create mock setup intent
 const mockSucceededSetupIntent = ({
   checkoutSessionId,

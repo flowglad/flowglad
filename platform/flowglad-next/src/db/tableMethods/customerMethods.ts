@@ -1,37 +1,37 @@
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { z } from 'zod'
 import {
-  Customer,
-  customers as customersTable,
+  type Customer,
+  type CustomerTableRowData,
+  customers,
   customersInsertSchema,
+  customersPaginatedTableRowDataSchema,
   customersSelectSchema,
+  customers as customersTable,
   customersUpdateSchema,
   InferredCustomerStatus,
-  type CustomerTableRowData,
-  customersPaginatedTableRowDataSchema,
-  customers,
 } from '@/db/schema/customers'
 import {
-  createUpsertFunction,
+  createBulkInsertOrDoNothingFunction,
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
   createSelectById,
   createSelectFunction,
-  createInsertFunction,
   createUpdateFunction,
-  ORMMethodCreatorConfig,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
   whereClauseFromObject,
-  createBulkInsertOrDoNothingFunction,
-  createPaginatedSelectFunction,
-  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import type { DbTransaction } from '@/db/types'
 import { PaymentStatus } from '@/types'
-import { DbTransaction } from '@/db/types'
 import { invoices } from '../schema/invoices'
-import { payments } from '../schema/payments'
-import { purchases } from '../schema/purchases'
 import {
   organizations,
   organizationsSelectSchema,
 } from '../schema/organizations'
-import { z } from 'zod'
+import { payments } from '../schema/payments'
+import { purchases } from '../schema/purchases'
 
 const config: ORMMethodCreatorConfig<
   typeof customersTable,

@@ -1,5 +1,5 @@
-import React from 'react'
 import type { LucideIcon, LucideProps } from 'lucide-react'
+import React from 'react'
 
 export const AITokenIcon: LucideIcon = React.forwardRef<
   SVGSVGElement,

@@ -1,5 +1,5 @@
-import core from '@/utils/core'
 import { Flowglad } from '@flowglad/node'
+import core from '@/utils/core'
 
 export const flowgladNode = () => {
   return new Flowglad({

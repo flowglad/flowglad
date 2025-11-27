@@ -1,17 +1,16 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { Event } from '@/db/schema/events'
-import { SupabaseInsertPayload } from '@/types'
-import { supabaseInsertPayloadSchema } from '@/db/supabase'
-import { eventsSelectSchema } from '@/db/schema/events'
 import { adminTransaction } from '@/db/adminTransaction'
+import { type Event, eventsSelectSchema } from '@/db/schema/events'
+import { supabaseInsertPayloadSchema } from '@/db/supabase'
 import {
   selectEventById,
   updateEvent,
 } from '@/db/tableMethods/eventMethods'
-import { keysToCamelCase } from '@/utils/core'
-import { sendSvixEvent } from '@/utils/svix'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import type { SupabaseInsertPayload } from '@/types'
+import { keysToCamelCase } from '@/utils/core'
 import { storeTelemetry } from '@/utils/redis'
+import { sendSvixEvent } from '@/utils/svix'
 
 const eventInsertSchema = supabaseInsertPayloadSchema(
   eventsSelectSchema

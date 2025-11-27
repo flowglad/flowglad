@@ -1,18 +1,18 @@
 import { notFound, redirect } from 'next/navigation'
+import CheckoutPage from '@/components/CheckoutPage'
+import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
 import { adminTransaction } from '@/db/adminTransaction'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectDiscountById } from '@/db/tableMethods/discountMethods'
+import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import {
   checkoutInfoSchema,
   selectPurchaseCheckoutParametersById,
 } from '@/db/tableMethods/purchaseMethods'
-import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
-import core from '@/utils/core'
-import { findOrCreateCheckoutSession } from '@/utils/checkoutSessionState'
-import CheckoutPage from '@/components/CheckoutPage'
-import { selectDiscountById } from '@/db/tableMethods/discountMethods'
-import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { CheckoutSessionType } from '@/types'
+import { findOrCreateCheckoutSession } from '@/utils/checkoutSessionState'
+import core from '@/utils/core'
+import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 
 const PayPurchasePage = async ({
   params,
@@ -73,7 +73,7 @@ const PayPurchasePage = async ({
     }
   )
 
-  let purchase = rawContextValues.purchase
+  const purchase = rawContextValues.purchase
   const checkoutSession = rawContextValues.checkoutSession
   if (
     !checkoutSession.stripePaymentIntentId &&

@@ -1,25 +1,25 @@
-import { router, protectedProcedure } from '@/server/trpc'
 import { z } from 'zod'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import {
   createProductFeatureInputSchema,
   productFeatureClientSelectSchema,
-  productFeaturesPaginatedSelectSchema,
   productFeaturesPaginatedListSchema,
+  productFeaturesPaginatedSelectSchema,
 } from '@/db/schema/productFeatures'
 import {
+  createOrRestoreProductFeature as createOrRestoreProductFeatureMethod,
+  expireProductFeaturesByFeatureId,
   selectProductFeatureById,
   selectProductFeaturesPaginated,
-  expireProductFeaturesByFeatureId,
-  createOrRestoreProductFeature as createOrRestoreProductFeatureMethod,
 } from '@/db/tableMethods/productFeatureMethods'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
+import { selectProductById } from '@/db/tableMethods/productMethods'
+import { idInputSchema } from '@/db/tableUtils'
+import { protectedProcedure, router } from '@/server/trpc'
 import {
   createPostOpenApiMeta,
   generateOpenApiMetas,
   RouteConfig,
 } from '@/utils/openapi'
-import { idInputSchema } from '@/db/tableUtils'
-import { selectProductById } from '@/db/tableMethods/productMethods'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'productFeature', // singular, camelCase

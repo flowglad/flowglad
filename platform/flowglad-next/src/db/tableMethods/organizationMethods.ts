@@ -1,23 +1,23 @@
+import { asc, eq } from 'drizzle-orm'
+import { memberships } from '@/db/schema/memberships'
 import {
-  Organization,
+  type Organization,
   organizations,
   organizationsInsertSchema,
   organizationsSelectSchema,
   organizationsUpdateSchema,
 } from '@/db/schema/organizations'
+import { users, usersSelectSchema } from '@/db/schema/users'
 import {
-  createUpsertFunction,
+  createBulkInsertOrDoNothingFunction,
+  createInsertFunction,
   createSelectById,
   createSelectFunction,
-  ORMMethodCreatorConfig,
-  createInsertFunction,
   createUpdateFunction,
-  createBulkInsertOrDoNothingFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { DbTransaction } from '../types'
-import { memberships } from '@/db/schema/memberships'
-import { users, usersSelectSchema } from '@/db/schema/users'
-import { asc, eq } from 'drizzle-orm'
+import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
   typeof organizations,

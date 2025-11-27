@@ -1,28 +1,28 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId,
-  updateCustomer,
-  selectCustomerAndCustomerTableRows,
-  setUserIdForCustomerRecords,
-  selectCustomerById,
-  insertCustomer,
-} from './customerMethods'
-import {
-  setupOrg,
   setupCustomer,
+  setupOrg,
+  setupPurchase,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { selectCustomers } from './customerMethods'
-import core from '@/utils/core'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
-  InferredCustomerStatus,
   Customer,
   customers,
+  InferredCustomerStatus,
 } from '@/db/schema/customers'
-import { setupPurchase } from '@/../seedDatabase'
-import { Organization } from '@/db/schema/organizations'
-import { User } from '@/db/schema/users'
+import type { Organization } from '@/db/schema/organizations'
+import type { User } from '@/db/schema/users'
+import core from '@/utils/core'
+import {
+  assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId,
+  insertCustomer,
+  selectCustomerAndCustomerTableRows,
+  selectCustomerById,
+  selectCustomers,
+  setUserIdForCustomerRecords,
+  updateCustomer,
+} from './customerMethods'
 
 describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId', () => {
   let targetEmail: string

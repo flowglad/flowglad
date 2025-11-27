@@ -16,11 +16,14 @@ To use a custom database URL, pass it as the second argument:
 NODE_ENV=production bunx tsx scripts/example.ts --skip-env-pull "postgresql://user:password@host:port/database"
 */
 
-import core from '@/utils/core'
 import { loadEnvConfig } from '@next/env'
 import { execSync } from 'child_process'
-import { PostgresJsDatabase, drizzle } from 'drizzle-orm/postgres-js'
+import {
+  drizzle,
+  type PostgresJsDatabase,
+} from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
+import core from '@/utils/core'
 
 function pullDevelopmentEnvVars() {
   execSync(`vercel env pull .env.local`, {

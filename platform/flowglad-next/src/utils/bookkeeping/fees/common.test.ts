@@ -1,43 +1,43 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  PriceType,
-  PaymentMethodType,
-  DiscountAmountType,
-  CountryCode,
-  CurrencyCode,
-  FeeCalculationType,
-  StripeConnectContractType,
-} from '@/types'
-import {
-  calculatePriceBaseAmount,
-  calculateDiscountAmount,
-  calculateInternationalFeePercentage,
-  calculatePaymentMethodFeeAmount,
-  calculateTotalFeeAmount,
-  calculateTotalDueAmount,
-  finalizeFeeCalculation,
-} from './common'
-import { subscriptionWithoutTrialDummyPurchase } from '@/stubs/purchaseStubs'
-import {
-  setupOrg,
   setupCustomer,
-  setupPayment,
   setupInvoice,
+  setupOrg,
+  setupPayment,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import {
+import type { Country } from '@/db/schema/countries'
+import type { Discount } from '@/db/schema/discounts'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type {
   BillingAddress,
   Organization,
 } from '@/db/schema/organizations'
-import { PaymentStatus } from '@/types'
-import core from '@/utils/core'
+import type { Price } from '@/db/schema/prices'
+import type { Purchase } from '@/db/schema/purchases'
+import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { Discount } from '@/db/schema/discounts'
-import { Price } from '@/db/schema/prices'
-import { Country } from '@/db/schema/countries'
-import { Purchase } from '@/db/schema/purchases'
+import { subscriptionWithoutTrialDummyPurchase } from '@/stubs/purchaseStubs'
+import {
+  CountryCode,
+  CurrencyCode,
+  DiscountAmountType,
+  FeeCalculationType,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+  StripeConnectContractType,
+} from '@/types'
+import core from '@/utils/core'
+import {
+  calculateDiscountAmount,
+  calculateInternationalFeePercentage,
+  calculatePaymentMethodFeeAmount,
+  calculatePriceBaseAmount,
+  calculateTotalDueAmount,
+  calculateTotalFeeAmount,
+  finalizeFeeCalculation,
+} from './common'
 
 // Price and Discount Utilities
 describe('calculatePriceBaseAmount', () => {

@@ -1,48 +1,48 @@
+import { and, eq } from 'drizzle-orm'
+import { z } from 'zod'
+import type { Customer } from '@/db/schema/customers'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  createPaginatedSelectFunction,
-  createCursorPaginatedSelectFunction,
-  ORMMethodCreatorConfig,
-  SelectConditions,
-  whereClauseFromObject,
-} from '@/db/tableUtils'
-import {
-  PricingModel,
+  type PricingModel,
   pricingModels,
   pricingModelsClientSelectSchema,
   pricingModelsInsertSchema,
   pricingModelsSelectSchema,
   pricingModelsUpdateSchema,
 } from '@/db/schema/pricingModels'
-import { DbTransaction } from '@/db/types'
-import { eq, and } from 'drizzle-orm'
+import {
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  type SelectConditions,
+  whereClauseFromObject,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import {
+  type Feature,
+  features,
+  featuresSelectSchema,
+} from '../schema/features'
+import type { PricingModelWithProductsAndUsageMeters } from '../schema/prices'
+import {
+  type ProductFeature,
+  productFeatures,
+} from '../schema/productFeatures'
 import { products } from '../schema/products'
+import {
+  type UsageMeter,
+  usageMeters,
+  usageMetersClientSelectSchema,
+} from '../schema/usageMeters'
 import {
   selectPricesAndProductsByProductWhere,
   updatePrice,
 } from './priceMethods'
-import { PricingModelWithProductsAndUsageMeters } from '../schema/prices'
-import { Customer } from '@/db/schema/customers'
-import {
-  UsageMeter,
-  usageMeters,
-  usageMetersClientSelectSchema,
-} from '../schema/usageMeters'
-import { selectProducts } from './productMethods'
-import { z } from 'zod'
-import {
-  ProductFeature,
-  productFeatures,
-} from '../schema/productFeatures'
-import {
-  Feature,
-  features,
-  featuresSelectSchema,
-} from '../schema/features'
 import { selectFeaturesByProductFeatureWhere } from './productFeatureMethods'
+import { selectProducts } from './productMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof pricingModels,

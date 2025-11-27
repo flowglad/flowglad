@@ -1,16 +1,16 @@
 import {
+  type Country,
   countries,
   countriesInsertSchema,
   countriesSelectSchema,
   countriesUpdateSchema,
-  Country,
 } from '@/db/schema/countries'
 import {
   createSelectById,
   createSelectFunction,
-  ORMMethodCreatorConfig,
+  type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { DbTransaction } from '@/db/types'
+import type { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<
   typeof countries,

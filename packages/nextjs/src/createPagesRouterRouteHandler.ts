@@ -1,10 +1,10 @@
 import {
-  FlowgladServer,
   createRequestHandler,
+  type FlowgladServer,
   type RequestHandlerOptions,
 } from '@flowglad/server'
-import { HTTPMethod } from '@flowglad/shared'
-import { NextApiRequest, NextApiResponse } from 'next'
+import type { HTTPMethod } from '@flowglad/shared'
+import type { NextApiRequest, NextApiResponse } from 'next'
 
 /**
  * Normalizes Next.js query parameters by:

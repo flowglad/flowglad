@@ -1,6 +1,6 @@
+import { ClipboardIcon } from 'lucide-react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { cn } from '@/lib/utils'
-import { ClipboardIcon } from 'lucide-react'
 
 const CopyableTextTableCell = ({
   copyText,

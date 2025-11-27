@@ -1,5 +1,11 @@
 'use client'
 
+import {
+  AlertCircle,
+  ArrowRight,
+  HelpCircle,
+  Home,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,12 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  AlertCircle,
-  Home,
-  HelpCircle,
-  ArrowRight,
-} from 'lucide-react'
 
 export default function BillingPortalRootPage() {
   const router = useRouter()

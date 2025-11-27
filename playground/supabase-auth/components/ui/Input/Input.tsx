@@ -1,23 +1,26 @@
-import React, { InputHTMLAttributes, ChangeEvent } from 'react';
-import cn from 'classnames';
+import cn from 'classnames'
+import React, {
+  type ChangeEvent,
+  type InputHTMLAttributes,
+} from 'react'
 
-import s from './Input.module.css';
+import s from './Input.module.css'
 
 interface Props extends Omit<InputHTMLAttributes<any>, 'onChange'> {
-  className?: string;
-  onChange: (value: string) => void;
+  className?: string
+  onChange: (value: string) => void
 }
 const Input = (props: Props) => {
-  const { className, children, onChange, ...rest } = props;
+  const { className, children, onChange, ...rest } = props
 
-  const rootClassName = cn(s.root, {}, className);
+  const rootClassName = cn(s.root, {}, className)
 
   const handleOnChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (onChange) {
-      onChange(e.target.value);
+      onChange(e.target.value)
     }
-    return null;
-  };
+    return null
+  }
 
   return (
     <label>
@@ -31,7 +34,7 @@ const Input = (props: Props) => {
         {...rest}
       />
     </label>
-  );
-};
+  )
+}
 
-export default Input;
+export default Input

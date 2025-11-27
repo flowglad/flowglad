@@ -1,7 +1,7 @@
-import { protectedProcedure } from '../trpc'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { z } from 'zod'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectProperNounsByQuery } from '@/db/tableMethods/properNounMethods'
+import { protectedProcedure } from '../trpc'
 
 export const getProperNouns = protectedProcedure
   .input(

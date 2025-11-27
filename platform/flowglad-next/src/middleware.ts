@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { getSessionCookie } from 'better-auth/cookies'
-import { getCustomerBillingPortalOrganizationId } from './utils/customerBillingPortalState'
-import { isPublicRoute } from './routing-logic/publicRoutes'
+import { type NextRequest, NextResponse } from 'next/server'
 import { middlewareLogic } from './routing-logic/middlewareLogic'
+import { isPublicRoute } from './routing-logic/publicRoutes'
+import { getCustomerBillingPortalOrganizationId } from './utils/customerBillingPortalState'
 
 export default async function middleware(req: NextRequest) {
   // Handle CORS for staging

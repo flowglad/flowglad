@@ -1,56 +1,59 @@
 import * as R from 'ramda'
 import { createDefaultPriceConfig } from '@/constants/defaultPlanConfig'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import type { Customer } from '@/db/schema/customers'
+import type { Event } from '@/db/schema/events'
+import type { Payment } from '@/db/schema/payments'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
 import {
   insertCustomer,
   selectCustomerById,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { safelyUpdateInvoiceStatus } from '@/db/tableMethods/invoiceMethods'
-import {
-  AuthenticatedTransactionParams,
-  DbTransaction,
-} from '@/db/types'
-import {
-  InvoiceStatus,
-  PaymentStatus,
-  PriceType,
-  PurchaseStatus,
-  IntervalUnit,
-  CurrencyCode,
-} from '@/types'
-import { createStripeCustomer } from './stripe'
-import { Purchase } from '@/db/schema/purchases'
+import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import {
+  insertPrice,
+  selectPriceProductAndOrganizationByPriceWhere,
+  selectPricesAndProductsByProductWhere,
+} from '@/db/tableMethods/priceMethods'
+import {
+  safelyInsertPricingModel,
+  selectDefaultPricingModel,
+  selectPricingModelById,
+} from '@/db/tableMethods/pricingModelMethods'
+import { insertProduct } from '@/db/tableMethods/productMethods'
 import {
   insertPurchase,
   selectPurchaseById,
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { Customer } from '@/db/schema/customers'
-import { selectPayments } from '@/db/tableMethods/paymentMethods'
-import { Payment } from '@/db/schema/payments'
-import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import {
-  selectDefaultPricingModel,
-  safelyInsertPricingModel,
-  selectPricingModelById,
-} from '@/db/tableMethods/pricingModelMethods'
-import { insertProduct } from '@/db/tableMethods/productMethods'
-import { insertPrice } from '@/db/tableMethods/priceMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type {
+  AuthenticatedTransactionParams,
+  DbTransaction,
+} from '@/db/types'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { Event } from '@/db/schema/events'
-import { FlowgladEventType, EventNoun } from '@/types'
+import {
+  type CurrencyCode,
+  EventNoun,
+  FlowgladEventType,
+  type IntervalUnit,
+  InvoiceStatus,
+  PaymentStatus,
+  PriceType,
+  PurchaseStatus,
+} from '@/types'
 import { constructCustomerCreatedEventHash } from '@/utils/eventHelpers'
-import { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
 import { createInitialInvoiceForPurchase } from './bookkeeping/invoices'
+import { createStripeCustomer } from './stripe'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
@@ -172,7 +175,7 @@ export const createOpenPurchase = async (
     transaction
   )
 
-  let stripePaymentIntentId: string | null = null
+  const stripePaymentIntentId: string | null = null
   const purchaseInsert: Purchase.Insert = {
     ...payload,
     organizationId: membershipsAndOrganization.organization.id,
@@ -398,7 +401,7 @@ export const createCustomerBookkeeping = async (
   // Use customer's organizationId to ensure consistency
   try {
     // Determine which pricing model to use
-    let pricingModelId = pricingModelToUse!.id
+    const pricingModelId = pricingModelToUse!.id
     // Get the default product for this pricing model
     const [product] = await selectPricesAndProductsByProductWhere(
       {

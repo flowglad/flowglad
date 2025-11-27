@@ -1,9 +1,12 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import { Webhook, editWebhookInputSchema } from '@/db/schema/webhooks'
-import WebhookFormFields from '@/components/forms/WebhookFormFields'
 import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
+import WebhookFormFields from '@/components/forms/WebhookFormFields'
+import {
+  editWebhookInputSchema,
+  type Webhook,
+} from '@/db/schema/webhooks'
 
 interface EditWebhookModalProps {
   isOpen: boolean

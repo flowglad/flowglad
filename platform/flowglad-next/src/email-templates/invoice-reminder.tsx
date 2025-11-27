@@ -1,19 +1,19 @@
-import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
 import * as React from 'react'
-import { Invoice } from '@/db/schema/invoices'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import core from '@/utils/core'
+import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
 import { EmailButton } from './components/EmailButton'
+import TestModeBanner from './components/TestBanner'
 import {
+  DetailItem,
+  DetailSection,
   EmailLayout,
   Header,
-  DetailSection,
-  DetailItem,
-  TotalSection,
   Paragraph,
   Signature,
+  TotalSection,
 } from './components/themed'
-import core from '@/utils/core'
-import TestModeBanner from './components/TestBanner'
 
 const baseUrl = process.env.VERCEL_URL || core.NEXT_PUBLIC_APP_URL
 

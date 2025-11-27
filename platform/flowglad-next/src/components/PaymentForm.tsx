@@ -1,42 +1,42 @@
 'use client'
 import {
+  AddressElement,
   LinkAuthenticationElement,
+  type LinkAuthenticationElementProps,
   PaymentElement,
   useElements,
   useStripe,
-  AddressElement,
-  LinkAuthenticationElementProps,
 } from '@stripe/react-stripe-js'
-import { FormEvent, useState, useEffect } from 'react'
-import { cn } from '@/lib/utils'
-import core from '@/utils/core'
+import type { StripeError } from '@stripe/stripe-js'
+import { LoaderCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { type FormEvent, useEffect, useState } from 'react'
+import { z } from 'zod'
+import { trpc } from '@/app/_trpc/client'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { trpc } from '@/app/_trpc/client'
-import { useRouter } from 'next/navigation'
+import { Switch } from '@/components/ui/switch'
+import {
+  type SubscriptionCheckoutDetails,
+  useCheckoutPageContext,
+} from '@/contexts/checkoutPageContext'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import { billingAddressSchema } from '@/db/schema/organizations'
+import { cn } from '@/lib/utils'
 import {
   CheckoutFlowType,
   CheckoutSessionStatus,
-  CurrencyCode,
-  PaymentMethodType,
+  type CurrencyCode,
+  type PaymentMethodType,
   PriceType,
 } from '@/types'
-import { LoaderCircle } from 'lucide-react'
+import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
+import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { TotalBillingDetails } from './checkout/total-billing-details'
-import { PoweredByFlowglad } from './powered-by-flowglad'
 import DiscountCodeInput from './DiscountCodeInput'
-import {
-  SubscriptionCheckoutDetails,
-  useCheckoutPageContext,
-} from '@/contexts/checkoutPageContext'
-import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
 import ErrorLabel from './ErrorLabel'
-import { StripeError } from '@stripe/stripe-js'
-import { z } from 'zod'
-import { Switch } from '@/components/ui/switch'
-import { billingAddressSchema } from '@/db/schema/organizations'
+import { PoweredByFlowglad } from './powered-by-flowglad'
 
 // Utility function to force reflow for Stripe iframes to prevent rendering issues
 const forceStripeElementsReflow = () => {

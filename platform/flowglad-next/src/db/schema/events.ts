@@ -1,35 +1,35 @@
+import { sql } from 'drizzle-orm'
 import {
+  integer,
   jsonb,
+  pgPolicy,
+  pgTable,
   text,
   timestamp,
-  pgTable,
-  pgPolicy,
 } from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 import {
   constructIndex,
+  constructUniqueIndex,
+  livemodePolicy,
+  merchantPolicy,
+  nullableStringForeignKey,
   ommittedColumnsForInsertSchema,
   pgEnumColumn,
-  constructUniqueIndex,
+  type SelectConditions,
   tableBase,
-  nullableStringForeignKey,
-  livemodePolicy,
-  SelectConditions,
-  merchantPolicy,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import {
-  FlowgladEventType,
   EventCategory,
-  EventRetentionPolicy,
   EventNoun,
+  EventRetentionPolicy,
+  FlowgladEventType,
 } from '@/types'
 import core from '@/utils/core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
-import { integer } from 'drizzle-orm/pg-core'
-import { sql } from 'drizzle-orm'
-import { organizations } from './organizations'
 import { buildSchemas } from '../createZodSchemas'
+import { organizations } from './organizations'
 
 const TABLE_NAME = 'events'
 

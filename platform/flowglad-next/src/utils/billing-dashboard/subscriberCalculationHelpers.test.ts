@@ -1,30 +1,29 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import {
+  addMonths,
+  endOfMonth,
+  startOfMonth,
+  subMonths,
+} from 'date-fns'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupCustomer,
+  setupOrg,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupSubscription,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   IntervalUnit,
-  SubscriptionStatus,
   RevenueChartIntervalUnit,
+  SubscriptionStatus,
 } from '@/types'
-
 import {
   calculateActiveSubscribersByMonth,
   calculateSubscriberBreakdown,
   getCurrentActiveSubscribers,
 } from './subscriberCalculationHelpers'
-import { adminTransaction } from '@/db/adminTransaction'
-import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
-  setupProduct,
-  setupPrice,
-} from '@/../seedDatabase'
-import {
-  startOfMonth,
-  endOfMonth,
-  addMonths,
-  subMonths,
-} from 'date-fns'
 
 describe('calculateActiveSubscribersByMonth', () => {
   it('should return zero counts when there are no subscriptions', async () => {

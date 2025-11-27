@@ -1,18 +1,18 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import {
-  FeeCalculation,
+  type FeeCalculation,
   feeCalculations,
   feeCalculationsInsertSchema,
   feeCalculationsSelectSchema,
   feeCalculationsUpdateSchema,
 } from '@/db/schema/feeCalculations'
-import { DbTransaction } from '@/db/types'
+import {
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<
   typeof feeCalculations,

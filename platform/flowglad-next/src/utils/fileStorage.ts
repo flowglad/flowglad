@@ -1,9 +1,9 @@
-import { DbTransaction } from '@/db/types'
+import type { File } from '@/db/schema/files'
+import { insertFile } from '@/db/tableMethods/fileMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import type { DbTransaction } from '@/db/types'
 import core from '@/utils/core'
 import { getHeadObject } from './cloudflare'
-import { File } from '@/db/schema/files'
-import { insertFile } from '@/db/tableMethods/fileMethods'
 
 export const safeObjectKeyToFileInsert = async (
   clientInsert: File.ClientInsert,

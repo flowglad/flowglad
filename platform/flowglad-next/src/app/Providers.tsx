@@ -1,13 +1,14 @@
 'use client'
-import posthog from 'posthog-js'
-import { PostHogProvider } from 'posthog-js/react'
-import type { AuthContextValues } from '../contexts/authContext'
-import AuthProvider from '../contexts/authContext'
-import TrpcProvider from '@/app/_trpc/Provider'
-import PostHogPageView from './PostHogPageview'
 // import FeaturebaseMessenger from './FeaturebaseMessenger'
 import { usePathname } from 'next/navigation'
+import posthog from 'posthog-js'
+import { PostHogProvider } from 'posthog-js/react'
+import TrpcProvider from '@/app/_trpc/Provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import type { AuthContextValues } from '../contexts/authContext'
+import AuthProvider from '../contexts/authContext'
+import PostHogPageView from './PostHogPageview'
+
 if (typeof window !== 'undefined') {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,

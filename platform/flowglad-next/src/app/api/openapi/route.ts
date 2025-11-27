@@ -1,6 +1,6 @@
-import { createFlowgladOpenApiDocument } from '@/server/swagger'
 import yaml from 'json-to-pretty-yaml'
 import { z } from 'zod'
+import { createFlowgladOpenApiDocument } from '@/server/swagger'
 
 const formatSchema = z.enum(['json', 'yaml', 'yml']).optional()
 

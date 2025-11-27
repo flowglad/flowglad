@@ -1,12 +1,12 @@
 'use client'
 
-import { cn } from '@/registry/lib/cn'
-import { Calendar, CreditCard, AlertCircle } from 'lucide-react'
-import { SubscriptionDetailsProps } from './types'
+import { AlertCircle, Calendar, CreditCard } from 'lucide-react'
 import { formatBillingInterval } from '@/registry/lib/billing-interval'
+import { cn } from '@/registry/lib/cn'
 import { formatCurrency } from '@/registry/lib/currency'
 import { formatDate } from '@/registry/lib/date'
 import { calculateTotalAmount } from '@/registry/lib/subscription-total'
+import type { SubscriptionDetailsProps } from './types'
 
 export function SubscriptionDetails({
   subscription,

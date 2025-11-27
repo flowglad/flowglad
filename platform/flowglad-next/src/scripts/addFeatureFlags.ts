@@ -10,13 +10,13 @@ Also, if JSON key already exists in feature flags it will be overwritten no matt
 overwrite is toggled or not
 */
 
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { isNil } from 'ramda'
 import {
   selectOrganizationById,
   updateOrganization,
 } from '@/db/tableMethods/organizationMethods'
-import { isNil } from 'ramda'
+import runScript from './scriptRunner'
 
 async function updateFeatureFlags(db: PostgresJsDatabase) {
   const args = process.argv.slice(2)

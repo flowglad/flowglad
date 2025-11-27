@@ -1,11 +1,11 @@
 'use client'
 
-import InternalPageContainer from '@/components/InternalPageContainer'
-import { PageHeader } from '@/components/ui/page-header'
-import { OrganizationMembersDataTable } from './data-table'
 import { useState } from 'react'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
+import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
+import { PageHeader } from '@/components/ui/page-header'
+import { OrganizationMembersDataTable } from './data-table'
 
 function TeammatesPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)

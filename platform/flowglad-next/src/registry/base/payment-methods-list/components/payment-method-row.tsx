@@ -1,15 +1,15 @@
+import { Check, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useState } from 'react'
-import { MoreHorizontal, Trash2, Check } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { CardBrandLogo } from './card-brand-logo'
 import type { PaymentMethodRowProps } from '../types'
+import { CardBrandLogo } from './card-brand-logo'
 
 export function PaymentMethodRow({
   paymentMethod,

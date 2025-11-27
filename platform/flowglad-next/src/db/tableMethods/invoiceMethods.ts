@@ -1,30 +1,30 @@
+import { and, count, desc, eq } from 'drizzle-orm'
 import * as R from 'ramda'
+import { z } from 'zod'
+import type { Customer } from '@/db/schema/customers'
+import { invoicesPaginatedTableRowDataSchema } from '@/db/schema/invoiceLineItems'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createUpsertFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createPaginatedSelectFunction,
-} from '@/db/tableUtils'
-import {
-  Invoice,
+  type Invoice,
   invoices,
   invoicesInsertSchema,
   invoicesSelectSchema,
   invoicesUpdateSchema,
 } from '@/db/schema/invoices'
-import { InvoiceStatus } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { and, eq, count, desc } from 'drizzle-orm'
-import { InvoiceLineItem } from '../schema/invoiceLineItems'
-import { z } from 'zod'
-import { createCursorPaginatedSelectFunction } from '@/db/tableUtils'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
-import { Customer } from '@/db/schema/customers'
-import { invoicesPaginatedTableRowDataSchema } from '@/db/schema/invoiceLineItems'
+import {
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import { InvoiceStatus } from '@/types'
+import type { InvoiceLineItem } from '../schema/invoiceLineItems'
 
 const config: ORMMethodCreatorConfig<
   typeof invoices,

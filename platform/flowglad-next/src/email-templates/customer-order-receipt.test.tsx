@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
-import { OrderReceiptEmail } from './customer-order-receipt'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
+import { OrderReceiptEmail } from './customer-order-receipt'
 
 describe('OrderReceiptEmail', () => {
   const mockProps = {

@@ -1,18 +1,18 @@
-'use client';
-import Button from '@/components/ui/Button';
-import { useBilling } from '@flowglad/nextjs';
+'use client'
+import { useBilling } from '@flowglad/nextjs'
+import Button from '@/components/ui/Button'
 
 const InnerPricingTable = () => {
-  const billing = useBilling();
+  const billing = useBilling()
   if (!billing.catalog) {
-    return null;
+    return null
   }
-  const { reload } = billing;
+  const { reload } = billing
   return (
     <>
       <Button onClick={reload}>Reload</Button>
     </>
-  );
-};
+  )
+}
 
-export default InnerPricingTable;
+export default InnerPricingTable

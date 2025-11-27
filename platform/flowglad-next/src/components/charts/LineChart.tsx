@@ -2,8 +2,9 @@
 
 'use client'
 
-import React from 'react'
 import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react'
+import React from 'react'
+import { mergeRefs } from 'react-merge-refs'
 import {
   CartesianGrid,
   Dot,
@@ -16,12 +17,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AxisDomain } from 'recharts/types/util/types'
-import { mergeRefs } from 'react-merge-refs'
+import type { AxisDomain } from 'recharts/types/util/types'
 
 import {
   AvailableChartColors,
-  AvailableChartColorsKeys,
+  type AvailableChartColorsKeys,
   constructCategoryColors,
   getColorClassName,
   getYAxisDomain,
@@ -54,6 +54,7 @@ const getCSSColorValue = (
 
   return colorMap[color as keyof typeof colorMap] || '#6b7280'
 }
+
 import { useOnWindowResize } from '@/app/hooks/useOnWindowResize'
 import { cn } from '@/lib/utils'
 

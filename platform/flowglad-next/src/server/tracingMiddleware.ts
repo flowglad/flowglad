@@ -1,9 +1,10 @@
 // trpc/tracingMiddleware.ts
+
+import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
 import { TRPCError } from '@trpc/server'
-import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api'
 import { logger } from '@/utils/logger'
-import { TRPCContext } from './trpcContext'
-import { FlowgladTRPC } from './coreTrpcObject'
+import type { FlowgladTRPC } from './coreTrpcObject'
+import type { TRPCContext } from './trpcContext'
 
 export function createTracingMiddleware() {
   const tracer = trace.getTracer('trpc-api')

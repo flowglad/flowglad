@@ -1,10 +1,10 @@
 import { adminTransaction } from '@/db/adminTransaction'
-import { PurchaseStatus } from '@/types'
-import PendingPostPurchaseScreen from './PendingPostPurchaseScreen'
-import { findPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import { selectPurchaseCheckoutParametersById } from '@/db/tableMethods/purchaseMethods'
-import PostPurchaseEmailConfirmationForm from './PostPurchaseEmailConfirmationForm'
+import { PurchaseStatus } from '@/types'
+import { findPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import AccessResourcesView from './AccessResourcesView'
+import PendingPostPurchaseScreen from './PendingPostPurchaseScreen'
+import PostPurchaseEmailConfirmationForm from './PostPurchaseEmailConfirmationForm'
 
 /**
  *

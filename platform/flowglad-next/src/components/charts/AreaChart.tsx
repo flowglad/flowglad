@@ -11,8 +11,9 @@
 
 'use client'
 
-import React from 'react'
 import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react'
+import React from 'react'
+import { mergeRefs } from 'react-merge-refs'
 import {
   Area,
   Dot,
@@ -25,19 +26,17 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AxisDomain } from 'recharts/types/util/types'
-import { mergeRefs } from 'react-merge-refs'
-
+import type { AxisDomain } from 'recharts/types/util/types'
+import { useOnWindowResize } from '@/app/hooks/useOnWindowResize'
+import { cn } from '@/lib/utils'
 import {
   AvailableChartColors,
-  AvailableChartColorsKeys,
+  type AvailableChartColorsKeys,
   constructCategoryColors,
   getColorClassName,
   getYAxisDomain,
   hasOnlyOneValueForKey,
 } from '@/utils/chartStyles'
-import { useOnWindowResize } from '@/app/hooks/useOnWindowResize'
-import { cn } from '@/lib/utils'
 
 // Add useContainerSize hook
 const useContainerSize = () => {

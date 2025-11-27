@@ -1,15 +1,15 @@
-import React from 'react'
+import type React from 'react'
 import { useFormContext } from 'react-hook-form'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { InviteUserToOrganizationInput } from '@/db/schema/memberships'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import type { InviteUserToOrganizationInput } from '@/db/schema/memberships'
 
 const InviteUserToOrganizationFormFields: React.FC = () => {
   const form = useFormContext<InviteUserToOrganizationInput>()

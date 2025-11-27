@@ -1,18 +1,18 @@
 'use client'
 
-import { useFormContext, Controller } from 'react-hook-form'
+import { Percent } from 'lucide-react'
+import { Controller, useFormContext } from 'react-hook-form'
+import StatusBadge from '@/components/StatusBadge'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
-  CreateDiscountFormSchema,
-  CreateDiscountInput,
-} from '@/db/schema/discounts'
-import { Input } from '@/components/ui/input'
-import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -20,17 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { DiscountAmountType, DiscountDuration } from '@/types'
-import StatusBadge from '@/components/StatusBadge'
 import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-
-import { Percent } from 'lucide-react'
-import { core } from '@/utils/core'
-import { CurrencyInput } from '@/components/ui/currency-input'
-import { isCurrencyZeroDecimal } from '@/utils/stripe'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import {
+  type CreateDiscountFormSchema,
+  CreateDiscountInput,
+} from '@/db/schema/discounts'
 import { currencyCharacter } from '@/registry/lib/currency'
+import { DiscountAmountType, DiscountDuration } from '@/types'
+import { core } from '@/utils/core'
+import { isCurrencyZeroDecimal } from '@/utils/stripe'
 
 export default function DiscountFormFields({
   edit = false,

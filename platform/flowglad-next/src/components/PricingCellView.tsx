@@ -1,5 +1,5 @@
+import type { Price } from '@/db/schema/prices'
 import { PriceType } from '@/types'
-import { Price } from '@/db/schema/prices'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 const PricingCellView = ({

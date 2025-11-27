@@ -1,30 +1,28 @@
 'use client'
+import { Clipboard, Ellipsis, Eye, Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Price } from '@/db/schema/prices'
-import { Clipboard, Ellipsis, Eye, Pencil } from 'lucide-react'
-import { Product } from '@/db/schema/products'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import EditPriceModal from '@/components/forms/EditPriceModal'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
-import { PageHeader } from '@/components/ui/page-header'
-import EditProductModal from '@/components/forms/EditProductModal'
-
-import { Plus } from 'lucide-react'
-import { useAuthenticatedContext } from '@/contexts/authContext'
 import DateRangeRevenueChart from '@/components/DateRangeRevenueChart'
-import { PricesDataTable } from './prices/data-table'
 import CreatePriceModal from '@/components/forms/CreatePriceModal'
+import EditPriceModal from '@/components/forms/EditPriceModal'
+import EditProductModal from '@/components/forms/EditProductModal'
+import InternalPageContainer from '@/components/InternalPageContainer'
 import MoreMenuTableCell from '@/components/MoreMenuTableCell'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
 import PopoverMenu, {
-  PopoverMenuItem,
+  type PopoverMenuItem,
 } from '@/components/PopoverMenu'
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import { PricesDataTable } from './prices/data-table'
 
 export type InternalProductDetailsPageProps = {
   product: Product.ClientRecord

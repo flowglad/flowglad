@@ -1,14 +1,14 @@
-import { boolean, text, pgTable, jsonb } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
 import { sql } from 'drizzle-orm'
+import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { organizations } from '@/db/schema/organizations'
 import {
-  tableBase,
-  notNullStringForeignKey,
   constructIndex,
   livemodePolicy,
   merchantPolicy,
+  notNullStringForeignKey,
+  tableBase,
 } from '@/db/tableUtils'
-import { organizations } from '@/db/schema/organizations'
 import { FlowgladEventType } from '@/types'
 import { buildSchemas } from '../createZodSchemas'
 

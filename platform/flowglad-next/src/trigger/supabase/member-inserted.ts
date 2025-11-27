@@ -1,9 +1,9 @@
-import { adminTransaction } from '@/db/adminTransaction'
-import { Membership } from '@/db/schema/memberships'
-import { selectUserById } from '@/db/tableMethods/userMethods'
-import { SupabaseInsertPayload } from '@/types'
-import { subscribeToNewsletter } from '@/utils/newsletter'
 import { logger, task } from '@trigger.dev/sdk'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Membership } from '@/db/schema/memberships'
+import { selectUserById } from '@/db/tableMethods/userMethods'
+import type { SupabaseInsertPayload } from '@/types'
+import { subscribeToNewsletter } from '@/utils/newsletter'
 
 export const memberInsertedTask = task({
   id: 'member-inserted',

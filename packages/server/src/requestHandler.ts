@@ -1,7 +1,7 @@
+import { FlowgladActionKey, type HTTPMethod } from '@flowglad/shared'
+import type { FlowgladServer } from './FlowgladServer'
 import { routeToHandlerMap } from './subrouteHandlers'
 import type { SubRouteHandler } from './subrouteHandlers/types'
-import { FlowgladServer } from './FlowgladServer'
-import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
 
 /**
  * Input for the request handler.

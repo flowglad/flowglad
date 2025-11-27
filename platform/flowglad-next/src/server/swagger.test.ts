@@ -1,10 +1,10 @@
-import { expect, describe, it, beforeEach } from 'vitest'
-import { createFlowgladOpenApiDocument } from './swagger'
-import type { OpenAPIV3Document } from './swagger'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   PRICE_ID_DESCRIPTION,
   PRICE_SLUG_DESCRIPTION,
 } from '@/db/schema/prices'
+import type { OpenAPIV3Document } from './swagger'
+import { createFlowgladOpenApiDocument } from './swagger'
 
 describe('Swagger Configuration', () => {
   const openApiDoc: OpenAPIV3Document =

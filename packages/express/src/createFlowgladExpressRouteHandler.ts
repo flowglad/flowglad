@@ -1,9 +1,9 @@
 import {
   createRequestHandler,
-  RequestHandlerOptions,
+  type RequestHandlerOptions,
 } from '@flowglad/server'
-import { Request, Response } from 'express'
-import { HTTPMethod } from '@flowglad/shared'
+import type { HTTPMethod } from '@flowglad/shared'
+import type { Request, Response } from 'express'
 
 export const createExpressRouteHandler = (
   options: RequestHandlerOptions

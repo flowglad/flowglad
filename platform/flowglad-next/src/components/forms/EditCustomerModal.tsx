@@ -1,9 +1,11 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import { editCustomerInputSchema } from '@/db/schema/customers'
 import { trpc } from '@/app/_trpc/client'
-import { Customer } from '@/db/schema/customers'
+import FormModal from '@/components/forms/FormModal'
+import {
+  type Customer,
+  editCustomerInputSchema,
+} from '@/db/schema/customers'
 import CustomerFormFields from './CustomerFormFields'
 
 interface EditCustomerModalProps {

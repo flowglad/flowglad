@@ -1,6 +1,6 @@
 import { logger, schedules } from '@trigger.dev/sdk'
-import { StandardLogger } from '@/types'
 import verifyApiContract from '@/api-contract/verify'
+import { StandardLogger } from '@/types'
 
 export const verifyApiContractTask = schedules.task({
   id: 'verify-api-contract',

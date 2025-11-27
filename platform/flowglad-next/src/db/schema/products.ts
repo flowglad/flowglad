@@ -1,33 +1,33 @@
+import { sql } from 'drizzle-orm'
 import {
-  pgTable,
-  text,
   boolean,
   jsonb,
+  pgTable,
+  text,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
+import { z } from 'zod'
+import { buildSchemas } from '@/db/createZodSchemas'
+import { organizations } from '@/db/schema/organizations'
 import {
   constructIndex,
-  newBaseZodSelectSchemaColumns,
-  tableBase,
-  notNullStringForeignKey,
-  createSupabaseWebhookSchema,
-  livemodePolicy,
-  ommittedColumnsForInsertSchema,
-  createPaginatedSelectSchema,
-  createPaginatedListQuerySchema,
-  nullableStringForeignKey,
   constructUniqueIndex,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantPolicy,
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  newBaseZodSelectSchemaColumns,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  ommittedColumnsForInsertSchema,
+  type SelectConditions,
+  tableBase,
 } from '@/db/tableUtils'
-import { organizations } from '@/db/schema/organizations'
-import { z } from 'zod'
-import { sql } from 'drizzle-orm'
 import { pricingModels } from './pricingModels'
-import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'products'
 

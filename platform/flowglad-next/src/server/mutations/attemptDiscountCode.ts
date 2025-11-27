@@ -1,16 +1,16 @@
 import * as R from 'ramda'
-import { publicProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/adminTransaction'
 import { attemptDiscountCodeInputSchema } from '@/db/schema/discounts'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import {
-  findCheckoutSession,
-  CheckoutSessionCookieNameParams,
-} from '@/utils/checkoutSessionState'
-import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
+import { publicProcedure } from '@/server/trpc'
 import { CheckoutSessionType } from '@/types'
+import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
+import {
+  type CheckoutSessionCookieNameParams,
+  findCheckoutSession,
+} from '@/utils/checkoutSessionState'
 
 export const attemptDiscountCode = publicProcedure
   .input(attemptDiscountCodeInputSchema)

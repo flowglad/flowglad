@@ -1,10 +1,10 @@
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import CheckoutNotValidPage from '@/components/CheckoutNotValidPage'
 import CheckoutPage from '@/components/CheckoutPage'
-import { checkoutInfoForPriceWhere } from '@/utils/checkoutHelpers'
-import { notFound } from 'next/navigation'
-import { Metadata } from 'next'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import { checkoutInfoForPriceWhere } from '@/utils/checkoutHelpers'
 
 interface PurchasePageProps {
   params: Promise<{

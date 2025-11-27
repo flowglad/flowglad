@@ -1,10 +1,10 @@
 import {
-  FlowgladServer,
   createRequestHandler,
+  type FlowgladServer,
   type RequestHandlerOptions,
 } from '@flowglad/server'
-import { HTTPMethod } from '@flowglad/shared'
-import { NextRequest, NextResponse } from 'next/server'
+import type { HTTPMethod } from '@flowglad/shared'
+import { type NextRequest, NextResponse } from 'next/server'
 
 export const createAppRouterRouteHandler = (
   flowgladServer: FlowgladServer,

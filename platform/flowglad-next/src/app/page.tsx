@@ -1,12 +1,12 @@
+import { redirect } from 'next/navigation'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectMembershipAndOrganizations,
-  updateMembership,
   unfocusMembershipsForUser,
+  updateMembership,
 } from '@/db/tableMethods/membershipMethods'
 import { getSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
-import { redirect } from 'next/navigation'
 
 export default async function Home() {
   const session = await getSession()

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { SubscriptionCard } from './subscription-card'
-import { Subscription } from './types'
+import type { Subscription } from './types'
 
 const mockSubscriptions: Record<string, Subscription> = {
   active: {

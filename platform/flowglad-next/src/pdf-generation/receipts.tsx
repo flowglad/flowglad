@@ -1,14 +1,14 @@
-import React from 'react'
-import { Container, Head, Body, Html } from '@react-email/components'
+import { Body, Container, Head, Html } from '@react-email/components'
+import type React from 'react'
 import {
-  DocumentHeader,
-  DocumentDetails,
   BillingInfo,
-  PaymentInfo,
-  InvoiceLineItems,
-  InvoiceTotals,
+  DocumentDetails,
+  DocumentHeader,
   InvoiceFooter,
-  InvoiceTemplateProps,
+  InvoiceLineItems,
+  type InvoiceTemplateProps,
+  InvoiceTotals,
+  PaymentInfo,
 } from '@/pdf-generation/invoices'
 import { calculateInvoiceTotalsRaw } from '@/utils/discountHelpers'
 

@@ -1,4 +1,4 @@
-import { PriceType, IntervalUnit } from '@/types'
+import { IntervalUnit, PriceType } from '@/types'
 
 export const createDefaultProductConfig = () => ({
   name: 'Free Plan',

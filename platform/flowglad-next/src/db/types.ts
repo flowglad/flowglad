@@ -1,7 +1,10 @@
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+
 export type { PgTable, PgTransaction } from 'drizzle-orm/pg-core'
-import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
+
 import type { ColumnBaseConfig, SQLWrapper } from 'drizzle-orm'
+import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
+
 export type { SQLWrapper } from 'drizzle-orm'
 
 export type DbTransaction = Parameters<

@@ -1,15 +1,13 @@
-import {
-  confirmPaymentIntent,
-  dateFromStripeTimestamp,
-} from './stripe'
+import Stripe from 'stripe'
+import type { Payment } from '@/db/schema/payments'
 import {
   insertPayment,
   safelyUpdatePaymentForRefund,
-  selectPayments,
   selectPaymentById,
+  selectPayments,
 } from '@/db/tableMethods/paymentMethods'
+import type { DbTransaction } from '@/db/types'
 import { PaymentStatus } from '@/types'
-import { DbTransaction } from '@/db/types'
 import {
   getPaymentIntent,
   getStripeCharge,
@@ -17,9 +15,11 @@ import {
   refundPayment,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
-import Stripe from 'stripe'
-import { Payment } from '@/db/schema/payments'
 import { chargeStatusToPaymentStatus } from './bookkeeping/processPaymentIntentStatusUpdated'
+import {
+  confirmPaymentIntent,
+  dateFromStripeTimestamp,
+} from './stripe'
 
 export const refundPaymentTransaction = async (
   { id, partialAmount }: { id: string; partialAmount: number | null },

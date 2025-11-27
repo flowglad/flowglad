@@ -1,8 +1,8 @@
 import {
+  boolean,
   pgTable,
   text,
   timestamp,
-  boolean,
 } from 'drizzle-orm/pg-core'
 
 export const user = pgTable('better_auth_user', {

@@ -1,8 +1,8 @@
-import axios from 'axios'
-import core from './core'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { PutObjectCommand, S3 } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import axios from 'axios'
 import { createHmac } from 'crypto'
+import core from './core'
 
 const cloudflareAccountID = core.envVariable('CLOUDFLARE_ACCOUNT_ID')
 const cloudflareAccessKeyID = core.envVariable(

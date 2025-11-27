@@ -1,21 +1,20 @@
 'use client'
 
-import { useFormContext, Controller } from 'react-hook-form'
-import { CreateWebhookInput } from '@/db/schema/webhooks'
-import { Input } from '@/components/ui/input'
+import { Controller, useFormContext } from 'react-hook-form'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { FlowgladEventType } from '@/types'
-import MultiSelect, { Option } from './MultiSelect'
-
-import StatusBadge from '../StatusBadge'
-import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import type { CreateWebhookInput } from '@/db/schema/webhooks'
+import { FlowgladEventType } from '@/types'
+import StatusBadge from '../StatusBadge'
+import MultiSelect, { type Option } from './MultiSelect'
 
 const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
   const form = useFormContext<CreateWebhookInput>()

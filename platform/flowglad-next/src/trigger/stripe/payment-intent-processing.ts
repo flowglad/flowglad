@@ -1,10 +1,10 @@
+import { logger, task } from '@trigger.dev/sdk'
+import type Stripe from 'stripe'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectPayments,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
-import { adminTransaction } from '@/db/adminTransaction'
-import { logger, task } from '@trigger.dev/sdk'
-import Stripe from 'stripe'
 import { PaymentStatus } from '@/types'
 
 export const stripePaymentIntentProcessingTask = task({

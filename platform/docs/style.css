@@ -23,24 +23,26 @@
 
 /* ABC Arizona - Heading Font */
 @font-face {
-  font-family: 'ABC Arizona';
-  src: url('/fonts/abc-arizona/ABCArizona-Regular.woff2') format('woff2');
+  font-family: "ABC Arizona";
+  src: url("/fonts/abc-arizona/ABCArizona-Regular.woff2")
+    format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'ABC Arizona';
-  src: url('/fonts/abc-arizona/ABCArizona-Medium.woff2') format('woff2');
+  font-family: "ABC Arizona";
+  src: url("/fonts/abc-arizona/ABCArizona-Medium.woff2")
+    format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'ABC Arizona';
-  src: url('/fonts/abc-arizona/ABCArizona-Bold.woff2') format('woff2');
+  font-family: "ABC Arizona";
+  src: url("/fonts/abc-arizona/ABCArizona-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -48,8 +50,8 @@
 
 /* SF Pro - Body Font (Variable Font with all weights) */
 @font-face {
-  font-family: 'SF Pro';
-  src: url('/fonts/sf-pro/SF-Pro.woff2') format('woff2');
+  font-family: "SF Pro";
+  src: url("/fonts/sf-pro/SF-Pro.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -57,8 +59,9 @@
 
 /* Berkeley Mono - Code Font (Variable Font with all weights) */
 @font-face {
-  font-family: 'Berkeley Mono';
-  src: url('/fonts/berkeley-mono/Berkeley Mono Variable.woff2') format('woff2');
+  font-family: "Berkeley Mono";
+  src: url("/fonts/berkeley-mono/Berkeley Mono Variable.woff2")
+    format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -70,34 +73,34 @@
 
 :root {
   /* Brand Colors */
-  --color-primary: #DD7D29;
-  --color-primary-light: #FFC898;
-  --color-primary-dark: #BA702E;
-  
+  --color-primary: #dd7d29;
+  --color-primary-light: #ffc898;
+  --color-primary-dark: #ba702e;
+
   /* Text Colors (theme-aware) */
   --text-primary: #141312;
   --text-secondary: #656359;
-  
+
   /* Background Colors (theme-aware) */
-  --bg-page: #FBFAF4;
-  --bg-card: #FFFFFF;
-  --bg-code-container: #F1F0E9;
-  --bg-code-content: #FFFFFF;
-  
+  --bg-page: #fbfaf4;
+  --bg-card: #ffffff;
+  --bg-code-container: #f1f0e9;
+  --bg-code-content: #ffffff;
+
   /* Border Colors (theme-aware) */
-  --border-color: #E6E2E1;
+  --border-color: #e6e2e1;
   --border-code: rgba(0, 0, 0, 0.1);
-  
+
   /* Button Colors (theme-aware) */
-  --btn-primary-bg: #2D2A28;
-  --btn-primary-text: #F1EEE0;
-  
+  --btn-primary-bg: #2d2a28;
+  --btn-primary-text: #f1eee0;
+
   /* Border Radius */
   --radius-sm: 3px;
   --radius-md: 4px;
   --radius-lg: 6px;
   --radius-xl: 8px;
-  
+
   /* Opacity values for rgba colors */
   --opacity-border: 0.1;
   --opacity-callout-border-light: 0.2;
@@ -107,46 +110,46 @@
   --opacity-mermaid-bg-light: 0.1;
   --opacity-mermaid-bg-dark: 0.15;
   --opacity-hover: 0.9;
-  
+
   /* Code Syntax Colors (theme-aware) */
-  --syntax-keyword: #1F2328;
+  --syntax-keyword: #1f2328;
   --syntax-function: var(--color-primary);
-  --syntax-string: #0969DA;
-  --syntax-property: #8250DF;
-  --syntax-tag: #1A7F37;
+  --syntax-string: #0969da;
+  --syntax-property: #8250df;
+  --syntax-tag: #1a7f37;
   --syntax-comment: var(--text-secondary);
-  --syntax-base: #E8E6E3;
+  --syntax-base: #e8e6e3;
 }
 
 /* Dark mode variable overrides */
 .dark,
 html.dark {
   /* Text Colors - Dark Mode */
-  --text-primary: #FBFAF4;
-  --text-secondary: #CCC2A9;
-  
+  --text-primary: #fbfaf4;
+  --text-secondary: #ccc2a9;
+
   /* Background Colors - Dark Mode */
-  --bg-page: #2D2A28;
-  --bg-card: #3F3935;
-  --bg-code-container: #45403D;
-  --bg-code-content: #3F3935;
-  
+  --bg-page: #2d2a28;
+  --bg-card: #3f3935;
+  --bg-code-container: #45403d;
+  --bg-code-content: #3f3935;
+
   /* Border Colors - Dark Mode */
   --border-color: rgba(255, 255, 255, 0.1);
   --border-code: rgba(255, 255, 255, 0.1);
-  
+
   /* Button Colors - Dark Mode */
-  --btn-primary-bg: #F1EEE0;
-  --btn-primary-text: #2D2A28;
-  
+  --btn-primary-bg: #f1eee0;
+  --btn-primary-text: #2d2a28;
+
   /* Code Syntax Colors - Dark Mode */
-  --syntax-keyword: #E8E6E3;
+  --syntax-keyword: #e8e6e3;
   --syntax-function: var(--color-primary-light);
-  --syntax-string: #79C0FF;
-  --syntax-property: #D2A8FF;
-  --syntax-tag: #7EE787;
+  --syntax-string: #79c0ff;
+  --syntax-property: #d2a8ff;
+  --syntax-tag: #7ee787;
   --syntax-comment: var(--text-secondary);
-  --syntax-base: #E8E6E3;
+  --syntax-base: #e8e6e3;
 }
 
 /* ========================================
@@ -165,21 +168,26 @@ body,
 #navbar,
 .card p,
 .callout p {
-  font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+  font-family:
+    "SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+    "Helvetica Neue", sans-serif !important;
 }
 
 /* Apply ABC Arizona to ALL headings with medium weight (EXCEPT card titles) */
-h1:not(.card h1):not(.card h2):not(.card h3):not([data-component-part="card-title"]), 
-h2:not(.card h2):not([data-component-part="card-title"]), 
-h3:not(.card h3):not([data-component-part="card-title"]), 
-h4:not(.card h4):not([data-component-part="card-title"]), 
-h5:not(.card h5):not([data-component-part="card-title"]), 
+h1:not(.card h1):not(.card h2):not(.card h3):not(
+    [data-component-part="card-title"]
+  ),
+h2:not(.card h2):not([data-component-part="card-title"]),
+h3:not(.card h3):not([data-component-part="card-title"]),
+h4:not(.card h4):not([data-component-part="card-title"]),
+h5:not(.card h5):not([data-component-part="card-title"]),
 h6:not(.card h6):not([data-component-part="card-title"]),
-h1:not(.card h1) span, 
-h2:not(.card h2) span, 
-h3:not(.card h3) span, 
-h4:not(.card h4) span, 
-h5:not(.card h5) span, 
+h1:not(.card h1) span,
+h2:not(.card h2) span,
+h3:not(.card h3) span,
+h4:not(.card h4) span,
+h5:not(.card h5) span,
 h6:not(.card h6) span,
 #content-area h1:not([data-component-part="card-title"]),
 #content-area h2:not([data-component-part="card-title"]),
@@ -246,7 +254,8 @@ h6:not(.card h6) span,
 .nav-tabs-item h1 span,
 .nav-tabs-item h2 span,
 .nav-tabs-item h3 span {
-  font-family: 'ABC Arizona', 'Georgia', 'Times New Roman', 'Times', serif !important;
+  font-family:
+    "ABC Arizona", "Georgia", "Times New Roman", "Times", serif !important;
   font-weight: 500 !important;
   letter-spacing: normal !important;
 }
@@ -266,14 +275,18 @@ h6:not(.card h6) span,
 .card h6 span,
 [data-component-part="card-title"],
 [data-component-part="card-title"] span {
-  font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+  font-family:
+    "SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    sans-serif !important;
   font-weight: 600 !important;
   letter-spacing: normal !important;
 }
 
 /* Eyebrow - special label style */
 .eyebrow {
-  font-family: 'Berkeley Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace !important;
+  font-family:
+    "Berkeley Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Code",
+    monospace !important;
   font-weight: 450 !important;
   font-size: 12px !important;
 }
@@ -289,7 +302,9 @@ h6:not(.card h6) span,
 #sidebar-content h6:not(a):not(button),
 .sidebar-group h5:not(a):not(button),
 .sidebar-group h6:not(a):not(button) {
-  font-family: 'Berkeley Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace !important;
+  font-family:
+    "Berkeley Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Code",
+    monospace !important;
   font-weight: 450 !important;
   font-size: 0.875rem !important; /* text-sm */
 }
@@ -345,7 +360,10 @@ article code,
 article pre,
 section code,
 section pre {
-  font-family: 'Berkeley Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', 'Roboto Mono', 'Droid Sans Mono', 'Source Code Pro', 'Courier New', monospace !important;
+  font-family:
+    "Berkeley Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Code",
+    "Fira Mono", "Roboto Mono", "Droid Sans Mono", "Source Code Pro",
+    "Courier New", monospace !important;
 }
 
 /* ========================================
@@ -357,11 +375,11 @@ section pre {
 /* Primary text - scoped to content area */
 #content-area .text-gray-900,
 #content-area .text-gray-800,
-#content-area h1, 
-#content-area h2, 
-#content-area h3, 
-#content-area h4, 
-#content-area h5, 
+#content-area h1,
+#content-area h2,
+#content-area h3,
+#content-area h4,
+#content-area h5,
 #content-area h6,
 #content-area .font-semibold.text-gray-900,
 #content-area .font-semibold.text-gray-800,
@@ -461,28 +479,48 @@ nav li button,
 [class*="border-sky"],
 .border-sky-500\/20,
 .border-sky-500\/30 {
-  border-color: rgba(221, 125, 41, var(--opacity-callout-border-light)) !important;
+  border-color: rgba(
+    221,
+    125,
+    41,
+    var(--opacity-callout-border-light)
+  ) !important;
 }
 
 .dark [class*="border-sky"],
 .dark .border-sky-500\/30,
 html.dark [class*="border-sky"],
 html.dark .border-sky-500\/30 {
-  border-color: rgba(186, 112, 46, var(--opacity-callout-border-dark)) !important;
+  border-color: rgba(
+    186,
+    112,
+    46,
+    var(--opacity-callout-border-dark)
+  ) !important;
 }
 
 /* Callout backgrounds */
 [class*="bg-sky"],
 .bg-sky-50,
 .bg-sky-50\/50 {
-  background-color: rgba(221, 125, 41, var(--opacity-callout-bg-light)) !important;
+  background-color: rgba(
+    221,
+    125,
+    41,
+    var(--opacity-callout-bg-light)
+  ) !important;
 }
 
 .dark [class*="bg-sky"],
 .dark .bg-sky-500\/10,
 html.dark [class*="bg-sky"],
 html.dark .bg-sky-500\/10 {
-  background-color: rgba(186, 112, 46, var(--opacity-callout-bg-dark)) !important;
+  background-color: rgba(
+    186,
+    112,
+    46,
+    var(--opacity-callout-bg-dark)
+  ) !important;
 }
 
 /* Callout text colors */
@@ -532,10 +570,13 @@ a.card svg[style*="background-color"] {
 }
 
 /* Dark mode card icons - maintain proper contrast */
-.dark [data-component-part="card-icon"] svg[style*="background-color"],
+.dark [data-component-part="card-icon"]
+  svg[style*="background-color"],
 .dark .card svg.bg-primary[style*="background-color"],
 .dark .card svg[class*="bg-primary"][style*="background-color"],
-html.dark [data-component-part="card-icon"] svg[style*="background-color"],
+html.dark
+  [data-component-part="card-icon"]
+  svg[style*="background-color"],
 html.dark .card svg.bg-primary[style*="background-color"],
 html.dark .card svg[class*="bg-primary"][style*="background-color"] {
   background-color: var(--text-primary) !important;
@@ -621,7 +662,9 @@ pre code span[style*="color: #0A3069"] {
 /* Properties and variables */
 pre code span[style*="color: rgb(5, 80, 174)"],
 pre code span[style*="color: #0550AE"],
-pre code span[style*="color: rgb(31, 35, 40)"][style*="--shiki-dark: #9CDCFE"] {
+pre
+  code
+  span[style*="color: rgb(31, 35, 40)"][style*="--shiki-dark: #9CDCFE"] {
   color: var(--syntax-property) !important;
 }
 
@@ -819,8 +862,11 @@ html.dark [data-component-part="tab-button"][data-active="false"] * {
 
 .dark [data-component-part="tab-button"][data-active="false"]:hover,
 .dark [data-component-part="tab-button"][data-active="false"]:hover *,
-html.dark [data-component-part="tab-button"][data-active="false"]:hover,
-html.dark [data-component-part="tab-button"][data-active="false"]:hover * {
+html.dark
+  [data-component-part="tab-button"][data-active="false"]:hover,
+html.dark
+  [data-component-part="tab-button"][data-active="false"]:hover
+  * {
   color: var(--color-primary-light) !important;
 }
 
@@ -1101,20 +1147,20 @@ div.fixed.inset-0.bg-background-dark + div,
 div.fixed.inset-0.backdrop-blur-sm + div,
 div.fixed.inset-0.backdrop-blur-sm ~ div,
 /* Target dialog roles */
-[role="dialog"],
+  [role="dialog"],
 [role="alertdialog"],
 [role="dialog"][aria-modal="true"],
 div[role="dialog"],
 /* Target modal wrappers */
-div:has(> [role="dialog"]),
+  div:has(> [role="dialog"]),
 div:has(> input[type="search"]),
 div:has(> #search-bar-entry),
 /* Target common modal container patterns */
-div[class*="flex"][class*="justify-center"],
+  div[class*="flex"][class*="justify-center"],
 div[class*="fixed"][class*="z-50"],
 div.fixed.z-50,
 /* Target Radix UI dialog components */
-[data-radix-dialog-content],
+  [data-radix-dialog-content],
 [data-radix-popper-content-wrapper],
 [data-dialog-content],
 /* Override Tailwind rounded classes on modal containers */
@@ -1123,7 +1169,7 @@ div.fixed ~ div.rounded-xl,
 div.fixed ~ div.rounded-2xl,
 div.fixed ~ div[class*="rounded-"],
 /* Target containers with overflow hidden (common in modals) */
-div[class*="overflow-hidden"][class*="bg-"],
+  div[class*="overflow-hidden"][class*="bg-"],
 /* Broad selector for divs near backdrop */
 div[class*="backdrop"] ~ div {
   border-radius: var(--radius-lg) !important;
@@ -1221,7 +1267,12 @@ html.dark #page-context-menu > button:last-child:hover {
 .mermaid .node ellipse,
 .mermaid .node polygon,
 .mermaid .node path {
-  fill: rgba(221, 125, 41, var(--opacity-mermaid-bg-light)) !important;
+  fill: rgba(
+    221,
+    125,
+    41,
+    var(--opacity-mermaid-bg-light)
+  ) !important;
   stroke: var(--color-primary) !important;
   stroke-width: 1px !important;
   rx: var(--radius-md) !important;

@@ -1,13 +1,16 @@
 'use client'
 import { useState } from 'react'
-import { CreateProductModal } from '@/components/forms/CreateProductModal'
-import { ProductWithPrices } from '@/db/schema/prices'
-import { ProductsDataTable, ProductsTableFilters } from './data-table'
 import { trpc } from '@/app/_trpc/client'
-import { PricingModel } from '@/db/schema/pricingModels'
+import { CreateProductModal } from '@/components/forms/CreateProductModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
+import type { ProductWithPrices } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import {
+  ProductsDataTable,
+  type ProductsTableFilters,
+} from './data-table'
 
 export enum FocusedTab {
   All = 'all',

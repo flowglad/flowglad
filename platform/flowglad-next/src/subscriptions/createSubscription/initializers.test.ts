@@ -1,25 +1,25 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  setupOrg,
   setupCustomer,
+  setupOrg,
   setupPaymentMethod,
-  setupUsageMeter,
   setupPrice,
   setupProduct,
+  setupUsageMeter,
 } from '@/../seedDatabase'
-import { insertSubscriptionAndItems } from './initializers'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
 import {
-  IntervalUnit,
-  SubscriptionStatus,
-  PriceType,
   CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
 } from '@/types'
-import { Price } from '@/db/schema/prices'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Customer } from '@/db/schema/customers'
-import { PricingModel } from '@/db/schema/pricingModels'
+import { insertSubscriptionAndItems } from './initializers'
 
 describe('insertSubscriptionAndItems', () => {
   let organization: Organization.Record

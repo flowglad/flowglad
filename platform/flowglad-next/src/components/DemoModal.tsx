@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useForm } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -10,14 +11,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
+  FormControl,
   FormField,
   FormItem,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 
 interface FormData {
   message: string

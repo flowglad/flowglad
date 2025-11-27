@@ -1,42 +1,41 @@
-import { router } from '../trpc'
+import { TRPCError } from '@trpc/server'
+import { z } from 'zod'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   bulkInsertUsageEventsSchema,
-  usageEventPaginatedSelectSchema,
+  type UsageEvent,
   usageEventPaginatedListSchema,
+  usageEventPaginatedSelectSchema,
+  usageEventsClientSelectSchema,
   usageEventsPaginatedTableRowInputSchema,
   usageEventsPaginatedTableRowOutputSchema,
-  UsageEvent,
 } from '@/db/schema/usageEvents'
+import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
+import {
+  selectPriceBySlugAndCustomerId,
+  selectPrices,
+} from '@/db/tableMethods/priceMethods'
+import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import {
   bulkInsertOrDoNothingUsageEventsByTransactionId,
   selectUsageEventById,
   selectUsageEventsPaginated,
   selectUsageEventsTableRowData,
 } from '@/db/tableMethods/usageEventMethods'
-import { generateOpenApiMetas } from '@/utils/openapi'
-import { usageEventsClientSelectSchema } from '@/db/schema/usageEvents'
-
-import { protectedProcedure } from '@/server/trpc'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedTransaction,
-  authenticatedProcedureTransaction,
-} from '@/db/authenticatedTransaction'
 import { idInputSchema } from '@/db/tableUtils'
-import { z } from 'zod'
-import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
-import {
-  selectPrices,
-  selectPriceBySlugAndCustomerId,
-} from '@/db/tableMethods/priceMethods'
+import { protectedProcedure } from '@/server/trpc'
 import { PriceType } from '@/types'
-import { TRPCError } from '@trpc/server'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import {
-  ingestAndProcessUsageEvent,
   createUsageEventWithSlugSchema,
+  ingestAndProcessUsageEvent,
   resolveUsageEventInput,
 } from '@/utils/usage/usageEventHelpers'
+import { router } from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageEvent',

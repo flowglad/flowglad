@@ -1,28 +1,33 @@
-'use client';
+'use client'
 
-import Button from '@/components/ui/Button';
-import React from 'react';
-import Link from 'next/link';
-import { signUp } from '@/utils/auth-helpers/server';
-import { handleRequest } from '@/utils/auth-helpers/client';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import type React from 'react'
+import { useState } from 'react'
+import Button from '@/components/ui/Button'
+import { handleRequest } from '@/utils/auth-helpers/client'
+import { signUp } from '@/utils/auth-helpers/server'
 
 // Define prop type with allowEmail boolean
 interface SignUpProps {
-  allowEmail: boolean;
-  redirectMethod: string;
+  allowEmail: boolean
+  redirectMethod: string
 }
 
-export default function SignUp({ allowEmail, redirectMethod }: SignUpProps) {
-  const router = redirectMethod === 'client' ? useRouter() : null;
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function SignUp({
+  allowEmail,
+  redirectMethod,
+}: SignUpProps) {
+  const router = redirectMethod === 'client' ? useRouter() : null
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    setIsSubmitting(true); // Disable the button while the request is being handled
-    await handleRequest(e, signUp, router);
-    setIsSubmitting(false);
-  };
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    setIsSubmitting(true) // Disable the button while the request is being handled
+    await handleRequest(e, signUp, router)
+    setIsSubmitting(false)
+  }
 
   return (
     <div className="my-8">
@@ -66,17 +71,23 @@ export default function SignUp({ allowEmail, redirectMethod }: SignUpProps) {
       </form>
       <p>Already have an account?</p>
       <p>
-        <Link href="/signin/password_signin" className="font-light text-sm">
+        <Link
+          href="/signin/password_signin"
+          className="font-light text-sm"
+        >
           Sign in with email and password
         </Link>
       </p>
       {allowEmail && (
         <p>
-          <Link href="/signin/email_signin" className="font-light text-sm">
+          <Link
+            href="/signin/email_signin"
+            className="font-light text-sm"
+          >
             Sign in via magic link
           </Link>
         </p>
       )}
     </div>
-  );
+  )
 }

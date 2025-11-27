@@ -1,4 +1,4 @@
-import { LoopsClient, APIError } from 'loops'
+import { APIError, LoopsClient } from 'loops'
 import core from './core'
 
 const loops = () => new LoopsClient(core.envVariable('LOOPS_API_KEY'))

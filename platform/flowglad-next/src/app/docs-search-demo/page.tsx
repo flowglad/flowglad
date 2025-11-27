@@ -1,5 +1,5 @@
-import core from '@/utils/core'
 import { notFound } from 'next/navigation'
+import core from '@/utils/core'
 import InternalDocsSearchDemoPage from './InternalDocsSearchDemoPage'
 
 const DocsSearchDemoPage = () => {

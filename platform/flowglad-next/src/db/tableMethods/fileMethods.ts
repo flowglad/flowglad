@@ -1,18 +1,18 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createUpsertFunction,
-  createDeleteFunction,
-} from '@/db/tableUtils'
-import {
   files,
   filesInsertSchema,
   filesSelectSchema,
   filesUpdateSchema,
 } from '@/db/schema/files'
+import {
+  createDeleteFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
 
 const config: ORMMethodCreatorConfig<
   typeof files,

@@ -1,16 +1,16 @@
-import Placeholder from '@tiptap/extension-placeholder'
 import { Extension } from '@tiptap/core'
 import Mention from '@tiptap/extension-mention'
+import Placeholder from '@tiptap/extension-placeholder'
 import {
   EditorContent,
   mergeAttributes,
   useEditor,
 } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import mentionSuggestions from './mentionSuggestions'
-import ErrorLabel from '../ErrorLabel'
 import { useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import ErrorLabel from '../ErrorLabel'
+import mentionSuggestions from './mentionSuggestions'
 
 const RichEditorInput = ({
   onChange,
@@ -57,7 +57,6 @@ const RichEditorInput = ({
 
   const editor = useEditor({
     extensions: [
-      // @ts-ignore - type mismatch
       CustomEnterHandling.configure(),
       StarterKit.configure(),
       Placeholder.configure({

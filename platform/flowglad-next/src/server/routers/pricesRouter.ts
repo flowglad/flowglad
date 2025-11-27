@@ -1,41 +1,40 @@
-import { router } from '@/server/trpc'
-import { protectedProcedure } from '@/server/trpc'
+import { TRPCError } from '@trpc/server'
+import { z } from 'zod'
 import {
-  authenticatedTransaction,
   authenticatedProcedureTransaction,
+  authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
-import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
 import {
+  createPriceSchema,
   editPriceSchema,
   pricesClientSelectSchema,
   pricesPaginatedListSchema,
   pricesPaginatedSelectSchema,
   usagePriceClientSelectSchema,
 } from '@/db/schema/prices'
-import { createPriceSchema } from '@/db/schema/prices'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   insertPrice,
+  pricesTableRowOutputSchema,
   safelyInsertPrice,
   safelyUpdatePrice,
+  selectPriceById,
   selectPrices,
   selectPricesPaginated,
   selectPricesTableRowData,
-  pricesTableRowOutputSchema,
-  selectPriceById,
 } from '@/db/tableMethods/priceMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
-import { TRPCError } from '@trpc/server'
-import { generateOpenApiMetas } from '@/utils/openapi'
-import { z } from 'zod'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
+import { protectedProcedure, router } from '@/server/trpc'
 import { PriceType } from '@/types'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import { createPriceTransaction } from '@/utils/pricingModel'
+import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Price',

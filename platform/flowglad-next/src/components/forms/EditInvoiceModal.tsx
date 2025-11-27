@@ -1,12 +1,12 @@
 'use client'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
-import InvoiceFormFields from './InvoiceFormFields'
 import {
   editInvoiceSchema,
-  InvoiceLineItem,
+  type InvoiceLineItem,
 } from '@/db/schema/invoiceLineItems'
-import { Invoice } from '@/db/schema/invoices'
+import type { Invoice } from '@/db/schema/invoices'
+import InvoiceFormFields from './InvoiceFormFields'
 
 function EditInvoiceModal({
   isOpen,

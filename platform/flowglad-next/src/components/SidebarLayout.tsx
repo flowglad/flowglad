@@ -1,7 +1,8 @@
 'use client'
 
+import type React from 'react'
+import { useEffect, useState } from 'react'
 import { SideNavigation } from '@/components/navigation/SideNavigation'
-import React, { useState, useEffect } from 'react'
 import {
   Sidebar,
   SidebarInset,

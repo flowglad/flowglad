@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest'
-import { z } from 'zod'
 import { pgTable, text } from 'drizzle-orm/pg-core'
+import { describe, expect, it } from 'vitest'
+import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
+import { pgEnumColumn, tableBase } from '@/db/tableUtils'
 import { timestamptzMs } from '@/db/timestampMs'
-import { tableBase, pgEnumColumn } from '@/db/tableUtils'
 import { TaxType } from '@/types'
 
 /**
@@ -185,7 +185,7 @@ describe('createZodSchemas/buildSchemas - server schemas', () => {
 
   it('throws when discriminator is specified but missing from update/base refine', () => {
     expect(() =>
-      // @ts-ignore  - test
+      // @ts-expect-error  - test
       buildSchemas(testTable, { discriminator: 'status' as any })
     ).toThrow(/Discriminator .* not found/i)
   })

@@ -308,7 +308,7 @@ class TelemetryVerifier {
       name: 'Multiple Failed Auth Attempts Detection',
       test: async () => {
         const invalidKey = 'sk_test_invalid123'
-        let suspiciousDetected = false
+        const suspiciousDetected = false
 
         // Make 5 failed attempts
         for (let i = 0; i < 5; i++) {

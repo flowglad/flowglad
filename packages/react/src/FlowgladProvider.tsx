@@ -1,15 +1,15 @@
 'use client'
-import React from 'react'
+import type { CustomerBillingDetails } from '@flowglad/types'
 import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
+import type React from 'react'
 import {
   FlowgladContextProvider,
-  RequestConfig,
+  type RequestConfig,
 } from './FlowgladContext'
 import { validateUrl } from './utils'
-import { CustomerBillingDetails } from '@flowglad/types'
 
 const queryClient = new QueryClient()
 

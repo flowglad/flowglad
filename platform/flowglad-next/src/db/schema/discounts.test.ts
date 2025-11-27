@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { DiscountAmountType, DiscountDuration } from '@/types'
 import {
   createDiscountFormSchema,
   editDiscountFormSchema,
 } from './discounts'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 
 describe('Discount Form Validation', () => {
   describe('Create Discount Form Schema', () => {

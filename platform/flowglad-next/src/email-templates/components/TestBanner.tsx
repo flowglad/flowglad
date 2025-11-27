@@ -1,5 +1,5 @@
 import { Heading, Section } from '@react-email/components'
-import * as React from 'react'
+import type * as React from 'react'
 
 const bannerStyle: React.CSSProperties = {
   backgroundColor: '#F0EAE5',

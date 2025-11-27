@@ -1,43 +1,37 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { and, eq } from 'drizzle-orm'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  selectSubscriptionItemById,
-  insertSubscriptionItem,
-  updateSubscriptionItem,
-  selectSubscriptionItems,
-  bulkInsertSubscriptionItems,
-  selectSubscriptionAndItems,
-  selectSubscriptionItemsAndSubscriptionBySubscriptionId,
-  selectRichSubscriptionsAndActiveItems,
-  bulkInsertOrDoNothingSubscriptionItemsByExternalId,
-  selectCurrentlyActiveSubscriptionItems,
-  bulkCreateOrUpdateSubscriptionItems,
-  expireSubscriptionItems,
-} from './subscriptionItemMethods'
-import {
-  setupOrg,
+  setupCreditLedgerEntry,
   setupCustomer,
+  setupDebitLedgerEntry,
+  setupLedgerAccount,
+  setupLedgerTransaction,
+  setupOrg,
   setupPaymentMethod,
   setupSubscription,
   setupSubscriptionItem,
   setupTestFeaturesAndProductFeatures,
-  setupUsageMeter,
-  setupCreditLedgerEntry,
   setupUsageEvent,
-  setupDebitLedgerEntry,
-  setupLedgerTransaction,
-  setupLedgerAccount,
+  setupUsageLedgerScenario,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
+import { ledgerEntries } from '@/db/schema/ledgerEntries'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
 import {
-  SubscriptionItem,
+  type SubscriptionItemFeature,
+  subscriptionItemFeatures,
+} from '@/db/schema/subscriptionItemFeatures'
+import {
+  type SubscriptionItem,
   subscriptionItems,
 } from '@/db/schema/subscriptionItems'
-import { Subscription } from '@/db/schema/subscriptions'
-import { Price } from '@/db/schema/prices'
-import { Organization } from '@/db/schema/organizations'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { core } from '@/utils/core'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { subscriptionItemFeatureInsertFromSubscriptionItemAndFeature } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
   FeatureType,
   LedgerEntryType,
@@ -45,17 +39,23 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-import { updateSubscription } from './subscriptionMethods'
-import {
-  SubscriptionItemFeature,
-  subscriptionItemFeatures,
-} from '@/db/schema/subscriptionItemFeatures'
+import { core } from '@/utils/core'
 import { insertSubscriptionItemFeature } from './subscriptionItemFeatureMethods'
-import { eq, and } from 'drizzle-orm'
-import { subscriptionItemFeatureInsertFromSubscriptionItemAndFeature } from '@/subscriptions/subscriptionItemFeatureHelpers'
-import { setupUsageLedgerScenario } from '@/../seedDatabase'
-import { ledgerEntries } from '@/db/schema/ledgerEntries'
-import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
+import {
+  bulkCreateOrUpdateSubscriptionItems,
+  bulkInsertOrDoNothingSubscriptionItemsByExternalId,
+  bulkInsertSubscriptionItems,
+  expireSubscriptionItems,
+  insertSubscriptionItem,
+  selectCurrentlyActiveSubscriptionItems,
+  selectRichSubscriptionsAndActiveItems,
+  selectSubscriptionAndItems,
+  selectSubscriptionItemById,
+  selectSubscriptionItems,
+  selectSubscriptionItemsAndSubscriptionBySubscriptionId,
+  updateSubscriptionItem,
+} from './subscriptionItemMethods'
+import { updateSubscription } from './subscriptionMethods'
 
 describe('subscriptionItemMethods', async () => {
   let organization: Organization.Record
@@ -409,8 +409,7 @@ describe('subscriptionItemMethods', async () => {
   describe('expireSubscriptionItems', () => {
     it('should update the expiredAt field of the specified subscription item and its features', async () => {
       const expiryDate = new Date()
-      let feature: SubscriptionItemFeature.Record | undefined =
-        undefined
+      let feature: SubscriptionItemFeature.Record | undefined
       const featureSetup = await setupTestFeaturesAndProductFeatures({
         organizationId: organization.id,
         productId: price.productId,

@@ -1,12 +1,12 @@
 'use client'
 
+import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import CopyableTextTableCell from '@/components/CopyableTextTableCell'
 
 interface WebhookSecretModalProps {
   secret: string

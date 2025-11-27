@@ -1,10 +1,12 @@
 'use client'
 
+import { Info } from 'lucide-react'
 import { useEffect } from 'react'
-import { trpc } from '@/app/_trpc/client'
 import { useFormContext } from 'react-hook-form'
-import type { AddSubscriptionFeatureFormValues } from './addSubscriptionFeatureFormSchema'
-import type { RichSubscription } from '@/subscriptions/schemas'
+import type { z } from 'zod'
+import { trpc } from '@/app/_trpc/client'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import {
   FormControl,
   FormField,
@@ -19,19 +21,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Info } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import type { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
+import type { RichSubscription } from '@/subscriptions/schemas'
 import {
-  CurrencyCode,
+  type CurrencyCode,
   FeatureType,
   FeatureUsageGrantFrequency,
 } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
-import { z } from 'zod'
+import type { AddSubscriptionFeatureFormValues } from './addSubscriptionFeatureFormSchema'
 
 interface AddSubscriptionFeatureItemFormFieldsProps {
   subscriptionItems: RichSubscription['subscriptionItems']
@@ -146,7 +146,10 @@ export const AddSubscriptionFeatureItemFormFields = ({
 
   // Get feature IDs of toggle features already added to this subscription
   const toggleFeatures = featureItems.filter(
-    (item) => item.type === FeatureType.Toggle && !item.expiredAt && item.subscriptionItemId === selectedSubscriptionItem?.id
+    (item) =>
+      item.type === FeatureType.Toggle &&
+      !item.expiredAt &&
+      item.subscriptionItemId === selectedSubscriptionItem?.id
   )
   const existingToggleFeatureIds = new Set(
     toggleFeatures.map((item) => item.featureId)

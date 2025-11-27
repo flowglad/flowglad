@@ -1,15 +1,15 @@
+import { notFound, redirect } from 'next/navigation'
+import { shouldBlockCheckout } from '@/app/checkout/guard'
 import CheckoutPage from '@/components/CheckoutPage'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
-  CheckoutInfoCore,
+  type CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { PriceType, CheckoutSessionStatus } from '@/types'
-import { shouldBlockCheckout } from '@/app/checkout/guard'
+import { CheckoutSessionStatus, PriceType } from '@/types'
+import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 import core from '@/utils/core'
 import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
-import { notFound, redirect } from 'next/navigation'
-import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 
 const CheckoutSessionPage = async ({
   params,

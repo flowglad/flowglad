@@ -1,11 +1,11 @@
-import { protectedProcedure } from '@/server/trpc'
+import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectFocusedMembershipAndOrganization,
   updateMembership,
 } from '@/db/tableMethods/membershipMethods'
-import { z } from 'zod'
+import { protectedProcedure } from '@/server/trpc'
 
 export const toggleTestMode = protectedProcedure
   .input(

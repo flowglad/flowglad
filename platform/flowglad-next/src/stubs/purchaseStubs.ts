@@ -1,4 +1,4 @@
-import { Purchase } from '@/db/schema/purchases'
+import type { Purchase } from '@/db/schema/purchases'
 import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
 
 export const subscriptionWithoutTrialDummyPurchase: Purchase.SubscriptionPurchaseRecord =

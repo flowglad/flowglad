@@ -1,19 +1,19 @@
 'use client'
 
+import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
+import { trpc } from '@/app/_trpc/client'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { DetailLabel } from '@/components/DetailLabel'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { DetailLabel } from '@/components/DetailLabel'
-import { trpc } from '@/app/_trpc/client'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import { useEffect, useState, useRef } from 'react'
-import Link from 'next/link'
+import { Textarea } from '@/components/ui/textarea'
 
 interface PricingModelIntegrationGuideModalProps {
   isOpen: boolean

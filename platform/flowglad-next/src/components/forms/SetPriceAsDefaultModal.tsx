@@ -1,5 +1,8 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+import { trpc } from '@/app/_trpc/client'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -8,16 +11,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { useRouter } from 'next/navigation'
-import { trpc } from '@/app/_trpc/client'
 import {
-  editPriceSchema,
   EditPriceInput,
-  Price,
+  editPriceSchema,
+  type Price,
 } from '@/db/schema/prices'
-import { PriceType } from '@/types'
 import { idInputSchema } from '@/db/tableUtils'
+import { PriceType } from '@/types'
 
 interface SetPriceAsDefaultProps {
   trigger?: React.ReactNode

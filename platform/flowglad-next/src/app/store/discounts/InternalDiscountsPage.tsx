@@ -1,13 +1,13 @@
 'use client'
 import { useState } from 'react'
 import CreateDiscountModal from '@/components/forms/CreateDiscountModal'
+import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
+import { PageHeader } from '@/components/ui/page-header'
 import {
   DiscountsDataTable,
-  DiscountsTableFilters,
+  type DiscountsTableFilters,
 } from './data-table'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import { PageHeader } from '@/components/ui/page-header'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 export enum FocusedTab {
   All = 'all',

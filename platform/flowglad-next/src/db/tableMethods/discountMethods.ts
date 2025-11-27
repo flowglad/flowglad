@@ -1,24 +1,24 @@
-import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createDeleteFunction,
-  createPaginatedSelectFunction,
-  createCursorPaginatedSelectFunction,
-} from '@/db/tableUtils'
+import { count, inArray } from 'drizzle-orm'
+import type { z } from 'zod'
+import { discountRedemptions } from '@/db/schema/discountRedemptions'
 import {
   discounts,
   discountsInsertSchema,
   discountsSelectSchema,
-  discountsUpdateSchema,
   discountsTableRowDataSchema,
+  discountsUpdateSchema,
 } from '@/db/schema/discounts'
-import { count, inArray } from 'drizzle-orm'
-import { DbTransaction } from '@/db/types'
-import { discountRedemptions } from '@/db/schema/discountRedemptions'
-import { z } from 'zod'
+import {
+  createCursorPaginatedSelectFunction,
+  createDeleteFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<
   typeof discounts,

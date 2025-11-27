@@ -1,6 +1,6 @@
 // utils/invoice/pdfGenerator.ts
 import { logger } from '@trigger.dev/sdk'
-import { Invoice } from '@/db/schema/invoices'
+import type { Invoice } from '@/db/schema/invoices'
 import { initBrowser } from '@/utils/browser'
 import cloudflareMethods from '@/utils/cloudflare'
 import core from '@/utils/core'

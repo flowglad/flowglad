@@ -1,32 +1,32 @@
 import {
-  Infinity,
-  Lock,
-  Repeat,
-  Users,
-  PieChart,
-  SquarePlus,
-  Recycle,
-  Clock,
-  Zap,
-  Image,
-  UserPlus,
-  Shield,
-  Layers,
   Activity,
-  Database,
-  TrendingUp,
-  Sparkles,
+  Clock,
   Coins,
+  Database,
+  Image,
+  Infinity,
+  Layers,
+  Lock,
+  PieChart,
   Radio,
+  Recycle,
+  Repeat,
+  Shield,
+  Sparkles,
+  SquarePlus,
+  TrendingUp,
+  UserPlus,
+  Users,
+  Zap,
 } from 'lucide-react'
 import { UsageLimitIcon } from '@/components/icons/UsageLimitIcon'
-import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
-  PriceType,
   IntervalUnit,
+  PriceType,
 } from '@/types'
+import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 
 /**
  * Usage-Limit Subscription Template

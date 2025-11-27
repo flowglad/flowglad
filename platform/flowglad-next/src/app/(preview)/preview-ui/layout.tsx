@@ -1,6 +1,6 @@
-import { ThemeProvider } from './components/ThemeProvider'
-import { arizonaFlare, sfPro, berkeleyMono } from '@/lib/fonts'
+import { arizonaFlare, berkeleyMono, sfPro } from '@/lib/fonts'
 import { cn } from '@/lib/utils'
+import { ThemeProvider } from './components/ThemeProvider'
 
 export default function PreviewLayout({
   children,

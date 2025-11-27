@@ -1,7 +1,10 @@
-import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
-import { SubRouteHandler, SubRouteHandlerResultData } from './types'
-import { FlowgladServer } from '../FlowgladServer'
+import { type FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
+import type { FlowgladServer } from '../FlowgladServer'
 import { parseErrorStringToErrorObject } from '../serverUtils'
+import type {
+  SubRouteHandler,
+  SubRouteHandlerResultData,
+} from './types'
 
 const createCheckoutSession: SubRouteHandler<
   FlowgladActionKey.CreateCheckoutSession

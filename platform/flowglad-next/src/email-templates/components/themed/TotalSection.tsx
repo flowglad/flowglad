@@ -1,8 +1,8 @@
 import { Hr, Section } from '@react-email/components'
 import * as React from 'react'
-import { DetailItem } from './DetailItem'
+import type { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { CurrencyCode } from '@/types'
+import { DetailItem } from './DetailItem'
 
 const hr = {
   borderColor: '#cccccc',

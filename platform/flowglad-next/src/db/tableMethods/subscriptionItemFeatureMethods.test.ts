@@ -1,37 +1,37 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
-import db from '@/db/client'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  subscriptionItemFeatures,
-  SubscriptionItemFeature,
-} from '@/db/schema/subscriptionItemFeatures'
-import {
-  selectSubscriptionItemFeatureById,
-  selectClientSubscriptionItemFeatureAndFeatureById,
-  insertSubscriptionItemFeature,
-  updateSubscriptionItemFeature,
-  selectSubscriptionItemFeatures,
-  selectSubscriptionItemFeaturesWithFeatureSlug,
-  upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
-  bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId,
-  expireSubscriptionItemFeature,
-  expireSubscriptionItemFeaturesForSubscriptionItems,
-  detachSubscriptionItemFeaturesFromProductFeature,
-} from './subscriptionItemFeatureMethods'
-import {
-  setupOrg,
   setupCustomer,
+  setupOrg,
   setupPaymentMethod,
   setupSubscription,
   setupSubscriptionItem,
   setupTestFeaturesAndProductFeatures,
   setupUsageMeter,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import db from '@/db/client'
 import {
-  SubscriptionItemType,
+  type SubscriptionItemFeature,
+  subscriptionItemFeatures,
+} from '@/db/schema/subscriptionItemFeatures'
+import {
   FeatureType,
   FeatureUsageGrantFrequency,
+  SubscriptionItemType,
 } from '@/types'
+import {
+  bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId,
+  detachSubscriptionItemFeaturesFromProductFeature,
+  expireSubscriptionItemFeature,
+  expireSubscriptionItemFeaturesForSubscriptionItems,
+  insertSubscriptionItemFeature,
+  selectClientSubscriptionItemFeatureAndFeatureById,
+  selectSubscriptionItemFeatureById,
+  selectSubscriptionItemFeatures,
+  selectSubscriptionItemFeaturesWithFeatureSlug,
+  updateSubscriptionItemFeature,
+  upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
+} from './subscriptionItemFeatureMethods'
 
 describe('subscriptionItemFeatureMethods', () => {
   let organization: any

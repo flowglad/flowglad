@@ -1,32 +1,34 @@
-'use client';
+'use client'
 
-import Button from '@/components/ui/Button';
-import Link from 'next/link';
-import { requestPasswordUpdate } from '@/utils/auth-helpers/server';
-import { handleRequest } from '@/utils/auth-helpers/client';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import Button from '@/components/ui/Button'
+import { handleRequest } from '@/utils/auth-helpers/client'
+import { requestPasswordUpdate } from '@/utils/auth-helpers/server'
 
 // Define prop type with allowEmail boolean
 interface ForgotPasswordProps {
-  allowEmail: boolean;
-  redirectMethod: string;
-  disableButton?: boolean;
+  allowEmail: boolean
+  redirectMethod: string
+  disableButton?: boolean
 }
 
 export default function ForgotPassword({
   allowEmail,
   redirectMethod,
-  disableButton
+  disableButton,
 }: ForgotPasswordProps) {
-  const router = redirectMethod === 'client' ? useRouter() : null;
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = redirectMethod === 'client' ? useRouter() : null
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    setIsSubmitting(true); // Disable the button while the request is being handled
-    await handleRequest(e, requestPasswordUpdate, router);
-    setIsSubmitting(false);
-  };
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    setIsSubmitting(true) // Disable the button while the request is being handled
+    await handleRequest(e, requestPasswordUpdate, router)
+    setIsSubmitting(false)
+  }
 
   return (
     <div className="my-8">
@@ -61,13 +63,19 @@ export default function ForgotPassword({
         </div>
       </form>
       <p>
-        <Link href="/signin/password_signin" className="font-light text-sm">
+        <Link
+          href="/signin/password_signin"
+          className="font-light text-sm"
+        >
           Sign in with email and password
         </Link>
       </p>
       {allowEmail && (
         <p>
-          <Link href="/signin/email_signin" className="font-light text-sm">
+          <Link
+            href="/signin/email_signin"
+            className="font-light text-sm"
+          >
             Sign in via magic link
           </Link>
         </p>
@@ -78,5 +86,5 @@ export default function ForgotPassword({
         </Link>
       </p>
     </div>
-  );
+  )
 }

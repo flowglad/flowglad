@@ -1,10 +1,23 @@
+import { TRPCError } from '@trpc/server'
 import omit from 'ramda/src/omit'
+import type { Feature } from '@/db/schema/features'
 import {
-  bulkInsertProducts,
-  insertProduct,
-  selectProductById,
-  updateProduct,
-} from '@/db/tableMethods/productMethods'
+  type CreateProductPriceInput,
+  type Price,
+  type ProductWithPrices,
+  priceImmutableFields,
+  pricesInsertSchema,
+} from '@/db/schema/prices'
+import type { ClonePricingModelInput } from '@/db/schema/pricingModels'
+import type { ProductFeature } from '@/db/schema/productFeatures'
+import type { Product } from '@/db/schema/products'
+import type { UsageMeter } from '@/db/schema/usageMeters'
+import {
+  bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
+  selectFeatures,
+} from '@/db/tableMethods/featureMethods'
+import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   bulkInsertPrices,
   insertPrice,
@@ -13,43 +26,30 @@ import {
   selectPricesAndProductsByProductWhere,
 } from '@/db/tableMethods/priceMethods'
 import {
-  AuthenticatedTransactionParams,
-  DbTransaction,
-} from '@/db/types'
-import {
-  CreateProductPriceInput,
-  Price,
-  pricesInsertSchema,
-  ProductWithPrices,
-  priceImmutableFields,
-} from '@/db/schema/prices'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { Product } from '@/db/schema/products'
-import {
   insertPricingModel,
   selectPricingModelById,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from '@/db/tableMethods/pricingModelMethods'
-import { ClonePricingModelInput } from '@/db/schema/pricingModels'
 import {
-  syncProductFeatures,
-  selectProductFeatures,
   bulkInsertProductFeatures,
+  selectProductFeatures,
+  syncProductFeatures,
 } from '@/db/tableMethods/productFeatureMethods'
 import {
-  selectUsageMeters,
-  bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
-} from '@/db/tableMethods/usageMeterMethods'
+  bulkInsertProducts,
+  insertProduct,
+  selectProductById,
+  updateProduct,
+} from '@/db/tableMethods/productMethods'
 import {
-  selectFeatures,
-  bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
-} from '@/db/tableMethods/featureMethods'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { Feature } from '@/db/schema/features'
-import { ProductFeature } from '@/db/schema/productFeatures'
+  bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
+  selectUsageMeters,
+} from '@/db/tableMethods/usageMeterMethods'
+import type {
+  AuthenticatedTransactionParams,
+  DbTransaction,
+} from '@/db/types'
 import { DestinationEnvironment } from '@/types'
-import { TRPCError } from '@trpc/server'
 import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
 
 const isPriceChanged = (

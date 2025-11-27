@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import { WebhooksDataTable } from './data-table'
-import { PageHeader } from '@/components/ui/page-header'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
 import CreateWebhookModal from '@/components/forms/CreateWebhookModal'
+import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
+import { PageHeader } from '@/components/ui/page-header'
+import { WebhooksDataTable } from './data-table'
 
 function WebhooksPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)

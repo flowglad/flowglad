@@ -1,6 +1,6 @@
-import { z, ZodType } from 'zod'
+import type { Flowglad } from '@flowglad/node'
+import { type ZodType, z } from 'zod'
 import { FlowgladActionKey, HTTPMethod } from './types'
-import { Flowglad } from '@flowglad/node'
 
 export type FlowgladActionValidatorMap = {
   [K in FlowgladActionKey]: {

@@ -1,22 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { CheckCircle, Loader2, Lock, XCircle } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { authClient } from '@/utils/authClient'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import ErrorLabel from '@/components/ErrorLabel'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Loader2, CheckCircle, XCircle, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import ErrorLabel from '@/components/ErrorLabel'
-import { toast } from 'sonner'
+import { authClient } from '@/utils/authClient'
 
 export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)

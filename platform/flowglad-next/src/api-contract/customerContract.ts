@@ -1,7 +1,7 @@
-import { StandardLogger } from '@/types'
-import { flowgladNode } from './nodeClient'
-import { Flowglad as FlowgladNode } from '@flowglad/node'
+import type { Flowglad as FlowgladNode } from '@flowglad/node'
+import type { StandardLogger } from '@/types'
 import core from '@/utils/core'
+import { flowgladNode } from './nodeClient'
 
 const getCustomerResource = (
   externalId: string,

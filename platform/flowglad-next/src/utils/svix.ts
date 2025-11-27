@@ -1,10 +1,10 @@
-import { ApplicationOut, Svix } from 'svix'
-import core from './core'
-import { Organization } from '@/db/schema/organizations'
-import { Event } from '@/db/schema/events'
-import { generateHmac } from './backendCore'
-import { Webhook } from '@/db/schema/webhooks'
+import { type ApplicationOut, Svix } from 'svix'
 import { Application } from 'svix/dist/api/application'
+import type { Event } from '@/db/schema/events'
+import type { Organization } from '@/db/schema/organizations'
+import type { Webhook } from '@/db/schema/webhooks'
+import { generateHmac } from './backendCore'
+import core from './core'
 
 export function svix() {
   return new Svix(core.envVariable('SVIX_API_KEY'))

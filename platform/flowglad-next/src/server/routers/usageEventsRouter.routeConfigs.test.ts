@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest'
-import { usageEventsRouteConfigs } from './usageEventsRouter'
+import { describe, expect, it } from 'vitest'
 import {
   findRouteConfigInArray,
   getAllRouteKeysFromArray,
   validateRouteConfigStructure,
   validateStandardCrudMappings,
 } from './routeConfigs.test-utils'
+import { usageEventsRouteConfigs } from './usageEventsRouter'
 
 describe('usageEventsRouteConfigs', () => {
   // Helper function to find route config in the array

@@ -1,8 +1,10 @@
-import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
 import * as React from 'react'
-import { Invoice } from '@/db/schema/invoices'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import { emailBaseUrl } from '@/utils/core'
+import { calculateInvoiceTotalsFromLineItems } from '@/utils/discountHelpers'
 import { EmailButton } from './components/EmailButton'
+import TestModeBanner from './components/TestBanner'
 import {
   DetailItem,
   DetailSection,
@@ -12,8 +14,6 @@ import {
   Signature,
   TotalSection,
 } from './components/themed'
-import { emailBaseUrl } from '@/utils/core'
-import TestModeBanner from './components/TestBanner'
 
 export const InvoiceNotificationEmail = ({
   invoice,

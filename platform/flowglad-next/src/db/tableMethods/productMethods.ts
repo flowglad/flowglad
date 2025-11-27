@@ -1,44 +1,43 @@
 import * as R from 'ramda'
 import { z } from 'zod'
-
 import {
-  createUpsertFunction,
-  createSelectById,
-  createSelectFunction,
-  createInsertFunction,
-  ORMMethodCreatorConfig,
-  createUpdateFunction,
-  createPaginatedSelectFunction,
-  createBulkInsertOrDoNothingFunction,
-  createCursorPaginatedSelectFunction,
-} from '@/db/tableUtils'
-import {
-  Product,
-  products,
-  productsInsertSchema,
-  productsSelectSchema,
-  productsUpdateSchema,
-  productsClientSelectSchema,
-} from '@/db/schema/products'
-import { ProperNoun } from '../schema/properNouns'
-import { DbTransaction } from '../types'
-import {
-  Price,
+  type Price,
   pricesClientSelectSchema,
   productsTableRowDataSchema,
 } from '@/db/schema/prices'
 import {
-  PricingModel,
+  type PricingModel,
   pricingModelsClientSelectSchema,
 } from '@/db/schema/pricingModels'
+import {
+  type Product,
+  products,
+  productsClientSelectSchema,
+  productsInsertSchema,
+  productsSelectSchema,
+  productsUpdateSchema,
+} from '@/db/schema/products'
+import {
+  createBulkInsertOrDoNothingFunction,
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import { groupBy } from '@/utils/core'
+import type { ProperNoun } from '../schema/properNouns'
+import type { DbTransaction } from '../types'
+import { selectMembershipAndOrganizations } from './membershipMethods'
 import {
   selectPrices,
   selectPricesAndProductByProductId,
   selectPricesProductsAndPricingModelsForOrganization,
 } from './priceMethods'
-import { selectMembershipAndOrganizations } from './membershipMethods'
 import { selectPricingModels } from './pricingModelMethods'
-import { groupBy } from '@/utils/core'
 import { selectFeaturesByProductFeatureWhere } from './productFeatureMethods'
 
 const config: ORMMethodCreatorConfig<

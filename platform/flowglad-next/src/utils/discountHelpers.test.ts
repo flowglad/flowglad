@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { CurrencyCode } from '@/types'
 import {
   calculateDiscountAmount,
   calculateDiscountAmountSafe,
-  calculateInvoiceTotalsWithDiscounts,
-  calculateInvoiceTotalsRaw,
-  calculateInvoiceTotalsFromLineItems,
   calculateInvoiceTotals,
+  calculateInvoiceTotalsFromLineItems,
+  calculateInvoiceTotalsRaw,
+  calculateInvoiceTotalsWithDiscounts,
   type DiscountInfo,
 } from './discountHelpers'
 

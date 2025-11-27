@@ -1,11 +1,11 @@
 'use client'
 
-import * as React from 'react'
 import { X } from 'lucide-react'
-import { cn } from '@/registry/lib/cn'
+import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import { PricingToggle } from './pricing-toggle'
+import { cn } from '@/registry/lib/cn'
 import { PricingColumn } from './pricing-column'
+import { PricingToggle } from './pricing-toggle'
 import type { PricingTableProps } from './types'
 
 export function PricingTable({

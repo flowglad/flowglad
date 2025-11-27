@@ -1,7 +1,7 @@
-import React from 'react'
+import { sentenceCase } from 'change-case'
+import type React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { InvoiceStatus } from '@/types'
-import { sentenceCase } from 'change-case'
 
 interface InvoiceStatusBadgeProps {
   status: InvoiceStatus

@@ -3,7 +3,7 @@
 
 import * as React from 'react'
 
-export const useOnWindowResize = (handler: { (): void }) => {
+export const useOnWindowResize = (handler: () => void) => {
   React.useEffect(() => {
     const handleResize = () => {
       handler()

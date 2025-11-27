@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
 import { AlertCircle } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 export default function Error({
   error,

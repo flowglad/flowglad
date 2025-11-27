@@ -1,19 +1,19 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createDeleteFunction,
-} from '@/db/tableUtils'
-import {
-  Link,
+  type Link,
   links,
   linksInsertSchema,
   linksSelectSchema,
   linksUpdateSchema,
 } from '@/db/schema/links'
-import { DbTransaction } from '@/db/types'
+import {
+  createDeleteFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<
   typeof links,

@@ -1,37 +1,37 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  normalizeToMonthlyValue,
-  calculateOverlapPercentage,
-  calculateBillingPeriodItemsValue,
-  getBillingPeriodsForDateRange,
-  calculateMRRByMonth,
-} from './revenueCalculationHelpers'
-import {
-  IntervalUnit,
-  RevenueChartIntervalUnit,
-  BillingPeriodStatus,
-  SubscriptionStatus,
-  SubscriptionItemType,
-} from '@/types'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import {
   addDays,
-  startOfMonth,
-  endOfMonth,
   addYears,
   differenceInDays,
+  endOfMonth,
+  startOfMonth,
 } from 'date-fns'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
   setupBillingPeriod,
   setupBillingPeriodItem,
+  setupCustomer,
+  setupOrg,
+  setupPaymentMethod,
+  setupSubscription,
 } from '@/../seedDatabase'
-import { DbTransaction } from '@/db/types'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { DbTransaction } from '@/db/types'
+import {
+  BillingPeriodStatus,
+  IntervalUnit,
+  RevenueChartIntervalUnit,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@/types'
+import {
+  calculateBillingPeriodItemsValue,
+  calculateMRRByMonth,
+  calculateOverlapPercentage,
+  getBillingPeriodsForDateRange,
+  normalizeToMonthlyValue,
+} from './revenueCalculationHelpers'
 
 // No need to mock the database methods anymore as we'll use real database calls
 

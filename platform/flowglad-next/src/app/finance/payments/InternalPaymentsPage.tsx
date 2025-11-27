@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { PaymentsDataTable } from './data-table'
-import { PaymentStatus } from '@/types'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
 import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
+import { PaymentStatus } from '@/types'
+import { PaymentsDataTable } from './data-table'
 
 export default function InternalPaymentsPage() {
   const [activeFilter, setActiveFilter] = useState<string>('all')

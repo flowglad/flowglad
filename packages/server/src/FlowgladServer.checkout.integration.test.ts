@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 describe('FlowgladServer Checkout Integration Tests', () => {
   it('stubbed', async () => {

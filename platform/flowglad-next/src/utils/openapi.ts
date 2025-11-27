@@ -1,5 +1,5 @@
 import { camelCase, kebabCase } from 'change-case'
-import { OpenApiMeta, OpenApiMethod } from 'trpc-to-openapi'
+import type { OpenApiMeta, OpenApiMethod } from 'trpc-to-openapi'
 import { titleCase } from './core'
 
 export type CreateOpenApiMetaParams = {
@@ -244,7 +244,7 @@ export const trpcToRest = (
     return {
       [`GET /${entity}/${action}`]: {
         procedure: procedureName,
-        pattern: new RegExp(`^${entity}\/${action}$`),
+        pattern: new RegExp(`^${entity}/${action}$`),
         mapParams: () => undefined,
       },
     }
@@ -269,54 +269,58 @@ export const trpcToRest = (
         },
       }
 
-    case 'update':
+    case 'update': {
       const updateIdKey = params?.routeParams?.[0] ?? 'id'
       return {
         [`PUT /${entity}/:${updateIdKey}`]: {
           procedure: procedureName,
-          pattern: new RegExp(`^${entity}\/([^\\/]+)$`),
+          pattern: new RegExp(`^${entity}/([^\\/]+)$`),
           mapParams: (matches, body) => ({
             ...body,
             [updateIdKey]: matches[0],
           }),
         },
       }
-    case 'edit':
+    }
+    case 'edit': {
       const editIdKey = params?.routeParams?.[0] ?? 'id'
       return {
         [`PUT /${entity}/:${editIdKey}`]: {
           procedure: procedureName,
-          pattern: new RegExp(`^${entity}\/([^\\/]+)$`),
+          pattern: new RegExp(`^${entity}/([^\\/]+)$`),
           mapParams: (matches, body) => ({
             ...body,
             [editIdKey]: matches[0],
           }),
         },
       }
+    }
 
-    case 'delete':
+    case 'delete': {
       const deleteIdKey = params?.routeParams?.[0] ?? 'id'
       return {
         [`DELETE /${entity}/:${deleteIdKey}`]: {
           procedure: procedureName,
-          pattern: new RegExp(`^${entity}\/([^\\/]+)$`),
+          pattern: new RegExp(`^${entity}/([^\\/]+)$`),
           mapParams: (matches) => ({
             [deleteIdKey]: matches[0],
           }),
         },
       }
+    }
 
-    case 'get':
+    case 'get': {
       const getIdKey = params?.routeParams?.[0] ?? 'id'
       return {
         [`GET /${entity}/:${getIdKey}`]: {
           procedure: procedureName,
-          pattern: new RegExp(`^${entity}\/([^\\/]+)$`),
+          pattern: new RegExp(`^${entity}/([^\\/]+)$`),
           mapParams: (matches) => ({
             [getIdKey]: matches[0],
           }),
         },
       }
+    }
 
     // Handle special cases for nested resources or custom actions
     default:
@@ -326,9 +330,7 @@ export const trpcToRest = (
         return {
           [`GET /${entity}/:id/${resource}`]: {
             procedure: procedureName,
-            pattern: new RegExp(
-              `^${entity}\/([^\\/]+)\/${resource}$`
-            ),
+            pattern: new RegExp(`^${entity}/([^\\/]+)/${resource}$`),
             mapParams: (matches) => ({
               [`${entity}Id`]: matches[1],
             }),
@@ -340,7 +342,7 @@ export const trpcToRest = (
       return {
         [`POST /${entity}/:id/${action}`]: {
           procedure: procedureName,
-          pattern: new RegExp(`^${entity}\/([^\\/]+)\/${action}$`),
+          pattern: new RegExp(`^${entity}/([^\\/]+)/${action}$`),
           mapParams: (matches, body) => ({
             ...body,
             id: matches[0],

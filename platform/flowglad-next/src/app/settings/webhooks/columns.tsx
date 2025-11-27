@@ -1,21 +1,21 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Eye, Pencil } from 'lucide-react'
+import * as React from 'react'
+import { trpc } from '@/app/_trpc/client'
+import EditWebhookModal from '@/components/forms/EditWebhookModal'
+import StatusBadge from '@/components/StatusBadge'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
+  type ActionMenuItem,
   EnhancedDataTableActionsMenu,
-  ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
 // Other imports
-import { Webhook } from '@/db/schema/webhooks'
-import StatusBadge from '@/components/StatusBadge'
-import { trpc } from '@/app/_trpc/client'
+import type { Webhook } from '@/db/schema/webhooks'
 import WebhookSecretModal from './WebhookSecretModal'
-import EditWebhookModal from '@/components/forms/EditWebhookModal'
 
 export type WebhookTableRowData = {
   webhook: Webhook.ClientRecord

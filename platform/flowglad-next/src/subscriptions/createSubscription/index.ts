@@ -1,6 +1,6 @@
-export { createSubscriptionWorkflow } from './workflow'
 export type {
   CreateSubscriptionParams,
-  StandardCreateSubscriptionResult,
   NonRenewingCreateSubscriptionResult,
+  StandardCreateSubscriptionResult,
 } from './types'
+export { createSubscriptionWorkflow } from './workflow'

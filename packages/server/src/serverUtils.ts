@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import {
+import type {
+  BetterAuthFlowgladServerSessionParams,
+  ClerkFlowgladServerSessionParams,
   CoreCustomerUser,
   FlowgladServerSessionParams,
   NextjsAuthFlowgladServerSessionParams,
   SupabaseFlowgladServerSessionParams,
-  ClerkFlowgladServerSessionParams,
-  BetterAuthFlowgladServerSessionParams,
 } from './types'
 
 export const getSessionFromNextAuth = async (

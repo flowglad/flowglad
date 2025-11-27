@@ -1,24 +1,24 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { Price } from '@/db/schema/prices'
-import {
+import { beforeEach, describe, expect, it } from 'vitest'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Country } from '@/db/schema/countries'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type {
   BillingAddress,
   Organization,
 } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import {
-  PaymentMethodType,
-  StripeConnectContractType,
   CountryCode,
   CurrencyCode,
+  PaymentMethodType,
+  StripeConnectContractType,
 } from '@/types'
 import {
-  createCheckoutSessionFeeCalculationInsertForPrice,
   createCheckoutSessionFeeCalculationInsertForInvoice,
+  createCheckoutSessionFeeCalculationInsertForPrice,
 } from '@/utils/bookkeeping/fees/checkoutSession'
-import { Product } from '@/db/schema/products'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { Country } from '@/db/schema/countries'
-import { Invoice } from '@/db/schema/invoices'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 
 describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {
   it('returns taxAmount = 0 and stripeTaxCalculationId null when calculating fee for organization with StripeConnectContractType Platform', async () => {

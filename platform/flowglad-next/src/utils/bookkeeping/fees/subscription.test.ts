@@ -1,37 +1,37 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { Discount } from '@/db/schema/discounts'
-import { Organization } from '@/db/schema/organizations'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  PaymentMethodType,
-  DiscountAmountType,
-  StripeConnectContractType,
-  CountryCode,
-  FeeCalculationType,
-  CurrencyCode,
-  SubscriptionItemType,
-  DiscountDuration,
-} from '@/types'
-import { createSubscriptionFeeCalculationInsert as createSubscriptionFeeCalculationInsertFunction } from '@/utils/bookkeeping/fees/subscription'
-import { Country } from '@/db/schema/countries'
-import {
+  setupBillingPeriod,
   setupCustomer,
+  setupDiscount,
   setupOrg,
   setupPaymentMethod,
   setupSubscription,
-  setupBillingPeriod,
   setupUsageMeter,
-  setupDiscount,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import core from '@/utils/core'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import { Customer } from '@/db/schema/customers'
-import { Subscription } from '@/db/schema/subscriptions'
-import { UsageMeter } from '@/db/schema/usageMeters'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { Country } from '@/db/schema/countries'
+import type { Customer } from '@/db/schema/customers'
+import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import type { Discount } from '@/db/schema/discounts'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
+import {
+  CountryCode,
+  CurrencyCode,
+  DiscountAmountType,
+  DiscountDuration,
+  FeeCalculationType,
+  PaymentMethodType,
+  StripeConnectContractType,
+  SubscriptionItemType,
+} from '@/types'
+import { createSubscriptionFeeCalculationInsert as createSubscriptionFeeCalculationInsertFunction } from '@/utils/bookkeeping/fees/subscription'
+import core from '@/utils/core'
 
 describe('createSubscriptionFeeCalculationInsert', () => {
   let orgData: Awaited<ReturnType<typeof setupOrg>>

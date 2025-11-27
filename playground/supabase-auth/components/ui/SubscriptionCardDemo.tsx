@@ -1,21 +1,22 @@
-import { useBilling } from '@flowglad/nextjs';
+import { useBilling } from '@flowglad/nextjs'
 
 export const SubscribeButton = ({
-  usePriceSlug = false
+  usePriceSlug = false,
 }: {
-  usePriceSlug?: boolean;
+  usePriceSlug?: boolean
 }) => {
-  const billing = useBilling();
-  const { createCheckoutSession, catalog } = billing;
+  const billing = useBilling()
+  const { createCheckoutSession, catalog } = billing
   if (billing.errors && billing.errors.length > 0) {
     return (
       <div>
-        Error: {billing.errors.map((error) => error.message).join(', ')}
+        Error:{' '}
+        {billing.errors.map((error) => error.message).join(', ')}
       </div>
-    );
+    )
   }
   if (!billing.loaded || !createCheckoutSession || !catalog) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   }
   return (
     <button
@@ -24,41 +25,42 @@ export const SubscribeButton = ({
           createCheckoutSession({
             autoRedirect: true,
             priceSlug:
-              catalog.products.find((product) => !product.default)?.defaultPrice
-                .slug || '',
+              catalog.products.find((product) => !product.default)
+                ?.defaultPrice.slug || '',
             successUrl: `${window.location.origin}/success`,
-            cancelUrl: `${window.location.origin}/cancel`
-          });
+            cancelUrl: `${window.location.origin}/cancel`,
+          })
         } else {
           createCheckoutSession({
             autoRedirect: true,
             priceId:
-              catalog.products.find((product) => !product.default)?.defaultPrice
-                .id || '',
+              catalog.products.find((product) => !product.default)
+                ?.defaultPrice.id || '',
             successUrl: `${window.location.origin}/success`,
-            cancelUrl: `${window.location.origin}/cancel`
-          });
+            cancelUrl: `${window.location.origin}/cancel`,
+          })
         }
       }}
       className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-200"
     >
       Subscribe ({usePriceSlug ? 'Price Slug' : 'Price ID'})
     </button>
-  );
-};
+  )
+}
 
 export const AddPaymentMethodButton = () => {
-  const billing = useBilling();
-  const { createAddPaymentMethodCheckoutSession } = billing;
+  const billing = useBilling()
+  const { createAddPaymentMethodCheckoutSession } = billing
   if (billing.errors && billing.errors.length > 0) {
     return (
       <div>
-        Error: {billing.errors.map((error) => error.message).join(', ')}
+        Error:{' '}
+        {billing.errors.map((error) => error.message).join(', ')}
       </div>
-    );
+    )
   }
   if (!billing.loaded || !createAddPaymentMethodCheckoutSession) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   }
   return (
     <button
@@ -66,33 +68,34 @@ export const AddPaymentMethodButton = () => {
         createAddPaymentMethodCheckoutSession({
           autoRedirect: true,
           successUrl: `${window.location.origin}/success`,
-          cancelUrl: `${window.location.origin}/cancel`
+          cancelUrl: `${window.location.origin}/cancel`,
         })
       }
       className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-200"
     >
       Add Payment Method
     </button>
-  );
-};
+  )
+}
 
 export const SubscriptionDemoCard = () => {
-  const billing = useBilling();
+  const billing = useBilling()
   if (!billing.loaded) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   } else if (billing.errors) {
     return (
       <div>
-        Error: {billing.errors.map((error) => error.message).join(', ')}
+        Error:{' '}
+        {billing.errors.map((error) => error.message).join(', ')}
       </div>
-    );
+    )
   }
-  const { customer, subscriptions } = billing;
+  const { customer, subscriptions } = billing
   if (!customer) {
-    return <div>No customer found</div>;
+    return <div>No customer found</div>
   }
   if (!subscriptions[0]) {
-    return <SubscribeButton />;
+    return <SubscribeButton />
   }
   return (
     <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -100,14 +103,16 @@ export const SubscriptionDemoCard = () => {
         Plan: {subscriptions[0].status}
       </div>
       <div className="mb-3 text-gray-600 dark:text-gray-400">
-        Current Period End: {subscriptions[0]?.currentBillingPeriodEnd}
+        Current Period End:{' '}
+        {subscriptions[0]?.currentBillingPeriodEnd}
       </div>
       <div className="mb-3 text-gray-600 dark:text-gray-400">
-        Current Period Start: {subscriptions[0]?.currentBillingPeriodStart}
+        Current Period Start:{' '}
+        {subscriptions[0]?.currentBillingPeriodStart}
       </div>
       <div className="mb-3 text-gray-600 dark:text-gray-400">
         Status: {subscriptions[0]?.status}
       </div>
     </div>
-  );
-};
+  )
+}

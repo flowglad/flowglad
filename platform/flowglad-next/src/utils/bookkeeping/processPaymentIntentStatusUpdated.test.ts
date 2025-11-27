@@ -1,81 +1,80 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  CurrencyCode,
-  InvoiceStatus,
-  PaymentStatus,
-  PurchaseStatus,
-  FlowgladEventType,
-  EventNoun,
-  PaymentMethodType,
-  PriceType,
-  IntervalUnit,
-  FeatureType,
-  LedgerTransactionType,
-  UsageCreditStatus,
-  UsageCreditSourceReferenceType,
-} from '@/types'
-import {
-  chargeStatusToPaymentStatus,
-  updatePaymentToReflectLatestChargeStatus,
-  upsertPaymentForStripeCharge,
-  processPaymentIntentStatusUpdated,
-  ledgerCommandForPaymentSucceeded,
-} from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import { Payment } from '@/db/schema/payments'
-import { Purchase } from '@/db/schema/purchases'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Organization } from '@/db/schema/organizations'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingRun,
+  setupCheckoutSession,
   setupCustomer,
   setupFeeCalculation,
+  setupInvoice,
   setupOrg,
   setupPayment,
   setupPaymentMethod,
+  setupPrice,
   setupPurchase,
   setupSubscription,
-  setupCheckoutSession,
-  setupInvoice,
-  setupPrice,
   setupTestFeaturesAndProductFeatures,
 } from '@/../seedDatabase'
-import { Customer } from '@/db/schema/customers'
-import { Invoice } from '@/db/schema/invoices'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import {
-  selectPurchaseById,
-  updatePurchase,
-} from '@/db/tableMethods/purchaseMethods'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Payment } from '@/db/schema/payments'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
+import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectEvents } from '@/db/tableMethods/eventMethods'
 import {
   safelyUpdateInvoiceStatus,
   selectInvoiceById,
 } from '@/db/tableMethods/invoiceMethods'
 import {
-  IntentMetadataType,
-  StripeIntentMetadata,
-  getStripeCharge,
-} from '../stripe'
-import core from '../core'
-import { vi } from 'vitest'
-import { selectEvents } from '@/db/tableMethods/eventMethods'
+  selectPurchaseById,
+  updatePurchase,
+} from '@/db/tableMethods/purchaseMethods'
 import {
   selectUsageCreditById,
   selectUsageCredits,
 } from '@/db/tableMethods/usageCreditMethods'
-import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import {
-  createMockStripeCharge,
   createMockPaymentIntent,
+  createMockStripeCharge,
 } from '@/test/helpers/stripeMocks'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  CurrencyCode,
+  EventNoun,
+  FeatureType,
+  FlowgladEventType,
+  IntervalUnit,
+  InvoiceStatus,
+  LedgerTransactionType,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+  PurchaseStatus,
+  UsageCreditSourceReferenceType,
+  UsageCreditStatus,
+} from '@/types'
+import {
+  chargeStatusToPaymentStatus,
+  ledgerCommandForPaymentSucceeded,
+  processPaymentIntentStatusUpdated,
+  updatePaymentToReflectLatestChargeStatus,
+  upsertPaymentForStripeCharge,
+} from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import core from '../core'
+import {
+  getStripeCharge,
+  IntentMetadataType,
+  type StripeIntentMetadata,
+} from '../stripe'
 
 // Mock getStripeCharge
 vi.mock('../stripe', async () => {

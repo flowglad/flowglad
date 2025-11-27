@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { purchasesRouteConfigs } from './purchasesRouter'
 import {
   findRouteConfigInArray,
-  getAllRouteKeysFromArray,
   findRouteConfigInObject,
+  getAllRouteKeysFromArray,
   getAllRouteKeysFromObject,
   validateRouteConfigStructure,
   validateStandardCrudMappings,

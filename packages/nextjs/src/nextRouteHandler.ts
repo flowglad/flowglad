@@ -1,9 +1,9 @@
 import {
   createRequestHandler,
-  FlowgladServer,
+  type FlowgladServer,
 } from '@flowglad/server'
-import { HTTPMethod } from '@flowglad/shared'
-import { NextRequest, NextResponse } from 'next/server'
+import type { HTTPMethod } from '@flowglad/shared'
+import { type NextRequest, NextResponse } from 'next/server'
 
 /**
  * Options for creating a Next.js App Router route handler with scoped FlowgladServer instances.

@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import type { Payment } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
 import { sumNetTotalSettledPaymentsForPaymentSet } from './paymentHelpers'
-import { Payment } from '@/db/schema/payments'
 
 describe('sumNetTotalSettledPaymentsForPaymentSet', () => {
   it('should sum only succeeded payments and refunded payments', () => {

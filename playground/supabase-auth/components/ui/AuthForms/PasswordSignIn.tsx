@@ -1,30 +1,33 @@
-'use client';
+'use client'
 
-import Button from '@/components/ui/Button';
-import Link from 'next/link';
-import { signInWithPassword } from '@/utils/auth-helpers/server';
-import { handleRequest } from '@/utils/auth-helpers/client';
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import type React from 'react'
+import { useState } from 'react'
+import Button from '@/components/ui/Button'
+import { handleRequest } from '@/utils/auth-helpers/client'
+import { signInWithPassword } from '@/utils/auth-helpers/server'
 
 // Define prop type with allowEmail boolean
 interface PasswordSignInProps {
-  allowEmail: boolean;
-  redirectMethod: string;
+  allowEmail: boolean
+  redirectMethod: string
 }
 
 export default function PasswordSignIn({
   allowEmail,
-  redirectMethod
+  redirectMethod,
 }: PasswordSignInProps) {
-  const router = redirectMethod === 'client' ? useRouter() : null;
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = redirectMethod === 'client' ? useRouter() : null
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    setIsSubmitting(true); // Disable the button while the request is being handled
-    await handleRequest(e, signInWithPassword, router);
-    setIsSubmitting(false);
-  };
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    setIsSubmitting(true) // Disable the button while the request is being handled
+    await handleRequest(e, signInWithPassword, router)
+    setIsSubmitting(false)
+  }
 
   return (
     <div className="my-8">
@@ -67,13 +70,19 @@ export default function PasswordSignIn({
         </div>
       </form>
       <p>
-        <Link href="/signin/forgot_password" className="font-light text-sm">
+        <Link
+          href="/signin/forgot_password"
+          className="font-light text-sm"
+        >
           Forgot your password?
         </Link>
       </p>
       {allowEmail && (
         <p>
-          <Link href="/signin/email_signin" className="font-light text-sm">
+          <Link
+            href="/signin/email_signin"
+            className="font-light text-sm"
+          >
             Sign in via magic link
           </Link>
         </p>
@@ -84,5 +93,5 @@ export default function PasswordSignIn({
         </Link>
       </p>
     </div>
-  );
+  )
 }

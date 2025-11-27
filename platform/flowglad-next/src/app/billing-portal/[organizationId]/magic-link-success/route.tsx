@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation'
+import { type NextRequest, NextResponse } from 'next/server'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { getSession } from '@/utils/auth'
@@ -6,8 +8,6 @@ import {
   clearCustomerBillingPortalOrganizationId,
   setCustomerBillingPortalOrganizationId,
 } from '@/utils/customerBillingPortalState'
-import { redirect } from 'next/navigation'
-import { NextRequest, NextResponse } from 'next/server'
 
 export const GET = async (
   request: NextRequest,

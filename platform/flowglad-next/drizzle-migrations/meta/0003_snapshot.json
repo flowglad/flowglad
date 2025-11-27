@@ -48,9 +48,7 @@
         "Test_externalId_unique": {
           "name": "Test_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     }

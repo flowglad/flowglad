@@ -1,16 +1,16 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import {
   usageCreditBalanceAdjustments,
   usageCreditBalanceAdjustmentsInsertSchema,
   usageCreditBalanceAdjustmentsSelectSchema,
   usageCreditBalanceAdjustmentsUpdateSchema,
 } from '@/db/schema/usageCreditBalanceAdjustments'
+import {
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
 
 const config: ORMMethodCreatorConfig<
   typeof usageCreditBalanceAdjustments,

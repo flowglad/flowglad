@@ -1,6 +1,6 @@
-import { user } from '../schema/betterAuthSchema'
-import { DbTransaction } from '../types'
 import { eq } from 'drizzle-orm'
+import { user } from '../schema/betterAuthSchema'
+import type { DbTransaction } from '../types'
 
 export const selectBetterAuthUserById = async (
   id: string,

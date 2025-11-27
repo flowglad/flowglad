@@ -1,6 +1,6 @@
-import { publicProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/adminTransaction'
 import { editCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
+import { publicProcedure } from '@/server/trpc'
 import { editCheckoutSession as editCheckoutSessionFn } from '@/utils/bookkeeping/checkoutSessions'
 
 export const editCheckoutSession = publicProcedure

@@ -1,6 +1,6 @@
 import { trpc } from '@/app/_trpc/client'
 import DeleteModal, {
-  DeleteModalWrapperProps,
+  type DeleteModalWrapperProps,
 } from '@/components/forms/DeleteModal'
 
 const DeleteDiscountModal: React.FC<DeleteModalWrapperProps> = (

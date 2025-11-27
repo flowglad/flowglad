@@ -1,10 +1,10 @@
 'use client'
 
+import { Check, Copy, Loader2 } from 'lucide-react'
 import { useState } from 'react'
-import { trpc } from '../_trpc/client'
+import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Card,
   CardContent,
@@ -12,15 +12,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { Loader2, Copy, Check } from 'lucide-react'
-import { toast } from 'sonner'
+import { Textarea } from '@/components/ui/textarea'
+import { trpc } from '../_trpc/client'
 
 const InternalDocsSearchDemoPage = () => {
   const [activeTab, setActiveTab] = useState('single')
@@ -314,9 +314,8 @@ const InternalDocsSearchDemoPage = () => {
                   <CardTitle>Deduplicated File Paths</CardTitle>
                   <CardDescription>
                     Found {multipleData.totalPaths} unique path
-                    {multipleData.totalPaths !== 1
-                      ? 's'
-                      : ''} across {multipleData.totalQueries} quer
+                    {multipleData.totalPaths !== 1 ? 's' : ''} across{' '}
+                    {multipleData.totalQueries} quer
                     {multipleData.totalQueries !== 1 ? 'ies' : 'y'}
                   </CardDescription>
                 </CardHeader>

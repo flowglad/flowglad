@@ -1,13 +1,15 @@
 'use client'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
 import { createContext, useContext } from 'react'
-import { Nullish, PriceType } from '@/types'
+import type {
+  BillingAddress,
+  Organization,
+} from '@/db/schema/organizations'
+import type { Product } from '@/db/schema/products'
 import {
-  CheckoutInfoCore,
+  type CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { BillingAddress } from '@/db/schema/organizations'
+import { type Nullish, PriceType } from '@/types'
 
 export type CheckoutInfoContextValues = {
   taxAmount?: Nullish<number>
