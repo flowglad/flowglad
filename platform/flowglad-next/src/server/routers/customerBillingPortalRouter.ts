@@ -2,6 +2,7 @@ import {
   router,
   publicProcedure,
   customerProtectedProcedure,
+  protectedProcedure,
 } from '../trpc'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
@@ -20,10 +21,7 @@ import {
   customerBillingTransaction,
   setDefaultPaymentMethodForCustomer,
 } from '@/utils/bookkeeping/customerBilling'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { customerClientSelectSchema } from '@/db/schema/customers'
 import {
   richSubscriptionClientSelectSchema,
@@ -35,8 +33,8 @@ import { purchaseClientSelectSchema } from '@/db/schema/purchases'
 import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import {
   selectSubscriptionById,
-  isSubscriptionCurrent,
   isSubscriptionInTerminalState,
+  isSubscriptionCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
 import { scheduleSubscriptionCancellation } from '@/subscriptions/cancelSubscription'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
@@ -45,7 +43,10 @@ import { auth } from '@/utils/auth'
 import { selectUsers } from '@/db/tableMethods/userMethods'
 import core from '@/utils/core'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
-import { setCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
+import {
+  setCustomerBillingPortalOrganizationId,
+  getCustomerBillingPortalOrganizationId,
+} from '@/utils/customerBillingPortalState'
 import { selectBetterAuthUserById } from '@/db/tableMethods/betterAuthSchemaMethods'
 import { headers } from 'next/headers'
 import {
@@ -53,10 +54,17 @@ import {
   customerBillingCreatePricedCheckoutSessionInputSchema,
 } from '@/db/schema/checkoutSessions'
 
+/**
+ * Description for customerId input fields in customer billing portal procedures.
+ */
+const CUSTOMER_ID_DESCRIPTION =
+  'The customer ID for this operation. Must match a customer the authenticated user has access to.'
+
 // Enhanced getBilling procedure with pagination support for invoices
 const getBillingProcedure = customerProtectedProcedure
   .input(
     z.object({
+      customerId: z.string().describe(CUSTOMER_ID_DESCRIPTION),
       invoicePagination: z
         .object({
           page: z.number().int().min(1).default(1),
@@ -126,6 +134,7 @@ const getBillingProcedure = customerProtectedProcedure
       },
       {
         apiKey: ctx.apiKey,
+        customerId: customer.id,
       }
     )
 
@@ -179,6 +188,7 @@ const getBillingProcedure = customerProtectedProcedure
 const cancelSubscriptionProcedure = customerProtectedProcedure
   .input(
     z.object({
+      customerId: z.string().describe(CUSTOMER_ID_DESCRIPTION),
       id: z.string().describe('The subscription ID to cancel'),
       cancellation: subscriptionCancellationParametersSchema,
     })
@@ -225,6 +235,14 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
           })
         }
 
+        if (subscription.cancelScheduledAt) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Cancellation already scheduled for this subscription',
+          })
+        }
+
         // Customers can only cancel at end of billing period
         if (
           input.cancellation.timing ===
@@ -250,6 +268,7 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
       },
       {
         apiKey: ctx.apiKey,
+        customerId: customer.id,
       }
     )
 
@@ -406,7 +425,11 @@ const requestMagicLinkProcedure = publicProcedure
 // createAddPaymentMethodSession procedure
 const createAddPaymentMethodSessionProcedure =
   customerProtectedProcedure
-    .input(z.object({}))
+    .input(
+      z.object({
+        customerId: z.string().describe(CUSTOMER_ID_DESCRIPTION),
+      })
+    )
     .output(
       z.object({
         sessionUrl: z.url().describe('The Stripe setup session URL'),
@@ -436,6 +459,7 @@ const createAddPaymentMethodSessionProcedure =
 const setDefaultPaymentMethodProcedure = customerProtectedProcedure
   .input(
     z.object({
+      customerId: z.string().describe(CUSTOMER_ID_DESCRIPTION),
       paymentMethodId: z
         .string()
         .describe('The payment method ID to set as default'),
@@ -476,39 +500,59 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
       },
       {
         apiKey: ctx.apiKey,
+        customerId: customer.id,
       }
     )
   })
 
 // Get all customers for an email at an organization
-const getCustomersForUserAndOrganizationProcedure =
-  customerProtectedProcedure
-    .input(z.object({}))
-    .output(
-      z.object({
-        customers: customerClientSelectSchema.array(),
+// Uses protectedProcedure instead of customerProtectedProcedure because
+// this is called before a customer is selected (on the select-customer page)
+const getCustomersForUserAndOrganizationProcedure = protectedProcedure
+  .input(z.object({}))
+  .output(
+    z.object({
+      customers: customerClientSelectSchema.array(),
+    })
+  )
+  .query(async ({ ctx }) => {
+    if (!ctx.user) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'User is required',
       })
+    }
+
+    const userId = ctx.user.id
+    const organizationId =
+      await getCustomerBillingPortalOrganizationId()
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+
+    const customers = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectCustomers(
+          {
+            userId,
+            organizationId,
+            livemode: true,
+          },
+          transaction
+        )
+      }
     )
-    .query(
-      authenticatedProcedureTransaction(
-        async ({ ctx, transaction }) => {
-          const customers = await selectCustomers(
-            {
-              userId: ctx.user.id,
-              organizationId: ctx.organizationId,
-              livemode: true,
-            },
-            transaction
-          )
-          return { customers }
-        }
-      )
-    )
+    return { customers }
+  })
 
 const createCheckoutSessionWithPriceProcedure =
   customerProtectedProcedure
     .input(
       z.object({
+        customerId: z.string().describe(CUSTOMER_ID_DESCRIPTION),
         checkoutSession:
           customerBillingCreatePricedCheckoutSessionInputSchema,
       })
@@ -528,7 +572,11 @@ const createCheckoutSessionWithPriceProcedure =
 
 const createAddPaymentMethodCheckoutSessionProcedure =
   customerProtectedProcedure
-    .input(z.object({}))
+    .input(
+      z.object({
+        customerId: z.string().describe(CUSTOMER_ID_DESCRIPTION),
+      })
+    )
     .output(
       z.object({
         checkoutSession: checkoutSessionClientSelectSchema,
