@@ -26,6 +26,7 @@ import { InvoicesDataTable } from '../../invoices/data-table'
 import { SubscriptionFeaturesTable } from './SubscriptionFeaturesTable'
 import { ExpandSection } from '@/components/ExpandSection'
 import { ProductCard } from '@/components/ProductCard'
+import { CustomerCardNew } from '@/components/CustomerCardNew'
 import { getCurrencyParts } from '@/utils/stripe'
 
 const InnerSubscriptionPage = ({
@@ -194,6 +195,14 @@ const InnerSubscriptionPage = ({
               No products in this subscription.
             </div>
           )}
+        </ExpandSection>
+        <ExpandSection title="Customer" defaultExpanded={true}>
+          <CustomerCardNew
+            variant="simple"
+            name={customer.name}
+            email={customer.email}
+            onClick={() => router.push(`/customers/${customer.id}`)}
+          />
         </ExpandSection>
         <SubscriptionFeaturesTable
           featureItems={subscription.experimental?.featureItems}
