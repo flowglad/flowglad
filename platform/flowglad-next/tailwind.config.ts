@@ -83,6 +83,10 @@ const config: Config = {
         xs: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
         medium:
           '-3px 4px 21px 0px rgba(0, 0, 0, 0.05), -2px 2px 4px 0px rgba(0, 0, 0, 0.04)',
+        'realistic-md':
+          'rgba(0, 0, 0, 0.07) 0.398096px 0.398096px 0.562993px -0.9375px, rgba(0, 0, 0, 0.07) 1.20725px 1.20725px 1.70731px -1.875px, rgba(0, 0, 0, 0.06) 3.19133px 3.19133px 4.51322px -2.8125px, rgba(0, 0, 0, 0.03) 10px 10px 14.1421px -3.75px',
+        'realistic-sm':
+          'rgba(0, 0, 0, 0.04) 0px 0.301094px 0.301094px -1.25px, rgba(0, 0, 0, 0.08) 0px 1.14427px 1.14427px -2.5px, rgba(0, 0, 0, 0.03) 0px 5px 5px -3.75px',
       },
       borderRadius: {
         lg: 'var(--radius)',

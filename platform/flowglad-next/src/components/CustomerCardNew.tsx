@@ -13,9 +13,9 @@ const customerCardVariants = cva(
     variants: {
       variant: {
         default:
-          'gap-3 px-4 py-2 border border-border rounded-[6px] bg-card-50 hover:bg-card shadow-xs hover:shadow-sm',
+          'gap-3 px-4 py-2 border border-border rounded-[6px] bg-card-50 hover:bg-card shadow-realistic-sm',
         simple:
-          'gap-2 px-3 py-2 border border-border rounded-[6px] bg-card-50 hover:bg-card hover:border-muted-foreground shadow-xs hover:shadow-sm',
+          'gap-2 px-3 py-2 border border-border rounded-[6px] bg-card-50 hover:bg-card hover:border-muted-foreground shadow-realistic-sm',
       },
     },
     defaultVariants: {
@@ -37,11 +37,13 @@ export interface CustomerCardNewProps
   /** Click/activate handler (mouse or keyboard activation) */
   onClick?: (
     event:
-      | React.MouseEvent<HTMLDivElement>
-      | React.KeyboardEvent<HTMLDivElement>
+      | React.MouseEvent<HTMLDivElement | HTMLAnchorElement>
+      | React.KeyboardEvent<HTMLDivElement | HTMLAnchorElement>
   ) => void
   /** Optional additional keydown handler */
-  onKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void
+  onKeyDown?: (
+    event: React.KeyboardEvent<HTMLDivElement | HTMLAnchorElement>
+  ) => void
   /** Optional className */
   className?: string
 }
@@ -79,7 +81,9 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
       [forwardedRef]
     )
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const handleKeyDown = (
+      e: React.KeyboardEvent<HTMLDivElement | HTMLAnchorElement>
+    ) => {
       if (onClick && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault()
         onClick(e)
@@ -134,6 +138,8 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
           href={href}
           ref={setRef}
           className={cardClassName}
+          onClick={onClick}
+          onKeyDown={onKeyDown}
         >
           {content}
         </Link>

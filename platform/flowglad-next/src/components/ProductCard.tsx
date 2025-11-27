@@ -21,8 +21,8 @@ const productCardVariants = cva(
         subscription: '',
       },
       state: {
-        default: 'bg-card-50 border-border shadow-xs',
-        hover: 'bg-card border-muted-foreground shadow-sm',
+        default: 'bg-card-50 border-border shadow-realistic-sm',
+        hover: 'bg-card border-muted-foreground shadow-realistic-sm',
       },
       clickable: {
         true: 'cursor-pointer',
