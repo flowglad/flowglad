@@ -126,7 +126,7 @@
     --background: 51 47% 97%;
     --foreground: 30 5.3% 7.5%;
     --card: 0 0% 100%;
-    --card-50: 60 4.2% 98.6%;
+    --card-50: 60, 43%, 99%;
     --card-foreground: 30 5.3% 7.5%;
     --popover: 0 0% 100%;
     --popover-foreground: 30 5.3% 7.5%;
