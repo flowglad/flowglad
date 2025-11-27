@@ -1957,4 +1957,165 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
   })
+
+  /* --------------------------------------------------------------------------
+     Free Plan Protection
+  --------------------------------------------------------------------------- */
+  describe('Free Plan Protection', () => {
+    it('should throw an error when attempting to cancel a free plan subscription', async () => {
+      const { organization, price: freePrice, pricingModel } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      // Ensure the price is free (unitPrice = 0)
+      await adminTransaction(async ({ transaction }) => {
+        await updatePrice(
+          { id: freePrice.id, unitPrice: 0, type: PriceType.Subscription },
+          transaction
+        )
+      })
+      const freeSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: freePrice.id,
+        paymentMethodId: paymentMethod.id,
+        isFreePlan: true,
+        status: SubscriptionStatus.Active,
+      })
+      await setupBillingPeriod({
+        subscriptionId: freeSubscription.id,
+        startDate: Date.now() - 60 * 60 * 1000,
+        endDate: Date.now() + 60 * 60 * 1000,
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return cancelSubscriptionProcedureTransaction({
+            input: {
+              id: freeSubscription.id,
+              cancellation: {
+                timing: SubscriptionCancellationArrangement.Immediately,
+              },
+            },
+            transaction,
+            ctx: { apiKey: undefined },
+            livemode: true,
+            userId: '1',
+            organizationId: organization.id,
+          })
+        })
+      ).rejects.toThrow(/Cannot cancel the default free plan/)
+    })
+
+    it('should allow cancellation of paid plan subscriptions', async () => {
+      const { organization, pricingModel } = await setupOrg()
+      const paidProduct = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Paid Plan',
+      })
+      const paidPrice = await setupPrice({
+        productId: paidProduct.id,
+        name: 'Paid Plan Price',
+        type: PriceType.Subscription,
+        unitPrice: 5000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const paidSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: paidPrice.id,
+        paymentMethodId: paymentMethod.id,
+        isFreePlan: false,
+        status: SubscriptionStatus.Active,
+      })
+      await setupBillingPeriod({
+        subscriptionId: paidSubscription.id,
+        startDate: Date.now() - 60 * 60 * 1000,
+        endDate: Date.now() + 60 * 60 * 1000,
+      })
+
+      const response = await adminTransaction(async ({ transaction }) => {
+        return cancelSubscriptionProcedureTransaction({
+          input: {
+            id: paidSubscription.id,
+            cancellation: {
+              timing: SubscriptionCancellationArrangement.Immediately,
+            },
+          },
+          transaction,
+          ctx: { apiKey: undefined },
+          livemode: true,
+          userId: '1',
+          organizationId: organization.id,
+        })
+      })
+
+      expect(response.result.subscription.status).toBe(SubscriptionStatus.Canceled)
+    })
+
+    it('should throw an error when attempting to schedule cancellation of a free plan', async () => {
+      const { organization, price: freePrice, pricingModel } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      await adminTransaction(async ({ transaction }) => {
+        await updatePrice(
+          { id: freePrice.id, unitPrice: 0, type: PriceType.Subscription },
+          transaction
+        )
+      })
+      const freeSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: freePrice.id,
+        paymentMethodId: paymentMethod.id,
+        isFreePlan: true,
+        status: SubscriptionStatus.Active,
+      })
+      await setupBillingPeriod({
+        subscriptionId: freeSubscription.id,
+        startDate: Date.now() - 60 * 60 * 1000,
+        endDate: Date.now() + 60 * 60 * 1000,
+      })
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return cancelSubscriptionProcedureTransaction({
+            input: {
+              id: freeSubscription.id,
+              cancellation: {
+                timing: SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+              },
+            },
+            transaction,
+            ctx: { apiKey: undefined },
+            livemode: true,
+            userId: '1',
+            organizationId: organization.id,
+          })
+        })
+      ).rejects.toThrow(/Cannot cancel the default free plan/)
+    })
+  })
 })
