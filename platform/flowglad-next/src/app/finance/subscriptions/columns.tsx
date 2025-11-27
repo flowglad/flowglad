@@ -52,7 +52,8 @@ function SubscriptionActionsMenu({
 }) {
   const [isCancelOpen, setIsCancelOpen] = React.useState(false)
 
-  const isCanceled = subscription.status === SubscriptionStatus.Canceled
+  const isCanceled =
+    subscription.status === SubscriptionStatus.Canceled
   const isFreePlan = subscription.isFreePlan === true
   const cannotCancel = isCanceled || isFreePlan
 

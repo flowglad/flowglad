@@ -21,7 +21,7 @@ import {
   subscriptions,
   subscriptionsSelectSchema,
 } from '../schema/subscriptions'
-import { and, eq, lte } from 'drizzle-orm'
+import { and, eq, inArray, lte } from 'drizzle-orm'
 import { createDateNotPassedFilter } from '../tableUtils'
 import {
   RichSubscription,
@@ -30,9 +30,9 @@ import {
 import { pricesClientSelectSchema } from '../schema/prices'
 import { prices } from '../schema/prices'
 import { isSubscriptionCurrent } from './subscriptionMethods'
-import { SubscriptionItemType, SubscriptionStatus } from '@/types'
+import { SubscriptionStatus } from '@/types'
 import {
-  expireSubscriptionItemFeaturesForSubscriptionItem,
+  expireSubscriptionItemFeaturesForSubscriptionItems,
   selectSubscriptionItemFeaturesWithFeatureSlug,
 } from './subscriptionItemFeatureMethods'
 import { selectUsageMeterBalancesForSubscriptions } from './ledgerEntryMethods'
@@ -148,31 +148,23 @@ export const bulkCreateOrUpdateSubscriptionItems = async (
   return [...createdItems, ...updatedItems]
 }
 
-export const expireSubscriptionItem = async (
-  subscriptionItemId: string,
+export const expireSubscriptionItems = async (
+  subscriptionItemIds: string[],
   expiredAt: Date | number,
   transaction: DbTransaction
 ) => {
-  const subscriptionItem = await selectSubscriptionItemById(
-    subscriptionItemId,
-    transaction
-  )
-  // if (subscriptionItem.type === SubscriptionItemType.Usage) {
-  //   throw new Error('Usage items cannot be expired')
-  // }
-  await updateSubscriptionItem(
-    {
-      id: subscriptionItemId,
+  const result = await transaction
+    .update(subscriptionItems)
+    .set({
       expiredAt: new Date(expiredAt).getTime(),
-      type: subscriptionItem.type,
-    },
-    transaction
-  )
-  await expireSubscriptionItemFeaturesForSubscriptionItem(
-    subscriptionItemId,
+    })
+    .where(inArray(subscriptionItems.id, subscriptionItemIds))
+  await expireSubscriptionItemFeaturesForSubscriptionItems(
+    subscriptionItemIds,
     new Date(expiredAt).getTime(),
     transaction
   )
+  return subscriptionItemsSelectSchema.array().parse(result)
 }
 
 /**

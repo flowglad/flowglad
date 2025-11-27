@@ -37,7 +37,7 @@ import {
 import {
   selectSubscriptionItemsAndSubscriptionBySubscriptionId,
   updateSubscriptionItem,
-  expireSubscriptionItem,
+  expireSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   selectCurrentBillingPeriodForSubscription,
@@ -1049,8 +1049,8 @@ describe('adjustSubscription Integration Tests', async () => {
             type: SubscriptionItemType.Static,
           })
 
-          await expireSubscriptionItem(
-            currentItem.id,
+          await expireSubscriptionItems(
+            [currentItem.id],
             futureDate,
             transaction
           )

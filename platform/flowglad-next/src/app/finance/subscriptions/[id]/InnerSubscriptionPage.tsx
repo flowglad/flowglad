@@ -53,7 +53,8 @@ const InnerSubscriptionPage = ({
   const canAddFeature = subscription.subscriptionItems.length > 0
 
   // Determine if cancel should be disabled and why
-  const isCanceled = subscription.status === SubscriptionStatus.Canceled
+  const isCanceled =
+    subscription.status === SubscriptionStatus.Canceled
   const isFreePlan = subscription.isFreePlan === true
   const cannotCancel = isCanceled || isFreePlan
 

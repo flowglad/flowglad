@@ -83,10 +83,7 @@ export interface ProductCardProps
  * />
  * ```
  */
-const ProductCard = React.forwardRef<
-  HTMLElement,
-  ProductCardProps
->(
+const ProductCard = React.forwardRef<HTMLElement, ProductCardProps>(
   (
     {
       className,

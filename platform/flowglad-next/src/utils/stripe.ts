@@ -332,10 +332,17 @@ export const getCurrencyParts = (
   })
 
   const parts = formatter.formatToParts(adjustedAmount)
-  const symbol = parts.find((p) => p.type === 'currency')?.value ?? '$'
+  const symbol =
+    parts.find((p) => p.type === 'currency')?.value ?? '$'
   const value = parts
     .filter((p) =>
-      ['minusSign', 'integer', 'group', 'decimal', 'fraction'].includes(p.type)
+      [
+        'minusSign',
+        'integer',
+        'group',
+        'decimal',
+        'fraction',
+      ].includes(p.type)
     )
     .map((p) => p.value)
     .join('')

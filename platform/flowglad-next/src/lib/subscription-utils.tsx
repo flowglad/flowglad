@@ -212,4 +212,3 @@ export function getSubscriptionStatusBadge(
     variant,
   }
 }
-
