@@ -1,15 +1,15 @@
 'use client'
 
 import { useFormContext } from 'react-hook-form'
-import { CreateApiKeyInput } from '@/db/schema/apiKeys'
-import { Input } from '@/components/ui/input'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import type { CreateApiKeyInput } from '@/db/schema/apiKeys'
 
 const ApiKeyFormFields = () => {
   const form = useFormContext<CreateApiKeyInput>()

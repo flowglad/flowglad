@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
+import { useEffect, useRef, useState } from 'react'
 import { useAuthContext } from '../contexts/authContext'
 
 declare global {

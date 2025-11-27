@@ -1,5 +1,5 @@
-import core from '@/utils/core'
 import { createRouteMatcher } from '@clerk/nextjs/server'
+import core from '@/utils/core'
 
 const publicRoutes = [
   '/mcp',

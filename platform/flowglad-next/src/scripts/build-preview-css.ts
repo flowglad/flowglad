@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
+import crypto from 'crypto'
 /* eslint-disable no-console */
 import fs from 'fs/promises'
 import path from 'path'
 import postcss from 'postcss'
-import crypto from 'crypto'
 
 async function buildPreviewCSS() {
   console.log('🎨 Building preview CSS...')

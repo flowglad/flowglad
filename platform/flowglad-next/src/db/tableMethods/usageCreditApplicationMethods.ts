@@ -1,17 +1,17 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createBulkInsertFunction,
-} from '@/db/tableUtils'
-import {
   usageCreditApplications,
   usageCreditApplicationsInsertSchema,
   usageCreditApplicationsSelectSchema,
   usageCreditApplicationsUpdateSchema,
 } from '@/db/schema/usageCreditApplications'
+import {
+  createBulkInsertFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
 
 const config: ORMMethodCreatorConfig<
   typeof usageCreditApplications,

@@ -1,12 +1,12 @@
 'use client'
 
 import * as React from 'react'
-import { cn } from '@/registry/lib/cn'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/registry/components/card'
-import { PricingHeader } from './pricing-header'
-import { PricingFeature } from './pricing-feature'
 import type { PricingTableProduct } from '@/registry/base/pricing/types'
+import { Card } from '@/registry/components/card'
+import { cn } from '@/registry/lib/cn'
+import { PricingFeature } from './pricing-feature'
+import { PricingHeader } from './pricing-header'
 
 interface PricingColumnProps {
   product: PricingTableProduct

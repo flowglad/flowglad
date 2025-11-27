@@ -1,7 +1,7 @@
-import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { idInputSchema } from '@/db/tableUtils'
 import { deleteLink } from '@/db/tableMethods/linkMethods'
+import { idInputSchema } from '@/db/tableUtils'
+import { protectedProcedure } from '@/server/trpc'
 
 export const deleteLinkProcedure = protectedProcedure
   .input(idInputSchema)

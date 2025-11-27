@@ -1,12 +1,12 @@
 'use client'
 
 import { ArrowRight } from 'lucide-react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import type {
   PricingModelTemplateMetadata,
   SvgLogo,
 } from '@/types/pricingModelTemplates'
-import Image from 'next/image'
 
 interface TemplateCardProps {
   metadata: PricingModelTemplateMetadata

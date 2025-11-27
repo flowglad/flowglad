@@ -1,27 +1,27 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { DbTransaction } from '@/db/types'
-import { verifyCanCreateSubscription } from './helpers'
-import { CreateSubscriptionParams } from './types'
-import { Customer } from '@/db/schema/customers'
-import { Price } from '@/db/schema/prices'
-import { Organization } from '@/db/schema/organizations'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  SubscriptionStatus,
-  IntervalUnit,
-  PriceType,
-  CancellationReason,
-} from '@/types'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { core } from '@/utils/core'
-import { adminTransaction } from '@/db/adminTransaction'
-import {
-  setupOrg,
   setupCustomer,
-  setupSubscription,
+  setupOrg,
+  setupPaymentMethod,
   setupPrice,
   setupProduct,
-  setupPaymentMethod,
+  setupSubscription,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { DbTransaction } from '@/db/types'
+import {
+  CancellationReason,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
+import { core } from '@/utils/core'
+import { verifyCanCreateSubscription } from './helpers'
+import type { CreateSubscriptionParams } from './types'
 
 describe('Single Free Subscription Constraint', () => {
   let organization: Organization.Record

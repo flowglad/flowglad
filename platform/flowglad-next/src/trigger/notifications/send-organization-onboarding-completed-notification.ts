@@ -1,13 +1,13 @@
-import { task, logger } from '@trigger.dev/sdk'
-import { sendOrganizationOnboardingCompletedNotificationEmail } from '@/utils/email'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
+import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
+import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
+import { sendOrganizationOnboardingCompletedNotificationEmail } from '@/utils/email'
 
 const sendOrganizationOnboardingCompletedNotificationTask = task({
   id: 'send-organization-onboarding-completed-notification',

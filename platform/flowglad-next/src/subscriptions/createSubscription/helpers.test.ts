@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { deriveSubscriptionStatus } from './helpers'
+import { describe, expect, it } from 'vitest'
 import { SubscriptionStatus } from '@/types'
+import { deriveSubscriptionStatus } from './helpers'
 
 describe('deriveSubscriptionStatus', () => {
   it('should return "trialing" if a trialEnd date is provided', () => {

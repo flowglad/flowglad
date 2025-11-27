@@ -1,5 +1,5 @@
-import { withSentryConfig } from '@sentry/nextjs'
 import { withLogtail } from '@logtail/next'
+import { withSentryConfig } from '@sentry/nextjs'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

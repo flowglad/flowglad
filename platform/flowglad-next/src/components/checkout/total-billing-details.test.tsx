@@ -1,43 +1,43 @@
 // @ts-nocheck
 import { render } from '@testing-library/react'
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
   vi,
 } from 'vitest'
-import {
-  CheckoutPageContextValues,
+import CheckoutPageProvider, {
+  type CheckoutPageContextValues,
   useCheckoutPageContext,
 } from '@/contexts/checkoutPageContext'
+import type { Discount } from '@/db/schema/discounts'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Price } from '@/db/schema/prices'
+import { stubbedCheckoutSession } from '@/stubs/checkoutContextStubs'
+import { dummyOrganization } from '@/stubs/organizationStubs'
+import { subscriptionDummyPrice } from '@/stubs/priceStubs'
+import { dummyProduct } from '@/stubs/productStubs'
+import { subscriptionWithTrialDummyPurchase } from '@/stubs/purchaseStubs'
 import {
+  CheckoutFlowType,
   CurrencyCode,
-  PriceType,
   DiscountAmountType,
   DiscountDuration,
   FeeCalculationType,
-  PaymentMethodType,
+  IntervalUnit,
   InvoiceStatus,
+  PaymentMethodType,
+  PriceType,
 } from '@/types'
-import { dummyProduct } from '@/stubs/productStubs'
-import { subscriptionWithTrialDummyPurchase } from '@/stubs/purchaseStubs'
-import { subscriptionDummyPrice } from '@/stubs/priceStubs'
-import { dummyOrganization } from '@/stubs/organizationStubs'
-import { CheckoutFlowType, IntervalUnit } from '@/types'
 import core from '@/utils/core'
-import { stubbedCheckoutSession } from '@/stubs/checkoutContextStubs'
-import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import {
-  TotalBillingDetails,
   calculateTotalBillingDetails,
+  TotalBillingDetails,
 } from './total-billing-details'
-import { Price } from '@/db/schema/prices'
-import { Discount } from '@/db/schema/discounts'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { Invoice } from '@/db/schema/invoices'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 
 const baseMockContext = {
   checkoutSession: stubbedCheckoutSession,

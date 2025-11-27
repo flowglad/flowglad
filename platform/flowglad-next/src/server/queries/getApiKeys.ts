@@ -1,7 +1,7 @@
-import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { apiKeyClientWhereClauseSchema } from '@/db/schema/apiKeys'
+import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
+import { protectedProcedure } from '@/server/trpc'
 
 export const getApiKeys = protectedProcedure
   .input(apiKeyClientWhereClauseSchema)

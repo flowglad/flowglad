@@ -1,30 +1,30 @@
+import { z } from 'zod'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  createUpsertFunction,
-  ORMMethodCreatorConfig,
-  createPaginatedSelectFunction,
-  createCursorPaginatedSelectFunction,
-  createBulkInsertOrDoNothingFunction,
-  createBulkInsertFunction,
-} from '@/db/tableUtils'
-import {
+  type Feature,
   features,
+  featuresClientSelectSchema,
   featuresInsertSchema,
   featuresSelectSchema,
   featuresUpdateSchema,
-  featuresClientSelectSchema,
-  Feature,
 } from '@/db/schema/features'
-import { z } from 'zod'
-import { selectPricingModels } from './pricingModelMethods'
-import { PricingModel } from '../schema/pricingModels'
-import { DbTransaction } from '@/db/types'
 import {
-  selectProductFeatures,
+  createBulkInsertFunction,
+  createBulkInsertOrDoNothingFunction,
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import type { PricingModel } from '../schema/pricingModels'
+import { selectPricingModels } from './pricingModelMethods'
+import {
   expireProductFeaturesByFeatureId,
+  selectProductFeatures,
   updateProductFeature,
 } from './productFeatureMethods'
 

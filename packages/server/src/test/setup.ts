@@ -1,4 +1,4 @@
-import { beforeAll, afterAll } from 'vitest'
+import { afterAll, beforeAll } from 'vitest'
 
 // This file is used to set up the test environment
 // It will be executed before all tests

@@ -1,76 +1,76 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { authenticatedTransaction } from './authenticatedTransaction'
-import { adminTransaction } from './adminTransaction'
-import {
-  setupOrg,
-  setupCustomer,
-  setupUserAndApiKey,
-  setupPaymentMethod,
-  setupSubscription,
-  setupInvoice,
-  setupPayment,
-  setupPrice,
-} from '@/../seedDatabase'
-import {
-  insertPricingModel,
-  selectPricingModelForCustomer,
-} from './tableMethods/pricingModelMethods'
-import { insertProduct } from './tableMethods/productMethods'
-import { insertPrice } from './tableMethods/priceMethods'
 import { sql } from 'drizzle-orm'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupCustomer,
+  setupInvoice,
+  setupOrg,
+  setupPayment,
+  setupPaymentMethod,
+  setupPrice,
+  setupPricingModel,
+  setupProduct,
+  setupSubscription,
+  setupUserAndApiKey,
+} from '@/../seedDatabase'
+import { selectProducts } from '@/db/tableMethods/productMethods'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  CurrencyCode,
+  IntervalUnit,
+  InvoiceStatus,
+  InvoiceType,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
+import core from '@/utils/core'
+import { adminTransaction } from './adminTransaction'
+import { authenticatedTransaction } from './authenticatedTransaction'
 import db from './client'
-import type { Organization } from './schema/organizations'
+import type { ApiKey } from './schema/apiKeys'
 import type { Customer } from './schema/customers'
-import type { User } from './schema/users'
 import type { Invoice } from './schema/invoices'
-import type { Subscription } from './schema/subscriptions'
-import type { Payment } from './schema/payments'
+import type { Organization } from './schema/organizations'
 import type { PaymentMethod } from './schema/paymentMethods'
+import type { Payment } from './schema/payments'
 import type { Price } from './schema/prices'
-import type { Product } from './schema/products'
 import type { PricingModel } from './schema/pricingModels'
-import { insertUser } from './tableMethods/userMethods'
-import {
-  selectCustomers,
-  selectCustomerById,
-  insertCustomer,
-  updateCustomer,
-} from './tableMethods/customerMethods'
-import {
-  selectInvoices,
-  selectInvoiceById,
-  insertInvoice,
-} from './tableMethods/invoiceMethods'
-import {
-  selectSubscriptions,
-  selectSubscriptionById,
-  updateSubscription,
-} from './tableMethods/subscriptionMethods'
+import type { Product } from './schema/products'
+import type { Subscription } from './schema/subscriptions'
+import type { User } from './schema/users'
 import {
   insertCheckoutSession,
   safelyUpdateCheckoutSessionStatus,
   updateCheckoutSession,
 } from './tableMethods/checkoutSessionMethods'
-import { selectPayments } from './tableMethods/paymentMethods'
-import { selectPaymentMethods } from './tableMethods/paymentMethodMethods'
-import core from '@/utils/core'
 import {
-  PaymentStatus,
-  SubscriptionStatus,
-  InvoiceStatus,
-  PaymentMethodType,
-  CurrencyCode,
-  InvoiceType,
-  CheckoutSessionType,
-  CheckoutSessionStatus,
-  PriceType,
-  IntervalUnit,
-} from '@/types'
-import { DbTransaction } from './types'
-import { afterEach } from 'vitest'
-import { selectProducts } from '@/db/tableMethods/productMethods'
-import { setupProduct, setupPricingModel } from '@/../seedDatabase'
-import { ApiKey } from './schema/apiKeys'
+  insertCustomer,
+  selectCustomerById,
+  selectCustomers,
+  updateCustomer,
+} from './tableMethods/customerMethods'
+import {
+  insertInvoice,
+  selectInvoiceById,
+  selectInvoices,
+} from './tableMethods/invoiceMethods'
+import { selectPaymentMethods } from './tableMethods/paymentMethodMethods'
+import { selectPayments } from './tableMethods/paymentMethods'
+import { insertPrice } from './tableMethods/priceMethods'
+import {
+  insertPricingModel,
+  selectPricingModelForCustomer,
+} from './tableMethods/pricingModelMethods'
+import { insertProduct } from './tableMethods/productMethods'
+import {
+  selectSubscriptionById,
+  selectSubscriptions,
+  updateSubscription,
+} from './tableMethods/subscriptionMethods'
+import { insertUser } from './tableMethods/userMethods'
+import type { DbTransaction } from './types'
 
 /**
  * Helper function to create an authenticated transaction with customer role.

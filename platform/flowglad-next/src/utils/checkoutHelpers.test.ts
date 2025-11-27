@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 // Only mock Next headers to satisfy runtime; avoid higher-level mocks
 vi.mock('next/headers', () => ({
   headers: vi.fn(() => new Headers()),
@@ -10,35 +11,35 @@ vi.mock('next/headers', () => ({
 }))
 
 import {
-  checkoutInfoForPriceWhere,
-  checkoutInfoForCheckoutSession,
-} from './checkoutHelpers'
-import {
-  setupOrg,
-  setupProduct,
-  setupPrice,
-  setupCustomer,
   setupCheckoutSession,
+  setupCustomer,
   setupDiscount,
-  setupSubscription,
   setupFeeCalculation,
+  setupOrg,
+  setupPrice,
+  setupProduct,
+  setupSubscription,
   setupTestFeaturesAndProductFeatures,
   setupUsageMeter,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { Price } from '@/db/schema/prices'
+import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import {
-  PriceType,
-  IntervalUnit,
-  CurrencyCode,
+  CheckoutFlowType,
   CheckoutSessionStatus,
   CheckoutSessionType,
-  SubscriptionStatus,
-  CheckoutFlowType,
+  CurrencyCode,
   FeatureType,
   FeatureUsageGrantFrequency,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
 } from '@/types'
-import { Price } from '@/db/schema/prices'
-import { adminTransaction } from '@/db/adminTransaction'
-import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  checkoutInfoForCheckoutSession,
+  checkoutInfoForPriceWhere,
+} from './checkoutHelpers'
 
 describe('checkoutHelpers', () => {
   describe('checkoutInfoForPriceWhere', () => {
@@ -69,7 +70,7 @@ describe('checkoutHelpers', () => {
       // Build price params conditionally based on type
       // TypeScript needs explicit type narrowing for discriminated unions
       let priceParams: Parameters<typeof setupPrice>[0]
-      
+
       if (type === PriceType.SinglePayment) {
         priceParams = {
           productId: product.id,
@@ -183,7 +184,7 @@ describe('checkoutHelpers', () => {
       // Build price params conditionally based on type
       // TypeScript needs explicit type narrowing for discriminated unions
       let priceParams: Parameters<typeof setupPrice>[0]
-      
+
       if (type === PriceType.SinglePayment) {
         priceParams = {
           productId: product.id,

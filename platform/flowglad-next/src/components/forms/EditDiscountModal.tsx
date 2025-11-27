@@ -1,14 +1,14 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import {
-  Discount,
-  editDiscountFormSchema,
-  EditDiscountFormSchema,
-} from '@/db/schema/discounts'
-import DiscountFormFields from '@/components/forms/DiscountFormFields'
 import { trpc } from '@/app/_trpc/client'
+import DiscountFormFields from '@/components/forms/DiscountFormFields'
+import FormModal from '@/components/forms/FormModal'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import {
+  type Discount,
+  type EditDiscountFormSchema,
+  editDiscountFormSchema,
+} from '@/db/schema/discounts'
 import { countableCurrencyAmountToRawStringAmount } from '@/utils/stripe'
 import { toEditDiscountInput } from './discountFormHelpers'
 

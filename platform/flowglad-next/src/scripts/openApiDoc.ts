@@ -3,9 +3,9 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/openApiDoc.ts
 */
 
-import { createFlowgladOpenApiDocument } from '@/server/swagger'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import yaml from 'json-to-pretty-yaml'
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { createFlowgladOpenApiDocument } from '@/server/swagger'
 import runScript from './scriptRunner'
 
 async function openApiDoc(db: PostgresJsDatabase) {

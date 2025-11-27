@@ -1,35 +1,36 @@
-import * as R from 'ramda'
+import { sql } from 'drizzle-orm'
 import {
+  boolean,
   integer,
+  pgPolicy,
   pgTable,
   text,
-  pgPolicy,
-  boolean,
 } from 'drizzle-orm/pg-core'
-import { sql } from 'drizzle-orm'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
 import { z } from 'zod'
-import {
-  constructIndex,
-  pgEnumColumn,
-  ommittedColumnsForInsertSchema,
-  tableBase,
-  notNullStringForeignKey,
-  constructUniqueIndex,
-  livemodePolicy,
-  nullableStringForeignKey,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantPolicy,
-  enableCustomerReadPolicy,
-  clientWriteOmitsConstructor,
-} from '@/db/tableUtils'
 import { discounts } from '@/db/schema/discounts'
 import { purchases } from '@/db/schema/purchases'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { subscriptions } from '@/db/schema/subscriptions'
+import {
+  clientWriteOmitsConstructor,
+  constructIndex,
+  constructUniqueIndex,
+  enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  ommittedColumnsForInsertSchema,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
+} from '@/db/tableUtils'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import core from '@/utils/core'
-import { subscriptions } from '@/db/schema/subscriptions'
 import { buildSchemas } from '../createZodSchemas'
+
 const TABLE_NAME = 'discount_redemptions'
 
 // Schema descriptions

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { IntervalUnit } from '@/types'
 import { intervalLabel } from './billing-header'
 

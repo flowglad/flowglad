@@ -1,12 +1,12 @@
+import { logger, task } from '@trigger.dev/sdk'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { Subscription } from '@/db/schema/subscriptions'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { SubscriptionStatus } from '@/types'
-import { logger, task } from '@trigger.dev/sdk'
 import { storeTelemetry } from '@/utils/redis'
 
 export const attemptSubscriptionCancellationTask = task({

@@ -1,29 +1,29 @@
-import { router } from '../trpc'
+import { TRPCError } from '@trpc/server'
+import { kebabCase } from 'change-case'
+import { z } from 'zod'
+import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import {
   createSubscriptionItemFeatureInputSchema,
   editSubscriptionItemFeatureInputSchema,
-  subscriptionItemFeaturesClientSelectSchema,
   expireSubscriptionItemFeatureInputSchema,
-  SubscriptionItemFeature,
+  type SubscriptionItemFeature,
+  subscriptionItemFeaturesClientSelectSchema,
 } from '@/db/schema/subscriptionItemFeatures'
 import {
+  expireSubscriptionItemFeature as expireSubscriptionItemFeatureMethod,
+  insertSubscriptionItemFeature,
+  selectClientSubscriptionItemFeatureAndFeatureById,
   selectSubscriptionItemFeatureById,
   updateSubscriptionItemFeature as updateSubscriptionItemFeatureDB,
-  insertSubscriptionItemFeature,
-  expireSubscriptionItemFeature as expireSubscriptionItemFeatureMethod,
-  selectClientSubscriptionItemFeatureAndFeatureById,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import {
-  generateOpenApiMetas,
-  RouteConfig,
-  createPostOpenApiMeta,
-} from '@/utils/openapi'
-import { protectedProcedure } from '@/server/trpc'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
 import { idInputSchema } from '@/db/tableUtils'
-import { z } from 'zod'
-import { TRPCError } from '@trpc/server'
-import { kebabCase } from 'change-case'
+import { protectedProcedure } from '@/server/trpc'
+import {
+  createPostOpenApiMeta,
+  generateOpenApiMetas,
+  type RouteConfig,
+} from '@/utils/openapi'
+import { router } from '../trpc'
 
 const resourceName = 'subscriptionItemFeature' // Using camelCase for resource name consistent with other routers
 const pluralResourceName = 'subscriptionItemFeatures' // Explicitly define plural for openapi path
@@ -38,9 +38,7 @@ const { openApiMetas, routeConfigs: baseRouteConfigsObj } =
 // Ensure baseRouteConfigsObj is treated as a plain object if it has array-like properties
 const cleanedBaseRouteConfigs: Record<string, RouteConfig> = {}
 for (const key in baseRouteConfigsObj) {
-  if (
-    Object.prototype.hasOwnProperty.call(baseRouteConfigsObj, key)
-  ) {
+  if (Object.hasOwn(baseRouteConfigsObj, key)) {
     cleanedBaseRouteConfigs[key] = (baseRouteConfigsObj as any)[key]
   }
 }
@@ -53,7 +51,7 @@ export const subscriptionItemFeaturesRouteConfigs: Record<
   [`POST /${kebabCase(pluralResourceName)}/:id/expire`]: {
     procedure: 'subscriptionItemFeatures.expire',
     pattern: new RegExp(
-      `^${kebabCase(pluralResourceName)}\/([^\/]+)\/expire$`
+      `^${kebabCase(pluralResourceName)}/([^/]+)/expire$`
     ),
     mapParams: (matches) => ({ id: matches[0] }),
   },

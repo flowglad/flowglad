@@ -1,6 +1,6 @@
 import {
+  type ClientOptions,
   Flowglad as FlowgladNode,
-  ClientOptions,
 } from '@flowglad/node'
 
 export class FlowgladServerAdmin {

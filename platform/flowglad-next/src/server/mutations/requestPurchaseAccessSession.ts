@@ -1,14 +1,14 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import { publicProcedure } from '@/server/trpc'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationAndFirstMemberByOrganizationId } from '@/db/tableMethods/organizationMethods'
-import core from '@/utils/core'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import { publicProcedure } from '@/server/trpc'
 import { PurchaseAccessSessionSource } from '@/types'
+import core from '@/utils/core'
 import { sendPurchaseAccessSessionTokenEmail } from '@/utils/email'
+import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 
 export const requestPurchaseAccessSession = publicProcedure
   .input(

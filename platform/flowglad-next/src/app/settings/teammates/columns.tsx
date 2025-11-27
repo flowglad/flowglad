@@ -1,12 +1,12 @@
 'use client'
 
+import type { ColumnDef } from '@tanstack/react-table'
 import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
 // UI components
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import type { Membership } from '@/db/schema/memberships'
 // Other imports
-import { User } from '@/db/schema/users'
-import { Membership } from '@/db/schema/memberships'
+import type { User } from '@/db/schema/users'
 
 export type OrganizationMemberTableRowData = {
   user: User.Record

@@ -1,40 +1,42 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  SelectConditions,
-  whereClauseFromObject,
-} from '@/db/tableUtils'
+  and,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  ne,
+  or,
+} from 'drizzle-orm'
 import {
-  BillingPeriod,
+  type BillingPeriod,
   billingPeriods,
   billingPeriodsInsertSchema,
   billingPeriodsSelectSchema,
   billingPeriodsUpdateSchema,
 } from '@/db/schema/billingPeriods'
-import { customers, customersSelectSchema } from '../schema/customers'
-import { subscriptionsSelectSchema } from '../schema/subscriptions'
 import {
-  and,
-  eq,
-  gte,
-  inArray,
-  lt,
-  lte,
-  ne,
-  or,
-  isNull,
-} from 'drizzle-orm'
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  SelectConditions,
+  whereClauseFromObject,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 import { BillingPeriodStatus, CancellationReason } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { subscriptions } from '../schema/subscriptions'
+import { customers, customersSelectSchema } from '../schema/customers'
+import { invoices, invoicesSelectSchema } from '../schema/invoices'
 import {
   organizations,
   organizationsSelectSchema,
 } from '../schema/organizations'
-import { invoices, invoicesSelectSchema } from '../schema/invoices'
+import {
+  subscriptions,
+  subscriptionsSelectSchema,
+} from '../schema/subscriptions'
 
 const config: ORMMethodCreatorConfig<
   typeof billingPeriods,

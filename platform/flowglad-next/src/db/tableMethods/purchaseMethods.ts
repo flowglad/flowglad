@@ -1,66 +1,66 @@
+import { and, eq, inArray } from 'drizzle-orm'
+import { z } from 'zod'
 import {
+  type Purchase,
+  purchaseClientInsertSchema,
   purchases,
   purchasesInsertSchema,
   purchasesSelectSchema,
+  purchasesTableRowDataSchema,
   purchasesUpdateSchema,
-  Purchase,
   singlePaymentPurchaseSelectSchema,
   subscriptionPurchaseSelectSchema,
-  purchaseClientInsertSchema,
-  purchasesTableRowDataSchema,
 } from '@/db/schema/purchases'
 import {
-  createUpsertFunction,
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
   createSelectById,
   createSelectFunction,
-  createInsertFunction,
-  ORMMethodCreatorConfig,
   createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
   whereClauseFromObject,
-  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 import {
   CheckoutFlowType,
+  PaymentStatus,
   PriceType,
   PurchaseStatus,
-  PaymentStatus,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { and, eq, inArray } from 'drizzle-orm'
-import {
-  singlePaymentPriceSelectSchema,
-  subscriptionPriceSelectSchema,
-  prices,
-  pricesSelectSchema,
-  usagePriceSelectSchema,
-} from '../schema/prices'
-import {
-  customerClientInsertSchema,
-  customers,
-  customersSelectSchema,
-  Customer,
-} from '../schema/customers'
-import {
-  organizations,
-  organizationsSelectSchema,
-} from '../schema/organizations'
-import {
-  products,
-  productsSelectSchema,
-  Product,
-} from '../schema/products'
-import { z } from 'zod'
 import {
   checkoutSessionClientSelectSchema,
   checkoutSessionsSelectSchema,
 } from '../schema/checkoutSessions'
-import { payments, paymentsSelectSchema } from '../schema/payments'
+import {
+  Customer,
+  customerClientInsertSchema,
+  customers,
+  customersSelectSchema,
+} from '../schema/customers'
 import { discountClientSelectSchema } from '../schema/discounts'
-import { customerFacingFeeCalculationSelectSchema } from '../schema/feeCalculations'
-import { ProperNoun } from '../schema/properNouns'
-import { invoicesClientSelectSchema } from '../schema/invoices'
-import { invoiceLineItemsClientSelectSchema } from '../schema/invoiceLineItems'
 import { featuresClientSelectSchema } from '../schema/features'
+import { customerFacingFeeCalculationSelectSchema } from '../schema/feeCalculations'
+import { invoiceLineItemsClientSelectSchema } from '../schema/invoiceLineItems'
+import { invoicesClientSelectSchema } from '../schema/invoices'
+import {
+  organizations,
+  organizationsSelectSchema,
+} from '../schema/organizations'
+import { payments, paymentsSelectSchema } from '../schema/payments'
+import {
+  prices,
+  pricesSelectSchema,
+  singlePaymentPriceSelectSchema,
+  subscriptionPriceSelectSchema,
+  usagePriceSelectSchema,
+} from '../schema/prices'
+import {
+  Product,
+  products,
+  productsSelectSchema,
+} from '../schema/products'
+import type { ProperNoun } from '../schema/properNouns'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,

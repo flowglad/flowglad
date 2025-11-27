@@ -1,29 +1,34 @@
-import { protectedProcedure, router } from '@/server/trpc'
-import { refundPayment } from '@/server/mutations/refundPayment'
+import { z } from 'zod'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   paymentsClientSelectSchema,
   paymentsPaginatedListSchema,
   paymentsPaginatedSelectSchema,
+  paymentsPaginatedTableRowDataSchema,
   paymentsTableRowDataSchema,
 } from '@/db/schema/payments'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectPaymentById,
-  selectPaymentsPaginated,
   selectPaymentCountsByStatus,
+  selectPaymentsCursorPaginatedWithTableRowData,
+  selectPaymentsPaginated,
 } from '@/db/tableMethods/paymentMethods'
 import {
-  idInputSchema,
-  createPaginatedTableRowOutputSchema,
   createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
 } from '@/db/tableUtils'
-import { generateOpenApiMetas, RouteConfig } from '@/utils/openapi'
-import { z } from 'zod'
+import { refundPayment } from '@/server/mutations/refundPayment'
+import { protectedProcedure, router } from '@/server/trpc'
 import { PaymentStatus } from '@/types'
+import {
+  generateOpenApiMetas,
+  type RouteConfig,
+} from '@/utils/openapi'
 import { retryPaymentTransaction } from '@/utils/paymentHelpers'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
-import { selectPaymentsCursorPaginatedWithTableRowData } from '@/db/tableMethods/paymentMethods'
-import { paymentsPaginatedTableRowDataSchema } from '@/db/schema/payments'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Payment',
@@ -35,7 +40,7 @@ export const paymentsRouteConfigs = routeConfigs
 export const refundPaymentRouteConfig: Record<string, RouteConfig> = {
   'POST /payments/:id/refund': {
     procedure: 'payments.refund',
-    pattern: new RegExp(`^payments\/([^\\/]+)\/refund$`),
+    pattern: /^payments\/([^\\/]+)\/refund$/,
     mapParams: (matches) => ({ id: matches[0] }),
   },
 }

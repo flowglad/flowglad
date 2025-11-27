@@ -1,16 +1,16 @@
+import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
-import InnerSubscriptionPage from './InnerSubscriptionPage'
-import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import {
   selectProductById,
   selectProducts,
 } from '@/db/tableMethods/productMethods'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
-import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
-import { notFound } from 'next/navigation'
+import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
+import InnerSubscriptionPage from './InnerSubscriptionPage'
 
 const SubscriptionPage = async ({
   params,

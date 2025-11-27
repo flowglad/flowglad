@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import {
-  constructSubscriptionCreatedEventHash,
-  constructPaymentSucceededEventHash,
-  constructPaymentFailedEventHash,
-  constructPurchaseCompletedEventHash,
   constructCustomerCreatedEventHash,
+  constructPaymentFailedEventHash,
+  constructPaymentSucceededEventHash,
+  constructPurchaseCompletedEventHash,
+  constructSubscriptionCreatedEventHash,
 } from './eventHelpers'
 
 describe('constructSubscriptionCreatedEventHash', () => {

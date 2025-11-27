@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
-import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
-import type { Organization } from '@/db/schema/organizations'
 import {
-  USAGE_LIMIT_SUBSCRIPTION_TEMPLATE,
-  UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE,
   AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE,
+  UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE,
+  USAGE_LIMIT_SUBSCRIPTION_TEMPLATE,
 } from '@/constants/pricingModelTemplates'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Organization } from '@/db/schema/organizations'
+import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
 
 let organization: Organization.Record
 

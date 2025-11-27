@@ -1,29 +1,29 @@
 import { customAlphabet, nanoid } from 'nanoid'
 import {
-  insertOrDoNothingOrganizationByExternalId,
-  selectOrganizations,
-} from '@/db/tableMethods/organizationMethods'
+  type CreateOrganizationInput,
+  type Organization,
+  organizationsClientSelectSchema,
+} from '@/db/schema/organizations'
+import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import {
   insertMembership,
   unfocusMembershipsForUser,
 } from '@/db/tableMethods/membershipMethods'
 import {
+  insertOrDoNothingOrganizationByExternalId,
+  selectOrganizations,
+} from '@/db/tableMethods/organizationMethods'
+import { upsertUserById } from '@/db/tableMethods/userMethods'
+import type { DbTransaction } from '@/db/types'
+import {
   BusinessOnboardingStatus,
-  FeatureFlag,
+  type FeatureFlag,
   FlowgladApiKeyType,
   StripeConnectContractType,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { upsertUserById } from '@/db/tableMethods/userMethods'
+import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
-import { selectCountryById } from '@/db/tableMethods/countryMethods'
-import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
-import {
-  CreateOrganizationInput,
-  Organization,
-  organizationsClientSelectSchema,
-} from '@/db/schema/organizations'
 import { findOrCreateSvixApplication } from './svix'
 
 const generateSubdomainSlug = (name: string) => {

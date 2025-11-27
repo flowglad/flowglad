@@ -1,8 +1,8 @@
-import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { z } from 'zod'
-import { generateText } from 'ai'
 import { openai } from '@ai-sdk/openai'
+import { generateText } from 'ai'
+import { z } from 'zod'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { protectedProcedure } from '@/server/trpc'
 
 const generateDescriptionSchema = z.object({
   productName: z.string(),

@@ -1,19 +1,19 @@
+import { sql } from 'drizzle-orm'
+import { index, pgTable, text } from 'drizzle-orm/pg-core'
 import * as R from 'ramda'
-import { text, pgTable, index } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
+import type { z } from 'zod'
+import { buildSchemas } from '@/db/createZodSchemas'
+import { organizations } from '@/db/schema/organizations'
 import {
-  tableBase,
-  notNullStringForeignKey,
   constructIndex,
   constructUniqueIndex,
+  hiddenColumnsForClientSchema,
   livemodePolicy,
   merchantPolicy,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
+  notNullStringForeignKey,
+  type SelectConditions,
+  tableBase,
 } from '@/db/tableUtils'
-import { organizations } from '@/db/schema/organizations'
-import { sql } from 'drizzle-orm'
-import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'proper_nouns'
 

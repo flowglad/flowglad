@@ -1,26 +1,29 @@
-'use client';
+'use client'
 
-import Button from '@/components/ui/Button';
-import { updatePassword } from '@/utils/auth-helpers/server';
-import { handleRequest } from '@/utils/auth-helpers/client';
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import { useRouter } from 'next/navigation'
+import type React from 'react'
+import { useState } from 'react'
+import Button from '@/components/ui/Button'
+import { handleRequest } from '@/utils/auth-helpers/client'
+import { updatePassword } from '@/utils/auth-helpers/server'
 
 interface UpdatePasswordProps {
-  redirectMethod: string;
+  redirectMethod: string
 }
 
 export default function UpdatePassword({
-  redirectMethod
+  redirectMethod,
 }: UpdatePasswordProps) {
-  const router = redirectMethod === 'client' ? useRouter() : null;
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = redirectMethod === 'client' ? useRouter() : null
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    setIsSubmitting(true); // Disable the button while the request is being handled
-    await handleRequest(e, updatePassword, router);
-    setIsSubmitting(false);
-  };
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    setIsSubmitting(true) // Disable the button while the request is being handled
+    await handleRequest(e, updatePassword, router)
+    setIsSubmitting(false)
+  }
 
   return (
     <div className="my-8">
@@ -40,7 +43,9 @@ export default function UpdatePassword({
               autoComplete="current-password"
               className="w-full p-3 rounded-md bg-zinc-800"
             />
-            <label htmlFor="passwordConfirm">Confirm New Password</label>
+            <label htmlFor="passwordConfirm">
+              Confirm New Password
+            </label>
             <input
               id="passwordConfirm"
               placeholder="Password"
@@ -61,5 +66,5 @@ export default function UpdatePassword({
         </div>
       </form>
     </div>
-  );
+  )
 }
