@@ -176,4 +176,3 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
 CustomerCardNew.displayName = 'CustomerCardNew'
 
 export { CustomerCardNew, customerCardVariants }
-
