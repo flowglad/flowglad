@@ -7,7 +7,15 @@ const nextConfig = {
   // directory in order to run the server.
   output: 'standalone',
   outputFileTracingIncludes: {
+    // Include registry files
     registry: ['./src/registry/**/*'],
+    // Explicitly include undici and related packages in standalone output for all routes
+    // These are needed by @turbopuffer/turbopuffer and openai
+    '/**': [
+      './node_modules/undici/**/*',
+      './node_modules/@turbopuffer/turbopuffer/**/*',
+      './node_modules/openai/**/*',
+    ],
   },
   serverExternalPackages: [
     'puppeteer',
@@ -117,14 +125,21 @@ const nextConfig = {
       )
 
       // Ensure undici and related packages are externalized for server builds
-      // This prevents webpack from trying to bundle them
-      config.externals = config.externals || []
+      // serverExternalPackages should handle this, but we add webpack externals as a fallback
+      if (!config.externals) {
+        config.externals = []
+      }
       if (Array.isArray(config.externals)) {
-        config.externals.push({
-          undici: 'commonjs undici',
-          '@turbopuffer/turbopuffer':
-            'commonjs @turbopuffer/turbopuffer',
-          openai: 'commonjs openai',
+        // Add function-based external handler for undici and related packages
+        config.externals.push(({ request }, callback) => {
+          if (
+            request === 'undici' ||
+            request === '@turbopuffer/turbopuffer' ||
+            request === 'openai'
+          ) {
+            return callback(null, `commonjs ${request}`)
+          }
+          callback()
         })
       }
     }
