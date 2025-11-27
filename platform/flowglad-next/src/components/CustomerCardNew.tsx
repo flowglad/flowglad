@@ -24,7 +24,7 @@ const customerCardVariants = cva(
 )
 
 export interface CustomerCardNewProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onClick' | 'onKeyDown'>,
     VariantProps<typeof customerCardVariants> {
   /** Customer's display name */
   name: string
@@ -32,6 +32,14 @@ export interface CustomerCardNewProps
   email: string
   /** Optional avatar image URL */
   avatarUrl?: string | null
+  /** Click/activate handler (mouse or keyboard activation) */
+  onClick?: (
+    event:
+      | React.MouseEvent<HTMLDivElement>
+      | React.KeyboardEvent<HTMLDivElement>
+  ) => void
+  /** Optional additional keydown handler */
+  onKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void
 }
 
 /**
@@ -51,23 +59,25 @@ const getFirstLetter = (name: string) => {
  * - simple: Compact card with background/border hover states
  */
 const CustomerCardNew = React.forwardRef<HTMLDivElement, CustomerCardNewProps>(
-  ({ className, variant, name, email, avatarUrl, onClick, ...props }, ref) => {
+  (
+    { className, variant, name, email, avatarUrl, onClick, onKeyDown, ...props },
+    ref
+  ) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault()
+        onClick(e)
+      }
+      onKeyDown?.(e)
+    }
+
     return (
       <div
         ref={ref}
         role={onClick ? 'button' : undefined}
         tabIndex={onClick ? 0 : undefined}
         onClick={onClick}
-        onKeyDown={
-          onClick
-            ? (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  onClick(e as unknown as React.MouseEvent<HTMLDivElement>)
-                }
-              }
-            : undefined
-        }
+        onKeyDown={onClick || onKeyDown ? handleKeyDown : undefined}
         className={cn(
           customerCardVariants({ variant }),
           onClick && 'cursor-pointer',
