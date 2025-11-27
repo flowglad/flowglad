@@ -47,6 +47,7 @@ const CancelSubscriptionModal: React.FC<
       defaultValues={defaultValues}
       onSubmit={onSubmit}
       submitButtonText="Cancel Subscription"
+      cancelButtonText="Go Back"
     >
       <CancelSubscriptionFormFields />
     </FormModal>
