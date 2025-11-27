@@ -12,7 +12,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
  * and different card types (default, see all, subscription)
  */
 const productCardVariants = cva(
-  'relative box-border rounded-md border transition-colors duration-200 w-full',
+  'relative box-border rounded-md border transition-all duration-200 w-full',
   {
     variants: {
       variant: {
@@ -21,8 +21,8 @@ const productCardVariants = cva(
         subscription: '',
       },
       state: {
-        default: 'bg-background border-border',
-        hover: 'bg-accent border-muted-foreground',
+        default: 'bg-card-50 border-border shadow-xs',
+        hover: 'bg-card border-muted-foreground shadow-sm',
       },
       clickable: {
         true: 'cursor-pointer',
@@ -312,12 +312,12 @@ const ProductCardQuantityBadge = React.forwardRef<
       ref={ref}
       data-slot="product-card-quantity-badge"
       className={cn(
-        'bg-secondary flex items-center justify-center h-4 px-1 py-0 rounded-[999px] shrink-0',
+        'bg-primary flex items-center justify-center h-4 px-1 py-0 rounded-[999px] shrink-0',
         className
       )}
       {...props}
     >
-      <p className="font-mono font-semibold text-xs leading-none text-foreground text-center whitespace-nowrap">
+      <p className="font-mono font-semibold text-xs leading-none text-primary-foreground text-center whitespace-nowrap">
         x{quantity}
       </p>
     </div>
