@@ -560,7 +560,11 @@ export type CreateProductSchema = z.infer<typeof createProductSchema>
 
 export const editProductSchema = z.object({
   product: productsClientUpdateSchema,
-  price: pricesClientInsertSchema.optional(),
+  price: pricesClientInsertSchema
+    .optional()
+    .describe(
+      'The latest price fields. Ignored if the product is a default product for its pricing model.'
+    ),
   featureIds: z.array(z.string()).optional(),
   id: z.string(),
 })
