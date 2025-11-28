@@ -80,6 +80,26 @@ export const { GET, POST } = nextRouteHandler({
     return userId
   },
 })
+
+// Example: Better Auth
+// import { nextRouteHandler } from '@flowglad/nextjs/server'
+// import { flowglad } from '@/utils/flowglad'
+// import { auth } from '@/utils/auth'
+// import { headers } from 'next/headers'
+//
+// export const { GET, POST } = nextRouteHandler({
+//   flowglad,
+//   getCustomerExternalId: async (req) => {
+//     const session = await auth.api.getSession({
+//       headers: await headers(),
+//     })
+//     const userId = session?.user?.id
+//     if (!userId) {
+//       throw new Error('User not found')
+//     }
+//     return userId
+//   },
+// })
 ```
 
 <Note>
