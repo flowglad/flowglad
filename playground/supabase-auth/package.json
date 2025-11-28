@@ -22,7 +22,7 @@
   "dependencies": {
     "@clerk/nextjs": "^6.10.2",
     "@flowglad/nextjs": "workspace:*",
-    "@flowglad/node": "0.22.0",
+    "@flowglad/node": "0.23.0",
     "@flowglad/react": "workspace:*",
     "@flowglad/server": "workspace:*",
     "@flowglad/shared": "workspace:*",

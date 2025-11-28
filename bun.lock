@@ -29,9 +29,9 @@
     },
     "packages/express": {
       "name": "@flowglad/express",
-      "version": "0.12.4",
+      "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -49,9 +49,9 @@
     },
     "packages/nextjs": {
       "name": "@flowglad/nextjs",
-      "version": "0.12.4",
+      "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -70,9 +70,9 @@
     },
     "packages/react": {
       "name": "@flowglad/react",
-      "version": "0.12.4",
+      "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/shared": "workspace:*",
         "@tanstack/react-query": "5.66.0",
         "axios": "1.12.0",
@@ -97,9 +97,9 @@
     },
     "packages/server": {
       "name": "@flowglad/server",
-      "version": "0.12.4",
+      "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/shared": "workspace:*",
         "@flowglad/types": "workspace:*",
         "zod": "4.1.5",
@@ -114,9 +114,9 @@
     },
     "packages/shared": {
       "name": "@flowglad/shared",
-      "version": "0.12.4",
+      "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/types": "workspace:*",
         "date-fns": "4.1.0",
         "zod": "4.1.5",
@@ -128,9 +128,9 @@
     },
     "packages/types": {
       "name": "@flowglad/types",
-      "version": "0.12.4",
+      "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
       },
       "devDependencies": {
         "eslint": "8.57.0",
@@ -143,7 +143,7 @@
       "dependencies": {
         "@flowglad/express": "workspace:*",
         "@flowglad/nextjs": "workspace:*",
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -172,7 +172,7 @@
         "@adobe/css-tools": "4.4.2",
         "@clerk/nextjs": "^6.10.2",
         "@flowglad/nextjs": "workspace:*",
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -356,7 +356,7 @@
 
     "@flowglad/nextjs": ["@flowglad/nextjs@workspace:packages/nextjs"],
 
-    "@flowglad/node": ["@flowglad/node@0.22.0", "", {}, "sha512-ljB7t2HKuTBoxR0ofB6UmJyCunYIVrV27rktWON2IFsnuA88FWYF2xpXSsHtTSKIKAFSEjhmUbOaOxLtU7R8uw=="],
+    "@flowglad/node": ["@flowglad/node@0.23.0", "", {}, "sha512-6R7Np06SI7mzeXPa6fEPhB1ctwLcSmRPpLxm5Uh3mbD+FxIs8kHgKMsxOoX4hUvyoPkMBSCgPCBiNfVPnysx0g=="],
 
     "@flowglad/playground-express": ["@flowglad/playground-express@workspace:playground/express"],
 
