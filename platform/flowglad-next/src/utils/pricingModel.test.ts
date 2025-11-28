@@ -2930,7 +2930,6 @@ describe('editProductTransaction - Price Updates', () => {
     )
 
     // Verify product was updated successfully
-    expect(result).toBeDefined()
     expect(result.name).toBe('Updated Name')
     expect(result.default).toBe(true)
 
