@@ -8,6 +8,47 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
+import core from '@/utils/core'
+import axios from 'axios'
+
+const notifyFlowgladTeamPayoutsEnabled = async (params: {
+  organizationId: string
+  organizationName: string
+}) => {
+  const webhookUrl = core.envVariable(
+    'SLACK_ENG_INCOMING_WEBHOOK_URL'
+  )
+  if (!webhookUrl) {
+    logger.warn(
+      'SLACK_ENG_INCOMING_WEBHOOK_URL not configured, skipping Slack notification'
+    )
+    return
+  }
+
+  const dashboardUrl = core.safeUrl(
+    `dashboard/organizations/${params.organizationId}`,
+    core.envVariable('FLOWGLAD_INTERNAL_APP_URL')
+  )
+
+  const message = `🎉 Organization payouts enabled!\n\n*Organization:* ${params.organizationName}\n*Organization ID:* ${params.organizationId}\n* Action in Dashboard:* ${dashboardUrl}`
+
+  try {
+    await axios.post(webhookUrl, {
+      text: message,
+    })
+    logger.log('Slack notification sent successfully', {
+      organizationId: params.organizationId,
+      organizationName: params.organizationName,
+    })
+  } catch (error) {
+    logger.error('Failed to send Slack notification', {
+      webhookUrl,
+      error: error instanceof Error ? error.message : String(error),
+      organizationId: params.organizationId,
+      organizationName: params.organizationName,
+    })
+  }
+}
 
 const sendOrganizationOnboardingCompletedNotificationTask = task({
   id: 'send-organization-onboarding-completed-notification',
@@ -55,7 +96,10 @@ const sendOrganizationOnboardingCompletedNotificationTask = task({
       to: recipients,
       organizationName: organization.name,
     })
-
+    await notifyFlowgladTeamPayoutsEnabled({
+      organizationId: organization.id,
+      organizationName: organization.name,
+    })
     return {
       message:
         'Organization onboarding completed notification sent successfully',
