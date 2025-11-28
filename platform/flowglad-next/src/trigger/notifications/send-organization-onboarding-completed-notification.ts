@@ -42,7 +42,7 @@ const notifyFlowgladTeamPayoutsEnabled = async (params: {
     })
   } catch (error) {
     logger.error('Failed to send Slack notification', {
-      webhookUrl,
+      webhookConfigured: Boolean(webhookUrl),
       error: error instanceof Error ? error.message : String(error),
       organizationId: params.organizationId,
       organizationName: params.organizationName,
