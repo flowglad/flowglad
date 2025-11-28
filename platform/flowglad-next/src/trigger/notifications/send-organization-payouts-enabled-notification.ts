@@ -8,6 +8,42 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
+import core from '@/utils/core'
+import axios from 'axios'
+
+const notifyFlowgladTeamPayoutsEnabled = async (params: {
+  organizationId: string
+  organizationName: string
+}) => {
+  const webhookUrl = core.envVariable(
+    'SLACK_ENG_INCOMING_WEBHOOK_URL'
+  )
+
+  if (!webhookUrl) {
+    logger.warn(
+      'SLACK_ENG_INCOMING_WEBHOOK_URL not configured, skipping Slack notification'
+    )
+    return
+  }
+
+  const message = `Organization completed Stripe Connect:\n\n- ${params.organizationName}\n\n- ${params.organizationId}`
+
+  try {
+    await axios.post(webhookUrl, {
+      text: message,
+    })
+    logger.log('Slack notification sent successfully', {
+      organizationId: params.organizationId,
+      organizationName: params.organizationName,
+    })
+  } catch (error) {
+    logger.error('Failed to send Slack notification', {
+      error: error instanceof Error ? error.message : String(error),
+      organizationId: params.organizationId,
+      organizationName: params.organizationName,
+    })
+  }
+}
 
 const sendOrganizationPayoutsEnabledNotificationTask = task({
   id: 'send-organization-payouts-enabled-notification',
@@ -61,6 +97,11 @@ const sendOrganizationPayoutsEnabledNotificationTask = task({
 
     await sendOrganizationPayoutsEnabledNotificationEmail({
       to: recipientEmails,
+      organizationName: organization.name,
+    })
+
+    await notifyFlowgladTeamPayoutsEnabled({
+      organizationId,
       organizationName: organization.name,
     })
 
