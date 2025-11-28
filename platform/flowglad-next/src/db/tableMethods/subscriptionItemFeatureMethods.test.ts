@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
 import db from '@/db/client'
-import { subscriptionItemFeatures } from '@/db/schema/subscriptionItemFeatures'
+import {
+  subscriptionItemFeatures,
+  SubscriptionItemFeature,
+} from '@/db/schema/subscriptionItemFeatures'
 import {
   selectSubscriptionItemFeatureById,
   selectClientSubscriptionItemFeatureAndFeatureById,
@@ -12,7 +15,7 @@ import {
   upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
   bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId,
   expireSubscriptionItemFeature,
-  expireSubscriptionItemFeaturesForSubscriptionItem,
+  expireSubscriptionItemFeaturesForSubscriptionItems,
   detachSubscriptionItemFeaturesFromProductFeature,
 } from './subscriptionItemFeatureMethods'
 import {
@@ -296,13 +299,13 @@ describe('subscriptionItemFeatureMethods', () => {
         )
         const date = new Date()
         const updated =
-          await expireSubscriptionItemFeaturesForSubscriptionItem(
-            subscriptionItem.id,
+          await expireSubscriptionItemFeaturesForSubscriptionItems(
+            [subscriptionItem.id],
             date,
             transaction
           )
         expect(updated.length).toBe(2)
-        updated.forEach((u) => {
+        updated.forEach((u: SubscriptionItemFeature.Record) => {
           expect(u.expiredAt).not.toBeNull()
           expect(u.expiredAt).toBe(date.getTime())
         })

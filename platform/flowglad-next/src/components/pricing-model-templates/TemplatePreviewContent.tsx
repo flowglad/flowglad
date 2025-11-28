@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, Check, ChevronDown, Loader2 } from 'lucide-react'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import { formatCurrency } from '@/utils/pricingModelTemplates'
+import { Switch } from '@/components/ui/switch'
 import { IntervalUnit, PriceType } from '@/types'
 
 interface TemplatePreviewContentProps {
   template: PricingModelTemplate
   onBack: () => void
-  onConfirm: () => void
+  onConfirm: ({ isDefault }: { isDefault: boolean }) => void
   isCreating: boolean
 }
 
@@ -122,6 +123,8 @@ export function TemplatePreviewContent({
 
     return ''
   }
+
+  const [isDefault, setIsDefault] = useState(true)
 
   return (
     <div className="flex flex-col justify-between items-start max-h-[calc(90vh-2rem)] overflow-clip h-full isolate">
@@ -288,7 +291,24 @@ export function TemplatePreviewContent({
           </div>
         </div>
       </div>
-
+      <div className="flex items-center space-x-2 px-3 pt-4">
+        <Switch
+          id="is-default"
+          checked={isDefault}
+          onCheckedChange={setIsDefault}
+        />
+        <div className="grid gap-1.5 leading-none">
+          <label
+            htmlFor="is-default"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+          >
+            Default
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Make this the default pricing model for new customers.
+          </p>
+        </div>
+      </div>
       {/* Bottom Section - Footer */}
       <div className="flex flex-col items-start w-full shrink-0 z-[1]">
         {/* Action Buttons */}
@@ -302,7 +322,7 @@ export function TemplatePreviewContent({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={() => onConfirm({ isDefault })}
             disabled={isCreating}
             variant="default"
             className="rounded-[4px]"
@@ -315,7 +335,7 @@ export function TemplatePreviewContent({
             ) : (
               <>
                 <Check className="h-4 w-4 mr-2" />
-                Duplicate
+                Use Template
               </>
             )}
           </Button>

@@ -1,6 +1,5 @@
 import { createMcpHandler, withMcpAuth } from 'mcp-handler'
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
-import core from '@/utils/core'
 import { verifyApiKey } from '@/utils/unkey'
 import { z } from 'zod/v3'
 import {
@@ -79,10 +78,8 @@ const handler = createMcpHandler(
               const markdown = await fetchMarkdownFromDocs(
                 result.path
               )
-              const similarity = (1 - result.$dist).toFixed(4)
 
               return {
-                similarity,
                 path: result.path,
                 title: result.title,
                 description: result.description,
@@ -95,9 +92,7 @@ const handler = createMcpHandler(
           // Format results nicely with full content
           const formattedResults = resultsWithMarkdown
             .map((result, index) => {
-              return `Result ${index + 1} (similarity: ${result.similarity})
-Path: ${result.path}
-${result.title ? `Title: ${result.title}\n` : ''}${result.description ? `Description: ${result.description}\n` : ''}
+              return `${result.title ? `Title: ${result.title}\n` : ''}${result.description ? `Description: ${result.description}\n` : ''}
 ${'='.repeat(80)}
 ${result.markdown}
 ${'='.repeat(80)}`
@@ -192,17 +187,13 @@ const verifyToken = async (
  * Example MCP client configuration:
  *   "Authorization": "Bearer sk_test_..."
  */
+// Let withMcpAuth handle authentication using verifyToken
+const authHandler = withMcpAuth(handler, verifyToken, {
+  required: true, // Auth is required and we verify it via verifyToken
+})
+
 export async function POST(req: Request) {
   try {
-    if (core.IS_PROD) {
-      throw Error('Unauthorized: MCP not enabled')
-    }
-
-    // Let withMcpAuth handle authentication using verifyToken
-    const authHandler = withMcpAuth(handler, verifyToken, {
-      required: true, // Auth is required and we verify it via verifyToken
-    })
-
     // Ensure Accept header is set (required by mcp-handler)
     const acceptHeader = req.headers.get('Accept')
     if (!acceptHeader || !acceptHeader.includes('application/json')) {

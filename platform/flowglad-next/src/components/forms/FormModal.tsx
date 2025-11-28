@@ -84,6 +84,10 @@ interface FormModalProps<T extends FieldValues>
    */
   submitButtonText?: string
   /**
+   * Override the default cancel button text, which is "Cancel"
+   */
+  cancelButtonText?: string
+  /**
    * Whether the modal should auto-close after submitting. Defaults to true.
    */
   autoClose?: boolean
@@ -239,6 +243,7 @@ const FormModal = <T extends FieldValues>({
   wide,
   extraWide,
   submitButtonText,
+  cancelButtonText,
   autoClose = true,
   hideFooter = false,
   mode = 'modal',
@@ -317,7 +322,7 @@ const FormModal = <T extends FieldValues>({
           setIsOpen(false)
         }}
       >
-        Cancel
+        {cancelButtonText ?? 'Cancel'}
       </Button>
       <Button
         variant="default"

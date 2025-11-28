@@ -13,6 +13,7 @@ import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceM
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { redirect } from 'next/navigation'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
+import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { ApiKey } from '@/db/schema/apiKeys'
 import { auth, getSession } from '@/utils/auth'
@@ -44,7 +45,17 @@ const OnboardingPage = async () => {
         { organizationId: organization.id },
         transaction
       )
-      return { organization, countries, products, discounts }
+      const pricingModels = await selectPricingModels(
+        { organizationId: organization.id },
+        transaction
+      )
+      return {
+        organization,
+        countries,
+        products,
+        discounts,
+        pricingModels,
+      }
     }
   )
   const { countries } = results
@@ -130,11 +141,10 @@ const OnboardingPage = async () => {
     //   type: OnboardingItemType.Discount,
     // },
     {
-      title: 'Setup payments',
-      description:
-        'Verify identity and connect your bank to receive payments.',
+      title: 'Enable Payments',
+      description: 'Set up Stripe Connect to process payments',
       completed: organization.payoutsEnabled,
-      action: 'Setup',
+      action: 'Connect',
       type: OnboardingItemType.Stripe,
     },
   ]
@@ -151,13 +161,14 @@ const OnboardingPage = async () => {
               Integrate Flowglad
             </h2>
             <p className="text-sm text-foreground">
-              Complete just a few steps to get up and running.
+              Complete these steps to start accepting payments.
             </p>
           </div>
           <OnboardingStatusTable
             onboardingChecklistItems={onboardingChecklistItems}
             countries={countries}
             secretApiKey={secretApiKey.token}
+            pricingModelsCount={results.pricingModels?.length ?? 0}
           />
         </div>
       </div>

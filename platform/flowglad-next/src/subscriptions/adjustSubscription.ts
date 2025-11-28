@@ -6,7 +6,7 @@ import {
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
-  expireSubscriptionItem,
+  expireSubscriptionItems,
   selectCurrentlyActiveSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
 import {
@@ -306,9 +306,12 @@ export const adjustSubscription = async (
       livemode: subscription.livemode,
     }))
 
-  for (const item of existingSubscriptionItemsToRemove) {
-    await expireSubscriptionItem(item.id, adjustmentDate, transaction)
-  }
+  await expireSubscriptionItems(
+    existingSubscriptionItemsToRemove.map((item) => item.id),
+    adjustmentDate,
+    transaction
+  )
+
   const subscriptionItems = await bulkCreateOrUpdateSubscriptionItems(
     // @ts-expect-error - upsert type mismatch
     subscriptionItemUpserts,

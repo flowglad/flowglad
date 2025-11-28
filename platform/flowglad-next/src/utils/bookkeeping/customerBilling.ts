@@ -21,7 +21,10 @@ import { customerBillingCreatePricedCheckoutSessionInputSchema } from '@/db/sche
 import { Price } from '@/db/schema/prices'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import {
+  selectPriceById,
+  selectPriceBySlugAndCustomerId,
+} from '@/db/tableMethods/priceMethods'
 import { adminTransaction } from '@/db/adminTransaction'
 import { customerBillingPortalURL } from '@/utils/core'
 import { z } from 'zod'
@@ -200,12 +203,40 @@ export const customerBillingCreatePricedCheckoutSession = async ({
   }
 
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
+    // Resolve price ID from either priceId or priceSlug
+    let resolvedPriceId: string
+
+    if (checkoutSessionInput.priceId) {
+      resolvedPriceId = checkoutSessionInput.priceId
+    } else if (checkoutSessionInput.priceSlug) {
+      const priceFromSlug = await authenticatedTransaction(
+        async ({ transaction }) => {
+          return await selectPriceBySlugAndCustomerId(
+            {
+              slug: checkoutSessionInput.priceSlug!,
+              customerId: customer.id,
+            },
+            transaction
+          )
+        }
+      )
+      if (!priceFromSlug) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Price with slug "${checkoutSessionInput.priceSlug}" not found for customer's pricing model`,
+        })
+      }
+      resolvedPriceId = priceFromSlug.id
+    } else {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Either priceId or priceSlug must be provided',
+      })
+    }
+
     const price = await authenticatedTransaction(
       async ({ transaction }) => {
-        return await selectPriceById(
-          checkoutSessionInput.priceId,
-          transaction
-        )
+        return await selectPriceById(resolvedPriceId, transaction)
       }
     )
     if (!price) {
@@ -213,7 +244,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
         code: 'NOT_FOUND',
         message:
           'Price ' +
-          checkoutSessionInput.priceId +
+          resolvedPriceId +
           ' not found. Either it does not exist or you do not have access to it.',
       })
     }

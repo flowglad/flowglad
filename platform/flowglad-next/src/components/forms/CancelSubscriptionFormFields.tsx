@@ -20,7 +20,6 @@ import { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
 import {
   FormField,
   FormItem,
-  FormLabel,
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
@@ -55,7 +54,6 @@ const CancelSubscriptionFormFields: React.FC = () => {
         defaultValue={SubscriptionCancellationArrangement.Immediately}
         render={({ field, fieldState }) => (
           <FormItem>
-            <FormLabel>Timing</FormLabel>
             <FormControl>
               <RadioGroup
                 value={field.value}
@@ -88,7 +86,6 @@ const CancelSubscriptionFormFields: React.FC = () => {
           control={control}
           render={({ field, fieldState }) => (
             <FormItem>
-              <FormLabel>End Date</FormLabel>
               <FormControl>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -102,7 +99,7 @@ const CancelSubscriptionFormFields: React.FC = () => {
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {field.value
                         ? format(field.value, 'PPP')
-                        : 'Select end date'}
+                        : 'Select date'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
@@ -111,7 +108,11 @@ const CancelSubscriptionFormFields: React.FC = () => {
                   >
                     <Calendar
                       mode="single"
-                      selected={new Date(field.value) || undefined}
+                      selected={
+                        field.value
+                          ? new Date(field.value)
+                          : undefined
+                      }
                       onSelect={(date) =>
                         field.onChange(date?.getTime())
                       }

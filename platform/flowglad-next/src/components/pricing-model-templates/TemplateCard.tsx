@@ -74,10 +74,10 @@ export function TemplateCard({
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Button>
 
-          {/* Used By / Recommended */}
+          {/* Inspired By / Recommended */}
           <div className="flex gap-4 items-center px-4 py-0 w-full">
             <div className="flex gap-1 items-center">
-              {/* Show "recommended" if logo is empty, otherwise "used by" */}
+              {/* Show "recommended" if logo is empty, otherwise "inspired by" */}
               {typeof usedBy.logo === 'string' &&
               usedBy.logo === '' ? (
                 <span className="text-sm text-muted-foreground">
@@ -86,7 +86,7 @@ export function TemplateCard({
               ) : (
                 <>
                   <span className="text-sm text-muted-foreground">
-                    used by
+                    Inspired by
                   </span>
                   {isSvgLogo(usedBy.logo) ? (
                     <div className="flex gap-1 items-center">

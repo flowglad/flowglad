@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { Subscription } from '@/db/schema/subscriptions'
 import {
   scheduleSubscriptionCancellationSchema,
@@ -22,6 +23,10 @@ import {
   selectBillingRuns,
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
+import {
+  expireSubscriptionItems,
+  selectSubscriptionItems,
+} from '@/db/tableMethods/subscriptionItemMethods'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -338,6 +343,24 @@ export const cancelSubscriptionImmediately = async (
    */
   await abortScheduledBillingRuns(subscription.id, transaction)
 
+  /**
+   * Expire all subscription items and their features
+   */
+  // Fetch all subscription items for this subscription
+  const subscriptionItems = await selectSubscriptionItems(
+    { subscriptionId: subscription.id },
+    transaction
+  )
+  // Filter to only items that haven't been expired yet
+  const itemsToExpire = subscriptionItems.filter(
+    (item) => !item.expiredAt
+  )
+
+  await expireSubscriptionItems(
+    itemsToExpire.map((item) => item.id),
+    endDate,
+    transaction
+  )
   if (result) {
     updatedSubscription = result
   }
@@ -362,6 +385,17 @@ export const scheduleSubscriptionCancellation = async (
     scheduleSubscriptionCancellationSchema.parse(params)
   const { timing } = cancellation
   const subscription = await selectSubscriptionById(id, transaction)
+
+  /**
+   * Prevent cancellation of free plans through the API/UI.
+   * See note in cancelSubscriptionProcedureTransaction for details.
+   */
+  if (subscription.isFreePlan) {
+    throw new Error(
+      'Cannot cancel the default free plan. Please upgrade to a paid plan instead.'
+    )
+  }
+
   if (isSubscriptionInTerminalState(subscription.status)) {
     return subscription
   }
@@ -500,14 +534,34 @@ export const cancelSubscriptionProcedureTransaction = async ({
 }: CancelSubscriptionProcedureParams): Promise<
   TransactionOutput<{ subscription: Subscription.ClientRecord }>
 > => {
+  // Fetch subscription first to check if it's a free plan
+  const subscription = await selectSubscriptionById(
+    input.id,
+    transaction
+  )
+
+  /**
+   * Prevent cancellation of free plans through the API/UI.
+   *
+   * Note: This check is intentionally placed in the procedure transaction handler
+   * and scheduleSubscriptionCancellation. During free-to-paid upgrades, the
+   * createSubscriptionWorkflow bypasses these functions and uses updateSubscription
+   * directly with cancellationReason = 'UpgradedToPaid', allowing the system to
+   * programmatically cancel free plans as part of the upgrade flow.
+   */
+  if (subscription.isFreePlan) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'Cannot cancel the default free plan. Please upgrade to a paid plan instead.',
+    })
+  }
+
   if (
     input.cancellation.timing ===
     SubscriptionCancellationArrangement.Immediately
   ) {
-    const subscription = await selectSubscriptionById(
-      input.id,
-      transaction
-    )
+    // Note: subscription is already fetched above, can reuse it
     const { result: updatedSubscription, eventsToInsert } =
       await cancelSubscriptionImmediately(subscription, transaction)
     return {
@@ -523,17 +577,17 @@ export const cancelSubscriptionProcedureTransaction = async ({
       eventsToInsert,
     }
   }
-  const subscription = await scheduleSubscriptionCancellation(
+  const updatedSubscription = await scheduleSubscriptionCancellation(
     input,
     transaction
   )
   return {
     result: {
       subscription: {
-        ...subscription,
+        ...updatedSubscription,
         current: isSubscriptionCurrent(
-          subscription.status,
-          subscription.cancellationReason
+          updatedSubscription.status,
+          updatedSubscription.cancellationReason
         ),
       },
     },

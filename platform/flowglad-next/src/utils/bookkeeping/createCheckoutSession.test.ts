@@ -23,6 +23,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
 import { Customer } from '@/db/schema/customers'
+import { Product } from '@/db/schema/products'
 import {
   CheckoutSessionType,
   CheckoutSessionStatus,
@@ -800,13 +801,12 @@ describe('createCheckoutSessionTransaction', () => {
 
   describe('ActivateSubscription target subscription validation', () => {
     const buildActivateInput = (
-      overrides: Partial<CreateCheckoutSessionObject> = {}
-    ): CreateCheckoutSessionObject => ({
+      overrides: Partial<ActivateSubscriptionCheckoutInput> = {}
+    ): ActivateSubscriptionCheckoutInput => ({
       customerExternalId: customer.externalId,
       type: CheckoutSessionType.ActivateSubscription,
       successUrl: 'http://success.url',
       cancelUrl: 'http://cancel.url',
-      // @ts-expect-error - limits of spread inference
       targetSubscriptionId: targetSubscription.id,
       ...overrides,
     })
@@ -939,6 +939,165 @@ describe('createCheckoutSessionTransaction', () => {
       ).rejects.toThrow(
         `Target subscription ${subscriptionWithoutPrice.id} does not have an associated price`
       )
+    })
+  })
+
+  describe('Price slug support', () => {
+    let organization: Organization.Record
+    let customer: Customer.Record
+    let subscriptionPrice: Price.Record
+    let nonDefaultProduct: Product.Record
+
+    beforeEach(async () => {
+      const setup = await setupOrg()
+      organization = setup.organization
+      const testmodePricingModel = setup.testmodePricingModel
+      customer = await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+        pricingModelId: testmodePricingModel.id,
+      })
+
+      // Create a non-default product and price for testing
+      nonDefaultProduct = await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        livemode: false,
+        pricingModelId: testmodePricingModel.id,
+        active: true,
+        default: false,
+      })
+      subscriptionPrice = await setupPrice({
+        productId: nonDefaultProduct.id,
+        name: 'Test Subscription Price',
+        unitPrice: 1000,
+        livemode: false,
+        isDefault: false,
+        type: PriceType.Subscription,
+        intervalCount: 1,
+        intervalUnit: IntervalUnit.Month,
+        slug: 'test-subscription-price',
+      })
+    })
+
+    afterEach(async () => {
+      await teardownOrg({ organizationId: organization.id })
+    })
+
+    describe('identified product checkout with price slug', () => {
+      it('should create checkout session using priceSlug for identified customer', async () => {
+        const checkoutSessionInput: ProductCheckoutInput = {
+          customerExternalId: customer.externalId,
+          type: CheckoutSessionType.Product,
+          successUrl: 'http://success.url',
+          cancelUrl: 'http://cancel.url',
+          priceSlug: subscriptionPrice.slug!,
+        }
+
+        const result = await adminTransaction(
+          async ({ transaction }) =>
+            createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+        )
+
+        expect(result.checkoutSession).toBeDefined()
+        expect(result.checkoutSession.type).toBe(
+          CheckoutSessionType.Product
+        )
+        expect(result.checkoutSession.priceId).toBe(
+          subscriptionPrice.id
+        )
+        expect(result.checkoutSession.customerId).toBe(customer.id)
+      })
+
+      it('should throw when priceSlug not found for customer', async () => {
+        const checkoutSessionInput: ProductCheckoutInput = {
+          customerExternalId: customer.externalId,
+          type: CheckoutSessionType.Product,
+          successUrl: 'http://success.url',
+          cancelUrl: 'http://cancel.url',
+          priceSlug: 'non-existent-slug',
+        }
+
+        await expect(
+          adminTransaction(async ({ transaction }) =>
+            createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+          )
+        ).rejects.toThrow(
+          'Price with slug "non-existent-slug" not found for customer\'s pricing model'
+        )
+      })
+    })
+
+    describe('anonymous product checkout with price slug', () => {
+      it('should create checkout session using priceSlug for anonymous customer', async () => {
+        const checkoutSessionInput: ProductCheckoutInput = {
+          type: CheckoutSessionType.Product,
+          successUrl: 'http://success.url',
+          cancelUrl: 'http://cancel.url',
+          priceSlug: subscriptionPrice.slug!,
+          anonymous: true,
+        }
+
+        const result = await adminTransaction(
+          async ({ transaction }) =>
+            createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+        )
+
+        expect(result.checkoutSession).toBeDefined()
+        expect(result.checkoutSession.type).toBe(
+          CheckoutSessionType.Product
+        )
+        expect(result.checkoutSession.priceId).toBe(
+          subscriptionPrice.id
+        )
+        expect(result.checkoutSession.customerId).toBeNull()
+      })
+
+      it('should throw when priceSlug not found in organization default pricing model', async () => {
+        const checkoutSessionInput: ProductCheckoutInput = {
+          type: CheckoutSessionType.Product,
+          successUrl: 'http://success.url',
+          cancelUrl: 'http://cancel.url',
+          priceSlug: 'non-existent-slug',
+          anonymous: true,
+        }
+
+        await expect(
+          adminTransaction(async ({ transaction }) =>
+            createCheckoutSessionTransaction(
+              {
+                checkoutSessionInput,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+          )
+        ).rejects.toThrow(
+          'Price with slug "non-existent-slug" not found in organization\'s default pricing model'
+        )
+      })
     })
   })
 })
