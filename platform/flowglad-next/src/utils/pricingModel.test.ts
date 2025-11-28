@@ -2872,7 +2872,7 @@ describe('editProductTransaction - Price Updates', () => {
     apiKeyToken = apiKey.token
   })
 
-  it('should throw error when attempting to change price immutable fields on default products', async () => {
+  it('should silently ignore price updates when editing default products', async () => {
     const currentPrice = await adminTransaction(
       async ({ transaction }) => {
         return await selectPriceById(defaultPriceId, transaction)
@@ -2881,6 +2881,16 @@ describe('editProductTransaction - Price Updates', () => {
     if (!currentPrice) {
       throw new Error('Default price not found')
     }
+
+    const initialPriceCount = await adminTransaction(
+      async ({ transaction }) => {
+        const prices = await selectPrices(
+          { productId: defaultProductId },
+          transaction
+        )
+        return prices.length
+      }
+    )
 
     // Create a modified price by changing immutable fields from the existing price
     const modifiedPrice: Price.ClientInsert = {
@@ -2900,27 +2910,53 @@ describe('editProductTransaction - Price Updates', () => {
       active: currentPrice.active,
     }
 
-    await expect(
-      authenticatedTransaction(
-        async ({ userId, transaction, livemode, organizationId }) => {
-          return await editProductTransaction(
-            {
-              product: {
-                id: defaultProductId,
-                name: 'Updated Name',
-                active: true,
-                default: true,
-              },
-              price: modifiedPrice,
+    // Should succeed without error - price updates are silently ignored for default products
+    const result = await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return await editProductTransaction(
+          {
+            product: {
+              id: defaultProductId,
+              name: 'Updated Name',
+              active: true,
+              default: true,
             },
-            { userId, transaction, livemode, organizationId }
-          )
-        },
-        { apiKey: apiKeyToken }
-      )
-    ).rejects.toThrow(
-      'Cannot create additional prices for the default plan'
+            price: modifiedPrice,
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
     )
+
+    // Verify product was updated successfully
+    expect(result.name).toBe('Updated Name')
+    expect(result.default).toBe(true)
+
+    // Verify no new price was created - price updates are ignored for default products
+    const finalPriceCount = await adminTransaction(
+      async ({ transaction }) => {
+        const prices = await selectPrices(
+          { productId: defaultProductId },
+          transaction
+        )
+        return prices.length
+      }
+    )
+    expect(finalPriceCount).toBe(initialPriceCount)
+
+    // Verify the original price was not modified
+    const priceAfterUpdate = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPriceById(defaultPriceId, transaction)
+      }
+    )
+    expect(priceAfterUpdate?.unitPrice).toBe(currentPrice.unitPrice)
+    expect(priceAfterUpdate?.intervalUnit).toBe(
+      currentPrice.intervalUnit
+    )
+    expect(priceAfterUpdate?.id).toBe(currentPrice.id)
+    expect(priceAfterUpdate?.type).toBe(currentPrice.type)
   })
 
   it('should allow updating allowed fields on default products', async () => {
