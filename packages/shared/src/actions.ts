@@ -30,7 +30,6 @@ export const createAddPaymentMethodCheckoutSessionSchema =
 export const createActivateSubscriptionCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
     targetSubscriptionId: z.string(),
-    priceId: z.string(),
   })
 
 export type CreateProductCheckoutSessionParams = z.infer<
