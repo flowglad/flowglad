@@ -2955,6 +2955,8 @@ describe('editProductTransaction - Price Updates', () => {
     expect(priceAfterUpdate?.intervalUnit).toBe(
       currentPrice.intervalUnit
     )
+    expect(priceAfterUpdate?.id).toBe(currentPrice.id)
+    expect(priceAfterUpdate?.type).toBe(currentPrice.type)
   })
 
   it('should allow updating allowed fields on default products', async () => {
