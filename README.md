@@ -22,7 +22,7 @@
     ·
     <a href="https://github.com/flowglad/flowglad/issues">Issues</a>
     ·
-    <a href="https://app.flowglad.com/invite-discord">Discord</a>
+    <a href="https://github.com/flowglad/examples">Examples</a>
   </p>
 </p>
 
@@ -245,6 +245,12 @@ We currently have templates for the following pricing models:
 And more on the way. If you don't see a pricing model from our templates that suits you, you can always make one from scratch. 
 
 
+
+## Examples
+
+- [Generation-Based Subscription](https://github.com/flowglad/examples/tree/main/generation-based-subscription)
+- [Tiered Usage-Gated Subscription](https://github.com/flowglad/examples/tree/main/tiered-usage-gated-subscription)
+- [Usage Limit Subscription](https://github.com/flowglad/examples/tree/main/usage-limit-subscription)
 
 ## Built With
 
