@@ -20,10 +20,13 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
     },
     { ctx }
   ) => {
-    logger.log('Sending customer subscription canceled notification', {
-      subscription,
-      ctx,
-    })
+    logger.log(
+      'Sending customer subscription canceled notification',
+      {
+        subscription,
+        ctx,
+      }
+    )
 
     const { organization, customer } = await adminTransaction(
       async ({ transaction }) => {
@@ -53,7 +56,7 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
       react: CustomerSubscriptionCanceledEmail({
         customerName: customer.name,
         organizationName: organization.name,
-        organizationLogoUrl: organization.logoUrl || undefined,
+        organizationLogoUrl: organization.logoURL || undefined,
         organizationId: organization.id,
         customerId: customer.id,
         subscriptionName: subscription.name!,
@@ -74,15 +77,17 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
 })
 
 export const idempotentSendCustomerSubscriptionCanceledNotification =
-  testSafeTriggerInvoker(async (subscription: Subscription.Record) => {
-    await sendCustomerSubscriptionCanceledNotificationTask.trigger(
-      {
-        subscription,
-      },
-      {
-        idempotencyKey: await createTriggerIdempotencyKey(
-          `send-customer-subscription-canceled-notification-${subscription.id}`
-        ),
-      }
-    )
-  })
+  testSafeTriggerInvoker(
+    async (subscription: Subscription.Record) => {
+      await sendCustomerSubscriptionCanceledNotificationTask.trigger(
+        {
+          subscription,
+        },
+        {
+          idempotencyKey: await createTriggerIdempotencyKey(
+            `send-customer-subscription-canceled-notification-${subscription.id}`
+          ),
+        }
+      )
+    }
+  )
