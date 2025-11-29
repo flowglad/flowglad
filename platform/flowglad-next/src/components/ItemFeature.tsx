@@ -65,6 +65,7 @@ const ItemFeature = React.forwardRef<HTMLDivElement, ItemFeatureProps>(
           href={href}
           ref={ref as React.Ref<HTMLAnchorElement>}
           data-slot="item-feature"
+          onClick={onClick}
           className={cn(
             'group flex items-start gap-1.5 py-1 rounded cursor-pointer',
             className
