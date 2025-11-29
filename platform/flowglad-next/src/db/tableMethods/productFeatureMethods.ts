@@ -132,8 +132,7 @@ export const selectFeaturesByProductFeatureWhere = async (
     .where(
       and(
         whereClauseFromObject(productFeatures, where),
-        createDateNotPassedFilter(productFeatures.expiredAt),
-        eq(features.active, true)
+        createDateNotPassedFilter(productFeatures.expiredAt)
       )
     )
     .innerJoin(features, eq(productFeatures.featureId, features.id))
