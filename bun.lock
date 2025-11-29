@@ -72,7 +72,6 @@
         "@flowglad/node": "0.22.0",
         "@flowglad/shared": "workspace:*",
         "@tanstack/react-query": "5.66.0",
-        "axios": "1.12.0",
         "clsx": "2.1.1",
         "date-fns": "4.1.0",
         "tailwind-merge": "3.0.2",

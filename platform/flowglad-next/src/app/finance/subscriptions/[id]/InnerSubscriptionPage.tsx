@@ -9,7 +9,11 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Customer } from '@/db/schema/customers'
 import { Product } from '@/db/schema/products'
 import { PricingModel } from '@/db/schema/pricingModels'
-import { SubscriptionStatus } from '@/types'
+import {
+  SubscriptionStatus,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+} from '@/types'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
@@ -23,9 +27,10 @@ import {
   getSubscriptionDateInfo,
 } from '@/lib/subscription-utils'
 import { InvoicesDataTable } from '../../invoices/data-table'
-import { SubscriptionFeaturesTable } from './SubscriptionFeaturesTable'
 import { ExpandSection } from '@/components/ExpandSection'
 import { ProductCard } from '@/components/ProductCard'
+import { CustomerCardNew } from '@/components/CustomerCardNew'
+import { ItemFeature } from '@/components/ItemFeature'
 import { getCurrencyParts } from '@/utils/stripe'
 
 const InnerSubscriptionPage = ({
@@ -195,19 +200,41 @@ const InnerSubscriptionPage = ({
             </div>
           )}
         </ExpandSection>
-        <SubscriptionFeaturesTable
-          featureItems={subscription.experimental?.featureItems}
-          toolbarContent={
-            <Button
-              size="sm"
-              onClick={() => setIsAddFeatureModalOpen(true)}
-              disabled={!canAddFeature}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add feature
-            </Button>
-          }
-        />
+        <ExpandSection title="Customer" defaultExpanded={true}>
+          <CustomerCardNew
+            variant="simple"
+            name={customer.name}
+            email={customer.email}
+            href={`/customers/${customer.id}`}
+          />
+        </ExpandSection>
+        <ExpandSection title="Feature Access" defaultExpanded={false}>
+          <div className="flex flex-col gap-1 px-3">
+            {subscription.experimental?.featureItems?.map((feature) => (
+              <ItemFeature key={feature.id}>
+                {feature.name}
+                {feature.type === FeatureType.UsageCreditGrant && (
+                  <span className="text-muted-foreground font-normal">
+                    &nbsp;- {feature.amount.toLocaleString()} total credits,{' '}
+                    {feature.renewalFrequency ===
+                    FeatureUsageGrantFrequency.EveryBillingPeriod
+                      ? 'every billing period'
+                      : 'one-time'}
+                    .
+                  </span>
+                )}
+              </ItemFeature>
+            ))}
+            {canAddFeature && (
+              <ItemFeature
+                icon={Plus}
+                onClick={() => setIsAddFeatureModalOpen(true)}
+              >
+                Add feature
+              </ItemFeature>
+            )}
+          </div>
+        </ExpandSection>
         <InvoicesDataTable
           title="Invoices"
           filters={{ subscriptionId: subscription.id }}

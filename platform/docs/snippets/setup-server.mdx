@@ -26,16 +26,18 @@ FLOWGLAD_SECRET_KEY="sk_test_..."
 
 ### 2. Create a FlowgladServer Factory Function
 
-```ts
+<CodeGroup>
+
+```ts Generic
 import { FlowgladServer } from '@flowglad/server'
 
 export const flowglad = (customerExternalId: string) => {
   // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
   return new FlowgladServer({
     customerExternalId,
-    getCustomerDetails: async (externalId) => {
+    getCustomerDetails: async (customerExternalId) => {
       // Fetch customer details from YOUR database using YOUR app's ID
-      const user = await db.users.findOne({ id: externalId })
+      const user = await db.users.findOne({ id: customerExternalId })
       if (!user) {
         throw new Error('Customer not found')
       }
@@ -51,6 +53,73 @@ export const flowglad = (customerExternalId: string) => {
 // Pass YOUR app's user/organization ID, not Flowglad's customer ID
 const billing = await flowglad(userId).getBilling()
 ```
+
+```ts Example: Better Auth
+import { FlowgladServer } from '@flowglad/server'
+import { auth } from '@/utils/auth'
+
+export const flowglad = (customerExternalId: string) => {
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (customerExternalId) => {
+      const session = await auth.api.getSession()
+      if (!session?.user) {
+        throw new Error('User not authenticated')
+      }
+      return {
+        email: session.user.email || '',
+        name: session.user.name || ''
+      }
+    },
+  })
+}
+```
+
+```ts Example: Supabase Auth
+import { FlowgladServer } from '@flowglad/server'
+import { createClient } from '@/utils/supabase/server'
+
+export const flowglad = (customerExternalId: string) => {
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (customerExternalId) => {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+      return {
+        email: user.email || '',
+        name: user.user_metadata.name || user.email || ''
+      }
+    },
+  })
+}
+```
+
+```ts Example: B2B (Organization-based)
+import { FlowgladServer } from '@flowglad/server'
+
+export const flowglad = (organizationId: string) => {
+  // For B2B apps: organizationId is ID from YOUR app's database
+  return new FlowgladServer({
+    customerExternalId: organizationId,
+    getCustomerDetails: async (customerExternalId) => {
+      // Fetch organization details from YOUR database using YOUR org ID
+      const org = await db.organizations.findOne({ id: customerExternalId })
+      if (!org) {
+        throw new Error('Organization not found')
+      }
+      return {
+        email: org.billingEmail || org.ownerEmail,
+        name: org.name,
+      }
+    },
+  })
+}
+```
+
+</CodeGroup>
 
 <Note>
 **Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
