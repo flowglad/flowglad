@@ -1,4 +1,8 @@
 import { cn } from '@/lib/utils'
+
+// TODO: This file will replace InternalPageContainer.tsx.
+// Rename InnerPageContainerNew to InnerPageContainer after deletion.
+
 const InnerPageContainerNew = ({
   children,
   className,
@@ -31,4 +35,3 @@ const InnerPageContainerNew = ({
 }
 
 export default InnerPageContainerNew
-
