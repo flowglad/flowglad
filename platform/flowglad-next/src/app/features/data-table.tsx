@@ -204,7 +204,7 @@ export function FeaturesDataTable({
                   role="link"
                   onClick={(e) => {
                     const target = e.target
-                    if (!(target instanceof HTMLElement)) {
+                    if (!(target instanceof Element)) {
                       return
                     }
                     if (
@@ -219,7 +219,7 @@ export function FeaturesDataTable({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       const target = e.target
-                      if (!(target instanceof HTMLElement)) {
+                      if (!(target instanceof Element)) {
                         return
                       }
                       if (
