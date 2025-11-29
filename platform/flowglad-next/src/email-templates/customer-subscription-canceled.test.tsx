@@ -21,7 +21,9 @@ describe('CustomerSubscriptionCanceledEmail', () => {
     )
 
     expect(
-      getByText('Your subscription has been canceled and is no longer active.')
+      getByText(
+        'Your subscription has been canceled and is no longer active.'
+      )
     ).toBeInTheDocument()
   })
 

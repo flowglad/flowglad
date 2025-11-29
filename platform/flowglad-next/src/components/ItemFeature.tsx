@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Check, type LucideIcon } from 'lucide-react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
 export interface ItemFeatureProps
@@ -10,18 +11,15 @@ export interface ItemFeatureProps
   icon?: LucideIcon
   /** Optional click handler - makes the item interactive */
   onClick?: () => void
-  /**
-   * TODO: Add href prop to make this a link to a feature detail page
-   * when the feature detail page is implemented.
-   * Example: href?: string
-   */
+  /** Optional href to make this a link to a feature detail page */
+  href?: string
 }
 
 /**
  * ItemFeature component
  *
  * Displays a feature item with a checkmark icon. On hover, the text
- * gets an underline to indicate it will eventually be clickable.
+ * gets an underline to indicate it's clickable.
  *
  * Based on the Flowglad Design System.
  *
@@ -30,22 +28,56 @@ export interface ItemFeatureProps
  * <ItemFeature>120 HD Video Minutes</ItemFeature>
  * ```
  *
+ * @example With link to feature detail page
+ * ```tsx
+ * <ItemFeature href="/store/features/feature_123">
+ *   120 HD Video Minutes
+ * </ItemFeature>
+ * ```
+ *
  * @example With custom icon and click handler
  * ```tsx
  * <ItemFeature icon={Plus} onClick={() => console.log('clicked')}>
  *   Add feature
  * </ItemFeature>
  * ```
- *
- * TODO: When the feature detail page is implemented, add link functionality:
- * - Accept an href prop
- * - Wrap with Next.js Link component
- * - Make the component navigable
  */
 const ItemFeature = React.forwardRef<HTMLDivElement, ItemFeatureProps>(
-  ({ className, children, icon: Icon = Check, onClick, ...props }, ref) => {
-    const isClickable = Boolean(onClick)
+  ({ className, children, icon: Icon = Check, onClick, href, ...props }, ref) => {
+    const isClickable = Boolean(onClick) || Boolean(href)
 
+    const content = (
+      <>
+        <Icon
+          className="size-4 shrink-0 text-muted-foreground mt-0.5"
+          strokeWidth={2}
+        />
+        <span className="font-sans font-medium text-sm leading-5 text-foreground border-b border-transparent group-hover:border-foreground transition-colors duration-150 inline-flex items-center flex-wrap">
+          {children}
+        </span>
+      </>
+    )
+
+    // If href is provided, render as a Link
+    if (href) {
+      return (
+        <Link
+          href={href}
+          ref={ref as React.Ref<HTMLAnchorElement>}
+          data-slot="item-feature"
+          onClick={onClick}
+          className={cn(
+            'group flex items-start gap-1.5 py-1 rounded cursor-pointer',
+            className
+          )}
+          {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+        >
+          {content}
+        </Link>
+      )
+    }
+
+    // Otherwise render as a div (with optional onClick)
     return (
       <div
         ref={ref}
@@ -70,13 +102,7 @@ const ItemFeature = React.forwardRef<HTMLDivElement, ItemFeatureProps>(
         )}
         {...props}
       >
-        <Icon
-          className="size-4 shrink-0 text-muted-foreground mt-0.5"
-          strokeWidth={2}
-        />
-        <span className="font-sans font-medium text-sm leading-5 text-foreground border-b border-transparent group-hover:border-foreground transition-colors duration-150 inline-flex items-center flex-wrap">
-          {children}
-        </span>
+        {content}
       </div>
     )
   }

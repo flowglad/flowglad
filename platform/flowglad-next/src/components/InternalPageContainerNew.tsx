@@ -21,4 +21,3 @@ const InnerPageContainerNew = ({
 }
 
 export default InnerPageContainerNew
-

@@ -165,17 +165,14 @@ const constructCheckoutSessionCreator =
       mapPayload?.(params, basePayload) ??
       (basePayload as Record<string, unknown>)
 
-    const response = await fetch(
-      `${flowgladRoute}/${actionKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        body: JSON.stringify(payload),
-      }
-    )
+    const response = await fetch(`${flowgladRoute}/${actionKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: JSON.stringify(payload),
+    })
     const json: {
       data: Flowglad.CheckoutSessions.CheckoutSessionCreateResponse
       error?: { code: string; json: Record<string, unknown> }
@@ -298,9 +295,13 @@ export const FlowgladContextProvider = (
       if (isDevMode) {
         return props.billingMocks
       }
-      const requestConfig = (props as CoreFlowgladContextProviderProps).requestConfig
+      const requestConfig = (
+        props as CoreFlowgladContextProviderProps
+      ).requestConfig
       // Use custom fetch if provided (for React Native), otherwise use global fetch
-      const fetchImpl = requestConfig?.fetch ?? (typeof fetch !== 'undefined' ? fetch : undefined)
+      const fetchImpl =
+        requestConfig?.fetch ??
+        (typeof fetch !== 'undefined' ? fetch : undefined)
       if (!fetchImpl) {
         throw new Error(
           'fetch is not available. In React Native environments, provide a fetch implementation via requestConfig.fetch'
