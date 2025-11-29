@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -70,8 +69,6 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
     { className, variant, name, email, avatarUrl, href, onClick, onKeyDown },
     forwardedRef
   ) => {
-    const router = useRouter()
-
     // Callback ref that forwards to the parent ref with proper typing
     const setRef = React.useCallback(
       (element: HTMLDivElement | HTMLAnchorElement | null) => {
@@ -84,14 +81,20 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
       [forwardedRef]
     )
 
+    // Keyboard handler for Enter/Space activation
+    // - For Link variant (href set): only call onClick, let native Link handle navigation
+    // - For div/button variant (no href): preventDefault and call onClick for keyboard activation
     const handleKeyDown = (
       e: React.KeyboardEvent<HTMLDivElement | HTMLAnchorElement>
     ) => {
       if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        onClick?.(e)
         if (href) {
-          router.push(href)
+          // Link variant: just call onClick if provided, native Link handles navigation
+          onClick?.(e)
+        } else if (onClick) {
+          // div/button variant: prevent scroll on Space, call onClick for activation
+          e.preventDefault()
+          onClick(e)
         }
       }
       onKeyDown?.(e)
