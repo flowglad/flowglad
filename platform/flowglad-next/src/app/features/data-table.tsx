@@ -203,7 +203,10 @@ export function FeaturesDataTable({
                   tabIndex={0}
                   role="link"
                   onClick={(e) => {
-                    const target = e.target as HTMLElement
+                    const target = e.target
+                    if (!(target instanceof HTMLElement)) {
+                      return
+                    }
                     if (
                       target.closest('button') ||
                       target.closest('[role="checkbox"]') ||
@@ -215,6 +218,17 @@ export function FeaturesDataTable({
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
+                      const target = e.target
+                      if (!(target instanceof HTMLElement)) {
+                        return
+                      }
+                      if (
+                        target.closest('button') ||
+                        target.closest('[role="checkbox"]') ||
+                        target.closest('input[type="checkbox"]')
+                      ) {
+                        return
+                      }
                       e.preventDefault()
                       navigateToFeature()
                     }

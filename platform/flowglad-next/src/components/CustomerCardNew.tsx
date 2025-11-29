@@ -82,20 +82,19 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
     )
 
     // Keyboard handler for Enter/Space activation
-    // - For Link variant (href set): only call onClick, let native Link handle navigation
+    // - For Link variant (href set): native Link handles Enter activation (fires onClick automatically)
     // - For div/button variant (no href): preventDefault and call onClick for keyboard activation
     const handleKeyDown = (
       e: React.KeyboardEvent<HTMLDivElement | HTMLAnchorElement>
     ) => {
       if (e.key === 'Enter' || e.key === ' ') {
-        if (href) {
-          // Link variant: just call onClick if provided, native Link handles navigation
-          onClick?.(e)
-        } else if (onClick) {
+        if (!href && onClick) {
           // div/button variant: prevent scroll on Space, call onClick for activation
           e.preventDefault()
           onClick(e)
         }
+        // Link variant: do nothing here - native Link handles Enter (fires click event)
+        // and Space doesn't activate links natively (standard browser behavior)
       }
       onKeyDown?.(e)
     }
