@@ -1,8 +1,8 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { Subscription } from '@/db/schema/subscriptions'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionCanceledEmail } from '@/email-templates/customer-subscription-canceled'
 import { safeSend } from '@/utils/email'
 import {
@@ -14,22 +14,29 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
   id: 'send-customer-subscription-canceled-notification',
   run: async (
     {
-      subscription,
+      subscriptionId,
     }: {
-      subscription: Subscription.Record
+      subscriptionId: string
     },
     { ctx }
   ) => {
     logger.log(
       'Sending customer subscription canceled notification',
       {
-        subscription,
+        subscriptionId,
         ctx,
       }
     )
 
-    const { organization, customer } = await adminTransaction(
-      async ({ transaction }) => {
+    const { subscription, organization, customer } =
+      await adminTransaction(async ({ transaction }) => {
+        const subscription = await selectSubscriptionById(
+          subscriptionId,
+          transaction
+        )
+        if (!subscription) {
+          throw new Error(`Subscription not found: ${subscriptionId}`)
+        }
         const organization = await selectOrganizationById(
           subscription.organizationId,
           transaction
@@ -39,11 +46,11 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
           transaction
         )
         return {
+          subscription,
           organization,
           customer,
         }
-      }
-    )
+      })
 
     if (!organization || !customer) {
       throw new Error('Organization or customer not found')
@@ -126,17 +133,15 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
 })
 
 export const idempotentSendCustomerSubscriptionCanceledNotification =
-  testSafeTriggerInvoker(
-    async (subscription: Subscription.Record) => {
-      await sendCustomerSubscriptionCanceledNotificationTask.trigger(
-        {
-          subscription,
-        },
-        {
-          idempotencyKey: await createTriggerIdempotencyKey(
-            `send-customer-subscription-canceled-notification-${subscription.id}`
-          ),
-        }
-      )
-    }
-  )
+  testSafeTriggerInvoker(async (subscriptionId: string) => {
+    await sendCustomerSubscriptionCanceledNotificationTask.trigger(
+      {
+        subscriptionId,
+      },
+      {
+        idempotencyKey: await createTriggerIdempotencyKey(
+          `send-customer-subscription-canceled-notification-${subscriptionId}`
+        ),
+      }
+    )
+  })
