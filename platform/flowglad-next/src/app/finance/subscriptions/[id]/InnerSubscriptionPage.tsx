@@ -1,5 +1,5 @@
 'use client'
-import InternalPageContainer from '@/components/InternalPageContainer'
+import InnerPageContainerNew from '@/components/InternalPageContainerNew'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { RichSubscription } from '@/subscriptions/schemas'
 import { PaymentsDataTable } from '../../payments/data-table'
@@ -110,7 +110,7 @@ const InnerSubscriptionPage = ({
   }
 
   return (
-    <InternalPageContainer>
+    <InnerPageContainerNew>
       <div className="w-full relative flex flex-col justify-center gap-6 pb-6">
         <PageHeaderNew
           title="Subscription Details"
@@ -211,7 +211,10 @@ const InnerSubscriptionPage = ({
         <ExpandSection title="Feature Access" defaultExpanded={false}>
           <div className="flex flex-col gap-1 px-3">
             {subscription.experimental?.featureItems?.map((feature) => (
-              <ItemFeature key={feature.id}>
+              <ItemFeature
+                key={feature.id}
+                href={`/store/features/${feature.featureId}`}
+              >
                 {feature.name}
                 {feature.type === FeatureType.UsageCreditGrant && (
                   <span className="text-muted-foreground font-normal">
@@ -264,7 +267,7 @@ const InnerSubscriptionPage = ({
         setIsOpen={setIsCancelModalOpen}
         subscriptionId={subscription.id}
       />
-    </InternalPageContainer>
+    </InnerPageContainerNew>
   )
 }
 

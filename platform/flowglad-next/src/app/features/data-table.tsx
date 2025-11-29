@@ -26,6 +26,7 @@ import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { columns, FeatureRow } from './columns'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
+import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 
 export interface FeaturesTableFilters {
@@ -51,6 +52,8 @@ export function FeaturesDataTable({
   onCreateFeature,
   buttonVariant = 'default',
 }: FeaturesDataTableProps) {
+  const router = useRouter()
+
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
@@ -192,7 +195,20 @@ export function FeaturesDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={isFetching ? 'opacity-50' : ''}
+                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
+                onClick={(e) => {
+                  const target = e.target as HTMLElement
+                  if (
+                    target.closest('button') ||
+                    target.closest('[role="checkbox"]') ||
+                    target.closest('input[type="checkbox"]')
+                  ) {
+                    return
+                  }
+                  router.push(
+                    `/store/features/${row.original.feature.id}`
+                  )
+                }}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
