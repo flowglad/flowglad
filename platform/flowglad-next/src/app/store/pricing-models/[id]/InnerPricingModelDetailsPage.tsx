@@ -184,6 +184,11 @@ function InnerPricingModelDetailsPage({
             filters={{ pricingModelId: pricingModel.id }}
             onCreateFeature={() => setIsCreateFeatureModalOpen(true)}
             buttonVariant="outline"
+            navigationContext={{
+              from: 'pricing-model',
+              refId: pricingModel.id,
+              refName: pricingModel.name,
+            }}
           />
         </div>
         <div className="flex flex-col gap-5">

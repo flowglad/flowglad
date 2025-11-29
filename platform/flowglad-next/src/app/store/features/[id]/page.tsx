@@ -5,13 +5,19 @@ import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsageMeterById } from '@/db/tableMethods/usageMeterMethods'
 import InnerFeatureDetailsPage from './InnerFeatureDetailsPage'
 import { FeatureType } from '@/types'
+import { parseNavigationContext } from '@/lib/navigation-context'
 
 interface FeaturePageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-const FeaturePage = async ({ params }: FeaturePageProps) => {
+const FeaturePage = async ({ params, searchParams }: FeaturePageProps) => {
   const { id } = await params
+  const resolvedSearchParams = await searchParams
+
+  // Parse navigation context from URL for smart breadcrumbs
+  const navigationContext = parseNavigationContext(resolvedSearchParams)
 
   const { feature, pricingModel, usageMeter } =
     await authenticatedTransaction(async ({ transaction }) => {
@@ -58,6 +64,7 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
       feature={feature}
       pricingModel={pricingModel}
       usageMeter={usageMeter}
+      navigationContext={navigationContext}
     />
   )
 }

@@ -32,6 +32,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { CustomerCardNew } from '@/components/CustomerCardNew'
 import { ItemFeature } from '@/components/ItemFeature'
 import { getCurrencyParts } from '@/utils/stripe'
+import { buildNavigationUrl } from '@/lib/navigation-context'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -213,7 +214,14 @@ const InnerSubscriptionPage = ({
             {subscription.experimental?.featureItems?.map((feature) => (
               <ItemFeature
                 key={feature.id}
-                href={`/store/features/${feature.featureId}`}
+                href={buildNavigationUrl(
+                  `/store/features/${feature.featureId}`,
+                  {
+                    from: 'subscription',
+                    refId: subscription.id,
+                    refName: 'Subscription Details',
+                  }
+                )}
               >
                 {feature.name}
                 {feature.type === FeatureType.UsageCreditGrant &&
