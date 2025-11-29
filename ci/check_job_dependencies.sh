@@ -28,7 +28,7 @@ jobs=$(for i in $(find .github -iname '*.yaml' -or -iname '*.yml')
       if grep -qE 'types:\s*\[.*closed.*\]' "$i" 2>/dev/null
       then
         # Check if it also has other PR event types - if so, don't skip
-        if ! grep -qE 'types:\s*\[.*(opened|synchronize|labeled|unlabeled|edited|ready_for_review|locked|unlocked|reopened|assigned|unassigned|review_requested|review_request_removed|auto_merge_enabled|auto_merge_disabled)' "$i" 2>/dev/null
+        if ! grep -qE 'types:\s*\[.*(opened|synchronize|labeled|unlabeled|edited|ready_for_review|locked|unlocked|reopened|assigned|unassigned|review_requested|review_request_removed|auto_merge_enabled|auto_merge_disabled|converted_to_draft)' "$i" 2>/dev/null
         then
           # Only has "closed" type, skip this workflow
           continue
