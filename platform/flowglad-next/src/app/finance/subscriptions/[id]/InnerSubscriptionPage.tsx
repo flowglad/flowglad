@@ -225,12 +225,14 @@ const InnerSubscriptionPage = ({
                 )}
               </ItemFeature>
             ))}
-            <ItemFeature
-              icon={Plus}
-              onClick={() => setIsAddFeatureModalOpen(true)}
-            >
-              Add feature
-            </ItemFeature>
+            {canAddFeature && (
+              <ItemFeature
+                icon={Plus}
+                onClick={() => setIsAddFeatureModalOpen(true)}
+              >
+                Add feature
+              </ItemFeature>
+            )}
           </div>
         </ExpandSection>
         <InvoicesDataTable
