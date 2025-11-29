@@ -1,5 +1,5 @@
 'use client'
-import InnerPageContainerNew from '@/components/InternalPageContainerNew'
+import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { RichSubscription } from '@/subscriptions/schemas'
 import { PaymentsDataTable } from '../../payments/data-table'
