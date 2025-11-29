@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "scheme": "withbetterauth",
+    "web": {
+      "output": "server"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-web-browser"
+    ],
+    "name": "flowglad-rn-example",
+    "slug": "flowglad-rn-example"
+  }
+}
