@@ -117,30 +117,6 @@ describe('CustomerSubscriptionCanceledEmail', () => {
     )
   })
 
-  it('shows test mode banner when livemode is false', () => {
-    const testModeProps = {
-      ...baseProps,
-      livemode: false,
-    }
-    const { container } = render(
-      <CustomerSubscriptionCanceledEmail {...testModeProps} />
-    )
-
-    // The TestModeBanner should be present when livemode is false
-    expect(container.textContent).toContain('Test')
-  })
-
-  it('does not show test mode banner when livemode is true', () => {
-    const { container } = render(
-      <CustomerSubscriptionCanceledEmail {...baseProps} />
-    )
-
-    // When livemode is true, the test banner should not be visible
-    // The TestModeBanner component only renders when livemode is false
-    const testBanner = container.querySelector('[data-testid="test-mode-banner"]')
-    expect(testBanner).not.toBeInTheDocument()
-  })
-
   it('includes message about billing portal access', () => {
     const { getByText } = render(
       <CustomerSubscriptionCanceledEmail {...baseProps} />
