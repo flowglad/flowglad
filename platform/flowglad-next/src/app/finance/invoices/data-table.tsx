@@ -96,6 +96,19 @@ export function InvoicesDataTable({
         {}
       )
     )
+
+  // Sync columnVisibility when hiddenColumns prop changes
+  const hiddenColumnsKey = JSON.stringify(hiddenColumns)
+  React.useEffect(() => {
+    setColumnVisibility(
+      hiddenColumns.reduce(
+        (acc, col) => ({ ...acc, [col]: false }),
+        {}
+      )
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hiddenColumnsKey])
+
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 
