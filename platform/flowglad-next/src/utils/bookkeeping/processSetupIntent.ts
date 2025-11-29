@@ -8,7 +8,6 @@ import {
   CheckoutSessionType,
   PurchaseStatus,
   SubscriptionStatus,
-  CancellationReason,
   FlowgladEventType,
   EventNoun,
 } from '@/types'
@@ -21,10 +20,7 @@ import {
 } from '@/utils/stripe'
 import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
-import {
-  selectPurchaseById,
-  updatePurchase,
-} from '@/db/tableMethods/purchaseMethods'
+import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { Customer } from '@/db/schema/customers'
 import {
   checkoutSessionIsInTerminalState,
@@ -54,11 +50,9 @@ import { activateSubscription } from '@/subscriptions/createSubscription/helpers
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import {
-  constructPurchaseCompletedEventHash,
-  constructSubscriptionCreatedEventHash,
-} from '../eventHelpers'
+import { constructPurchaseCompletedEventHash } from '../eventHelpers'
 import { Event } from '@/db/schema/events'
+import { hasCustomerUsedTrial } from '../checkoutHelpers'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -463,15 +457,9 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       throw new Error('Price interval count is required')
     }
 
-    const subscriptionsForCustomer = await selectSubscriptions(
-      {
-        customerId: customer.id,
-      },
+    const hasHadTrial = await hasCustomerUsedTrial(
+      customer.id,
       transaction
-    )
-
-    const hasHadTrial = subscriptionsForCustomer.some(
-      (subscription) => subscription.trialEnd
     )
 
     const startDate = Date.now()

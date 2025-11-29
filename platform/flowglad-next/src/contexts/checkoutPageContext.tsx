@@ -82,13 +82,13 @@ const CheckoutPageContext = createContext<
   flowType: CheckoutFlowType.SinglePayment,
 })
 
-const subscriptionDetailsFromCheckoutInfoCore = (
+export const subscriptionDetailsFromCheckoutInfoCore = (
   checkoutInfo: CheckoutInfoCore
 ): SubscriptionCheckoutDetails | undefined => {
   if (checkoutInfo.flowType !== CheckoutFlowType.Subscription) {
     return undefined
   }
-  const { purchase, price } = checkoutInfo
+  const { purchase, price, isEligibleForTrial } = checkoutInfo
   /**
    * For each subscription detail field:
    * Default to price values if purchase values are not present,
@@ -116,6 +116,10 @@ const subscriptionDetailsFromCheckoutInfoCore = (
           type: price.type,
         }
       : undefined
+  // Override trialPeriodDays if customer is not eligible for trial
+  if (subscriptionDetails && !isEligibleForTrial) {
+    subscriptionDetails.trialPeriodDays = null
+  }
   return subscriptionDetails
 }
 
