@@ -366,9 +366,19 @@ export const cancelSubscriptionImmediately = async (
     updatedSubscription = result
   }
   await reassignDefaultSubscription(updatedSubscription, transaction)
-  await idempotentSendCustomerSubscriptionCanceledNotification(
-    updatedSubscription.id
-  )
+  try {
+    await idempotentSendCustomerSubscriptionCanceledNotification(
+      updatedSubscription.id
+    )
+  } catch (error) {
+    console.error(
+      'Failed to send customer subscription canceled notification',
+      {
+        subscriptionId: updatedSubscription.id,
+        error,
+      }
+    )
+  }
   return {
     result: updatedSubscription,
     eventsToInsert: [
