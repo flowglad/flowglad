@@ -265,16 +265,55 @@ function InnerFeatureDetailsPage({
 
           {/* Usage Credit Grant - only show for UsageCreditGrant type */}
           {isUsageCreditGrant && feature.amount !== null && (
-            <ContentSection>
-              <SectionLabel>Usage Credit Grant</SectionLabel>
-              <div className="flex items-center gap-2 text-base text-foreground leading-6">
-                <span>{feature.amount.toLocaleString()}</span>
-                <span>{usageMeter?.name || 'Usage Meter'}</span>
-                <span>
+            <>
+              <ContentSection>
+                <SectionLabel>Credit Amount</SectionLabel>
+                <SectionValue>
+                  <span className="font-medium">
+                    {feature.amount.toLocaleString()}
+                  </span>{' '}
+                  credits{' '}
                   {getRenewalFrequencyLabel(feature.renewalFrequency)}
-                </span>
-              </div>
-            </ContentSection>
+                </SectionValue>
+                <HelperText>
+                  Credits granted when a customer subscribes to this feature.
+                </HelperText>
+              </ContentSection>
+
+              {usageMeter && (
+                <ContentSection>
+                  <SectionLabel>Linked Usage Meter</SectionLabel>
+                  <div className="flex flex-col gap-3 p-4 rounded-lg border border-border bg-muted/20">
+                    <span className="font-medium text-foreground">
+                      {usageMeter.name}
+                    </span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-muted-foreground w-10">
+                          Slug
+                        </span>
+                        <CopyableField
+                          value={usageMeter.slug}
+                          label="meter slug"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-muted-foreground w-10">
+                          ID
+                        </span>
+                        <CopyableField
+                          value={usageMeter.id}
+                          label="meter ID"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <HelperText>
+                    Usage events recorded against this meter consume credits.
+                  </HelperText>
+                </ContentSection>
+              )}
+            </>
           )}
         </div>
       </div>
