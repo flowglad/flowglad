@@ -28,6 +28,10 @@ import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { trpc } from '@/app/_trpc/client'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
+import {
+  type NavigationContext,
+  buildNavigationUrl,
+} from '@/lib/navigation-context'
 
 export interface FeaturesTableFilters {
   pricingModelId?: string
@@ -44,6 +48,12 @@ interface FeaturesDataTableProps {
     | 'link'
     | 'secondary'
     | 'destructive'
+  /**
+   * Optional navigation context for smart breadcrumbs.
+   * When provided, feature links will include this context so the
+   * feature detail page can show a contextual breadcrumb.
+   */
+  navigationContext?: NavigationContext
 }
 
 export function FeaturesDataTable({
@@ -51,6 +61,7 @@ export function FeaturesDataTable({
   title,
   onCreateFeature,
   buttonVariant = 'default',
+  navigationContext,
 }: FeaturesDataTableProps) {
   const router = useRouter()
 
@@ -194,7 +205,11 @@ export function FeaturesDataTable({
           ) : table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => {
               const navigateToFeature = () => {
-                router.push(`/store/features/${row.original.feature.id}`)
+                const basePath = `/store/features/${row.original.feature.id}`
+                const url = navigationContext
+                  ? buildNavigationUrl(basePath, navigationContext)
+                  : basePath
+                router.push(url)
               }
               return (
                 <TableRow

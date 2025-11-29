@@ -12,11 +12,14 @@ import { UsageMeter } from '@/db/schema/usageMeters'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 import EditFeatureModal from '@/components/forms/EditFeatureModal'
 import ToggleFeatureModal from './ToggleFeatureModal'
+import type { NavigationContext } from '@/lib/navigation-context'
 
 interface InnerFeatureDetailsPageProps {
   feature: Feature.ClientRecord
   pricingModel: PricingModel.ClientRecord | null
   usageMeter: UsageMeter.ClientRecord | null
+  /** Optional navigation context for smart breadcrumbs */
+  navigationContext?: NavigationContext
 }
 
 /**
@@ -139,10 +142,49 @@ function getRenewalFrequencyLabel(
   }
 }
 
+/**
+ * Determines the breadcrumb configuration based on navigation context.
+ * Falls back to pricing model if no context is provided.
+ */
+function getBreadcrumbConfig(
+  navigationContext: NavigationContext | undefined,
+  pricingModel: PricingModel.ClientRecord | null
+): { text: string; href: string } {
+  // If user came from a subscription, show subscription breadcrumb
+  if (navigationContext?.from === 'subscription' && navigationContext.refId) {
+    return {
+      text: navigationContext.refName || 'Subscription',
+      href: `/finance/subscriptions/${navigationContext.refId}`,
+    }
+  }
+
+  // If user came from a customer page
+  if (navigationContext?.from === 'customer' && navigationContext.refId) {
+    return {
+      text: navigationContext.refName || 'Customer',
+      href: `/customers/${navigationContext.refId}`,
+    }
+  }
+
+  // Default: pricing model (existing behavior)
+  if (pricingModel) {
+    return {
+      text: pricingModel.name,
+      href: `/store/pricing-models/${pricingModel.id}`,
+    }
+  }
+
+  return {
+    text: 'Pricing Models',
+    href: '/store/pricing-models',
+  }
+}
+
 function InnerFeatureDetailsPage({
   feature,
   pricingModel,
   usageMeter,
+  navigationContext,
 }: InnerFeatureDetailsPageProps) {
   const router = useRouter()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -150,6 +192,9 @@ function InnerFeatureDetailsPage({
 
   const isUsageCreditGrant =
     feature.type === FeatureType.UsageCreditGrant
+
+  // Get breadcrumb configuration based on navigation context
+  const breadcrumbConfig = getBreadcrumbConfig(navigationContext, pricingModel)
 
   // Determine the status badge configuration
   const statusBadge = feature.active
@@ -208,11 +253,7 @@ function InnerFeatureDetailsPage({
   }
 
   const handleBreadcrumbClick = () => {
-    if (pricingModel) {
-      router.push(`/store/pricing-models/${pricingModel.id}`)
-    } else {
-      router.push('/store/pricing-models')
-    }
+    router.push(breadcrumbConfig.href)
   }
 
   return (
@@ -220,7 +261,7 @@ function InnerFeatureDetailsPage({
       <div className="w-full relative flex flex-col justify-center gap-0 pb-32">
         <PageHeaderNew
           title={feature.name}
-          breadcrumb={pricingModel?.name || 'Pricing Model'}
+          breadcrumb={breadcrumbConfig.text}
           onBreadcrumbClick={handleBreadcrumbClick}
           badges={badges}
           actions={[
