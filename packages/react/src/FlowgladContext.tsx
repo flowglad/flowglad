@@ -1,7 +1,6 @@
 'use client'
 import React, { createContext, useContext } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
 import {
   FlowgladActionKey,
   flowgladActionValidators,
@@ -166,15 +165,21 @@ const constructCheckoutSessionCreator =
       mapPayload?.(params, basePayload) ??
       (basePayload as Record<string, unknown>)
 
-    const response = await axios.post(
+    const response = await fetch(
       `${flowgladRoute}/${actionKey}`,
-      payload,
-      { headers }
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify(payload),
+      }
     )
     const json: {
       data: Flowglad.CheckoutSessions.CheckoutSessionCreateResponse
       error?: { code: string; json: Record<string, unknown> }
-    } = response.data
+    } = await response.json()
     const data = json.data
     if (json.error) {
       console.error(
@@ -205,15 +210,21 @@ const constructCancelSubscription =
     const { flowgladRoute, requestConfig, queryClient } =
       constructParams
     const headers = requestConfig?.headers
-    const response = await axios.post(
+    const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.CancelSubscription}`,
-      params,
-      { headers }
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify(params),
+      }
     )
     const json: {
       data: Flowglad.Subscriptions.SubscriptionCancelResponse
       error?: { code: string; json: Record<string, unknown> }
-    } = response.data
+    } = await response.json()
     const data = json.data
     if (json.error) {
       console.error(

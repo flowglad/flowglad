@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/client';
 import { type Provider } from '@supabase/supabase-js';
 import { getURL } from '@/utils/helpers';
-import { redirectToPath } from './server';
+import { redirect } from 'next/navigation';
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 export async function handleRequest(
@@ -22,7 +22,7 @@ export async function handleRequest(
     return router.push(redirectUrl);
   } else {
     // Otherwise, redirect server-side
-    return await redirectToPath(redirectUrl);
+    return await redirect(redirectUrl);
   }
 }
 
