@@ -166,7 +166,15 @@ function getBreadcrumbConfig(
     }
   }
 
-  // Default: pricing model (existing behavior)
+  // If user came from a pricing model page (via navigation context)
+  if (navigationContext?.from === 'pricing-model' && navigationContext.refId) {
+    return {
+      text: navigationContext.refName || 'Pricing Model',
+      href: `/store/pricing-models/${navigationContext.refId}`,
+    }
+  }
+
+  // Default: use pricingModel prop if available (existing behavior)
   if (pricingModel) {
     return {
       text: pricingModel.name,
