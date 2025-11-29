@@ -45,7 +45,7 @@ export async function getPricingModelSetupData(
 
   // Fetch all features for this pricing model
   const features = await selectFeatures(
-    { pricingModelId: pricingModel.id },
+    { pricingModelId: pricingModel.id, active: true },
     transaction
   )
 

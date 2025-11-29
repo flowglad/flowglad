@@ -133,6 +133,7 @@ export const setupPricingModelTransaction = async (
           usageMeterId: usageMeter.id,
           amount: feature.amount,
           renewalFrequency: feature.renewalFrequency,
+          active: feature.active ?? true,
         }
       }
       return {
@@ -141,6 +142,7 @@ export const setupPricingModelTransaction = async (
         usageMeterId: null,
         amount: null,
         renewalFrequency: null,
+        active: feature.active ?? true,
       }
     }
   )
