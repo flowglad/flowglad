@@ -697,9 +697,15 @@ describe('getPricingModelSetupData', () => {
 
     // Now manually expire one of the product-feature associations
     await adminTransaction(async ({ transaction }) => {
+      const product = setupResult.products.find(
+        (p) => p.slug === 'test-product-associations'
+      )
+      if (!product) {
+        throw new Error('Test setup failed: product not found')
+      }
       const productFeaturesResult =
         await selectFeaturesByProductFeatureWhere(
-          { productId: setupResult.products[0].id },
+          { productId: product.id },
           transaction
         )
 
