@@ -47,13 +47,21 @@ jobs:
       - name: Install dependencies
         run: bun install --no-progress
 
+      # Configure git user (required for changesets to create commits)
+      # The changesets action needs git user info to make commits when creating the PR
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       # The changesets action handles everything:
       # - Checks for unversioned changesets (exits early if none exist)
       # - Runs `bun run packages:version` to bump package versions and update CHANGELOGs
       # - Creates or updates a PR with the version changes
       # - Prevents duplicate PRs (will update existing PR if one already exists)
+      # Pinned to specific commit SHA for security (prevents supply-chain attacks)
       - name: Create Release Pull Request
-        uses: changesets/action@v1
+        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
           version: bun run packages:version
           commit: 'chore: version packages'
