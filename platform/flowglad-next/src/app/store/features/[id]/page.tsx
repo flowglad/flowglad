@@ -15,31 +15,38 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
 
   const { feature, pricingModel, usageMeter } =
     await authenticatedTransaction(async ({ transaction }) => {
+      let feature
       try {
-        const feature = await selectFeatureById(id, transaction)
+        feature = await selectFeatureById(id, transaction)
+      } catch (error) {
+        // Only treat "not found" errors as expected; let other DB failures propagate
+        if (
+          error instanceof Error &&
+          error.message.includes('No feature found')
+        ) {
+          return { feature: null, pricingModel: null, usageMeter: null }
+        }
+        throw error
+      }
 
-        const [pricingModel] = await selectPricingModels(
-          { id: feature.pricingModelId },
+      const [pricingModel] = await selectPricingModels(
+        { id: feature.pricingModelId },
+        transaction
+      )
+
+      // Get usage meter if feature is a UsageCreditGrant type
+      let usageMeter = null
+      if (
+        feature.type === FeatureType.UsageCreditGrant &&
+        feature.usageMeterId
+      ) {
+        usageMeter = await selectUsageMeterById(
+          feature.usageMeterId,
           transaction
         )
-
-        // Get usage meter if feature is a UsageCreditGrant type
-        let usageMeter = null
-        if (
-          feature.type === FeatureType.UsageCreditGrant &&
-          feature.usageMeterId
-        ) {
-          usageMeter = await selectUsageMeterById(
-            feature.usageMeterId,
-            transaction
-          )
-        }
-
-        return { feature, pricingModel: pricingModel ?? null, usageMeter }
-      } catch {
-        // selectFeatureById throws if feature not found
-        return { feature: null, pricingModel: null, usageMeter: null }
       }
+
+      return { feature, pricingModel: pricingModel ?? null, usageMeter }
     })
 
   if (!feature) {
