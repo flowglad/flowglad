@@ -22,7 +22,7 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
         // Only treat "not found" errors as expected; let other DB failures propagate
         if (
           error instanceof Error &&
-          error.message.includes('No feature found')
+          error.message.includes('No features found')
         ) {
           return { feature: null, pricingModel: null, usageMeter: null }
         }
