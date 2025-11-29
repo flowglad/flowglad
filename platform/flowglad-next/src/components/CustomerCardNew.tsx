@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -69,6 +70,8 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
     { className, variant, name, email, avatarUrl, href, onClick, onKeyDown },
     forwardedRef
   ) => {
+    const router = useRouter()
+
     // Callback ref that forwards to the parent ref with proper typing
     const setRef = React.useCallback(
       (element: HTMLDivElement | HTMLAnchorElement | null) => {
@@ -84,9 +87,12 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
     const handleKeyDown = (
       e: React.KeyboardEvent<HTMLDivElement | HTMLAnchorElement>
     ) => {
-      if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+      if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
-        onClick(e)
+        onClick?.(e)
+        if (href) {
+          router.push(href)
+        }
       }
       onKeyDown?.(e)
     }
@@ -139,7 +145,7 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
           ref={setRef}
           className={cardClassName}
           onClick={onClick}
-          onKeyDown={onKeyDown}
+          onKeyDown={handleKeyDown}
         >
           {content}
         </Link>
@@ -176,4 +182,3 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
 CustomerCardNew.displayName = 'CustomerCardNew'
 
 export { CustomerCardNew, customerCardVariants }
-
