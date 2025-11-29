@@ -43,6 +43,8 @@ interface InvoicesDataTableProps {
   filterOptions?: { value: string; label: string }[]
   activeFilter?: string
   onFilterChange?: (value: string) => void
+  hiddenColumns?: string[]
+  columnOrder?: string[]
 }
 
 export function InvoicesDataTable({
@@ -52,6 +54,8 @@ export function InvoicesDataTable({
   filterOptions,
   activeFilter,
   onFilterChange,
+  hiddenColumns = [],
+  columnOrder,
 }: InvoicesDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -86,7 +90,12 @@ export function InvoicesDataTable({
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>(() =>
+      hiddenColumns.reduce(
+        (acc, col) => ({ ...acc, [col]: false }),
+        {}
+      )
+    )
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 
@@ -132,6 +141,7 @@ export function InvoicesDataTable({
       columnFilters,
       columnVisibility,
       columnSizing,
+      columnOrder,
       pagination: { pageIndex, pageSize: currentPageSize },
     },
   })

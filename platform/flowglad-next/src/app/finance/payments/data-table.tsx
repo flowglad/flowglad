@@ -43,6 +43,7 @@ interface PaymentsDataTableProps {
   filterOptions?: { value: string; label: string }[]
   activeFilter?: string
   onFilterChange?: (value: string) => void
+  hiddenColumns?: string[]
 }
 
 export function PaymentsDataTable({
@@ -51,6 +52,7 @@ export function PaymentsDataTable({
   filterOptions,
   activeFilter,
   onFilterChange,
+  hiddenColumns = [],
 }: PaymentsDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -85,7 +87,12 @@ export function PaymentsDataTable({
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>(() =>
+      hiddenColumns.reduce(
+        (acc, col) => ({ ...acc, [col]: false }),
+        {}
+      )
+    )
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 

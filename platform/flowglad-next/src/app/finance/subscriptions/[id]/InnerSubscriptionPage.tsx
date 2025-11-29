@@ -242,10 +242,21 @@ const InnerSubscriptionPage = ({
         <InvoicesDataTable
           title="Invoices"
           filters={{ subscriptionId: subscription.id }}
+          hiddenColumns={['customerName']}
+          columnOrder={[
+            'total',
+            'invoiceNumber',
+            'status',
+            'dueDate',
+            'createdAt',
+            'invoiceId',
+            'actions',
+          ]}
         />
         <PaymentsDataTable
           title="Payments"
           filters={{ subscriptionId: subscription.id }}
+          hiddenColumns={['customerName']}
         />
       </div>
 
