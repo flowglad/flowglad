@@ -27,7 +27,6 @@ import {
   getSubscriptionDateInfo,
 } from '@/lib/subscription-utils'
 import { InvoicesDataTable } from '../../invoices/data-table'
-import { SubscriptionFeaturesTable } from './SubscriptionFeaturesTable'
 import { ExpandSection } from '@/components/ExpandSection'
 import { ProductCard } from '@/components/ProductCard'
 import { CustomerCardNew } from '@/components/CustomerCardNew'
@@ -234,19 +233,6 @@ const InnerSubscriptionPage = ({
             </ItemFeature>
           </div>
         </ExpandSection>
-        <SubscriptionFeaturesTable
-          featureItems={subscription.experimental?.featureItems}
-          toolbarContent={
-            <Button
-              size="sm"
-              onClick={() => setIsAddFeatureModalOpen(true)}
-              disabled={!canAddFeature}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add feature
-            </Button>
-          }
-        />
         <InvoicesDataTable
           title="Invoices"
           filters={{ subscriptionId: subscription.id }}
