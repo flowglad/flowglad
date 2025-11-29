@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -47,13 +48,27 @@ const ToggleFeatureModal: React.FC<ToggleFeatureModalProps> = ({
 
     const parsed = editFeatureSchema.safeParse(data)
     if (!parsed.success) {
-      console.error('Invalid data:', parsed.error)
+      const errorMessage = parsed.error.issues
+        .map((issue) => issue.message)
+        .join(', ')
+      toast.error(errorMessage || 'Invalid feature data')
       return
     }
 
-    await updateFeature.mutateAsync(parsed.data)
-    router.refresh()
-    setIsOpen(false)
+    try {
+      await updateFeature.mutateAsync(parsed.data)
+      toast.success(
+        `Feature ${feature.active ? 'deactivated' : 'activated'} successfully`
+      )
+      router.refresh()
+      setIsOpen(false)
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : `Failed to ${feature.active ? 'deactivate' : 'activate'} feature`
+      )
+    }
   }
 
   const modalText = feature.active ? (
@@ -77,7 +92,14 @@ const ToggleFeatureModal: React.FC<ToggleFeatureModalProps> = ({
   )
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!updateFeature.isPending) {
+          setIsOpen(open)
+        }
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -91,6 +113,7 @@ const ToggleFeatureModal: React.FC<ToggleFeatureModalProps> = ({
               variant="secondary"
               size="default"
               onClick={() => setIsOpen(false)}
+              disabled={updateFeature.isPending}
             >
               Cancel
             </Button>
