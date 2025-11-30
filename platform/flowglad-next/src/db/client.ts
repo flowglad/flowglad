@@ -1,4 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { DefaultLogger } from 'drizzle-orm/logger'
+import { format } from 'sql-formatter'
 import postgres from 'postgres'
 import core from '@/utils/core'
 
@@ -24,14 +26,34 @@ const client = postgres(dbUrl, {
   debug: true,
 })
 
-let logger = true
+class FormattedSQLLogger extends DefaultLogger {
+  override logQuery(query: string, params: unknown[]): void {
+    const formatted = format(query, {
+      language: 'postgresql',
+      tabWidth: 2,
+      keywordCase: 'upper',
+      linesBetweenQueries: 2,
+    })
+
+    /* eslint-disable no-console */
+    console.log('\n🔵 SQL Query:')
+    console.log(formatted)
+    if (params.length > 0) {
+      console.log('\n📊 Parameters:', JSON.stringify(params, null, 2))
+    }
+    console.log('─'.repeat(80)) // Separator
+    /* eslint-enable no-console */
+  }
+}
+
+let logger: boolean | FormattedSQLLogger = true
 
 if (core.IS_PROD) {
   logger = true
 } else if (core.IS_TEST) {
   logger = false
 } else if (core.IS_DEV) {
-  logger = true
+  logger = new FormattedSQLLogger()
 }
 
 export const db = drizzle(client, {
