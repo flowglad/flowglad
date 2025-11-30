@@ -66,7 +66,7 @@ export const hasCustomerUsedTrial = async (
  * @param transaction - Database transaction
  * @returns true if customer is eligible, false if not eligible, undefined if not applicable
  */
-const calculateTrialEligibility = async (
+export const calculateTrialEligibility = async (
   price: Price.Record,
   maybeCustomer: Customer.Record | null,
   transaction: DbTransaction
@@ -280,7 +280,7 @@ export async function checkoutInfoForCheckoutSession(
   maybeCurrentSubscriptions: Subscription.Record[] | null
   features: Feature.Record[] | null
   discount: Discount.Record | null
-  isEligibleForTrial: boolean | undefined
+  isEligibleForTrial?: boolean
 }> {
   const checkoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
