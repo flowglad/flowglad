@@ -45,7 +45,7 @@ export async function getPricingModelSetupData(
 
   // Fetch all features for this pricing model
   const features = await selectFeatures(
-    { pricingModelId: pricingModel.id },
+    { pricingModelId: pricingModel.id, active: true },
     transaction
   )
 
@@ -72,13 +72,14 @@ export async function getPricingModelSetupData(
 
   // Fetch all product-feature relationships
   const productIds = productsWithPrices.map((p) => p.id)
-  const productFeaturesWithFeatures =
+  const productFeaturesWithFeatures = (
     productIds.length > 0
       ? await selectFeaturesByProductFeatureWhere(
           { productId: productIds },
           transaction
         )
       : []
+  ).filter(({ feature }) => feature.active)
 
   // Group product features by product ID
   const featureSlugsByProductId = new Map<string, string[]>()

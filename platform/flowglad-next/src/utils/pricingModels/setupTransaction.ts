@@ -133,6 +133,7 @@ export const setupPricingModelTransaction = async (
           usageMeterId: usageMeter.id,
           amount: feature.amount,
           renewalFrequency: feature.renewalFrequency,
+          active: feature.active ?? true,
         }
       }
       return {
@@ -141,6 +142,11 @@ export const setupPricingModelTransaction = async (
         usageMeterId: null,
         amount: null,
         renewalFrequency: null,
+        // using provided feature.active here rather than always defaulting to true,
+        // since currently a feature marked as inactive in yaml will import and
+        // get set up as an active feature, which is not good behavior.
+        // with the new changes in setupHelpers.ts, we shouldn't get this situation anymore
+        active: feature.active ?? true,
       }
     }
   )
