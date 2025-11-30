@@ -26,6 +26,7 @@ function BillingPortalPage() {
   const router = useRouter()
   const { organizationId, customerId } = params
   const { data: session, isPending: isSessionLoading } = useSession()
+  const utils = trpc.useUtils()
   const [activeSection, setActiveSection] = useState<
     'subscription' | 'payment-methods' | 'invoices'
   >('subscription')
@@ -40,9 +41,11 @@ function BillingPortalPage() {
     )
 
   // Fetch billing data
-  const { data, isLoading, error, refetch } =
+  const { data, isLoading, error } =
     trpc.customerBillingPortal.getBilling.useQuery(
-      {},
+      {
+        customerId,
+      },
       {
         enabled: !!session?.user && !!customerId,
       }
@@ -89,8 +92,11 @@ function BillingPortalPage() {
   // Cancel subscription mutation
   const cancelSubscriptionMutation =
     trpc.customerBillingPortal.cancelSubscription.useMutation({
-      onSuccess: () => {
-        refetch()
+      onSuccess: async () => {
+        // Invalidate and refetch billing data to get updated subscription state
+        await utils.customerBillingPortal.getBilling.invalidate({
+          customerId,
+        })
       },
     })
 
@@ -107,13 +113,16 @@ function BillingPortalPage() {
   // Set default payment method mutation
   const setDefaultPaymentMethodMutation =
     trpc.customerBillingPortal.setDefaultPaymentMethod.useMutation({
-      onSuccess: () => {
-        refetch()
+      onSuccess: async () => {
+        await utils.customerBillingPortal.getBilling.invalidate({
+          customerId,
+        })
       },
     })
 
   const handleCancelSubscription = async (subscriptionId: string) => {
     await cancelSubscriptionMutation.mutateAsync({
+      customerId,
       id: subscriptionId,
       cancellation: {
         timing:
@@ -123,13 +132,16 @@ function BillingPortalPage() {
   }
 
   const handleAddPaymentMethod = async () => {
-    await createPaymentSessionMutation.mutateAsync({})
+    await createPaymentSessionMutation.mutateAsync({
+      customerId,
+    })
   }
 
   const handleSetDefaultPaymentMethod = async (
     paymentMethodId: string
   ) => {
     await setDefaultPaymentMethodMutation.mutateAsync({
+      customerId,
       paymentMethodId,
     })
   }
