@@ -208,7 +208,11 @@ export const TotalBillingDetails = React.forwardRef<
 
   let afterwardsTotal: number | null = null
   let afterwardsTotalLabel = ''
-  if (subscriptionDetails?.trialPeriodDays) {
+  // Only show trial UI if customer is eligible for trial AND price has trial period
+  if (
+    subscriptionDetails?.trialPeriodDays &&
+    checkoutPageContext.isEligibleForTrial
+  ) {
     afterwardsTotalLabel = 'Total After Trial'
     // Calculate the actual price after trial (with discount applied)
     const priceAfterTrial =
@@ -292,7 +296,8 @@ export const TotalBillingDetails = React.forwardRef<
                   ? ''
                   : stripeCurrencyAmountToHumanReadableCurrencyAmount(
                       currency,
-                      subscriptionDetails?.trialPeriodDays
+                      subscriptionDetails?.trialPeriodDays &&
+                        checkoutPageContext.isEligibleForTrial
                         ? 0
                         : finalTotalDueAmount
                     )}
