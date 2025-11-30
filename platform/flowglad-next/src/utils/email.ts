@@ -53,6 +53,26 @@ const safeTo = (email: string) =>
     : core.envVariable('DEV_EMAIL_REDIRECT') ||
       'agree.ahmed@flowglad.com'
 
+/**
+ * Formats an email subject line, prefixing with [TEST] if livemode is false.
+ *
+ * All email send functions that accept a `livemode` parameter must use this helper
+ * to format their subject line to ensure test mode emails are clearly identifiable.
+ *
+ * @param subject - The base subject line
+ * @param livemode - Whether this is a livemode (production) email
+ * @returns The formatted subject line with [TEST] prefix when livemode is false
+ */
+const formatEmailSubject = (
+  subject: string,
+  livemode: boolean
+): string => {
+  if (livemode) {
+    return subject
+  }
+  return `[TEST] ${subject}`
+}
+
 export const sendReceiptEmail = async (params: {
   to: string[]
   invoice: Invoice.Record
@@ -129,10 +149,13 @@ export const sendOrganizationPaymentNotificationEmail = async (
     from: `Flowglad <notifications@flowglad.com>`,
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
-    subject: `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
-      params.currency,
-      params.amount
-    )} from ${params.organizationName}!`,
+    subject: formatEmailSubject(
+      `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
+        params.currency,
+        params.amount
+      )} from ${params.organizationName}!`,
+      params.livemode
+    ),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -155,7 +178,7 @@ export const sendPurchaseAccessSessionTokenEmail = async (params: {
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     replyTo: params.replyTo ?? undefined,
-    subject: 'Your Order Link',
+    subject: formatEmailSubject('Your Order Link', params.livemode),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -200,7 +223,10 @@ export const sendPaymentFailedEmail = async (params: {
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     replyTo: params.replyTo ?? undefined,
-    subject: 'Payment Unsuccessful',
+    subject: formatEmailSubject(
+      'Payment Unsuccessful',
+      params.livemode
+    ),
     react: await PaymentFailedEmail({
       invoiceNumber: params.invoiceNumber,
       orderDate: new Date(params.orderDate),
@@ -241,7 +267,10 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
   return safeSend({
     from: 'notifications@flowglad.com',
     to: to.map(safeTo),
-    subject: 'Awaiting Payment Confirmation',
+    subject: formatEmailSubject(
+      'Awaiting Payment Confirmation',
+      livemode
+    ),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -290,7 +319,10 @@ export const sendInvoiceReminderEmail = async ({
     to: to.map(safeTo),
     cc: cc?.map(safeTo),
     replyTo: replyTo ?? undefined,
-    subject: `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`,
+    subject: formatEmailSubject(
+      `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`,
+      invoice.livemode
+    ),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -338,7 +370,10 @@ export const sendInvoiceNotificationEmail = async ({
     to: to.map(safeTo),
     cc: cc?.map(safeTo),
     replyTo: replyTo ?? undefined,
-    subject: `${organizationName} New Invoice: #${invoice.invoiceNumber}`,
+    subject: formatEmailSubject(
+      `${organizationName} New Invoice: #${invoice.invoiceNumber}`,
+      invoice.livemode
+    ),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -386,7 +421,10 @@ export const sendOrganizationPaymentFailedNotificationEmail = async (
     from: `Flowglad <notifications@flowglad.com>`,
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
-    subject: `${params.organizationName} payment failed from ${params.customerName}`,
+    subject: formatEmailSubject(
+      `${params.organizationName} payment failed from ${params.customerName}`,
+      params.livemode
+    ),
     /**
      * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
      */
@@ -428,7 +466,10 @@ export const sendCustomerBillingPortalMagicLink = async ({
   return safeSend({
     from: 'notifications@flowglad.com',
     to: to.map(safeTo),
-    subject: `Sign in to your ${organizationName} billing portal`,
+    subject: formatEmailSubject(
+      `Sign in to your ${organizationName} billing portal`,
+      livemode
+    ),
     react: await CustomerBillingPortalMagicLinkEmail({
       email: to[0],
       url,
@@ -500,7 +541,10 @@ export const sendCustomersCsvExportReadyEmail = async ({
   return safeSend({
     from: 'Flowglad <notifications@flowglad.com>',
     to: to.map(safeTo),
-    subject: 'Your customers CSV export is ready',
+    subject: formatEmailSubject(
+      'Your customers CSV export is ready',
+      livemode
+    ),
     react: await CustomersCsvExportReadyEmail({
       organizationName,
       livemode,
