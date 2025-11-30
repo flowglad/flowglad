@@ -170,6 +170,7 @@
     "server-only": "^0.0.1",
     "shadcn": "2.10.0",
     "sonner": "^1.5.0",
+    "sql-formatter": "^15.6.10",
     "stripe": "17.2.0",
     "superjson": "^2.2.1",
     "svix": "^1.65.0",
