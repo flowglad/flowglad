@@ -1,5 +1,5 @@
 import type { Flowglad as FlowgladNode } from '@flowglad/node'
-import type { Price } from './catalog'
+import type { Price } from './types/catalog'
 
 export enum FlowgladActionKey {
   GetCustomerBilling = 'customers/billing',
