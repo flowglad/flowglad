@@ -432,6 +432,11 @@ class RegistryValidator {
           continue
         }
 
+        // Skip test files as they don't need to be in the registry
+        if (entry.name.endsWith('.test.tsx')) {
+          continue
+        }
+
         if (!referencedFiles.has(relPath)) {
           this.errors.push({
             type: 'warning',
