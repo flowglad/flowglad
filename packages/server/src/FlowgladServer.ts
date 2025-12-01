@@ -14,12 +14,12 @@ import {
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
+  type CreateProductCheckoutSessionParams,
 } from '@flowglad/shared'
 import {
   type CoreCustomerUser,
   type FlowgladServerSessionParams,
 } from './types'
-import type { CreateProductCheckoutSessionParams } from '@flowglad/types'
 import { Flowglad as FlowgladNode } from '@flowglad/node'
 import { getSessionFromParams } from './serverUtils'
 

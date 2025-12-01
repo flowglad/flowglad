@@ -12,13 +12,11 @@ import {
   type BillingWithChecks,
   constructGetProduct,
   constructGetPrice,
+  type CustomerBillingDetails,
+  type CreateProductCheckoutSessionParams,
 } from '@flowglad/shared'
 import type { Flowglad } from '@flowglad/node'
 import { validateUrl } from './utils'
-import type {
-  CreateProductCheckoutSessionParams,
-  CustomerBillingDetails,
-} from '@flowglad/types'
 import { devError } from './lib/utils'
 
 export type FrontendProductCreateCheckoutSessionParams =
