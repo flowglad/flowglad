@@ -9,7 +9,7 @@ import {
   RequestConfig,
 } from './FlowgladContext'
 import { validateUrl } from './utils'
-import { CustomerBillingDetails } from '@flowglad/types'
+import { CustomerBillingDetails } from '@flowglad/shared'
 
 const queryClient = new QueryClient()
 

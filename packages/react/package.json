@@ -24,7 +24,6 @@
     "zod": "4.1.5"
   },
   "devDependencies": {
-    "@flowglad/types": "workspace:*",
     "@types/autoprefixer": "^10.2.0",
     "@types/react": "18.3.12",
     "autoprefixer": "^10.4.18",
