@@ -35,24 +35,24 @@ const FeaturePage = async ({ params, searchParams }: FeaturePageProps) => {
         throw error
       }
 
-      const [pricingModel] = await selectPricingModels(
-        { id: feature.pricingModelId },
-        transaction
-      )
-
-      // Get usage meter if feature is a UsageCreditGrant type
-      let usageMeter = null
-      if (
-        feature.type === FeatureType.UsageCreditGrant &&
-        feature.usageMeterId
-      ) {
-        usageMeter = await selectUsageMeterById(
-          feature.usageMeterId,
+        const [pricingModel] = await selectPricingModels(
+          { id: feature.pricingModelId },
           transaction
         )
-      }
 
-      return { feature, pricingModel: pricingModel ?? null, usageMeter }
+        // Get usage meter if feature is a UsageCreditGrant type
+        let usageMeter = null
+        if (
+          feature.type === FeatureType.UsageCreditGrant &&
+          feature.usageMeterId
+        ) {
+          usageMeter = await selectUsageMeterById(
+            feature.usageMeterId,
+            transaction
+          )
+        }
+
+        return { feature, pricingModel: pricingModel ?? null, usageMeter }
     })
 
   if (!feature) {

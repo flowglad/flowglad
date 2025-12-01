@@ -226,15 +226,15 @@ const InnerSubscriptionPage = ({
                 {feature.name}
                 {feature.type === FeatureType.UsageCreditGrant &&
                   feature.amount != null && (
-                    <span className="text-muted-foreground font-normal">
-                      &nbsp;- {feature.amount.toLocaleString()} total credits,{' '}
-                      {feature.renewalFrequency ===
-                      FeatureUsageGrantFrequency.EveryBillingPeriod
-                        ? 'every billing period'
-                        : 'one-time'}
-                      .
-                    </span>
-                  )}
+                  <span className="text-muted-foreground font-normal">
+                    &nbsp;- {feature.amount.toLocaleString()} total credits,{' '}
+                    {feature.renewalFrequency ===
+                    FeatureUsageGrantFrequency.EveryBillingPeriod
+                      ? 'every billing period'
+                      : 'one-time'}
+                    .
+                  </span>
+                )}
               </ItemFeature>
             ))}
             {canAddFeature && (
