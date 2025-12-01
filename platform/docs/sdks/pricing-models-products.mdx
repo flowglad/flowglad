@@ -27,17 +27,17 @@ export function PricingProducts() {
     return <div>Unable to load pricing data.</div>
   }
 
-const products = billing.pricingModel.products.map((product) => {
-  const defaultPrice = product.defaultPrice ?? product.prices[0] ?? null
+  const products = billing.pricingModel.products.map((product) => {
+    const defaultPrice = product.defaultPrice ?? product.prices[0] ?? null
 
-  return {
-    slug: product.slug,
-    name: product.name,
-    description: product.description,
-    defaultPrice,
-    features: product.features,
-  }
-})
+    return {
+      slug: product.slug,
+      name: product.name,
+      description: product.description,
+      defaultPrice,
+      features: product.features,
+    }
+  })
 
   return (
     <section>
