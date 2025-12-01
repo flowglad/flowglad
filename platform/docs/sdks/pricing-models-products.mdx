@@ -20,7 +20,7 @@ export function PricingProducts() {
   const billing = useBilling()
 
   if (!billing.loaded) {
-    return <div>Loading pricing…</div>
+    return <div>Loading pricing...</div>
   }
 
   if (billing.errors || !billing.pricingModel) {
@@ -44,7 +44,7 @@ export function PricingProducts() {
       {products.map((product) => {
         const price = product.defaultPrice
         const priceLabel = price
-          ? `${price.name ?? product.name} – $${(price.unitPrice / 100).toFixed(2)}${
+          ? `${price.name ?? product.name} - $${(price.unitPrice / 100).toFixed(2)}${
               price.intervalUnit ? `/${price.intervalUnit}` : ''
             }`
           : 'Price not available'
