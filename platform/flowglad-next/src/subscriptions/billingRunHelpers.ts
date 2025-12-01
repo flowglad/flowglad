@@ -943,17 +943,24 @@ const retryTimesInDays = [3, 5, 5]
 const dayInMilliseconds = 1000 * 60 * 60 * 24
 
 export const constructBillingRunRetryInsert = (
-  billingRun: BillingRun.Record,
-  allBillingRunAttempts: BillingRun.Record[]
+  billingRun: BillingRun.Record
 ): BillingRun.Insert | undefined => {
   /**
    * FIXME: mark the subscription as canceled (?)
    */
-  if (allBillingRunAttempts.length >= retryTimesInDays.length + 1) {
+  const nextAttemptNumber = billingRun.attemptNumber + 1
+
+  // Check if we've exceeded max retries
+  // retryTimesInDays.length + 1 = max attempts (1 original + retries)
+  if (nextAttemptNumber > retryTimesInDays.length + 1) {
     return undefined
   }
-  const daysFromNowToRetry =
-    retryTimesInDays[allBillingRunAttempts.length - 1]
+
+  // Get the retry delay for this attempt number
+  // attemptNumber 1 -> retryTimesInDays[0] (first retry, 3 days)
+  // attemptNumber 2 -> retryTimesInDays[1] (second retry, 5 days)
+  // attemptNumber 3 -> retryTimesInDays[2] (third retry, 5 days)
+  const daysFromNowToRetry = retryTimesInDays[nextAttemptNumber - 2]
 
   return {
     billingPeriodId: billingRun.billingPeriodId,
@@ -962,13 +969,11 @@ export const constructBillingRunRetryInsert = (
     subscriptionId: billingRun.subscriptionId,
     paymentMethodId: billingRun.paymentMethodId,
     livemode: billingRun.livemode,
-    /**
-     * Use the same payment intent as the previous billing run.
-     * That way we can statefully ensure the payment intent is the same.
-     */
     stripePaymentIntentId: billingRun.stripePaymentIntentId,
     lastPaymentIntentEventTimestamp:
       billingRun.lastPaymentIntentEventTimestamp,
+    // Set attemptNumber to the next attempt
+    attemptNumber: nextAttemptNumber,
   }
 }
 
@@ -976,26 +981,7 @@ export const scheduleBillingRunRetry = async (
   billingRun: BillingRun.Record,
   transaction: DbTransaction
 ) => {
-  const allBillingRunsForPeriod = await selectBillingRuns(
-    {
-      billingPeriodId: billingRun.billingPeriodId,
-    },
-    transaction
-  )
-
-  const allBillingRunAttempts =
-    billingRun.lastPaymentIntentEventTimestamp
-      ? allBillingRunsForPeriod.filter(
-          (br) =>
-            br.lastPaymentIntentEventTimestamp ===
-            billingRun.lastPaymentIntentEventTimestamp
-        )
-      : [billingRun]
-
-  const retryBillingRun = constructBillingRunRetryInsert(
-    billingRun,
-    allBillingRunAttempts
-  )
+  const retryBillingRun = constructBillingRunRetryInsert(billingRun)
   if (!retryBillingRun) {
     return
   }

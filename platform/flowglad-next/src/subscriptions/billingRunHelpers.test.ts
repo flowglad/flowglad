@@ -858,14 +858,12 @@ describe('billingRunHelpers', async () => {
   describe('Billing Run Retry Logic', () => {
     it('should schedule billing run retries according to the defined schedule', async () => {
       const retryTimesInDays = [3, 5, 5]
-      let allBillingRunsForPeriod: BillingRun.Record[] = [billingRun]
+      let currentBillingRun: BillingRun.Record = billingRun
 
       for (let i = 0; i < retryTimesInDays.length; i++) {
         const daysToRetry = retryTimesInDays[i]
-        const retryInsert = constructBillingRunRetryInsert(
-          billingRun,
-          allBillingRunsForPeriod
-        )
+        const retryInsert =
+          constructBillingRunRetryInsert(currentBillingRun)
 
         expect(retryInsert).toBeDefined()
         const expectedRetryDate =
@@ -875,15 +873,16 @@ describe('billingRunHelpers', async () => {
           -3 // tolerance of 1 second
         )
 
-        // Add the new retry run to the list for the next iteration
-        allBillingRunsForPeriod.push({
-          ...billingRun,
+        // Use the retry run for the next iteration
+        currentBillingRun = {
+          ...currentBillingRun,
           ...(retryInsert as BillingRun.Insert),
           id: `retry-run-${i}`,
           createdAt: Date.now(),
           updatedAt: Date.now(),
           status: retryInsert!.status,
-        } as BillingRun.Record)
+          attemptNumber: retryInsert!.attemptNumber,
+        } as BillingRun.Record
       }
     })
 
