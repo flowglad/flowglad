@@ -272,6 +272,8 @@ const FileInput: React.FC<FileInputProps> = ({
           setIsDragging(false)
         }}
         onDrop={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
           const files = e.dataTransfer.files
           if (files && files.length > 0) {
             handleFileChange({
