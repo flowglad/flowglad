@@ -2200,3 +2200,430 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
     })
   })
 })
+
+describe('createSubscriptionWorkflow trial eligibility', async () => {
+  it('customer who has never used a trial gets a trial when eligible', async () => {
+    const { organization, product } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    // Create a price with trial period
+    const priceWithTrial = await setupPrice({
+      productId: product.id,
+      name: 'Price with Trial',
+      type: PriceType.Subscription,
+      unitPrice: 2900,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      trialPeriodDays: 14,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    const trialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
+
+    const {
+      result: { subscription },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_new_trial_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: priceWithTrial,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          trialEnd,
+        },
+        transaction
+      )
+    })
+
+    // Customer should get the trial since they never used one before
+    expect(subscription.trialEnd).toBe(trialEnd)
+    expect(subscription.status).toBe(SubscriptionStatus.Trialing)
+  })
+
+  it('customer who has used a trial before does not get another trial', async () => {
+    const { organization, product } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    // Create a price with trial period
+    const priceWithTrial = await setupPrice({
+      productId: product.id,
+      name: 'Price with Trial',
+      type: PriceType.Subscription,
+      unitPrice: 2900,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      trialPeriodDays: 14,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    // First, create a subscription with a trial for this customer
+    const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
+    await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_first_trial_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: priceWithTrial,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          trialEnd: firstTrialEnd,
+        },
+        transaction
+      )
+    })
+
+    // Now try to create another subscription with a trial
+    const secondTrialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000
+
+    const {
+      result: { subscription: secondSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_second_trial_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: priceWithTrial,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          trialEnd: secondTrialEnd, // Explicitly provide trialEnd
+        },
+        transaction
+      )
+    })
+
+    // Customer should NOT get the trial since they've already used one
+    expect(secondSubscription.trialEnd).toBeNull()
+    expect(secondSubscription.status).toBe(SubscriptionStatus.Active)
+  })
+
+  it('customer with canceled subscription that had a trial does not get another trial', async () => {
+    const { organization, product } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    // Create a price with trial period
+    const priceWithTrial = await setupPrice({
+      productId: product.id,
+      name: 'Price with Trial',
+      type: PriceType.Subscription,
+      unitPrice: 2900,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      trialPeriodDays: 14,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    // Create and then cancel a subscription with a trial
+    const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
+    const {
+      result: { subscription: firstSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_canceled_trial_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: priceWithTrial,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          trialEnd: firstTrialEnd,
+        },
+        transaction
+      )
+    })
+
+    // Cancel the first subscription
+    await adminTransaction(async ({ transaction }) => {
+      await updateSubscription(
+        {
+          id: firstSubscription.id,
+          status: SubscriptionStatus.Canceled,
+          canceledAt: Date.now(),
+          renews: firstSubscription.renews,
+        },
+        transaction
+      )
+    })
+
+    // Now try to create another subscription with a trial
+    const secondTrialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000
+
+    const {
+      result: { subscription: secondSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_after_canceled_trial_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: priceWithTrial,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          trialEnd: secondTrialEnd,
+        },
+        transaction
+      )
+    })
+
+    // Customer should NOT get the trial since they've already used one (even though it was canceled)
+    expect(secondSubscription.trialEnd).toBeNull()
+    expect(secondSubscription.status).toBe(SubscriptionStatus.Active)
+  })
+
+  it('trial eligibility check works when price has trialPeriodDays but no explicit trialEnd provided', async () => {
+    const { organization, product } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    // Create a price with trial period
+    const priceWithTrial = await setupPrice({
+      productId: product.id,
+      name: 'Price with Trial Period Days',
+      type: PriceType.Subscription,
+      unitPrice: 2900,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      trialPeriodDays: 14,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    // First, create a subscription with a trial (using explicit trialEnd)
+    const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
+    await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_first_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: priceWithTrial,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          trialEnd: firstTrialEnd,
+        },
+        transaction
+      )
+    })
+
+    // Now try to create another subscription without explicit trialEnd
+    // The price has trialPeriodDays, so workflow should check eligibility
+    const {
+      result: { subscription: secondSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_second_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: priceWithTrial,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          // trialEnd not provided, but price has trialPeriodDays
+        },
+        transaction
+      )
+    })
+
+    // Since customer already used a trial, they should not get another one
+    // even though the price has trialPeriodDays
+    expect(secondSubscription.trialEnd).toBeNull()
+    expect(secondSubscription.status).toBe(SubscriptionStatus.Active)
+  })
+
+  it('trial eligibility is undefined for non-subscription price types', async () => {
+    const { organization, product } = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    // Create a single payment price (not subscription type)
+    const singlePaymentPrice = await setupPrice({
+      productId: product.id,
+      name: 'Single Payment',
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    // First create a subscription with trial to mark customer as having used trial
+    const priceWithTrial = await setupPrice({
+      productId: product.id,
+      name: 'Price with Trial',
+      type: PriceType.Subscription,
+      unitPrice: 2900,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      trialPeriodDays: 14,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
+    await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_with_trial_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price: priceWithTrial,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+          trialEnd: firstTrialEnd,
+        },
+        transaction
+      )
+    })
+
+    // Now create a non-renewing subscription with single payment price
+    // This should work without checking trial eligibility
+    // (since single payment prices don't have trials)
+    const defaultProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: product.pricingModelId,
+      name: 'Default Product',
+      default: true,
+      livemode: true,
+    })
+
+    const singlePayPriceForDefault = await setupPrice({
+      productId: defaultProduct.id,
+      name: 'Single Payment for Default',
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    const {
+      result: { subscription: nonRenewingSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_single_pay_${core.nanoid()}`
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product: defaultProduct,
+          price: singlePayPriceForDefault,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+        },
+        transaction
+      )
+    })
+
+    // This should succeed without issues - trial eligibility doesn't apply
+    expect(nonRenewingSubscription).toBeDefined()
+    expect(nonRenewingSubscription.trialEnd).toBeNull()
+  })
+})

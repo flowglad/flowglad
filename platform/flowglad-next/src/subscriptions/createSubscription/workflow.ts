@@ -41,6 +41,7 @@ import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMe
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { logger } from '@/utils/logger'
+import { calculateTrialEligibility } from '@/utils/checkoutHelpers'
 
 /**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
@@ -173,6 +174,39 @@ export const createSubscriptionWorkflow = async (
         transaction
       )
     }
+  }
+
+  // Check trial eligibility and override trialEnd if customer is not eligible
+  // This ensures consistency with the checkout flow behavior
+  let finalTrialEnd = params.trialEnd
+  const hasTrialPeriod =
+    params.trialEnd ||
+    (params.price.trialPeriodDays && params.price.trialPeriodDays > 0)
+
+  if (hasTrialPeriod) {
+    // Fetch customer to check trial eligibility
+    const customer = await selectCustomerById(
+      params.customer.id,
+      transaction
+    )
+
+    // Calculate trial eligibility (returns undefined for non-subscription prices)
+    const isEligibleForTrial = await calculateTrialEligibility(
+      params.price,
+      customer,
+      transaction
+    )
+
+    // If not eligible, remove trial period (similar to checkout flow setting trialPeriodDays to null)
+    if (isEligibleForTrial === false) {
+      finalTrialEnd = undefined
+    }
+  }
+
+  // Update params with the final trialEnd value
+  params = {
+    ...params,
+    trialEnd: finalTrialEnd,
   }
 
   await verifyCanCreateSubscription(params, transaction)
