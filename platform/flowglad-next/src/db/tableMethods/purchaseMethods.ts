@@ -6,7 +6,6 @@ import {
   Purchase,
   singlePaymentPurchaseSelectSchema,
   subscriptionPurchaseSelectSchema,
-  purchaseClientInsertSchema,
   purchasesTableRowDataSchema,
 } from '@/db/schema/purchases'
 import {
@@ -19,12 +18,7 @@ import {
   whereClauseFromObject,
   createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
-import {
-  CheckoutFlowType,
-  PriceType,
-  PurchaseStatus,
-  PaymentStatus,
-} from '@/types'
+import { CheckoutFlowType, PaymentStatus } from '@/types'
 import { DbTransaction } from '@/db/types'
 import { and, eq, inArray } from 'drizzle-orm'
 import {
@@ -38,22 +32,14 @@ import {
   customerClientInsertSchema,
   customers,
   customersSelectSchema,
-  Customer,
 } from '../schema/customers'
 import {
   organizations,
   organizationsSelectSchema,
 } from '../schema/organizations'
-import {
-  products,
-  productsSelectSchema,
-  Product,
-} from '../schema/products'
+import { products, productsSelectSchema } from '../schema/products'
 import { z } from 'zod'
-import {
-  checkoutSessionClientSelectSchema,
-  checkoutSessionsSelectSchema,
-} from '../schema/checkoutSessions'
+import { checkoutSessionClientSelectSchema } from '../schema/checkoutSessions'
 import { payments, paymentsSelectSchema } from '../schema/payments'
 import { discountClientSelectSchema } from '../schema/discounts'
 import { customerFacingFeeCalculationSelectSchema } from '../schema/feeCalculations'
@@ -193,6 +179,15 @@ const checkoutInfoCoreSchema = z.object({
    */
   readonlyCustomerEmail: z.string().email().nullish(),
   feeCalculation: customerFacingFeeCalculationSelectSchema.nullable(),
+  /**
+   * Whether the customer is eligible for a trial period.
+   * This only checks customer eligibility (whether they've used a trial before),
+   * not whether the price has a trial period (that's in price.trialPeriodDays).
+   * true = customer hasn't used a trial before (or anonymous customer)
+   * false = customer has used a trial before
+   * undefined = not applicable (not subscription/usage price)
+   */
+  isEligibleForTrial: z.boolean().optional(),
 })
 
 const subscriptionCheckoutInfoSchema = checkoutInfoCoreSchema.extend({
