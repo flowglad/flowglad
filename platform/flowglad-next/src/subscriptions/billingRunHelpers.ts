@@ -944,16 +944,16 @@ const dayInMilliseconds = 1000 * 60 * 60 * 24
 
 export const constructBillingRunRetryInsert = (
   billingRun: BillingRun.Record,
-  allBillingRunsAttempts: BillingRun.Record[]
+  allBillingRunAttempts: BillingRun.Record[]
 ): BillingRun.Insert | undefined => {
   /**
    * FIXME: mark the subscription as canceled (?)
    */
-  if (allBillingRunsAttempts.length >= retryTimesInDays.length + 1) {
+  if (allBillingRunAttempts.length >= retryTimesInDays.length + 1) {
     return undefined
   }
   const daysFromNowToRetry =
-    retryTimesInDays[allBillingRunsAttempts.length - 1]
+    retryTimesInDays[allBillingRunAttempts.length - 1]
 
   return {
     billingPeriodId: billingRun.billingPeriodId,
@@ -976,16 +976,25 @@ export const scheduleBillingRunRetry = async (
   billingRun: BillingRun.Record,
   transaction: DbTransaction
 ) => {
-  const allBillingRunsAttempts = await selectBillingRuns(
+  const allBillingRunsForPeriod = await selectBillingRuns(
     {
       billingPeriodId: billingRun.billingPeriodId,
-      stripePaymentIntentId: billingRun.stripePaymentIntentId!,
     },
     transaction
   )
+
+  const allBillingRunAttempts =
+    billingRun.lastPaymentIntentEventTimestamp
+      ? allBillingRunsForPeriod.filter(
+          (br) =>
+            br.lastPaymentIntentEventTimestamp ===
+            billingRun.lastPaymentIntentEventTimestamp
+        )
+      : [billingRun]
+
   const retryBillingRun = constructBillingRunRetryInsert(
     billingRun,
-    allBillingRunsAttempts
+    allBillingRunAttempts
   )
   if (!retryBillingRun) {
     return
