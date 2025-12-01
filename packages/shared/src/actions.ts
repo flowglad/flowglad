@@ -1,5 +1,5 @@
 import { z, ZodType } from 'zod'
-import { FlowgladActionKey, HTTPMethod } from './types'
+import { FlowgladActionKey, HTTPMethod } from './types/sdk'
 import { Flowglad } from '@flowglad/node'
 
 export type FlowgladActionValidatorMap = {
@@ -16,11 +16,24 @@ const createCoreCheckoutSessionSchema = z.object({
   outputName: z.string().optional(),
 })
 
-export const createProductCheckoutSessionSchema =
+const checkoutSessionWithPriceId =
   createCoreCheckoutSessionSchema.extend({
     priceId: z.string(),
+    priceSlug: z.never().optional(), // Explicitly disallow
     quantity: z.number().optional().default(1),
   })
+
+const checkoutSessionWithPriceSlug =
+  createCoreCheckoutSessionSchema.extend({
+    priceSlug: z.string(),
+    priceId: z.never().optional(), // Explicitly disallow
+    quantity: z.number().optional().default(1),
+  })
+
+export const createProductCheckoutSessionSchema = z.union([
+  checkoutSessionWithPriceId,
+  checkoutSessionWithPriceSlug,
+])
 
 export const createAddPaymentMethodCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
