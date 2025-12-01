@@ -1,4 +1,9 @@
 import { type Flowglad } from '@flowglad/node'
+
+// NOTE: some checkout types are duplicate of types in action.ts
+// currently a consumer that imports these types will get the ones from actions.ts
+// as those are named exports in index.ts
+// we may want to deduplicate these types in the future
 /**
  * Base fields shared by all product checkout session variants
  */

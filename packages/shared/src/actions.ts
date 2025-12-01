@@ -16,11 +16,24 @@ const createCoreCheckoutSessionSchema = z.object({
   outputName: z.string().optional(),
 })
 
-export const createProductCheckoutSessionSchema =
+const checkoutSessionWithPriceId =
   createCoreCheckoutSessionSchema.extend({
     priceId: z.string(),
+    priceSlug: z.never().optional(), // Explicitly disallow
     quantity: z.number().optional().default(1),
   })
+
+const checkoutSessionWithPriceSlug =
+  createCoreCheckoutSessionSchema.extend({
+    priceSlug: z.string(),
+    priceId: z.never().optional(), // Explicitly disallow
+    quantity: z.number().optional().default(1),
+  })
+
+export const createProductCheckoutSessionSchema = z.union([
+  checkoutSessionWithPriceId,
+  checkoutSessionWithPriceSlug,
+])
 
 export const createAddPaymentMethodCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
