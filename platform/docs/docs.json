@@ -24,7 +24,7 @@
     },
     "body": {
       "family": "SF Pro",
-      "source": "/fonts/sf-pro/SF-Pro.woff2",
+      "source": "/fonts/sf-pro/SF-Pro.ttf",
       "format": "woff2",
       "weight": 400
     }
