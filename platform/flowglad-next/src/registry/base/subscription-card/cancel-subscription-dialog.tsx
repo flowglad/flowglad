@@ -17,7 +17,6 @@ export function CancelSubscriptionDialog({
   isOpen,
   onOpenChange,
   subscriptionId,
-  subscriptionName,
   currentPeriodEnd,
   onConfirm,
   loading = false,
