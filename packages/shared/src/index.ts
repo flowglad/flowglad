@@ -5,7 +5,7 @@ export {
   type UsageMeterBalance,
   type SubscriptionExperimentalFields,
   type BillingWithChecks,
-} from './types'
+} from './sdk'
 
 export {
   createProductCheckoutSessionSchema,
@@ -35,3 +35,13 @@ export {
   constructGetProduct,
   constructGetPrice,
 } from './utils'
+
+export * from './paymentMethod'
+export * from './subscription'
+export * from './invoice'
+export * from './customer'
+export * from './payment'
+export * from './currency'
+export * from './catalog'
+export * from './usage'
+export * from './checkoutSession'
