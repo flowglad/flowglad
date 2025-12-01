@@ -194,6 +194,14 @@ function BillingPortalPage() {
     canceledAt = currentSubscription.canceledAt
     trialEnd = currentSubscription.trialEnd
   }
+
+  // Check if subscription is on the default plan
+  const isDefaultPlanSubscription = currentSubscription
+    ? currentSubscription.subscriptionItems.some((item) => {
+        const defaultProductId = data.pricingModel.defaultProduct?.id
+        return defaultProductId && item.price.productId === defaultProductId
+      })
+    : false
   return (
     <div className="min-h-screen bg-background">
       <BillingPortalHeader customer={data.customer} />
@@ -248,7 +256,11 @@ function BillingPortalPage() {
                       })
                     ),
                   }}
-                  onCancel={handleCancelSubscription}
+                  onCancel={
+                    isDefaultPlanSubscription
+                      ? undefined
+                      : handleCancelSubscription
+                  }
                   loading={cancelSubscriptionMutation.isPending}
                 />
               ) : (
