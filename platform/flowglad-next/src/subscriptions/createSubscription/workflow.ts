@@ -39,6 +39,7 @@ import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { logger } from '@/utils/logger'
 import { calculateTrialEligibility } from '@/utils/checkoutHelpers'
@@ -189,10 +190,12 @@ export const createSubscriptionWorkflow = async (
       params.customer.id,
       transaction
     )
+    // Fetch price record to check trial eligibility
+    const price = await selectPriceById(params.price.id, transaction)
 
     // Calculate trial eligibility (returns undefined for non-subscription prices)
     const isEligibleForTrial = await calculateTrialEligibility(
-      params.price,
+      price,
       customer,
       transaction
     )

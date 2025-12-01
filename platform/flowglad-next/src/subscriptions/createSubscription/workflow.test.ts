@@ -2287,7 +2287,9 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
     // First, create a subscription with a trial for this customer
     const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
-    await adminTransaction(async ({ transaction }) => {
+    const {
+      result: { subscription: firstSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
       const stripeSetupIntentId = `setupintent_first_trial_${core.nanoid()}`
       return createSubscriptionWorkflow(
         {
@@ -2304,6 +2306,19 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           stripeSetupIntentId,
           autoStart: true,
           trialEnd: firstTrialEnd,
+        },
+        transaction
+      )
+    })
+
+    // Cancel the first subscription before creating the second one
+    await adminTransaction(async ({ transaction }) => {
+      await updateSubscription(
+        {
+          id: firstSubscription.id,
+          status: SubscriptionStatus.Canceled,
+          canceledAt: Date.now(),
+          renews: firstSubscription.renews,
         },
         transaction
       )
@@ -2466,7 +2481,9 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
     // First, create a subscription with a trial (using explicit trialEnd)
     const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
-    await adminTransaction(async ({ transaction }) => {
+    const {
+      result: { subscription: firstSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
       const stripeSetupIntentId = `setupintent_first_${core.nanoid()}`
       return createSubscriptionWorkflow(
         {
@@ -2483,6 +2500,19 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
           stripeSetupIntentId,
           autoStart: true,
           trialEnd: firstTrialEnd,
+        },
+        transaction
+      )
+    })
+
+    // Cancel the first subscription before creating the second one
+    await adminTransaction(async ({ transaction }) => {
+      await updateSubscription(
+        {
+          id: firstSubscription.id,
+          status: SubscriptionStatus.Canceled,
+          canceledAt: Date.now(),
+          renews: firstSubscription.renews,
         },
         transaction
       )
@@ -2558,7 +2588,9 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
     })
 
     const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
-    await adminTransaction(async ({ transaction }) => {
+    const {
+      result: { subscription: firstSubscription },
+    } = await adminTransaction(async ({ transaction }) => {
       const stripeSetupIntentId = `setupintent_with_trial_${core.nanoid()}`
       return createSubscriptionWorkflow(
         {
@@ -2580,27 +2612,23 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
       )
     })
 
+    // Cancel the first subscription before creating the second one
+    await adminTransaction(async ({ transaction }) => {
+      await updateSubscription(
+        {
+          id: firstSubscription.id,
+          status: SubscriptionStatus.Canceled,
+          canceledAt: Date.now(),
+          renews: firstSubscription.renews,
+        },
+        transaction
+      )
+    })
+
     // Now create a non-renewing subscription with single payment price
     // This should work without checking trial eligibility
     // (since single payment prices don't have trials)
-    const defaultProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: product.pricingModelId,
-      name: 'Default Product',
-      default: true,
-      livemode: true,
-    })
-
-    const singlePayPriceForDefault = await setupPrice({
-      productId: defaultProduct.id,
-      name: 'Single Payment for Default',
-      type: PriceType.SinglePayment,
-      unitPrice: 1000,
-      livemode: true,
-      isDefault: false,
-      currency: CurrencyCode.USD,
-    })
-
+    // Use the existing product and single payment price that were already created
     const {
       result: { subscription: nonRenewingSubscription },
     } = await adminTransaction(async ({ transaction }) => {
@@ -2608,8 +2636,8 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
       return createSubscriptionWorkflow(
         {
           organization,
-          product: defaultProduct,
-          price: singlePayPriceForDefault,
+          product,
+          price: singlePaymentPrice,
           quantity: 1,
           livemode: true,
           startDate: new Date(),
