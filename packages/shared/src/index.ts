@@ -5,7 +5,7 @@ export {
   type UsageMeterBalance,
   type SubscriptionExperimentalFields,
   type BillingWithChecks,
-} from './sdk'
+} from './types/sdk'
 
 export {
   createProductCheckoutSessionSchema,
