@@ -150,8 +150,9 @@ const hasPremium = billing.checkFeatureAccess('premium_feature')
 
 // Record metered usage
 await flowglad(userId).createUsageEvent({
-  priceId: 'usage_price_id',
   amount: 1,
+  priceSlug: 'usage_price_slug',
+  subscriptionId: 'subscription_id',
   transactionId: 'idempotency-key',
 })
 ```
