@@ -182,52 +182,33 @@ Checkout sessions for specific prices can be made using either `priceSlug` (an i
 
 ```typescript
 type FrontendProductCreateCheckoutSessionParams = 
-  | {
-      priceId: string
-      priceSlug?: never
-      successUrl: string
-      cancelUrl: string
-      /**
-       * Whether to automatically redirect to the hosted checkout page after the session is created
-       */
-      autoRedirect?: boolean
-      quantity?: number
-      /**
-       * the metadata values to set on the object created by this checkout session
-       * - subscription.metadata for subscription prices
-       * - purchase.metadata for single payment prices
-       */ 
-      outputMetadata?: Record<string, any>
-      /**
-       * the name value to set on the object created by this checkout session
-       * - subscription.name for subscription prices
-       * - purchase.name for single payment prices
-       */ 
-      outputName?: string
-    }
-  | {
-      priceSlug: string
-      priceId?: never
-      successUrl: string
-      cancelUrl: string
-      /**
-       * Whether to automatically redirect to the hosted checkout page after the session is created
-       */
-      autoRedirect?: boolean
-      quantity?: number
-      /**
-       * the metadata values to set on the object created by this checkout session
-       * - subscription.metadata for subscription prices
-       * - purchase.metadata for single payment prices
-       */ 
-      outputMetadata?: Record<string, any>
-      /**
-       * the name value to set on the object created by this checkout session
-       * - subscription.name for subscription prices
-       * - purchase.name for single payment prices
-       */ 
-      outputName?: string
-    }
+  {
+    /**
+     * Must specify either priceSlug or priceId
+     * Slug is encouraged over Id
+     */
+    priceSlug?: string
+    priceId?: string
+    successUrl: string
+    cancelUrl: string
+    /**
+     * Whether to automatically redirect to the hosted checkout page after the session is created
+     */
+    autoRedirect?: boolean
+    quantity?: number
+    /**
+     * the metadata values to set on the object created by this checkout session
+     * - subscription.metadata for subscription prices
+     * - purchase.metadata for single payment prices
+     */
+    outputMetadata?: Record<string, any>
+    /**
+     * the name value to set on the object created by this checkout session
+     * - subscription.name for subscription prices
+     * - purchase.name for single payment prices
+     */
+    outputName?: string
+  }
 ```
 
 #### Example
@@ -239,10 +220,6 @@ const handleUpgrade = async () => {
     successUrl: `${window.location.origin}/billing/success`,
     cancelUrl: `${window.location.origin}/billing`,
     autoRedirect: true,
-    /**
-    * Optional. If not provided, defaults to 1
-    */
-    quantity?: number
   })
 }
 ```

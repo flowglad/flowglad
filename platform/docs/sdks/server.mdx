@@ -149,12 +149,12 @@ const subscription = await flowglad(userId).createSubscription({
 ```typescript
 type CreateSubscriptionParams {
   customerId: string
-  /*
-   * Must specify either priceId or priceSlug
+  /**
+   * Must specify either priceSlug or priceId
    * Slug is encouraged over Id
    */
-  priceId?: string
   priceSlug?: string
+  priceId?: string
   /**
    * Quantity of the subscription items.
    * @default 1
@@ -226,11 +226,11 @@ const checkoutSession = await flowglad(userId).createCheckoutSession({
 ```typescript
 type CreateProductCheckoutSessionParams {
   /*
-   * Must specify either priceId or priceSlug
+   * Must specify either priceSlug or priceId
    * Slug is encouraged over Id
    */
-  priceId?: string
   priceSlug?: string
+  priceId?: string
   successUrl: string
   cancelUrl: string
   quantity?: number
@@ -323,24 +323,19 @@ const usageEvent = await flowglad(userId).createUsageEvent({
 
 ```typescript
 type CreateUsageEventParams = 
-  | {
-      amount: number
-      priceId: string
-      priceSlug?: never
-      subscriptionId: string
-      transactionId: string
-      usageDate?: number
-      properties?: Record<string, unknown>
-    }
-  | {
-      amount: number
-      priceSlug: string
-      priceId?: never
-      subscriptionId: string
-      transactionId: string
-      usageDate?: number
-      properties?: Record<string, unknown>
-    }
+  {
+    amount: number
+    /**
+     * Must specify either priceSlug or priceId
+     * Slug is encouraged over Id
+     */
+    priceSlug?: string
+    priceId?: string
+    subscriptionId: string
+    transactionId: string
+    usageDate?: number
+    properties?: Record<string, unknown>
+  }
 ```
 
 ## Common Patterns
