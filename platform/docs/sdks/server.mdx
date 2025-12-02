@@ -137,7 +137,7 @@ Create a new subscription for the customer.
 ```typescript
 // Pass YOUR app's user/organization ID, not Flowglad's customer ID
 const subscription = await flowglad(userId).createSubscription({
-  priceId: 'price_123',
+  priceSlug: 'price_123',
   metadata: {
     source: 'upgrade_flow',
   },
@@ -147,14 +147,23 @@ const subscription = await flowglad(userId).createSubscription({
 **Parameters:**
 
 ```typescript
-interface CreateSubscriptionParams {
-  priceId: string
+type CreateSubscriptionParams {
+  customerId: string
+  /*
+   * Must specify either priceId or priceSlug
+   * Slug is encouraged over Id
+   */
+  priceId?: string
+  priceSlug?: string
   /**
    * Quantity of the subscription items.
    * @default 1
    */
   quantity?: number
   startDate?: string
+  /**
+   * Epoch time in milliseconds of when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays
+   */
   trialEnd?: number
   metadata?: Record<string, unknown>
   name?: string
@@ -182,7 +191,7 @@ const canceledSubscription = await flowglad(userId).cancelSubscription({
 **Parameters:**
 
 ```typescript
-interface CancelSubscriptionParams {
+type CancelSubscriptionParams = {
   id: string
   cancellation:
     | { timing: 'at_end_of_current_billing_period' }
@@ -215,7 +224,7 @@ const checkoutSession = await flowglad(userId).createCheckoutSession({
 **Parameters:**
 
 ```typescript
-interface CreateCheckoutSessionParams {
+type CreateProductCheckoutSessionParams {
   /*
    * Must specify either priceId or priceSlug
    * Slug is encouraged over Id
