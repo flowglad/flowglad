@@ -147,7 +147,7 @@ const subscription = await flowglad(userId).createSubscription({
 **Parameters:**
 
 ```typescript
-type CreateSubscriptionParams {
+type CreateSubscriptionParams = {
   customerId: string
   /**
    * Must specify either priceSlug or priceId
@@ -224,7 +224,7 @@ const checkoutSession = await flowglad(userId).createCheckoutSession({
 **Parameters:**
 
 ```typescript
-type CreateProductCheckoutSessionParams {
+type CreateProductCheckoutSessionParams = {
   /*
    * Must specify either priceSlug or priceId
    * Slug is encouraged over Id
