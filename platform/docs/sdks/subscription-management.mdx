@@ -14,7 +14,7 @@ Subscriptions are most commonly created as part of the standard checkout flow wi
 #### Free Trials
 You can create subscriptions with free trials with or without requiring a valid payment method up-front.
 
-If you prefer to start customers on free trials without asking for payment details, you can use flowgladServer's `createSubscription` method, passing in the `priceId` and other optional fields (see the create subscription API [body](/api-reference/subscriptions/create-subscription#body-customer-id) for more details on the parameters). 
+If you prefer to start customers on free trials without asking for payment details, you can use flowgladServer's `createSubscription` method, passing in the `priceSlug` and other optional fields (see the create subscription API [body](/api-reference/subscriptions/create-subscription#body-customer-id) for more details on the parameters). 
 
 <Note>
 You do not need to include `customerId` when calling `createSubscription` with the `flowgladServer`, as the server client is already bound to the requesting customer scope.
