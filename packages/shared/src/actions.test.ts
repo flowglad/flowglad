@@ -360,7 +360,29 @@ describe('createSubscriptionSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects missing priceId', () => {
+  it('accepts valid input with priceSlug instead of priceId', () => {
+    const input = {
+      customerId: 'cust_123',
+      priceSlug: 'my-price-slug',
+    }
+    const result = createSubscriptionSchema.safeParse(input)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.priceSlug).toBe('my-price-slug')
+    }
+  })
+
+  it('rejects input with both priceId and priceSlug', () => {
+    const input = {
+      customerId: 'cust_123',
+      priceId: 'price_456',
+      priceSlug: 'my-price-slug',
+    }
+    const result = createSubscriptionSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with neither priceId nor priceSlug', () => {
     const input = { customerId: 'cust_123' }
     const result = createSubscriptionSchema.safeParse(input)
     expect(result.success).toBe(false)
