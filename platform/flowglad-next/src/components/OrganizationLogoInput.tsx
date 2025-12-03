@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import type React from 'react'
 import FileInput from '@/components/FileInput'
 import { Label } from '@/components/ui/label'
 

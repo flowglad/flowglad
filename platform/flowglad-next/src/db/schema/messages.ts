@@ -1,19 +1,19 @@
+import { jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import * as R from 'ramda'
+import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import {
-  newBaseZodSelectSchemaColumns,
   constructIndex,
   constructUniqueIndex,
-  tableBase,
-  nullableStringForeignKey,
-  livemodePolicy,
-  SelectConditions,
   hiddenColumnsForClientSchema,
+  livemodePolicy,
+  newBaseZodSelectSchemaColumns,
+  nullableStringForeignKey,
+  type SelectConditions,
+  tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import core from '@/utils/core'
-import { z } from 'zod'
-import { pgTable, text, timestamp, jsonb } from 'drizzle-orm/pg-core'
 import { customers } from './customers'
 import { memberships } from './memberships'
 

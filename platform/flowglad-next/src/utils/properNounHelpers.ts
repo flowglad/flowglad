@@ -1,13 +1,13 @@
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { Discount } from '@/db/schema/discounts'
-import { File } from '@/db/schema/files'
-import { ProperNoun } from '@/db/schema/properNouns'
-import { Customer } from '@/db/schema/customers'
+import type { Customer } from '@/db/schema/customers'
+import type { Discount } from '@/db/schema/discounts'
+import type { File } from '@/db/schema/files'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { ProperNoun } from '@/db/schema/properNouns'
 import {
   Nouns,
-  SupabaseInsertPayload,
-  SupabaseUpdatePayload,
+  type SupabaseInsertPayload,
+  type SupabaseUpdatePayload,
 } from '@/types'
 
 interface CreateProperNounUpsertParams<T> {

@@ -1,17 +1,17 @@
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { dummyOrganization } from '@/stubs/organizationStubs'
+import { subscriptionDummyPrice } from '@/stubs/priceStubs'
+import { dummyProduct } from '@/stubs/productStubs'
 import {
   subscriptionWithoutTrialDummyPurchase,
   subscriptionWithTrialDummyPurchase,
 } from '@/stubs/purchaseStubs'
-import { dummyProduct } from '@/stubs/productStubs'
-import { dummyOrganization } from '@/stubs/organizationStubs'
-import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import {
   CheckoutFlowType,
   CheckoutSessionStatus,
   CheckoutSessionType,
 } from '@/types'
-import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 const checkoutSession: CheckoutSession.Record = {
   id: '1',

@@ -1,6 +1,6 @@
+import type { CurrencyCode } from '@flowglad/shared'
+import { type ClassValue, clsx } from 'clsx'
 import { format } from 'date-fns'
-import { CurrencyCode } from '@flowglad/shared'
-import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]) {

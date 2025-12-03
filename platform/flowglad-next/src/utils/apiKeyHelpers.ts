@@ -1,20 +1,20 @@
-import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
-import { FlowgladApiKeyType } from '@/types'
-import { AuthenticatedTransactionParams } from '@/db/types'
-import {
-  createSecretApiKey,
-  replaceSecretApiKey,
-} from '@/utils/unkey'
+import type {
+  CreateApiKeyInput,
+  RotateApiKeyInput,
+} from '@/db/schema/apiKeys'
 import {
   insertApiKey,
   selectApiKeyById,
   updateApiKey,
 } from '@/db/tableMethods/apiKeyMethods'
-import {
-  CreateApiKeyInput,
-  RotateApiKeyInput,
-} from '@/db/schema/apiKeys'
+import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import type { AuthenticatedTransactionParams } from '@/db/types'
+import { FlowgladApiKeyType } from '@/types'
+import {
+  createSecretApiKey,
+  replaceSecretApiKey,
+} from '@/utils/unkey'
 import { deleteApiKeyVerificationResult } from './redis'
 
 export const createSecretApiKeyTransaction = async (

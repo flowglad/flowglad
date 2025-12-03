@@ -1,18 +1,24 @@
 'use client'
 
-import * as React from 'react'
 import {
-  ColumnFiltersState,
-  ColumnSizingState,
-  SortingState,
-  VisibilityState,
+  type ColumnFiltersState,
+  type ColumnSizingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from '@tanstack/react-table'
+import { Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import * as React from 'react'
+import { trpc } from '@/app/_trpc/client'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { Button } from '@/components/ui/button'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import {
   Table,
   TableBody,
@@ -21,13 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { columns, FeatureRow } from './columns'
-import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { trpc } from '@/app/_trpc/client'
-import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { columns, type FeatureRow } from './columns'
 
 export interface FeaturesTableFilters {
   pricingModelId?: string
@@ -194,7 +194,9 @@ export function FeaturesDataTable({
           ) : table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => {
               const navigateToFeature = () => {
-                router.push(`/store/features/${row.original.feature.id}`)
+                router.push(
+                  `/store/features/${row.original.feature.id}`
+                )
               }
               return (
                 <TableRow

@@ -3,19 +3,19 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/updateUnkeyKeyTypes.ts
 */
 
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
-import { core } from '@/utils/core'
 import { Unkey } from '@unkey/api'
-import { FlowgladApiKeyType } from '@/types'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { secretApiKeyMetadataSchema } from '@/db/schema/apiKeys'
+import { FlowgladApiKeyType } from '@/types'
+import { core } from '@/utils/core'
+import runScript from './scriptRunner'
 
 async function updateUnkeyKeyTypes(db: PostgresJsDatabase) {
   const unkey = new Unkey({
     rootKey: core.envVariable('UNKEY_ROOT_KEY'),
   })
 
-  let cursor: string | undefined = undefined
+  let cursor: string | undefined
   let listKeys: any[] = []
 
   while (true) {

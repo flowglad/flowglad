@@ -1,6 +1,7 @@
 export const runtime = 'nodejs'
-import { NextRequest, NextResponse } from 'next/server'
+
 import crypto from 'crypto'
+import { type NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 

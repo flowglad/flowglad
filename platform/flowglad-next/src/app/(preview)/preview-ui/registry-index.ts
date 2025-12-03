@@ -1,9 +1,9 @@
 'use client'
 
-import { PricingTable } from '@/registry/base/pricing/pricing-table'
-import type { PricingProductGroup } from '@/registry/base/pricing/types'
 import { CustomerSelector } from '@/registry/base/customer-selector/customer-selector'
 import type { CustomerProfile } from '@/registry/base/customer-selector/types'
+import { PricingTable } from '@/registry/base/pricing/pricing-table'
+import type { PricingProductGroup } from '@/registry/base/pricing/types'
 
 const personalProductGroup: PricingProductGroup = {
   name: 'Personal',

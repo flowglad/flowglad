@@ -4,15 +4,15 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/upgradeUnkeyApiKeysToSchema.ts
 */
 
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
-import { unkey } from '@/utils/unkey'
-import { core } from '@/utils/core'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import {
   billingPortalApiKeyMetadataSchema,
   secretApiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'
 import { FlowgladApiKeyType } from '@/types'
+import { core } from '@/utils/core'
+import { unkey } from '@/utils/unkey'
+import runScript from './scriptRunner'
 
 async function upgradeUnkeyApiKeysToSchema(db: PostgresJsDatabase) {
   let allKeys: {
@@ -21,7 +21,7 @@ async function upgradeUnkeyApiKeysToSchema(db: PostgresJsDatabase) {
       [key: string]: unknown
     }
   }[] = []
-  let cursor = undefined
+  let cursor
   do {
     const response = await unkey().apis.listKeys({
       apiId: core.envVariable('UNKEY_API_ID'),

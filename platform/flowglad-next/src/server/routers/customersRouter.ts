@@ -1,58 +1,58 @@
-import { router } from '../trpc'
-import { protectedProcedure } from '@/server/trpc'
-import { errorHandlers } from '../trpcErrorHandler'
+import { TRPCError } from '@trpc/server'
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import { z } from 'zod'
 import {
-  selectCustomerById,
-  selectCustomers,
-  selectCustomersPaginated,
-  updateCustomer as updateCustomerDb,
-  selectCustomersCursorPaginatedWithTableRowData,
-  selectCustomerByExternalIdAndOrganizationId,
-} from '@/db/tableMethods/customerMethods'
-import {
-  customerClientSelectSchema,
-  editCustomerOutputSchema,
-  editCustomerInputSchema,
-  customersPaginatedSelectSchema,
-  customersPaginatedListSchema,
-  customersPaginatedTableRowOutputSchema,
-  customersPaginatedTableRowInputSchema,
   Customer,
+  customerClientSelectSchema,
+  customersPaginatedListSchema,
+  customersPaginatedSelectSchema,
+  customersPaginatedTableRowInputSchema,
+  customersPaginatedTableRowOutputSchema,
+  editCustomerInputSchema,
+  editCustomerOutputSchema,
 } from '@/db/schema/customers'
-import { TRPCError } from '@trpc/server'
-import { createCustomerBookkeeping } from '@/utils/bookkeeping'
-import { revalidatePath } from 'next/cache'
-import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
+import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
+import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
+import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import {
-  CreateCustomerOutputSchema,
+  type CreateCustomerOutputSchema,
   createCustomerOutputSchema,
   purchaseClientSelectSchema,
 } from '@/db/schema/purchases'
 import {
-  createGetOpenApiMeta,
-  generateOpenApiMetas,
-  trpcToRest,
-  RouteConfig,
-} from '@/utils/openapi'
-import { externalIdInputSchema } from '@/db/tableUtils'
-import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
-import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
-import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
-import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
-import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
-import { organizationBillingPortalURL } from '@/utils/core'
-import { createCustomersCsv } from '@/utils/csv-export'
+  selectCustomerByExternalIdAndOrganizationId,
+  selectCustomerById,
+  selectCustomers,
+  selectCustomersCursorPaginatedWithTableRowData,
+  selectCustomersPaginated,
+  updateCustomer as updateCustomerDb,
+} from '@/db/tableMethods/customerMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
+import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
+import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
+import { externalIdInputSchema } from '@/db/tableUtils'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { protectedProcedure } from '@/server/trpc'
+import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { generateCsvExportTask } from '@/trigger/exports/generate-csv-export'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import { createCustomerBookkeeping } from '@/utils/bookkeeping'
+import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import { organizationBillingPortalURL } from '@/utils/core'
+import { createCustomersCsv } from '@/utils/csv-export'
+import {
+  createGetOpenApiMeta,
+  generateOpenApiMetas,
+  type RouteConfig,
+  trpcToRest,
+} from '@/utils/openapi'
+import { router } from '../trpc'
+import { errorHandlers } from '../trpcErrorHandler'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'customer',
@@ -66,7 +66,7 @@ export const customerBillingRouteConfig: Record<string, RouteConfig> =
   {
     'GET /customers/:externalId/billing': {
       procedure: 'customers.getBilling',
-      pattern: new RegExp(`^customers\/([^\\/]+)\/billing$`),
+      pattern: /^customers\/([^\\/]+)\/billing$/,
       mapParams: (matches) => {
         return {
           externalId: matches[0],

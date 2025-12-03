@@ -1,15 +1,15 @@
 'use client'
-import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
+import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSessionCookieEffect'
 import CheckoutForm from '@/components/CheckoutForm'
-import CheckoutPageProvider from '@/contexts/checkoutPageContext'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import CheckoutPageProvider from '@/contexts/checkoutPageContext'
+import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
 import { cn } from '@/lib/utils'
-import { useSetCheckoutSessionCookieEffect } from '@/app/hooks/useSetCheckoutSessionCookieEffect'
 
 interface CheckoutModalProps {
   isOpen: boolean

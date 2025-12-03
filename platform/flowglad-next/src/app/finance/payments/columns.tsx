@@ -1,19 +1,19 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
-import { Badge } from '@/components/ui/badge'
+import type { ColumnDef } from '@tanstack/react-table'
 import { sentenceCase } from 'change-case'
-import { Check, Hourglass, X, RotateCcw, Rewind } from 'lucide-react'
-import { formatDate } from '@/utils/core'
-import {
-  EnhancedDataTableActionsMenu,
-  ActionMenuItem,
-} from '@/components/ui/enhanced-data-table-actions-menu'
+import { Check, Hourglass, Rewind, RotateCcw, X } from 'lucide-react'
+import * as React from 'react'
+import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
-import { Payment } from '@/db/schema/payments'
+import {
+  type ActionMenuItem,
+  EnhancedDataTableActionsMenu,
+} from '@/components/ui/enhanced-data-table-actions-menu'
+import type { Payment } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
+import { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import RefundPaymentModal from './RefundPaymentModal'
 import RetryPaymentModal from './RetryPaymentModal'

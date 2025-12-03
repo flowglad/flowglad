@@ -1,19 +1,19 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { ChartColumnIncreasing, RotateCw } from 'lucide-react'
+import * as React from 'react'
+import PricingCellView from '@/components/PricingCellView'
+import StatusBadge from '@/components/StatusBadge'
 // UI components last
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 // Other imports
-import { Price } from '@/db/schema/prices'
-import { Product } from '@/db/schema/products'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import { PriceType } from '@/types'
 import core from '@/utils/core'
-import StatusBadge from '@/components/StatusBadge'
-import PricingCellView from '@/components/PricingCellView'
 
 export type PriceTableRowData = {
   price: Price.ClientRecord

@@ -1,24 +1,24 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  databaseAuthenticationInfoForWebappRequest,
-  dbAuthInfoForSecretApiKeyResult,
-  dbAuthInfoForBillingPortalApiKeyResult,
-  databaseAuthenticationInfoForApiKeyResult,
-  getDatabaseAuthenticationInfo,
-  dbInfoForCustomerBillingPortal,
-} from '@/db/databaseAuthentication'
-import { adminTransaction } from '@/db/adminTransaction'
+import type { User as BetterAuthUser } from 'better-auth'
+import { eq } from 'drizzle-orm'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { eq } from 'drizzle-orm'
-import { users, type User } from '@/db/schema/users'
-import { memberships, type Membership } from '@/db/schema/memberships'
-import { type Organization } from '@/db/schema/organizations'
-import { customers, type Customer } from '@/db/schema/customers'
-import type { User as BetterAuthUser } from 'better-auth'
+import { adminTransaction } from '@/db/adminTransaction'
+import {
+  databaseAuthenticationInfoForApiKeyResult,
+  databaseAuthenticationInfoForWebappRequest,
+  dbAuthInfoForBillingPortalApiKeyResult,
+  dbAuthInfoForSecretApiKeyResult,
+  dbInfoForCustomerBillingPortal,
+  getDatabaseAuthenticationInfo,
+} from '@/db/databaseAuthentication'
+import { type Customer, customers } from '@/db/schema/customers'
+import { type Membership, memberships } from '@/db/schema/memberships'
+import type { Organization } from '@/db/schema/organizations'
+import { type User, users } from '@/db/schema/users'
 import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
 

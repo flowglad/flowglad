@@ -1,9 +1,9 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import { sendInvoiceReminderSchema } from '@/db/schema/invoiceLineItems'
 import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
 import SendReminderEmailFormFields from '@/components/forms/SendReminderEmailFormFields'
+import { sendInvoiceReminderSchema } from '@/db/schema/invoiceLineItems'
 
 interface SendInvoiceReminderEmailModalProps {
   isOpen: boolean

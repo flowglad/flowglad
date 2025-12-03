@@ -3,12 +3,7 @@
   "theme": "mint",
   "name": "Flowglad Docs",
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "mcp",
-      "cursor"
-    ]
+    "options": ["copy", "view", "mcp", "cursor"]
   },
   "colors": {
     "primary": "#DD7D29",
@@ -31,7 +26,7 @@
   },
   "integrations": {
     "posthog": {
-        "apiKey": "phc_NDDBDoAw8gMHPIhSfAvlBF6TdnRP2uqSAQ0eBSNXAKk"
+      "apiKey": "phc_NDDBDoAw8gMHPIhSfAvlBF6TdnRP2uqSAQ0eBSNXAKk"
     }
   },
   "favicon": "/favicon.svg",
@@ -64,11 +59,7 @@
           },
           {
             "group": "Concepts",
-            "pages": [
-              "principles",
-              "data-model",
-              "countries"
-            ]
+            "pages": ["principles", "data-model", "countries"]
           }
         ]
       },
@@ -99,9 +90,7 @@
           },
           {
             "group": "Additional Resources",
-            "pages": [
-              "sdks/examples"
-            ]
+            "pages": ["sdks/examples"]
           }
         ]
       },
@@ -114,9 +103,7 @@
         "groups": [
           {
             "group": "API Documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
+            "pages": ["api-reference/introduction"]
           }
         ]
       }

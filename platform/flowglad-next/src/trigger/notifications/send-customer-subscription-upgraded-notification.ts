@@ -1,19 +1,19 @@
-import core from '@/utils/core'
 import { logger, task } from '@trigger.dev/sdk'
+import { kebabCase } from 'change-case'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionUpgradedEmail } from '@/email-templates/customer-subscription-upgraded'
 import { SubscriptionStatus } from '@/types'
-import { safeSend } from '@/utils/email'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
-import { kebabCase } from 'change-case'
+import core from '@/utils/core'
+import { safeSend } from '@/utils/email'
 
 const sendCustomerSubscriptionUpgradedNotificationTask = task({
   id: 'send-customer-subscription-upgraded-notification',

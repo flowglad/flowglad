@@ -1,16 +1,16 @@
-import { FeatureType } from '@/types'
-import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
-import yaml from 'json-to-pretty-yaml'
-import { generateObject, generateText, streamText } from 'ai'
-import { fetchMarkdownFromDocs } from '@/utils/textContent'
-import { z } from 'zod'
 import { openai } from '@ai-sdk/openai'
-import {
-  queryMultipleTurbopuffer,
-  getTurbopufferClient,
-  getOpenAIClient,
-} from '@/utils/turbopuffer'
+import { generateObject, generateText, streamText } from 'ai'
+import yaml from 'json-to-pretty-yaml'
+import { z } from 'zod'
+import { FeatureType } from '@/types'
 import { logger } from '@/utils/logger'
+import type { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
+import { fetchMarkdownFromDocs } from '@/utils/textContent'
+import {
+  getOpenAIClient,
+  getTurbopufferClient,
+  queryMultipleTurbopuffer,
+} from '@/utils/turbopuffer'
 
 /**
  * Markdown files are imported dynamically to avoid parse-time errors when

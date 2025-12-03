@@ -1,16 +1,16 @@
-import core, { isNil } from '@/utils/core'
 import { logger, task } from '@trigger.dev/sdk'
-import { Subscription } from '@/db/schema/subscriptions'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { OrganizationSubscriptionCreatedNotificationEmail } from '@/email-templates/organization-subscription-notifications'
-import { safeSend } from '@/utils/email'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { OrganizationSubscriptionCreatedNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
+import core, { isNil } from '@/utils/core'
+import { safeSend } from '@/utils/email'
 
 const sendOrganizationSubscriptionCreatedNotificationTask = task({
   id: 'send-organization-subscription-created-notification',

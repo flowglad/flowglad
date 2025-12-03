@@ -1,4 +1,4 @@
-import { protectedProcedure } from '@/server/trpc'
+import { TRPCError } from '@trpc/server'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   editCustomerInputSchema,
@@ -8,7 +8,7 @@ import {
   selectCustomerByExternalIdAndOrganizationId,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
-import { TRPCError } from '@trpc/server'
+import { protectedProcedure } from '@/server/trpc'
 
 export const editCustomer = protectedProcedure
   .input(editCustomerInputSchema)

@@ -2,16 +2,16 @@
 
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { trpc } from '@/app/_trpc/client'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Feature, editFeatureSchema } from '@/db/schema/features'
-import { trpc } from '@/app/_trpc/client'
+import { editFeatureSchema, Feature } from '@/db/schema/features'
 
 interface ToggleFeatureModalProps {
   isOpen: boolean
@@ -74,8 +74,8 @@ const ToggleFeatureModal: React.FC<ToggleFeatureModalProps> = ({
   const modalText = feature.active ? (
     <div className="text-muted-foreground flex flex-col gap-4">
       <p>
-        Deactivating will prevent new subscriptions from including this
-        feature.
+        Deactivating will prevent new subscriptions from including
+        this feature.
       </p>
       <p>
         Existing customers will retain access to this feature on their
@@ -85,7 +85,8 @@ const ToggleFeatureModal: React.FC<ToggleFeatureModalProps> = ({
   ) : (
     <div className="text-muted-foreground flex flex-col gap-4">
       <p>
-        Activating will allow new subscriptions to include this feature.
+        Activating will allow new subscriptions to include this
+        feature.
       </p>
       <p>Are you sure you want to activate this feature?</p>
     </div>
@@ -103,7 +104,9 @@ const ToggleFeatureModal: React.FC<ToggleFeatureModalProps> = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {feature.active ? 'Deactivate feature' : 'Activate feature'}
+            {feature.active
+              ? 'Deactivate feature'
+              : 'Activate feature'}
           </DialogTitle>
         </DialogHeader>
         {modalText}
@@ -123,7 +126,9 @@ const ToggleFeatureModal: React.FC<ToggleFeatureModalProps> = ({
               onClick={handleToggleActive}
               disabled={updateFeature.isPending}
             >
-              {feature.active ? 'Deactivate feature' : 'Activate feature'}
+              {feature.active
+                ? 'Deactivate feature'
+                : 'Activate feature'}
             </Button>
           </div>
         </DialogFooter>
@@ -133,4 +138,3 @@ const ToggleFeatureModal: React.FC<ToggleFeatureModalProps> = ({
 }
 
 export default ToggleFeatureModal
-

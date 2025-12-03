@@ -1,10 +1,10 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { SupabaseInsertPayload } from '@/types'
-import { supabaseInsertPayloadSchema } from '@/db/supabase'
 import {
-  Customer,
+  type Customer,
   customersSelectSchema,
 } from '@/db/schema/customers'
+import { supabaseInsertPayloadSchema } from '@/db/supabase'
+import type { SupabaseInsertPayload } from '@/types'
 
 const customerInsertPayloadSchema = supabaseInsertPayloadSchema(
   customersSelectSchema

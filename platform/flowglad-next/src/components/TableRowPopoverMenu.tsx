@@ -1,11 +1,11 @@
 import { MoreVertical } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
-import PopoverMenu, { PopoverMenuProps } from './PopoverMenu'
+import PopoverMenu, { type PopoverMenuProps } from './PopoverMenu'
 
 export type TableRowPopoverMenuProps = PopoverMenuProps
 

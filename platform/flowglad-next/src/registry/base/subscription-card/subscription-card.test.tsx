@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import { SubscriptionCard } from './subscription-card'
 import type { Subscription } from './types'
 
@@ -31,7 +31,6 @@ describe('SubscriptionCard - Cancellation Button Conditional Logic', () => {
 
   describe('Non-default plan subscription - button should be shown', () => {
     it('should render cancellation button when onCancel is provided', () => {
-
       render(
         <SubscriptionCard
           subscription={baseSubscription}

@@ -1,27 +1,27 @@
+import { and, desc, eq, lt } from 'drizzle-orm'
+import { z } from 'zod'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  createCursorPaginatedSelectFunction,
-  ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import {
-  ApiKey,
+  type ApiKey,
   apiKeys,
   apiKeysClientSelectSchema,
   apiKeysInsertSchema,
   apiKeysSelectSchema,
   apiKeysUpdateSchema,
 } from '@/db/schema/apiKeys'
-import { eq, desc, and, lt } from 'drizzle-orm'
-import { DbTransaction } from '@/db/types'
-import { organizations } from '../schema/organizations'
+import {
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
-import { z } from 'zod'
-import { selectOrganizations } from './organizationMethods'
+import { organizations } from '../schema/organizations'
 import { zodEpochMs } from '../timestampMs'
+import { selectOrganizations } from './organizationMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof apiKeys,

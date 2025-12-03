@@ -1,22 +1,22 @@
+import { eq } from 'drizzle-orm'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createPaginatedSelectFunction,
-  createBulkInsertOrDoNothingFunction,
-  onConflictDoUpdateSetValues,
-} from '@/db/tableUtils'
-import {
-  PaymentMethod,
+  type PaymentMethod,
   paymentMethods,
   paymentMethodsInsertSchema,
   paymentMethodsSelectSchema,
   paymentMethodsUpdateSchema,
 } from '@/db/schema/paymentMethods'
-import { DbTransaction } from '../types'
-import { eq } from 'drizzle-orm'
+import {
+  createBulkInsertOrDoNothingFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  onConflictDoUpdateSetValues,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
   typeof paymentMethods,

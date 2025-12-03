@@ -1,21 +1,21 @@
-import * as R from 'ramda'
-import { z } from 'zod'
-import type { BuildRefine, NoUnknownKeys } from 'drizzle-zod'
-import {
-  createSelectSchema,
-  createInsertSchema,
-  createUpdateSchema,
-} from 'drizzle-zod'
 import { pascalCase } from 'change-case'
-import { TIMESTAMPTZ_MS, zodEpochMs } from './timestampMs'
 import { getTableColumns } from 'drizzle-orm'
 import type { PgTable } from 'drizzle-orm/pg-core'
-import type { PgTableWithId } from './types'
+import type { BuildRefine, NoUnknownKeys } from 'drizzle-zod'
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
 import {
   clientWriteOmitsConstructor,
   hiddenColumnsForClientSchema,
   ommittedColumnsForInsertSchema,
 } from './tableUtils'
+import { type TIMESTAMPTZ_MS, zodEpochMs } from './timestampMs'
+import type { PgTableWithId } from './types'
 
 // ---------- type helpers ----------
 type TableColumns<T extends PgTable> = T['_']['columns']
@@ -163,10 +163,12 @@ type OverrideWithRefineKeepOptional<Base, BR> =
 
 type ObjShape<TObj> =
   TObj extends z.ZodObject<infer S, infer _C> ? S : never
-type WithShape<TObj, NewShape extends z.ZodRawShape> =
-  TObj extends z.ZodObject<infer _S, infer C>
-    ? z.ZodObject<NewShape, C>
-    : never
+type WithShape<
+  TObj,
+  NewShape extends z.ZodRawShape,
+> = TObj extends z.ZodObject<infer _S, infer C>
+  ? z.ZodObject<NewShape, C>
+  : never
 type OverrideShapeWithRefine<Base, BR> = BR extends RefineRecord
   ? Omit<Base, KeysToOverride<Base, BR>> & {
       [K in KeysToOverride<Base, BR>]: BR[K] extends z.ZodTypeAny
@@ -301,7 +303,6 @@ export const buildClientSchemas = <
     | 'livemode'
     | 'organizationId'
   >
-  // @ts-ignore - potentially deep type
   let clientInsert = clientInsertBuilt as unknown as WithShape<
     TInsertRaw,
     ClientInsertShape
@@ -377,7 +378,6 @@ export const buildClientSchemas = <
     | 'livemode'
     | 'organizationId'
   >
-  // @ts-ignore - potentially deep type
   let clientUpdate = clientUpdateBuilt as unknown as WithShape<
     TUpdateRaw,
     ClientUpdateShape

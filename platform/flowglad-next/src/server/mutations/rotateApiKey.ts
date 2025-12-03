@@ -1,15 +1,15 @@
-import { protectedProcedure } from '@/server/trpc'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { rotateApiKeySchema } from '@/db/schema/apiKeys'
-import { decrypt } from '@/utils/encryption'
 import {
-  updateApiKey,
-  selectApiKeyById,
   insertApiKey,
+  selectApiKeyById,
+  updateApiKey,
 } from '@/db/tableMethods/apiKeyMethods'
-import { deleteApiKey, replaceSecretApiKey } from '@/utils/unkey'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { protectedProcedure } from '@/server/trpc'
 import { rotateSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
+import { decrypt } from '@/utils/encryption'
+import { deleteApiKey, replaceSecretApiKey } from '@/utils/unkey'
 
 export const rotateApiKeyProcedure = protectedProcedure
   .input(rotateApiKeySchema)

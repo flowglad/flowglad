@@ -1,8 +1,8 @@
-import { protectedProcedure } from '../trpc'
+import { revalidatePath } from 'next/cache'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { createPurchaseFormSchema } from '@/db/schema/purchases'
 import { createOpenPurchase } from '@/utils/bookkeeping'
-import { revalidatePath } from 'next/cache'
+import { protectedProcedure } from '../trpc'
 
 export const createPurchase = protectedProcedure
   .input(createPurchaseFormSchema)

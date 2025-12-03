@@ -1,21 +1,21 @@
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Purchase } from '@/db/schema/purchases'
+import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
 import {
-  PriceType,
   CheckoutSessionStatus,
   CheckoutSessionType,
+  PriceType,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
-import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
-import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { createInitialInvoiceForPurchase } from '@/utils/bookkeeping'
+import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import { isNil } from '../core'
 import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { Purchase } from '@/db/schema/purchases'
-import { Invoice } from '@/db/schema/invoices'
 
 export const processNonPaymentCheckoutSession = async (
   checkoutSession: CheckoutSession.Record,

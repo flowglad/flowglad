@@ -85,23 +85,17 @@
         "Countries_externalId_unique": {
           "name": "Countries_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         },
         "Countries_name_unique": {
           "name": "Countries_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         },
         "Countries_code_unique": {
           "name": "Countries_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       }
     },
@@ -339,12 +333,8 @@
           "name": "CustomerProfiles_CustomerId_Customers_id_fk",
           "tableFrom": "CustomerProfiles",
           "tableTo": "Customers",
-          "columnsFrom": [
-            "CustomerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["CustomerId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -352,12 +342,8 @@
           "name": "CustomerProfiles_OrganizationId_Organizations_id_fk",
           "tableFrom": "CustomerProfiles",
           "tableTo": "Organizations",
-          "columnsFrom": [
-            "OrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -367,9 +353,7 @@
         "CustomerProfiles_externalId_unique": {
           "name": "CustomerProfiles_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -465,12 +449,8 @@
           "name": "Customers_UserId_Users_id_fk",
           "tableFrom": "Customers",
           "tableTo": "Users",
-          "columnsFrom": [
-            "UserId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["UserId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -480,16 +460,12 @@
         "Customers_externalId_unique": {
           "name": "Customers_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         },
         "Customers_email_unique": {
           "name": "Customers_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       }
     },
@@ -565,12 +541,8 @@
           "name": "Flows_OrganizationId_Organizations_id_fk",
           "tableFrom": "Flows",
           "tableTo": "Organizations",
-          "columnsFrom": [
-            "OrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -580,9 +552,7 @@
         "Flows_externalId_unique": {
           "name": "Flows_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -698,12 +668,8 @@
           "name": "FormFields_FormId_Forms_id_fk",
           "tableFrom": "FormFields",
           "tableTo": "Forms",
-          "columnsFrom": [
-            "FormId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["FormId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -713,9 +679,7 @@
         "FormFields_externalId_unique": {
           "name": "FormFields_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -784,12 +748,8 @@
           "name": "Forms_OrganizationId_Organizations_id_fk",
           "tableFrom": "Forms",
           "tableTo": "Organizations",
-          "columnsFrom": [
-            "OrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -799,9 +759,7 @@
         "Forms_externalId_unique": {
           "name": "Forms_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -891,12 +849,8 @@
           "name": "FormSubmissions_FormId_Forms_id_fk",
           "tableFrom": "FormSubmissions",
           "tableTo": "Forms",
-          "columnsFrom": [
-            "FormId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["FormId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -904,12 +858,8 @@
           "name": "FormSubmissions_UserId_Users_id_fk",
           "tableFrom": "FormSubmissions",
           "tableTo": "Users",
-          "columnsFrom": [
-            "UserId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["UserId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -919,9 +869,7 @@
         "FormSubmissions_externalId_unique": {
           "name": "FormSubmissions_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -1097,12 +1045,8 @@
           "name": "Integrations_UserId_Users_id_fk",
           "tableFrom": "Integrations",
           "tableTo": "Users",
-          "columnsFrom": [
-            "UserId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["UserId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1110,12 +1054,8 @@
           "name": "Integrations_OrganizationId_Organizations_id_fk",
           "tableFrom": "Integrations",
           "tableTo": "Organizations",
-          "columnsFrom": [
-            "OrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1125,9 +1065,7 @@
         "Integrations_externalId_unique": {
           "name": "Integrations_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -1235,12 +1173,8 @@
           "name": "IntegrationSessions_IntegrationId_Integrations_id_fk",
           "tableFrom": "IntegrationSessions",
           "tableTo": "Integrations",
-          "columnsFrom": [
-            "IntegrationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["IntegrationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1250,9 +1184,7 @@
         "IntegrationSessions_externalId_unique": {
           "name": "IntegrationSessions_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -1354,12 +1286,8 @@
           "name": "InvoiceLineItems_InvoiceId_Invoices_id_fk",
           "tableFrom": "InvoiceLineItems",
           "tableTo": "Invoices",
-          "columnsFrom": [
-            "InvoiceId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["InvoiceId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1367,12 +1295,8 @@
           "name": "InvoiceLineItems_VariantId_Variants_id_fk",
           "tableFrom": "InvoiceLineItems",
           "tableTo": "Variants",
-          "columnsFrom": [
-            "VariantId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["VariantId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1382,9 +1306,7 @@
         "InvoiceLineItems_externalId_unique": {
           "name": "InvoiceLineItems_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -1640,12 +1562,8 @@
           "name": "Invoices_ProjectId_Projects_id_fk",
           "tableFrom": "Invoices",
           "tableTo": "Projects",
-          "columnsFrom": [
-            "ProjectId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ProjectId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1653,12 +1571,8 @@
           "name": "Invoices_CustomerProfileId_CustomerProfiles_id_fk",
           "tableFrom": "Invoices",
           "tableTo": "CustomerProfiles",
-          "columnsFrom": [
-            "CustomerProfileId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["CustomerProfileId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1668,16 +1582,12 @@
         "Invoices_externalId_unique": {
           "name": "Invoices_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         },
         "Invoices_invoiceNumber_unique": {
           "name": "Invoices_invoiceNumber_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "invoiceNumber"
-          ]
+          "columns": ["invoiceNumber"]
         }
       }
     },
@@ -1836,12 +1746,8 @@
           "name": "Memberships_UserId_Users_id_fk",
           "tableFrom": "Memberships",
           "tableTo": "Users",
-          "columnsFrom": [
-            "UserId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["UserId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1849,12 +1755,8 @@
           "name": "Memberships_OrganizationId_Organizations_id_fk",
           "tableFrom": "Memberships",
           "tableTo": "Organizations",
-          "columnsFrom": [
-            "OrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1864,9 +1766,7 @@
         "Memberships_externalId_unique": {
           "name": "Memberships_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -2019,12 +1919,8 @@
           "name": "Messages_CustomerProfileId_CustomerProfiles_id_fk",
           "tableFrom": "Messages",
           "tableTo": "CustomerProfiles",
-          "columnsFrom": [
-            "CustomerProfileId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["CustomerProfileId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2032,12 +1928,8 @@
           "name": "Messages_OrganizationMemberId_Memberships_id_fk",
           "tableFrom": "Messages",
           "tableTo": "Memberships",
-          "columnsFrom": [
-            "OrganizationMemberId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationMemberId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2047,9 +1939,7 @@
         "Messages_externalId_unique": {
           "name": "Messages_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -2201,12 +2091,8 @@
           "name": "Organizations_CountryId_Countries_id_fk",
           "tableFrom": "Organizations",
           "tableTo": "Countries",
-          "columnsFrom": [
-            "CountryId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["CountryId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2216,30 +2102,22 @@
         "Organizations_externalId_unique": {
           "name": "Organizations_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         },
         "Organizations_name_unique": {
           "name": "Organizations_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         },
         "Organizations_stripeAccountId_unique": {
           "name": "Organizations_stripeAccountId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeAccountId"
-          ]
+          "columns": ["stripeAccountId"]
         },
         "Organizations_domain_unique": {
           "name": "Organizations_domain_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "domain"
-          ]
+          "columns": ["domain"]
         }
       }
     },
@@ -2417,12 +2295,8 @@
           "name": "Payments_InvoiceId_Invoices_id_fk",
           "tableFrom": "Payments",
           "tableTo": "Invoices",
-          "columnsFrom": [
-            "InvoiceId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["InvoiceId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2430,12 +2304,8 @@
           "name": "Payments_OrganizationId_Organizations_id_fk",
           "tableFrom": "Payments",
           "tableTo": "Organizations",
-          "columnsFrom": [
-            "OrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2445,9 +2315,7 @@
         "Payments_externalId_unique": {
           "name": "Payments_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -2599,12 +2467,8 @@
           "name": "Products_OrganizationId_Organizations_id_fk",
           "tableFrom": "Products",
           "tableTo": "Organizations",
-          "columnsFrom": [
-            "OrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2614,23 +2478,17 @@
         "Products_externalId_unique": {
           "name": "Products_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         },
         "Products_stripeProductId_unique": {
           "name": "Products_stripeProductId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeProductId"
-          ]
+          "columns": ["stripeProductId"]
         },
         "Products_defaultStripePriceId_unique": {
           "name": "Products_defaultStripePriceId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "defaultStripePriceId"
-          ]
+          "columns": ["defaultStripePriceId"]
         }
       }
     },
@@ -2853,12 +2711,8 @@
           "name": "Projects_CustomerProfileId_CustomerProfiles_id_fk",
           "tableFrom": "Projects",
           "tableTo": "CustomerProfiles",
-          "columnsFrom": [
-            "CustomerProfileId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["CustomerProfileId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2866,12 +2720,8 @@
           "name": "Projects_OrganizationId_Organizations_id_fk",
           "tableFrom": "Projects",
           "tableTo": "Organizations",
-          "columnsFrom": [
-            "OrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2879,12 +2729,8 @@
           "name": "Projects_VariantId_Variants_id_fk",
           "tableFrom": "Projects",
           "tableTo": "Variants",
-          "columnsFrom": [
-            "VariantId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["VariantId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2892,12 +2738,8 @@
           "name": "Projects_TermId_Terms_id_fk",
           "tableFrom": "Projects",
           "tableTo": "Terms",
-          "columnsFrom": [
-            "TermId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["TermId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2907,23 +2749,17 @@
         "Projects_externalId_unique": {
           "name": "Projects_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         },
         "Projects_stripeSubscriptionId_unique": {
           "name": "Projects_stripeSubscriptionId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeSubscriptionId"
-          ]
+          "columns": ["stripeSubscriptionId"]
         },
         "Projects_stripePaymentIntentId_unique": {
           "name": "Projects_stripePaymentIntentId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripePaymentIntentId"
-          ]
+          "columns": ["stripePaymentIntentId"]
         }
       }
     },
@@ -2998,12 +2834,8 @@
           "name": "Terms_OrganizationId_Organizations_id_fk",
           "tableFrom": "Terms",
           "tableTo": "Organizations",
-          "columnsFrom": [
-            "OrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3013,9 +2845,7 @@
         "Terms_externalId_unique": {
           "name": "Terms_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -3214,12 +3044,8 @@
           "name": "Testimonials_OrganizationId_Organizations_id_fk",
           "tableFrom": "Testimonials",
           "tableTo": "Organizations",
-          "columnsFrom": [
-            "OrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["OrganizationId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3227,12 +3053,8 @@
           "name": "Testimonials_CustomerProfileId_CustomerProfiles_id_fk",
           "tableFrom": "Testimonials",
           "tableTo": "CustomerProfiles",
-          "columnsFrom": [
-            "CustomerProfileId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["CustomerProfileId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3242,9 +3064,7 @@
         "Testimonials_externalId_unique": {
           "name": "Testimonials_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -3329,16 +3149,12 @@
         "Users_id_unique": {
           "name": "Users_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         },
         "Users_externalId_unique": {
           "name": "Users_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -3506,12 +3322,8 @@
           "name": "Variants_ProductId_Products_id_fk",
           "tableFrom": "Variants",
           "tableTo": "Products",
-          "columnsFrom": [
-            "ProductId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ProductId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3521,16 +3333,12 @@
         "Variants_externalId_unique": {
           "name": "Variants_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         },
         "Variants_stripePriceId_unique": {
           "name": "Variants_stripePriceId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripePriceId"
-          ]
+          "columns": ["stripePriceId"]
         }
       }
     }
