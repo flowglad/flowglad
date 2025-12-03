@@ -62,7 +62,9 @@ jobs:
       - name: Create Release Pull Request
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
-          version: bun run packages:version
+          version: |
+            bun run packages:version
+            bunx @biomejs/biome format --write packages/*/package.json
           commit: 'chore: version packages'
           title: 'chore: version packages'
           setupGitUser: false
