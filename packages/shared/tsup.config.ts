@@ -11,7 +11,6 @@ export default defineConfig((overrideOptions) => {
     entry: [
       './src/**/*.{ts,tsx,js,jsx}',
       '!./src/**/*.test.{ts,tsx}',
-      '!./src/types/**', // prevent rebuilding types when first entry already matches everything
     ],
     // We want to preserve original file structure
     // so that the "use client" directives are not lost

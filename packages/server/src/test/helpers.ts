@@ -7,6 +7,7 @@ import { CoreCustomerUser } from '../types'
  */
 export const createTestFlowgladServer = () => {
   return new FlowgladServer({
+    apiKey: process.env.FLOWGLAD_SECRET_KEY,
     baseURL: process.env.FLOWGLAD_BASE_URL || 'http://localhost:3000',
     getRequestingCustomer: async (): Promise<CoreCustomerUser> => {
       return {

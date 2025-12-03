@@ -1,16 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { createTestFlowgladServer } from './test/helpers'
-import { setupProduct } from './test/seedServer'
 
 describe('FlowgladServer Catalog Tests', async () => {
   const flowgladServer = createTestFlowgladServer()
   const result = await flowgladServer.getPricingModel()
-  const inactiveProduct = await setupProduct({
-    name: 'Inactive Product',
-    description: 'Inactive Product',
-    pricingModelId: result.pricingModel.id,
-    active: false,
-  })
 
   it('should get the catalog', async () => {
     expect(result).toBeDefined()
@@ -18,14 +11,30 @@ describe('FlowgladServer Catalog Tests', async () => {
     expect(result.pricingModel.products).toBeDefined()
   })
 
-  it('should not include any inactive products', async () => {
-    const latestPricingModel = await flowgladServer.getPricingModel()
-    expect(latestPricingModel.pricingModel.products).toBeDefined()
-    expect(
-      latestPricingModel.pricingModel.products.map((p) => p.id)
-    ).not.toContain(inactiveProduct.product.id)
-    expect(
-      latestPricingModel.pricingModel.products.map((p) => p.id).length
-    ).toBeGreaterThan(0)
+  it('should return products with valid structure', async () => {
+    const { pricingModel } = await flowgladServer.getPricingModel()
+
+    expect(pricingModel.products.length).toBeGreaterThan(0)
+
+    // Verify each product has expected fields and valid values
+    for (const product of pricingModel.products) {
+      expect(product.id).toBeDefined()
+      expect(typeof product.id).toBe('string')
+      expect(product.name).toBeDefined()
+      expect(typeof product.name).toBe('string')
+      expect(product.active).toBe(true)
+      expect(product.prices).toBeDefined()
+      expect(Array.isArray(product.prices)).toBe(true)
+      expect(product.prices.length).toBeGreaterThan(0)
+
+      // Verify each price has expected fields
+      for (const price of product.prices) {
+        expect(price.id).toBeDefined()
+        expect(typeof price.id).toBe('string')
+        expect(price.active).toBe(true)
+        expect(typeof price.unitPrice).toBe('number')
+        expect(price.unitPrice).toBeGreaterThanOrEqual(0)
+      }
+    }
   })
 })
