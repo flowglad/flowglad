@@ -1,12 +1,14 @@
-import { DbTransaction } from '@/db/types'
-import { SetupPricingModelInput } from './setupSchemas'
-import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
-import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
+import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
+import type { DbTransaction } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
-import { validateSetupPricingModelInput } from './setupSchemas'
+import {
+  type SetupPricingModelInput,
+  validateSetupPricingModelInput,
+} from './setupSchemas'
 
 /**
  * Fetches a pricing model and all its related records (usage meters, features, products, prices)
@@ -45,7 +47,7 @@ export async function getPricingModelSetupData(
 
   // Fetch all features for this pricing model
   const features = await selectFeatures(
-    { pricingModelId: pricingModel.id },
+    { pricingModelId: pricingModel.id, active: true },
     transaction
   )
 
@@ -72,13 +74,14 @@ export async function getPricingModelSetupData(
 
   // Fetch all product-feature relationships
   const productIds = productsWithPrices.map((p) => p.id)
-  const productFeaturesWithFeatures =
+  const productFeaturesWithFeatures = (
     productIds.length > 0
       ? await selectFeaturesByProductFeatureWhere(
           { productId: productIds },
           transaction
         )
       : []
+  ).filter(({ feature }) => feature.active)
 
   // Group product features by product ID
   const featureSlugsByProductId = new Map<string, string[]>()

@@ -1,14 +1,14 @@
 'use client'
 
+import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
-  CreateFeatureInput,
+  type CreateFeatureInput,
   createFeatureSchema,
 } from '@/db/schema/features'
-import FeatureFormFields from './FeatureFormFields' // Adjusted import
-import { trpc } from '@/app/_trpc/client'
 import { FeatureType } from '@/types'
-import { useAuthenticatedContext } from '@/contexts/authContext'
+import FeatureFormFields from './FeatureFormFields' // Adjusted import
 
 interface CreateFeatureModalProps {
   isOpen: boolean

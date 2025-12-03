@@ -6,12 +6,12 @@ import {
   CardFooter,
   CardHeader,
 } from '@/components/ui/card'
-import { Skeleton } from '../skeleton/skeleton'
 import { cn } from '@/registry/lib/cn'
-import { SubscriptionCardProps } from './types'
-import { SubscriptionHeader } from './subscription-header'
-import { SubscriptionDetails } from './subscription-details'
+import { Skeleton } from '../skeleton/skeleton'
 import { SubscriptionActions } from './subscription-actions'
+import { SubscriptionDetails } from './subscription-details'
+import { SubscriptionHeader } from './subscription-header'
+import type { SubscriptionCardProps } from './types'
 
 export function SubscriptionCard({
   subscription,

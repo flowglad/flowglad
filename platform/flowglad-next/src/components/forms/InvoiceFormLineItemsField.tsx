@@ -1,32 +1,30 @@
-import React from 'react'
 import {
-  DndContext,
   closestCenter,
+  DndContext,
+  type DragEndEvent,
   KeyboardSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
 } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
-
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import InvoiceFormLineItem from './InvoiceFormLineItem'
+import { GripVertical, Plus } from 'lucide-react'
+import React from 'react'
+import { useFieldArray, useFormContext } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Plus, GripVertical } from 'lucide-react'
-
-import { useFieldArray, useFormContext } from 'react-hook-form'
-import {
+import { useAuthContext } from '@/contexts/authContext'
+import type {
   CreateInvoiceInput,
   InvoiceLineItem,
 } from '@/db/schema/invoiceLineItems'
-import { useAuthContext } from '@/contexts/authContext'
 import { SubscriptionItemType } from '@/types'
+import InvoiceFormLineItem from './InvoiceFormLineItem'
 
 export const newInvoiceLineItem: CreateInvoiceInput['invoiceLineItems'][0] =
   {

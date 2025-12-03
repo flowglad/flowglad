@@ -1,18 +1,22 @@
 'use client'
 import debounce from 'debounce'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
+import { useRouter } from 'next/navigation'
 import { createContext, useContext } from 'react'
-import { CheckoutFlowType, CurrencyCode, Nullish } from '@/types'
+import { trpc } from '@/app/_trpc/client'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import {
-  CheckoutInfoCore,
+  type CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { Price } from '@/db/schema/prices'
+import {
+  CheckoutFlowType,
+  type CurrencyCode,
+  type Nullish,
+} from '@/types'
 import core from '@/utils/core'
-import { trpc } from '@/app/_trpc/client'
-import { useRouter } from 'next/navigation'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 export type SubscriptionCheckoutDetails = Pick<
   Price.SubscriptionRecord | Price.UsageRecord,
@@ -82,13 +86,13 @@ const CheckoutPageContext = createContext<
   flowType: CheckoutFlowType.SinglePayment,
 })
 
-const subscriptionDetailsFromCheckoutInfoCore = (
+export const subscriptionDetailsFromCheckoutInfoCore = (
   checkoutInfo: CheckoutInfoCore
 ): SubscriptionCheckoutDetails | undefined => {
   if (checkoutInfo.flowType !== CheckoutFlowType.Subscription) {
     return undefined
   }
-  const { purchase, price } = checkoutInfo
+  const { purchase, price, isEligibleForTrial } = checkoutInfo
   /**
    * For each subscription detail field:
    * Default to price values if purchase values are not present,
@@ -116,6 +120,10 @@ const subscriptionDetailsFromCheckoutInfoCore = (
           type: price.type,
         }
       : undefined
+  // Override trialPeriodDays if customer is not eligible for trial
+  if (subscriptionDetails && !isEligibleForTrial) {
+    subscriptionDetails.trialPeriodDays = null
+  }
   return subscriptionDetails
 }
 

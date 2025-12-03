@@ -1,30 +1,30 @@
 'use client'
 
-import { useState } from 'react'
-import { trpc } from '@/app/_trpc/client'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ArrowLeft, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { trpc } from '@/app/_trpc/client'
+import PricingModelFormFields from '@/components/forms/PricingModelFormFields'
+import { TemplatePreviewContent } from '@/components/pricing-model-templates/TemplatePreviewContent'
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { TemplateSelectorContent } from './TemplateSelectorContent'
-import { TemplatePreviewContent } from '@/components/pricing-model-templates/TemplatePreviewContent'
-import PricingModelFormFields from '@/components/forms/PricingModelFormFields'
 import {
-  createPricingModelSchema,
   type CreatePricingModelInput,
+  createPricingModelSchema,
 } from '@/db/schema/pricingModels'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
+import type { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
 import { generateTemplateName } from '@/utils/pricingModelTemplates'
-import { ImportPricingModel } from './ImportPricingModel'
-import { DialogFooter, DialogHeader } from '../ui/dialog'
 import { Button } from '../ui/button'
-import { SetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { DialogFooter, DialogHeader } from '../ui/dialog'
+import { ImportPricingModel } from './ImportPricingModel'
+import { TemplateSelectorContent } from './TemplateSelectorContent'
 
 type ModalView = 'selector' | 'preview' | 'blank' | 'import'
 

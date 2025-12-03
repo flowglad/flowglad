@@ -1,20 +1,20 @@
+import type { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import { dummyOrganization } from '@/stubs/organizationStubs'
+import { subscriptionDummyPrice } from '@/stubs/priceStubs'
+import { dummyProduct } from '@/stubs/productStubs'
 import {
   subscriptionWithoutTrialDummyPurchase,
   subscriptionWithTrialDummyPurchase,
 } from '@/stubs/purchaseStubs'
-import { dummyProduct } from '@/stubs/productStubs'
-import { dummyOrganization } from '@/stubs/organizationStubs'
-import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import {
   CheckoutFlowType,
+  CheckoutSessionStatus,
+  CheckoutSessionType,
   CurrencyCode,
   IntervalUnit,
   PriceType,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
 } from '@/types'
-import { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
 
 const subscriptionDetails = {
   trialPeriodDays: 30,

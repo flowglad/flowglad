@@ -1,23 +1,23 @@
-import { describe, it, expect, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
-import { ReceiptTemplate } from './receipts'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  setupOrg,
   setupCustomer,
   setupInvoice,
   setupInvoiceLineItem,
+  setupOrg,
   setupPayment,
 } from '@/../seedDatabase'
-import { InvoiceStatus, PaymentStatus, CurrencyCode } from '@/types'
-import { Organization } from '@/db/schema/organizations'
-import { Customer } from '@/db/schema/customers'
-import { Invoice } from '@/db/schema/invoices'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { Payment } from '@/db/schema/payments'
-import { Price } from '@/db/schema/prices'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { Payment } from '@/db/schema/payments'
+import type { Price } from '@/db/schema/prices'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { updateInvoice } from '@/db/tableMethods/invoiceMethods'
+import { CurrencyCode, InvoiceStatus, PaymentStatus } from '@/types'
+import { ReceiptTemplate } from './receipts'
 
 describe('Receipt Components', () => {
   let organization: Organization.Record

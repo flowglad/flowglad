@@ -1,9 +1,7 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
 import { AlertTriangle } from 'lucide-react'
-import { CancelSubscriptionDialogProps } from './types'
-import { formatDate } from '@/registry/lib/date'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -12,12 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/registry/components/dialog'
+import { formatDate } from '@/registry/lib/date'
+import type { CancelSubscriptionDialogProps } from './types'
 
 export function CancelSubscriptionDialog({
   isOpen,
   onOpenChange,
   subscriptionId,
-  subscriptionName,
   currentPeriodEnd,
   onConfirm,
   loading = false,

@@ -1,12 +1,12 @@
-import { createMcpHandler, withMcpAuth } from 'mcp-handler'
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
-import { verifyApiKey } from '@/utils/unkey'
+import { createMcpHandler, withMcpAuth } from 'mcp-handler'
 import { z } from 'zod/v3'
 import {
-  queryTurbopuffer,
-  getTurbopufferClient,
   getOpenAIClient,
+  getTurbopufferClient,
+  queryTurbopuffer,
 } from '@/utils/turbopuffer'
+import { verifyApiKey } from '@/utils/unkey'
 
 // Create MCP handler with tools
 const handler = createMcpHandler(

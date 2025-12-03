@@ -1,18 +1,21 @@
+import type Stripe from 'stripe'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { Customer } from '@/db/schema/customers'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { Invoice } from '@/db/schema/invoices'
-import { Organization } from '@/db/schema/organizations'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Payment } from '@/db/schema/payments'
-import Stripe from 'stripe'
+import type { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { Customer } from '@/db/schema/customers'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Payment } from '@/db/schema/payments'
+import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -27,53 +30,50 @@ import {
   insertInvoiceLineItems,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
-  invoiceIsInTerminalState,
   insertInvoice,
+  invoiceIsInTerminalState,
+  safelyUpdateInvoiceStatus,
   selectInvoices,
   updateInvoice,
-  safelyUpdateInvoiceStatus,
 } from '@/db/tableMethods/invoiceMethods'
+import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
+import {
+  aggregateOutstandingBalanceForUsageCosts,
+  claimLedgerEntriesWithOutstandingBalances,
+} from '@/db/tableMethods/ledgerEntryMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   insertPayment,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
-import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import type { DbTransaction } from '@/db/types'
+import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
+import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
-  CountryCode,
-  CurrencyCode,
+  type CountryCode,
+  type CurrencyCode,
+  FeatureType,
   InvoiceStatus,
   InvoiceType,
   LedgerTransactionType,
   PaymentStatus,
-  FeatureType,
   SubscriptionItemType,
   SubscriptionStatus,
-  UsageBillingInfo,
+  type UsageBillingInfo,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import { createAndFinalizeSubscriptionFeeCalculation } from '@/utils/bookkeeping/fees/subscription'
 import core from '@/utils/core'
+import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
-  createPaymentIntentForBillingRun,
   confirmPaymentIntentForBillingRun,
+  createPaymentIntentForBillingRun,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
-import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
-import { Subscription } from '@/db/schema/subscriptions'
-import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import {
-  aggregateOutstandingBalanceForUsageCosts,
-  claimLedgerEntriesWithOutstandingBalances,
-} from '@/db/tableMethods/ledgerEntryMethods'
-import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
-import { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
-import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
@@ -943,20 +943,24 @@ const retryTimesInDays = [3, 5, 5]
 const dayInMilliseconds = 1000 * 60 * 60 * 24
 
 export const constructBillingRunRetryInsert = (
-  billingRun: BillingRun.Record,
-  allBillingRunsForBillingPeriod: BillingRun.Record[]
+  billingRun: BillingRun.Record
 ): BillingRun.Insert | undefined => {
   /**
    * FIXME: mark the subscription as canceled (?)
    */
-  if (
-    allBillingRunsForBillingPeriod.length >=
-    retryTimesInDays.length + 1
-  ) {
+  const nextAttemptNumber = billingRun.attemptNumber + 1
+
+  // Check if we've exceeded max retries
+  // retryTimesInDays.length + 1 = max attempts (1 original + retries)
+  if (nextAttemptNumber > retryTimesInDays.length + 1) {
     return undefined
   }
-  const daysFromNowToRetry =
-    retryTimesInDays[allBillingRunsForBillingPeriod.length - 1]
+
+  // Get the retry delay for this attempt number
+  // attemptNumber 1 -> retryTimesInDays[0] (first retry, 3 days)
+  // attemptNumber 2 -> retryTimesInDays[1] (second retry, 5 days)
+  // attemptNumber 3 -> retryTimesInDays[2] (third retry, 5 days)
+  const daysFromNowToRetry = retryTimesInDays[nextAttemptNumber - 2]
 
   return {
     billingPeriodId: billingRun.billingPeriodId,
@@ -965,13 +969,11 @@ export const constructBillingRunRetryInsert = (
     subscriptionId: billingRun.subscriptionId,
     paymentMethodId: billingRun.paymentMethodId,
     livemode: billingRun.livemode,
-    /**
-     * Use the same payment intent as the previous billing run.
-     * That way we can statefully ensure the payment intent is the same.
-     */
     stripePaymentIntentId: billingRun.stripePaymentIntentId,
     lastPaymentIntentEventTimestamp:
       billingRun.lastPaymentIntentEventTimestamp,
+    // Set attemptNumber to the next attempt
+    attemptNumber: nextAttemptNumber,
   }
 }
 
@@ -979,16 +981,7 @@ export const scheduleBillingRunRetry = async (
   billingRun: BillingRun.Record,
   transaction: DbTransaction
 ) => {
-  const allBillingRunsForBillingPeriod = await selectBillingRuns(
-    {
-      billingPeriodId: billingRun.billingPeriodId,
-    },
-    transaction
-  )
-  const retryBillingRun = constructBillingRunRetryInsert(
-    billingRun,
-    allBillingRunsForBillingPeriod
-  )
+  const retryBillingRun = constructBillingRunRetryInsert(billingRun)
   if (!retryBillingRun) {
     return
   }

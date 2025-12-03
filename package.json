@@ -6,7 +6,11 @@
   "scripts": {
     "randombytes": "tsx scripts/randomBytes.ts",
     "test": "bunx turbo run test",
-    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "check:biome": "biome check .",
     "dev": "bunx turbo run dev --parallel --no-cache --filter=!@flowglad/playground-*",
     "check": "bunx turbo run check",
     "clean": "bunx turbo run clean",
@@ -24,6 +28,7 @@
     "tsx": "4.17.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.3.8",
     "@changesets/cli": "^2.26.0",
     "@types/minimatch": "^5.1.2",
     "@types/node": "^18.0.0",

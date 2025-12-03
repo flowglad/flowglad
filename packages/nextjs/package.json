@@ -12,20 +12,19 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
-    "check": "eslint --max-warnings=0 && tsc --noEmit",
+    "check": "biome check . && tsc --noEmit",
     "build:declarations": "tsc -p tsconfig.declarations.json"
   },
   "dependencies": {
     "@flowglad/shared": "workspace:*",
     "@flowglad/react": "workspace:*",
     "@flowglad/server": "workspace:*",
-    "@flowglad/node": "0.22.0",
+    "@flowglad/node": "0.23.0",
     "@vercel/mcp-adapter": "0.11.1",
     "zod": "4.1.5"
   },
   "devDependencies": {
     "@types/react": "18.3.12",
-    "eslint": "8.57.0",
     "typescript": "5.8.2"
   },
   "exports": {

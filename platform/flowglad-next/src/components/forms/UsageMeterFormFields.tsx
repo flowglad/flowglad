@@ -1,16 +1,16 @@
 'use client'
 
+import { sentenceCase } from 'change-case'
 import { Controller, useFormContext } from 'react-hook-form'
-import { CreateUsageMeterInput } from '@/db/schema/usageMeters'
-import { Input } from '@/components/ui/input'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import PricingModelSelect from './PricingModelSelect'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -18,10 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import type { CreateUsageMeterInput } from '@/db/schema/usageMeters'
 import { UsageMeterAggregationType } from '@/types'
-import { sentenceCase } from 'change-case'
 import core from '@/utils/core'
-import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
+import PricingModelSelect from './PricingModelSelect'
 
 export default function UsageMeterFormFields({
   edit,

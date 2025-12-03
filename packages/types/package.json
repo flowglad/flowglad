@@ -1,6 +1,7 @@
 {
   "name": "@flowglad/types",
   "version": "0.13.0",
+  "deprecated": "This package is deprecated. Use @flowglad/shared instead. All type definitions have been moved to @flowglad/shared.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -11,17 +12,16 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
-    "check": "eslint --max-warnings=0 && tsc --noEmit",
+    "check": "biome check . && tsc --noEmit",
     "build:declarations": "tsc -p tsconfig.declarations.json"
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@flowglad/node": "0.22.0"
+    "@flowglad/node": "0.23.0"
   },
   "devDependencies": {
-    "eslint": "8.57.0",
     "typescript": "5.8.2"
   },
   "exports": {

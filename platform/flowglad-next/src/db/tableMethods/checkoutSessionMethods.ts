@@ -1,26 +1,26 @@
+import { and, eq, inArray, lt, not } from 'drizzle-orm'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  SelectConditions,
-  createPaginatedSelectFunction,
-} from '@/db/tableUtils'
-import {
-  CheckoutSession,
+  type CheckoutSession,
   checkoutSessions,
   checkoutSessionsInsertSchema,
   checkoutSessionsSelectSchema,
   checkoutSessionsUpdateSchema,
 } from '@/db/schema/checkoutSessions'
 import {
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  type SelectConditions,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PaymentMethodType,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { and, eq, inArray, lt, not } from 'drizzle-orm'
 import { feeCalculations } from '../schema/feeCalculations'
 
 const CHECKOUT_SESSION_RETENTION_MS = 14 * 24 * 60 * 60 * 1000

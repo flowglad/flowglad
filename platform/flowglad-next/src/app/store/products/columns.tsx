@@ -1,34 +1,34 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import {
-  Image as ImageIcon,
-  Pencil,
-  Copy,
   Archive,
   ArchiveRestore,
+  Copy,
+  Image as ImageIcon,
+  Pencil,
   Plus,
 } from 'lucide-react'
+// Other imports
+import Image from 'next/image'
+import * as React from 'react'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
+import CreatePriceModal from '@/components/forms/CreatePriceModal'
+import DeleteProductModal from '@/components/forms/DeleteProductModal'
+import EditProductModal from '@/components/forms/EditProductModal'
+import PricingCellView from '@/components/PricingCellView'
+import StatusBadge from '@/components/StatusBadge'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
+  type ActionMenuItem,
   EnhancedDataTableActionsMenu,
-  ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-// Other imports
-import Image from 'next/image'
-import StatusBadge from '@/components/StatusBadge'
-import PricingCellView from '@/components/PricingCellView'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { PricingModel } from '@/db/schema/pricingModels'
-import DeleteProductModal from '@/components/forms/DeleteProductModal'
-import EditProductModal from '@/components/forms/EditProductModal'
-import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
-import CreatePriceModal from '@/components/forms/CreatePriceModal'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
 
 export interface ProductRow {
   prices: Price.ClientRecord[]

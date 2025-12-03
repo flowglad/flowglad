@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+
 const InnerPageContainerNew = ({
   children,
   className,
@@ -21,4 +22,3 @@ const InnerPageContainerNew = ({
 }
 
 export default InnerPageContainerNew
-

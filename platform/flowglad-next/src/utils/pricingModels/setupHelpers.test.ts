@@ -1,19 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { getPricingModelSetupData } from './setupHelpers'
-import { setupPricingModelTransaction } from './setupTransaction'
+import type { Organization } from '@/db/schema/organizations'
 import {
-  setupPricingModelSchema,
-  type SetupPricingModelInput,
-} from './setupSchemas'
+  selectFeaturesByProductFeatureWhere,
+  updateProductFeature,
+} from '@/db/tableMethods/productFeatureMethods'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
-  PriceType,
   IntervalUnit,
+  PriceType,
 } from '@/types'
-import type { Organization } from '@/db/schema/organizations'
+import { getPricingModelSetupData } from './setupHelpers'
+import {
+  type SetupPricingModelInput,
+  setupPricingModelSchema,
+} from './setupSchemas'
+import { setupPricingModelTransaction } from './setupTransaction'
 
 let organization: Organization.Record
 
@@ -484,5 +488,272 @@ describe('getPricingModelSetupData', () => {
     // Verify the excluded prices are not present
     const priceSlugs = fetchedProduct?.prices.map((p) => p.slug) || []
     expect(priceSlugs).not.toContain('inactive-non-default-price')
+  })
+
+  it('should exclude inactive features from the output', async () => {
+    const input: SetupPricingModelInput = {
+      name: 'Inactive Features Test Model',
+      isDefault: false,
+      usageMeters: [
+        {
+          slug: 'test-meter',
+          name: 'Test Meter',
+        },
+      ],
+      features: [
+        {
+          type: FeatureType.Toggle,
+          slug: 'active-toggle',
+          name: 'Active Toggle',
+          description: 'This feature is active',
+          active: true,
+        },
+        {
+          type: FeatureType.Toggle,
+          slug: 'inactive-toggle',
+          name: 'Inactive Toggle',
+          description: 'This feature is inactive',
+          active: false,
+        },
+        {
+          type: FeatureType.UsageCreditGrant,
+          slug: 'active-credit',
+          name: 'Active Credit',
+          description: 'Active usage credit',
+          usageMeterSlug: 'test-meter',
+          amount: 500,
+          renewalFrequency:
+            FeatureUsageGrantFrequency.EveryBillingPeriod,
+          active: true,
+        },
+        {
+          type: FeatureType.UsageCreditGrant,
+          slug: 'inactive-credit',
+          name: 'Inactive Credit',
+          description: 'Inactive usage credit',
+          usageMeterSlug: 'test-meter',
+          amount: 1000,
+          renewalFrequency:
+            FeatureUsageGrantFrequency.EveryBillingPeriod,
+          active: false,
+        },
+      ],
+      products: [
+        {
+          product: {
+            name: 'Test Product',
+            slug: 'test-product-inactive-features',
+            default: false,
+            active: true,
+          },
+          prices: [
+            {
+              type: PriceType.SinglePayment,
+              slug: 'test-price',
+              unitPrice: 5000,
+              isDefault: true,
+              active: true,
+            },
+          ],
+          features: [
+            'active-toggle',
+            'inactive-toggle',
+            'active-credit',
+            'inactive-credit',
+          ],
+        },
+        {
+          product: {
+            name: 'Usage Product',
+            slug: 'usage-product',
+            default: false,
+            active: true,
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'test-meter-usage',
+              unitPrice: 10,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageMeterSlug: 'test-meter',
+              usageEventsPerUnit: 100,
+              trialPeriodDays: null,
+            },
+          ],
+          features: [],
+        },
+      ],
+    }
+
+    const setupResult = await adminTransaction(
+      async ({ transaction }) =>
+        setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
+    )
+
+    const fetchedData = await adminTransaction(
+      async ({ transaction }) =>
+        getPricingModelSetupData(
+          setupResult.pricingModel.id,
+          transaction
+        )
+    )
+
+    // Validate with schema
+    const parseResult = setupPricingModelSchema.safeParse(fetchedData)
+    expect(parseResult.success).toBe(true)
+
+    // Should only return active features (2 out of 4)
+    expect(fetchedData.features).toHaveLength(2)
+    const featureSlugs = fetchedData.features.map((f) => f.slug)
+    expect(featureSlugs).toContain('active-toggle')
+    expect(featureSlugs).toContain('active-credit')
+    expect(featureSlugs).not.toContain('inactive-toggle')
+    expect(featureSlugs).not.toContain('inactive-credit')
+
+    // Product should only have active features in its features array
+    const testProduct = fetchedData.products.find(
+      (p) => p.product.slug === 'test-product-inactive-features'
+    )
+    expect(testProduct).toBeDefined()
+    expect(testProduct?.features).toHaveLength(2)
+    expect(testProduct?.features).toContain('active-toggle')
+    expect(testProduct?.features).toContain('active-credit')
+    expect(testProduct?.features).not.toContain('inactive-toggle')
+    expect(testProduct?.features).not.toContain('inactive-credit')
+  })
+
+  it('should exclude expired product-feature associations from the output', async () => {
+    // First, create a pricing model with features
+    const input: SetupPricingModelInput = {
+      name: 'Expired Associations Test Model',
+      isDefault: false,
+      usageMeters: [],
+      features: [
+        {
+          type: FeatureType.Toggle,
+          slug: 'feature-a',
+          name: 'Feature A',
+          description: 'First feature',
+          active: true,
+        },
+        {
+          type: FeatureType.Toggle,
+          slug: 'feature-b',
+          name: 'Feature B',
+          description: 'Second feature',
+          active: true,
+        },
+        {
+          type: FeatureType.Toggle,
+          slug: 'feature-c',
+          name: 'Feature C',
+          description: 'Third feature',
+          active: true,
+        },
+      ],
+      products: [
+        {
+          product: {
+            name: 'Test Product Associations',
+            slug: 'test-product-associations',
+            default: false,
+            active: true,
+          },
+          prices: [
+            {
+              type: PriceType.SinglePayment,
+              slug: 'test-price-associations',
+              unitPrice: 3000,
+              isDefault: true,
+              active: true,
+            },
+          ],
+          features: ['feature-a', 'feature-b', 'feature-c'],
+        },
+      ],
+    }
+
+    const setupResult = await adminTransaction(
+      async ({ transaction }) =>
+        setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
+    )
+
+    // Now manually expire one of the product-feature associations
+    await adminTransaction(async ({ transaction }) => {
+      const product = setupResult.products.find(
+        (p) => p.slug === 'test-product-associations'
+      )
+      if (!product) {
+        throw new Error('Test setup failed: product not found')
+      }
+      const productFeaturesResult =
+        await selectFeaturesByProductFeatureWhere(
+          { productId: product.id },
+          transaction
+        )
+
+      // Find the product feature for 'feature-b' and expire it
+      const featureBAssociation = productFeaturesResult.find(
+        (pf) => pf.feature.slug === 'feature-b'
+      )
+      expect(featureBAssociation).toBeDefined()
+
+      if (featureBAssociation) {
+        await updateProductFeature(
+          {
+            id: featureBAssociation.productFeature.id,
+            expiredAt: Date.now() - 1000, // Expired in the past
+          },
+          transaction
+        )
+      }
+    })
+
+    // Fetch the pricing model data
+    const fetchedData = await adminTransaction(
+      async ({ transaction }) =>
+        getPricingModelSetupData(
+          setupResult.pricingModel.id,
+          transaction
+        )
+    )
+
+    // Validate with schema
+    const parseResult = setupPricingModelSchema.safeParse(fetchedData)
+    expect(parseResult.success).toBe(true)
+
+    // All 3 features should still exist at the pricing model level
+    expect(fetchedData.features).toHaveLength(3)
+    const featureSlugs = fetchedData.features.map((f) => f.slug)
+    expect(featureSlugs).toContain('feature-a')
+    expect(featureSlugs).toContain('feature-b')
+    expect(featureSlugs).toContain('feature-c')
+
+    // But the product should only have 2 features (excluding the expired association)
+    const testProduct = fetchedData.products.find(
+      (p) => p.product.slug === 'test-product-associations'
+    )
+    expect(testProduct).toBeDefined()
+    expect(testProduct?.features).toHaveLength(2)
+    expect(testProduct?.features).toContain('feature-a')
+    expect(testProduct?.features).toContain('feature-c')
+    expect(testProduct?.features).not.toContain('feature-b')
   })
 })

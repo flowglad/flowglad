@@ -1,27 +1,27 @@
+import { Flowglad as FlowgladNode } from '@flowglad/node'
 import {
+  type BillingWithChecks,
   type CancelSubscriptionParams,
+  type CreateActivateSubscriptionCheckoutSessionParams,
+  type CreateAddPaymentMethodCheckoutSessionParams,
+  type CreateProductCheckoutSessionParams,
   type CreateSubscriptionParams,
   type CreateUsageEventParams,
-  createUsageEventSchema,
   constructCheckFeatureAccess,
   constructCheckUsageBalance,
-  type CreateAddPaymentMethodCheckoutSessionParams,
-  type BillingWithChecks,
-  SubscriptionExperimentalFields,
-  constructGetProduct,
   constructGetPrice,
-  CreateActivateSubscriptionCheckoutSessionParams,
+  constructGetProduct,
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
+  createUsageEventSchema,
+  type SubscriptionExperimentalFields,
 } from '@flowglad/shared'
-import {
-  type CoreCustomerUser,
-  type FlowgladServerSessionParams,
-} from './types'
-import type { CreateProductCheckoutSessionParams } from '@flowglad/types'
-import { Flowglad as FlowgladNode } from '@flowglad/node'
 import { getSessionFromParams } from './serverUtils'
+import type {
+  CoreCustomerUser,
+  FlowgladServerSessionParams,
+} from './types'
 
 export class FlowgladServer {
   private createHandlerParams: FlowgladServerSessionParams
@@ -297,7 +297,7 @@ export class FlowgladServer {
       customerId: customer.id,
     }
     // const parsedParams = createSubscriptionSchema.parse(rawParams)
-    // @ts-ignore
+    // @ts-expect-error
     return this.flowgladNode.subscriptions.create(rawParams)
   }
 

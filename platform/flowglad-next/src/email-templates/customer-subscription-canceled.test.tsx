@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
-import { CustomerSubscriptionCanceledEmail } from './customer-subscription-canceled'
+import { describe, expect, it } from 'vitest'
 import core from '@/utils/core'
+import { CustomerSubscriptionCanceledEmail } from './customer-subscription-canceled'
 
 describe('CustomerSubscriptionCanceledEmail', () => {
   const baseProps = {
@@ -21,7 +21,9 @@ describe('CustomerSubscriptionCanceledEmail', () => {
     )
 
     expect(
-      getByText('Your subscription has been canceled and is no longer active.')
+      getByText(
+        'Your subscription has been canceled and is no longer active.'
+      )
     ).toBeInTheDocument()
   })
 

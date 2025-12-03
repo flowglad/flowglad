@@ -1,25 +1,23 @@
 'use client'
-import React, { createContext, useContext } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { Flowglad } from '@flowglad/node'
 import {
-  FlowgladActionKey,
-  flowgladActionValidators,
+  type BillingWithChecks,
   type CancelSubscriptionParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
+  type CreateProductCheckoutSessionParams,
+  type CustomerBillingDetails,
   constructCheckFeatureAccess,
   constructCheckUsageBalance,
-  type BillingWithChecks,
-  constructGetProduct,
   constructGetPrice,
+  constructGetProduct,
+  FlowgladActionKey,
+  flowgladActionValidators,
 } from '@flowglad/shared'
-import type { Flowglad } from '@flowglad/node'
-import { validateUrl } from './utils'
-import type {
-  CreateProductCheckoutSessionParams,
-  CustomerBillingDetails,
-} from '@flowglad/types'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import React, { createContext, useContext } from 'react'
 import { devError } from './lib/utils'
+import { validateUrl } from './utils'
 
 export type FrontendProductCreateCheckoutSessionParams =
   CreateProductCheckoutSessionParams & {
@@ -165,17 +163,14 @@ const constructCheckoutSessionCreator =
       mapPayload?.(params, basePayload) ??
       (basePayload as Record<string, unknown>)
 
-    const response = await fetch(
-      `${flowgladRoute}/${actionKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        body: JSON.stringify(payload),
-      }
-    )
+    const response = await fetch(`${flowgladRoute}/${actionKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: JSON.stringify(payload),
+    })
     const json: {
       data: Flowglad.CheckoutSessions.CheckoutSessionCreateResponse
       error?: { code: string; json: Record<string, unknown> }
@@ -298,9 +293,13 @@ export const FlowgladContextProvider = (
       if (isDevMode) {
         return props.billingMocks
       }
-      const requestConfig = (props as CoreFlowgladContextProviderProps).requestConfig
+      const requestConfig = (
+        props as CoreFlowgladContextProviderProps
+      ).requestConfig
       // Use custom fetch if provided (for React Native), otherwise use global fetch
-      const fetchImpl = requestConfig?.fetch ?? (typeof fetch !== 'undefined' ? fetch : undefined)
+      const fetchImpl =
+        requestConfig?.fetch ??
+        (typeof fetch !== 'undefined' ? fetch : undefined)
       if (!fetchImpl) {
         throw new Error(
           'fetch is not available. In React Native environments, provide a fetch implementation via requestConfig.fetch'

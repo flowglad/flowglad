@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/registry/lib/cn'
-import { SubscriptionActionsProps } from './types'
 import { CancelSubscriptionDialog } from './cancel-subscription-dialog'
+import type { SubscriptionActionsProps } from './types'
 
 export function SubscriptionActions({
   subscriptionId,

@@ -1,14 +1,14 @@
 // Tremor usePaginatedTableState [v0.0.0]
 'use client'
 
-import { TRPCClientErrorLike } from '@trpc/client'
-import {
+import type { TRPCClientErrorLike } from '@trpc/client'
+import type {
   UseTRPCQueryOptions,
   UseTRPCQueryResult,
 } from '@trpc/react-query/shared'
-import { DefaultErrorShape } from '@trpc/server/unstable-core-do-not-import'
+import type { DefaultErrorShape } from '@trpc/server/unstable-core-do-not-import'
 import * as React from 'react'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export interface PaginatedTableStateParams<
   TData extends {},

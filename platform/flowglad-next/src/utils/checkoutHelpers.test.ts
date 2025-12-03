@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 // Only mock Next headers to satisfy runtime; avoid higher-level mocks
 vi.mock('next/headers', () => ({
   headers: vi.fn(() => new Headers()),
@@ -10,35 +11,37 @@ vi.mock('next/headers', () => ({
 }))
 
 import {
-  checkoutInfoForPriceWhere,
-  checkoutInfoForCheckoutSession,
-} from './checkoutHelpers'
-import {
-  setupOrg,
-  setupProduct,
-  setupPrice,
-  setupCustomer,
   setupCheckoutSession,
+  setupCustomer,
   setupDiscount,
-  setupSubscription,
   setupFeeCalculation,
+  setupOrg,
+  setupPrice,
+  setupProduct,
+  setupSubscription,
   setupTestFeaturesAndProductFeatures,
   setupUsageMeter,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { Price } from '@/db/schema/prices'
+import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import {
-  PriceType,
-  IntervalUnit,
-  CurrencyCode,
+  CheckoutFlowType,
   CheckoutSessionStatus,
   CheckoutSessionType,
-  SubscriptionStatus,
-  CheckoutFlowType,
+  CurrencyCode,
   FeatureType,
   FeatureUsageGrantFrequency,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
 } from '@/types'
-import { Price } from '@/db/schema/prices'
-import { adminTransaction } from '@/db/adminTransaction'
-import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  calculateTrialEligibility,
+  checkoutInfoForCheckoutSession,
+  checkoutInfoForPriceWhere,
+  hasCustomerUsedTrial,
+} from './checkoutHelpers'
 
 describe('checkoutHelpers', () => {
   describe('checkoutInfoForPriceWhere', () => {
@@ -69,7 +72,7 @@ describe('checkoutHelpers', () => {
       // Build price params conditionally based on type
       // TypeScript needs explicit type narrowing for discriminated unions
       let priceParams: Parameters<typeof setupPrice>[0]
-      
+
       if (type === PriceType.SinglePayment) {
         priceParams = {
           productId: product.id,
@@ -183,7 +186,7 @@ describe('checkoutHelpers', () => {
       // Build price params conditionally based on type
       // TypeScript needs explicit type narrowing for discriminated unions
       let priceParams: Parameters<typeof setupPrice>[0]
-      
+
       if (type === PriceType.SinglePayment) {
         priceParams = {
           productId: product.id,
@@ -421,6 +424,388 @@ describe('checkoutHelpers', () => {
           transaction
         )
         expect(result.features?.length).toBeGreaterThan(0)
+      })
+    })
+  })
+
+  describe('hasCustomerUsedTrial', () => {
+    it('should return false when customer has no subscriptions', async () => {
+      const { organization } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await hasCustomerUsedTrial(
+          customer.id,
+          transaction
+        )
+        expect(result).toBe(false)
+      })
+    })
+
+    it('should return false when customer has subscriptions but none with trialEnd', async () => {
+      const { organization, pricingModel } = await setupOrg()
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+        active: true,
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        active: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Create subscription without trial
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+        trialEnd: undefined,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await hasCustomerUsedTrial(
+          customer.id,
+          transaction
+        )
+        expect(result).toBe(false)
+      })
+    })
+
+    it('should return true when customer has one subscription with trialEnd', async () => {
+      const { organization, pricingModel } = await setupOrg()
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+        active: true,
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        active: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Create subscription with trial
+      const trialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days from now
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Trialing,
+        trialEnd,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await hasCustomerUsedTrial(
+          customer.id,
+          transaction
+        )
+        expect(result).toBe(true)
+      })
+    })
+
+    it('should return true when customer has multiple subscriptions and one has trialEnd', async () => {
+      const { organization, pricingModel } = await setupOrg()
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+        active: true,
+      })
+      const price1 = await setupPrice({
+        productId: product.id,
+        name: 'Price 1',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        active: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+      const price2 = await setupPrice({
+        productId: product.id,
+        name: 'Price 2',
+        type: PriceType.Subscription,
+        unitPrice: 2000,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        active: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Create subscription without trial
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Active,
+        trialEnd: undefined,
+      })
+
+      // Create subscription with trial
+      const trialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price2.id,
+        status: SubscriptionStatus.Trialing,
+        trialEnd,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await hasCustomerUsedTrial(
+          customer.id,
+          transaction
+        )
+        expect(result).toBe(true)
+      })
+    })
+
+    it('should return true when customer has cancelled subscription with trialEnd', async () => {
+      const { organization, pricingModel } = await setupOrg()
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+        active: true,
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        active: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Create cancelled subscription with trial (trialEnd should still be set)
+      const trialEnd = Date.now() - 7 * 24 * 60 * 60 * 1000 // 7 days ago
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Canceled,
+        trialEnd,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await hasCustomerUsedTrial(
+          customer.id,
+          transaction
+        )
+        expect(result).toBe(true)
+      })
+    })
+  })
+
+  describe('calculateTrialEligibility', () => {
+    it('should return undefined for SinglePayment price type', async () => {
+      const { organization, pricingModel } = await setupOrg()
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+        active: true,
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Price',
+        type: PriceType.SinglePayment,
+        unitPrice: 1000,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        active: true,
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await calculateTrialEligibility(
+          price,
+          customer,
+          transaction
+        )
+        expect(result).toBeUndefined()
+      })
+    })
+
+    it('should return true for Subscription price with anonymous customer', async () => {
+      const { organization, pricingModel } = await setupOrg()
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+        active: true,
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        active: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await calculateTrialEligibility(
+          price,
+          null,
+          transaction
+        )
+        expect(result).toBe(true)
+      })
+    })
+
+    it('should return true for Subscription price with customer who has no trial history', async () => {
+      const { organization, pricingModel } = await setupOrg()
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+        active: true,
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        active: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Create subscription without trial
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+        trialEnd: undefined,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await calculateTrialEligibility(
+          price,
+          customer,
+          transaction
+        )
+        expect(result).toBe(true)
+      })
+    })
+
+    it('should return false for Subscription price with customer who has used trial', async () => {
+      const { organization, pricingModel } = await setupOrg()
+      const product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Product',
+        pricingModelId: pricingModel.id,
+        livemode: true,
+        active: true,
+      })
+      const price1 = await setupPrice({
+        productId: product.id,
+        name: 'Price 1',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        active: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+      const price2 = await setupPrice({
+        productId: product.id,
+        name: 'Price 2',
+        type: PriceType.Subscription,
+        unitPrice: 2000,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        active: true,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+      })
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      // Create subscription with trial (customer has used trial)
+      const trialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000
+      await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price1.id,
+        status: SubscriptionStatus.Trialing,
+        trialEnd,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Check eligibility for a different price
+        const result = await calculateTrialEligibility(
+          price2,
+          customer,
+          transaction
+        )
+        expect(result).toBe(false)
       })
     })
   })

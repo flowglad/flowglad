@@ -1,57 +1,55 @@
-import { protectedProcedure, router } from '@/server/trpc'
+import { z } from 'zod'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
+import {
+  createInvoiceSchema,
+  editInvoiceSchema,
+  invoiceLineItemsClientSelectSchema,
+  invoicesPaginatedTableRowDataSchema,
+  invoiceWithLineItemsClientSchema,
+  sendInvoiceReminderSchema,
+} from '@/db/schema/invoiceLineItems'
 import {
   invoicesClientSelectSchema,
   invoicesPaginatedListSchema,
   invoicesPaginatedSelectSchema,
 } from '@/db/schema/invoices'
-import {
-  invoiceLineItemsClientSelectSchema,
-  invoicesPaginatedTableRowDataSchema,
-} from '@/db/schema/invoiceLineItems'
-import {
-  authenticatedTransaction,
-  authenticatedProcedureTransaction,
-} from '@/db/authenticatedTransaction'
-import {
-  insertInvoice,
-  selectInvoiceById,
-  selectInvoicesPaginated,
-  selectInvoiceCountsByStatus,
-  selectInvoicesTableRowData,
-} from '@/db/tableMethods/invoiceMethods'
-import {
-  idInputSchema,
-  createPaginatedTableRowInputSchema,
-  createPaginatedTableRowOutputSchema,
-} from '@/db/tableUtils'
-import {
-  createPostOpenApiMeta,
-  generateOpenApiMetas,
-} from '@/utils/openapi'
-import {
-  createInvoiceSchema,
-  editInvoiceSchema,
-  invoiceWithLineItemsClientSchema,
-  sendInvoiceReminderSchema,
-} from '@/db/schema/invoiceLineItems'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
   insertInvoiceLineItems,
   selectInvoiceLineItems,
   selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
 } from '@/db/tableMethods/invoiceLineItemMethods'
-import { z } from 'zod'
 import {
-  sendInvoiceReminderEmail,
-  sendInvoiceNotificationEmail,
-} from '@/utils/email'
+  insertInvoice,
+  selectInvoiceById,
+  selectInvoiceCountsByStatus,
+  selectInvoicesPaginated,
+  selectInvoicesTableRowData,
+} from '@/db/tableMethods/invoiceMethods'
 import {
-  selectOrganizationById,
   selectOrganizationAndFirstMemberByOrganizationId,
+  selectOrganizationById,
 } from '@/db/tableMethods/organizationMethods'
-import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
-import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@/db/tableUtils'
+import { protectedProcedure, router } from '@/server/trpc'
 import { InvoiceStatus, SubscriptionItemType } from '@/types'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
+import {
+  sendInvoiceNotificationEmail,
+  sendInvoiceReminderEmail,
+} from '@/utils/email'
+import { updateInvoiceTransaction } from '@/utils/invoiceHelpers'
+import {
+  createPostOpenApiMeta,
+  generateOpenApiMetas,
+} from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'Invoice',

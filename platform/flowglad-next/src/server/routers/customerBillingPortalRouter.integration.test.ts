@@ -3,56 +3,56 @@
  * Tests all procedures with real database interactions
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  vi,
-  afterEach,
-} from 'vitest'
-import {
-  setupOrg,
-  setupUserAndCustomer,
-  setupPaymentMethod,
-  setupSubscription,
-  setupInvoice,
-  setupBillingPeriod,
-  setupBillingRun,
-  setupUserAndApiKey,
-} from '@/../seedDatabase'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
-import type { Customer } from '@/db/schema/customers'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Subscription } from '@/db/schema/subscriptions'
-import type { Invoice } from '@/db/schema/invoices'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { Product } from '@/db/schema/products'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import * as databaseAuthentication from '@/db/databaseAuthentication'
-import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
-import * as betterAuthSchemaMethods from '@/db/tableMethods/betterAuthSchemaMethods'
-import { customerBillingPortalRouter } from './customerBillingPortalRouter'
 import { TRPCError } from '@trpc/server'
 import {
-  InvoiceStatus,
-  PaymentMethodType,
-  SubscriptionStatus,
-  SubscriptionCancellationArrangement,
-} from '@/types'
-import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+import {
+  setupBillingPeriod,
+  setupBillingRun,
+  setupInvoice,
+  setupOrg,
+  setupPaymentMethod,
+  setupSubscription,
+  setupUserAndApiKey,
+  setupUserAndCustomer,
+} from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import * as databaseAuthentication from '@/db/databaseAuthentication'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { Customer } from '@/db/schema/customers'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { User } from '@/db/schema/users'
+import * as betterAuthSchemaMethods from '@/db/tableMethods/betterAuthSchemaMethods'
+import { insertCustomer } from '@/db/tableMethods/customerMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
-import core from '@/utils/core'
+import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
+import {
+  InvoiceStatus,
+  PaymentMethodType,
+  SubscriptionCancellationArrangement,
+  SubscriptionStatus,
+} from '@/types'
 import { auth } from '@/utils/auth'
-import { insertCustomer } from '@/db/tableMethods/customerMethods'
+import core from '@/utils/core'
+import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
+import { customerBillingPortalRouter } from './customerBillingPortalRouter'
 
 // Mock next/headers to avoid Next.js context errors
 vi.mock('next/headers', () => ({
@@ -248,7 +248,9 @@ describe('Customer Billing Portal Router', () => {
       { timeout: 10000 },
       async () => {
         const ctx = createTestContext()
-        const input = {}
+        const input = {
+          customerId: customer.id,
+        }
 
         const result = await customerBillingPortalRouter
           .createCaller(ctx)
@@ -297,6 +299,7 @@ describe('Customer Billing Portal Router', () => {
       async () => {
         const ctx = createTestContext()
         const input = {
+          customerId: customer.id,
           invoicePagination: { page: 1, pageSize: 2 },
         }
 
@@ -353,6 +356,7 @@ describe('Customer Billing Portal Router', () => {
         newCustomerSetup.customer
       )
       const input = {
+        customerId: newCustomerSetup.customer.id,
         invoicePagination: { page: 1, pageSize: 10 },
       }
 
@@ -390,6 +394,7 @@ describe('Customer Billing Portal Router', () => {
 
         // Get page 2 with page size 5
         const input = {
+          customerId: customer.id,
           invoicePagination: { page: 2, pageSize: 5 },
         }
 
@@ -417,7 +422,7 @@ describe('Customer Billing Portal Router', () => {
       await expect(
         customerBillingPortalRouter
           .createCaller(ctxWithoutOrgId)
-          .getBilling({})
+          .getBilling({ customerId: customer.id })
       ).rejects.toThrow()
     })
   })
@@ -425,11 +430,12 @@ describe('Customer Billing Portal Router', () => {
   describe('cancelSubscription', () => {
     it('rejects immediate cancellation (not available to customers)', async () => {
       const ctx = createTestContext()
-      const input: ScheduleSubscriptionCancellationParams = {
+      const input = {
+        customerId: customer.id,
         id: subscription.id,
         cancellation: {
           timing: SubscriptionCancellationArrangement.Immediately,
-        },
+        } as const,
       }
 
       const error = await customerBillingPortalRouter
@@ -446,7 +452,8 @@ describe('Customer Billing Portal Router', () => {
 
     it('rejects future date cancellation (not available to customers)', async () => {
       const ctx = createTestContext()
-      const input: ScheduleSubscriptionCancellationParams = {
+      const input = {
+        customerId: customer.id,
         id: subscription.id,
         cancellation: {
           timing: SubscriptionCancellationArrangement.AtFutureDate,
@@ -471,12 +478,13 @@ describe('Customer Billing Portal Router', () => {
       { timeout: 30000 },
       async () => {
         const ctx = createTestContext()
-        const input: ScheduleSubscriptionCancellationParams = {
+        const input = {
+          customerId: customer.id,
           id: subscription.id,
           cancellation: {
             timing:
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-          },
+          } as const,
         }
 
         const result = await customerBillingPortalRouter
@@ -520,11 +528,12 @@ describe('Customer Billing Portal Router', () => {
       })
 
       const ctx = createTestContext()
-      const input: ScheduleSubscriptionCancellationParams = {
+      const input = {
+        customerId: customer.id,
         id: otherSubscription.id,
         cancellation: {
           timing: SubscriptionCancellationArrangement.Immediately,
-        },
+        } as const,
       }
 
       await expect(
@@ -536,12 +545,13 @@ describe('Customer Billing Portal Router', () => {
 
     it('handles non-existent subscription gracefully', async () => {
       const ctx = createTestContext()
-      const input: ScheduleSubscriptionCancellationParams = {
+      const input = {
+        customerId: customer.id,
         id: 'non_existent_subscription_id',
         cancellation: {
           timing:
             SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-        },
+        } as const,
       }
 
       await expect(
@@ -565,12 +575,13 @@ describe('Customer Billing Portal Router', () => {
       })
 
       const ctx = createTestContext()
-      const input: ScheduleSubscriptionCancellationParams = {
+      const input = {
+        customerId: customer.id,
         id: nonRenewingSubscription.id,
         cancellation: {
           timing:
             SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-        },
+        } as const,
       }
 
       const error = await customerBillingPortalRouter
@@ -599,12 +610,13 @@ describe('Customer Billing Portal Router', () => {
       })
 
       const ctx = createTestContext()
-      const input: ScheduleSubscriptionCancellationParams = {
+      const input = {
+        customerId: customer.id,
         id: canceledSubscription.id,
         cancellation: {
           timing:
             SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-        },
+        } as const,
       }
 
       const error = await customerBillingPortalRouter
@@ -633,12 +645,13 @@ describe('Customer Billing Portal Router', () => {
       })
 
       const ctx = createTestContext()
-      const input: ScheduleSubscriptionCancellationParams = {
+      const input = {
+        customerId: customer.id,
         id: expiredSubscription.id,
         cancellation: {
           timing:
             SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-        },
+        } as const,
       }
 
       const error = await customerBillingPortalRouter
@@ -718,7 +731,7 @@ describe('Customer Billing Portal Router', () => {
 
       const result = await customerBillingPortalRouter
         .createCaller(ctx)
-        .createAddPaymentMethodSession({})
+        .createAddPaymentMethodSession({ customerId: customer.id })
 
       expect(result).toMatchObject({
         sessionUrl: 'https://checkout.stripe.com/test-session-url',
@@ -764,7 +777,9 @@ describe('Customer Billing Portal Router', () => {
       await expect(
         customerBillingPortalRouter
           .createCaller(ctx)
-          .createAddPaymentMethodSession({})
+          .createAddPaymentMethodSession({
+            customerId: customerWithoutStripe.id,
+          })
       ).rejects.toThrow(TRPCError)
     })
 
@@ -792,7 +807,9 @@ describe('Customer Billing Portal Router', () => {
       await expect(
         customerBillingPortalRouter
           .createCaller(ctxWithoutCustomer)
-          .createAddPaymentMethodSession({})
+          .createAddPaymentMethodSession({
+            customerId: 'non_existent_customer_id',
+          })
       ).rejects.toThrow(TRPCError)
     })
   })
@@ -814,6 +831,7 @@ describe('Customer Billing Portal Router', () => {
 
         const ctx = createTestContext()
         const input = {
+          customerId: customer.id,
           paymentMethodId: additionalPaymentMethod.id,
         }
 
@@ -871,6 +889,7 @@ describe('Customer Billing Portal Router', () => {
 
       const ctx = createTestContext()
       const input = {
+        customerId: customer.id,
         paymentMethodId: otherPaymentMethod.id,
       }
 
@@ -884,6 +903,7 @@ describe('Customer Billing Portal Router', () => {
     it('handles non-existent payment method gracefully', async () => {
       const ctx = createTestContext()
       const input = {
+        customerId: customer.id,
         paymentMethodId: 'non_existent_payment_method_id',
       }
 
@@ -910,6 +930,7 @@ describe('Customer Billing Portal Router', () => {
 
         const ctx = createTestContext()
         const input = {
+          customerId: customer.id,
           paymentMethodId: newPaymentMethod.id,
         }
 
@@ -931,5 +952,153 @@ describe('Customer Billing Portal Router', () => {
         )
       }
     )
+  })
+
+  describe('customerId authorization edge cases', () => {
+    it('throws UNAUTHORIZED when customerId is valid but user does not have access', async () => {
+      // Create a different user and customer in the same organization
+      const otherUserAndCustomer = await setupUserAndCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+      const otherCustomer = otherUserAndCustomer.customer
+
+      // The middleware will query the database using the original user's ID
+      // and the other customer's ID. Since they don't match, the query will
+      // return no results and the middleware will throw UNAUTHORIZED.
+
+      const ctx = createTestContext()
+      const input = {
+        customerId: otherCustomer.id,
+      }
+
+      const error = await customerBillingPortalRouter
+        .createCaller(ctx)
+        .getBilling(input)
+        .catch((e) => e)
+
+      expect(error).toBeInstanceOf(TRPCError)
+      expect(error.code).toBe('UNAUTHORIZED')
+    })
+
+    it('throws UNAUTHORIZED when customerId belongs to a different organization', async () => {
+      // Create a second organization with a customer
+      const otherOrgSetup = await setupOrg()
+      const otherOrganization = otherOrgSetup.organization
+
+      const otherOrgUserAndCustomer = await setupUserAndCustomer({
+        organizationId: otherOrganization.id,
+        livemode: true,
+      })
+      const otherOrgCustomer = otherOrgUserAndCustomer.customer
+
+      // The middleware will query the database using the original user's ID
+      // and the original organization ID (from beforeEach mock).
+      // Since the customer belongs to a different organization, the query will
+      // return no results and the middleware will throw UNAUTHORIZED.
+
+      const ctx = createTestContext()
+      const input = {
+        customerId: otherOrgCustomer.id,
+      }
+
+      const error = await customerBillingPortalRouter
+        .createCaller(ctx)
+        .getBilling(input)
+        .catch((e) => e)
+
+      expect(error).toBeInstanceOf(TRPCError)
+      expect(error.code).toBe('UNAUTHORIZED')
+    })
+
+    it('throws UNAUTHORIZED when trying to cancel subscription for customer user does not have access to', async () => {
+      // Create a different user and customer with subscription in the same organization
+      const otherUserAndCustomer = await setupUserAndCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+      const otherCustomer = otherUserAndCustomer.customer
+
+      const otherPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: otherCustomer.id,
+        livemode: true,
+        default: true,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        type: PaymentMethodType.Card,
+      })
+
+      const otherSubscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: otherCustomer.id,
+        paymentMethodId: otherPaymentMethod.id,
+        defaultPaymentMethodId: otherPaymentMethod.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+        livemode: true,
+        currentBillingPeriodStart:
+          Date.now() - 15 * 24 * 60 * 60 * 1000,
+        currentBillingPeriodEnd:
+          Date.now() + 15 * 24 * 60 * 60 * 1000,
+      })
+
+      // The middleware will query the database using the original user's ID
+      // and the other customer's ID. Since they don't match, the query will
+      // return no results and the middleware will throw UNAUTHORIZED.
+
+      const ctx = createTestContext()
+      const input = {
+        customerId: otherCustomer.id,
+        id: otherSubscription.id,
+        cancellation: {
+          timing:
+            SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+        } as const,
+      }
+
+      const error = await customerBillingPortalRouter
+        .createCaller(ctx)
+        .cancelSubscription(input)
+        .catch((e) => e)
+
+      expect(error).toBeInstanceOf(TRPCError)
+      expect(error.code).toBe('UNAUTHORIZED')
+    })
+
+    it('throws UNAUTHORIZED when trying to set default payment method for customer user does not have access to', async () => {
+      // Create a different user and customer with payment method in the same organization
+      const otherUserAndCustomer = await setupUserAndCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+      const otherCustomer = otherUserAndCustomer.customer
+
+      const otherPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: otherCustomer.id,
+        livemode: true,
+        default: false,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        type: PaymentMethodType.Card,
+      })
+
+      // The middleware will query the database using the original user's ID
+      // and the other customer's ID. Since they don't match, the query will
+      // return no results and the middleware will throw UNAUTHORIZED.
+
+      const ctx = createTestContext()
+      const input = {
+        customerId: otherCustomer.id,
+        paymentMethodId: otherPaymentMethod.id,
+      }
+
+      const error = await customerBillingPortalRouter
+        .createCaller(ctx)
+        .setDefaultPaymentMethod(input)
+        .catch((e) => e)
+
+      expect(error).toBeInstanceOf(TRPCError)
+      expect(error.code).toBe('UNAUTHORIZED')
+    })
   })
 })

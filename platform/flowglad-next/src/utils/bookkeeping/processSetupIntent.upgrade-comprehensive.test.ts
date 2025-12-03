@@ -1,60 +1,60 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PaymentMethodType,
-  PurchaseStatus,
-  SubscriptionStatus,
-  IntervalUnit,
-  PriceType,
-  CurrencyCode,
-  CancellationReason,
-  FlowgladEventType,
-} from '@/types'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { Purchase } from '@/db/schema/purchases'
-import { core } from '@/utils/core'
-import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
-  setupCheckoutSession,
-  setupProduct,
-  setupPrice,
-  setupPurchase,
   setupBillingPeriod,
+  setupCheckoutSession,
+  setupCustomer,
   setupFeeCalculation,
+  setupOrg,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupPurchase,
+  setupSubscription,
 } from '@/../seedDatabase'
 import {
-  comprehensiveAdminTransaction,
   adminTransaction,
+  comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import {
-  processSetupIntentSucceeded,
-  CoreSripeSetupIntent,
-  setupIntentStatusToCheckoutSessionStatus,
-} from '@/utils/bookkeeping/processSetupIntent'
-import {
-  selectSubscriptions,
-  selectSubscriptionById,
-  updateSubscription,
   selectActiveSubscriptionsForCustomer,
   selectCurrentSubscriptionForCustomer,
+  selectSubscriptionById,
+  selectSubscriptions,
+  updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
-import { IntentMetadataType } from '@/utils/stripe'
-import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
-import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
+import {
+  CancellationReason,
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  CurrencyCode,
+  FlowgladEventType,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  PurchaseStatus,
+  SubscriptionStatus,
+} from '@/types'
+import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
+import {
+  type CoreSripeSetupIntent,
+  processSetupIntentSucceeded,
+  setupIntentStatusToCheckoutSessionStatus,
+} from '@/utils/bookkeeping/processSetupIntent'
+import { core } from '@/utils/core'
+import { IntentMetadataType } from '@/utils/stripe'
 
 // Helper function to create mock setup intent
 const mockSucceededSetupIntent = ({

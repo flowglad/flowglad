@@ -1,21 +1,23 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import { TRPCError } from '@trpc/server'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
-import { insertProduct } from '@/db/tableMethods/productMethods'
+import { adminTransaction } from '@/db/adminTransaction'
+import * as orgSetup from '@/db/tableMethods/organizationMethods'
 import {
   insertPrice,
-  selectPriceById,
   safelyUpdatePrice,
+  selectPriceById,
 } from '@/db/tableMethods/priceMethods'
-import { selectProductById } from '@/db/tableMethods/productMethods'
-import core from '@/utils/core'
+import {
+  insertProduct,
+  selectProductById,
+} from '@/db/tableMethods/productMethods'
+import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
+import core from '@/utils/core'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
-import { TRPCError } from '@trpc/server'
 import { pricesRouter } from './pricesRouter'
 import { productsRouter } from './productsRouter'
-import * as orgSetup from '@/db/tableMethods/organizationMethods'
 
 describe('pricesRouter - Default Price Constraints', () => {
   let organizationId: string

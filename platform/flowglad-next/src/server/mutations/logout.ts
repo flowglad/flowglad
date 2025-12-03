@@ -1,7 +1,7 @@
-import { auth } from '@/utils/auth'
-import { publicProcedure } from '../trpc'
-import { clearCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { headers } from 'next/headers'
+import { auth } from '@/utils/auth'
+import { clearCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
+import { publicProcedure } from '../trpc'
 
 export const logout = publicProcedure.mutation(async () => {
   await clearCustomerBillingPortalOrganizationId()

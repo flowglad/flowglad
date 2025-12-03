@@ -1,14 +1,14 @@
 import { Img, Section, Text } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from './components/EmailButton'
+import TestModeBanner from './components/TestBanner'
 import {
+  DetailItem,
+  DetailSection,
   EmailLayout,
   Header,
   Paragraph,
-  DetailSection,
-  DetailItem,
 } from './components/themed'
-import TestModeBanner from './components/TestBanner'
 
 export interface OrganizationSubscriptionCreatedNotificationEmailProps {
   organizationName: string

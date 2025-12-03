@@ -15,6 +15,6 @@ const Logo = ({ ...props }) => (
       fill="black"
     />
   </svg>
-);
+)
 
-export default Logo;
+export default Logo

@@ -1,7 +1,7 @@
 'use client'
 
-import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
+import { cn } from '@/lib/utils'
 
 // Hook to detect mobile viewport
 export const useIsMobile = () => {

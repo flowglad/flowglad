@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import { ApiKeysDataTable } from './data-table'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
-import { PageHeader } from '@/components/ui/page-header'
 import { Plus } from 'lucide-react'
+import { useState } from 'react'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
+import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import { FlowgladApiKeyType } from '@/types'
+import { ApiKeysDataTable } from './data-table'
 
 function ApiKeysPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)

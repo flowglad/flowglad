@@ -1,25 +1,27 @@
-import { protectedProcedure, router } from '../trpc'
+import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import { apiKeysClientSelectSchema } from '@/db/schema/apiKeys'
+import {
+  apiKeysClientSelectSchema,
+  createApiKeyInputSchema,
+} from '@/db/schema/apiKeys'
 import {
   selectApiKeyById,
   selectApiKeys,
   selectApiKeysTableRowData,
 } from '@/db/tableMethods/apiKeyMethods'
 import {
-  createPaginatedTableRowOutputSchema,
   createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
-import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
-import { z } from 'zod'
 import { FlowgladApiKeyType } from '@/types'
-import { createApiKeyInputSchema } from '@/db/schema/apiKeys'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
+import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { rotateApiKeyProcedure } from '../mutations/rotateApiKey'
+import { protectedProcedure, router } from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'apiKey',

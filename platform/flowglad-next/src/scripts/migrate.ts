@@ -1,9 +1,9 @@
-import core from '@/utils/core'
 import { loadEnvConfig } from '@next/env'
-import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
 import { testDatabaseEnums } from '@/db/testEnums'
+import core from '@/utils/core'
 
 const projectDir = process.cwd()
 

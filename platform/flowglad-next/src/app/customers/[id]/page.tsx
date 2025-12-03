@@ -1,13 +1,13 @@
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import InternalCustomerDetailsScreen from './InternalCustomerDetailsScreen'
-import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
-import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
-import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
+import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
 import { selectUsageEvents } from '@/db/tableMethods/usageEventMethods'
+import InternalCustomerDetailsScreen from './InternalCustomerDetailsScreen'
 
 export type CustomerPageParams = {
   id: string

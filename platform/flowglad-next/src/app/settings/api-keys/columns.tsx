@@ -1,19 +1,19 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import { Trash2 } from 'lucide-react'
+import * as React from 'react'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
+  type ActionMenuItem,
   EnhancedDataTableActionsMenu,
-  ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import type { ApiKey } from '@/db/schema/apiKeys'
+import { FlowgladApiKeyType } from '@/types'
 // Other imports
 import core from '@/utils/core'
-import { ApiKey } from '@/db/schema/apiKeys'
-import { FlowgladApiKeyType } from '@/types'
 
 export type ApiKeyTableRowData = {
   apiKey: ApiKey.ClientRecord

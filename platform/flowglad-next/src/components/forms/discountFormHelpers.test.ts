@@ -1,15 +1,15 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  type CreateDiscountFormSchema,
+  createDiscountInputSchema,
+  type EditDiscountFormSchema,
+  editDiscountInputSchema,
+} from '@/db/schema/discounts'
 import {
   CurrencyCode,
   DiscountAmountType,
   DiscountDuration,
 } from '@/types'
-import {
-  createDiscountInputSchema,
-  editDiscountInputSchema,
-  CreateDiscountFormSchema,
-  EditDiscountFormSchema,
-} from '@/db/schema/discounts'
 import {
   normalizeDiscountAmount,
   toCreateDiscountInput,

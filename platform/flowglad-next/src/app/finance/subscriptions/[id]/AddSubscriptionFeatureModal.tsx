@@ -2,18 +2,18 @@
 
 import { useMemo } from 'react'
 import { toast } from 'sonner'
-import FormModal, {
-  ModalInterfaceProps,
-} from '@/components/forms/FormModal'
-import type { RichSubscription } from '@/subscriptions/schemas'
+import type { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
-import {
-  addSubscriptionFeatureFormSchema,
-  type AddSubscriptionFeatureFormValues,
-} from './addSubscriptionFeatureFormSchema'
+import FormModal, {
+  type ModalInterfaceProps,
+} from '@/components/forms/FormModal'
+import type { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
+import type { RichSubscription } from '@/subscriptions/schemas'
 import { AddSubscriptionFeatureItemFormFields } from './AddSubscriptionFeatureItemFormFields'
-import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
-import { z } from 'zod'
+import {
+  type AddSubscriptionFeatureFormValues,
+  addSubscriptionFeatureFormSchema,
+} from './addSubscriptionFeatureFormSchema'
 
 interface AddSubscriptionFeatureModalProps
   extends ModalInterfaceProps {

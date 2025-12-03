@@ -1,46 +1,46 @@
-import { DbTransaction } from '@/db/types'
-import {
-  CreateSubscriptionParams,
-  NonRenewingCreateSubscriptionResult,
-  StandardCreateSubscriptionResult,
-} from './types'
-import {
-  verifyCanCreateSubscription,
-  maybeDefaultPaymentMethodForSubscription,
-  safelyProcessCreationForExistingSubscription,
-  maybeCreateInitialBillingPeriodAndRun,
-  ledgerCommandPayload,
-} from './helpers'
-import { insertSubscriptionAndItems } from './initializers'
+import type { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import type { Event } from '@/db/schema/events'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
-import {
-  PriceType,
-  SubscriptionStatus,
-  CancellationReason,
-} from '@/types'
-import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
 import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
 import { idempotentSendCustomerSubscriptionUpgradedNotification } from '@/trigger/notifications/send-customer-subscription-upgraded-notification'
-import { Event } from '@/db/schema/events'
+import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
 import {
+  CancellationReason,
+  EventNoun,
   FeatureFlag,
   FlowgladEventType,
-  EventNoun,
   LedgerTransactionType,
+  PriceType,
+  SubscriptionStatus,
 } from '@/types'
+import { calculateTrialEligibility } from '@/utils/checkoutHelpers'
 import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
-import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { logger } from '@/utils/logger'
+import { hasFeatureFlag } from '@/utils/organizationHelpers'
+import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
+import {
+  ledgerCommandPayload,
+  maybeCreateInitialBillingPeriodAndRun,
+  maybeDefaultPaymentMethodForSubscription,
+  safelyProcessCreationForExistingSubscription,
+  verifyCanCreateSubscription,
+} from './helpers'
+import { insertSubscriptionAndItems } from './initializers'
+import type {
+  CreateSubscriptionParams,
+  NonRenewingCreateSubscriptionResult,
+  StandardCreateSubscriptionResult,
+} from './types'
 
 /**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
@@ -175,6 +175,41 @@ export const createSubscriptionWorkflow = async (
     }
   }
 
+  // Check trial eligibility and override trialEnd if customer is not eligible
+  // This ensures consistency with the checkout flow behavior
+  let finalTrialEnd = params.trialEnd
+  const hasTrialPeriod =
+    params.trialEnd ||
+    (params.price.trialPeriodDays && params.price.trialPeriodDays > 0)
+
+  if (hasTrialPeriod) {
+    // Fetch customer to check trial eligibility
+    const customer = await selectCustomerById(
+      params.customer.id,
+      transaction
+    )
+    // Fetch price record to check trial eligibility
+    const price = await selectPriceById(params.price.id, transaction)
+
+    // Calculate trial eligibility (returns undefined for non-subscription prices)
+    const isEligibleForTrial = await calculateTrialEligibility(
+      price,
+      customer,
+      transaction
+    )
+
+    // If not eligible, remove trial period (similar to checkout flow setting trialPeriodDays to null)
+    if (isEligibleForTrial === false) {
+      finalTrialEnd = undefined
+    }
+  }
+
+  // Update params with the final trialEnd value
+  params = {
+    ...params,
+    trialEnd: finalTrialEnd,
+  }
+
   await verifyCanCreateSubscription(params, transaction)
   const defaultPaymentMethod =
     await maybeDefaultPaymentMethodForSubscription(
@@ -295,9 +330,7 @@ export const createSubscriptionWorkflow = async (
     },
   ]
 
-  let ledgerCommand:
-    | BillingPeriodTransitionLedgerCommand
-    | undefined = undefined
+  let ledgerCommand: BillingPeriodTransitionLedgerCommand | undefined
 
   /* 
     Create the ledger command here if we are not expecting a payment intent

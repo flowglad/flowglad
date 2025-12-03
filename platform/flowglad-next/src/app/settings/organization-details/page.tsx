@@ -1,11 +1,11 @@
 'use client'
 
-import { useAuthenticatedContext } from '@/contexts/authContext'
-import { DetailLabel } from '@/components/DetailLabel'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { DetailLabel } from '@/components/DetailLabel'
 import InternalPageContainer from '@/components/InternalPageContainer'
-import { PageHeader } from '@/components/ui/page-header'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
+import { PageHeader } from '@/components/ui/page-header'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 
 function SettingsOrganizationDetailsPage() {
   const { organization } = useAuthenticatedContext()

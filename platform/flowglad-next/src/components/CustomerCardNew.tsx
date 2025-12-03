@@ -1,11 +1,14 @@
 'use client'
 
-import * as React from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { cva, type VariantProps } from 'class-variance-authority'
+import Link from 'next/link'
+import * as React from 'react'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const customerCardVariants = cva(
   // Base styles
@@ -65,13 +68,23 @@ const getFirstLetter = (name: string) => {
  * - default: Standard card with more padding and shadow hover
  * - simple: Compact card with background/border hover states
  */
-const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
+const CustomerCardNew = React.forwardRef<
+  HTMLElement,
+  CustomerCardNewProps
+>(
   (
-    { className, variant, name, email, avatarUrl, href, onClick, onKeyDown },
+    {
+      className,
+      variant,
+      name,
+      email,
+      avatarUrl,
+      href,
+      onClick,
+      onKeyDown,
+    },
     forwardedRef
   ) => {
-    const router = useRouter()
-
     // Callback ref that forwards to the parent ref with proper typing
     const setRef = React.useCallback(
       (element: HTMLDivElement | HTMLAnchorElement | null) => {
@@ -84,15 +97,20 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
       [forwardedRef]
     )
 
+    // Keyboard handler for Enter/Space activation
+    // - For Link variant (href set): native Link handles Enter activation (fires onClick automatically)
+    // - For div/button variant (no href): preventDefault and call onClick for keyboard activation
     const handleKeyDown = (
       e: React.KeyboardEvent<HTMLDivElement | HTMLAnchorElement>
     ) => {
       if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        onClick?.(e)
-        if (href) {
-          router.push(href)
+        if (!href && onClick) {
+          // div/button variant: prevent scroll on Space, call onClick for activation
+          e.preventDefault()
+          onClick(e)
         }
+        // Link variant: do nothing here - native Link handles Enter (fires click event)
+        // and Space doesn't activate links natively (standard browser behavior)
       }
       onKeyDown?.(e)
     }
@@ -102,9 +120,7 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
     const content = (
       <>
         {/* Avatar - 40px, bg-accent fallback with first letter */}
-        <Avatar
-          className="h-10 w-10 shrink-0"
-        >
+        <Avatar className="h-10 w-10 shrink-0">
           {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
           <AvatarFallback className="bg-accent text-sm font-normal leading-5 text-foreground">
             {getFirstLetter(name)}
@@ -170,10 +186,7 @@ const CustomerCardNew = React.forwardRef<HTMLElement, CustomerCardNewProps>(
 
     // Default: non-interactive card
     return (
-      <div
-        ref={setRef}
-        className={cardClassName}
-      >
+      <div ref={setRef} className={cardClassName}>
         {content}
       </div>
     )

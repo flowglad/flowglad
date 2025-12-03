@@ -1,8 +1,29 @@
-import { Invoice } from '@/db/schema/invoices'
+import type Stripe from 'stripe'
+import { adminTransaction } from '@/db/adminTransaction'
+import type {
+  BillingPeriodTransitionLedgerCommand,
+  LedgerCommand,
+  SettleInvoiceUsageCostsLedgerCommand,
+} from '@/db/ledgerManager/ledgerManagerTypes'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { Customer } from '@/db/schema/customers'
+import type { Event } from '@/db/schema/events'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { Payment } from '@/db/schema/payments'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { User } from '@/db/schema/users'
+import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
+import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import {
   selectBillingRunById,
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
+import {
+  selectInvoiceLineItems,
+  selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
+} from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   safelyUpdateInvoiceStatus,
   selectInvoiceById,
@@ -10,69 +31,48 @@ import {
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import {
+  aggregateOutstandingBalanceForUsageCosts,
+  selectLedgerEntries,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  safelyUpdateSubscriptionStatus,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
+import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
+import {
   BillingRunStatus,
   FeatureType,
   InvoiceStatus,
   LedgerTransactionType,
   SubscriptionStatus,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import {
-  billingRunIntentMetadataSchema,
-  dateFromStripeTimestamp,
-  stripeIdFromObjectOrId,
-} from '@/utils/stripe'
-import Stripe from 'stripe'
-import {
-  calculateFeeAndTotalAmountDueForBillingPeriod,
-  processNoMoreDueForBillingPeriod,
-  processOutstandingBalanceForBillingPeriod,
-  scheduleBillingRunRetry,
-} from './billingRunHelpers'
-import { Customer } from '@/db/schema/customers'
-import { Organization } from '@/db/schema/organizations'
-import { Subscription } from '@/db/schema/subscriptions'
-import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
+import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
   sendOrganizationPaymentFailedNotificationEmail,
   sendOrganizationPaymentNotificationEmail,
   sendPaymentFailedEmail,
 } from '@/utils/email'
-import { Payment } from '@/db/schema/payments'
-import { User } from '@/db/schema/users'
-import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
+import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
-  selectInvoiceLineItems,
-  selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
-} from '@/db/tableMethods/invoiceLineItemMethods'
-import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
-import { adminTransaction } from '@/db/adminTransaction'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+  billingRunIntentMetadataSchema,
+  dateFromStripeTimestamp,
+  stripeIdFromObjectOrId,
+} from '@/utils/stripe'
 import {
-  safelyUpdateSubscriptionStatus,
-  updateSubscription,
-} from '@/db/tableMethods/subscriptionMethods'
-import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
-import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
-import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
-import {
-  aggregateOutstandingBalanceForUsageCosts,
-  selectLedgerEntries,
-} from '@/db/tableMethods/ledgerEntryMethods'
-import { selectPayments } from '@/db/tableMethods/paymentMethods'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import {
-  LedgerCommand,
-  SettleInvoiceUsageCostsLedgerCommand,
-  BillingPeriodTransitionLedgerCommand,
-} from '@/db/ledgerManager/ledgerManagerTypes'
-import { Event } from '@/db/schema/events'
+  calculateFeeAndTotalAmountDueForBillingPeriod,
+  processNoMoreDueForBillingPeriod,
+  processOutstandingBalanceForBillingPeriod,
+  scheduleBillingRunRetry,
+} from './billingRunHelpers'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -442,7 +442,7 @@ export const processPaymentIntentEventForBillingRun = async (
     })
   }
 
-  let ledgerCommands: LedgerCommand[] = []
+  const ledgerCommands: LedgerCommand[] = []
 
   if (
     event.status === 'succeeded' &&

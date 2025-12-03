@@ -1,23 +1,23 @@
-import React from 'react'
+import { sentenceCase } from 'change-case'
+import type React from 'react'
 import { useFormContext } from 'react-hook-form'
-import { Input } from '@/components/ui/input'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { ClonePricingModelInput } from '@/db/schema/pricingModels'
-import { DestinationEnvironment } from '@/types'
-import { sentenceCase } from 'change-case'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
-  SelectValue,
-  SelectTrigger,
   SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
+import type { ClonePricingModelInput } from '@/db/schema/pricingModels'
+import { DestinationEnvironment } from '@/types'
 
 const ClonePricingModelFormFields: React.FC = () => {
   const form = useFormContext<ClonePricingModelInput>()

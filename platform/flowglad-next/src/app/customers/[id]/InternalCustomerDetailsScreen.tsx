@@ -1,26 +1,26 @@
 'use client'
+import { MoreHorizontal, Pencil } from 'lucide-react'
 import { useState } from 'react'
-import { Customer } from '@/db/schema/customers'
-import { Purchase } from '@/db/schema/purchases'
-import { Payment } from '@/db/schema/payments'
-import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
-import type { UsageEvent } from '@/db/schema/usageEvents'
-import { CustomerBillingSubPage } from './CustomerDetailsBillingTab'
-import { Price } from '@/db/schema/prices'
+import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
 import Breadcrumb from '@/components/navigation/Breadcrumb'
-import { PageHeader } from '@/components/ui/page-header'
-import { Button } from '@/components/ui/button'
-import { Pencil, MoreHorizontal } from 'lucide-react'
 import PopoverMenu, {
-  PopoverMenuItem,
+  type PopoverMenuItem,
 } from '@/components/PopoverMenu'
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import EditCustomerModal from '@/components/forms/EditCustomerModal'
+import type { Customer } from '@/db/schema/customers'
+import type { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
+import type { Payment } from '@/db/schema/payments'
+import type { Price } from '@/db/schema/prices'
+import type { Purchase } from '@/db/schema/purchases'
+import type { UsageEvent } from '@/db/schema/usageEvents'
+import { CustomerBillingSubPage } from './CustomerDetailsBillingTab'
 
 function InternalCustomerDetailsScreen({
   customer,
