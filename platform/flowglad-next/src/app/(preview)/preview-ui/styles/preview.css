@@ -53,7 +53,7 @@
   * {
     @apply border-border;
   }
-  
+
   #preview-root {
     @apply bg-background text-foreground;
     min-height: 100vh;
@@ -65,7 +65,7 @@
   .preview-container {
     @apply mx-auto max-w-7xl px-4 py-8;
   }
-  
+
   .preview-component-wrapper {
     @apply rounded-lg border bg-card p-6;
   }

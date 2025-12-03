@@ -3,23 +3,23 @@ Run the following in the terminal to add default products to all pricing models:
 NODE_ENV=production bunx tsx src/scripts/addDefaultProductsToPricingModels.ts
 */
 
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
+import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import {
-  selectProducts,
   bulkInsertProducts,
+  selectProducts,
 } from '@/db/tableMethods/productMethods'
-import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
-import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { PriceType, IntervalUnit } from '@/types'
-import core from '@/utils/core'
+import { IntervalUnit, PriceType } from '@/types'
 import {
   createFreePlanPriceInsert,
   createFreePlanProductInsert,
 } from '@/utils/bookkeeping'
+import core from '@/utils/core'
+import runScript from './scriptRunner'
 
 /* eslint-disable no-console */
 async function addDefaultProductsToPricingModels(

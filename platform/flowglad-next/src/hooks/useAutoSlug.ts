@@ -1,6 +1,6 @@
-import { useRef, useEffect, useCallback, useMemo } from 'react'
-import { useFormContext } from 'react-hook-form'
 import { snakeCase } from 'change-case'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useFormContext } from 'react-hook-form'
 
 interface UseAutoSlugOptions {
   name: string

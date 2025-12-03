@@ -1,19 +1,20 @@
 'use client'
 
-import * as React from 'react'
-import type { ReactNode } from 'react'
 import {
-  ColumnFiltersState,
-  ColumnSizingState,
-  SortingState,
-  VisibilityState,
+  type ColumnFiltersState,
+  type ColumnSizingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from '@tanstack/react-table'
+import type { ReactNode } from 'react'
+import * as React from 'react'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import {
   Table,
   TableBody,
@@ -22,10 +23,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { CurrencyCode } from '@/types'
 import { columns } from './columns'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { CurrencyCode } from '@/types'
 
 interface SubscriptionItemsDataTableProps {
   subscriptionItems: SubscriptionItem.ClientRecord[]

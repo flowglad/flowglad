@@ -1,8 +1,8 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import FlowgladLogo from '@/components/FlowgladLogo'
 import { useSearchParams } from 'next/navigation'
+import FlowgladLogo from '@/components/FlowgladLogo'
+import { cn } from '@/lib/utils'
 
 interface SignupSideBarProps {
   className?: string
@@ -13,8 +13,8 @@ export function SignupSideBar({
 }: SignupSideBarProps) {
   const searchParams = useSearchParams()
   const flow = searchParams.get('flow')
-  let tagline = 'Start Making Internet Money'
-  let taglineDescription =
+  const tagline = 'Start Making Internet Money'
+  const taglineDescription =
     'Make more sales, convert more customers, and grow faster.'
 
   return (

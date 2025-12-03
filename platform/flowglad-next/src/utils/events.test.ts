@@ -1,38 +1,38 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  commitCustomerCreatedEvent,
-  commitCustomerUpdatedEvent,
-  commitPaymentSucceededEvent,
-  commitPaymentCanceledEvent,
-  commitPurchaseCompletedEvent,
-  commitSubscriptionCreatedEvent,
-  commitSubscriptionUpdatedEvent,
-  commitSubscriptionCanceledEvent,
-} from './events'
-import {
-  FlowgladEventType,
-  EventNoun,
-  PaymentStatus,
-  PriceType,
-  CurrencyCode,
-  IntervalUnit,
-  PaymentMethodType,
-} from '@/types'
-import { adminTransaction } from '@/db/adminTransaction'
-import { selectEvents } from '@/db/tableMethods/eventMethods'
-import {
-  setupOrg,
   setupCustomer,
-  setupPaymentMethod,
   setupInvoice,
+  setupOrg,
+  setupPaymentMethod,
   setupPrice,
+  setupPricingModel,
   setupProduct,
   setupPurchase,
   setupSubscription,
-  setupPricingModel,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { selectEvents } from '@/db/tableMethods/eventMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
+import {
+  CurrencyCode,
+  EventNoun,
+  FlowgladEventType,
+  IntervalUnit,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+} from '@/types'
 import core from './core'
+import {
+  commitCustomerCreatedEvent,
+  commitCustomerUpdatedEvent,
+  commitPaymentCanceledEvent,
+  commitPaymentSucceededEvent,
+  commitPurchaseCompletedEvent,
+  commitSubscriptionCanceledEvent,
+  commitSubscriptionCreatedEvent,
+  commitSubscriptionUpdatedEvent,
+} from './events'
 
 describe('Webhook Event Payloads - Simple Real Tests', () => {
   it('should include customer.externalId in CustomerCreated event payload', async () => {

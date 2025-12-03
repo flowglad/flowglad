@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest'
-import {
-  PRICING_MODEL_TEMPLATES,
-  getTemplateById,
-} from './pricingModelTemplates'
-import { validateSetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
+import { describe, expect, it } from 'vitest'
 import { PriceType } from '@/types'
+import { validateSetupPricingModelInput } from '@/utils/pricingModels/setupSchemas'
+import {
+  getTemplateById,
+  PRICING_MODEL_TEMPLATES,
+} from './pricingModelTemplates'
 
 describe('Pricing Model Templates', () => {
   describe('Template Input Validation', () => {

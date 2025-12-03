@@ -1,34 +1,34 @@
+import { kebabCase } from 'change-case'
 import {
-  CreateEmailOptions,
-  CreateEmailRequestOptions,
+  type CreateEmailOptions,
+  type CreateEmailRequestOptions,
   Resend,
 } from 'resend'
-import core from './core'
-import { Invoice } from '@/db/schema/invoices'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
 import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'
-import { InvoiceReminderEmail } from '@/email-templates/invoice-reminder'
-import { InvoiceNotificationEmail } from '@/email-templates/invoice-notification'
-import {
-  OrganizationPaymentNotificationEmail,
-  OrganizationPaymentNotificationEmailProps,
-} from '@/email-templates/organization/organization-payment-succeeded'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from './stripe'
-import { CurrencyCode } from '@/types'
-import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase-access-session-token'
 import { PaymentFailedEmail } from '@/email-templates/customer-payment-failed'
-import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization/organization-payment-awaiting-confirmation'
-import { kebabCase } from 'change-case'
+import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
+import { InvoiceNotificationEmail } from '@/email-templates/invoice-notification'
+import { InvoiceReminderEmail } from '@/email-templates/invoice-reminder'
+import { CustomersCsvExportReadyEmail } from '@/email-templates/organization/customers-csv-export-ready'
 import { OrganizationInvitationEmail } from '@/email-templates/organization/organization-invitation'
+import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization/organization-payment-awaiting-confirmation'
 import {
   OrganizationPaymentFailedNotificationEmail,
-  OrganizationPaymentFailedNotificationEmailProps,
+  type OrganizationPaymentFailedNotificationEmailProps,
 } from '@/email-templates/organization/organization-payment-failed'
-import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
-import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
-import { OrganizationOnboardingCompletedNotificationEmail } from '@/email-templates/organization/payout-notification'
+import {
+  OrganizationPaymentNotificationEmail,
+  type OrganizationPaymentNotificationEmailProps,
+} from '@/email-templates/organization/organization-payment-succeeded'
 import { OrganizationPayoutsEnabledNotificationEmail } from '@/email-templates/organization/organization-payouts-enabled'
-import { CustomersCsvExportReadyEmail } from '@/email-templates/organization/customers-csv-export-ready'
+import { OrganizationOnboardingCompletedNotificationEmail } from '@/email-templates/organization/payout-notification'
+import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase-access-session-token'
+import type { CurrencyCode } from '@/types'
+import core from './core'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from './stripe'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 

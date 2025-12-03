@@ -1,11 +1,11 @@
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import { Payment } from '@/db/schema/payments'
+import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import type { Payment } from '@/db/schema/payments'
 import {
   selectDiscountRedemptions,
   updateDiscountRedemption,
 } from '@/db/tableMethods/discountRedemptionMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
-import { DbTransaction } from '@/db/types'
+import type { DbTransaction } from '@/db/types'
 import { DiscountDuration, PaymentStatus } from '@/types'
 
 export const incrementNumberOfPaymentsForDiscountRedemption = async (

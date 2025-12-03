@@ -3,52 +3,56 @@
  * Tests all procedures with real database interactions
  */
 
+import { TRPCError } from '@trpc/server'
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  vi,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
 } from 'vitest'
 import {
-  setupOrg,
-  setupUserAndCustomer,
-  setupPaymentMethod,
-  setupSubscription,
-  setupInvoice,
   setupBillingPeriod,
   setupBillingRun,
+  setupInvoice,
+  setupOrg,
+  setupPaymentMethod,
+  setupSubscription,
   setupUserAndApiKey,
+  setupUserAndCustomer,
 } from '@/../seedDatabase'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
-import type { Customer } from '@/db/schema/customers'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Subscription } from '@/db/schema/subscriptions'
-import type { Invoice } from '@/db/schema/invoices'
+import { adminTransaction } from '@/db/adminTransaction'
+import * as databaseAuthentication from '@/db/databaseAuthentication'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { Product } from '@/db/schema/products'
+import type { Customer } from '@/db/schema/customers'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
-import * as databaseAuthentication from '@/db/databaseAuthentication'
-import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
+import type { Product } from '@/db/schema/products'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { User } from '@/db/schema/users'
 import * as betterAuthSchemaMethods from '@/db/tableMethods/betterAuthSchemaMethods'
-import { customerBillingPortalRouter } from './customerBillingPortalRouter'
-import { TRPCError } from '@trpc/server'
+import { insertCustomer } from '@/db/tableMethods/customerMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import {
+  selectSubscriptionById,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
+import { insertUser } from '@/db/tableMethods/userMethods'
+import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
 import {
   InvoiceStatus,
   PaymentMethodType,
-  SubscriptionStatus,
   SubscriptionCancellationArrangement,
+  SubscriptionStatus,
 } from '@/types'
-import { adminTransaction } from '@/db/adminTransaction'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
-import { insertUser } from '@/db/tableMethods/userMethods'
-import core from '@/utils/core'
 import { auth } from '@/utils/auth'
-import { insertCustomer } from '@/db/tableMethods/customerMethods'
+import core from '@/utils/core'
+import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
+import { customerBillingPortalRouter } from './customerBillingPortalRouter'
 
 // Mock next/headers to avoid Next.js context errors
 vi.mock('next/headers', () => ({

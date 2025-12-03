@@ -3,8 +3,8 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsageMeterById } from '@/db/tableMethods/usageMeterMethods'
-import InnerFeatureDetailsPage from './InnerFeatureDetailsPage'
 import { FeatureType } from '@/types'
+import InnerFeatureDetailsPage from './InnerFeatureDetailsPage'
 
 interface FeaturePageProps {
   params: Promise<{ id: string }>
@@ -24,7 +24,11 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
           error instanceof Error &&
           error.message.includes('No features found')
         ) {
-          return { feature: null, pricingModel: null, usageMeter: null }
+          return {
+            feature: null,
+            pricingModel: null,
+            usageMeter: null,
+          }
         }
         throw error
       }
@@ -46,7 +50,11 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
         )
       }
 
-      return { feature, pricingModel: pricingModel ?? null, usageMeter }
+      return {
+        feature,
+        pricingModel: pricingModel ?? null,
+        usageMeter,
+      }
     })
 
   if (!feature) {
@@ -63,4 +71,3 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
 }
 
 export default FeaturePage
-

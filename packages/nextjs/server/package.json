@@ -1,5 +1,5 @@
 {
-    "main": "../dist/cjs/server.js",
-    "module": "../dist/esm/server.js",
-    "types": "../dist/types/server.d.ts"
-  }
+  "main": "../dist/cjs/server.js",
+  "module": "../dist/esm/server.js",
+  "types": "../dist/types/server.d.ts"
+}

@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useRef, useEffect } from 'react'
 import debounce from 'debounce'
+import { useCallback, useEffect, useRef } from 'react'
 
 /**
  * A reusable hook that creates a stable debounced function.

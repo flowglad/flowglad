@@ -1,48 +1,48 @@
+import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import { adminTransaction } from '@/db/adminTransaction'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
+import {
+  type CheckoutSession,
+  checkoutSessionsPaginatedListSchema,
+  checkoutSessionsPaginatedSelectSchema,
+  createCheckoutSessionInputSchema,
+  editCheckoutSessionInputSchema,
+  getIntentStatusInputSchema,
+  singleCheckoutSessionOutputSchema,
+} from '@/db/schema/checkoutSessions'
+import { billingAddressSchema } from '@/db/schema/organizations'
+import {
+  selectCheckoutSessionById,
+  selectCheckoutSessions,
+  selectCheckoutSessionsPaginated,
+  updateCheckoutSessionAutomaticallyUpdateSubscriptions,
+  updateCheckoutSessionBillingAddress,
+  updateCheckoutSessionCustomerEmail,
+  updateCheckoutSession as updateCheckoutSessionDb,
+  updateCheckoutSessionPaymentMethodType,
+} from '@/db/tableMethods/checkoutSessionMethods'
+import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
+import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
+import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
+import { setCheckoutSessionCookie } from '@/server/mutations/setCheckoutSessionCookie'
 import {
   protectedProcedure,
   publicProcedure,
   router,
 } from '@/server/trpc'
 import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
-import { setCheckoutSessionCookie } from '@/server/mutations/setCheckoutSessionCookie'
-import {
-  selectCheckoutSessionById,
-  selectCheckoutSessions,
-  selectCheckoutSessionsPaginated,
-  updateCheckoutSession as updateCheckoutSessionDb,
-  updateCheckoutSessionAutomaticallyUpdateSubscriptions,
-  updateCheckoutSessionBillingAddress,
-  updateCheckoutSessionCustomerEmail,
-  updateCheckoutSessionPaymentMethodType,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PaymentMethodType,
 } from '@/types'
-import { TRPCError } from '@trpc/server'
-import {
-  editCheckoutSessionInputSchema,
-  CheckoutSession,
-  checkoutSessionsPaginatedListSchema,
-  checkoutSessionsPaginatedSelectSchema,
-  getIntentStatusInputSchema,
-  singleCheckoutSessionOutputSchema,
-  createCheckoutSessionInputSchema,
-} from '@/db/schema/checkoutSessions'
-import { generateOpenApiMetas } from '@/utils/openapi'
-import { billingAddressSchema } from '@/db/schema/organizations'
-import { adminTransaction } from '@/db/adminTransaction'
-import { getIntentStatus } from '@/utils/bookkeeping/intentStatus'
 import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
-import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
-import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
-import { confirmCheckoutSession } from '@/server/mutations/confirmCheckoutSession'
+import { getIntentStatus } from '@/utils/bookkeeping/intentStatus'
 import core from '@/utils/core'
+import { generateOpenApiMetas } from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'checkoutSession',

@@ -1,25 +1,25 @@
-import { Toaster } from 'sonner'
 import type { Metadata } from 'next'
+import { Toaster } from 'sonner'
 import './globals.css'
 
-import Providers from './Providers'
-import { cn } from '@/lib/utils'
+import * as Sentry from '@sentry/nextjs'
+import { headers } from 'next/headers'
 import { adminTransaction } from '@/db/adminTransaction'
+import {
+  type Organization,
+  organizationsClientSelectSchema,
+} from '@/db/schema/organizations'
+import type { User } from '@/db/schema/users'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { User } from '@/db/schema/users'
 import {
   insertUser,
   selectUsers,
 } from '@/db/tableMethods/userMethods'
-import {
-  Organization,
-  organizationsClientSelectSchema,
-} from '@/db/schema/organizations'
+import { arizonaFlare, berkeleyMono, sfPro } from '@/lib/fonts'
+import { cn } from '@/lib/utils'
 import { auth, getSession } from '@/utils/auth'
-import { headers } from 'next/headers'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
-import * as Sentry from '@sentry/nextjs'
-import { arizonaFlare, sfPro, berkeleyMono } from '@/lib/fonts'
+import Providers from './Providers'
 
 export const metadata: Metadata = {
   title: 'Flowglad',
@@ -43,9 +43,9 @@ export default async function RootLayout({
     return children
   }
   const session = await getSession()
-  let organization: Organization.ClientRecord | undefined = undefined
+  let organization: Organization.ClientRecord | undefined
   let livemode: boolean = true
-  let user: User.Record | undefined = undefined
+  let user: User.Record | undefined
   if (session) {
     user = await betterAuthUserToApplicationUser(session.user)
     const [membershipData] = await adminTransaction(

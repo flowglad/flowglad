@@ -1,14 +1,14 @@
+import { sentenceCase } from 'change-case'
 import {
-  Check,
-  X,
-  Clock,
-  AlertTriangle,
   AlertCircle,
+  AlertTriangle,
+  Check,
+  Clock,
   PauseCircle,
+  X,
   XCircle,
 } from 'lucide-react'
 import { SubscriptionStatus } from '@/types'
-import { sentenceCase } from 'change-case'
 
 /**
  * Represents a status badge configuration for use with PageHeaderNew

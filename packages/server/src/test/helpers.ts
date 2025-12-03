@@ -1,6 +1,6 @@
 import { FlowgladServer } from '../FlowgladServer'
 import { FlowgladServerAdmin } from '../FlowgladServerAdmin'
-import { CoreCustomerUser } from '../types'
+import type { CoreCustomerUser } from '../types'
 
 /**
  * Creates a mock FlowgladServer instance for testing

@@ -1,7 +1,7 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
 import { DefaultLogger } from 'drizzle-orm/logger'
-import { format } from 'sql-formatter'
+import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
+import { format } from 'sql-formatter'
 import core from '@/utils/core'
 
 const TEST_DB_URL = 'postgresql://test:test@localhost:5432/test_db'

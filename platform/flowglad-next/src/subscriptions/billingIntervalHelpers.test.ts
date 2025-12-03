@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { generateNextBillingPeriod } from './billingIntervalHelpers'
+import { describe, expect, it } from 'vitest'
 import { IntervalUnit } from '@/types'
+import { generateNextBillingPeriod } from './billingIntervalHelpers'
 
 describe('generateNextBillingPeriod', () => {
   describe('monthly billing', () => {

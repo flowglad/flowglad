@@ -1,37 +1,37 @@
-import * as R from 'ramda'
-import { z } from 'zod'
+import { sql } from 'drizzle-orm'
 import {
+  boolean,
+  integer,
+  jsonb,
+  pgPolicy,
   pgTable,
   text,
-  boolean,
-  jsonb,
-  integer,
-  pgPolicy,
 } from 'drizzle-orm/pg-core'
+import { nanoid } from 'nanoid'
+import * as R from 'ramda'
+import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
+import { countries } from '@/db/schema/countries'
 import {
-  pgEnumColumn,
+  clientWriteOmitsConstructor,
   constructIndex,
   constructUniqueIndex,
-  tableBase,
+  hiddenColumnsForClientSchema,
+  merchantPolicy,
+  merchantRole,
   newBaseZodSelectSchemaColumns,
   notNullStringForeignKey,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantRole,
-  merchantPolicy,
-  clientWriteOmitsConstructor,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
 } from '@/db/tableUtils'
-import { countries } from '@/db/schema/countries'
-import core, { zodOptionalNullableString } from '@/utils/core'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
   StripeConnectContractType,
 } from '@/types'
 import { generateRandomBytes } from '@/utils/backendCore'
-import { nanoid } from 'nanoid'
-import { sql } from 'drizzle-orm'
+import core, { zodOptionalNullableString } from '@/utils/core'
 
 const TABLE_NAME = 'organizations'
 

@@ -1,12 +1,12 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { Invoice } from '@/db/schema/invoices'
-import { InvoiceStatus, SupabaseUpdatePayload } from '@/types'
-import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
-import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { adminTransaction } from '@/db/adminTransaction'
-import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
+import type { Invoice } from '@/db/schema/invoices'
+import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
+import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { InvoiceStatus, type SupabaseUpdatePayload } from '@/types'
+import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 
 interface ChangeCheckerParams {
   oldRecord: Invoice.Record

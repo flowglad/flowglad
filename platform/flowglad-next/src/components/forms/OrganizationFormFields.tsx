@@ -1,16 +1,19 @@
 'use client'
-import { useState } from 'react'
+import { Copy } from 'lucide-react'
+import type { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
-import { CreateOrganizationInput } from '@/db/schema/organizations'
-import { Input } from '@/components/ui/input'
+import { trpc } from '@/app/_trpc/client'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { CursorLogo } from '@/components/icons/CursorLogo'
 import {
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -18,18 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import type { CreateOrganizationInput } from '@/db/schema/organizations'
+import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
+import { cursorDeepLink } from '@/utils/cursor'
 import {
   REFERRAL_OPTIONS,
   type ReferralOption,
 } from '@/utils/referrals'
-import { trpc } from '@/app/_trpc/client'
-import { Textarea } from '../ui/textarea'
 import { Button } from '../ui/button'
-import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import { cursorDeepLink } from '@/utils/cursor'
-import { Copy } from 'lucide-react'
-import { CursorLogo } from '@/components/icons/CursorLogo'
+import { Textarea } from '../ui/textarea'
 
 const OrganizationFormFields = ({
   setReferralSource,

@@ -3,12 +3,12 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/migrateUsersToBetterAuthUsers.ts
 */
 
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
 import { eq, isNull } from 'drizzle-orm'
-import { users } from '@/db/schema/users'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { user as betterAuthUsers } from '@/db/schema/betterAuthSchema'
+import { users } from '@/db/schema/users'
 import { auth } from '@/utils/auth'
+import runScript from './scriptRunner'
 
 async function example(db: PostgresJsDatabase) {
   // eslint-disable-next-line no-console

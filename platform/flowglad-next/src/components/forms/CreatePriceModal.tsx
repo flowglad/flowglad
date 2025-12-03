@@ -1,12 +1,12 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import { createPriceFormSchema } from '@/db/schema/prices'
-import PriceFormFields from './PriceFormFields'
 import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import { createPriceFormSchema } from '@/db/schema/prices'
 import { PriceType } from '@/types'
 import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
-import { useAuthenticatedContext } from '@/contexts/authContext'
+import PriceFormFields from './PriceFormFields'
 
 interface CreatePriceModalProps {
   isOpen: boolean

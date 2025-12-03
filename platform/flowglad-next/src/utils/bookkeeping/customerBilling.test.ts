@@ -1,64 +1,65 @@
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  vi,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
 } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
 import {
-  setupOrg,
   setupCustomer,
+  setupOrg,
   setupPaymentMethod,
+  setupPrice,
+  setupProduct,
   setupSubscription,
   setupUserAndCustomer,
-  setupProduct,
-  setupPrice,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import * as databaseAuthentication from '@/db/databaseAuthentication'
+import type { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import { nulledPriceColumns, type Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { User } from '@/db/schema/users'
+import * as betterAuthSchemaMethods from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
-  setDefaultPaymentMethodForCustomer,
-  customerBillingCreatePricedCheckoutSession,
-  customerBillingTransaction,
-} from './customerBilling'
-import { Organization } from '@/db/schema/organizations'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { Price } from '@/db/schema/prices'
-import { Product } from '@/db/schema/products'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { User } from '@/db/schema/users'
-import {
-  PaymentMethodType,
-  SubscriptionStatus,
-  CheckoutSessionType,
-  PriceType,
-  IntervalUnit,
-  CurrencyCode,
-} from '@/types'
-import core from '@/utils/core'
+  selectCustomerById,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
 import {
   selectPaymentMethodById,
   selectPaymentMethods,
   updatePaymentMethod,
 } from '@/db/tableMethods/paymentMethodMethods'
 import {
+  insertPrice,
+  safelyUpdatePrice,
+} from '@/db/tableMethods/priceMethods'
+import { insertProduct } from '@/db/tableMethods/productMethods'
+import {
   selectSubscriptionById,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
-  updateCustomer,
-  selectCustomerById,
-} from '@/db/tableMethods/customerMethods'
-import { insertProduct } from '@/db/tableMethods/productMethods'
-import { insertPrice } from '@/db/tableMethods/priceMethods'
-import { nulledPriceColumns } from '@/db/schema/prices'
-import { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
-import * as databaseAuthentication from '@/db/databaseAuthentication'
+  CheckoutSessionType,
+  CurrencyCode,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
+import core from '@/utils/core'
 import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
-import * as betterAuthSchemaMethods from '@/db/tableMethods/betterAuthSchemaMethods'
-import { safelyUpdatePrice } from '@/db/tableMethods/priceMethods'
+import {
+  customerBillingCreatePricedCheckoutSession,
+  customerBillingTransaction,
+  setDefaultPaymentMethodForCustomer,
+} from './customerBilling'
 
 // Mock next/headers to avoid Next.js context errors
 vi.mock('next/headers', () => ({

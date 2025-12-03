@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupMemberships,
   setupOrg,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { CreateApiKeyInput } from '@/db/schema/apiKeys'
+import type { Organization } from '@/db/schema/organizations'
+import { updateMembership } from '@/db/tableMethods/membershipMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { FlowgladApiKeyType } from '@/types'
 import {
   createSecretApiKeyTransaction,
   getApiKeyHeader,
 } from './apiKeyHelpers'
-import { FlowgladApiKeyType } from '@/types'
-import { CreateApiKeyInput } from '@/db/schema/apiKeys'
-import { Organization } from '@/db/schema/organizations'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { updateMembership } from '@/db/tableMethods/membershipMethods'
 
 describe('apiKeyHelpers', () => {
   let organization: Organization.Record

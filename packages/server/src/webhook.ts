@@ -198,10 +198,7 @@ export function verifyWebhook(
         isValid = true
         break
       }
-    } catch (error) {
-      // Invalid base64, try next signature
-      continue
-    }
+    } catch (error) {}
   }
 
   if (!isValid) {

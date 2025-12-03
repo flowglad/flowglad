@@ -1,48 +1,46 @@
-import { DbTransaction } from '@/db/types'
-import {
-  CreateSubscriptionParams,
-  NonRenewingCreateSubscriptionResult,
-  StandardCreateSubscriptionResult,
-} from './types'
-import {
-  verifyCanCreateSubscription,
-  maybeDefaultPaymentMethodForSubscription,
-  safelyProcessCreationForExistingSubscription,
-  maybeCreateInitialBillingPeriodAndRun,
-  ledgerCommandPayload,
-} from './helpers'
-import { insertSubscriptionAndItems } from './initializers'
+import type { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import type { Event } from '@/db/schema/events'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
-import {
-  PriceType,
-  SubscriptionStatus,
-  CancellationReason,
-} from '@/types'
-import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
 import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
 import { idempotentSendCustomerSubscriptionUpgradedNotification } from '@/trigger/notifications/send-customer-subscription-upgraded-notification'
-import { Event } from '@/db/schema/events'
+import { idempotentSendOrganizationSubscriptionCreatedNotification } from '@/trigger/notifications/send-organization-subscription-created-notification'
 import {
+  CancellationReason,
+  EventNoun,
   FeatureFlag,
   FlowgladEventType,
-  EventNoun,
   LedgerTransactionType,
+  PriceType,
+  SubscriptionStatus,
 } from '@/types'
-import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
-import { updateDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
-import { hasFeatureFlag } from '@/utils/organizationHelpers'
-import { logger } from '@/utils/logger'
 import { calculateTrialEligibility } from '@/utils/checkoutHelpers'
+import { constructSubscriptionCreatedEventHash } from '@/utils/eventHelpers'
+import { logger } from '@/utils/logger'
+import { hasFeatureFlag } from '@/utils/organizationHelpers'
+import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
+import {
+  ledgerCommandPayload,
+  maybeCreateInitialBillingPeriodAndRun,
+  maybeDefaultPaymentMethodForSubscription,
+  safelyProcessCreationForExistingSubscription,
+  verifyCanCreateSubscription,
+} from './helpers'
+import { insertSubscriptionAndItems } from './initializers'
+import type {
+  CreateSubscriptionParams,
+  NonRenewingCreateSubscriptionResult,
+  StandardCreateSubscriptionResult,
+} from './types'
 
 /**
  * NOTE: as a matter of safety, we do not create a billing run if autoStart is not provided.
@@ -332,9 +330,7 @@ export const createSubscriptionWorkflow = async (
     },
   ]
 
-  let ledgerCommand:
-    | BillingPeriodTransitionLedgerCommand
-    | undefined = undefined
+  let ledgerCommand: BillingPeriodTransitionLedgerCommand | undefined
 
   /* 
     Create the ledger command here if we are not expecting a payment intent

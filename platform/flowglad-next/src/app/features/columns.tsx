@@ -1,18 +1,17 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil } from 'lucide-react'
-
-import { Feature } from '@/db/schema/features'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
-import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
-import StatusBadge from '@/components/StatusBadge'
-import {
-  EnhancedDataTableActionsMenu,
-  ActionMenuItem,
-} from '@/components/ui/enhanced-data-table-actions-menu'
+import * as React from 'react'
 import EditFeatureModal from '@/components/forms/EditFeatureModal'
+import StatusBadge from '@/components/StatusBadge'
+import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import {
+  type ActionMenuItem,
+  EnhancedDataTableActionsMenu,
+} from '@/components/ui/enhanced-data-table-actions-menu'
+import type { Feature } from '@/db/schema/features'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
 
 export interface FeatureRow {
   feature: Feature.ClientRecord
