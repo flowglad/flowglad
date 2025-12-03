@@ -1,5 +1,16 @@
 # @flowglad/shared
 
+## 0.14.0
+
+### Minor Changes
+
+- de55219: - bump @flowglad/node dependency to v0.23
+  - price slug support for create usage events & create subscription
+  - activate subscription checkout cleanup
+  - add test coverage to @flowglad/shared
+  - migrate types from @flowglad/types to @flowglad/shared
+  - deprecate @flowglad/types
+
 ## 0.13.0
 
 ### Minor Changes
