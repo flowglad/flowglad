@@ -59,8 +59,15 @@ const sendCustomerSubscriptionCancellationScheduledNotificationTask =
           }
         })
 
-      if (!organization || !customer) {
-        throw new Error('Organization or customer not found')
+      if (!organization) {
+        throw new Error(
+          `Organization not found for subscription: ${subscriptionId}`
+        )
+      }
+      if (!customer) {
+        throw new Error(
+          `Customer not found for subscription: ${subscriptionId}`
+        )
       }
 
       // Validate customer email
