@@ -12,7 +12,9 @@
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
     "check": "eslint --max-warnings=0 && tsc --noEmit",
-    "build:declarations": "tsc -p tsconfig.declarations.json"
+    "build:declarations": "tsc -p tsconfig.declarations.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "publishConfig": {
     "access": "public"
@@ -24,7 +26,8 @@
   },
   "devDependencies": {
     "eslint": "8.57.0",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "vitest": "3.0.5"
   },
   "exports": {
     ".": {
