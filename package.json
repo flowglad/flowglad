@@ -40,7 +40,7 @@
     "prettier-plugin-packagejson": "2.5.8",
     "prettier-plugin-tailwindcss": "0.6.11",
     "react": "19.1.0",
-    "react-dom": "19.0.0",
+    "react-dom": "19.1.0",
     "tsup": "8.3.6",
     "turbo": "^2.4.4",
     "typescript": "5.8.2"
