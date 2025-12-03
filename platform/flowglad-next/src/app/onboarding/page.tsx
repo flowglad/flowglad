@@ -1,24 +1,24 @@
+import { redirect } from 'next/navigation'
+import { ClientAuthGuard } from '@/components/ClientAuthGuard'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import type { ApiKey } from '@/db/schema/apiKeys'
+import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
+import { selectAllCountries } from '@/db/tableMethods/countryMethods'
+import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
+import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
+import { selectUsers } from '@/db/tableMethods/userMethods'
 import {
   FlowgladApiKeyType,
-  OnboardingChecklistItem,
+  type OnboardingChecklistItem,
   OnboardingItemType,
 } from '@/types'
-import { updateOrganizationOnboardingStatus } from '@/utils/processStripeEvents'
-import { selectAllCountries } from '@/db/tableMethods/countryMethods'
-import OnboardingStatusTable from './OnboardingStatusTable'
-import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
-import { selectDiscounts } from '@/db/tableMethods/discountMethods'
-import { redirect } from 'next/navigation'
-import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
-import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
-import { ApiKey } from '@/db/schema/apiKeys'
 import { auth, getSession } from '@/utils/auth'
-import { selectUsers } from '@/db/tableMethods/userMethods'
-import { ClientAuthGuard } from '@/components/ClientAuthGuard'
+import { updateOrganizationOnboardingStatus } from '@/utils/processStripeEvents'
+import OnboardingStatusTable from './OnboardingStatusTable'
 
 const OnboardingPage = async () => {
   const results = await authenticatedTransaction(

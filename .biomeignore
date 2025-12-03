@@ -1,4 +1,3 @@
-# Ignore artifacts:
 build
 coverage
 node_modules
@@ -24,3 +23,9 @@ packages/server/dist
 packages/server/node_modules
 packages/shared/dist
 packages/shared/node_modules
+playground/supabase-auth/types_db.ts
+
+# Generated preview CSS files (match from any directory)
+**/public/preview/manifest.json
+**/public/preview/preview.css
+**/public/preview/preview.*.css

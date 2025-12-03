@@ -1,6 +1,6 @@
-import * as React from 'react'
 import { Check, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
+import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 export interface ItemFeatureProps
@@ -42,8 +42,21 @@ export interface ItemFeatureProps
  * </ItemFeature>
  * ```
  */
-const ItemFeature = React.forwardRef<HTMLDivElement, ItemFeatureProps>(
-  ({ className, children, icon: Icon = Check, onClick, href, ...props }, ref) => {
+const ItemFeature = React.forwardRef<
+  HTMLDivElement,
+  ItemFeatureProps
+>(
+  (
+    {
+      className,
+      children,
+      icon: Icon = Check,
+      onClick,
+      href,
+      ...props
+    },
+    ref
+  ) => {
     const isClickable = Boolean(onClick) || Boolean(href)
 
     const content = (
@@ -110,4 +123,3 @@ const ItemFeature = React.forwardRef<HTMLDivElement, ItemFeatureProps>(
 ItemFeature.displayName = 'ItemFeature'
 
 export { ItemFeature }
-

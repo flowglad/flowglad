@@ -1,5 +1,5 @@
-import { logger } from './logger'
 import { trace } from '@opentelemetry/api'
+import { logger } from './logger'
 
 interface SecurityEvent {
   type:

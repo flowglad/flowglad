@@ -102,7 +102,7 @@ const config: Config = {
      * Tailwind utils to hide scrollbars
      * @see https://stackoverflow.com/a/66436651
      */
-    plugin(function ({ addUtilities }) {
+    plugin(({ addUtilities }) => {
       addUtilities({
         '.scrollbar-hidden::-webkit-scrollbar': {
           display: 'none',

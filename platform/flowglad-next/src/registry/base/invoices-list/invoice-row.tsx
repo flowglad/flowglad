@@ -1,10 +1,10 @@
 'use client'
 
-import * as React from 'react'
-import { cn } from '@/registry/lib/cn'
+import type * as React from 'react'
 import { Button } from '@/components/ui/button'
-import { InvoiceStatusBadge } from './invoice-status-badge'
+import { cn } from '@/registry/lib/cn'
 import { InvoiceAmount } from './invoice-amount'
+import { InvoiceStatusBadge } from './invoice-status-badge'
 import type { Invoice } from './types'
 import { formatDate } from './utils'
 

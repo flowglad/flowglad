@@ -1,6 +1,6 @@
-import type { Tables } from '@/types_db';
+import type { Tables } from '@/types_db'
 
-type Price = Tables<'prices'>;
+type Price = Tables<'prices'>
 
 export const getURL = (path: string = '') => {
   // Check if NEXT_PUBLIC_SITE_URL is set and non-empty. Set this to your site URL in production env.
@@ -13,41 +13,41 @@ export const getURL = (path: string = '') => {
           process.env.NEXT_PUBLIC_VERCEL_URL.trim() !== ''
         ? process.env.NEXT_PUBLIC_VERCEL_URL
         : // If neither is set, default to localhost for local development.
-          'http://localhost:3000/';
+          'http://localhost:3000/'
 
   // Trim the URL and remove trailing slash if exists.
-  url = url.replace(/\/+$/, '');
+  url = url.replace(/\/+$/, '')
   // Make sure to include `https://` when not localhost.
-  url = url.includes('http') ? url : `https://${url}`;
+  url = url.includes('http') ? url : `https://${url}`
   // Ensure path starts without a slash to avoid double slashes in the final URL.
-  path = path.replace(/^\/+/, '');
+  path = path.replace(/^\/+/, '')
 
   // Concatenate the URL and the path.
-  return path ? `${url}/${path}` : url;
-};
+  return path ? `${url}/${path}` : url
+}
 
 export const postData = async ({
   url,
-  data
+  data,
 }: {
-  url: string;
-  data?: { price: Price };
+  url: string
+  data?: { price: Price }
 }) => {
   const res = await fetch(url, {
     method: 'POST',
     headers: new Headers({ 'Content-Type': 'application/json' }),
     credentials: 'same-origin',
-    body: JSON.stringify(data)
-  });
+    body: JSON.stringify(data),
+  })
 
-  return res.json();
-};
+  return res.json()
+}
 
 export const toDateTime = (secs: number) => {
-  var t = new Date(+0); // Unix epoch start.
-  t.setSeconds(secs);
-  return t;
-};
+  var t = new Date(+0) // Unix epoch start.
+  t.setSeconds(secs)
+  return t
+}
 
 export const calculateTrialEndUnixTimestamp = (
   trialPeriodDays: number | null | undefined
@@ -58,20 +58,21 @@ export const calculateTrialEndUnixTimestamp = (
     trialPeriodDays === undefined ||
     trialPeriodDays < 2
   ) {
-    return undefined;
+    return undefined
   }
 
-  const currentDate = new Date(); // Current date and time
+  const currentDate = new Date() // Current date and time
   const trialEnd = new Date(
-    currentDate.getTime() + (trialPeriodDays + 1) * 24 * 60 * 60 * 1000
-  ); // Add trial days
-  return Math.floor(trialEnd.getTime() / 1000); // Convert to Unix timestamp in seconds
-};
+    currentDate.getTime() +
+      (trialPeriodDays + 1) * 24 * 60 * 60 * 1000
+  ) // Add trial days
+  return Math.floor(trialEnd.getTime() / 1000) // Convert to Unix timestamp in seconds
+}
 
 const toastKeyMap: { [key: string]: string[] } = {
   status: ['status', 'status_description'],
-  error: ['error', 'error_description']
-};
+  error: ['error', 'error_description'],
+}
 
 const getToastRedirect = (
   path: string,
@@ -81,24 +82,24 @@ const getToastRedirect = (
   disableButton: boolean = false,
   arbitraryParams: string = ''
 ): string => {
-  const [nameKey, descriptionKey] = toastKeyMap[toastType];
+  const [nameKey, descriptionKey] = toastKeyMap[toastType]
 
-  let redirectPath = `${path}?${nameKey}=${encodeURIComponent(toastName)}`;
+  let redirectPath = `${path}?${nameKey}=${encodeURIComponent(toastName)}`
 
   if (toastDescription) {
-    redirectPath += `&${descriptionKey}=${encodeURIComponent(toastDescription)}`;
+    redirectPath += `&${descriptionKey}=${encodeURIComponent(toastDescription)}`
   }
 
   if (disableButton) {
-    redirectPath += `&disable_button=true`;
+    redirectPath += `&disable_button=true`
   }
 
   if (arbitraryParams) {
-    redirectPath += `&${arbitraryParams}`;
+    redirectPath += `&${arbitraryParams}`
   }
 
-  return redirectPath;
-};
+  return redirectPath
+}
 
 export const getStatusRedirect = (
   path: string,
@@ -114,7 +115,7 @@ export const getStatusRedirect = (
     statusDescription,
     disableButton,
     arbitraryParams
-  );
+  )
 
 export const getErrorRedirect = (
   path: string,
@@ -130,4 +131,4 @@ export const getErrorRedirect = (
     errorDescription,
     disableButton,
     arbitraryParams
-  );
+  )

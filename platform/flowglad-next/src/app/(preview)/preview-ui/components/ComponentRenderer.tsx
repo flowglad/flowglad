@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, Suspense, lazy } from 'react'
 import type { ComponentType } from 'react'
+import { lazy, Suspense, useState } from 'react'
 
 interface ComponentConfig {
   name: string

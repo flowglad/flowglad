@@ -1,23 +1,23 @@
 {
-    "extends": "./tsconfig.json",
-    "compilerOptions": {
-      "skipLibCheck": true,
-      "noEmit": false,
-      "declaration": true,
-      "emitDeclarationOnly": true,
-      "declarationMap": false,
-      "sourceMap": false,
-      "outDir": "./dist/types",
-      "declarationDir": "./dist/types",
-      "noImplicitReturns": false,
-      "paths": {}
-    },
-    "include": [
-      "src/index.ts",
-      "src/index.browser.ts",
-      "src/index.headless.ts",
-      "src/index.headless.browser.ts",
-      "src/server.ts",
-      "src/**/*.d.ts"
-    ]
-  }
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": false,
+    "sourceMap": false,
+    "outDir": "./dist/types",
+    "declarationDir": "./dist/types",
+    "noImplicitReturns": false,
+    "paths": {}
+  },
+  "include": [
+    "src/index.ts",
+    "src/index.browser.ts",
+    "src/index.headless.ts",
+    "src/index.headless.browser.ts",
+    "src/server.ts",
+    "src/**/*.d.ts"
+  ]
+}

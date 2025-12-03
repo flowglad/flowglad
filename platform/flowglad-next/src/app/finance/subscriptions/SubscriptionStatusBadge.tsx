@@ -1,8 +1,8 @@
-import { Subscription } from '@/db/schema/subscriptions'
-import core from '@/utils/core'
-import { SubscriptionStatus } from '@/types'
-import { Badge } from '@/components/ui/badge'
 import { sentenceCase } from 'change-case'
+import { Badge } from '@/components/ui/badge'
+import { Subscription } from '@/db/schema/subscriptions'
+import { SubscriptionStatus } from '@/types'
+import core from '@/utils/core'
 
 const subscriptionStatusColors: Record<SubscriptionStatus, string> = {
   [SubscriptionStatus.Active]: 'bg-green-100 text-green-800',

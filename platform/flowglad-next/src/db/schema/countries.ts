@@ -1,20 +1,20 @@
-import * as R from 'ramda'
+import { sql } from 'drizzle-orm'
 import { pgTable, text } from 'drizzle-orm/pg-core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
 import {
-  ommittedColumnsForInsertSchema,
-  newBaseZodSelectSchemaColumns,
-  tableBase,
   constructUniqueIndex,
-  SelectConditions,
-  merchantPolicy,
   customerRole,
   enableCustomerReadPolicy,
+  merchantPolicy,
+  newBaseZodSelectSchemaColumns,
+  ommittedColumnsForInsertSchema,
+  type SelectConditions,
+  tableBase,
 } from '@/db/tableUtils'
-import { z } from 'zod'
 import { CountryCode } from '@/types'
 import core from '@/utils/core'
-import { sql } from 'drizzle-orm'
 import { countryCodeSchema } from '../commonZodSchema'
 import { buildSchemas } from '../createZodSchemas'
 

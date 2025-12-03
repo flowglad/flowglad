@@ -1,13 +1,12 @@
 'use client'
-export { FlowgladProvider } from './FlowgladProvider'
-export { useBilling } from './FlowgladContext'
-
-export { humanReadableCurrencyAmount } from './lib/utils'
 
 export type {
+  ErrorFlowgladContextValues,
   FlowgladContextValues,
   LoadedFlowgladContextValues,
-  NotLoadedFlowgladContextValues,
   NotAuthenticatedFlowgladContextValues,
-  ErrorFlowgladContextValues,
+  NotLoadedFlowgladContextValues,
 } from './FlowgladContext'
+export { useBilling } from './FlowgladContext'
+export { FlowgladProvider } from './FlowgladProvider'
+export { humanReadableCurrencyAmount } from './lib/utils'

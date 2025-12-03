@@ -1,5 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { eq } from 'drizzle-orm'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupCheckoutSession,
+  setupCustomer,
+  setupFeeCalculation,
+  setupOrg,
+  setupPrice,
+  teardownOrg,
+} from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import { checkoutSessions } from '@/db/schema/checkoutSessions'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -10,16 +20,6 @@ import {
   deleteExpiredCheckoutSessionsAndFeeCalculations,
   selectCheckoutSessionById,
 } from './checkoutSessionMethods'
-import { checkoutSessions } from '@/db/schema/checkoutSessions'
-import {
-  setupOrg,
-  setupCustomer,
-  setupPrice,
-  setupCheckoutSession,
-  setupFeeCalculation,
-  teardownOrg,
-} from '@/../seedDatabase'
-import { eq } from 'drizzle-orm'
 
 // Target: deleteExpiredCheckoutSessionsAndFeeCalculations (src/db/tableMethods/checkoutSessionMethods.ts)
 // Behavior: Deletes checkout sessions older than 14 days by createdAt (hardcoded),

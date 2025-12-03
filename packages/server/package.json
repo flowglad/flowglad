@@ -12,7 +12,7 @@
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
     "build:declarations": "tsc -p tsconfig.declarations.json",
-    "check": "eslint --max-warnings=0 && tsc --noEmit",
+    "check": "biome check . && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts"
@@ -24,7 +24,6 @@
   },
   "devDependencies": {
     "dotenv": "^16.4.5",
-    "eslint": "8.57.0",
     "typescript": "5.8.2",
     "vitest": "3.0.5",
     "msw": "^2.7.0"

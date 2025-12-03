@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import {
   boolean,
   integer,
@@ -5,21 +6,8 @@ import {
   pgTable,
   text,
 } from 'drizzle-orm/pg-core'
-import {
-  pgEnumColumn,
-  ommittedColumnsForInsertSchema,
-  constructIndex,
-  notNullStringForeignKey,
-  newBaseZodSelectSchemaColumns,
-  tableBase,
-  livemodePolicy,
-  metadataSchema,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantPolicy,
-  enableCustomerReadPolicy,
-  timestampWithTimezoneColumn,
-} from '@/db/tableUtils'
+import { z } from 'zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import {
   Customer,
   customerClientSelectSchema,
@@ -35,13 +23,25 @@ import {
   Product,
   productsClientSelectSchema,
 } from '@/db/schema/products'
-import core from '@/utils/core'
-import { z } from 'zod'
-import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
-import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
-import { sql } from 'drizzle-orm'
-import { buildSchemas } from '@/db/createZodSchemas'
+import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
+import {
+  constructIndex,
+  enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  metadataSchema,
+  newBaseZodSelectSchemaColumns,
+  notNullStringForeignKey,
+  ommittedColumnsForInsertSchema,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
+  timestampWithTimezoneColumn,
+} from '@/db/tableUtils'
+import { IntervalUnit, PriceType, PurchaseStatus } from '@/types'
+import core from '@/utils/core'
 
 export const TABLE_NAME = 'purchases'
 

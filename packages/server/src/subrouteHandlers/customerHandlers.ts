@@ -1,9 +1,9 @@
-import { FlowgladServer } from '../FlowgladServer'
 import {
-  FlowgladActionKey,
+  type FlowgladActionKey,
   HTTPMethod,
   updateCustomerSchema,
 } from '@flowglad/shared'
+import type { FlowgladServer } from '../FlowgladServer'
 import type { SubRouteHandler } from './types'
 
 export const getCustomerBilling: SubRouteHandler<

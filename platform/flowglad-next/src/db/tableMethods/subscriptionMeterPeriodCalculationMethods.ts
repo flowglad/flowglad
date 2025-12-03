@@ -1,18 +1,18 @@
+import { sql } from 'drizzle-orm'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  createUpsertFunction,
-  ORMMethodCreatorConfig,
-} from '@/db/tableUtils'
-import {
-  subscriptionMeterPeriodCalculations,
   subscriptionMeterPeriodCalculationInsertSchema,
   subscriptionMeterPeriodCalculationSelectSchema,
+  subscriptionMeterPeriodCalculations,
   subscriptionMeterPeriodCalculationUpdateSchema,
 } from '@/db/schema/subscriptionMeterPeriodCalculations'
-import { sql } from 'drizzle-orm'
+import {
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
 import { SubscriptionMeterPeriodCalculationStatus } from '@/types'
 
 const config: ORMMethodCreatorConfig<

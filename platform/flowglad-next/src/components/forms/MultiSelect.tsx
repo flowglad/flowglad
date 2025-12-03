@@ -6,15 +6,15 @@ import * as React from 'react'
 import { forwardRef, useEffect } from 'react'
 
 import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
 import {
   Command,
   CommandGroup,
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { cn } from '@/lib/utils'
 import { FormDescription, FormMessage } from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 
 export interface Option {
   value: string

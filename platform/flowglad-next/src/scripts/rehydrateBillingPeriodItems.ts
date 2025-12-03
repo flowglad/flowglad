@@ -3,17 +3,17 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/rehydrateBillingPeriodItems.ts billing_period_id=bp_...
 */
 
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
-import runScript from './scriptRunner'
-import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import {
   bulkInsertBillingPeriodItems,
   selectBillingPeriodItems,
 } from '@/db/tableMethods/billingPeriodItemMethods'
-import { PriceType, SubscriptionItemType } from '@/types'
+import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { PriceType, SubscriptionItemType } from '@/types'
+import runScript from './scriptRunner'
 
 async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
   // eslint-disable-next-line no-console

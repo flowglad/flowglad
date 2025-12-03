@@ -1,11 +1,11 @@
+import { NextResponse } from 'next/server'
+import type Stripe from 'stripe'
 import core from '@/utils/core'
 import {
   handleStripeConnectWebhookEvent,
   handleStripePrimaryWebhookEvent,
 } from '@/utils/processStripeEvents'
 import { constructStripeWebhookEvent } from '@/utils/stripe'
-import { NextResponse } from 'next/server'
-import Stripe from 'stripe'
 
 type WebhookMode = 'livemode' | 'testmode'
 const stripeWebhookSigningSecret = ({

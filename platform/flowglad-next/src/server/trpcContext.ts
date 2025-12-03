@@ -1,16 +1,16 @@
-import * as trpcNext from '@trpc/server/adapters/next'
-import { ApiEnvironment } from '@/types'
+import * as Sentry from '@sentry/nextjs'
+import type * as trpcNext from '@trpc/server/adapters/next'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Organization } from '@/db/schema/organizations'
+import type { User } from '@/db/schema/users'
 import {
   selectFocusedMembershipAndOrganization,
   selectMembershipAndOrganizationsByBetterAuthUserId,
 } from '@/db/tableMethods/membershipMethods'
-import { Organization } from '@/db/schema/organizations'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { getSession } from '@/utils/auth'
-import { User } from '@/db/schema/users'
 import { selectUsers } from '@/db/tableMethods/userMethods'
-import * as Sentry from '@sentry/nextjs'
+import type { ApiEnvironment } from '@/types'
+import { getSession } from '@/utils/auth'
 
 export const createContext = async (
   opts: trpcNext.CreateNextContextOptions

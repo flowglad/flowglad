@@ -1,9 +1,10 @@
 // src/mocks/handlers.ts
-import { PaymentMethodType } from '@/types'
-import { nanoid } from 'nanoid'
-import { http, HttpResponse } from 'msw'
+
+import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
-import Stripe from 'stripe'
+import { nanoid } from 'nanoid'
+import type Stripe from 'stripe'
+import { PaymentMethodType } from '@/types'
 
 const decodeStatusFromId = (
   id: string | readonly string[] | undefined

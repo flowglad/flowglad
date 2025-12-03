@@ -1,15 +1,15 @@
-import { describe, it, beforeEach, expect } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
-import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
-import { pricingModelsRouter } from '@/server/routers/pricingModelsRouter'
-import { pricesRouter } from '@/server/routers/pricesRouter'
-import { IntervalUnit, PriceType } from '@/types'
-import { insertProduct } from '@/db/tableMethods/productMethods'
-import {
-  selectPricesAndProductsByProductWhere,
-  selectPrices,
-} from '@/db/tableMethods/priceMethods'
 import { TRPCError } from '@trpc/server'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import {
+  selectPrices,
+  selectPricesAndProductsByProductWhere,
+} from '@/db/tableMethods/priceMethods'
+import { insertProduct } from '@/db/tableMethods/productMethods'
+import { pricesRouter } from '@/server/routers/pricesRouter'
+import { pricingModelsRouter } from '@/server/routers/pricingModelsRouter'
+import { IntervalUnit, PriceType } from '@/types'
 
 describe('beforeEach setup', () => {
   let organizationId: string

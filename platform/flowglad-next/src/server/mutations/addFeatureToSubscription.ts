@@ -1,8 +1,8 @@
-import { protectedProcedure } from '@/server/trpc'
 import { authenticatedProcedureComprehensiveTransaction } from '@/db/authenticatedTransaction'
 import { addFeatureToSubscriptionInputSchema } from '@/db/schema/subscriptionItemFeatures'
-import { addFeatureToSubscriptionItem } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import { selectClientSubscriptionItemFeatureAndFeatureById } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { protectedProcedure } from '@/server/trpc'
+import { addFeatureToSubscriptionItem } from '@/subscriptions/subscriptionItemFeatureHelpers'
 
 export const addFeatureToSubscription = protectedProcedure
   .input(addFeatureToSubscriptionInputSchema)

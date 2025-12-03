@@ -1,9 +1,9 @@
 import { idempotencyKeys } from '@trigger.dev/sdk'
 import {
+  type BinaryLike,
   createHash,
   createHmac,
   randomBytes,
-  type BinaryLike,
 } from 'crypto'
 
 // backend-only core utils that would break client-side code
@@ -21,12 +21,12 @@ export async function createTriggerIdempotencyKey(key: string) {
 export function testSafeTriggerInvoker<
   T extends (...args: any[]) => Promise<any>,
 >(triggerFn: T): T {
-  return async function (...args: Parameters<T>) {
+  return (async (...args: Parameters<T>) => {
     if (process.env.NODE_ENV === 'test') {
       return
     }
     return triggerFn(...args)
-  } as T
+  }) as T
 }
 
 export function generateHmac({

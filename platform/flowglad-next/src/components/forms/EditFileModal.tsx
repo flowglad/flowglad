@@ -1,9 +1,9 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import { File, editFileInputSchema } from '@/db/schema/files'
-import { FileFormFields } from '@/components/forms/FileFormFields'
 import { trpc } from '@/app/_trpc/client'
+import { FileFormFields } from '@/components/forms/FileFormFields'
+import FormModal from '@/components/forms/FormModal'
+import { editFileInputSchema, type File } from '@/db/schema/files'
 
 interface CreatePostPurchaseFileModalProps {
   isOpen: boolean

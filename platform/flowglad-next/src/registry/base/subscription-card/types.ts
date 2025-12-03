@@ -1,4 +1,4 @@
-import { SubscriptionStatus } from '@/registry/lib/subscription-status'
+import type { SubscriptionStatus } from '@/registry/lib/subscription-status'
 
 export interface SubscriptionItem {
   id: string

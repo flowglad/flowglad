@@ -1,28 +1,28 @@
 import {
+  boolean,
+  jsonb,
   pgTable,
   text,
   timestamp,
-  boolean,
-  jsonb,
 } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import type { z } from 'zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import {
-  pgEnumColumn,
-  constructUniqueIndex,
   constructIndex,
-  tableBase,
-  notNullStringForeignKey,
-  livemodePolicy,
+  constructUniqueIndex,
   createSupabaseWebhookSchema,
+  livemodePolicy,
+  notNullStringForeignKey,
   ommittedColumnsForInsertSchema,
-  SelectConditions,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { PurchaseAccessSessionSource } from '@/types'
 import core from '@/utils/core'
 import { purchases } from './purchases'
-import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'purchase_access_sessions'
 

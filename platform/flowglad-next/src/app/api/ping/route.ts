@@ -1,5 +1,5 @@
-import { core } from '@/utils/core'
 import { NextResponse } from 'next/server'
+import { core } from '@/utils/core'
 
 export const dynamic = 'force-dynamic'
 

@@ -1,9 +1,9 @@
 'use client'
 
-import * as React from 'react'
 import { User } from 'lucide-react'
-import { cn } from '@/registry/lib/cn'
 import Image from 'next/image'
+import * as React from 'react'
+import { cn } from '@/registry/lib/cn'
 import type { CustomerAvatarProps } from './types'
 
 export function CustomerAvatar({

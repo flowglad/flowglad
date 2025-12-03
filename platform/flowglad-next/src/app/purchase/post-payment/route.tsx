@@ -1,8 +1,29 @@
+import type { NextRequest } from 'next/server'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Payment } from '@/db/schema/payments'
+import type { Purchase } from '@/db/schema/purchases'
+import {
+  isCheckoutSessionSubscriptionCreating,
+  selectCheckoutSessionById,
+  selectCheckoutSessions,
+} from '@/db/tableMethods/checkoutSessionMethods'
+import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
+import { generateInvoicePdfIdempotently } from '@/trigger/generate-invoice-pdf'
+import { generatePaymentReceiptPdfIdempotently } from '@/trigger/generate-receipt-pdf'
 import { PurchaseAccessSessionSource } from '@/types'
+import { processNonPaymentCheckoutSession } from '@/utils/bookkeeping/processNonPaymentCheckoutSession'
+import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import { processSetupIntentSucceeded } from '@/utils/bookkeeping/processSetupIntent'
+import { deleteCheckoutSessionCookie } from '@/utils/checkoutSessionState'
+import { isNil } from '@/utils/core'
 import { createPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
 import {
   getPaymentIntent,
@@ -10,27 +31,6 @@ import {
   IntentMetadataType,
   stripeIntentMetadataSchema,
 } from '@/utils/stripe'
-import { NextRequest } from 'next/server'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import { Purchase } from '@/db/schema/purchases'
-import { deleteCheckoutSessionCookie } from '@/utils/checkoutSessionState'
-import {
-  isCheckoutSessionSubscriptionCreating,
-  selectCheckoutSessionById,
-  selectCheckoutSessions,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { processNonPaymentCheckoutSession } from '@/utils/bookkeeping/processNonPaymentCheckoutSession'
-import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import { isNil } from '@/utils/core'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { generateInvoicePdfIdempotently } from '@/trigger/generate-invoice-pdf'
-import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
-import { Invoice } from '@/db/schema/invoices'
-import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
-import { Payment } from '@/db/schema/payments'
-import { generatePaymentReceiptPdfIdempotently } from '@/trigger/generate-receipt-pdf'
-import { processSetupIntentSucceeded } from '@/utils/bookkeeping/processSetupIntent'
 
 interface ProcessPostPaymentResult {
   purchase: Purchase.Record

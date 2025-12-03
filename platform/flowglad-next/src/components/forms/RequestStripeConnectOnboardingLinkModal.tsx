@@ -1,4 +1,11 @@
 'use client'
+
+import { zodResolver } from '@hookform/resolvers/zod'
+import { FormProvider, useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { trpc } from '@/app/_trpc/client'
+import ErrorLabel from '@/components/ErrorLabel'
+import RequestStripeConnectOnboardingLinkFormFields from '@/components/forms/RequestStripeConnectOnboardingLinkFormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -7,16 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { trpc } from '@/app/_trpc/client'
 import {
-  Country,
+  type Country,
   requestStripeConnectOnboardingLinkInputSchema,
 } from '@/db/schema/countries'
-import RequestStripeConnectOnboardingLinkFormFields from '@/components/forms/RequestStripeConnectOnboardingLinkFormFields'
-import { FormProvider, useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import ErrorLabel from '@/components/ErrorLabel'
 
 const RequestStripeConnectOnboardingLinkModal = ({
   isOpen,

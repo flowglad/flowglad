@@ -1,39 +1,39 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  createCustomerBookkeeping,
-  createPricingModelBookkeeping,
-  createFreePlanPriceInsert,
-} from './bookkeeping'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
-  setupProduct,
   setupPrice,
   setupPricingModel,
+  setupProduct,
 } from '@/../seedDatabase'
-import {
-  IntervalUnit,
-  PriceType,
-  FlowgladEventType,
-  CurrencyCode,
-  BusinessOnboardingStatus,
-  StripeConnectContractType,
-} from '@/types'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { PricingModel } from '@/db/schema/pricingModels'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
 import { UsageMeter } from '@/db/schema/usageMeters'
+import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
+import { selectCountries } from '@/db/tableMethods/countryMethods'
+import { insertOrganization } from '@/db/tableMethods/organizationMethods'
 import {
-  selectPricingModelById,
   selectDefaultPricingModel,
+  selectPricingModelById,
   selectPricingModels,
 } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
-import { insertOrganization } from '@/db/tableMethods/organizationMethods'
+import {
+  BusinessOnboardingStatus,
+  CurrencyCode,
+  FlowgladEventType,
+  IntervalUnit,
+  PriceType,
+  StripeConnectContractType,
+} from '@/types'
 import core from '@/utils/core'
-import { selectCountries } from '@/db/tableMethods/countryMethods'
+import {
+  createCustomerBookkeeping,
+  createFreePlanPriceInsert,
+  createPricingModelBookkeeping,
+} from './bookkeeping'
 
 const livemode = true
 describe('createCustomerBookkeeping', () => {

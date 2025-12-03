@@ -1,9 +1,9 @@
-import { TooltipCallbackProps } from '@/components/charts/AreaChart'
-import { cn } from '@/lib/utils'
-import core from '@/utils/core'
-import { getColorClassName } from '@/utils/chartStyles'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import type { TooltipCallbackProps } from '@/components/charts/AreaChart'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import { cn } from '@/lib/utils'
+import { getColorClassName } from '@/utils/chartStyles'
+import core from '@/utils/core'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import ErrorBoundary from './ErrorBoundary'
 
 function DateLabel({ label }: { label: string }) {

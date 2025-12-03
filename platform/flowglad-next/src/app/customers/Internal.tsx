@@ -1,17 +1,17 @@
 'use client'
 import { useState } from 'react'
-import {
-  Tabs,
-  TabsList,
-  TabsContent,
-  TabsTrigger,
-} from '@/components/ui/tabs'
 import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
 import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
+import { PageHeader } from '@/components/ui/page-header'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { CustomersDataTable } from './data-table'
-import { PageHeader } from '@/components/ui/page-header'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 interface CustomerTabProps {
   label: string
