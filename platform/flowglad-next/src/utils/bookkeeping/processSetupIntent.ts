@@ -1,58 +1,61 @@
-import {
-  selectCustomerById,
-  updateCustomer,
-} from '@/db/tableMethods/customerMethods'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PurchaseStatus,
-  SubscriptionStatus,
-  FlowgladEventType,
-  EventNoun,
-} from '@/types'
-import { DbTransaction } from '@/db/types'
-import {
-  StripeIntentMetadata,
-  stripeIntentMetadataSchema,
-  stripeIdFromObjectOrId,
-  IntentMetadataType,
-} from '@/utils/stripe'
-import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
-import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Customer } from '@/db/schema/customers'
+import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import { Event } from '@/db/schema/events'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import { Purchase } from '@/db/schema/purchases'
+import { Subscription } from '@/db/schema/subscriptions'
 import {
   checkoutSessionIsInTerminalState,
   isCheckoutSessionSubscriptionCreating,
   selectCheckoutSessionById,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import { Price } from '@/db/schema/prices'
-import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
-import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
-import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
+import {
+  selectCustomerById,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import {
+  selectPurchaseById,
+  updatePurchase,
+} from '@/db/tableMethods/purchaseMethods'
+import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
   selectSubscriptionById,
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
 import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
-import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import { constructPurchaseCompletedEventHash } from '../eventHelpers'
-import { Event } from '@/db/schema/events'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  EventNoun,
+  FlowgladEventType,
+  PurchaseStatus,
+  SubscriptionStatus,
+} from '@/types'
+import {
+  IntentMetadataType,
+  StripeIntentMetadata,
+  stripeIdFromObjectOrId,
+  stripeIntentMetadataSchema,
+} from '@/utils/stripe'
 import { hasCustomerUsedTrial } from '../checkoutHelpers'
+import { constructPurchaseCompletedEventHash } from '../eventHelpers'
+import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
+import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status

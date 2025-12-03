@@ -1,9 +1,9 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { sentenceCase } from 'change-case'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 /**
  * A mapping of specific URL path segments to their full, clickable path.

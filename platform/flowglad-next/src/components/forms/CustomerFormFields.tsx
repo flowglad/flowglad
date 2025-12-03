@@ -1,14 +1,14 @@
 import { useFormContext } from 'react-hook-form'
-import { Input } from '@/components/ui/input'
+import PricingModelSelect from '@/components/forms/PricingModelSelect'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { Customer } from '@/db/schema/customers'
-import PricingModelSelect from '@/components/forms/PricingModelSelect'
+import { Input } from '@/components/ui/input'
+import type { Customer } from '@/db/schema/customers'
 
 const CustomerFormFields = () => {
   const form = useFormContext<{

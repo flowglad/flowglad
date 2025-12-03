@@ -1,26 +1,26 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
+import { sentenceCase } from 'change-case'
 // Icons come next
 import { Pencil, Trash2 } from 'lucide-react'
+import * as React from 'react'
+import DeleteDiscountModal from '@/components/forms/DeleteDiscountModal'
+import EditDiscountModal from '@/components/forms/EditDiscountModal'
+import StatusBadge from '@/components/StatusBadge'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
+  type ActionMenuItem,
   EnhancedDataTableActionsMenu,
-  ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
 // Other imports
-import { Discount } from '@/db/schema/discounts'
+import type { Discount } from '@/db/schema/discounts'
 import {
   CurrencyCode,
   DiscountAmountType,
   DiscountDuration,
 } from '@/types'
-import StatusBadge from '@/components/StatusBadge'
-import EditDiscountModal from '@/components/forms/EditDiscountModal'
-import DeleteDiscountModal from '@/components/forms/DeleteDiscountModal'
-import { sentenceCase } from 'change-case'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export type DiscountTableRowData = Discount.TableRowData

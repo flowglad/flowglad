@@ -1,11 +1,11 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import DiscountFormFields from '@/components/forms/DiscountFormFields'
 import { trpc } from '@/app/_trpc/client'
-import { DiscountAmountType, DiscountDuration } from '@/types'
-import { createDiscountFormSchema } from '@/db/schema/discounts'
+import DiscountFormFields from '@/components/forms/DiscountFormFields'
+import FormModal from '@/components/forms/FormModal'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import { createDiscountFormSchema } from '@/db/schema/discounts'
+import { DiscountAmountType, DiscountDuration } from '@/types'
 import { toCreateDiscountInput } from './discountFormHelpers'
 
 interface CreateDiscountModalProps {

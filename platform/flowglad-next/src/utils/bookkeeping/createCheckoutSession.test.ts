@@ -1,41 +1,41 @@
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
   afterEach,
   beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
 } from 'vitest'
+import {
+  setupCustomer,
+  setupOrg,
+  setupPrice,
+  setupProduct,
+  setupSubscription,
+  setupUsageMeter,
+  teardownOrg,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { CreateCheckoutSessionObject } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { UsageMeter } from '@/db/schema/usageMeters'
+import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
+import { core } from '@/utils/core'
 import {
   checkoutSessionInsertFromInput,
   createCheckoutSessionTransaction,
 } from './createCheckoutSession'
-import {
-  setupOrg,
-  setupCustomer,
-  teardownOrg,
-  setupPrice,
-  setupUsageMeter,
-  setupProduct,
-  setupSubscription,
-} from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
-import { Organization } from '@/db/schema/organizations'
-import { Price } from '@/db/schema/prices'
-import { Customer } from '@/db/schema/customers'
-import { Product } from '@/db/schema/products'
-import {
-  CheckoutSessionType,
-  CheckoutSessionStatus,
-  PriceType,
-  SubscriptionStatus,
-} from '@/types'
-import { CreateCheckoutSessionObject } from '@/db/schema/checkoutSessions'
-import { IntervalUnit } from '@/types'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { core } from '@/utils/core'
-import { Subscription } from '@/db/schema/subscriptions'
-import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 
 const DEFAULT_SUCCESS_URL = 'https://example.com/success'
 const DEFAULT_CANCEL_URL = 'https://example.com/cancel'

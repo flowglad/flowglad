@@ -1,11 +1,11 @@
+import { adminTransaction } from '@/db/adminTransaction'
+import { productIdOrPurchaseIdSchema } from '@/db/schema/discounts'
 import { publicProcedure } from '@/server/trpc'
+import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
 import {
   findProductCheckoutSession,
   findPurchaseCheckoutSession,
 } from '@/utils/checkoutSessionState'
-import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
-import { adminTransaction } from '@/db/adminTransaction'
-import { productIdOrPurchaseIdSchema } from '@/db/schema/discounts'
 
 export const clearDiscountCode = publicProcedure
   .input(productIdOrPurchaseIdSchema)

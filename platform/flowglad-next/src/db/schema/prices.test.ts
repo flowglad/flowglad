@@ -5,7 +5,7 @@ import {
   usageDummyPrice,
 } from '@/stubs/priceStubs'
 import {
-  Price,
+  type Price,
   pricesSelectSchema,
   singlePaymentPriceDefaultColumns,
   subscriptionPriceDefaultColumns,

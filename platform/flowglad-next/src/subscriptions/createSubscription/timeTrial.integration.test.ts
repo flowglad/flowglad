@@ -1,44 +1,45 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  setupOrg,
   setupCustomer,
-  setupToggleFeature,
+  setupOrg,
   setupProductFeature,
+  setupToggleFeature,
+  setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import type { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Feature } from '@/db/schema/features'
+import type { Organization } from '@/db/schema/organizations'
+import type { PricingModel } from '@/db/schema/pricingModels'
 import {
+  selectCheckoutSessionById,
   updateCheckoutSessionBillingAddress,
   updateCheckoutSessionPaymentMethodType,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
-import { processSetupIntentSucceeded } from '@/utils/bookkeeping/processSetupIntent'
-import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import {
+  CheckoutSessionStatus,
   CheckoutSessionType,
   IntervalUnit,
+  PaymentMethodType,
   PriceType,
   SubscriptionStatus,
-  CheckoutSessionStatus,
 } from '@/types'
-import { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import { PaymentMethodType } from '@/types'
-import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
-import core from '@/utils/core'
-import { CoreSripeSetupIntent } from '@/utils/bookkeeping/processSetupIntent'
-import { IntentMetadataType } from '@/utils/stripe'
-import { vi } from 'vitest'
+import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
+import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
+import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import {
-  checkoutInfoForPriceWhere,
+  type CoreSripeSetupIntent,
+  processSetupIntentSucceeded,
+} from '@/utils/bookkeeping/processSetupIntent'
+import {
   checkoutInfoForCheckoutSession,
+  checkoutInfoForPriceWhere,
 } from '@/utils/checkoutHelpers'
-import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import core from '@/utils/core'
 import { createProductTransaction } from '@/utils/pricingModel'
-import { setupUserAndApiKey } from '@/../seedDatabase'
-import { Customer } from '@/db/schema/customers'
-import { Feature } from '@/db/schema/features'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { Organization } from '@/db/schema/organizations'
+import { IntentMetadataType } from '@/utils/stripe'
 
 vi.mock('next/headers', () => ({
   cookies: () => ({

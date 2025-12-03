@@ -1,26 +1,27 @@
+import { sql } from 'drizzle-orm'
 import { pgTable } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
-import { sql } from 'drizzle-orm'
-import {
-  tableBase,
-  notNullStringForeignKey,
-  constructUniqueIndex,
-  hiddenColumnsForClientSchema,
-  createPaginatedSelectSchema,
-  createPaginatedListQuerySchema,
-  SelectConditions,
-  livemodePolicy,
-  timestampWithTimezoneColumn,
-  constructIndex,
-  membershipOrganizationIdIntegrityCheckPolicy,
-  parentForeignKeyIntegrityCheckPolicy,
-  merchantPolicy,
-  enableCustomerReadPolicy,
-} from '@/db/tableUtils'
-import { products } from '@/db/schema/products'
+import { buildSchemas } from '@/db/createZodSchemas'
 import { features } from '@/db/schema/features'
 import { organizations } from '@/db/schema/organizations'
-import { buildSchemas } from '@/db/createZodSchemas'
+import { products } from '@/db/schema/products'
+import {
+  constructIndex,
+  constructUniqueIndex,
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  membershipOrganizationIdIntegrityCheckPolicy,
+  merchantPolicy,
+  notNullStringForeignKey,
+  parentForeignKeyIntegrityCheckPolicy,
+  type SelectConditions,
+  tableBase,
+  timestampWithTimezoneColumn,
+} from '@/db/tableUtils'
+
 const TABLE_NAME = 'product_features'
 
 export const productFeatures = pgTable(

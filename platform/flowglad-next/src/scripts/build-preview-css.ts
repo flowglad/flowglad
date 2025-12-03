@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
+import crypto from 'crypto'
 /* eslint-disable no-console */
 import fs from 'fs/promises'
 import path from 'path'
 import postcss from 'postcss'
-import crypto from 'crypto'
 
 async function buildPreviewCSS() {
   console.log('🎨 Building preview CSS...')
@@ -62,7 +62,7 @@ async function buildPreviewCSS() {
 
     await fs.writeFile(
       path.join(outputDir, 'manifest.json'),
-      JSON.stringify(manifest, null, 2)
+      JSON.stringify(manifest, null, 2) + '\n'
     )
 
     // Also create a hashed version for production

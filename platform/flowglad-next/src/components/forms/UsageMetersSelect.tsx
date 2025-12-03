@@ -1,9 +1,11 @@
-import { Control, useFormContext } from 'react-hook-form'
+import { useEffect } from 'react'
+import { type Control, useFormContext } from 'react-hook-form'
+import { useListUsageMetersQuery } from '@/app/hooks/useListUsageMetersQuery'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
 import {
@@ -13,9 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useListUsageMetersQuery } from '@/app/hooks/useListUsageMetersQuery'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useEffect } from 'react'
 
 interface UsageMetersSelectProps {
   name: string

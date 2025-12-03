@@ -1,29 +1,31 @@
+import Stripe from 'stripe'
 import { z } from 'zod'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Country } from '@/db/schema/countries'
+import type { Customer } from '@/db/schema/customers'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type {
+  BillingAddress,
+  Organization,
+} from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
 import {
   BusinessOnboardingStatus,
   CountryCode,
   CurrencyCode,
-  Nullish,
+  type Nullish,
   PaymentMethodType,
   StripeConnectContractType,
 } from '@/types'
-import core from './core'
-import Stripe from 'stripe'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { Organization } from '@/db/schema/organizations'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { Invoice } from '@/db/schema/invoices'
-import { BillingAddress } from '@/db/schema/organizations'
-import { Purchase } from '@/db/schema/purchases'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import {
-  calculateTotalFeeAmount,
   calculateTotalDueAmount,
+  calculateTotalFeeAmount,
 } from '@/utils/bookkeeping/fees/common'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { Country } from '@/db/schema/countries'
-import { Customer } from '@/db/schema/customers'
+import core from './core'
 
 const DIGITAL_TAX_CODE = 'txcd_10000000'
 
@@ -435,8 +437,7 @@ export const stripeCurrencyAmountToShortReadableCurrencyAmount = (
 
     // Check if rounding would result in >= 1000K, if so use M notation instead
     const roundedThousands =
-      Math.round(thousands * Math.pow(10, decimals)) /
-      Math.pow(10, decimals)
+      Math.round(thousands * 10 ** decimals) / 10 ** decimals
     if (roundedThousands >= THRESHOLDS.THOUSAND) {
       // Switch to M notation to avoid displaying "1000K" or higher
       const millions = actualAmount / THRESHOLDS.MILLION

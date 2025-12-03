@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
+  fireEvent,
   render,
   screen,
-  fireEvent,
   waitFor,
 } from '@testing-library/react'
-import CreateDiscountModal from './CreateDiscountModal'
-import { DiscountAmountType, DiscountDuration } from '@/types'
-import { useAuthenticatedContext } from '@/contexts/authContext'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { trpc } from '@/app/_trpc/client'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import { DiscountAmountType, DiscountDuration } from '@/types'
+import CreateDiscountModal from './CreateDiscountModal'
 
 // Mock the auth context
 vi.mock('@/contexts/authContext', () => ({

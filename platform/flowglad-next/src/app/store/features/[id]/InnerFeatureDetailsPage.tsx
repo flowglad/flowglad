@@ -1,16 +1,16 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Check, Copy, X } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import EditFeatureModal from '@/components/forms/EditFeatureModal'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { Feature } from '@/db/schema/features'
 import { PricingModel } from '@/db/schema/pricingModels'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
-import EditFeatureModal from '@/components/forms/EditFeatureModal'
 import ToggleFeatureModal from './ToggleFeatureModal'
 
 interface InnerFeatureDetailsPageProps {
@@ -252,8 +252,8 @@ function InnerFeatureDetailsPage({
             <SectionLabel>Slug</SectionLabel>
             <CopyableField value={feature.slug} label="slug" />
             <HelperText>
-              Used to check access on the SDK. Must be unique within each
-              pricing model.
+              Used to check access on the SDK. Must be unique within
+              each pricing model.
             </HelperText>
           </ContentSection>
 
@@ -276,7 +276,8 @@ function InnerFeatureDetailsPage({
                   {getRenewalFrequencyLabel(feature.renewalFrequency)}
                 </SectionValue>
                 <HelperText>
-                  Credits granted when a customer subscribes to this feature.
+                  Credits granted when a customer subscribes to this
+                  feature.
                 </HelperText>
               </ContentSection>
 
@@ -309,7 +310,8 @@ function InnerFeatureDetailsPage({
                     </div>
                   </div>
                   <HelperText>
-                    Usage events recorded against this meter consume credits.
+                    Usage events recorded against this meter consume
+                    credits.
                   </HelperText>
                 </ContentSection>
               )}
@@ -336,4 +338,3 @@ function InnerFeatureDetailsPage({
 }
 
 export default InnerFeatureDetailsPage
-

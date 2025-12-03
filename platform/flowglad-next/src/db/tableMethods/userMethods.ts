@@ -5,12 +5,12 @@ import {
   usersUpdateSchema,
 } from '@/db/schema/users'
 import {
-  createUpsertFunction,
+  createInsertFunction,
   createSelectById,
   createSelectFunction,
-  createInsertFunction,
-  ORMMethodCreatorConfig,
   createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 
 export type UserInsert = typeof users.$inferInsert

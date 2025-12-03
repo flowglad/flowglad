@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import type Stripe from 'stripe'
+import { describe, expect, it } from 'vitest'
 import { PaymentMethodType } from '@/types'
 import { paymentMethodInsertFromStripeCardPaymentMethod } from './paymentMethodHelpers'
-import type Stripe from 'stripe'
 
 describe('paymentMethodInsertFromStripeCardPaymentMethod', () => {
   it('should correctly transform Stripe payment method to insert', () => {

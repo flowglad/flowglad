@@ -40,7 +40,6 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: '1.2.14'
-          cache: true
 
       - name: Install dependencies
         run: bun run install-packages --no-progress

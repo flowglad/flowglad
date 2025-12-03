@@ -1,22 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupMemberships,
+  setupOrg,
+  setupPrice,
+  setupPricingModel,
+  setupProduct,
+} from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Product } from '@/db/schema/products'
+import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
+import core from '@/utils/core'
 import {
   getProductTableRows,
   insertProduct,
-  updateProduct,
   selectProductPriceAndFeaturesByProductId,
+  updateProduct,
 } from './productMethods'
 import { insertUser } from './userMethods'
-import {
-  setupOrg,
-  setupPricingModel,
-  setupMemberships,
-  setupProduct,
-  setupPrice,
-} from '@/../seedDatabase'
-import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
-import core from '@/utils/core'
-import { Product } from '@/db/schema/products'
 
 describe('getProductTableRows', () => {
   let organizationId: string

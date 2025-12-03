@@ -1,20 +1,20 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
-import { Badge } from '@/components/ui/badge'
+import type { ColumnDef } from '@tanstack/react-table'
 import { sentenceCase } from 'change-case'
 import { X } from 'lucide-react'
-import { formatDate } from '@/utils/core'
-import {
-  EnhancedDataTableActionsMenu,
-  ActionMenuItem,
-} from '@/components/ui/enhanced-data-table-actions-menu'
+import * as React from 'react'
+import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
+import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
-import { Subscription } from '@/db/schema/subscriptions'
+import {
+  type ActionMenuItem,
+  EnhancedDataTableActionsMenu,
+} from '@/components/ui/enhanced-data-table-actions-menu'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { SubscriptionStatus } from '@/types'
-import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
+import { formatDate } from '@/utils/core'
 
 const subscriptionStatusColors: Record<SubscriptionStatus, string> = {
   [SubscriptionStatus.Active]: 'bg-green-100 text-green-800',

@@ -1,21 +1,26 @@
-import { Price } from '@/db/schema/prices'
-import { Feature } from '@/db/schema/features'
-import { DbTransaction } from '@/db/types'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { ProductFeature } from '@/db/schema/productFeatures'
-import {
-  selectFeaturesByProductFeatureWhere,
-  selectProductFeatures,
-} from '@/db/tableMethods/productFeatureMethods'
+import * as R from 'ramda'
+import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import type { Feature } from '@/db/schema/features'
+import type { Price } from '@/db/schema/prices'
+import type { ProductFeature } from '@/db/schema/productFeatures'
+import type { Product } from '@/db/schema/products'
+import type {
+  AddFeatureToSubscriptionInput,
+  SubscriptionItemFeature,
+} from '@/db/schema/subscriptionItemFeatures'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
+import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import {
   selectPriceById,
   selectPrices,
 } from '@/db/tableMethods/priceMethods'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import {
-  AddFeatureToSubscriptionInput,
-  SubscriptionItemFeature,
-} from '@/db/schema/subscriptionItemFeatures'
+  selectFeaturesByProductFeatureWhere,
+  selectProductFeatures,
+} from '@/db/tableMethods/productFeatureMethods'
+import { selectProductById } from '@/db/tableMethods/productMethods'
 import {
   bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId,
   insertSubscriptionItemFeature,
@@ -23,11 +28,11 @@ import {
   updateSubscriptionItemFeature,
   upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import { selectSubscriptionItemById } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { selectProductById } from '@/db/tableMethods/productMethods'
 import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
 import {
   FeatureType,
   LedgerTransactionType,
@@ -35,11 +40,6 @@ import {
   UsageCreditStatus,
   UsageCreditType,
 } from '@/types'
-import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { Product } from '@/db/schema/products'
-import { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
-import * as R from 'ramda'
 
 /**
  * Retrieves a map of price IDs to their associated features and productFeatures.
@@ -125,7 +125,8 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
   (
     subscriptionItem: SubscriptionItem.Record,
     feature: Feature.Record,
-    productFeature?: ProductFeature.Record
+    productFeature?: ProductFeature.Record,
+    manuallyCreated?: boolean
   ): SubscriptionItemFeature.Insert => {
     switch (feature.type) {
       case FeatureType.UsageCreditGrant:
@@ -141,6 +142,7 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           expiredAt: null,
           detachedAt: null,
           detachedReason: null,
+          manuallyCreated: manuallyCreated ?? false,
         }
       case FeatureType.Toggle:
         return {
@@ -155,6 +157,7 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           expiredAt: null,
           detachedAt: null,
           detachedReason: null,
+          manuallyCreated: manuallyCreated ?? false,
         }
       default:
         throw new Error(

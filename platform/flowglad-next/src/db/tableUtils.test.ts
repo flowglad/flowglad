@@ -1,35 +1,38 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { and as drizzleAnd, eq, inArray, sql } from 'drizzle-orm'
+import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupCustomer,
+  setupOrg,
+  setupUserAndApiKey,
+} from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import type { ApiKey } from '@/db/schema/apiKeys'
+import { nulledPriceColumns, type Price } from '@/db/schema/prices'
+import { CurrencyCode, PriceType } from '@/types'
+import { core } from '@/utils/core'
+import { customers } from './schema/customers'
+import {
+  type PricingModel,
+  pricingModels,
+} from './schema/pricingModels'
+import type { Product } from './schema/products'
 import {
   selectCustomersCursorPaginatedWithTableRowData,
   selectCustomersPaginated,
 } from './tableMethods/customerMethods'
-import {
-  setupOrg,
-  setupCustomer,
-  setupUserAndApiKey,
-} from '@/../seedDatabase'
-import { core } from '@/utils/core'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { nulledPriceColumns, Price } from '@/db/schema/prices'
-import { PriceType, CurrencyCode } from '@/types'
-import { eq, and as drizzleAnd, inArray, sql } from 'drizzle-orm'
-import { pgTable, text, integer, boolean } from 'drizzle-orm/pg-core'
-import { ApiKey } from '@/db/schema/apiKeys'
-import { PricingModel, pricingModels } from './schema/pricingModels'
-import { Product } from './schema/products'
+import { insertPrice, updatePrice } from './tableMethods/priceMethods'
 import {
   insertProduct,
   updateProduct,
 } from './tableMethods/productMethods'
-import { insertPrice, updatePrice } from './tableMethods/priceMethods'
 import {
+  decodeCursor,
+  encodeCursor,
   metadataSchema,
   whereClauseFromObject,
-  encodeCursor,
-  decodeCursor,
 } from './tableUtils'
-import { customers } from './schema/customers'
 
 describe('createCursorPaginatedSelectFunction', () => {
   let organizationId: string

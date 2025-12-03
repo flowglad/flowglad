@@ -1,5 +1,5 @@
 import { Text } from '@react-email/components'
-import * as React from 'react'
+import type * as React from 'react'
 
 const paragraph = {
   color: '#333',

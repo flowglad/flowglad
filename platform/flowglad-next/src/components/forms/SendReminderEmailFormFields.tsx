@@ -1,18 +1,18 @@
 'use client'
 
-import { trpc } from '@/app/_trpc/client'
-import { sendInvoiceReminderSchema } from '@/db/schema/invoiceLineItems'
 import { Controller, useFormContext } from 'react-hook-form'
-import { z } from 'zod'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import type { z } from 'zod'
+import { trpc } from '@/app/_trpc/client'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import type { sendInvoiceReminderSchema } from '@/db/schema/invoiceLineItems'
 
 type SendReminderEmailFormFields = z.infer<
   typeof sendInvoiceReminderSchema

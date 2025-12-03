@@ -1,12 +1,13 @@
 import { FlowgladServer } from '../FlowgladServer'
 import { FlowgladServerAdmin } from '../FlowgladServerAdmin'
-import { CoreCustomerUser } from '../types'
+import type { CoreCustomerUser } from '../types'
 
 /**
  * Creates a mock FlowgladServer instance for testing
  */
 export const createTestFlowgladServer = () => {
   return new FlowgladServer({
+    apiKey: process.env.FLOWGLAD_SECRET_KEY,
     baseURL: process.env.FLOWGLAD_BASE_URL || 'http://localhost:3000',
     getRequestingCustomer: async (): Promise<CoreCustomerUser> => {
       return {

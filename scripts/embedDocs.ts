@@ -1,8 +1,8 @@
 import { config } from 'dotenv'
-import { OpenAI } from 'openai'
-import { readFile, readdir } from 'fs/promises'
-import { join } from 'path'
 import { existsSync } from 'fs'
+import { readdir, readFile } from 'fs/promises'
+import { OpenAI } from 'openai'
+import { join } from 'path'
 import { getTurbopufferClient } from '../platform/flowglad-next/src/utils/turbopuffer'
 
 // Load environment variables from .env file in project root

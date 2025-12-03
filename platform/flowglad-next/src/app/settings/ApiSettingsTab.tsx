@@ -1,9 +1,9 @@
 'use client'
-import { useState } from 'react'
 import { PlusIcon } from 'lucide-react'
+import { useState } from 'react'
 import { ApiKeysDataTable } from '@/app/settings/api-keys/data-table'
-import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
 import { WebhooksDataTable } from '@/app/settings/webhooks/data-table'
+import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
 import CreateWebhookModal from '@/components/forms/CreateWebhookModal'
 import { FlowgladApiKeyType } from '@/types'
 

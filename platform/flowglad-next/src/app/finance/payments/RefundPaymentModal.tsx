@@ -1,10 +1,10 @@
 'use client'
+import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import {
-  Payment,
+  type Payment,
   refundPaymentInputSchema,
 } from '@/db/schema/payments'
-import { trpc } from '@/app/_trpc/client'
 
 interface RefundPaymentModalProps {
   isOpen: boolean

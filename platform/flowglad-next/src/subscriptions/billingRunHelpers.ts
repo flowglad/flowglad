@@ -1,18 +1,21 @@
+import type Stripe from 'stripe'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { Customer } from '@/db/schema/customers'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { Invoice } from '@/db/schema/invoices'
-import { Organization } from '@/db/schema/organizations'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Payment } from '@/db/schema/payments'
-import Stripe from 'stripe'
+import type { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { Customer } from '@/db/schema/customers'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Payment } from '@/db/schema/payments'
+import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -27,64 +30,62 @@ import {
   insertInvoiceLineItems,
 } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
-  invoiceIsInTerminalState,
   insertInvoice,
+  invoiceIsInTerminalState,
+  safelyUpdateInvoiceStatus,
   selectInvoices,
   updateInvoice,
-  safelyUpdateInvoiceStatus,
 } from '@/db/tableMethods/invoiceMethods'
+import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
+import {
+  aggregateOutstandingBalanceForUsageCosts,
+  claimLedgerEntriesWithOutstandingBalances,
+} from '@/db/tableMethods/ledgerEntryMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   insertPayment,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
-import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import type { DbTransaction } from '@/db/types'
+import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
+import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
-  CountryCode,
-  CurrencyCode,
+  type CountryCode,
+  type CurrencyCode,
+  FeatureType,
   InvoiceStatus,
   InvoiceType,
   LedgerTransactionType,
   PaymentStatus,
-  FeatureType,
   SubscriptionItemType,
   SubscriptionStatus,
-  UsageBillingInfo,
+  type UsageBillingInfo,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import { createAndFinalizeSubscriptionFeeCalculation } from '@/utils/bookkeeping/fees/subscription'
 import core from '@/utils/core'
+import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
-  createPaymentIntentForBillingRun,
   confirmPaymentIntentForBillingRun,
+  createPaymentIntentForBillingRun,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
-import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
-import { Subscription } from '@/db/schema/subscriptions'
-import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import {
-  aggregateOutstandingBalanceForUsageCosts,
-  claimLedgerEntriesWithOutstandingBalances,
-} from '@/db/tableMethods/ledgerEntryMethods'
-import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
-import { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
-import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 
 interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
   paymentMethod: PaymentMethod.Record
   scheduledFor: Date | number
+  isAdjustment?: boolean
 }
 
 export const createBillingRunInsert = (
   params: CreateBillingRunInsertParams
 ): BillingRun.Insert => {
-  const { billingPeriod, scheduledFor } = params
+  const { billingPeriod, scheduledFor, isAdjustment = false } = params
   return {
     billingPeriodId: billingPeriod.id,
     scheduledFor: new Date(scheduledFor).getTime(),
@@ -92,6 +93,7 @@ export const createBillingRunInsert = (
     subscriptionId: billingPeriod.subscriptionId,
     paymentMethodId: params.paymentMethod.id,
     livemode: billingPeriod.livemode,
+    isAdjustment,
   }
 }
 

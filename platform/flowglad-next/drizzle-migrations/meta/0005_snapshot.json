@@ -85,9 +85,7 @@
         "Countries_externalId_unique": {
           "name": "Countries_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     },
@@ -172,16 +170,12 @@
         "Users_id_unique": {
           "name": "Users_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         },
         "Countries_externalId_unique": {
           "name": "Countries_externalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "externalId"
-          ]
+          "columns": ["externalId"]
         }
       }
     }

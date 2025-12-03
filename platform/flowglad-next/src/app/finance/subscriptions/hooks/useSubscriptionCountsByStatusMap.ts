@@ -1,5 +1,5 @@
 import { trpc } from '@/app/_trpc/client'
-import { SubscriptionStatus } from '@/types'
+import type { SubscriptionStatus } from '@/types'
 
 export const useSubscriptionCountsByStatusMap = () => {
   const { data: countsData, isLoading } =

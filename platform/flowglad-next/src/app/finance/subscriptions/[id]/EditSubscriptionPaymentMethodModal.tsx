@@ -1,32 +1,16 @@
 'use client'
 
-import { useState } from 'react'
-import FormModal, {
-  ModalInterfaceProps,
-} from '@/components/forms/FormModal'
-import {
-  updateSubscriptionPaymentMethodSchema,
-  UpdateSubscriptionPaymentMethod,
-} from '@/db/schema/subscriptions'
-import { trpc } from '@/app/_trpc/client'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { CardPaymentMethodLabel } from '@/components/PaymentMethodLabel'
-import { PaymentMethodType } from '@/types'
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from '@/components/ui/radio-group'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
-import { useFormContext } from 'react-hook-form'
-import { encodeCursor } from '@/db/tableUtils'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { useFormContext } from 'react-hook-form'
+import { toast } from 'sonner'
+import { trpc } from '@/app/_trpc/client'
+import FormModal, {
+  type ModalInterfaceProps,
+} from '@/components/forms/FormModal'
+import { CardPaymentMethodLabel } from '@/components/PaymentMethodLabel'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -34,7 +18,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form'
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from '@/components/ui/radio-group'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import {
+  type UpdateSubscriptionPaymentMethod,
+  updateSubscriptionPaymentMethodSchema,
+} from '@/db/schema/subscriptions'
+import { encodeCursor } from '@/db/tableUtils'
+import { PaymentMethodType } from '@/types'
 
 interface EditSubscriptionPaymentMethodModalProps
   extends ModalInterfaceProps {

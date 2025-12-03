@@ -1,39 +1,39 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupCustomer,
+  setupDiscount,
+  setupInvoice,
+  setupOrg,
+  setupPayment,
+  setupPaymentMethod,
+  setupPurchase,
+  setupSubscription,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import type { Discount } from '@/db/schema/discounts'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { Purchase } from '@/db/schema/purchases'
+import type { Subscription } from '@/db/schema/subscriptions'
+import {
+  insertDiscountRedemption,
+  selectDiscountRedemptions,
+} from '@/db/tableMethods/discountRedemptionMethods'
+import {
+  DiscountAmountType,
+  DiscountDuration,
+  PaymentMethodType,
+  PaymentStatus,
+} from '@/types'
 import {
   incrementNumberOfPaymentsForDiscountRedemption,
   safelyIncrementDiscountRedemptionSubscriptionPayment,
 } from '@/utils/bookkeeping/discountRedemptionTracking'
-import {
-  PaymentStatus,
-  DiscountDuration,
-  PaymentMethodType,
-  DiscountAmountType,
-} from '@/types'
-import { adminTransaction } from '@/db/adminTransaction'
-import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
-  setupPayment,
-  setupDiscount,
-  setupInvoice,
-  setupPurchase,
-} from '@/../seedDatabase'
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import {
-  selectDiscountRedemptions,
-  insertDiscountRedemption,
-} from '@/db/tableMethods/discountRedemptionMethods'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { Discount } from '@/db/schema/discounts'
 import { core } from '@/utils/core'
-import { Organization } from '@/db/schema/organizations'
-import { Price } from '@/db/schema/prices'
-import { Invoice } from '@/db/schema/invoices'
-import { Purchase } from '@/db/schema/purchases'
 
 describe('Discount Redemption Tracking', () => {
   // Common variables for all tests

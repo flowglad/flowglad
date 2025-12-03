@@ -1,16 +1,10 @@
-import { protectedProcedure, router } from '../trpc'
-import {
-  selectProductsPaginated,
-  selectProductsCursorPaginated,
-  selectProductPriceAndFeaturesByProductId,
-} from '@/db/tableMethods/productMethods'
-import { validateProductCreation } from '@/utils/defaultProductValidation'
-import {
-  createProductTransaction,
-  editProductTransaction as editProductPricingModel,
-} from '@/utils/pricingModel'
-import { errorHandlers } from '../trpcErrorHandler'
 import { TRPCError } from '@trpc/server'
+import * as R from 'ramda'
+import { z } from 'zod'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   createProductSchema,
   editProductSchema,
@@ -18,23 +12,29 @@ import {
   productWithPricesSchema,
 } from '@/db/schema/prices'
 import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
-import { z } from 'zod'
-import {
   productsClientSelectSchema,
   productsPaginatedListSchema,
   productsPaginatedSelectSchema,
 } from '@/db/schema/products'
+import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
-import * as R from 'ramda'
+import {
+  selectProductPriceAndFeaturesByProductId,
+  selectProductsCursorPaginated,
+  selectProductsPaginated,
+} from '@/db/tableMethods/productMethods'
 import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
 } from '@/db/tableUtils'
+import { validateProductCreation } from '@/utils/defaultProductValidation'
+import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import {
+  createProductTransaction,
+  editProductTransaction as editProductPricingModel,
+} from '@/utils/pricingModel'
+import { protectedProcedure, router } from '../trpc'
+import { errorHandlers } from '../trpcErrorHandler'
 
 const { openApiMetas } = generateOpenApiMetas({
   resource: 'Product',

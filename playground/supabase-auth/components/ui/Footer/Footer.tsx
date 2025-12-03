@@ -1,7 +1,6 @@
-import Link from 'next/link';
-
-import Logo from '@/components/icons/Logo';
-import GitHub from '@/components/icons/GitHub';
+import Link from 'next/link'
+import GitHub from '@/components/icons/GitHub'
+import Logo from '@/components/icons/Logo'
 
 export default function Footer() {
   return (
@@ -93,7 +92,8 @@ export default function Footer() {
       <div className="flex flex-col items-center justify-between py-12 space-y-4 md:flex-row bg-zinc-900">
         <div>
           <span>
-            &copy; {new Date().getFullYear()} ACME, Inc. All rights reserved.
+            &copy; {new Date().getFullYear()} ACME, Inc. All rights
+            reserved.
           </span>
         </div>
         <div className="flex items-center">
@@ -108,5 +108,5 @@ export default function Footer() {
         </div>
       </div>
     </footer>
-  );
+  )
 }

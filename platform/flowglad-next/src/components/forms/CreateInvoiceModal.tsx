@@ -1,20 +1,20 @@
 'use client'
-import core from '@/utils/core'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
-import InvoiceFormFields from './InvoiceFormFields'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import type { Customer } from '@/db/schema/customers'
 import {
-  CreateInvoiceInput,
+  type CreateInvoiceInput,
   createInvoiceSchema,
 } from '@/db/schema/invoiceLineItems'
-import { useAuthenticatedContext } from '@/contexts/authContext'
-import { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
 import {
   InvoiceStatus,
   InvoiceType,
   SubscriptionItemType,
 } from '@/types'
-import { Organization } from '@/db/schema/organizations'
+import core from '@/utils/core'
+import InvoiceFormFields from './InvoiceFormFields'
 
 export const constructInvoiceDefaultValues = (
   organization: Organization.ClientRecord,

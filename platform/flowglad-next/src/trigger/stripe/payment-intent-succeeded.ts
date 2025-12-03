@@ -1,21 +1,20 @@
+import { logger, task } from '@trigger.dev/sdk'
+import type Stripe from 'stripe'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import type { Event } from '@/db/schema/events'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
-import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
-
-import { logger, task } from '@trigger.dev/sdk'
-import Stripe from 'stripe'
-import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
 import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
-import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
-import { Event } from '@/db/schema/events'
+import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 import { storeTelemetry } from '@/utils/redis'
+import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
+import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',

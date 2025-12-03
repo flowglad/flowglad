@@ -1,4 +1,4 @@
-import { vi, expect } from 'vitest'
+import { expect, vi } from 'vitest'
 import * as triggerMocks from '@/__mocks__/@trigger'
 
 export const resetTriggerMocks = () => {

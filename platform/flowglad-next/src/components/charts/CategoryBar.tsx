@@ -3,13 +3,12 @@
 'use client'
 
 import React from 'react'
-
+import { cn } from '@/lib/utils'
 import {
   AvailableChartColors,
-  AvailableChartColorsKeys,
+  type AvailableChartColorsKeys,
   getColorClassName,
 } from '@/utils/chartStyles'
-import { cn } from '@/lib/utils'
 
 import { Tooltip } from './Tooltip'
 

@@ -1,10 +1,10 @@
+import { logger, task } from '@trigger.dev/sdk'
+import type Stripe from 'stripe'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { processSetupIntentSucceeded } from '@/utils/bookkeeping/processSetupIntent'
-import { logger, task } from '@trigger.dev/sdk'
-import Stripe from 'stripe'
 
 export const setupIntentSucceededTask = task({
   id: 'setup-intent-succeeded',

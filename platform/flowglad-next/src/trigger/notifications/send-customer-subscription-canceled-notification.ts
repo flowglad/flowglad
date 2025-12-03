@@ -1,14 +1,14 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionCanceledEmail } from '@/email-templates/customer-subscription-canceled'
-import { safeSend } from '@/utils/email'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
+import { safeSend } from '@/utils/email'
 
 const sendCustomerSubscriptionCanceledNotificationTask = task({
   id: 'send-customer-subscription-canceled-notification',

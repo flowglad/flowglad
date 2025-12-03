@@ -1,14 +1,25 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
+  setupOrg,
   setupPrice,
   setupProduct,
   setupProductFeature,
   setupUsageCreditGrantFeature,
   setupUsageMeter,
-  setupOrg,
 } from '@/../seedDatabase'
-import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
-import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
+import type { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
+import {
+  updateCheckoutSessionBillingAddress,
+  updateCheckoutSessionPaymentMethodType,
+} from '@/db/tableMethods/checkoutSessionMethods'
+import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { updatePrice } from '@/db/tableMethods/priceMethods'
+import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import {
   CheckoutSessionType,
   FeatureUsageGrantFrequency,
@@ -17,26 +28,17 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
-import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
-import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
-import { IntentMetadataType } from '@/utils/stripe'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
-import { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
-import {
-  updateCheckoutSessionBillingAddress,
-  updateCheckoutSessionPaymentMethodType,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import core from '@/utils/core'
-import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
-import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import { CoreStripePaymentIntent } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { updatePrice } from '@/db/tableMethods/priceMethods'
+import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
+import { createCheckoutSessionTransaction } from '@/utils/bookkeeping/createCheckoutSession'
+import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import {
+  type CoreStripePaymentIntent,
+  processPaymentIntentStatusUpdated,
+} from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import core from '@/utils/core'
+import { IntentMetadataType } from '@/utils/stripe'
+import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 
 describe('Pay as You Go Workflow E2E', () => {
   it('should handle creating a pay as you go flow from start to finish', async () => {

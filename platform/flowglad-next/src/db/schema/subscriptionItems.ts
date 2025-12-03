@@ -1,30 +1,30 @@
+import { sql } from 'drizzle-orm'
+import { integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import * as R from 'ramda'
-import { pgTable, jsonb, integer, text } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { buildSchemas } from '@/db/createZodSchemas'
+import { prices } from '@/db/schema/prices'
+import { subscriptions } from '@/db/schema/subscriptions'
 import {
-  tableBase,
-  notNullStringForeignKey,
   constructIndex,
-  livemodePolicy,
   constructUniqueIndex,
-  metadataSchema,
-  SelectConditions,
-  ommittedColumnsForInsertSchema,
-  hiddenColumnsForClientSchema,
-  nullableStringForeignKey,
-  pgEnumColumn,
-  merchantPolicy,
   enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  metadataSchema,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  ommittedColumnsForInsertSchema,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
   timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
-import { subscriptions } from '@/db/schema/subscriptions'
-import { prices } from '@/db/schema/prices'
-import { z } from 'zod'
-import { sql } from 'drizzle-orm'
+import { zodEpochMs } from '@/db/timestampMs'
+import { SubscriptionItemType } from '@/types'
 import core from '@/utils/core'
 import { usageMeters } from './usageMeters'
-import { SubscriptionItemType } from '@/types'
-import { buildSchemas } from '@/db/createZodSchemas'
-import { zodEpochMs } from '@/db/timestampMs'
 
 const TABLE_NAME = 'subscription_items'
 

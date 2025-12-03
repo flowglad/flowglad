@@ -1,9 +1,16 @@
-import { BillingPeriod } from '@/db/schema/billingPeriods'
+import { eq } from 'drizzle-orm'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { Organization } from '@/db/schema/organizations'
 import {
-  SubscriptionItem,
+  type SubscriptionItem,
   subscriptionItems,
 } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { bulkInsertBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPrices } from '@/db/tableMethods/priceMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
   expireSubscriptionItems,
@@ -14,26 +21,19 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
+import type { DbTransaction } from '@/db/types'
 import {
   FeatureFlag,
+  PaymentStatus,
   PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { eq } from 'drizzle-orm'
-import { bulkInsertBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
-import { createBillingRun } from './billingRunHelpers'
-import { Subscription } from '@/db/schema/subscriptions'
-import { AdjustSubscriptionParams } from './schemas'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
-import { PaymentStatus } from '@/types'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
-import { Organization } from '@/db/schema/organizations'
+import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
+import { createBillingRun } from './billingRunHelpers'
+import type { AdjustSubscriptionParams } from './schemas'
 
 export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
   adjustmentDate: Date | number,
@@ -414,7 +414,7 @@ export const adjustSubscription = async (
     prorationAdjustments,
     transaction
   )
-  let paymentMethodId: string | null =
+  const paymentMethodId: string | null =
     subscription.defaultPaymentMethodId ??
     subscription.backupPaymentMethodId ??
     null
@@ -436,6 +436,7 @@ export const adjustSubscription = async (
       billingPeriod: currentBillingPeriodForSubscription,
       paymentMethod,
       scheduledFor: new Date(),
+      isAdjustment: true,
     },
     transaction
   )

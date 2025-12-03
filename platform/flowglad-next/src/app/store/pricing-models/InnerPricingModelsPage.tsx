@@ -1,10 +1,10 @@
 'use client'
+import { useState } from 'react'
+import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
+import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
 import { PricingModelsDataTable } from './data-table'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import CreatePricingModelModal from '@/components/forms/CreatePricingModelModal'
-import { useState } from 'react'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
 
 const InnerPricingModelsPage = () => {
   const [isCreatePricingModelOpen, setIsCreatePricingModelOpen] =

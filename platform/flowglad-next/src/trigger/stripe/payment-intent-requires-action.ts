@@ -1,10 +1,10 @@
+import { logger, task } from '@trigger.dev/sdk'
+import type Stripe from 'stripe'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
-import { logger, task } from '@trigger.dev/sdk'
-import Stripe from 'stripe'
 
 export const stripePaymentIntentRequiresActionTask = task({
   id: 'stripe-payment-intent-requires-action',

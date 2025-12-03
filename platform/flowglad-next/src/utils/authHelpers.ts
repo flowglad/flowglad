@@ -1,11 +1,11 @@
+import type { User } from 'better-auth'
 import { adminTransaction } from '@/db/adminTransaction'
-import { User as UserSchema } from '@/db/schema/users'
+import type { User as UserSchema } from '@/db/schema/users'
 import {
   insertUser,
   selectUsers,
   updateUser,
 } from '@/db/tableMethods/userMethods'
-import { User } from 'better-auth'
 
 export const betterAuthUserToApplicationUser = async (
   betterAuthUser: User
