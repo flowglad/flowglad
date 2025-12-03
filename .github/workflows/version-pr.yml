@@ -64,7 +64,7 @@ jobs:
         with:
           version: |
             bun run packages:version
-            bunx @biomejs/biome format --write packages/*/package.json
+            bunx @biomejs/biome format --write --config-path=biome.json packages/*/package.json
           commit: 'chore: version packages'
           title: 'chore: version packages'
           setupGitUser: false
