@@ -436,6 +436,7 @@ export const adjustSubscription = async (
       billingPeriod: currentBillingPeriodForSubscription,
       paymentMethod,
       scheduledFor: new Date(),
+      isAdjustment: true,
     },
     transaction
   )
