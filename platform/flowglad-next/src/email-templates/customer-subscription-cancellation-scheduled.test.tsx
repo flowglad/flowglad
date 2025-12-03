@@ -17,7 +17,9 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
 
   it('renders email with key content', () => {
     const { getByText } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...baseProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...baseProps}
+      />
     )
 
     expect(
@@ -29,15 +31,17 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
 
   it('displays subscription name and scheduled cancellation date', () => {
     const { getByTestId } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...baseProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...baseProps}
+      />
     )
 
     expect(getByTestId('subscription-name')).toHaveTextContent(
       'Subscription: Pro Plan'
     )
-    expect(getByTestId('scheduled-cancellation-date')).toHaveTextContent(
-      'Cancellation date:'
-    )
+    expect(
+      getByTestId('scheduled-cancellation-date')
+    ).toHaveTextContent('Cancellation date:')
     expect(
       getByTestId('scheduled-cancellation-date').textContent
     ).toContain('2025')
@@ -45,30 +49,40 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
 
   it('shows message about subscription remaining active until cancellation date', () => {
     const { getByText } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...baseProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...baseProps}
+      />
     )
 
     expect(
       getByText(/Your subscription will remain active until/)
     ).toBeInTheDocument()
     expect(
-      getByText(/You will continue to have access to all features until that date/)
+      getByText(
+        /You will continue to have access to all features until that date/
+      )
     ).toBeInTheDocument()
   })
 
   it('shows reassurance about no further charges after cancellation date', () => {
     const { getByText } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...baseProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...baseProps}
+      />
     )
 
     expect(
-      getByText(/There will be no further charges after the cancellation date/)
+      getByText(
+        /There will be no further charges after the cancellation date/
+      )
     ).toBeInTheDocument()
   })
 
   it('includes billing portal link with correct URL', () => {
     const { getByTestId } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...baseProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...baseProps}
+      />
     )
 
     const button = getByTestId('view-billing-portal-button')
@@ -83,7 +97,9 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
 
   it('displays correct header with organization logo', () => {
     const { getByTestId, getByAltText } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...baseProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...baseProps}
+      />
     )
 
     expect(getByTestId('email-title')).toHaveTextContent(
@@ -101,7 +117,9 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
       organizationLogoUrl: undefined,
     }
     const { queryByAltText } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...propsWithoutLogo} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...propsWithoutLogo}
+      />
     )
 
     expect(queryByAltText('Logo')).not.toBeInTheDocument()
@@ -109,7 +127,9 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
 
   it('displays customer greeting correctly', () => {
     const { getByText } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...baseProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...baseProps}
+      />
     )
 
     expect(
@@ -119,7 +139,9 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
 
   it('shows organization name in signature', () => {
     const { getByTestId } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...baseProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...baseProps}
+      />
     )
 
     expect(getByTestId('signature-thanks')).toHaveTextContent(
@@ -132,7 +154,9 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
 
   it('includes message about billing portal access', () => {
     const { getByText } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...baseProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...baseProps}
+      />
     )
 
     expect(
@@ -144,7 +168,9 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
 
   it('formats scheduled cancellation date correctly', () => {
     const { getByTestId } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...baseProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...baseProps}
+      />
     )
 
     const dateElement = getByTestId('scheduled-cancellation-date')
@@ -159,7 +185,9 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
       subscriptionName: 'Enterprise Plan',
     }
     const { getByTestId } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...customProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...customProps}
+      />
     )
 
     expect(getByTestId('subscription-name')).toHaveTextContent(
@@ -173,7 +201,9 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
       customerName: 'Jane Smith',
     }
     const { getByText } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...customProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...customProps}
+      />
     )
 
     expect(getByText('Hi Jane Smith,')).toBeInTheDocument()
@@ -185,7 +215,9 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
       organizationName: 'TechCorp Inc',
     }
     const { getByTestId } = render(
-      <CustomerSubscriptionCancellationScheduledEmail {...customProps} />
+      <CustomerSubscriptionCancellationScheduledEmail
+        {...customProps}
+      />
     )
 
     expect(getByTestId('signature-org-name')).toHaveTextContent(
@@ -193,4 +225,3 @@ describe('CustomerSubscriptionCancellationScheduledEmail', () => {
     )
   })
 })
-

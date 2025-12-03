@@ -81,7 +81,8 @@ const sendCustomerSubscriptionCancellationScheduledNotificationTask =
       const cancellationDate = new Date(scheduledCancellationDate)
 
       // Use safe fallback for subscription name
-      const subscriptionName = subscription.name || 'your subscription'
+      const subscriptionName =
+        subscription.name || 'your subscription'
 
       await safeSend({
         from: 'Flowglad <notifications@flowglad.com>',
