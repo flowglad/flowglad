@@ -137,7 +137,7 @@ Create a new subscription for the customer.
 ```typescript
 // Pass YOUR app's user/organization ID, not Flowglad's customer ID
 const subscription = await flowglad(userId).createSubscription({
-  priceSlug: 'price_123',
+  priceSlug: 'pro_plan',
   metadata: {
     source: 'upgrade_flow',
   },
@@ -209,7 +209,7 @@ Create a checkout session for payments.
 ```typescript
 // Pass YOUR app's user/organization ID, not Flowglad's customer ID
 const checkoutSession = await flowglad(userId).createCheckoutSession({
-  priceSlug: 'price_123',
+  priceSlug: 'pro_plan',
   successUrl: 'https://example.com/success',
   cancelUrl: 'https://example.com/cancel',
   quantity: 1,
@@ -260,7 +260,7 @@ Create a checkout session that activates a provisioning or imported subscription
 // Pass YOUR app's user/organization ID, not Flowglad's customer ID
 const activationSession =
   await flowglad(userId).createActivateSubscriptionCheckoutSession({
-    targetSubscriptionId: 'sub_123', // optional, attaches the paymentMethod to the subscription for future payments
+    targetSubscriptionId: 'sub_123', // optional, attaches the paymentMethod to the subscription for future payments,
     successUrl: 'https://example.com/subscriptions/success',
     cancelUrl: 'https://example.com/subscriptions/cancel',
   })

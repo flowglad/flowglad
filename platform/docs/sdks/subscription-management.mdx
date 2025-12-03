@@ -118,7 +118,7 @@ You can cancel a subscription with `useBilling`'s `cancelSubscription` from clie
   export async function createSubscription(customerExternalId: string) {
     // Pass YOUR app's user/organization ID, not Flowglad's customer ID
     const response = await flowglad(customerExternalId).createSubscription({
-      priceSlug: 'price_123',
+      priceSlug: 'pro_plan',
       quantity: 1,
       metadata: {
         plan: 'pro',

@@ -140,7 +140,8 @@ const customer = await flowglad(userId).findOrCreateCustomer()
 
 // Create a hosted checkout session
 const checkoutSession = await flowglad(userId).createCheckoutSession({
-  priceId: 'price_123',
+  priceSlug: 'pro_plan',
+  quantity: 1,
   successUrl: 'https://example.com/success',
   cancelUrl: 'https://example.com/cancel',
 })

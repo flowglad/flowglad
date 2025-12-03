@@ -153,7 +153,7 @@ function FeatureGate({ featureSlug, children }) {
         <button
           onClick={() =>
             createCheckoutSession({
-              priceId: 'price_123',
+              priceSlug: 'pro_plan',
               successUrl: window.location.href,
               cancelUrl: window.location.href,
               autoRedirect: true,
