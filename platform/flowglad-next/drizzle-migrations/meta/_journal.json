@@ -1737,6 +1737,13 @@
       "when": 1763232536125,
       "tag": "0248_safe_wallflower",
       "breakpoints": true
+    },
+    {
+      "idx": 249,
+      "version": "7",
+      "when": 1764801388746,
+      "tag": "0249_special_wiccan",
+      "breakpoints": true
     }
   ]
 }

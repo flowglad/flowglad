@@ -587,6 +587,7 @@ export const setupBillingRun = async ({
   livemode = true,
   stripePaymentIntentId,
   lastPaymentIntentEventTimestamp,
+  isAdjustment = false,
 }: Partial<BillingRun.Insert> & {
   billingPeriodId: string
   paymentMethodId: string
@@ -603,6 +604,7 @@ export const setupBillingRun = async ({
         subscriptionId,
         stripePaymentIntentId,
         lastPaymentIntentEventTimestamp,
+        isAdjustment,
       },
       transaction
     )
@@ -2416,6 +2418,7 @@ export const setupSubscriptionItemFeature = async (
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         amount: params.amount ?? 1,
+        manuallyCreated: params.manuallyCreated ?? false,
         ...params,
       },
       transaction

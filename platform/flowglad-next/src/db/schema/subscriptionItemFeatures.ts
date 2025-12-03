@@ -1,5 +1,11 @@
 import { sql } from 'drizzle-orm'
-import { integer, pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  integer,
+  pgPolicy,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
@@ -61,6 +67,9 @@ export const subscriptionItemFeatures = pgTable(
     expiredAt: timestampWithTimezoneColumn('expired_at'),
     detachedAt: timestampWithTimezoneColumn('detached_at'),
     detachedReason: text('detached_reason'),
+    manuallyCreated: boolean('manually_created')
+      .notNull()
+      .default(false),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.subscriptionItemId]),

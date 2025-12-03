@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  boolean,
   integer,
   jsonb,
   pgTable,
@@ -65,6 +66,7 @@ export const billingRuns = pgTable(
     lastPaymentIntentEventTimestamp: timestampWithTimezoneColumn(
       'last_stripe_payment_intent_event_timestamp'
     ),
+    isAdjustment: boolean('is_adjustment').notNull().default(false),
   },
   (table) => {
     return [
