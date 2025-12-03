@@ -40,8 +40,8 @@
     "@types/react-dom": "19.0.0",
     "conventional-changelog-cli": "^5.0.0",
     "husky": "^9.1.7",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
+    "react": "19.0.1",
+    "react-dom": "19.0.1",
     "tsup": "8.3.6",
     "turbo": "^2.4.4",
     "typescript": "5.8.2"
