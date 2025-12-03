@@ -33,8 +33,9 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
         organizationId,
         transaction
       )
+      // Only look for live mode customers - billing portals are not supported for test mode customers
       const customers = await selectCustomers(
-        { email, organizationId },
+        { email, organizationId, livemode: true },
         transaction
       )
       return {
