@@ -62,7 +62,7 @@ async function buildPreviewCSS() {
 
     await fs.writeFile(
       path.join(outputDir, 'manifest.json'),
-      JSON.stringify(manifest, null, 2)
+      JSON.stringify(manifest, null, 2) + '\n'
     )
 
     // Also create a hashed version for production
