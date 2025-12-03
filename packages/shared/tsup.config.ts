@@ -1,6 +1,5 @@
 import { defineConfig, type Options } from 'tsup'
 import { runAfterLast } from '../../scripts/runAfterLast'
-// @ts-expect-error
 import { name, version } from './package.json'
 
 export default defineConfig((overrideOptions) => {
