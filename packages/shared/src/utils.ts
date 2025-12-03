@@ -1,9 +1,8 @@
 import type { Flowglad as FlowgladNode } from '@flowglad/node'
 import type {
-  FeatureItem,
   SubscriptionExperimentalFields,
   UsageMeterBalance,
-} from './types'
+} from './types/sdk'
 
 const IS_DEV = process.env.NODE_ENV === 'development'
 

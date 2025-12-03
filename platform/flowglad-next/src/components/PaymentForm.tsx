@@ -106,6 +106,7 @@ const paymentFormButtonLabel = ({
   flowType,
   totalDueAmount,
   currency,
+  isEligibleForTrial,
 }: {
   checkoutBlocked: boolean
   subscriptionDetails: SubscriptionCheckoutDetails | null
@@ -113,12 +114,16 @@ const paymentFormButtonLabel = ({
   totalDueAmount: number | null
   feeCalculation: FeeCalculation.CustomerRecord | null
   currency: CurrencyCode
+  isEligibleForTrial?: boolean
 }) => {
   if (checkoutBlocked) {
     return 'Processing'
   } else if (flowType === CheckoutFlowType.AddPaymentMethod) {
     return 'Add Payment Method'
-  } else if (subscriptionDetails?.trialPeriodDays) {
+  } else if (
+    subscriptionDetails?.trialPeriodDays &&
+    isEligibleForTrial
+  ) {
     return `Start ${subscriptionDetails.trialPeriodDays} Day Trial`
   } else if (subscriptionDetails?.type === PriceType.Usage) {
     return `Start Plan`
@@ -167,6 +172,7 @@ const PaymentForm = () => {
     checkoutBlocked,
     feeCalculation,
     readonlyCustomerEmail,
+    isEligibleForTrial,
   } = checkoutPageContext
   const [emailEmbedReady, setEmailEmbedReady] = useState(true)
   const [paymentEmbedReady, setPaymentEmbedReady] = useState(false)
@@ -203,6 +209,7 @@ const PaymentForm = () => {
     flowType,
     totalDueAmount,
     currency,
+    isEligibleForTrial,
   })
   const showDiscountCodeInput =
     flowType !== CheckoutFlowType.Invoice &&

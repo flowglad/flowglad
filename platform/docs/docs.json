@@ -71,6 +71,7 @@
             "pages": [
               "sdks/introduction",
               "sdks/setup",
+              "sdks/auth",
               "sdks/pricing-models-products",
               "sdks/checkout-sessions",
               "sdks/feature-access-usage",

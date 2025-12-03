@@ -986,6 +986,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       const result = await dbInfoForCustomerBillingPortal({
         betterAuthId: customerUser.betterAuthId!,
         organizationId: customerOrg.id,
+        customerId: customer1.id,
       })
 
       expect(result.jwtClaim.role).toBe('customer')
@@ -1010,6 +1011,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       const customerResult = await dbInfoForCustomerBillingPortal({
         betterAuthId: customerUser.betterAuthId!,
         organizationId: customerOrg.id,
+        customerId: customer1.id,
       })
 
       expect(merchantResult.jwtClaim.role).toBe('merchant')
@@ -1029,6 +1031,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         dbInfoForCustomerBillingPortal({
           betterAuthId: customerUser.betterAuthId!,
           organizationId: 'wrong_org_id',
+          customerId: customer1.id,
         })
       ).rejects.toThrow('Customer not found')
     })
@@ -1054,6 +1057,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         dbInfoForCustomerBillingPortal({
           betterAuthId: userWithoutCustomer.betterAuthId!,
           organizationId: customerOrg.id,
+          customerId: 'non_existent_customer_id',
         })
       ).rejects.toThrow('Customer not found')
     })
@@ -1094,12 +1098,14 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       const org1Result = await dbInfoForCustomerBillingPortal({
         betterAuthId: userWithMultipleCustomers.betterAuthId!,
         organizationId: customerOrg.id,
+        customerId: customerOrg1.id,
       })
 
       // Authenticate for org2
       const org2Result = await dbInfoForCustomerBillingPortal({
         betterAuthId: userWithMultipleCustomers.betterAuthId!,
         organizationId: differentOrg.id,
+        customerId: customerOrg2.id,
       })
 
       // Both should succeed but with different organization contexts
@@ -1115,6 +1121,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       const liveModeResult = await dbInfoForCustomerBillingPortal({
         betterAuthId: customerUser.betterAuthId!,
         organizationId: customerOrg.id,
+        customerId: customer1.id,
       })
       expect(liveModeResult.livemode).toBe(true)
     })
@@ -1151,6 +1158,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         dbInfoForCustomerBillingPortal({
           betterAuthId: testModeUser.betterAuthId!,
           organizationId: customerOrg.id,
+          customerId: testModeCustomer.id,
         })
       ).rejects.toThrow('Customer not found')
     })
@@ -1205,6 +1213,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       const livemodeResult = await dbInfoForCustomerBillingPortal({
         betterAuthId: liveModeUser.betterAuthId!,
         organizationId: customerOrg.id,
+        customerId: liveModeCustomer.id,
       })
 
       expect(livemodeResult.userId).toBe(liveModeUser.id)
@@ -1227,6 +1236,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       const customerAuth = await dbInfoForCustomerBillingPortal({
         betterAuthId: customerUser.betterAuthId!,
         organizationId: customerOrg.id,
+        customerId: customer1.id,
       })
 
       // Merchant should have session_id in some cases (for Secret API keys)
@@ -1257,6 +1267,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       const customerAuth = await dbInfoForCustomerBillingPortal({
         betterAuthId: customerUser.betterAuthId!,
         organizationId: customerOrg.id,
+        customerId: customer1.id,
       })
 
       // Verify the role is strictly 'customer'
@@ -1282,6 +1293,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       const customerAuth = await dbInfoForCustomerBillingPortal({
         betterAuthId: customerUser.betterAuthId!,
         organizationId: customerOrg.id,
+        customerId: customer1.id,
       })
 
       // Verify all required fields for RLS policies
@@ -1327,6 +1339,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         dbInfoForCustomerBillingPortal({
           betterAuthId: unrelatedUser.betterAuthId!,
           organizationId: customerOrg.id,
+          customerId: nullUserCustomer.id,
         })
       ).rejects.toThrow('Customer not found')
     })

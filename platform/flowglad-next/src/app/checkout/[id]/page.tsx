@@ -26,6 +26,7 @@ const CheckoutSessionPage = async ({
     maybeCustomer,
     maybeCurrentSubscriptions,
     discount,
+    isEligibleForTrial,
   } = await adminTransaction(async ({ transaction }) => {
     return checkoutInfoForCheckoutSession(id, transaction)
   })
@@ -117,6 +118,7 @@ const CheckoutSessionPage = async ({
       price.type === PriceType.Usage
         ? 'subscription'
         : 'single_payment',
+    isEligibleForTrial,
   })
 
   return <CheckoutPage checkoutInfo={checkoutInfo} />

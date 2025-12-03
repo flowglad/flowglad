@@ -298,46 +298,35 @@ export const editProductTransaction = async (
       transaction
     )
   }
-
-  if (price) {
+  /**
+   * Don't attempt to update prices for default products,
+   * quietly skip over it if it's a default product
+   */
+  if (price && !isDefaultProduct) {
     // Forbid creating additional prices for default products
     const existingPrices = await selectPrices(
       { productId: product.id },
       transaction
     )
-    if (
-      isDefaultProduct &&
-      existingPrices.length > 0 &&
-      existingPrices.some((existingPrice) =>
-        isPriceChanged(price, existingPrice)
-      )
-    ) {
-      throw new Error(
-        'Cannot create additional prices for the default plan'
-      )
-    }
-    const organization = await selectOrganizationById(
-      organizationId,
-      transaction
+    const currentPrice = existingPrices.find(
+      (p) => p.active && p.isDefault
     )
-    if (!isDefaultProduct) {
-      const currentPrice = existingPrices.find(
-        (p) => p.active && p.isDefault
+    if (isPriceChanged(price, currentPrice)) {
+      const organization = await selectOrganizationById(
+        organizationId,
+        transaction
       )
-      if (isPriceChanged(price, currentPrice)) {
-        await safelyInsertPrice(
-          {
-            ...price,
-            livemode,
-            currency: organization.defaultCurrency,
-            externalId: null,
-          },
-          transaction
-        )
-      }
+      await safelyInsertPrice(
+        {
+          ...price,
+          livemode,
+          currency: organization.defaultCurrency,
+          externalId: null,
+        },
+        transaction
+      )
     }
   }
-
   return updatedProduct
 }
 

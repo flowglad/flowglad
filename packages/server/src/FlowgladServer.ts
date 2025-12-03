@@ -4,6 +4,7 @@ import {
   type CancelSubscriptionParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
+  type CreateProductCheckoutSessionParams,
   type CreateSubscriptionParams,
   type CreateUsageEventParams,
   constructCheckFeatureAccess,
@@ -16,7 +17,6 @@ import {
   createUsageEventSchema,
   type SubscriptionExperimentalFields,
 } from '@flowglad/shared'
-import type { CreateProductCheckoutSessionParams } from '@flowglad/types'
 import { getSessionFromParams } from './serverUtils'
 import type {
   CoreCustomerUser,

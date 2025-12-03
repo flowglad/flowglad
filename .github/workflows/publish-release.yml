@@ -1,0 +1,101 @@
+name: Publish Packages and Create Release
+
+# This workflow publishes packages to npm and creates a GitHub release after the
+# version PR (created by version-pr.yml) is merged to main.
+#
+# Workflow:
+# 1. Version PR from version-pr.yml is merged to main
+# 2. This workflow detects the merged PR (by title or label)
+# 3. Publishes all packages to npm using `bun run packages:publish`
+# 4. Extracts version and changelog from the updated packages
+# 5. Creates a GitHub release with tag v<version> and changelog content
+
+on:
+  # Trigger when any PR is closed (merged or closed)
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    # Only run if:
+    # - The PR was actually merged (not just closed)
+    # - AND the PR title contains "chore: version packages" OR has "release" label
+    # This ensures we only publish when the version PR is merged, not other PRs
+    if: >
+      github.event.pull_request.merged == true && (contains(github.event.pull_request.title, 'chore: version packages') || contains(github.event.pull_request.labels.*.name, 'release'))
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      # Checkout the merge commit (not the PR head) to ensure we publish from the actual commit that landed on main
+      # This prevents publishing from a different commit than what was merged
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      # Setup Bun package manager (matches packageManager field in package.json)
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        with:
+          bun-version: '1.3.1'
+
+      # Setup Node.js and configure npm registry authentication
+      # NPM_TOKEN secret must be set in repository settings
+      - name: Setup Node.js
+        uses: actions/setup-node@9ced9a43a244f3ac94f13bfd896db8c8f30da67a # v3
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Install dependencies (needed to build packages before publishing)
+      - name: Install dependencies
+        run: bun install --no-progress
+
+      # Publish all packages to npm
+      # This command builds packages, publishes them, and cleans up changeset files
+      - name: Publish packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: bun run packages:publish
+
+      # Extract version and changelog for the GitHub release
+      # Since all SDK packages are versioned in lockstep, we can read from any package
+      - name: Extract version and changelog
+        id: release_info
+        run: |
+          # Get version from any package (they're all the same after changesets versioning)
+          VERSION=$(find packages -name "package.json" -type f -not -path "*/node_modules/*" -exec grep -h '"version"' {} \; | head -1 | sed -E 's/.*"version":\s*"([^"]+)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Get changelog from first package found (all CHANGELOGs are identical)
+          # Extract the latest version section (from first ## version header to next ##)
+          CHANGELOG_FILE=$(find packages -name "CHANGELOG.md" -type f | head -1)
+          if [ -n "$CHANGELOG_FILE" ]; then
+            # Extract the latest version section (from first ## to next ##)
+            CHANGELOG_BODY=$(awk '/^## / {if (p) exit; p=1} p' "$CHANGELOG_FILE" | sed '1d')
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            echo "$CHANGELOG_BODY" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      # Create a GitHub release with the version tag and changelog content
+      # Tag format: v<version> (e.g., v0.13.0)
+      # Pinned to specific commit SHA for security (prevents supply-chain attacks)
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@26994186c0ac3ef5cae75ac16aa32e8153525f77 # v1
+        with:
+          tag_name: "v${{ steps.release_info.outputs.version }}"
+          name: "SDK Release v${{ steps.release_info.outputs.version }}"
+          body: ${{ steps.release_info.outputs.changelog }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+

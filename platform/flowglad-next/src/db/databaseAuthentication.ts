@@ -265,10 +265,30 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
 export const requestingCustomerAndUser = async ({
   betterAuthId,
   organizationId,
+  customerId,
 }: {
   betterAuthId: string
   organizationId: string
+  customerId?: string
 }) => {
+  const whereConditions = [
+    eq(users.betterAuthId, betterAuthId),
+    eq(customers.organizationId, organizationId),
+    /**
+     * For now, only support granting access to livemode customers,
+     * so we can avoid unintentionally allowing customers to get access
+     * to test mode customers for the merchant who match their email.
+     *
+     * FIXME: support billing portal access for test mode customers specifically.
+     * This will require more sophisticated auth business logic.
+     */
+    eq(customers.livemode, true),
+  ]
+
+  if (customerId) {
+    whereConditions.push(eq(customers.id, customerId))
+  }
+
   const result = await db
     .select({
       customer: customers,
@@ -276,22 +296,9 @@ export const requestingCustomerAndUser = async ({
     })
     .from(customers)
     .innerJoin(users, eq(customers.userId, users.id))
-    .where(
-      and(
-        eq(users.betterAuthId, betterAuthId),
-        eq(customers.organizationId, organizationId),
-        /**
-         * For now, only support granting access to livemode customers,
-         * so we can avoid unintentionally allowing customers to get access
-         * to test mode customers for the merchant who match their email.
-         *
-         * FIXME: support billing portal access for test mode customers specifically.
-         * This will require more sophisticated auth business logic.
-         */
-        eq(customers.livemode, true)
-      )
-    )
+    .where(and(...whereConditions))
     .limit(1)
+
   return z
     .object({
       customer: customersSelectSchema,
@@ -304,13 +311,16 @@ export const requestingCustomerAndUser = async ({
 export const dbInfoForCustomerBillingPortal = async ({
   betterAuthId,
   organizationId,
+  customerId,
 }: {
   betterAuthId: string
   organizationId: string
+  customerId?: string
 }): Promise<DatabaseAuthenticationInfo> => {
   const [result] = await requestingCustomerAndUser({
     betterAuthId,
     organizationId,
+    customerId,
   })
   if (!result) {
     throw new Error('Customer not found')
@@ -344,9 +354,25 @@ export const dbInfoForCustomerBillingPortal = async ({
   }
 }
 
+/**
+ * Authenticates a webapp request for either merchant dashboard or customer billing portal.
+ *
+ * Determines the authentication context based on whether a customer organization ID
+ * is present in the billing portal cookie state:
+ * - If no customer organization ID: authenticates as merchant using focused membership
+ * - If customer organization ID exists: authenticates as customer for billing portal
+ *
+ * @param user - The Better Auth user making the request
+ * @param __testOnlyOrganizationId - Optional test organization ID override
+ * @param customerId - Optional customer ID for customer billing portal authentication.
+ *   When not provided, authenticates as the first customer found to enable RLS-based
+ *   customer listing (customer role can see all customers with the same userId).
+ * @returns Database authentication info with JWT claims and user context
+ */
 export async function databaseAuthenticationInfoForWebappRequest(
   user: User,
-  __testOnlyOrganizationId?: string | undefined
+  __testOnlyOrganizationId?: string | undefined,
+  customerId?: string
 ): Promise<DatabaseAuthenticationInfo> {
   const betterAuthId = user.id
   const customerOrganizationId =
@@ -354,47 +380,50 @@ export async function databaseAuthenticationInfoForWebappRequest(
       __testOrganizationId: __testOnlyOrganizationId,
     })
 
-  if (customerOrganizationId) {
-    return await dbInfoForCustomerBillingPortal({
-      betterAuthId: user.id,
-      organizationId: customerOrganizationId,
-    })
+  if (!customerOrganizationId) {
+    // Merchant dashboard authentication flow
+    const [focusedMembership] = await db
+      .select()
+      .from(memberships)
+      .innerJoin(users, eq(memberships.userId, users.id))
+      .where(and(eq(users.betterAuthId, betterAuthId)))
+      .orderBy(desc(memberships.focused))
+      .limit(1)
+    const userId = focusedMembership?.memberships.userId
+    const livemode = focusedMembership?.memberships.livemode ?? false
+    const jwtClaim = {
+      role: 'merchant',
+      sub: userId,
+      email: user.email,
+      user_metadata: {
+        id: userId,
+        user_metadata: {},
+        aud: 'stub',
+        email: user.email,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        role: 'merchant',
+        app_metadata: {
+          provider: '',
+        },
+      },
+      organization_id:
+        focusedMembership?.memberships.organizationId ?? '',
+      app_metadata: { provider: 'apiKey' },
+    }
+    return {
+      userId,
+      livemode,
+      jwtClaim,
+    }
   }
 
-  const [focusedMembership] = await db
-    .select()
-    .from(memberships)
-    .innerJoin(users, eq(memberships.userId, users.id))
-    .where(and(eq(users.betterAuthId, betterAuthId)))
-    .orderBy(desc(memberships.focused))
-    .limit(1)
-  const userId = focusedMembership?.memberships.userId
-  const livemode = focusedMembership?.memberships.livemode ?? false
-  const jwtClaim = {
-    role: 'merchant',
-    sub: userId,
-    email: user.email,
-    user_metadata: {
-      id: userId,
-      user_metadata: {},
-      aud: 'stub',
-      email: user.email,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      role: 'merchant',
-      app_metadata: {
-        provider: '',
-      },
-    },
-    organization_id:
-      focusedMembership?.memberships.organizationId ?? '',
-    app_metadata: { provider: 'apiKey' },
-  }
-  return {
-    userId,
-    livemode,
-    jwtClaim,
-  }
+  // Customer billing portal authentication flow
+  return await dbInfoForCustomerBillingPortal({
+    betterAuthId: user.id,
+    organizationId: customerOrganizationId,
+    customerId,
+  })
 }
 
 export async function databaseAuthenticationInfoForApiKeyResult(
@@ -421,8 +450,9 @@ export async function databaseAuthenticationInfoForApiKeyResult(
 export async function getDatabaseAuthenticationInfo(params: {
   apiKey: string | undefined
   __testOnlyOrganizationId?: string
+  customerId?: string
 }): Promise<DatabaseAuthenticationInfo> {
-  const { apiKey, __testOnlyOrganizationId } = params
+  const { apiKey, __testOnlyOrganizationId, customerId } = params
   if (apiKey) {
     const verifyKeyResult = await keyVerify(apiKey)
     return await databaseAuthenticationInfoForApiKeyResult(
@@ -436,6 +466,7 @@ export async function getDatabaseAuthenticationInfo(params: {
   }
   return await databaseAuthenticationInfoForWebappRequest(
     sessionResult.user as User,
-    __testOnlyOrganizationId
+    __testOnlyOrganizationId,
+    customerId
   )
 }

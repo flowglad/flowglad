@@ -10,6 +10,7 @@ import {
 } from 'vitest'
 import CheckoutPageProvider, {
   type CheckoutPageContextValues,
+  subscriptionDetailsFromCheckoutInfoCore,
   useCheckoutPageContext,
 } from '@/contexts/checkoutPageContext'
 import type { Discount } from '@/db/schema/discounts'
@@ -62,6 +63,22 @@ const baseMockContext = {
   clientSecret: '123',
 }
 
+const createMockCheckoutContext = (
+  overrides: Partial<CheckoutPageContextValues>
+): CheckoutPageContextValues => {
+  return {
+    ...baseMockContext,
+    flowType: CheckoutFlowType.Subscription,
+    purchase: subscriptionWithTrialDummyPurchase,
+    price: mockPrice,
+    currency: CurrencyCode.USD,
+    discount: null,
+    feeCalculation: null,
+    editCheckoutSessionLoading: false,
+    ...overrides,
+  }
+}
+
 const mockCheckoutPageContext = (): CheckoutPageContextValues => {
   return {
     ...baseMockContext,
@@ -76,19 +93,26 @@ const mockCheckoutPageContext = (): CheckoutPageContextValues => {
       currency: CurrencyCode.USD,
       type: PriceType.Subscription,
     },
-  } as CheckoutPageContextValues
+  }
 }
 
 // Mock the checkout page context
-vi.mock('@/contexts/checkoutPageContext', () => ({
-  useCheckoutPageContext: vi.fn(),
-}))
+vi.mock('@/contexts/checkoutPageContext', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/contexts/checkoutPageContext')
+    >()
+  return {
+    ...actual,
+    useCheckoutPageContext: vi.fn(),
+  }
+})
 
 // Test data setup - shared across all tests
 const mockPrice = {
   ...subscriptionDummyPrice,
   type: PriceType.Subscription,
-} as Price.ClientRecord
+}
 
 const mockUsagePrice = {
   id: 'price-usage-1',
@@ -112,7 +136,7 @@ const mockUsagePrice = {
   updatedByCommit: 'test',
   position: 0,
   slug: '',
-} as Price.ClientRecord
+}
 
 const mockDiscount = {
   id: 'discount-1',
@@ -129,7 +153,7 @@ const mockDiscount = {
   createdByCommit: 'test',
   updatedByCommit: 'test',
   position: 0,
-} as Discount.ClientRecord
+}
 
 const mockFeeCalculation = {
   id: 'fee-1',
@@ -164,7 +188,7 @@ const mockFeeCalculation = {
   type: FeeCalculationType.CheckoutSessionPayment,
   internalNotes: null,
   livemode: false,
-} as FeeCalculation.CustomerRecord
+}
 
 const mockInvoice = {
   id: 'invoice-1',
@@ -177,7 +201,7 @@ const mockInvoice = {
   createdByCommit: 'test',
   updatedByCommit: 'test',
   position: 0,
-} as Invoice.ClientRecord
+}
 
 const mockInvoiceLineItems = [
   {
@@ -192,7 +216,7 @@ const mockInvoiceLineItems = [
     description: 'Test line item',
     type: 'static' as const,
   },
-] as InvoiceLineItem.ClientRecord[]
+]
 
 describe('calculateTotalBillingDetails', () => {
   it('should throw error when neither price nor invoice is provided', () => {
@@ -446,7 +470,7 @@ describe('TotalBillingDetails', () => {
         sellerOrganization: dummyOrganization,
         redirectUrl: 'https://google.com',
         clientSecret: '123',
-      } as CheckoutPageContextValues
+      }
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
@@ -459,15 +483,7 @@ describe('TotalBillingDetails', () => {
 
     it('should render price flow with no discount, no tax, no trial, non-usage', async () => {
       // Arrange context: flowType = Subscription, price non-usage, currency = USD
-      const mockContext: CheckoutPageContextValues = {
-        ...baseMockContext,
-        flowType: CheckoutFlowType.Subscription,
-        purchase: subscriptionWithTrialDummyPurchase,
-        price: mockPrice,
-        currency: CurrencyCode.USD,
-        discount: null,
-        feeCalculation: null,
-        editCheckoutSessionLoading: false,
+      const mockContext = createMockCheckoutContext({
         subscriptionDetails: {
           trialPeriodDays: null,
           intervalUnit: IntervalUnit.Month,
@@ -476,7 +492,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Subscription,
         },
-      } as CheckoutPageContextValues
+      })
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
@@ -498,15 +514,8 @@ describe('TotalBillingDetails', () => {
 
     it('should render price flow with discount visible', async () => {
       // Arrange: as B2 but with discount present such that discount is 200 and total is 800
-      const mockContext: CheckoutPageContextValues = {
-        ...baseMockContext,
-        flowType: CheckoutFlowType.Subscription,
-        purchase: subscriptionWithTrialDummyPurchase,
-        price: mockPrice,
-        currency: CurrencyCode.USD,
+      const mockContext = createMockCheckoutContext({
         discount: mockDiscount,
-        feeCalculation: null,
-        editCheckoutSessionLoading: false,
         subscriptionDetails: {
           trialPeriodDays: null,
           intervalUnit: IntervalUnit.Month,
@@ -515,7 +524,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Subscription,
         },
-      } as CheckoutPageContextValues
+      })
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
@@ -531,15 +540,8 @@ describe('TotalBillingDetails', () => {
 
     it('should render price flow with feeCalculation showing tax and overridden subtotal', async () => {
       // Arrange: provide feeCalculation so that subtotalAmount = 1200, discountAmount = 300, taxAmount = 90, totalDueAmount = 990
-      const mockContext: CheckoutPageContextValues = {
-        ...baseMockContext,
-        flowType: CheckoutFlowType.Subscription,
-        purchase: subscriptionWithTrialDummyPurchase,
-        price: mockPrice,
-        currency: CurrencyCode.USD,
-        discount: null,
+      const mockContext = createMockCheckoutContext({
         feeCalculation: mockFeeCalculation,
-        editCheckoutSessionLoading: false,
         subscriptionDetails: {
           trialPeriodDays: null,
           intervalUnit: IntervalUnit.Month,
@@ -548,7 +550,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Subscription,
         },
-      } as CheckoutPageContextValues
+      })
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
@@ -566,16 +568,10 @@ describe('TotalBillingDetails', () => {
     })
 
     it('should render subscription with trial showing "Total After Trial" and Total Due Today = $0.00', async () => {
-      // Arrange: flowType = Subscription, subscriptionDetails.trialPeriodDays set (e.g., 14), pricePerBillingCycle = 1500, discountAmount = 200
-      const mockContext: CheckoutPageContextValues = {
-        ...baseMockContext,
-        flowType: CheckoutFlowType.Subscription,
-        purchase: subscriptionWithTrialDummyPurchase,
-        price: mockPrice,
-        currency: CurrencyCode.USD,
+      // Arrange: flowType = Subscription, subscriptionDetails.trialPeriodDays set (e.g., 14), pricePerBillingCycle = 1500, discountAmount = 200, isEligibleForTrial = true
+      const mockContext = createMockCheckoutContext({
         discount: mockDiscount,
-        feeCalculation: null,
-        editCheckoutSessionLoading: false,
+        isEligibleForTrial: true,
         subscriptionDetails: {
           trialPeriodDays: 14,
           intervalUnit: IntervalUnit.Month,
@@ -584,7 +580,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Subscription,
         },
-      } as CheckoutPageContextValues
+      })
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
@@ -602,17 +598,71 @@ describe('TotalBillingDetails', () => {
       ).toHaveTextContent('$0.00') // Due to trial
     })
 
+    it('should not show "Total After Trial" when customer is not eligible for trial (even if price has trial)', async () => {
+      // Arrange: isEligibleForTrial = false (customer has used trial before), price has trialPeriodDays = 10, pricePerBillingCycle = 1000
+      const price = {
+        ...mockPrice,
+        unitPrice: 1000,
+        trialPeriodDays: 10, // Price has trial, but customer is not eligible
+      }
+      const purchase = {
+        ...subscriptionWithTrialDummyPurchase,
+        pricePerBillingCycle: 1000,
+        firstInvoiceValue: 1000,
+      }
+
+      // Build checkoutInfo to test that subscriptionDetailsFromCheckoutInfoCore correctly handles isEligibleForTrial
+      const checkoutInfo = {
+        flowType: CheckoutFlowType.Subscription,
+        purchase,
+        price,
+        isEligibleForTrial: false, // Customer has used trial before
+        checkoutSession: baseMockContext.checkoutSession,
+        customer: null,
+        sellerOrganization: baseMockContext.sellerOrganization,
+        redirectUrl: baseMockContext.redirectUrl,
+        cancelUrl: null,
+        clientSecret: baseMockContext.clientSecret,
+        discount: null,
+        readonlyCustomerEmail: null,
+        feeCalculation: null,
+        product: baseMockContext.product,
+      } as const
+
+      // Derive subscriptionDetails using the actual function - this should set trialPeriodDays to null
+      const subscriptionDetails =
+        subscriptionDetailsFromCheckoutInfoCore(checkoutInfo)
+
+      // Assert: The function correctly sets trialPeriodDays to null when not eligible
+      expect(subscriptionDetails?.trialPeriodDays).toBeNull()
+
+      const mockContext = createMockCheckoutContext({
+        purchase,
+        price,
+        isEligibleForTrial: false,
+        subscriptionDetails,
+      })
+
+      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+
+      // Act: render component
+      const { queryByText, getByTestId } = render(
+        <TotalBillingDetails />
+      )
+
+      // Expect: Component does NOT display "Total After Trial" section
+      expect(queryByText('Total After Trial')).not.toBeInTheDocument()
+      // Expect: "Total Due Today" shows full amount (not $0.00)
+      expect(
+        getByTestId('billing-info-total-due-amount')
+      ).toHaveTextContent('$10.00') // 1000 cents = $10.00
+    })
+
     it('should render subscription with trial where discount exceeds price per billing cycle (clamped)', async () => {
       // Arrange: as B5 but pricePerBillingCycle = 100, discountAmount = 200
-      const mockContext: CheckoutPageContextValues = {
-        ...baseMockContext,
-        flowType: CheckoutFlowType.Subscription,
-        purchase: subscriptionWithTrialDummyPurchase,
-        price: mockPrice,
-        currency: CurrencyCode.USD,
+      const mockContext = createMockCheckoutContext({
         discount: mockDiscount,
-        feeCalculation: null,
-        editCheckoutSessionLoading: false,
+        isEligibleForTrial: true, // Must be eligible to show trial
         subscriptionDetails: {
           trialPeriodDays: 14,
           intervalUnit: IntervalUnit.Month,
@@ -621,7 +671,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Subscription,
         },
-      } as CheckoutPageContextValues
+      })
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
@@ -660,7 +710,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Usage,
         },
-      } as CheckoutPageContextValues
+      }
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
@@ -687,7 +737,7 @@ describe('TotalBillingDetails', () => {
         feeCalculation: null,
         editCheckoutSessionLoading: false,
         subscriptionDetails: undefined,
-      } as CheckoutPageContextValues
+      }
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
@@ -720,7 +770,7 @@ describe('TotalBillingDetails', () => {
         },
         editCheckoutSessionLoading: false,
         subscriptionDetails: undefined,
-      } as CheckoutPageContextValues
+      }
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
@@ -757,7 +807,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Subscription,
         },
-      } as CheckoutPageContextValues
+      }
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
@@ -791,7 +841,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.EUR,
           type: PriceType.Subscription,
         },
-      } as CheckoutPageContextValues
+      }
 
       vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 

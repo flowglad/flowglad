@@ -18,6 +18,13 @@ export {
   flowgladActionValidators,
   updateCustomerSchema,
 } from './actions'
+export * from './types/catalog'
+export * from './types/checkoutSession'
+export * from './types/currency'
+export * from './types/customer'
+export * from './types/invoice'
+export * from './types/payment'
+export * from './types/paymentMethod'
 export {
   type BillingWithChecks,
   type FeatureItem,
@@ -25,8 +32,9 @@ export {
   HTTPMethod,
   type SubscriptionExperimentalFields,
   type UsageMeterBalance,
-} from './types'
-
+} from './types/sdk'
+export * from './types/subscription'
+export * from './types/usage'
 export {
   constructCheckFeatureAccess,
   constructCheckUsageBalance,

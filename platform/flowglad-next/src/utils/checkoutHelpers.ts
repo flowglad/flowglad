@@ -33,6 +33,70 @@ import { findOrCreateCheckoutSession } from './checkoutSessionState'
 import core from './core'
 import { getPaymentIntent, getSetupIntent } from './stripe'
 
+/**
+ * Checks if a customer has already used a trial period.
+ * A customer has used a trial if any of their subscriptions (including cancelled ones) have a trialEnd date set.
+ *
+ * @param customerId - The customer ID to check
+ * @param transaction - Database transaction
+ * @returns true if customer has used a trial, false otherwise
+ */
+export const hasCustomerUsedTrial = async (
+  customerId: string,
+  transaction: DbTransaction
+): Promise<boolean> => {
+  const subscriptionsForCustomer = await selectSubscriptions(
+    {
+      customerId,
+    },
+    transaction
+  )
+
+  return subscriptionsForCustomer.some(
+    (subscription) => subscription.trialEnd !== null
+  )
+}
+
+/**
+ * Calculates whether a customer is eligible for a trial period.
+ * This only checks customer eligibility (whether they've used a trial before),
+ * not whether the price has a trial period (that's handled separately).
+ *
+ * @param price - The price being purchased (used to determine if applicable)
+ * @param maybeCustomer - The customer (if exists)
+ * @param transaction - Database transaction
+ * @returns true if customer is eligible, false if not eligible, undefined if not applicable
+ */
+export const calculateTrialEligibility = async (
+  price: Price.Record,
+  maybeCustomer: Customer.Record | null,
+  transaction: DbTransaction
+): Promise<boolean | undefined> => {
+  // FIXME (FG-257): Remove PriceType.Usage handling once usage price checkouts are fully deprecated.
+  // The validation in createCheckoutSession.ts (line 244-249) is currently commented out, allowing Usage prices to be checked out.
+  // When that validation is re-enabled, remove PriceType.Usage from this check.
+  if (
+    price.type !== PriceType.Subscription &&
+    price.type !== PriceType.Usage
+  ) {
+    return undefined
+  }
+
+  // Anonymous customers are eligible (they haven't used a trial yet)
+  if (!maybeCustomer) {
+    return true
+  }
+
+  // Check if customer has used a trial before
+  const hasUsedTrial = await hasCustomerUsedTrial(
+    maybeCustomer.id,
+    transaction
+  )
+
+  // Customer is eligible if they haven't used a trial before
+  return !hasUsedTrial
+}
+
 interface CheckoutInfoSuccess {
   checkoutInfo: CheckoutInfoCore
   organization: Organization.Record
@@ -101,6 +165,14 @@ export async function checkoutInfoForPriceWhere(
           transaction
         )
       : null
+
+    // Calculate trial eligibility
+    const isEligibleForTrial = await calculateTrialEligibility(
+      price,
+      maybeCustomer,
+      transaction
+    )
+
     return {
       product,
       price,
@@ -110,6 +182,7 @@ export async function checkoutInfoForPriceWhere(
       discount,
       feeCalculation: feeCalculation ?? null,
       maybeCustomer,
+      isEligibleForTrial,
     }
   })
   const { checkoutSession, organization, features } = result
@@ -124,8 +197,14 @@ export async function checkoutInfoForPriceWhere(
   }
 
   let clientSecret: string | null = null
-  const { product, price, maybeCustomer, discount, feeCalculation } =
-    result
+  const {
+    product,
+    price,
+    maybeCustomer,
+    discount,
+    feeCalculation,
+    isEligibleForTrial,
+  } = result
   if (checkoutSession.stripePaymentIntentId) {
     const paymentIntent = await getPaymentIntent(
       checkoutSession.stripePaymentIntentId
@@ -178,6 +257,7 @@ export async function checkoutInfoForPriceWhere(
       discount,
       feeCalculation,
       features,
+      isEligibleForTrial,
     }
     return {
       checkoutInfo: checkoutInfoSchema.parse(rawCheckoutInfo),
@@ -201,6 +281,7 @@ export async function checkoutInfoForCheckoutSession(
   maybeCurrentSubscriptions: Subscription.Record[] | null
   features: Feature.Record[] | null
   discount: Discount.Record | null
+  isEligibleForTrial?: boolean
 }> {
   const checkoutSession = await selectCheckoutSessionById(
     checkoutSessionId,
@@ -253,6 +334,14 @@ export async function checkoutInfoForCheckoutSession(
           transaction
         )
       : null
+
+  // Calculate trial eligibility
+  const isEligibleForTrial = await calculateTrialEligibility(
+    price,
+    maybeCustomer,
+    transaction
+  )
+
   return {
     checkoutSession,
     product,
@@ -263,5 +352,6 @@ export async function checkoutInfoForCheckoutSession(
     maybeCustomer,
     maybeCurrentSubscriptions,
     features: featuresResult.map((f) => f.feature),
+    isEligibleForTrial,
   }
 }

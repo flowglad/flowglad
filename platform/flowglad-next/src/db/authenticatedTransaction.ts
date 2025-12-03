@@ -19,6 +19,10 @@ interface AuthenticatedTransactionOptions {
    * Used in testing customer billing portal RLS functionality
    */
   __testOnlyOrganizationId?: string
+  /**
+   * Customer context for customer billing portal requests.
+   */
+  customerId?: string
 }
 
 /**
@@ -28,7 +32,8 @@ export async function authenticatedTransaction<T>(
   fn: (params: AuthenticatedTransactionParams) => Promise<T>,
   options?: AuthenticatedTransactionOptions
 ) {
-  const { apiKey, __testOnlyOrganizationId } = options ?? {}
+  const { apiKey, __testOnlyOrganizationId, customerId } =
+    options ?? {}
   if (!core.IS_TEST && __testOnlyOrganizationId) {
     throw new Error(
       'Attempted to use test organization id in a non-test environment'
@@ -38,6 +43,7 @@ export async function authenticatedTransaction<T>(
     await getDatabaseAuthenticationInfo({
       apiKey,
       __testOnlyOrganizationId,
+      customerId,
     })
   return await db.transaction(async (transaction) => {
     if (!jwtClaim) {
@@ -96,11 +102,13 @@ export async function comprehensiveAuthenticatedTransaction<T>(
   ) => Promise<TransactionOutput<T>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
-  const { apiKey, __testOnlyOrganizationId } = options ?? {}
+  const { apiKey, __testOnlyOrganizationId, customerId } =
+    options ?? {}
   const { userId, livemode, jwtClaim } =
     await getDatabaseAuthenticationInfo({
       apiKey,
       __testOnlyOrganizationId,
+      customerId,
     })
 
   return db.transaction(async (transaction) => {
@@ -203,13 +211,13 @@ export function eventfulAuthenticatedTransaction<T>(
 export type AuthenticatedProcedureResolver<
   TInput,
   TOutput,
-  TContext extends { apiKey?: string },
+  TContext extends { apiKey?: string; customerId?: string },
 > = (input: TInput, ctx: TContext) => Promise<TOutput>
 
 export type AuthenticatedProcedureTransactionParams<
   TInput,
   TOutput,
-  TContext extends { apiKey?: string },
+  TContext extends { apiKey?: string; customerId?: string },
 > = AuthenticatedTransactionParams & {
   input: TInput
   ctx: TContext
@@ -218,7 +226,7 @@ export type AuthenticatedProcedureTransactionParams<
 export type AuthenticatedProcedureTransactionHandler<
   TInput,
   TOutput,
-  TContext extends { apiKey?: string },
+  TContext extends { apiKey?: string; customerId?: string },
 > = (
   params: AuthenticatedProcedureTransactionParams<
     TInput,
@@ -230,7 +238,7 @@ export type AuthenticatedProcedureTransactionHandler<
 export const authenticatedProcedureTransaction = <
   TInput,
   TOutput,
-  TContext extends { apiKey?: string },
+  TContext extends { apiKey?: string; customerId?: string },
 >(
   handler: AuthenticatedProcedureTransactionHandler<
     TInput,
@@ -244,6 +252,7 @@ export const authenticatedProcedureTransaction = <
         handler({ ...params, input: opts.input, ctx: opts.ctx }),
       {
         apiKey: opts.ctx.apiKey,
+        customerId: opts.ctx.customerId,
       }
     )
   }
@@ -252,7 +261,7 @@ export const authenticatedProcedureTransaction = <
 export const authenticatedProcedureComprehensiveTransaction = <
   TInput,
   TOutput,
-  TContext extends { apiKey?: string },
+  TContext extends { apiKey?: string; customerId?: string },
 >(
   handler: (
     params: AuthenticatedProcedureTransactionParams<
@@ -268,6 +277,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
         handler({ ...params, input: opts.input, ctx: opts.ctx }),
       {
         apiKey: opts.ctx.apiKey,
+        customerId: opts.ctx.customerId,
       }
     )
   }
@@ -276,7 +286,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
 export function eventfulAuthenticatedProcedureTransaction<
   TInput,
   TOutput,
-  TContext extends { apiKey?: string },
+  TContext extends { apiKey?: string; customerId?: string },
 >(
   handler: (
     params: AuthenticatedProcedureTransactionParams<

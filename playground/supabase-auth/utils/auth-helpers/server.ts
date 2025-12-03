@@ -1,12 +1,14 @@
+'use server'
+
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { createClient } from '@/utils/supabase/server'
 import { getAuthTypes } from '@/utils/auth-helpers/settings'
 import {
   getErrorRedirect,
   getStatusRedirect,
   getURL,
 } from '@/utils/helpers'
-import { createClient } from '@/utils/supabase/server'
 
 function isValidEmail(email: string) {
   var regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
@@ -16,7 +18,6 @@ function isValidEmail(email: string) {
 export async function redirectToPath(path: string) {
   return redirect(path)
 }
-
 export async function SignOut(formData: FormData) {
   const pathName = String(formData.get('pathName')).trim()
 

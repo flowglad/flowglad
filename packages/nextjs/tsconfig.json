@@ -13,8 +13,7 @@
     "paths": {
       "@flowglad/react": ["../react/src/index.ts"],
       "@flowglad/shared": ["../shared/src/index.ts"],
-      "@flowglad/server": ["../server/src/index.ts"],
-      "@flowglad/types": ["../types/src/index.ts"]
+      "@flowglad/server": ["../server/src/index.ts"]
     }
   },
   "include": ["src"]

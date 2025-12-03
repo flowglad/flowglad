@@ -29,7 +29,7 @@
       "name": "@flowglad/express",
       "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -48,7 +48,7 @@
       "name": "@flowglad/nextjs",
       "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -68,17 +68,15 @@
       "name": "@flowglad/react",
       "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/shared": "workspace:*",
         "@tanstack/react-query": "5.66.0",
-        "axios": "1.12.0",
         "clsx": "2.1.1",
         "date-fns": "4.1.0",
         "tailwind-merge": "3.0.2",
         "zod": "4.1.5",
       },
       "devDependencies": {
-        "@flowglad/types": "workspace:*",
         "@types/autoprefixer": "^10.2.0",
         "@types/react": "18.3.12",
         "autoprefixer": "^10.4.18",
@@ -94,9 +92,8 @@
       "name": "@flowglad/server",
       "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/shared": "workspace:*",
-        "@flowglad/types": "workspace:*",
         "zod": "4.1.5",
       },
       "devDependencies": {
@@ -110,8 +107,7 @@
       "name": "@flowglad/shared",
       "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
-        "@flowglad/types": "workspace:*",
+        "@flowglad/node": "0.23.0",
         "date-fns": "4.1.0",
         "zod": "4.1.5",
       },
@@ -123,7 +119,7 @@
       "name": "@flowglad/types",
       "version": "0.13.0",
       "dependencies": {
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
       },
       "devDependencies": {
         "typescript": "5.8.2",
@@ -135,7 +131,7 @@
       "dependencies": {
         "@flowglad/express": "workspace:*",
         "@flowglad/nextjs": "workspace:*",
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -158,7 +154,7 @@
         "@adobe/css-tools": "4.4.2",
         "@clerk/nextjs": "^6.10.2",
         "@flowglad/nextjs": "workspace:*",
-        "@flowglad/node": "0.22.0",
+        "@flowglad/node": "0.23.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -341,7 +337,7 @@
 
     "@flowglad/nextjs": ["@flowglad/nextjs@workspace:packages/nextjs"],
 
-    "@flowglad/node": ["@flowglad/node@0.22.0", "", {}, "sha512-ljB7t2HKuTBoxR0ofB6UmJyCunYIVrV27rktWON2IFsnuA88FWYF2xpXSsHtTSKIKAFSEjhmUbOaOxLtU7R8uw=="],
+    "@flowglad/node": ["@flowglad/node@0.23.0", "", {}, "sha512-6R7Np06SI7mzeXPa6fEPhB1ctwLcSmRPpLxm5Uh3mbD+FxIs8kHgKMsxOoX4hUvyoPkMBSCgPCBiNfVPnysx0g=="],
 
     "@flowglad/playground-express": ["@flowglad/playground-express@workspace:playground/express"],
 

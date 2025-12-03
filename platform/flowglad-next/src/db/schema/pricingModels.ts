@@ -66,8 +66,9 @@ const readOnlyColumns = {
 } as const
 
 const hiddenColumns = {
+  integrationGuideHash: true,
   ...hiddenColumnsForClientSchema,
-}
+} as const
 
 export const {
   select: pricingModelsSelectSchema,

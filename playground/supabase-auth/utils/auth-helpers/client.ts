@@ -1,10 +1,9 @@
 'use client'
 
-import type { Provider } from '@supabase/supabase-js'
+import { type Provider } from '@supabase/supabase-js'
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { getURL } from '@/utils/helpers'
 import { createClient } from '@/utils/supabase/client'
-import { redirectToPath } from './server'
 
 export async function handleRequest(
   e: React.FormEvent<HTMLFormElement>,
@@ -21,8 +20,8 @@ export async function handleRequest(
     // If client-side router is provided, use it to redirect
     return router.push(redirectUrl)
   } else {
-    // Otherwise, redirect server-side
-    return await redirectToPath(redirectUrl)
+    // Otherwise, redirect using window.location (client-side redirect)
+    window.location.href = redirectUrl
   }
 }
 

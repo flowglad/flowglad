@@ -1,15 +1,15 @@
-import type Stripe from 'stripe'
+import Stripe from 'stripe'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
-import type { Customer } from '@/db/schema/customers'
-import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import type { Event } from '@/db/schema/events'
+import { Customer } from '@/db/schema/customers'
+import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import { Event } from '@/db/schema/events'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
-import type { Purchase } from '@/db/schema/purchases'
-import type { Subscription } from '@/db/schema/subscriptions'
+import { Purchase } from '@/db/schema/purchases'
+import { Subscription } from '@/db/schema/subscriptions'
 import {
   checkoutSessionIsInTerminalState,
   isCheckoutSessionSubscriptionCreating,
@@ -39,7 +39,6 @@ import type { DbTransaction } from '@/db/types'
 import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
-  CancellationReason,
   CheckoutSessionStatus,
   CheckoutSessionType,
   EventNoun,
@@ -49,14 +48,12 @@ import {
 } from '@/types'
 import {
   IntentMetadataType,
-  type StripeIntentMetadata,
+  StripeIntentMetadata,
   stripeIdFromObjectOrId,
   stripeIntentMetadataSchema,
 } from '@/utils/stripe'
-import {
-  constructPurchaseCompletedEventHash,
-  constructSubscriptionCreatedEventHash,
-} from '../eventHelpers'
+import { hasCustomerUsedTrial } from '../checkoutHelpers'
+import { constructPurchaseCompletedEventHash } from '../eventHelpers'
 import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
 import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 
@@ -463,15 +460,9 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       throw new Error('Price interval count is required')
     }
 
-    const subscriptionsForCustomer = await selectSubscriptions(
-      {
-        customerId: customer.id,
-      },
+    const hasHadTrial = await hasCustomerUsedTrial(
+      customer.id,
       transaction
-    )
-
-    const hasHadTrial = subscriptionsForCustomer.some(
-      (subscription) => subscription.trialEnd
     )
 
     const startDate = Date.now()

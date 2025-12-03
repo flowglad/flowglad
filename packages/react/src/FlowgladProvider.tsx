@@ -1,5 +1,5 @@
 'use client'
-import type { CustomerBillingDetails } from '@flowglad/types'
+import type { CustomerBillingDetails } from '@flowglad/shared'
 import {
   QueryClient,
   QueryClientProvider,

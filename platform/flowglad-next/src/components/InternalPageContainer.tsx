@@ -1,5 +1,8 @@
 import { cn } from '@/lib/utils'
 
+// TODO: Delete this file and replace with InnerPageContainerNew.tsx,
+// then rename InnerPageContainerNew to InnerPageContainer.
+
 const InnerPageContainer = ({
   children,
   className,

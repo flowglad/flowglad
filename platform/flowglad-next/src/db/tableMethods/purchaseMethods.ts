@@ -28,12 +28,8 @@ import {
   PriceType,
   PurchaseStatus,
 } from '@/types'
+import { checkoutSessionClientSelectSchema } from '../schema/checkoutSessions'
 import {
-  checkoutSessionClientSelectSchema,
-  checkoutSessionsSelectSchema,
-} from '../schema/checkoutSessions'
-import {
-  Customer,
   customerClientInsertSchema,
   customers,
   customersSelectSchema,
@@ -193,6 +189,15 @@ const checkoutInfoCoreSchema = z.object({
    */
   readonlyCustomerEmail: z.string().email().nullish(),
   feeCalculation: customerFacingFeeCalculationSelectSchema.nullable(),
+  /**
+   * Whether the customer is eligible for a trial period.
+   * This only checks customer eligibility (whether they've used a trial before),
+   * not whether the price has a trial period (that's in price.trialPeriodDays).
+   * true = customer hasn't used a trial before (or anonymous customer)
+   * false = customer has used a trial before
+   * undefined = not applicable (not subscription/usage price)
+   */
+  isEligibleForTrial: z.boolean().optional(),
 })
 
 const subscriptionCheckoutInfoSchema = checkoutInfoCoreSchema.extend({

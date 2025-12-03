@@ -1,6 +1,6 @@
 import type { Flowglad } from '@flowglad/node'
 import { type ZodType, z } from 'zod'
-import { FlowgladActionKey, HTTPMethod } from './types'
+import { FlowgladActionKey, HTTPMethod } from './types/sdk'
 
 export type FlowgladActionValidatorMap = {
   [K in FlowgladActionKey]: {
@@ -16,11 +16,24 @@ const createCoreCheckoutSessionSchema = z.object({
   outputName: z.string().optional(),
 })
 
-export const createProductCheckoutSessionSchema =
+const checkoutSessionWithPriceId =
   createCoreCheckoutSessionSchema.extend({
     priceId: z.string(),
+    priceSlug: z.never().optional(), // Explicitly disallow
     quantity: z.number().optional().default(1),
   })
+
+const checkoutSessionWithPriceSlug =
+  createCoreCheckoutSessionSchema.extend({
+    priceSlug: z.string(),
+    priceId: z.never().optional(), // Explicitly disallow
+    quantity: z.number().optional().default(1),
+  })
+
+export const createProductCheckoutSessionSchema = z.union([
+  checkoutSessionWithPriceId,
+  checkoutSessionWithPriceSlug,
+])
 
 export const createAddPaymentMethodCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
@@ -30,7 +43,6 @@ export const createAddPaymentMethodCheckoutSessionSchema =
 export const createActivateSubscriptionCheckoutSessionSchema =
   createCoreCheckoutSessionSchema.extend({
     targetSubscriptionId: z.string(),
-    priceId: z.string(),
   })
 
 export type CreateProductCheckoutSessionParams = z.infer<
@@ -75,15 +87,28 @@ export const cancelSubscriptionSchema = z.object({
   cancellation: cancellationParametersSchema,
 })
 
-export const createUsageEventSchema = z.object({
+const baseUsageEventFields = z.object({
   amount: z.number(),
-  priceId: z.string(),
   subscriptionId: z.string(),
-  usageMeterId: z.string(),
   properties: z.record(z.string(), z.unknown()).optional(),
   transactionId: z.string(),
   usageDate: z.number().optional(),
 })
+
+const usageEventWithPriceId = baseUsageEventFields.extend({
+  priceId: z.string(),
+  priceSlug: z.never().optional(), // Explicitly disallow
+})
+
+const usageEventWithPriceSlug = baseUsageEventFields.extend({
+  priceSlug: z.string(),
+  priceId: z.never().optional(), // Explicitly disallow
+})
+
+export const createUsageEventSchema = z.union([
+  usageEventWithPriceId,
+  usageEventWithPriceSlug,
+])
 
 export type CreateUsageEventParams = z.infer<
   typeof createUsageEventSchema

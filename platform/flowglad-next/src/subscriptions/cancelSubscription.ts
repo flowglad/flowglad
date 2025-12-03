@@ -37,6 +37,7 @@ import {
   type ScheduleSubscriptionCancellationParams,
   scheduleSubscriptionCancellationSchema,
 } from '@/subscriptions/schemas'
+import { idempotentSendCustomerSubscriptionCanceledNotification } from '@/trigger/notifications/send-customer-subscription-canceled-notification'
 import { idempotentSendOrganizationSubscriptionCanceledNotification } from '@/trigger/notifications/send-organization-subscription-canceled-notification'
 import {
   BillingPeriodStatus,
@@ -365,6 +366,19 @@ export const cancelSubscriptionImmediately = async (
     updatedSubscription = result
   }
   await reassignDefaultSubscription(updatedSubscription, transaction)
+  try {
+    await idempotentSendCustomerSubscriptionCanceledNotification(
+      updatedSubscription.id
+    )
+  } catch (error) {
+    console.error(
+      'Failed to send customer subscription canceled notification',
+      {
+        subscriptionId: updatedSubscription.id,
+        error,
+      }
+    )
+  }
   return {
     result: updatedSubscription,
     eventsToInsert: [

@@ -12,6 +12,7 @@ import {
   type VisibilityState,
 } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
@@ -51,6 +52,8 @@ export function FeaturesDataTable({
   onCreateFeature,
   buttonVariant = 'default',
 }: FeaturesDataTableProps) {
+  const router = useRouter()
+
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
@@ -189,21 +192,61 @@ export function FeaturesDataTable({
               </TableCell>
             </TableRow>
           ) : table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={isFetching ? 'opacity-50' : ''}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            table.getRowModel().rows.map((row) => {
+              const navigateToFeature = () => {
+                router.push(
+                  `/store/features/${row.original.feature.id}`
+                )
+              }
+              return (
+                <TableRow
+                  key={row.id}
+                  className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
+                  tabIndex={0}
+                  role="link"
+                  onClick={(e) => {
+                    const target = e.target
+                    if (!(target instanceof Element)) {
+                      return
+                    }
+                    if (
+                      target.closest('button') ||
+                      target.closest('[role="checkbox"]') ||
+                      target.closest('input[type="checkbox"]')
+                    ) {
+                      return
+                    }
+                    navigateToFeature()
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      const target = e.target
+                      if (!(target instanceof Element)) {
+                        return
+                      }
+                      if (
+                        target.closest('button') ||
+                        target.closest('[role="checkbox"]') ||
+                        target.closest('input[type="checkbox"]')
+                      ) {
+                        return
+                      }
+                      e.preventDefault()
+                      navigateToFeature()
+                    }
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )
+            })
           ) : (
             <TableRow>
               <TableCell

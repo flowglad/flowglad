@@ -1,13 +1,15 @@
 'use client'
+
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { CustomerCardNew } from '@/components/CustomerCardNew'
 import { ExpandSection } from '@/components/ExpandSection'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
-import InternalPageContainer from '@/components/InternalPageContainer'
+import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { ItemFeature } from '@/components/ItemFeature'
 import { ProductCard } from '@/components/ProductCard'
-import { Button } from '@/components/ui/button'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { useAuthContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
@@ -19,14 +21,17 @@ import {
   getSubscriptionStatusBadge,
 } from '@/lib/subscription-utils'
 import type { RichSubscription } from '@/subscriptions/schemas'
-import { SubscriptionStatus } from '@/types'
+import {
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  SubscriptionStatus,
+} from '@/types'
 import core from '@/utils/core'
 import { getCurrencyParts } from '@/utils/stripe'
 import { InvoicesDataTable } from '../../invoices/data-table'
 import { PaymentsDataTable } from '../../payments/data-table'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
-import { SubscriptionFeaturesTable } from './SubscriptionFeaturesTable'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -105,7 +110,7 @@ const InnerSubscriptionPage = ({
   }
 
   return (
-    <InternalPageContainer>
+    <InnerPageContainerNew>
       <div className="w-full relative flex flex-col justify-center gap-6 pb-6">
         <PageHeaderNew
           title="Subscription Details"
@@ -195,26 +200,66 @@ const InnerSubscriptionPage = ({
             </div>
           )}
         </ExpandSection>
-        <SubscriptionFeaturesTable
-          featureItems={subscription.experimental?.featureItems}
-          toolbarContent={
-            <Button
-              size="sm"
-              onClick={() => setIsAddFeatureModalOpen(true)}
-              disabled={!canAddFeature}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add feature
-            </Button>
-          }
-        />
+        <ExpandSection title="Customer" defaultExpanded={true}>
+          <CustomerCardNew
+            variant="simple"
+            name={customer.name}
+            email={customer.email}
+            href={`/customers/${customer.id}`}
+          />
+        </ExpandSection>
+        <ExpandSection title="Feature Access" defaultExpanded={false}>
+          <div className="flex flex-col gap-1 px-3">
+            {subscription.experimental?.featureItems?.map(
+              (feature) => (
+                <ItemFeature
+                  key={feature.id}
+                  href={`/store/features/${feature.featureId}`}
+                >
+                  {feature.name}
+                  {feature.type === FeatureType.UsageCreditGrant &&
+                    feature.amount != null && (
+                      <span className="text-muted-foreground font-normal">
+                        &nbsp;- {feature.amount.toLocaleString()}{' '}
+                        total credits,{' '}
+                        {feature.renewalFrequency ===
+                        FeatureUsageGrantFrequency.EveryBillingPeriod
+                          ? 'every billing period'
+                          : 'one-time'}
+                        .
+                      </span>
+                    )}
+                </ItemFeature>
+              )
+            )}
+            {canAddFeature && (
+              <ItemFeature
+                icon={Plus}
+                onClick={() => setIsAddFeatureModalOpen(true)}
+              >
+                Add feature
+              </ItemFeature>
+            )}
+          </div>
+        </ExpandSection>
         <InvoicesDataTable
           title="Invoices"
           filters={{ subscriptionId: subscription.id }}
+          hiddenColumns={['customerName']}
+          columnOrder={[
+            'total',
+            'invoiceNumber',
+            'status',
+            'dueDate',
+            'createdAt',
+            'invoiceId',
+            'actions',
+          ]}
         />
         <PaymentsDataTable
           title="Payments"
           filters={{ subscriptionId: subscription.id }}
+          hiddenColumns={['customerName']}
         />
       </div>
 
@@ -237,7 +282,7 @@ const InnerSubscriptionPage = ({
         setIsOpen={setIsCancelModalOpen}
         subscriptionId={subscription.id}
       />
-    </InternalPageContainer>
+    </InnerPageContainerNew>
   )
 }
 
