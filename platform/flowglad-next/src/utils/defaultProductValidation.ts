@@ -1,9 +1,9 @@
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
 import { TRPCError } from '@trpc/server'
 import * as R from 'ramda'
-import { PriceType } from '@/types'
 import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { PriceType } from '@/types'
 
 /**
  * Fields that can be updated on default products

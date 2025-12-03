@@ -1,7 +1,7 @@
-import { protectedProcedure } from '@/server/trpc'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { editFileInputSchema } from '@/db/schema/files'
 import { updateFile as updateFileDB } from '@/db/tableMethods/fileMethods'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { protectedProcedure } from '@/server/trpc'
 
 export const updateFile = protectedProcedure
   .input(editFileInputSchema)

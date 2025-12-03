@@ -1,20 +1,20 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  unexpireProductFeatures,
-  syncProductFeatures,
-  selectProductFeatures,
-  selectFeaturesByProductFeatureWhere,
-} from './productFeatureMethods'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Feature } from '@/db/schema/features'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
   setupProduct,
-  setupToggleFeature,
   setupProductFeature,
+  setupToggleFeature,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Feature } from '@/db/schema/features'
+import type { Organization } from '@/db/schema/organizations'
+import type { Product } from '@/db/schema/products'
+import {
+  selectFeaturesByProductFeatureWhere,
+  selectProductFeatures,
+  syncProductFeatures,
+  unexpireProductFeatures,
+} from './productFeatureMethods'
 
 let organization: Organization.Record
 let product: Product.Record

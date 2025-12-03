@@ -1,21 +1,21 @@
 'use client'
 
+import { sentenceCase } from 'change-case'
+import { Check } from 'lucide-react'
+import Image from 'next/image'
 import * as React from 'react'
-import { cn } from '@/lib/utils'
+import { trpc } from '@/app/_trpc/client'
+import { CheckoutMarkdownView } from '@/components/ui/checkout-markdown-view'
 import {
   SubscriptionCheckoutDetails,
   useCheckoutPageContext,
 } from '@/contexts/checkoutPageContext'
+import type { Price } from '@/db/schema/prices'
+import type { Purchase } from '@/db/schema/purchases'
+import { encodeCursor } from '@/db/tableUtils'
+import { cn } from '@/lib/utils'
 import { CheckoutFlowType, CurrencyCode, PriceType } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { Purchase } from '@/db/schema/purchases'
-import { sentenceCase } from 'change-case'
-import Image from 'next/image'
-import { CheckoutMarkdownView } from '@/components/ui/checkout-markdown-view'
-import { Price } from '@/db/schema/prices'
-import { trpc } from '@/app/_trpc/client'
-import { encodeCursor } from '@/db/tableUtils'
-import { Check } from 'lucide-react'
 
 export interface BillingHeaderProps
   extends React.HTMLAttributes<HTMLDivElement> {}

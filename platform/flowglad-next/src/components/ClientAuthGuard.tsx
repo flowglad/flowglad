@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuthContext } from '@/contexts/authContext'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useAuthContext } from '@/contexts/authContext'
 
 type AuthGuardProps = {
   children: React.ReactNode

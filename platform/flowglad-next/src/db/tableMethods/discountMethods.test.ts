@@ -1,9 +1,9 @@
-import { describe, it, beforeEach, expect } from 'vitest'
-import { Organization } from '@/db/schema/organizations'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg } from '@/../seedDatabase'
-import { insertDiscount, selectDiscounts } from './discountMethods'
-import { DiscountAmountType, DiscountDuration } from '@/types'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Organization } from '@/db/schema/organizations'
+import { DiscountAmountType, DiscountDuration } from '@/types'
+import { insertDiscount, selectDiscounts } from './discountMethods'
 
 describe('insertDiscount uniqueness constraints', () => {
   let organization1: Organization.Record

@@ -30,7 +30,11 @@ ARG NODE_OPTIONS=--max-old-space-size=6144
 ENV NODE_OPTIONS=${NODE_OPTIONS}
 
 # Pre-copy manifest and config files to maximize cache
-COPY package.json bun.lock next.config.mjs bunfig.toml ./
+# Note: Build context should be repo root to access biome.json
+COPY platform/flowglad-next/package.json platform/flowglad-next/bun.lock platform/flowglad-next/next.config.mjs platform/flowglad-next/bunfig.toml ./
+
+# Copy Biome config files from root (needed for bun run check)
+COPY biome.json .biomeignore ./
 
 # Prepare a minimal env file so prebuild step using dotenvx doesn't fail
 RUN touch .env.local
@@ -39,7 +43,7 @@ RUN touch .env.local
 RUN /root/.bun/bin/bun install --frozen-lockfile
 
 # Copy the rest of the source
-COPY . .
+COPY platform/flowglad-next/ .
 
 RUN --mount=type=cache,id=bun-install-cache,target=/root/.bun/install/cache \
   --mount=type=cache,id=tool-cache,target=/app/node_modules/.cache \

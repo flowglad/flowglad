@@ -1,28 +1,24 @@
 'use client'
-import {
-  Settings,
-  Gauge,
-  Store,
-  Users,
-  CircleDollarSign,
-  BookOpen,
-  LogOut,
-  TriangleRight,
-  PanelLeft,
-  ChevronRight,
-  type LucideIcon,
-} from 'lucide-react'
-import { useAuthContext } from '@/contexts/authContext'
-import { usePathname, useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { NavMain } from './NavMain'
-import { NavStandalone } from './NavStandalone'
-import { trpc } from '@/app/_trpc/client'
-import { cn } from '@/lib/utils'
-import { useEffect, useState } from 'react'
-import { Skeleton } from '../ui/skeleton'
-import { BusinessOnboardingStatus } from '@/types'
+import { Organization } from '@clerk/nextjs/server'
 import { RiDiscordFill } from '@remixicon/react'
+import {
+  BookOpen,
+  ChevronRight,
+  CircleDollarSign,
+  Gauge,
+  LogOut,
+  type LucideIcon,
+  PanelLeft,
+  Settings,
+  Store,
+  TriangleRight,
+  Users,
+} from 'lucide-react'
+import Image from 'next/image'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { trpc } from '@/app/_trpc/client'
+import { Button } from '@/components/ui/button'
 import {
   SidebarContent,
   SidebarFooter,
@@ -33,9 +29,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Button } from '@/components/ui/button'
+import { useAuthContext } from '@/contexts/authContext'
+import { cn } from '@/lib/utils'
+import { BusinessOnboardingStatus } from '@/types'
 import { signOut } from '@/utils/authClient'
-import { Organization } from '@clerk/nextjs/server'
+import { Skeleton } from '../ui/skeleton'
+import { NavMain } from './NavMain'
+import { NavStandalone } from './NavStandalone'
 import OrganizationSwitcher from './OrganizationSwitcher'
 
 type StandaloneNavItem = {
@@ -357,7 +357,7 @@ export const SideNavigation = () => {
                   <SidebarMenuButton
                     onClick={async () => {
                       await toggleTestMode.mutateAsync({
-                        livemode: !Boolean(livemode),
+                        livemode: !livemode,
                       })
                     }}
                     disabled={

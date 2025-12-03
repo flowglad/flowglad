@@ -1,39 +1,39 @@
+import { eq, inArray } from 'drizzle-orm'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  createPaginatedSelectFunction,
-  createCursorPaginatedSelectFunction,
-  ORMMethodCreatorConfig,
-  createBulkInsertOrDoNothingFunction,
-} from '@/db/tableUtils'
+  customerClientSelectSchema,
+  customers,
+} from '@/db/schema/customers'
+import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
+import { products } from '@/db/schema/products'
 import {
-  UsageEvent,
+  subscriptionClientSelectSchema,
+  subscriptions,
+} from '@/db/schema/subscriptions'
+import {
+  type UsageEvent,
   usageEvents,
   usageEventsInsertSchema,
   usageEventsSelectSchema,
-  usageEventsUpdateSchema,
   usageEventsTableRowDataSchema,
+  usageEventsUpdateSchema,
 } from '@/db/schema/usageEvents'
-import {
-  customers,
-  customerClientSelectSchema,
-} from '@/db/schema/customers'
-import {
-  subscriptions,
-  subscriptionClientSelectSchema,
-} from '@/db/schema/subscriptions'
 import {
   usageMeters,
   usageMetersClientSelectSchema,
 } from '@/db/schema/usageMeters'
-import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
-import { products } from '@/db/schema/products'
-import { eq, inArray } from 'drizzle-orm'
-import { DbTransaction } from '../types'
+import {
+  createBulkInsertOrDoNothingFunction,
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { SubscriptionStatus } from '@/types'
+import type { DbTransaction } from '../types'
 import { isSubscriptionCurrent } from './subscriptionMethods'
-import { SubscriptionStatus } from '@/types'
 
 const config: ORMMethodCreatorConfig<
   typeof usageEvents,

@@ -1,7 +1,7 @@
+import { redirect } from 'next/navigation'
+import type { NextRequest } from 'next/server'
 import { adminTransaction } from '@/db/adminTransaction'
 import { exchangeTokenForPurchaseAccessSession } from '@/utils/purchaseAccessSessionState'
-import { NextRequest } from 'next/server'
-import { redirect } from 'next/navigation'
 
 export const GET = async (
   request: NextRequest,

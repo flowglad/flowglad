@@ -1,17 +1,17 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil } from 'lucide-react'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { formatDate } from '@/utils/core'
+import * as React from 'react'
+import EditUsageMeterModal from '@/components/components/EditUsageMeterModal'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import {
+  type ActionMenuItem,
   EnhancedDataTableActionsMenu,
-  ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-import EditUsageMeterModal from '@/components/components/EditUsageMeterModal'
+import type { UsageMeter } from '@/db/schema/usageMeters'
+import { formatDate } from '@/utils/core'
 
 type UsageMeterTableRowData = {
   usageMeter: UsageMeter.ClientRecord

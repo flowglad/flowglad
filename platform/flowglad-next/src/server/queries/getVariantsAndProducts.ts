@@ -1,7 +1,7 @@
-import { protectedProcedure } from '../trpc'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
+import { protectedProcedure } from '../trpc'
 
 export const getPricesAndProducts = protectedProcedure.query(
   async ({ input, ctx }) => {

@@ -20,9 +20,12 @@
     ·
     <a href="https://flowglad.com">Website</a>
     ·
+    <a href="https://luma.com/flowglad">Events</a>
+    ·
     <a href="https://github.com/flowglad/flowglad/issues">Issues</a>
     ·
     <a href="https://github.com/flowglad/examples">Examples</a>
+    ·
   </p>
 </p>
 

@@ -3,7 +3,7 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/example.ts
 */
 
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import runScript from './scriptRunner'
 
 async function example(db: PostgresJsDatabase) {

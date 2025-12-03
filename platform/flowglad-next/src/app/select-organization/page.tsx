@@ -1,29 +1,29 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { trpc } from '@/app/_trpc/client'
-import { updateFocusedMembershipSchema } from '@/db/schema/organizations'
-import { z } from 'zod'
-import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Label } from '@/components/ui/label'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
+import { trpc } from '@/app/_trpc/client'
 import ErrorLabel from '@/components/ErrorLabel'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import {
   RadioGroup,
   RadioGroupItem,
 } from '@/components/ui/radio-group'
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { updateFocusedMembershipSchema } from '@/db/schema/organizations'
 
 type FormValues = z.infer<typeof updateFocusedMembershipSchema>
 

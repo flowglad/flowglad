@@ -1,15 +1,15 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { adminTransaction } from '@/db/adminTransaction'
-import { createOrganizationTransaction } from '@/utils/organizationHelpers'
-import { CreateOrganizationInput } from '@/db/schema/organizations'
-import { selectCountries } from '@/db/tableMethods/countryMethods'
-import core from './core'
-import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
+import type { CreateOrganizationInput } from '@/db/schema/organizations'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
-import { FlowgladApiKeyType } from '@/types'
+import { selectCountries } from '@/db/tableMethods/countryMethods'
+import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
+import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
-import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
+import { FlowgladApiKeyType } from '@/types'
+import { createOrganizationTransaction } from '@/utils/organizationHelpers'
+import core from './core'
 
 describe('createOrganizationTransaction', () => {
   it('should create an organization', async () => {

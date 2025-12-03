@@ -12,10 +12,4 @@ if (typeof console !== 'undefined' && console.warn) {
 
 export * from './paymentMethod'
 export * from './subscription'
-export * from './invoice'
-export * from './customer'
-export * from './payment'
-export * from './currency'
-export * from './catalog'
 export * from './usage'
-export * from './checkoutSession'

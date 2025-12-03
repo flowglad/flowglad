@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { selectProperNounsByQuery } from '@/db/tableMethods/properNounMethods'
+import { type NextRequest, NextResponse } from 'next/server'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { selectProperNounsByQuery } from '@/db/tableMethods/properNounMethods'
 
 export const GET = async (req: NextRequest) => {
   const { searchParams } = new URL(req.url)

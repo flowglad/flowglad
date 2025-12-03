@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest'
-import { subscriptionItemFeaturesRouteConfigs } from './subscriptionItemFeaturesRouter'
+import { describe, expect, it } from 'vitest'
 import {
   findRouteConfigInFlattenedObject,
   getAllRouteKeysFromFlattenedObject,
   validateRouteConfigStructure,
 } from './routeConfigs.test-utils'
+import { subscriptionItemFeaturesRouteConfigs } from './subscriptionItemFeaturesRouter'
 
 describe('subscriptionItemFeaturesRouteConfigs', () => {
   // Helper function to find route config in the flattened object

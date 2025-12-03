@@ -1,37 +1,37 @@
 'use client'
+
+import { Plus } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { CustomerCardNew } from '@/components/CustomerCardNew'
+import { ExpandSection } from '@/components/ExpandSection'
+import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import InnerPageContainerNew from '@/components/InnerPageContainerNew'
+import { ItemFeature } from '@/components/ItemFeature'
+import { ProductCard } from '@/components/ProductCard'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
-import { RichSubscription } from '@/subscriptions/schemas'
-import { PaymentsDataTable } from '../../payments/data-table'
 import { useAuthContext } from '@/contexts/authContext'
-import core from '@/utils/core'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Customer } from '@/db/schema/customers'
-import { Product } from '@/db/schema/products'
-import { PricingModel } from '@/db/schema/pricingModels'
+import type { Customer } from '@/db/schema/customers'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
 import {
-  SubscriptionStatus,
+  getSubscriptionDateInfo,
+  getSubscriptionStatusBadge,
+} from '@/lib/subscription-utils'
+import type { RichSubscription } from '@/subscriptions/schemas'
+import {
   FeatureType,
   FeatureUsageGrantFrequency,
+  SubscriptionStatus,
 } from '@/types'
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
-import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
-import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
-import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import {
-  getSubscriptionStatusBadge,
-  getSubscriptionDateInfo,
-} from '@/lib/subscription-utils'
-import { InvoicesDataTable } from '../../invoices/data-table'
-import { ExpandSection } from '@/components/ExpandSection'
-import { ProductCard } from '@/components/ProductCard'
-import { CustomerCardNew } from '@/components/CustomerCardNew'
-import { ItemFeature } from '@/components/ItemFeature'
+import core from '@/utils/core'
 import { getCurrencyParts } from '@/utils/stripe'
+import { InvoicesDataTable } from '../../invoices/data-table'
+import { PaymentsDataTable } from '../../payments/data-table'
+import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
+import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
 const InnerSubscriptionPage = ({
   subscription,
@@ -210,25 +210,28 @@ const InnerSubscriptionPage = ({
         </ExpandSection>
         <ExpandSection title="Feature Access" defaultExpanded={false}>
           <div className="flex flex-col gap-1 px-3">
-            {subscription.experimental?.featureItems?.map((feature) => (
-              <ItemFeature
-                key={feature.id}
-                href={`/store/features/${feature.featureId}`}
-              >
-                {feature.name}
-                {feature.type === FeatureType.UsageCreditGrant &&
-                  feature.amount != null && (
-                    <span className="text-muted-foreground font-normal">
-                      &nbsp;- {feature.amount.toLocaleString()} total credits,{' '}
-                      {feature.renewalFrequency ===
-                      FeatureUsageGrantFrequency.EveryBillingPeriod
-                        ? 'every billing period'
-                        : 'one-time'}
-                      .
-                    </span>
-                  )}
-              </ItemFeature>
-            ))}
+            {subscription.experimental?.featureItems?.map(
+              (feature) => (
+                <ItemFeature
+                  key={feature.id}
+                  href={`/store/features/${feature.featureId}`}
+                >
+                  {feature.name}
+                  {feature.type === FeatureType.UsageCreditGrant &&
+                    feature.amount != null && (
+                      <span className="text-muted-foreground font-normal">
+                        &nbsp;- {feature.amount.toLocaleString()}{' '}
+                        total credits,{' '}
+                        {feature.renewalFrequency ===
+                        FeatureUsageGrantFrequency.EveryBillingPeriod
+                          ? 'every billing period'
+                          : 'one-time'}
+                        .
+                      </span>
+                    )}
+                </ItemFeature>
+              )
+            )}
             {canAddFeature && (
               <ItemFeature
                 icon={Plus}

@@ -1,13 +1,13 @@
+import { logger, task } from '@trigger.dev/sdk'
+import type Stripe from 'stripe'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
-  selectPayments,
   safelyUpdatePaymentStatus,
+  selectPayments,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
 import { PaymentStatus } from '@/types'
 import { getStripeCharge } from '@/utils/stripe'
-import { logger, task } from '@trigger.dev/sdk'
-import Stripe from 'stripe'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '../notifications/send-customer-payment-failed-notification'
 
 export const stripeChargeFailedTask = task({

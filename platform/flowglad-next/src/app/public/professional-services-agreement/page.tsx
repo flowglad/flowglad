@@ -237,9 +237,7 @@ const ProfessionalServicesAgreement = () => {
                     has all rights necessary in these{' '}
                     <span className="keyterms_link">Provider</span>
                     -procured Third-Party Materials so that{' '}
-                    <span className="keyterms_link">
-                      Customer
-                    </span>{' '}
+                    <span className="keyterms_link">Customer</span>{' '}
                     may use{' '}
                     <span className="sow_link">Deliverables</span>{' '}
                     according to this Agreement.
@@ -260,9 +258,7 @@ const ProfessionalServicesAgreement = () => {
                     rights in the{' '}
                     <span className="keyterms_link">Customer</span>
                     -procured Third-Party Materials so{' '}
-                    <span className="keyterms_link">
-                      Provider
-                    </span>{' '}
+                    <span className="keyterms_link">Provider</span>{' '}
                     can incorporate these Third-Party Materials into{' '}
                     <span className="sow_link">Deliverables</span>.{' '}
                     <span className="keyterms_link">Provider</span>{' '}

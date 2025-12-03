@@ -1,17 +1,16 @@
-import {
+import { sql } from 'drizzle-orm'
+import type {
   AuthenticatedTransactionParams,
   DbTransaction,
 } from '@/db/types'
-import db from './client'
-import { sql } from 'drizzle-orm'
-import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
-import { Event } from './schema/events'
-import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
-
-// New imports for ledger and transaction output types
-import { TransactionOutput } from './transactionEnhacementTypes'
-import { processLedgerCommand } from './ledgerManager/ledgerManager'
 import core from '@/utils/core'
+import db from './client'
+import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
+import { processLedgerCommand } from './ledgerManager/ledgerManager'
+import type { Event } from './schema/events'
+import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
+// New imports for ledger and transaction output types
+import type { TransactionOutput } from './transactionEnhacementTypes'
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string

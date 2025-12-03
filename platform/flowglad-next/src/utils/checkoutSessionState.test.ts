@@ -1,28 +1,27 @@
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
   afterEach,
   beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
 } from 'vitest'
-import { createNonInvoiceCheckoutSession } from './checkoutSessionState'
 import {
-  setupOrg,
   setupCustomer,
-  teardownOrg,
+  setupOrg,
   setupPrice,
-  setupUsageMeter,
   setupProduct,
+  setupUsageMeter,
+  teardownOrg,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { Organization } from '@/db/schema/organizations'
-import { Price } from '@/db/schema/prices'
-import { Customer } from '@/db/schema/customers'
-import { CheckoutSessionType, PriceType } from '@/types'
-import { IntervalUnit } from '@/types'
-import { UsageMeter } from '@/db/schema/usageMeters'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { UsageMeter } from '@/db/schema/usageMeters'
+import { CheckoutSessionType, IntervalUnit, PriceType } from '@/types'
 import { core } from '@/utils/core'
+import { createNonInvoiceCheckoutSession } from './checkoutSessionState'
 
 describe('createNonInvoiceCheckoutSession', () => {
   let organization: Organization.Record

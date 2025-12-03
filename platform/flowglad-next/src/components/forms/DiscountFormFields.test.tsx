@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
+  fireEvent,
   render,
   screen,
-  fireEvent,
   waitFor,
 } from '@testing-library/react'
-import { useForm, FormProvider } from 'react-hook-form'
-import DiscountFormFields from './DiscountFormFields'
-import { CreateDiscountFormSchema } from '@/db/schema/discounts'
-import { DiscountAmountType, DiscountDuration } from '@/types'
+import { FormProvider, useForm } from 'react-hook-form'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import type { CreateDiscountFormSchema } from '@/db/schema/discounts'
+import { DiscountAmountType, DiscountDuration } from '@/types'
+import DiscountFormFields from './DiscountFormFields'
 
 // Mock the auth context
 vi.mock('@/contexts/authContext', () => ({

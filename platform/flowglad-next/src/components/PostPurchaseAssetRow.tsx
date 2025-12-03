@@ -1,19 +1,19 @@
 import {
-  SquareArrowOutUpRight,
+  Download,
   File as FileIcon,
   Link as LinkIcon,
   Pencil,
+  SquareArrowOutUpRight,
   Trash,
-  Download,
 } from 'lucide-react'
-import { File } from '@/db/schema/files'
-import { Link } from '@/db/schema/links'
-import { Button } from '@/components/ui/button'
 import { useState } from 'react'
-import EditFileModal from '@/components/forms/EditFileModal'
-import EditLinkModal from '@/components/forms/EditLinkModal'
 import DeleteFileModal from '@/components/forms/DeleteFileModal'
 import DeleteLinkModal from '@/components/forms/DeleteLinkModal'
+import EditFileModal from '@/components/forms/EditFileModal'
+import EditLinkModal from '@/components/forms/EditLinkModal'
+import { Button } from '@/components/ui/button'
+import type { File } from '@/db/schema/files'
+import type { Link } from '@/db/schema/links'
 
 interface FilePostPurchaseAsset {
   asset: File.ClientRecord

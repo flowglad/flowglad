@@ -1,19 +1,19 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createBulkInsertOrDoNothingFunction,
-} from '@/db/tableUtils'
-import {
-  LedgerTransaction,
+  type LedgerTransaction,
   ledgerTransactions,
   ledgerTransactionsInsertSchema,
   ledgerTransactionsSelectSchema,
   ledgerTransactionsUpdateSchema,
 } from '@/db/schema/ledgerTransactions'
-import { DbTransaction } from '../types'
+import {
+  createBulkInsertOrDoNothingFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
   typeof ledgerTransactions,

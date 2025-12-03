@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
-import { CustomerSubscriptionUpgradedEmail } from './customer-subscription-upgraded'
+import { describe, expect, it } from 'vitest'
 import { CurrencyCode, IntervalUnit } from '@/types'
 import core from '@/utils/core'
+import { CustomerSubscriptionUpgradedEmail } from './customer-subscription-upgraded'
 
 describe('CustomerSubscriptionUpgradedEmail', () => {
   const baseProps = {

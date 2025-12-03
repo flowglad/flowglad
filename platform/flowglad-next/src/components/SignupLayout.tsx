@@ -1,6 +1,6 @@
 'use client'
-import { SignupSideBar } from '@/components/signup-sidebar'
 import Link from 'next/link'
+import { SignupSideBar } from '@/components/signup-sidebar'
 
 const SignupLayout = ({
   children,

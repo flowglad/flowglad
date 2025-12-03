@@ -1,15 +1,24 @@
+import { format } from 'date-fns'
 import { Calendar, ChevronDown } from 'lucide-react'
-import { encodeCursor } from '@/db/tableUtils'
-import { cn } from '@/lib/utils'
-import { Input } from '@/components/ui/input'
+import { useEffect, useState } from 'react'
+import { useFormContext } from 'react-hook-form'
+import { trpc } from '@/app/_trpc/client'
 import { Button } from '@/components/ui/button'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -17,26 +26,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { InvoiceFormLineItemsField } from './InvoiceFormLineItemsField'
-
-import { Invoice } from '@/db/schema/invoices'
-import { useFormContext } from 'react-hook-form'
-import { useAuthenticatedContext } from '../../contexts/authContext'
-import { Calendar as CalendarComponent } from '@/components/ui/calendar'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { format } from 'date-fns'
-import { useEffect, useState } from 'react'
-import { Customer } from '@/db/schema/customers'
-import { trpc } from '@/app/_trpc/client'
 import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import ConnectedSelect from './ConnectedSelect'
+import { Textarea } from '@/components/ui/textarea'
+import type { Customer } from '@/db/schema/customers'
+import type { Invoice } from '@/db/schema/invoices'
+import { encodeCursor } from '@/db/tableUtils'
+import { cn } from '@/lib/utils'
 import core from '@/utils/core'
+import { useAuthenticatedContext } from '../../contexts/authContext'
+import ConnectedSelect from './ConnectedSelect'
+import { InvoiceFormLineItemsField } from './InvoiceFormLineItemsField'
 
 const selectOptionsFromCustomers = (
   customer?: Customer.ClientRecord,

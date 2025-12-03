@@ -1,17 +1,17 @@
-import { protectedProcedure, router } from '@/server/trpc'
+import { z } from 'zod'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  paymentMethodClientSelectSchema,
+  paymentMethodsPaginatedListSchema,
+  paymentMethodsPaginatedSelectSchema,
+} from '@/db/schema/paymentMethods'
 import {
   selectPaymentMethodById,
   selectPaymentMethodsPaginated,
 } from '@/db/tableMethods/paymentMethodMethods'
 import { idInputSchema } from '@/db/tableUtils'
+import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
-import {
-  paymentMethodsPaginatedListSchema,
-  paymentMethodsPaginatedSelectSchema,
-  paymentMethodClientSelectSchema,
-} from '@/db/schema/paymentMethods'
-import { z } from 'zod'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'PaymentMethod',

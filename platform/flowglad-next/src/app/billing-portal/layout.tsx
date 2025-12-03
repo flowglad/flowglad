@@ -1,7 +1,7 @@
-import { Metadata } from 'next'
-import Providers from '../Providers'
+import type { Metadata } from 'next'
 import { getSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
+import Providers from '../Providers'
 
 export const metadata: Metadata = {
   title: 'Billing Portal - Flowglad',

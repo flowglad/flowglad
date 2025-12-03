@@ -1,10 +1,10 @@
-import { Customer } from '@/db/schema/customers'
-import { Event } from '@/db/schema/events'
-import { Payment } from '@/db/schema/payments'
-import { Purchase } from '@/db/schema/purchases'
-import { Subscription } from '@/db/schema/subscriptions'
-import { FlowgladEventType } from '@/types'
 import { createHash } from 'node:crypto'
+import type { Customer } from '@/db/schema/customers'
+import { Event } from '@/db/schema/events'
+import type { Payment } from '@/db/schema/payments'
+import type { Purchase } from '@/db/schema/purchases'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { FlowgladEventType } from '@/types'
 
 function constructEventHash(record: Record<string, any>) {
   return createHash('sha256')

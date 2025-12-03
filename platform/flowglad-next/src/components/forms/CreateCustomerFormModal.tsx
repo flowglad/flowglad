@@ -1,12 +1,12 @@
 'use client'
-import FormModal from '@/components/forms/FormModal'
 import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
 import {
-  CreateCustomerInputSchema,
+  type CreateCustomerInputSchema,
   createCustomerInputSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import CustomerFormFields from './CustomerFormFields'
 import core from '@/utils/core'
+import CustomerFormFields from './CustomerFormFields'
 
 const CreateCustomerFormModal = ({
   isOpen,

@@ -70,7 +70,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56 # v5
         with:
-          context: ./platform/flowglad-next
+          context: .
+          file: ./platform/flowglad-next/Dockerfile
           load: true
           tags: flowglad-next:latest
       - name: Run Docker container

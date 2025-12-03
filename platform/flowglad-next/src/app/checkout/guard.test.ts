@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { shouldBlockCheckout } from './guard'
+import { describe, expect, it } from 'vitest'
 import { PriceType, SubscriptionStatus } from '@/types'
+import { shouldBlockCheckout } from './guard'
 
 describe('shouldBlockCheckout', () => {
   const activePaid = {

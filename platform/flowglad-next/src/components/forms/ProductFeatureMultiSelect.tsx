@@ -1,12 +1,12 @@
+import { useEffect } from 'react'
+import { Controller, useFormContext } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import MultipleSelector from '@/components/forms/MultiSelect'
-import { Controller, useFormContext } from 'react-hook-form'
-import { CreateProductSchema } from '@/db/schema/prices'
-import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useEffect } from 'react'
+import type { CreateProductSchema } from '@/db/schema/prices'
 import { encodeCursor } from '@/db/tableUtils'
+import { cn } from '@/lib/utils'
 
 export const ProductFeatureMultiSelect = ({
   pricingModelId,

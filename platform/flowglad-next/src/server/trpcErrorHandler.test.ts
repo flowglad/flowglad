@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { TRPCError } from '@trpc/server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  errorHandlers,
   extractErrorDetails,
   handleTRPCError,
-  errorHandlers,
 } from './trpcErrorHandler'
 
 describe('trpcErrorHandler', () => {
