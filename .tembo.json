@@ -1,0 +1,6 @@
+{
+  "hooks": {
+    "postClone": ["bun install"],
+    "prePush": ["bun run check"]
+  }
+}
