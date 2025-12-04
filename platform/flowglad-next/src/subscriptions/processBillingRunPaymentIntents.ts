@@ -405,11 +405,11 @@ export const processPaymentIntentEventForBillingRun = async (
   } else if (billingRunStatus === BillingRunStatus.Failed) {
     const firstPayment = await isFirstPayment(
       subscription,
-      billingPeriod,
       transaction
     )
 
-    if (firstPayment) {
+    // Do not cancel if first payment fails for free or default plans
+    if (firstPayment && !subscription.isFreePlan) {
       // First payment failure - cancel subscription immediately
       const {
         result: canceledSubscription,
