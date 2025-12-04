@@ -15,7 +15,7 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - test-release-resolver-fix-3
+      - test-release-resolver-fix-4
 
 permissions:
   contents: write
