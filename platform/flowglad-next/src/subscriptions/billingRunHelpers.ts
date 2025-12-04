@@ -18,7 +18,10 @@ import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatur
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
-import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
+import {
+  selectBillingPeriods,
+  updateBillingPeriod,
+} from '@/db/tableMethods/billingPeriodMethods'
 import {
   safelyInsertBillingRun,
   selectBillingRunById,
@@ -45,6 +48,7 @@ import {
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   insertPayment,
+  selectPayments,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
@@ -668,6 +672,28 @@ type ExecuteBillingRunStepsResult = {
   totalAmountPaid: number
   payments: Payment.Record[]
   paymentIntent?: Stripe.Response<Stripe.PaymentIntent> | null
+}
+
+export const isFirstPayment = async (
+  subscription: Subscription.Record,
+  transaction: DbTransaction
+): Promise<boolean> => {
+  // Get all successful, non-zero payments for this subscription
+  const payments = await selectPayments(
+    {
+      subscriptionId: subscription.id,
+      status: PaymentStatus.Succeeded,
+    },
+    transaction
+  )
+
+  // Check if any payment has a non-zero amount
+  const hasNonZeroPayment = payments.some(
+    (payment) => payment.amount > 0
+  )
+
+  // If no successful non-zero payments exist, this is the first payment
+  return !hasNonZeroPayment
 }
 
 /**
