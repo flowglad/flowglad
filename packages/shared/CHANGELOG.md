@@ -1,5 +1,11 @@
 # @flowglad/shared
 
+## 0.15.0
+
+### Minor Changes
+
+- fdab3bb: test 2
+
 ## 0.14.0
 
 ### Minor Changes
