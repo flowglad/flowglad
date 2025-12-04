@@ -434,7 +434,9 @@ export const addFeatureToSubscriptionItem = async (
   const featureInsert =
     subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
       subscriptionItem,
-      feature
+      feature,
+      undefined,
+      true // manuallyCreated - this is a manual addition via API
     )
 
   let usageFeatureInsert: SubscriptionItemFeature.UsageCreditGrantInsert | null =
