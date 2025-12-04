@@ -1,137 +1,139 @@
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
   vi,
 } from 'vitest'
+import {
+  setupBillingPeriod,
+  setupBillingPeriodItem,
+  setupBillingRun,
+  setupCustomer,
+  setupDebitLedgerEntry,
+  setupInvoice,
+  setupLedgerAccount,
+  setupLedgerTransaction,
+  setupOrg,
+  setupPayment,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupProductFeature,
+  setupSubscription,
+  setupSubscriptionItem,
+  setupUsageCreditGrantFeature,
+  setupUsageEvent,
+  setupUsageMeter,
+  teardownOrg,
+} from '@/../seedDatabase'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupBillingPeriod,
-  setupBillingRun,
-  setupBillingPeriodItem,
-  setupInvoice,
-  setupSubscription,
-  setupLedgerAccount,
-  setupLedgerTransaction,
-  setupDebitLedgerEntry,
-  setupUsageEvent,
-  setupUsageMeter,
-  setupPrice,
-  setupPayment,
-  teardownOrg,
-  setupSubscriptionItem,
-  setupUsageCreditGrantFeature,
-  setupProductFeature,
-  setupProduct,
-} from '@/../seedDatabase'
+  type OutstandingUsageCostAggregation,
+  settleInvoiceUsageCostsLedgerCommandSchema,
+} from '@/db/ledgerManager/ledgerManagerTypes'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { Customer } from '@/db/schema/customers'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type { LedgerAccount } from '@/db/schema/ledgerAccounts'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { UsageMeter } from '@/db/schema/usageMeters'
+import { updateBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
 import {
-  calculateFeeAndTotalAmountDueForBillingPeriod,
-  processOutstandingBalanceForBillingPeriod,
-  processNoMoreDueForBillingPeriod,
-  executeBillingRunCalculationAndBookkeepingSteps,
-  executeBillingRun,
-  scheduleBillingRunRetry,
-  constructBillingRunRetryInsert,
-  createInvoiceInsertForBillingRun,
-  billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts,
-  tabulateOutstandingUsageCosts,
-  createBillingRun,
-} from './billingRunHelpers'
-import {
-  BillingPeriodStatus,
-  BillingRunStatus,
-  CurrencyCode,
-  InvoiceStatus,
-  InvoiceType,
-  PaymentMethodType,
-  SubscriptionItemType,
-  PriceType,
-  IntervalUnit,
-  SubscriptionStatus,
-  LedgerEntryStatus,
-  LedgerEntryType,
-  LedgerTransactionType,
-  PaymentStatus,
-  FeatureUsageGrantFrequency,
-  UsageCreditStatus,
-  UsageCreditType,
-} from '@/types'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Customer } from '@/db/schema/customers'
-import {
-  selectBillingRunById,
-  updateBillingRun,
-  safelyInsertBillingRun,
-  selectBillingRuns,
-} from '@/db/tableMethods/billingRunMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import {
-  updateBillingPeriod,
   selectBillingPeriodById,
+  updateBillingPeriod,
 } from '@/db/tableMethods/billingPeriodMethods'
-import { Invoice } from '@/db/schema/invoices'
+import {
+  safelyInsertBillingRun,
+  selectBillingRunById,
+  selectBillingRuns,
+  updateBillingRun,
+} from '@/db/tableMethods/billingRunMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
+import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  selectInvoiceById,
+  selectInvoices,
+  updateInvoice,
+} from '@/db/tableMethods/invoiceMethods'
+import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
+import {
+  aggregateBalanceForLedgerAccountFromEntries,
+  selectLedgerEntries,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import {
   safelyUpdatePaymentMethod,
   updatePaymentMethod,
 } from '@/db/tableMethods/paymentMethodMethods'
-import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
-import {
-  selectInvoices,
-  selectInvoiceById,
-  updateInvoice,
-} from '@/db/tableMethods/invoiceMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
-import core from '@/utils/core'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
-import { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import { updateBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import {
-  selectLedgerEntries,
-  aggregateBalanceForLedgerAccountFromEntries,
-} from '@/db/tableMethods/ledgerEntryMethods'
-import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
-import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { createSubscriptionWorkflow } from './createSubscription/workflow'
-import { settleInvoiceUsageCostsLedgerCommandSchema } from '@/db/ledgerManager/ledgerManagerTypes'
-import {
-  createPaymentIntentForBillingRun,
-  confirmPaymentIntentForBillingRun,
-  stripeIdFromObjectOrId,
-  IntentMetadataType,
-} from '@/utils/stripe'
-import {
-  createMockPaymentIntentResponse,
-  createMockConfirmationResult,
-  createMockPaymentIntent,
-} from '@/test/helpers/stripeMocks'
-import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
   selectCurrentlyActiveSubscriptionItems,
   selectSubscriptionItems,
   updateSubscriptionItem,
 } from '@/db/tableMethods/subscriptionItemMethods'
+import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
+import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
+import {
+  createMockConfirmationResult,
+  createMockPaymentIntent,
+  createMockPaymentIntentResponse,
+} from '@/test/helpers/stripeMocks'
+import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  CurrencyCode,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  InvoiceStatus,
+  InvoiceType,
+  LedgerEntryStatus,
+  LedgerEntryType,
+  LedgerTransactionType,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+  UsageCreditStatus,
+  UsageCreditType,
+} from '@/types'
+import core from '@/utils/core'
+import {
+  confirmPaymentIntentForBillingRun,
+  createPaymentIntentForBillingRun,
+  IntentMetadataType,
+  stripeIdFromObjectOrId,
+} from '@/utils/stripe'
+import {
+  billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts,
+  calculateFeeAndTotalAmountDueForBillingPeriod,
+  constructBillingRunRetryInsert,
+  createBillingRun,
+  createInvoiceInsertForBillingRun,
+  executeBillingRun,
+  executeBillingRunCalculationAndBookkeepingSteps,
+  processNoMoreDueForBillingPeriod,
+  processOutstandingBalanceForBillingPeriod,
+  scheduleBillingRunRetry,
+  tabulateOutstandingUsageCosts,
+} from './billingRunHelpers'
+import { createSubscriptionWorkflow } from './createSubscription/workflow'
 
 // Mock Stripe functions
 vi.mock('@/utils/stripe', async (importOriginal) => {
@@ -1043,6 +1045,88 @@ describe('billingRunHelpers', async () => {
     await expect(
       executeBillingRun(billingRun.id)
     ).resolves.toBeUndefined()
+  })
+
+  describe('Adjustment Billing Run Tests', () => {
+    it('should throw an error when executing an adjustment billing run without adjustment params', async () => {
+      const adjustmentBillingRun = await setupBillingRun({
+        billingPeriodId: billingPeriod.id,
+        paymentMethodId: paymentMethod.id,
+        subscriptionId: subscription.id,
+        status: BillingRunStatus.Scheduled,
+        isAdjustment: true,
+      })
+
+      await executeBillingRun(adjustmentBillingRun.id)
+      const updatedBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+      )
+      expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+      expect(updatedBillingRun.errorDetails).toBeDefined()
+      expect(updatedBillingRun.errorDetails?.message).toContain(
+        `executeBillingRun: Adjustment billing run ${adjustmentBillingRun.id} requires adjustmentParams`
+      )
+    })
+
+    it('should succeed when executing an adjustment billing run with adjustment params', async () => {
+      const adjustmentBillingRun = await setupBillingRun({
+        billingPeriodId: billingPeriod.id,
+        paymentMethodId: paymentMethod.id,
+        subscriptionId: subscription.id,
+        status: BillingRunStatus.Scheduled,
+        isAdjustment: true,
+      })
+
+      const newSubscriptionItems = [
+        await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: staticPrice.id,
+          name: staticPrice.name ?? 'New Static Item',
+          quantity: 1,
+          unitPrice: staticPrice.unitPrice,
+          type: SubscriptionItemType.Static,
+        }),
+      ]
+
+      const adjustmentDate = new Date()
+
+      // Mock Stripe functions to ensure the billing run can complete successfully
+      const mockPaymentIntent = createMockPaymentIntentResponse({
+        amount: staticBillingPeriodItem.unitPrice,
+        customer: customer.stripeCustomerId!,
+        payment_method: paymentMethod.stripePaymentMethodId!,
+        metadata: {
+          billingRunId: adjustmentBillingRun.id,
+          type: 'billing_run',
+          billingPeriodId: billingPeriod.id,
+        },
+      })
+      const mockConfirmationResult = createMockConfirmationResult(
+        mockPaymentIntent.id,
+        { metadata: mockPaymentIntent.metadata }
+      )
+
+      vi.mocked(
+        createPaymentIntentForBillingRun
+      ).mockResolvedValueOnce(mockPaymentIntent)
+      vi.mocked(
+        confirmPaymentIntentForBillingRun
+      ).mockResolvedValueOnce(mockConfirmationResult)
+
+      await executeBillingRun(adjustmentBillingRun.id, {
+        newSubscriptionItems,
+        adjustmentDate,
+      })
+
+      const updatedBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+      )
+      expect(updatedBillingRun.status).toBe(
+        BillingRunStatus.Succeeded
+      )
+    })
   })
 
   describe('Atomicity Tests for executeBillingRun', () => {

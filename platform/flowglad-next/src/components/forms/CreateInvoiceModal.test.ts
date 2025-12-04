@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { createInvoiceSchema } from '@/db/schema/invoiceLineItems'
-import { constructInvoiceDefaultValues } from './CreateInvoiceModal'
-import { BusinessOnboardingStatus, CurrencyCode } from '@/types'
 import { Organization } from '@/db/schema/organizations'
+import { BusinessOnboardingStatus, CurrencyCode } from '@/types'
+import { constructInvoiceDefaultValues } from './CreateInvoiceModal'
 import { newInvoiceLineItem } from './InvoiceFormLineItemsField'
 
 describe('constructInvoiceDefaultValues', () => {

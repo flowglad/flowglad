@@ -1,11 +1,11 @@
-import {
-  VisaLogo,
-  MastercardLogo,
-  AmericanExpressLogo,
-  DiscoverLogo,
-  DinersClubLogo,
-} from './PaymentMethodLogos'
 import { CreditCard } from 'lucide-react'
+import {
+  AmericanExpressLogo,
+  DinersClubLogo,
+  DiscoverLogo,
+  MastercardLogo,
+  VisaLogo,
+} from './PaymentMethodLogos'
 import { Badge } from './ui/badge'
 
 export function CardLogoBadge({ brand }: { brand: string }) {

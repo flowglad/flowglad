@@ -1,8 +1,8 @@
-import {
+import type {
   FlowgladServer,
   RequestHandlerOptions,
 } from '@flowglad/server'
-import { RequestHandler, Request, Router } from 'express'
+import { type Request, type RequestHandler, Router } from 'express'
 import { createExpressRouteHandler } from './createFlowgladExpressRouteHandler'
 
 interface CreateFlowgladExpressRouterOptions

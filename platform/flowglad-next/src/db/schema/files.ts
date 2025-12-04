@@ -1,21 +1,21 @@
+import { sql } from 'drizzle-orm'
+import { integer, pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
 import * as R from 'ramda'
-import { integer, text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
+import { buildSchemas } from '@/db/createZodSchemas'
+import { organizations } from '@/db/schema/organizations'
 import {
   constructIndex,
   constructUniqueIndex,
-  nullableStringForeignKey,
-  tableBase,
-  notNullStringForeignKey,
-  livemodePolicy,
-  SelectConditions,
   hiddenColumnsForClientSchema,
+  livemodePolicy,
   merchantPolicy,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  type SelectConditions,
+  tableBase,
 } from '@/db/tableUtils'
-import { organizations } from '@/db/schema/organizations'
 import { products } from './products'
-import { sql } from 'drizzle-orm'
-import { buildSchemas } from '@/db/createZodSchemas'
 
 const TABLE_NAME = 'files'
 

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import {
-  secretApiKeyInputToUnkeyInput,
-  StandardCreateApiKeyParams,
-  parseUnkeyMeta,
-} from './unkey'
+import type { ApiKey } from '@/db/schema/apiKeys'
+import type { Organization } from '@/db/schema/organizations'
 import { FlowgladApiKeyType } from '@/types'
-import { Organization } from '@/db/schema/organizations'
-import { ApiKey } from '@/db/schema/apiKeys'
+import {
+  parseUnkeyMeta,
+  type StandardCreateApiKeyParams,
+  secretApiKeyInputToUnkeyInput,
+} from './unkey'
 
 describe('secretApiKeyInputToUnkeyInput', () => {
   const mockOrganization: Pick<Organization.Record, 'id'> = {

@@ -1,5 +1,32 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+// Test database setup functions
+import {
+  setupBillingPeriod,
+  setupCustomer,
+  setupInvoice,
+  setupOrg,
+  setupPayment,
+  setupPaymentMethod,
+  setupSubscription,
+  setupSubscriptionItem,
+} from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { Customer } from '@/db/schema/customers'
+import type { Invoice } from '@/db/schema/invoices'
+// Schema types
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import { Payment } from '@/db/schema/payments'
+import type { Price } from '@/db/schema/prices'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
+// Database query functions
+import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
+import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { updateSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import {
   BillingPeriodStatus,
   FeatureFlag,
@@ -8,38 +35,8 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-import { adjustSubscription } from './adjustSubscription'
-
-// Test database setup functions
-import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
-  setupSubscriptionItem,
-  setupBillingPeriod,
-  setupPayment,
-  setupInvoice,
-} from '@/../seedDatabase'
-
-// Schema types
-import { Organization } from '@/db/schema/organizations'
-import { Price } from '@/db/schema/prices'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { Payment } from '@/db/schema/payments'
-import { Invoice } from '@/db/schema/invoices'
-
-// Database query functions
-import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
-import { updateSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
-import { selectCurrentBillingPeriodForSubscription } from '@/db/tableMethods/billingPeriodMethods'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import core from '@/utils/core'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { adjustSubscription } from './adjustSubscription'
 
 describe('Proration Logic - Payment Status Scenarios', () => {
   // Global test state - will be reset before each test

@@ -1,4 +1,4 @@
-import { Organization } from '@/db/schema/organizations'
+import type { Organization } from '@/db/schema/organizations'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,

@@ -1,3 +1,8 @@
+import type { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import { feeReadyCheckoutSessionSelectSchema } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Event } from '@/db/schema/events'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import {
   selectCheckoutSessionById,
   updateCheckoutSession,
@@ -6,6 +11,19 @@ import {
   selectCustomerById,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
+import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
+import { selectPurchaseAndCustomersByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
+import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
+import { createCustomerBookkeeping } from '@/utils/bookkeeping'
+import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
+import {
+  calculateTotalDueAmount,
+  calculateTotalFeeAmount,
+  finalizeFeeCalculation,
+} from '@/utils/bookkeeping/fees/common'
+import core from '@/utils/core'
 import {
   createStripeCustomer,
   getPaymentIntent,
@@ -13,24 +31,6 @@ import {
   updatePaymentIntent,
   updateSetupIntent,
 } from '@/utils/stripe'
-import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
-import { Customer } from '@/db/schema/customers'
-import { selectPurchaseAndCustomersByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
-import core from '@/utils/core'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
-import { feeReadyCheckoutSessionSelectSchema } from '@/db/schema/checkoutSessions'
-import {
-  calculateTotalDueAmount,
-  calculateTotalFeeAmount,
-  finalizeFeeCalculation,
-} from '@/utils/bookkeeping/fees/common'
-import { DbTransaction } from '@/db/types'
-import { createCustomerBookkeeping } from '@/utils/bookkeeping'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { Event } from '@/db/schema/events'
-import { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 
 export const confirmCheckoutSessionTransaction = async (
   input: { id: string; savePaymentMethodForFuture?: boolean },
@@ -71,7 +71,7 @@ export const confirmCheckoutSessionTransaction = async (
 
     let customer: Customer.Record | null = null
     let customerEvents: Event.Insert[] = []
-    let customerLedgerCommand: LedgerCommand | undefined = undefined
+    let customerLedgerCommand: LedgerCommand | undefined
 
     if (checkoutSession.customerId) {
       // Find customer

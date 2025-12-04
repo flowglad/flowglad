@@ -1,68 +1,70 @@
-import {
-  CurrencyCode,
-  PaymentStatus,
-  CheckoutSessionType,
-  Nullish,
-  FlowgladEventType,
-  EventNoun,
-  PurchaseStatus,
-  FeatureType,
-  UsageCreditStatus,
-  UsageCreditType,
-  UsageCreditSourceReferenceType,
-  LedgerTransactionType,
-  PriceType,
-} from '@/types'
+import type Stripe from 'stripe'
+import type {
+  CreditGrantRecognizedLedgerCommand,
+  LedgerCommand,
+} from '@/db/ledgerManager/ledgerManagerTypes'
+import type { Event } from '@/db/schema/events'
+import type { Payment } from '@/db/schema/payments'
+import type { Purchase } from '@/db/schema/purchases'
+import type { UsageCredit } from '@/db/schema/usageCredits'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
-import { CountryCode } from '@/types'
-import { DbTransaction } from '@/db/types'
-import {
-  stripeIdFromObjectOrId,
-  paymentMethodFromStripeCharge,
-  StripeIntentMetadata,
-  getStripeCharge,
-  stripeIntentMetadataSchema,
-  IntentMetadataType,
-} from '../stripe'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import {
   safelyUpdatePaymentStatus,
   updatePayment,
   upsertPaymentByStripeChargeId,
 } from '@/db/tableMethods/paymentMethods'
-import Stripe from 'stripe'
-import { Purchase } from '@/db/schema/purchases'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import { isNil } from '@/utils/core'
-import { processStripeChargeForCheckoutSession } from './checkoutSessions'
-import { dateFromStripeTimestamp } from '@/utils/stripe'
-import { Payment } from '@/db/schema/payments'
-import { updateInvoiceStatusToReflectLatestPayment } from '../bookkeeping'
-import { updatePurchaseStatusToReflectLatestPayment } from '../bookkeeping'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectProductPriceAndFeaturesByProductId } from '@/db/tableMethods/productMethods'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import {
   selectCurrentSubscriptionForCustomer,
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
+import { bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter } from '@/db/tableMethods/usageCreditMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { Event } from '@/db/schema/events'
 import {
-  constructPaymentSucceededEventHash,
+  CheckoutSessionType,
+  type CountryCode,
+  CurrencyCode,
+  EventNoun,
+  FeatureType,
+  FlowgladEventType,
+  LedgerTransactionType,
+  type Nullish,
+  PaymentStatus,
+  PriceType,
+  PurchaseStatus,
+  UsageCreditSourceReferenceType,
+  UsageCreditStatus,
+  UsageCreditType,
+} from '@/types'
+import { isNil } from '@/utils/core'
+import {
   constructPaymentFailedEventHash,
+  constructPaymentSucceededEventHash,
   constructPurchaseCompletedEventHash,
 } from '@/utils/eventHelpers'
-import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectProductPriceAndFeaturesByProductId } from '@/db/tableMethods/productMethods'
+import { dateFromStripeTimestamp } from '@/utils/stripe'
 import {
-  CreditGrantRecognizedLedgerCommand,
-  LedgerCommand,
-} from '@/db/ledgerManager/ledgerManagerTypes'
-import { UsageCredit } from '@/db/schema/usageCredits'
-import { bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter } from '@/db/tableMethods/usageCreditMethods'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
+  updateInvoiceStatusToReflectLatestPayment,
+  updatePurchaseStatusToReflectLatestPayment,
+} from '../bookkeeping'
+import {
+  getStripeCharge,
+  IntentMetadataType,
+  paymentMethodFromStripeCharge,
+  type StripeIntentMetadata,
+  stripeIdFromObjectOrId,
+  stripeIntentMetadataSchema,
+} from '../stripe'
+import { processStripeChargeForCheckoutSession } from './checkoutSessions'
 
 export const chargeStatusToPaymentStatus = (
   chargeStatus: Stripe.Charge.Status
@@ -154,7 +156,7 @@ export const upsertPaymentForStripeCharge = async (
     )
     checkoutSessionEvents = eventsFromCheckoutSession
     if (checkoutSession.type === CheckoutSessionType.Invoice) {
-      let [maybeInvoiceAndLineItems] =
+      const [maybeInvoiceAndLineItems] =
         await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
           {
             id: checkoutSession.invoiceId,

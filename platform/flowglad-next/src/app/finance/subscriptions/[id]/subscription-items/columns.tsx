@@ -1,12 +1,12 @@
 'use client'
 
+import type { ColumnDef } from '@tanstack/react-table'
 import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { CurrencyCode } from '@/types'
 
 export const columns = (
   currencyCode: CurrencyCode

@@ -1,18 +1,17 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import { Product } from '@/db/schema/products'
-import { editProductFormSchema } from '@/db/schema/prices'
-import { ProductFormFields } from '@/components/forms/ProductFormFields'
 import { trpc } from '@/app/_trpc/client'
-import { Price } from '@/db/schema/prices'
+import FormModal from '@/components/forms/FormModal'
+import { ProductFormFields } from '@/components/forms/ProductFormFields'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import { editProductFormSchema, type Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import { encodeCursor } from '@/db/tableUtils'
 import {
   countableCurrencyAmountToRawStringAmount,
-  rawStringAmountToCountableCurrencyAmount,
   isCurrencyZeroDecimal,
+  rawStringAmountToCountableCurrencyAmount,
 } from '@/utils/stripe'
-import { useAuthenticatedContext } from '@/contexts/authContext'
 
 interface EditProductModalProps {
   isOpen: boolean

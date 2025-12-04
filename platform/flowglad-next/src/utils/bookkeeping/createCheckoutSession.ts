@@ -1,35 +1,35 @@
-import core from '@/utils/core'
+import type {
+  CheckoutSession,
+  CreateCheckoutSessionInput,
+  CreateCheckoutSessionObject,
+} from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import {
+  insertCheckoutSession,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
+import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import {
+  selectPriceBySlugAndCustomerId,
+  selectPriceBySlugForDefaultPricingModel,
+  selectPriceProductAndOrganizationByPriceWhere,
+} from '@/db/tableMethods/priceMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import type { DbTransaction } from '@/db/types'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PriceType,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
+import core from '@/utils/core'
 import {
   createPaymentIntentForCheckoutSession,
   createSetupIntentForCheckoutSession,
 } from '@/utils/stripe'
-import {
-  CheckoutSession,
-  CreateCheckoutSessionInput,
-  CreateCheckoutSessionObject,
-} from '@/db/schema/checkoutSessions'
-import {
-  insertCheckoutSession,
-  updateCheckoutSession,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import {
-  selectPriceProductAndOrganizationByPriceWhere,
-  selectPriceBySlugAndCustomerId,
-  selectPriceBySlugForDefaultPricingModel,
-} from '@/db/tableMethods/priceMethods'
-import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
-import { Customer } from '@/db/schema/customers'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 
 export const checkoutSessionInsertFromInput = ({
   checkoutSessionInput,
@@ -173,7 +173,7 @@ export const createCheckoutSessionTransaction = async (
   let product: Product.Record | null = null
   let organization: Organization.Record | null = null
   let activateSubscriptionPriceId: string | null = null
-  let resolvedPriceId: string | undefined = undefined
+  let resolvedPriceId: string | undefined
 
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
     // Resolve price ID from either priceId or priceSlug

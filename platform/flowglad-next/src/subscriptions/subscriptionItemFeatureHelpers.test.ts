@@ -1,46 +1,48 @@
-import { describe, it, beforeEach, expect } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import * as R from 'ramda'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  setupOrg,
   setupCustomer,
+  setupLedgerAccount,
+  setupOrg,
   setupPaymentMethod,
+  setupPrice,
+  setupProduct,
   setupSubscription,
   setupSubscriptionItem,
-  setupProduct,
-  setupPrice,
   setupUsageMeter,
-  setupLedgerAccount,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
 import {
-  addFeatureToSubscriptionItem,
-  createSubscriptionFeatureItems,
-} from '@/subscriptions/subscriptionItemFeatureHelpers'
+  type Feature,
+  features as featuresTable,
+} from '@/db/schema/features'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { ProductFeature } from '@/db/schema/productFeatures'
+import type { Product } from '@/db/schema/products'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { Feature } from '@/db/schema/features'
-import { ProductFeature } from '@/db/schema/productFeatures'
 import {
-  FeatureType,
-  IntervalUnit,
+  addFeatureToSubscriptionItem,
+  createSubscriptionFeatureItems,
+} from '@/subscriptions/subscriptionItemFeatureHelpers'
+import {
   CurrencyCode,
-  PriceType,
+  FeatureType,
   FeatureUsageGrantFrequency,
+  IntervalUnit,
   LedgerTransactionType,
+  PriceType,
+  UsageCreditSourceReferenceType,
   UsageCreditStatus,
   UsageCreditType,
-  UsageCreditSourceReferenceType,
 } from '@/types'
-import * as R from 'ramda'
 import { core } from '@/utils/core'
-import { features as featuresTable } from '@/db/schema/features'
 
 // Helper to create features and productFeatures for tests
 const setupTestFeaturesAndProductFeatures = async (
@@ -276,6 +278,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         expect(sif.renewalFrequency).toBe(renewalFreq)
         expect(sif.usageMeterId).toBe(usageGrantFeature.usageMeterId)
         expect(sif.livemode).toBe(subscriptionItem.livemode)
+        expect(sif.manuallyCreated).toBe(false)
 
         const featuresInDb = await selectSubscriptionItemFeatures(
           { id: [sif.id] },
@@ -312,6 +315,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         expect(sif.renewalFrequency).toBeNull()
         expect(sif.usageMeterId).toBeNull()
         expect(sif.livemode).toBe(subscriptionItem.livemode)
+        expect(sif.manuallyCreated).toBe(false)
 
         const featuresInDb = await selectSubscriptionItemFeatures(
           { id: [sif.id] },
@@ -758,6 +762,81 @@ describe('SubscriptionItemFeatureHelpers', () => {
             productFeatureId: null,
           })
         )
+      })
+    })
+
+    it('should mark features added via addFeatureToSubscriptionItem as manually created', async () => {
+      const [{ feature: toggleFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [{ name: 'Manual Toggle', type: FeatureType.Toggle }]
+        )
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+
+        expect(
+          result.result.subscriptionItemFeature.manuallyCreated
+        ).toBe(true)
+
+        // Verify in database
+        const [sif] = await selectSubscriptionItemFeatures(
+          { id: [result.result.subscriptionItemFeature.id] },
+          transaction
+        )
+        expect(sif.manuallyCreated).toBe(true)
+      })
+    })
+
+    it('should mark usage credit grant features added via addFeatureToSubscriptionItem as manually created', async () => {
+      const [{ feature: usageFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            {
+              name: 'Manual Usage Grant',
+              type: FeatureType.UsageCreditGrant,
+              amount: 250,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              usageMeterName: 'manual-grant-meter',
+            },
+          ]
+        )
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+
+        expect(
+          result.result.subscriptionItemFeature.manuallyCreated
+        ).toBe(true)
+
+        // Verify in database
+        const [sif] = await selectSubscriptionItemFeatures(
+          { id: [result.result.subscriptionItemFeature.id] },
+          transaction
+        )
+        expect(sif.manuallyCreated).toBe(true)
       })
     })
   })

@@ -1,7 +1,7 @@
+import { logger, task } from '@trigger.dev/sdk'
+import type Stripe from 'stripe'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
-import { logger, task } from '@trigger.dev/sdk'
-import Stripe from 'stripe'
 
 export const stripePaymentIntentCanceledTask = task({
   id: 'stripe-payment-intent-canceled',

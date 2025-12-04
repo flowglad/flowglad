@@ -1,12 +1,12 @@
 import {
-  CreateDiscountFormSchema,
-  EditDiscountFormSchema,
+  type CreateDiscountFormSchema,
+  type CreateDiscountInput,
   createDiscountInputSchema,
+  type EditDiscountFormSchema,
+  type EditDiscountInput,
   editDiscountInputSchema,
-  CreateDiscountInput,
-  EditDiscountInput,
 } from '@/db/schema/discounts'
-import { CurrencyCode, DiscountAmountType } from '@/types'
+import { type CurrencyCode, DiscountAmountType } from '@/types'
 import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 
 export function normalizeDiscountAmount(

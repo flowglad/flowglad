@@ -1,5 +1,5 @@
 import { FlowgladServer } from '@flowglad/express'
-import { Request } from 'express'
+import type { Request } from 'express'
 
 export const flowgladServer = (req: Request) => {
   const query = req.query

@@ -1,6 +1,6 @@
 import {
   TableRowPopoverMenu,
-  TableRowPopoverMenuProps,
+  type TableRowPopoverMenuProps,
 } from '@/components/TableRowPopoverMenu'
 
 function MoreMenuTableCell({

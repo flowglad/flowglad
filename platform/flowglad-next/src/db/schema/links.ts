@@ -1,21 +1,21 @@
-import * as R from 'ramda'
-import { text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
+import { pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
+import * as R from 'ramda'
 import { z } from 'zod'
-import {
-  tableBase,
-  constructIndex,
-  nullableStringForeignKey,
-  notNullStringForeignKey,
-  livemodePolicy,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantPolicy,
-} from '@/db/tableUtils'
-import { organizations } from '@/db/schema/organizations'
-import { products } from '@/db/schema/products'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { fileClientInsertSchema } from '@/db/schema/files'
+import { organizations } from '@/db/schema/organizations'
+import { products } from '@/db/schema/products'
+import {
+  constructIndex,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  type SelectConditions,
+  tableBase,
+} from '@/db/tableUtils'
 
 const TABLE_NAME = 'links'
 

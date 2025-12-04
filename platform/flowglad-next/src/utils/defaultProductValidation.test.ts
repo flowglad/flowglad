@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { validateDefaultProductSchema } from './defaultProductValidation'
+import { describe, expect, it } from 'vitest'
 import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
 import { PriceType } from '@/types'
+import { validateDefaultProductSchema } from './defaultProductValidation'
 
 describe('defaultProductValidation', () => {
   describe('validateDefaultProductSchema', () => {

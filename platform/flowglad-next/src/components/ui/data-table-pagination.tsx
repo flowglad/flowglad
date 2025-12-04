@@ -1,11 +1,11 @@
-import React from 'react'
-import { Table } from '@tanstack/react-table'
+import type { Table } from '@tanstack/react-table'
 import {
   ChevronLeft,
   ChevronRight,
-  Loader2,
   Download,
+  Loader2,
 } from 'lucide-react'
+import React from 'react'
 
 import { Button } from '@/components/ui/button'
 import {

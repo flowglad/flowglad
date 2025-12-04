@@ -5,12 +5,12 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/createRetryBillingRun.ts billing_period_id=billing_period_....
 */
 
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
-import { createBillingRun } from '@/subscriptions/billingRunHelpers'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import { createBillingRun } from '@/subscriptions/billingRunHelpers'
+import runScript from './scriptRunner'
 
 async function createRetryBillingRun(db: PostgresJsDatabase) {
   const params = process.argv.reduce(

@@ -1,7 +1,10 @@
-import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
-import { SubRouteHandler, SubRouteHandlerResultData } from './types'
-import { FlowgladServer } from '../FlowgladServer'
-import Flowglad from '@flowglad/node'
+import type Flowglad from '@flowglad/node'
+import { type FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
+import type { FlowgladServer } from '../FlowgladServer'
+import type {
+  SubRouteHandler,
+  SubRouteHandlerResultData,
+} from './types'
 
 export const cancelSubscription: SubRouteHandler<
   FlowgladActionKey.CancelSubscription
@@ -10,7 +13,7 @@ export const cancelSubscription: SubRouteHandler<
     | { code: string; json: Record<string, unknown> }
     | undefined
   let status: number
-  let data: SubRouteHandlerResultData<FlowgladActionKey.CancelSubscription> =
+  const data: SubRouteHandlerResultData<FlowgladActionKey.CancelSubscription> =
     {}
   if (params.method !== HTTPMethod.POST) {
     error = {

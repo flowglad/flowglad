@@ -1,8 +1,8 @@
-import { defineConfig } from 'vitest/config'
-import { loadEnv } from 'vite'
+import fs from 'node:fs'
+import path from 'node:path'
 import react from '@vitejs/plugin-react'
-import path from 'path'
-import fs from 'fs'
+import { loadEnv } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig(({ mode }) => {
   return {

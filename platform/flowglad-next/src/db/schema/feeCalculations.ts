@@ -1,46 +1,48 @@
-import * as R from 'ramda'
+import { sql } from 'drizzle-orm'
 import {
   integer,
   jsonb,
+  pgPolicy,
   pgTable,
   text,
-  pgPolicy,
 } from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
 import { z } from 'zod'
+import { currencyCodeSchema } from '@/db/commonZodSchema'
 import {
-  tableBase,
-  notNullStringForeignKey,
-  nullableStringForeignKey,
-  constructIndex,
-  pgEnumColumn,
-  livemodePolicy,
-  idInputSchema,
-  createSupabaseWebhookSchema,
-  ommittedColumnsForInsertSchema,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantPolicy,
-} from '@/db/tableUtils'
-import {
-  CheckoutSession,
+  type CheckoutSession,
   checkoutSessions,
 } from '@/db/schema/checkoutSessions'
-import { purchases } from '@/db/schema/purchases'
 import { discounts } from '@/db/schema/discounts'
-import { organizations } from '@/db/schema/organizations'
-import { billingAddressSchema } from '@/db/schema/organizations'
+import {
+  billingAddressSchema,
+  organizations,
+} from '@/db/schema/organizations'
+import { purchases } from '@/db/schema/purchases'
+import {
+  constructIndex,
+  createSupabaseWebhookSchema,
+  hiddenColumnsForClientSchema,
+  idInputSchema,
+  livemodePolicy,
+  merchantPolicy,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  ommittedColumnsForInsertSchema,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
+} from '@/db/tableUtils'
 import {
   CurrencyCode,
   FeeCalculationType,
   PaymentMethodType,
 } from '@/types'
 import core, { safeZodNonNegativeInteger } from '@/utils/core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
-import { sql } from 'drizzle-orm'
-import { prices } from './prices'
-import { billingPeriods } from './billingPeriods'
-import { currencyCodeSchema } from '@/db/commonZodSchema'
 import { buildSchemas } from '../createZodSchemas'
+import { billingPeriods } from './billingPeriods'
+import { prices } from './prices'
 
 const TABLE_NAME = 'fee_calculations'
 

@@ -1,15 +1,15 @@
-import React from 'react'
-import FormModal from '@/components/forms/FormModal'
+import { sentenceCase } from 'change-case'
+import type React from 'react'
+import { toast } from 'sonner'
+import { trpc } from '@/app/_trpc/client'
 import ClonePricingModelFormFields from '@/components/forms/ClonePricingModelFormFields'
+import FormModal from '@/components/forms/FormModal'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
   clonePricingModelInputSchema,
-  PricingModel,
+  type PricingModel,
 } from '@/db/schema/pricingModels'
-import { trpc } from '@/app/_trpc/client'
-import { toast } from 'sonner'
 import { DestinationEnvironment } from '@/types'
-import { useAuthenticatedContext } from '@/contexts/authContext'
-import { sentenceCase } from 'change-case'
 
 interface ClonePricingModelModalProps {
   isOpen: boolean

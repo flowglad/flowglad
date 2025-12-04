@@ -1,20 +1,20 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createUpsertFunction,
-  createBulkInsertOrDoNothingFunction,
-} from '@/db/tableUtils'
-import {
-  Event,
+  type Event,
   events,
   eventsInsertSchema,
   eventsSelectSchema,
   eventsUpdateSchema,
 } from '@/db/schema/events'
-import { DbTransaction } from '../types'
+import {
+  createBulkInsertOrDoNothingFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
   typeof events,

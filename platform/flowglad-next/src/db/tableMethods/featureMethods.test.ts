@@ -1,32 +1,34 @@
-import { describe, it, beforeEach, expect } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  setupCustomer,
   setupOrg,
+  setupPaymentMethod,
   setupPricingModel,
   setupProduct,
   setupProductFeature,
-  setupToggleFeature,
-  setupCustomer,
-  setupPaymentMethod,
   setupSubscription,
   setupSubscriptionItem,
+  setupToggleFeature,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Feature } from '@/db/schema/features'
+import type { Organization } from '@/db/schema/organizations'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import {
+  createSubscriptionFeatureItems,
+  subscriptionItemFeatureInsertFromSubscriptionItemAndFeature,
+} from '@/subscriptions/subscriptionItemFeatureHelpers'
+import { FeatureType, SubscriptionItemType } from '@/types'
 import {
   insertFeature,
   selectFeatures,
   updateFeatureTransaction,
 } from './featureMethods'
-import { adminTransaction } from '@/db/adminTransaction'
-import { Feature } from '@/db/schema/features'
-import { FeatureType, SubscriptionItemType } from '@/types'
-import { Organization } from '@/db/schema/organizations'
-import { PricingModel } from '@/db/schema/pricingModels'
 import { selectProductFeatures } from './productFeatureMethods'
 import {
   insertSubscriptionItemFeature,
   selectSubscriptionItemFeatures,
 } from './subscriptionItemFeatureMethods'
-import { subscriptionItemFeatureInsertFromSubscriptionItemAndFeature } from '@/subscriptions/subscriptionItemFeatureHelpers'
-import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
 
 describe('insertFeature uniqueness constraints', () => {
   let organization1: Organization.Record
@@ -308,9 +310,11 @@ describe('updateFeatureTransaction - active state synchronization', () => {
         // First create a subscriptionItemFeature
         const subscriptionItemFeatureInsert =
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            subscriptionItem,
-            feature,
-            productFeature
+            {
+              subscriptionItem,
+              feature,
+              productFeature,
+            }
           )
         const subscriptionItemFeature =
           await insertSubscriptionItemFeature(

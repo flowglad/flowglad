@@ -1,4 +1,49 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { eq } from 'drizzle-orm'
+import type Stripe from 'stripe'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  setupCheckoutSession,
+  setupCustomer,
+  setupDiscount,
+  setupFeeCalculation,
+  setupInvoice,
+  setupInvoiceLineItem,
+  setupOrg,
+  setupPayment,
+  setupPaymentMethod,
+  setupPurchase,
+} from '@/../seedDatabase'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
+import {
+  type CheckoutSession,
+  invoiceCheckoutSessionNulledColumns,
+} from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Discount } from '@/db/schema/discounts'
+import {
+  type FeeCalculation,
+  feeCalculations,
+} from '@/db/schema/feeCalculations'
+import type { Invoice } from '@/db/schema/invoices'
+import {
+  type BillingAddress,
+  type Organization,
+  organizations,
+} from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Purchase } from '@/db/schema/purchases'
+import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
+import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
+import {
+  selectPurchaseById,
+  updatePurchase,
+} from '@/db/tableMethods/purchaseMethods'
+import type { DbTransaction } from '@/db/types'
+import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -9,58 +54,15 @@ import {
   PaymentStatus,
   PurchaseStatus,
 } from '@/types'
-import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import {
+  checkoutSessionStatusFromStripeCharge,
   editCheckoutSession,
   processPurchaseBookkeepingForCheckoutSession,
-  checkoutSessionStatusFromStripeCharge,
-  processStripeChargeForInvoiceCheckoutSession,
   processStripeChargeForCheckoutSession,
+  processStripeChargeForInvoiceCheckoutSession,
 } from '@/utils/bookkeeping/checkoutSessions'
-import { Purchase } from '@/db/schema/purchases'
-import {
-  setupCustomer,
-  setupDiscount,
-  setupFeeCalculation,
-  setupInvoice,
-  setupInvoiceLineItem,
-  setupOrg,
-  setupPayment,
-  setupPaymentMethod,
-  setupPurchase,
-  setupCheckoutSession,
-} from '@/../seedDatabase'
-import { Customer } from '@/db/schema/customers'
-import { Invoice } from '@/db/schema/invoices'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
-import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
 import core from '../core'
-import Stripe from 'stripe'
-import {
-  CheckoutSession,
-  invoiceCheckoutSessionNulledColumns,
-} from '@/db/schema/checkoutSessions'
-import {
-  FeeCalculation,
-  feeCalculations,
-} from '@/db/schema/feeCalculations'
-import { Discount } from '@/db/schema/discounts'
-import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
-import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
-import { DbTransaction } from '@/db/types'
-import { eq } from 'drizzle-orm'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
-import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
-import {
-  BillingAddress,
-  Organization,
-  organizations,
-} from '@/db/schema/organizations'
 
 type TestCharge = Pick<
   Stripe.Charge,

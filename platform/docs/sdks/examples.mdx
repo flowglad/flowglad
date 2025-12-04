@@ -356,9 +356,8 @@ export async function trackAPICall(
 ) {
   // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
   await flowglad(customerExternalId).createUsageEvent({
-    usageMeterId: 'usage_meter_api_calls',
     subscriptionId: 'sub_123',
-    priceId: 'price_usage_meter',
+    priceSlug: 'price_usage_meter',
     amount: quantity,
     transactionId: `${endpoint}:${Date.now()}`,
     usageDate: Date.now(),

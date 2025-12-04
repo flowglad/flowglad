@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import crypto from 'crypto'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { verifyWebhook, WebhookVerificationError } from './webhook'
 
 // Helper to generate a valid webhook signature

@@ -1,38 +1,40 @@
-import { BillingAddress } from '@/db/schema/organizations'
-import { Discount } from '@/db/schema/discounts'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { Purchase } from '@/db/schema/purchases'
-import { DbTransaction } from '@/db/types'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Country } from '@/db/schema/countries'
+import type { Discount } from '@/db/schema/discounts'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type {
+  BillingAddress,
+  Organization,
+} from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
+import { selectCountryById } from '@/db/tableMethods/countryMethods'
+import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import type { DbTransaction } from '@/db/types'
 import {
-  calculateInvoiceBaseAmount,
-  calculatePriceBaseAmount,
+  CheckoutSessionType,
+  type CountryCode,
+  type CurrencyCode,
+  FeeCalculationType,
+  type PaymentMethodType,
+  StripeConnectContractType,
+} from '@/types'
+import {
   calculateDiscountAmount,
   calculateFlowgladFeePercentage,
   calculateInternationalFeePercentage,
+  calculateInvoiceBaseAmount,
   calculatePaymentMethodFeeAmount,
+  calculatePriceBaseAmount,
   calculateTaxes,
 } from './common'
-import {
-  CountryCode,
-  CurrencyCode,
-  FeeCalculationType,
-  PaymentMethodType,
-  StripeConnectContractType,
-} from '@/types'
-import { Country } from '@/db/schema/countries'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { Invoice } from '@/db/schema/invoices'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import { selectCountryById } from '@/db/tableMethods/countryMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectDiscountById } from '@/db/tableMethods/discountMethods'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { CheckoutSessionType } from '@/types'
 
 const createBaseFeeCalculationInsert = ({
   organization,

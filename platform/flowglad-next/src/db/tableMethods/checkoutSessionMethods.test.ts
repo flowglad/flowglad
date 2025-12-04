@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
+import type { CheckoutSession } from '../schema/checkoutSessions'
 import {
   checkoutSessionIsInTerminalState,
   isCheckoutSessionSubscriptionCreating,
 } from './checkoutSessionMethods'
-import { CheckoutSession } from '../schema/checkoutSessions'
 
 describe('checkoutSessionIsInTerminalState', () => {
   it('should return true for terminal statuses', () => {

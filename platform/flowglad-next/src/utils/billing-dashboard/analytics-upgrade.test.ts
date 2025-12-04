@@ -1,46 +1,48 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
 import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
-  setupPrice,
-  setupProduct,
-  setupBillingPeriod,
-  setupBillingPeriodItem,
-} from '@/../seedDatabase'
-import {
-  CancellationReason,
-  SubscriptionStatus,
-  PaymentMethodType,
-  PriceType,
-  IntervalUnit,
-} from '@/types'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { core } from '@/utils/core'
-import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
-import { calculateSubscriberBreakdown } from './subscriberCalculationHelpers'
-import { calculateMRRBreakdown } from './revenueCalculationHelpers'
-import {
-  getUpgradeMetrics,
-  getUpgradeConversionRate,
-  getUpgradePaths,
-} from './upgradeMetrics'
-import {
-  startOfMonth,
-  endOfMonth,
   addDays,
+  endOfMonth,
+  startOfMonth,
   subDays,
   subMonths,
 } from 'date-fns'
-import { subscriptions } from '@/db/schema/subscriptions'
-import { eq, and } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupBillingPeriod,
+  setupBillingPeriodItem,
+  setupCustomer,
+  setupOrg,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupSubscription,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import {
+  Subscription,
+  subscriptions,
+} from '@/db/schema/subscriptions'
+import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
+import {
+  CancellationReason,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
+import { core } from '@/utils/core'
+import { calculateMRRBreakdown } from './revenueCalculationHelpers'
+import { calculateSubscriberBreakdown } from './subscriberCalculationHelpers'
+import {
+  getUpgradeConversionRate,
+  getUpgradeMetrics,
+  getUpgradePaths,
+} from './upgradeMetrics'
 
 describe('Analytics Upgrade Tracking', () => {
   let organization: Organization.Record

@@ -153,7 +153,7 @@ function FeatureGate({ featureSlug, children }) {
         <button
           onClick={() =>
             createCheckoutSession({
-              priceId: 'price_123',
+              priceSlug: 'pro_plan',
               successUrl: window.location.href,
               cancelUrl: window.location.href,
               autoRedirect: true,
@@ -181,33 +181,34 @@ Checkout sessions for specific prices can be made using either `priceSlug` (an i
 #### Parameters
 
 ```typescript
-interface CheckoutSessionParams {
-  /*
-   * Must specify either priceId or priceSlug
-   * Slug is encouraged over Id
-   */
-  priceId?: string
-  priceSlug?: string
-  successUrl: string
-  cancelUrl: string
-  /*
-   * Whether to automatically redirect to the hosted checkout page after the session is created
-   */
-  autoRedirect?: boolean
-  quantity?: number
-  /**
-   * the metadata values to set on the object created by this checkout session
-   * - subscription.metadata for subscription prices
-   * - purchase.metadata for single payment prices
-   */ 
-  outputMetadata?: Record<string, unknown>
-  /**
-   * the name value to set on the object created by this checkout session
-   * - subscription.name for subscription prices
-   * - purchase.name for single payment prices
-   */ 
-  outputName?: string
-}
+type FrontendProductCreateCheckoutSessionParams = 
+  {
+    /**
+     * Must specify either priceSlug or priceId
+     * Slug is encouraged over Id
+     */
+    priceSlug?: string
+    priceId?: string
+    successUrl: string
+    cancelUrl: string
+    /**
+     * Whether to automatically redirect to the hosted checkout page after the session is created
+     */
+    autoRedirect?: boolean
+    quantity?: number
+    /**
+     * the metadata values to set on the object created by this checkout session
+     * - subscription.metadata for subscription prices
+     * - purchase.metadata for single payment prices
+     */
+    outputMetadata?: Record<string, any>
+    /**
+     * the name value to set on the object created by this checkout session
+     * - subscription.name for subscription prices
+     * - purchase.name for single payment prices
+     */
+    outputName?: string
+  }
 ```
 
 #### Example
@@ -219,10 +220,6 @@ const handleUpgrade = async () => {
     successUrl: `${window.location.origin}/billing/success`,
     cancelUrl: `${window.location.origin}/billing`,
     autoRedirect: true,
-    /**
-    * Optional. If not provided, defaults to 1
-    */
-    quantity?: number
   })
 }
 ```
@@ -234,11 +231,11 @@ Open a Flowglad-hosted flow that collects and stores a new payment method for th
 #### Parameters
 
 ```typescript
-interface AddPaymentMethodCheckoutParams {
+type FrontendCreateAddPaymentMethodCheckoutSessionParams = {
   successUrl: string
   cancelUrl: string
   autoRedirect?: boolean
-  outputMetadata?: Record<string, unknown>
+  outputMetadata?: Record<string, any>
   outputName?: string
   /**
    * When provided, Flowglad sets the newly created payment method
@@ -264,16 +261,15 @@ Trigger the activation flow for an existing subscription that needs a payment me
 #### Parameters
 
 ```typescript
-interface ActivateSubscriptionCheckoutSessionParams {
+type FrontendCreateActivateSubscriptionCheckoutSessionParams = {
   /**
    * The subscription to activate.
    */
   targetSubscriptionId: string
-  priceId: string
   successUrl: string
   cancelUrl: string
   autoRedirect?: boolean
-  outputMetadata?: Record<string, string>
+  outputMetadata?: Record<string, any>
   outputName?: string
 }
 ```
@@ -283,7 +279,6 @@ interface ActivateSubscriptionCheckoutSessionParams {
 ```tsx
 await createActivateSubscriptionCheckoutSession({
   targetSubscriptionId: 'sub_123',
-  priceId: 'price_029demLwqVKLAN5x1azBk',
   successUrl: `${window.location.origin}/billing/success`,
   cancelUrl: window.location.href,
   autoRedirect: true,

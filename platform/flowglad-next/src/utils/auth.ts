@@ -1,23 +1,23 @@
 import { betterAuth } from 'better-auth'
-import { admin, customSession, magicLink } from 'better-auth/plugins'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { db } from '@/db/client'
-import {
-  user,
-  session,
-  account,
-  verification,
-} from '@/db/schema/betterAuthSchema'
-import { betterAuthUserToApplicationUser } from './authHelpers'
-import {
-  sendForgotPasswordEmail,
-  sendCustomerBillingPortalMagicLink,
-} from './email'
+import { admin, customSession, magicLink } from 'better-auth/plugins'
 import { headers } from 'next/headers'
 import { adminTransaction } from '@/db/adminTransaction'
+import { db } from '@/db/client'
+import {
+  account,
+  session,
+  user,
+  verification,
+} from '@/db/schema/betterAuthSchema'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { betterAuthUserToApplicationUser } from './authHelpers'
 import { getCustomerBillingPortalOrganizationId } from './customerBillingPortalState'
+import {
+  sendCustomerBillingPortalMagicLink,
+  sendForgotPasswordEmail,
+} from './email'
 
 const handleCustomerBillingPortalEmailOTP = async (params: {
   email: string
@@ -33,8 +33,9 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
         organizationId,
         transaction
       )
+      // Only look for live mode customers - billing portals are not supported for test mode customers
       const customers = await selectCustomers(
-        { email, organizationId },
+        { email, organizationId, livemode: true },
         transaction
       )
       return {

@@ -1,12 +1,12 @@
-import { protectedProcedure } from '@/server/trpc'
-import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   selectOrganizationById,
   updateOrganization,
 } from '@/db/tableMethods/organizationMethods'
+import { protectedProcedure } from '@/server/trpc'
 import { BusinessOnboardingStatus } from '@/types'
 import { getConnectedAccountOnboardingStatus } from '@/utils/stripe'
 

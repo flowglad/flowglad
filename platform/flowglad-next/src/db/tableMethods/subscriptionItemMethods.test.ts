@@ -1,43 +1,37 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { and, eq } from 'drizzle-orm'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  selectSubscriptionItemById,
-  insertSubscriptionItem,
-  updateSubscriptionItem,
-  selectSubscriptionItems,
-  bulkInsertSubscriptionItems,
-  selectSubscriptionAndItems,
-  selectSubscriptionItemsAndSubscriptionBySubscriptionId,
-  selectRichSubscriptionsAndActiveItems,
-  bulkInsertOrDoNothingSubscriptionItemsByExternalId,
-  selectCurrentlyActiveSubscriptionItems,
-  bulkCreateOrUpdateSubscriptionItems,
-  expireSubscriptionItems,
-} from './subscriptionItemMethods'
-import {
-  setupOrg,
+  setupCreditLedgerEntry,
   setupCustomer,
+  setupDebitLedgerEntry,
+  setupLedgerAccount,
+  setupLedgerTransaction,
+  setupOrg,
   setupPaymentMethod,
   setupSubscription,
   setupSubscriptionItem,
   setupTestFeaturesAndProductFeatures,
-  setupUsageMeter,
-  setupCreditLedgerEntry,
   setupUsageEvent,
-  setupDebitLedgerEntry,
-  setupLedgerTransaction,
-  setupLedgerAccount,
+  setupUsageLedgerScenario,
+  setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
+import { ledgerEntries } from '@/db/schema/ledgerEntries'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
 import {
-  SubscriptionItem,
+  type SubscriptionItemFeature,
+  subscriptionItemFeatures,
+} from '@/db/schema/subscriptionItemFeatures'
+import {
+  type SubscriptionItem,
   subscriptionItems,
 } from '@/db/schema/subscriptionItems'
-import { Subscription } from '@/db/schema/subscriptions'
-import { Price } from '@/db/schema/prices'
-import { Organization } from '@/db/schema/organizations'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { core } from '@/utils/core'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { subscriptionItemFeatureInsertFromSubscriptionItemAndFeature } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
   FeatureType,
   LedgerEntryType,
@@ -45,17 +39,23 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-import { updateSubscription } from './subscriptionMethods'
-import {
-  SubscriptionItemFeature,
-  subscriptionItemFeatures,
-} from '@/db/schema/subscriptionItemFeatures'
+import { core } from '@/utils/core'
 import { insertSubscriptionItemFeature } from './subscriptionItemFeatureMethods'
-import { eq, and } from 'drizzle-orm'
-import { subscriptionItemFeatureInsertFromSubscriptionItemAndFeature } from '@/subscriptions/subscriptionItemFeatureHelpers'
-import { setupUsageLedgerScenario } from '@/../seedDatabase'
-import { ledgerEntries } from '@/db/schema/ledgerEntries'
-import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
+import {
+  bulkCreateOrUpdateSubscriptionItems,
+  bulkInsertOrDoNothingSubscriptionItemsByExternalId,
+  bulkInsertSubscriptionItems,
+  expireSubscriptionItems,
+  insertSubscriptionItem,
+  selectCurrentlyActiveSubscriptionItems,
+  selectRichSubscriptionsAndActiveItems,
+  selectSubscriptionAndItems,
+  selectSubscriptionItemById,
+  selectSubscriptionItems,
+  selectSubscriptionItemsAndSubscriptionBySubscriptionId,
+  updateSubscriptionItem,
+} from './subscriptionItemMethods'
+import { updateSubscription } from './subscriptionMethods'
 
 describe('subscriptionItemMethods', async () => {
   let organization: Organization.Record
@@ -409,8 +409,7 @@ describe('subscriptionItemMethods', async () => {
   describe('expireSubscriptionItems', () => {
     it('should update the expiredAt field of the specified subscription item and its features', async () => {
       const expiryDate = new Date()
-      let feature: SubscriptionItemFeature.Record | undefined =
-        undefined
+      let feature: SubscriptionItemFeature.Record | undefined
       const featureSetup = await setupTestFeaturesAndProductFeatures({
         organizationId: organization.id,
         productId: price.productId,
@@ -425,9 +424,11 @@ describe('subscriptionItemMethods', async () => {
       await adminTransaction(async ({ transaction }) => {
         feature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            subscriptionItem,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
@@ -498,18 +499,22 @@ describe('subscriptionItemMethods', async () => {
         // Add features to item 1 (subscriptionItem)
         const item1Feature1 = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            subscriptionItem,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
 
         const item1Feature2 = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            subscriptionItem,
-            featureSetup[1].feature,
-            featureSetup[1].productFeature
+            {
+              subscriptionItem,
+              feature: featureSetup[1].feature,
+              productFeature: featureSetup[1].productFeature,
+            }
           ),
           transaction
         )
@@ -517,18 +522,22 @@ describe('subscriptionItemMethods', async () => {
         // Add features to item 2
         const item2Feature1 = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            item2,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem: item2,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
 
         const item2Feature2 = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            item2,
-            featureSetup[2].feature,
-            featureSetup[2].productFeature
+            {
+              subscriptionItem: item2,
+              feature: featureSetup[2].feature,
+              productFeature: featureSetup[2].productFeature,
+            }
           ),
           transaction
         )
@@ -536,9 +545,11 @@ describe('subscriptionItemMethods', async () => {
         // Add feature to item 3
         const item3Feature1 = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            item3,
-            featureSetup[1].feature,
-            featureSetup[1].productFeature
+            {
+              subscriptionItem: item3,
+              feature: featureSetup[1].feature,
+              productFeature: featureSetup[1].productFeature,
+            }
           ),
           transaction
         )
@@ -775,9 +786,11 @@ describe('subscriptionItemMethods', async () => {
         })
         const activeFeature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            activeItem,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem: activeItem,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
@@ -801,9 +814,11 @@ describe('subscriptionItemMethods', async () => {
         )
         const expiredFeature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            expiredItem,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem: expiredItem,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
@@ -880,9 +895,11 @@ describe('subscriptionItemMethods', async () => {
         // Create an unexpired feature for the active item (no expiredAt)
         const activeFeature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            activeItem,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem: activeItem,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
@@ -891,9 +908,11 @@ describe('subscriptionItemMethods', async () => {
         const expiredFeature = await insertSubscriptionItemFeature(
           {
             ...subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-              activeItem,
-              featureSetup[1].feature,
-              featureSetup[1].productFeature
+              {
+                subscriptionItem: activeItem,
+                feature: featureSetup[1].feature,
+                productFeature: featureSetup[1].productFeature,
+              }
             ),
             expiredAt: pastDate, // Expired
           },

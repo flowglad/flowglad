@@ -1,6 +1,6 @@
-import Flowglad from '@flowglad/node'
+import type Flowglad from '@flowglad/node'
 
-import { Subscription } from '@flowglad/shared'
+import type { Subscription } from '@flowglad/shared'
 
 export type SubscriptionCardSubscription = Pick<
   Subscription,

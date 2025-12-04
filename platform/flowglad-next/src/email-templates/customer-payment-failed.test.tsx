@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
-import { PaymentFailedEmail } from './customer-payment-failed'
+import { describe, expect, it } from 'vitest'
 import { CurrencyCode } from '@/types'
+import { PaymentFailedEmail } from './customer-payment-failed'
 
 describe('PaymentFailedEmail', () => {
   // Use a fixed date to avoid timezone issues

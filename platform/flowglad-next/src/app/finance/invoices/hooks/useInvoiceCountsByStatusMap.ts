@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import { InvoiceStatus } from '@/types'
 import { trpc } from '@/app/_trpc/client'
+import type { InvoiceStatus } from '@/types'
 
 export const useInvoiceCountsByStatusMap = () => {
   const { data, isLoading } =

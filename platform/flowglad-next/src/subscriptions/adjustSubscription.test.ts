@@ -1,4 +1,42 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { addDays, subDays } from 'date-fns'
+import { beforeEach, describe, expect, it } from 'vitest'
+// These seed methods (and the clearDatabase helper) come from our test support code.
+// They create real records in our test database.
+import {
+  setupBillingPeriod,
+  setupBillingPeriodItem,
+  setupBillingRun,
+  setupCustomer,
+  setupInvoice,
+  setupOrg,
+  setupPayment,
+  setupPaymentMethod,
+  setupPrice,
+  setupSubscription,
+  setupSubscriptionItem,
+  setupUsageMeter,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import { BillingRun } from '@/db/schema/billingRuns'
+import type { Customer } from '@/db/schema/customers'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
+import {
+  selectCurrentBillingPeriodForSubscription,
+  updateBillingPeriod,
+} from '@/db/tableMethods/billingPeriodMethods'
+import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+// Helpers to query the database after adjustments
+import {
+  expireSubscriptionItems,
+  selectSubscriptionItemsAndSubscriptionBySubscriptionId,
+  updateSubscriptionItem,
+} from '@/db/tableMethods/subscriptionItemMethods'
+import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import {
   adjustSubscription,
   calculateSplitInBillingPeriodBasedOnAdjustmentDate,
@@ -10,51 +48,12 @@ import {
   CurrencyCode,
   FeatureFlag,
   IntervalUnit,
+  PaymentStatus,
   PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-import { adminTransaction } from '@/db/adminTransaction'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-
-// These seed methods (and the clearDatabase helper) come from our test support code.
-// They create real records in our test database.
-import {
-  setupSubscription,
-  setupSubscriptionItem,
-  setupBillingPeriod,
-  setupOrg,
-  setupCustomer,
-  setupBillingRun,
-  setupBillingPeriodItem,
-  setupPaymentMethod,
-  setupPrice,
-  setupUsageMeter,
-} from '@/../seedDatabase'
-
-// Helpers to query the database after adjustments
-import {
-  selectSubscriptionItemsAndSubscriptionBySubscriptionId,
-  updateSubscriptionItem,
-  expireSubscriptionItems,
-} from '@/db/tableMethods/subscriptionItemMethods'
-import {
-  selectCurrentBillingPeriodForSubscription,
-  updateBillingPeriod,
-} from '@/db/tableMethods/billingPeriodMethods'
-import { selectBillingPeriodItems } from '@/db/tableMethods/billingPeriodItemMethods'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { Subscription } from '@/db/schema/subscriptions'
-import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
-import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
-import { addDays, subDays } from 'date-fns'
-import { setupInvoice, setupPayment } from '@/../seedDatabase'
-import { PaymentStatus } from '@/types'
 
 // Helper to normalize Date | number into milliseconds since epoch
 const toMs = (d: Date | number | null | undefined): number | null => {
@@ -1477,8 +1476,7 @@ describe('adjustSubscription Integration Tests', async () => {
               {
                 id: organization.id,
                 featureFlags: {
-                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
-                    true,
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
                 },
               },
               transaction
@@ -1662,8 +1660,7 @@ describe('adjustSubscription Integration Tests', async () => {
               {
                 id: organization.id,
                 featureFlags: {
-                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
-                    true,
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
                 },
               },
               transaction
@@ -1764,8 +1761,7 @@ describe('adjustSubscription Integration Tests', async () => {
               {
                 id: organization.id,
                 featureFlags: {
-                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
-                    true,
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
                 },
               },
               transaction
@@ -1879,8 +1875,7 @@ describe('adjustSubscription Integration Tests', async () => {
               {
                 id: organization.id,
                 featureFlags: {
-                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
-                    true,
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
                 },
               },
               transaction
@@ -1951,8 +1946,7 @@ describe('adjustSubscription Integration Tests', async () => {
               {
                 id: organization.id,
                 featureFlags: {
-                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
-                    true,
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
                 },
               },
               transaction
@@ -2034,8 +2028,7 @@ describe('adjustSubscription Integration Tests', async () => {
               {
                 id: organization.id,
                 featureFlags: {
-                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
-                    true,
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
                 },
               },
               transaction
@@ -2762,8 +2755,7 @@ describe('adjustSubscription Integration Tests', async () => {
               {
                 id: organization.id,
                 featureFlags: {
-                  [FeatureFlag.ImmediateSubscriptionAdjustments]:
-                    true,
+                  [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
                 },
               },
               transaction
@@ -3013,8 +3005,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 {
                   id: organization.id,
                   featureFlags: {
-                    [FeatureFlag.ImmediateSubscriptionAdjustments]:
-                      true,
+                    [FeatureFlag.ImmediateSubscriptionAdjustments]: true,
                   },
                 },
                 transaction

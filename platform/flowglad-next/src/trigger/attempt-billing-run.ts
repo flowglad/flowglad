@@ -1,9 +1,9 @@
+import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
-import { BillingRun } from '@/db/schema/billingRuns'
+import type { BillingRun } from '@/db/schema/billingRuns'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { executeBillingRun } from '@/subscriptions/billingRunHelpers'
 import { BillingRunStatus } from '@/types'
-import { logger, task } from '@trigger.dev/sdk'
 import { storeTelemetry } from '@/utils/redis'
 
 export const attemptBillingRunTask = task({

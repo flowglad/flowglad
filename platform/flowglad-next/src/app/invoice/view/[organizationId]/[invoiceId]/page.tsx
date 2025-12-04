@@ -1,18 +1,18 @@
-import { InvoiceTemplateProps } from '@/pdf-generation/invoices'
-import { CustomerFacingInvoicePage } from './CustomerFacingInvoicePage'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
+import type { InvoiceTemplateProps } from '@/pdf-generation/invoices'
+import { CheckoutFlowType, InvoiceStatus } from '@/types'
+import { findOrCreateInvoiceCheckoutSession } from '@/utils/checkoutSessionState'
 import core from '@/utils/core'
 import {
   getPaymentIntent,
   stripeCurrencyAmountToHumanReadableCurrencyAmount,
 } from '@/utils/stripe'
-import { CheckoutFlowType, InvoiceStatus } from '@/types'
+import { CustomerFacingInvoicePage } from './CustomerFacingInvoicePage'
 import {
   CustomerInvoiceDownloadReceiptButtonBanner,
   CustomerInvoicePayButtonBanner,
 } from './CustomerInvoiceButtonBanner'
-import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
-import { adminTransaction } from '@/db/adminTransaction'
-import { findOrCreateInvoiceCheckoutSession } from '@/utils/checkoutSessionState'
 
 const CustomerInvoicePaidView = (props: InvoiceTemplateProps) => {
   const { invoice, invoiceLineItems } = props
@@ -160,7 +160,6 @@ const CustomerInvoiceView = (props: InvoiceTemplateProps) => {
   }
 
   return (
-    // @ts-ignore - async component
     <CustomerInvoiceOpenView
       invoice={invoice}
       invoiceLineItems={invoiceLineItems}

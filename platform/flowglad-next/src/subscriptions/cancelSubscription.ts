@@ -1,15 +1,26 @@
 import { TRPCError } from '@trpc/server'
-import { Subscription } from '@/db/schema/subscriptions'
-import {
-  scheduleSubscriptionCancellationSchema,
-  ScheduleSubscriptionCancellationParams,
-} from '@/subscriptions/schemas'
+import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Event } from '@/db/schema/events'
+import type { Subscription } from '@/db/schema/subscriptions'
 import {
   safelyUpdateBillingPeriodStatus,
   selectBillingPeriods,
   selectCurrentBillingPeriodForSubscription,
   updateBillingPeriod,
 } from '@/db/tableMethods/billingPeriodMethods'
+import {
+  selectBillingRuns,
+  updateBillingRun,
+} from '@/db/tableMethods/billingRunMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import {
+  expireSubscriptionItems,
+  selectSubscriptionItems,
+} from '@/db/tableMethods/subscriptionItemMethods'
 import {
   currentSubscriptionStatuses,
   isSubscriptionCurrent,
@@ -19,35 +30,25 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import {
-  selectBillingRuns,
-  updateBillingRun,
-} from '@/db/tableMethods/billingRunMethods'
-import {
-  expireSubscriptionItems,
-  selectSubscriptionItems,
-} from '@/db/tableMethods/subscriptionItemMethods'
+  type ScheduleSubscriptionCancellationParams,
+  scheduleSubscriptionCancellationSchema,
+} from '@/subscriptions/schemas'
+import { idempotentSendCustomerSubscriptionCanceledNotification } from '@/trigger/notifications/send-customer-subscription-canceled-notification'
+import { idempotentSendCustomerSubscriptionCancellationScheduledNotification } from '@/trigger/notifications/send-customer-subscription-cancellation-scheduled-notification'
+import { idempotentSendOrganizationSubscriptionCanceledNotification } from '@/trigger/notifications/send-organization-subscription-canceled-notification'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
+  EventNoun,
+  FlowgladEventType,
   SubscriptionCancellationArrangement,
   SubscriptionStatus,
-  EventNoun,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { FlowgladEventType } from '@/types'
-import { idempotentSendOrganizationSubscriptionCanceledNotification } from '@/trigger/notifications/send-organization-subscription-canceled-notification'
-import { idempotentSendCustomerSubscriptionCanceledNotification } from '@/trigger/notifications/send-customer-subscription-canceled-notification'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
-import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
-import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { constructSubscriptionCanceledEventHash } from '@/utils/eventHelpers'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { Event } from '@/db/schema/events'
-import { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
-import { Customer } from '@/db/schema/customers'
 
 // Abort all scheduled billing runs for a subscription
 export const abortScheduledBillingRuns = async (
@@ -510,9 +511,33 @@ export const scheduleSubscriptionCancellation = async (
   if (result) {
     updatedSubscription = result
   }
-  await idempotentSendOrganizationSubscriptionCanceledNotification(
-    updatedSubscription
-  )
+  try {
+    await idempotentSendOrganizationSubscriptionCanceledNotification(
+      updatedSubscription
+    )
+  } catch (error) {
+    console.error(
+      'Failed to send organization subscription canceled notification',
+      {
+        subscriptionId: updatedSubscription.id,
+        error,
+      }
+    )
+  }
+  try {
+    await idempotentSendCustomerSubscriptionCancellationScheduledNotification(
+      updatedSubscription.id,
+      endDate
+    )
+  } catch (error) {
+    console.error(
+      'Failed to send customer subscription cancellation scheduled notification',
+      {
+        subscriptionId: updatedSubscription.id,
+        error,
+      }
+    )
+  }
   return updatedSubscription
 }
 

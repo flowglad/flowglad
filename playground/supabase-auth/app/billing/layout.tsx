@@ -1,10 +1,10 @@
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button'
+import Card from '@/components/ui/Card'
 
 export default function BillingLayout({
-  children
+  children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <div className="max-w-6xl px-6 mx-auto">
@@ -16,5 +16,5 @@ export default function BillingLayout({
         </Card>
       </div>
     </div>
-  );
+  )
 }

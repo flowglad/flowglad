@@ -1,6 +1,6 @@
-import { StandardLogger } from '@/types'
+import type { Flowglad as FlowgladNode } from '@flowglad/node'
+import type { StandardLogger } from '@/types'
 import { flowgladNode } from './nodeClient'
-import { Flowglad as FlowgladNode } from '@flowglad/node'
 
 const getCheckoutSessionResource = (
   id: string,

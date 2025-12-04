@@ -1,8 +1,8 @@
 'use client'
-import { Organization } from '@/db/schema/organizations'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
-import { User } from '@/db/schema/users'
+import type { Organization } from '@/db/schema/organizations'
+import type { User } from '@/db/schema/users'
 import { useSession } from '@/utils/authClient'
 
 export type AuthContextValues = Partial<{

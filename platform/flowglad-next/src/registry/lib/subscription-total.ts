@@ -1,4 +1,4 @@
-import { SubscriptionItem } from '../base/subscription-card/types'
+import type { SubscriptionItem } from '../base/subscription-card/types'
 
 export function calculateTotalAmount(
   items: SubscriptionItem[]

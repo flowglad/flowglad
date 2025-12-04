@@ -1,6 +1,6 @@
-import { z, ZodType } from 'zod'
+import type { Flowglad } from '@flowglad/node'
+import { type ZodType, z } from 'zod'
 import { FlowgladActionKey, HTTPMethod } from './types/sdk'
-import { Flowglad } from '@flowglad/node'
 
 export type FlowgladActionValidatorMap = {
   [K in FlowgladActionKey]: {
@@ -118,9 +118,8 @@ export type CancelSubscriptionParams = z.infer<
   typeof cancelSubscriptionSchema
 >
 
-export const createSubscriptionSchema = z.object({
+const createSubscriptionCoreSchema = z.object({
   customerId: z.string(),
-  priceId: z.string(),
   quantity: z.number().optional(),
   startDate: z.string().datetime().optional(),
   trialEnd: z
@@ -136,6 +135,23 @@ export const createSubscriptionSchema = z.object({
   interval: z.enum(['day', 'week', 'month', 'year']).optional(),
   intervalCount: z.number().optional(),
 })
+
+const createSubscriptionWithPriceId =
+  createSubscriptionCoreSchema.extend({
+    priceId: z.string(),
+    priceSlug: z.never().optional(), // Explicitly disallow
+  })
+
+const createSubscriptionWithPriceSlug =
+  createSubscriptionCoreSchema.extend({
+    priceSlug: z.string(),
+    priceId: z.never().optional(), // Explicitly disallow
+  })
+
+export const createSubscriptionSchema = z.union([
+  createSubscriptionWithPriceId,
+  createSubscriptionWithPriceSlug,
+])
 
 export type CreateSubscriptionParams = z.infer<
   typeof createSubscriptionSchema

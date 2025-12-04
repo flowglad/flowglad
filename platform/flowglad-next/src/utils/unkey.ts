@@ -1,20 +1,20 @@
+import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
 import { Unkey, verifyKey } from '@unkey/api'
-import core from './core'
-import { Organization } from '@/db/schema/organizations'
-import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
 import {
-  ApiKey,
+  type ApiKey,
+  apiKeyMetadataSchema,
   billingPortalApiKeyMetadataSchema,
   secretApiKeyMetadataSchema,
-  apiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'
+import type { Organization } from '@/db/schema/organizations'
+import { type ApiEnvironment, FlowgladApiKeyType } from '@/types'
+import { hashData } from './backendCore'
+import core from './core'
+import { logger } from './logger'
 import {
   getApiKeyVerificationResult,
   setApiKeyVerificationResult,
 } from './redis'
-import { hashData } from './backendCore'
-import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api'
-import { logger } from './logger'
 
 export const unkey = () =>
   new Unkey({

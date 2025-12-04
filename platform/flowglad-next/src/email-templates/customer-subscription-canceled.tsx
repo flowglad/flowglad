@@ -1,15 +1,15 @@
 import * as React from 'react'
-import { EmailButton } from './components/EmailButton'
 import core, { formatDate } from '@/utils/core'
+import { EmailButton } from './components/EmailButton'
+import TestModeBanner from './components/TestBanner'
 import {
+  DetailItem,
+  DetailSection,
   EmailLayout,
   Header,
-  DetailSection,
-  DetailItem,
   Paragraph,
   Signature,
 } from './components/themed'
-import TestModeBanner from './components/TestBanner'
 
 export interface CustomerSubscriptionCanceledEmailProps {
   customerName: string

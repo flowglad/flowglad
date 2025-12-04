@@ -1,9 +1,9 @@
 'use client'
 
-import * as React from 'react'
-import { cn } from '@/lib/utils'
-import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
 import Image from 'next/image'
+import * as React from 'react'
+import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
+import { cn } from '@/lib/utils'
 
 export interface SellerInfoProps
   extends React.HTMLAttributes<HTMLDivElement> {}

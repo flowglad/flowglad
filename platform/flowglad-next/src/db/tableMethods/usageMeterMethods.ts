@@ -1,31 +1,31 @@
+import { eq } from 'drizzle-orm'
 import * as R from 'ramda'
-import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  ORMMethodCreatorConfig,
-  createPaginatedSelectFunction,
-  SelectConditions,
-  whereClauseFromObject,
-  createCursorPaginatedSelectFunction,
-  createBulkInsertOrDoNothingFunction,
-} from '@/db/tableUtils'
-import {
-  UsageMeter,
-  usageMeters,
-  usageMetersInsertSchema,
-  usageMetersSelectSchema,
-  usageMetersUpdateSchema,
-  usageMetersTableRowDataSchema,
-} from '@/db/schema/usageMeters'
-import { DbTransaction } from '@/db/types'
 import {
   pricingModels,
   pricingModelsSelectSchema,
 } from '@/db/schema/pricingModels'
-import { eq } from 'drizzle-orm'
+import {
+  type UsageMeter,
+  usageMeters,
+  usageMetersInsertSchema,
+  usageMetersSelectSchema,
+  usageMetersTableRowDataSchema,
+  usageMetersUpdateSchema,
+} from '@/db/schema/usageMeters'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
+import {
+  createBulkInsertOrDoNothingFunction,
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  SelectConditions,
+  whereClauseFromObject,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 
 const config: ORMMethodCreatorConfig<
   typeof usageMeters,

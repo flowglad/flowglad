@@ -1,12 +1,12 @@
 'use client'
 
+import { FileCheck, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import YAML from 'yaml'
 import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
-import { Button } from '../ui/button'
-import { Upload, FileCheck } from 'lucide-react'
 import FileInput from '../FileInput'
+import { Button } from '../ui/button'
 
 interface ImportPricingModelProps {
   onParsedData: (data: any) => void

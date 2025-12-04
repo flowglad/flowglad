@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/shared",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -11,8 +11,10 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
-    "check": "eslint --max-warnings=0 && tsc --noEmit",
-    "build:declarations": "tsc -p tsconfig.declarations.json"
+    "check": "biome check . && tsc --noEmit",
+    "build:declarations": "tsc -p tsconfig.declarations.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "publishConfig": {
     "access": "public"
@@ -23,8 +25,8 @@
     "@flowglad/node": "0.23.0"
   },
   "devDependencies": {
-    "eslint": "8.57.0",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "vitest": "3.0.5"
   },
   "exports": {
     ".": {
