@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   publish:
@@ -99,3 +100,42 @@ jobs:
           prerelease: false
           generate_release_notes: false
 
+      # Create PR to restore workspace dependencies
+      - name: Check for changes
+        id: changes
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure Git
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create restore PR
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          # Create a new branch for the restore
+          RESTORE_BRANCH="restore-workspace-deps-$(date +%Y%m%d%H%M%S)"
+          git checkout -b $RESTORE_BRANCH
+          
+          # Commit the restored changes
+          git add .
+          git commit -m "chore: restore workspace dependencies"
+          
+          # Push the branch
+          git push origin $RESTORE_BRANCH
+          
+          # Create PR using GitHub CLI
+          gh pr create \
+            --base main \
+            --head $RESTORE_BRANCH \
+            --title "chore: restore workspace dependencies" \
+            --body "This PR restores \`workspace:*\` dependencies after publishing packages to npm."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HUSKY: 0
