@@ -44,7 +44,7 @@ import {
   scheduleSubscriptionCancellation,
 } from '@/subscriptions/cancelSubscription'
 import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
-import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-canceled-notification'
+import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-cancellation-scheduled-notification'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -1638,11 +1638,11 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('invokes the subscription-canceled notification exactly once per schedule call', async () => {
+    it('invokes the subscription-cancellation-scheduled notification exactly once per schedule call', async () => {
       const notificationSpy = vi
         .spyOn(
           subscriptionCancellationNotifications,
-          'idempotentSendOrganizationSubscriptionCanceledNotification'
+          'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
         )
         .mockResolvedValue(undefined as any)
       try {

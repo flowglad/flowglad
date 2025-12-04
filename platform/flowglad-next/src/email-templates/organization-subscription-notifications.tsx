@@ -234,29 +234,39 @@ export const OrganizationSubscriptionCancellationScheduledNotificationEmail =
             margin: 0,
           }}
         >
-          A customer has scheduled a cancellation for their subscription
-          to your {subscriptionName} plan.
+          A customer has scheduled a cancellation for their
+          subscription to your {subscriptionName} plan.
         </Paragraph>
         <DetailSection>
-          <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+          <DetailItem
+            style={{ color: '#525f7f', marginBottom: '4px' }}
+          >
             Customer Name
           </DetailItem>
           <Text style={detailsValue}>{customerName}</Text>
-          <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+          <DetailItem
+            style={{ color: '#525f7f', marginBottom: '4px' }}
+          >
             Customer Email
           </DetailItem>
           <Text style={detailsValue}>{customerEmail}</Text>
-          <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+          <DetailItem
+            style={{ color: '#525f7f', marginBottom: '4px' }}
+          >
             Subscription
           </DetailItem>
           <Text style={detailsValue}>{subscriptionName}</Text>
-          <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+          <DetailItem
+            style={{ color: '#525f7f', marginBottom: '4px' }}
+          >
             Scheduled Cancellation Date
           </DetailItem>
           <Text style={detailsValue}>
             {scheduledCancellationDate.toLocaleDateString()}
           </Text>
-          <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+          <DetailItem
+            style={{ color: '#525f7f', marginBottom: '4px' }}
+          >
             Status
           </DetailItem>
           <Text style={detailsValue}>

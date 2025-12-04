@@ -1,8 +1,8 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import {
-  OrganizationSubscriptionCancellationScheduledNotificationEmail,
   OrganizationSubscriptionCanceledNotificationEmail,
+  OrganizationSubscriptionCancellationScheduledNotificationEmail,
 } from './organization-subscription-notifications'
 
 describe('OrganizationSubscriptionCancellationScheduledNotificationEmail', () => {
@@ -84,7 +84,9 @@ describe('OrganizationSubscriptionCancellationScheduledNotificationEmail', () =>
     )
 
     expect(getByText('Status')).toBeInTheDocument()
-    expect(getByText('Active until cancellation date')).toBeInTheDocument()
+    expect(
+      getByText('Active until cancellation date')
+    ).toBeInTheDocument()
   })
 
   it('includes message about subscription remaining active', () => {
@@ -150,7 +152,9 @@ describe('OrganizationSubscriptionCancellationScheduledNotificationEmail', () =>
       />
     )
 
-    expect(getByText('Scheduled Cancellation Date')).toBeInTheDocument()
+    expect(
+      getByText('Scheduled Cancellation Date')
+    ).toBeInTheDocument()
     // The date should be formatted using toLocaleDateString
     const dateString =
       baseProps.scheduledCancellationDate.toLocaleDateString()
@@ -177,9 +181,7 @@ describe('OrganizationSubscriptionCanceledNotificationEmail', () => {
     )
 
     expect(
-      getByText(
-        /A customer has canceled their subscription to your/
-      )
+      getByText(/A customer has canceled their subscription to your/)
     ).toBeInTheDocument()
   })
 

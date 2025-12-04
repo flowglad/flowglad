@@ -72,15 +72,17 @@ const sendOrganizationSubscriptionCancellationScheduledNotificationTask =
           .filter((email) => !isNil(email)),
         subject: `Cancellation Scheduled: ${customer.name} scheduled cancellation for ${subscriptionName} on ${formatDate(cancellationDate)}`,
         react:
-          OrganizationSubscriptionCancellationScheduledNotificationEmail({
-            organizationName: organization.name,
-            subscriptionName,
-            customerId: customer.id,
-            customerName: customer.name,
-            customerEmail: customer.email,
-            scheduledCancellationDate: cancellationDate,
-            livemode: subscription.livemode,
-          }),
+          OrganizationSubscriptionCancellationScheduledNotificationEmail(
+            {
+              organizationName: organization.name,
+              subscriptionName,
+              customerId: customer.id,
+              customerName: customer.name,
+              customerEmail: customer.email,
+              scheduledCancellationDate: cancellationDate,
+              livemode: subscription.livemode,
+            }
+          ),
       })
 
       return {
