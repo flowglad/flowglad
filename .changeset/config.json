@@ -5,7 +5,7 @@
   "fixed": [],
   "linked": [],
   "access": "restricted",
-  "baseBranch": "test-release-resolver-fix-4",
+  "baseBranch": "test-release-resolver-fix-5",
   "updateInternalDependencies": "patch",
   "ignore": ["@flowglad/playground-express"]
 }
