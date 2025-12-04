@@ -1191,7 +1191,7 @@ export const updatePaymentIntent = async (
   paymentIntentId: string,
   params: Pick<
     Stripe.PaymentIntentUpdateParams,
-    'customer' | 'amount' | 'metadata' | 'application_fee_amount'
+    'customer' | 'amount' | 'metadata' | 'application_fee_amount' | 'setup_future_usage'
   >,
   livemode: boolean
 ) => {
