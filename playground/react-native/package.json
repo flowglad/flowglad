@@ -13,6 +13,7 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@flowglad/react": "workspace:*",
     "@better-auth/expo": "^1.3.7",
     "@expo/vector-icons": "^15.0.2",
     "@prisma/client": "^6.15.0",
