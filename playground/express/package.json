@@ -11,12 +11,12 @@
     "format": "biome format --write ."
   },
   "dependencies": {
-    "@flowglad/express": "workspace:*",
-    "@flowglad/nextjs": "workspace:*",
+    "@flowglad/express": "0.14.0",
+    "@flowglad/nextjs": "0.14.0",
     "@flowglad/node": "0.23.0",
-    "@flowglad/react": "workspace:*",
-    "@flowglad/server": "workspace:*",
-    "@flowglad/shared": "workspace:*",
+    "@flowglad/react": "0.14.0",
+    "@flowglad/server": "0.14.0",
+    "@flowglad/shared": "0.14.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.3"

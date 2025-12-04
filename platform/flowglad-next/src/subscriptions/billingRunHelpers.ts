@@ -79,12 +79,13 @@ interface CreateBillingRunInsertParams {
   billingPeriod: BillingPeriod.Record
   paymentMethod: PaymentMethod.Record
   scheduledFor: Date | number
+  isAdjustment?: boolean
 }
 
 export const createBillingRunInsert = (
   params: CreateBillingRunInsertParams
 ): BillingRun.Insert => {
-  const { billingPeriod, scheduledFor } = params
+  const { billingPeriod, scheduledFor, isAdjustment = false } = params
   return {
     billingPeriodId: billingPeriod.id,
     scheduledFor: new Date(scheduledFor).getTime(),
@@ -92,6 +93,7 @@ export const createBillingRunInsert = (
     subscriptionId: billingPeriod.subscriptionId,
     paymentMethodId: params.paymentMethod.id,
     livemode: billingPeriod.livemode,
+    isAdjustment,
   }
 }
 

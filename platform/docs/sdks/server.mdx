@@ -137,7 +137,7 @@ Create a new subscription for the customer.
 ```typescript
 // Pass YOUR app's user/organization ID, not Flowglad's customer ID
 const subscription = await flowglad(userId).createSubscription({
-  priceId: 'price_123',
+  priceSlug: 'pro_plan',
   metadata: {
     source: 'upgrade_flow',
   },
@@ -147,14 +147,23 @@ const subscription = await flowglad(userId).createSubscription({
 **Parameters:**
 
 ```typescript
-interface CreateSubscriptionParams {
-  priceId: string
+type CreateSubscriptionParams = {
+  customerId: string
+  /**
+   * Must specify either priceSlug or priceId
+   * Slug is encouraged over Id
+   */
+  priceSlug?: string
+  priceId?: string
   /**
    * Quantity of the subscription items.
    * @default 1
    */
   quantity?: number
   startDate?: string
+  /**
+   * Epoch time in milliseconds of when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays
+   */
   trialEnd?: number
   metadata?: Record<string, unknown>
   name?: string
@@ -182,7 +191,7 @@ const canceledSubscription = await flowglad(userId).cancelSubscription({
 **Parameters:**
 
 ```typescript
-interface CancelSubscriptionParams {
+type CancelSubscriptionParams = {
   id: string
   cancellation:
     | { timing: 'at_end_of_current_billing_period' }
@@ -200,7 +209,7 @@ Create a checkout session for payments.
 ```typescript
 // Pass YOUR app's user/organization ID, not Flowglad's customer ID
 const checkoutSession = await flowglad(userId).createCheckoutSession({
-  priceSlug: 'price_123',
+  priceSlug: 'pro_plan',
   successUrl: 'https://example.com/success',
   cancelUrl: 'https://example.com/cancel',
   quantity: 1,
@@ -215,13 +224,13 @@ const checkoutSession = await flowglad(userId).createCheckoutSession({
 **Parameters:**
 
 ```typescript
-interface CreateCheckoutSessionParams {
+type CreateProductCheckoutSessionParams = {
   /*
-   * Must specify either priceId or priceSlug
+   * Must specify either priceSlug or priceId
    * Slug is encouraged over Id
    */
-  priceId?: string
   priceSlug?: string
+  priceId?: string
   successUrl: string
   cancelUrl: string
   quantity?: number
@@ -251,8 +260,7 @@ Create a checkout session that activates a provisioning or imported subscription
 // Pass YOUR app's user/organization ID, not Flowglad's customer ID
 const activationSession =
   await flowglad(userId).createActivateSubscriptionCheckoutSession({
-    targetSubscriptionId: 'sub_123', // optional, attaches the paymentMethod to the subscription for future payments
-    priceId: 'price_123',
+    targetSubscriptionId: 'sub_123', // optional, attaches the paymentMethod to the subscription for future payments,
     successUrl: 'https://example.com/subscriptions/success',
     cancelUrl: 'https://example.com/subscriptions/cancel',
   })
@@ -301,9 +309,8 @@ Record a usage event for metered billing.
 // Pass YOUR app's user/organization ID, not Flowglad's customer ID
 const usageEvent = await flowglad(userId).createUsageEvent({
   amount: 125,
-  priceId: 'price_usage_meter',
+  priceSlug: 'price_usage_meter',
   subscriptionId: 'sub_123',
-  usageMeterId: 'usage_meter_api_calls',
   transactionId: 'txn_unique',
   usageDate: Date.now(),
   properties: {
@@ -315,15 +322,20 @@ const usageEvent = await flowglad(userId).createUsageEvent({
 **Parameters:**
 
 ```typescript
-interface CreateUsageEventParams {
-  amount: number
-  priceId: string
-  subscriptionId: string
-  usageMeterId: string
-  transactionId: string
-  usageDate?: number
-  properties?: Record<string, unknown>
-}
+type CreateUsageEventParams = 
+  {
+    amount: number
+    /**
+     * Must specify either priceSlug or priceId
+     * Slug is encouraged over Id
+     */
+    priceSlug?: string
+    priceId?: string
+    subscriptionId: string
+    transactionId: string
+    usageDate?: number
+    properties?: Record<string, unknown>
+  }
 ```
 
 ## Common Patterns
@@ -382,8 +394,7 @@ app.get('/api/premium-endpoint', requireFeature('premium_feature'), (req, res) =
 export async function trackAPIUsage(endpoint: string, customerExternalId: string) {
   // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
   await flowglad(customerExternalId).createUsageEvent({
-    priceId: 'price_usage_api_calls',
-    usageMeterId: 'usage_meter_api_calls',
+    priceSlug: 'price_usage_api_calls',
     subscriptionId: 'sub_current',
     amount: 1,
     properties: {

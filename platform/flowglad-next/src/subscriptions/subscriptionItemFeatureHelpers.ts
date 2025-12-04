@@ -125,7 +125,8 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
   (
     subscriptionItem: SubscriptionItem.Record,
     feature: Feature.Record,
-    productFeature?: ProductFeature.Record
+    productFeature?: ProductFeature.Record,
+    manuallyCreated?: boolean
   ): SubscriptionItemFeature.Insert => {
     switch (feature.type) {
       case FeatureType.UsageCreditGrant:
@@ -141,6 +142,7 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           expiredAt: null,
           detachedAt: null,
           detachedReason: null,
+          manuallyCreated: manuallyCreated ?? false,
         }
       case FeatureType.Toggle:
         return {
@@ -155,6 +157,7 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
           expiredAt: null,
           detachedAt: null,
           detachedReason: null,
+          manuallyCreated: manuallyCreated ?? false,
         }
       default:
         throw new Error(
