@@ -1,5 +1,16 @@
 # @flowglad/react
 
+## 0.15.0
+
+### Minor Changes
+
+- bbab2a2: test 11
+
+### Patch Changes
+
+- Updated dependencies [bbab2a2]
+  - @flowglad/shared@0.15.0
+
 ## 0.14.0
 
 ### Minor Changes
