@@ -278,6 +278,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         expect(sif.renewalFrequency).toBe(renewalFreq)
         expect(sif.usageMeterId).toBe(usageGrantFeature.usageMeterId)
         expect(sif.livemode).toBe(subscriptionItem.livemode)
+        expect(sif.manuallyCreated).toBe(false)
 
         const featuresInDb = await selectSubscriptionItemFeatures(
           { id: [sif.id] },
@@ -314,6 +315,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         expect(sif.renewalFrequency).toBeNull()
         expect(sif.usageMeterId).toBeNull()
         expect(sif.livemode).toBe(subscriptionItem.livemode)
+        expect(sif.manuallyCreated).toBe(false)
 
         const featuresInDb = await selectSubscriptionItemFeatures(
           { id: [sif.id] },
@@ -760,6 +762,81 @@ describe('SubscriptionItemFeatureHelpers', () => {
             productFeatureId: null,
           })
         )
+      })
+    })
+
+    it('should mark features added via addFeatureToSubscriptionItem as manually created', async () => {
+      const [{ feature: toggleFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [{ name: 'Manual Toggle', type: FeatureType.Toggle }]
+        )
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: toggleFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+
+        expect(
+          result.result.subscriptionItemFeature.manuallyCreated
+        ).toBe(true)
+
+        // Verify in database
+        const [sif] = await selectSubscriptionItemFeatures(
+          { id: [result.result.subscriptionItemFeature.id] },
+          transaction
+        )
+        expect(sif.manuallyCreated).toBe(true)
+      })
+    })
+
+    it('should mark usage credit grant features added via addFeatureToSubscriptionItem as manually created', async () => {
+      const [{ feature: usageFeature }] =
+        await setupTestFeaturesAndProductFeatures(
+          orgData.organization.id,
+          productForFeatures.id,
+          orgData.pricingModel.id,
+          true,
+          [
+            {
+              name: 'Manual Usage Grant',
+              type: FeatureType.UsageCreditGrant,
+              amount: 250,
+              renewalFrequency:
+                FeatureUsageGrantFrequency.EveryBillingPeriod,
+              usageMeterName: 'manual-grant-meter',
+            },
+          ]
+        )
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: usageFeature.id,
+            grantCreditsImmediately: false,
+          },
+          transaction
+        )
+
+        expect(
+          result.result.subscriptionItemFeature.manuallyCreated
+        ).toBe(true)
+
+        // Verify in database
+        const [sif] = await selectSubscriptionItemFeatures(
+          { id: [result.result.subscriptionItemFeature.id] },
+          transaction
+        )
+        expect(sif.manuallyCreated).toBe(true)
       })
     })
   })
