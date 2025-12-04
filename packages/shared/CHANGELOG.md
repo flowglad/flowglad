@@ -1,5 +1,11 @@
 # @flowglad/shared
 
+## 0.15.0
+
+### Minor Changes
+
+- b10624b: test 10
+
 ## 0.14.0
 
 ### Minor Changes
