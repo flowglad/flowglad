@@ -7,7 +7,7 @@ import {
 import { PriceType, CheckoutSessionStatus } from '@/types'
 import { shouldBlockCheckout } from '@/app/checkout/guard'
 import core from '@/utils/core'
-import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
+import { getClientSecretsForCheckoutSession } from '@/utils/checkoutHelpers'
 import { notFound, redirect } from 'next/navigation'
 import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 
@@ -84,18 +84,12 @@ const CheckoutSessionPage = async ({
       )
     }
   }
-  let clientSecret: string | null = null
-  if (checkoutSession.stripePaymentIntentId) {
-    const paymentIntent = await getPaymentIntent(
-      checkoutSession.stripePaymentIntentId
+  const { clientSecret, customerSessionClientSecret } =
+    await getClientSecretsForCheckoutSession(
+      checkoutSession,
+      maybeCustomer
     )
-    clientSecret = paymentIntent.client_secret
-  } else if (checkoutSession.stripeSetupIntentId) {
-    const setupIntent = await getSetupIntent(
-      checkoutSession.stripeSetupIntentId
-    )
-    clientSecret = setupIntent.client_secret
-  } else {
+  if (!clientSecret) {
     throw new Error('No client secret found')
   }
 
@@ -113,6 +107,7 @@ const CheckoutSessionPage = async ({
     readonlyCustomerEmail: maybeCustomer?.email,
     feeCalculation,
     clientSecret,
+    customerSessionClientSecret,
     flowType:
       price.type === PriceType.Subscription ||
       price.type === PriceType.Usage

@@ -54,7 +54,11 @@ const CheckoutFormDisabled = () => {
  * @returns
  */
 function CheckoutForm() {
-  const { clientSecret, checkoutSession } = useCheckoutPageContext()
+  const {
+    clientSecret,
+    customerSessionClientSecret,
+    checkoutSession,
+  } = useCheckoutPageContext()
   const livemode = checkoutSession.livemode
 
   /**
@@ -88,6 +92,9 @@ function CheckoutForm() {
         stripe={stripePromise}
         options={{
           clientSecret,
+          ...(customerSessionClientSecret && {
+            customerSessionClientSecret,
+          }),
           appearance: {
             disableAnimations: true,
             variables: {

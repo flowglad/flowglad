@@ -1,8 +1,11 @@
 import { Price } from '@/db/schema/prices'
 import { CheckoutFlowType } from '@/types'
 import { PriceType } from '@/types'
-import { getPaymentIntent } from './stripe'
-import { getSetupIntent } from './stripe'
+import {
+  getPaymentIntent,
+  getSetupIntent,
+  createCustomerSessionForCheckout,
+} from './stripe'
 import { findOrCreateCheckoutSession } from './checkoutSessionState'
 import { CheckoutSessionType } from '@/types'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
@@ -31,6 +34,57 @@ import { Customer } from '@/db/schema/customers'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
 import { Feature } from '@/db/schema/features'
 import { Discount } from '@/db/schema/discounts'
+
+/**
+ * Gets the client secret and customer session client secret for a checkout session.
+ * Creates a CustomerSession if the customer exists and matches the intent's customer.
+ *
+ * @param checkoutSession - The checkout session
+ * @param customer - The customer (can be null or undefined)
+ * @returns Object with clientSecret and customerSessionClientSecret
+ */
+export async function getClientSecretsForCheckoutSession(
+  checkoutSession: CheckoutSession.Record,
+  customer: Customer.Record | null | undefined
+): Promise<{
+  clientSecret: string | null
+  customerSessionClientSecret: string | null
+}> {
+  let clientSecret: string | null = null
+  let customerSessionClientSecret: string | null = null
+
+  if (checkoutSession.stripePaymentIntentId) {
+    const paymentIntent = await getPaymentIntent(
+      checkoutSession.stripePaymentIntentId
+    )
+    clientSecret = paymentIntent.client_secret
+    // Only create CustomerSession if customer exists with stripeCustomerId
+    // and the PaymentIntent already has the same customer set
+    if (
+      customer?.stripeCustomerId &&
+      paymentIntent.customer === customer.stripeCustomerId
+    ) {
+      customerSessionClientSecret =
+        await createCustomerSessionForCheckout(customer)
+    }
+  } else if (checkoutSession.stripeSetupIntentId) {
+    const setupIntent = await getSetupIntent(
+      checkoutSession.stripeSetupIntentId
+    )
+    clientSecret = setupIntent.client_secret
+    // Only create CustomerSession if customer exists with stripeCustomerId
+    // and the SetupIntent already has the same customer set
+    if (
+      customer?.stripeCustomerId &&
+      setupIntent.customer === customer.stripeCustomerId
+    ) {
+      customerSessionClientSecret =
+        await createCustomerSessionForCheckout(customer)
+    }
+  }
+
+  return { clientSecret, customerSessionClientSecret }
+}
 
 /**
  * Checks if a customer has already used a trial period.
@@ -195,7 +249,6 @@ export async function checkoutInfoForPriceWhere(
     }
   }
 
-  let clientSecret: string | null = null
   const {
     product,
     price,
@@ -204,17 +257,11 @@ export async function checkoutInfoForPriceWhere(
     feeCalculation,
     isEligibleForTrial,
   } = result
-  if (checkoutSession.stripePaymentIntentId) {
-    const paymentIntent = await getPaymentIntent(
-      checkoutSession.stripePaymentIntentId
+  const { clientSecret, customerSessionClientSecret } =
+    await getClientSecretsForCheckoutSession(
+      checkoutSession,
+      maybeCustomer
     )
-    clientSecret = paymentIntent.client_secret
-  } else if (checkoutSession.stripeSetupIntentId) {
-    const setupIntent = await getSetupIntent(
-      checkoutSession.stripeSetupIntentId
-    )
-    clientSecret = setupIntent.client_secret
-  }
   if (price.type === PriceType.SinglePayment) {
     const rawCheckoutInfo: SinglePaymentCheckoutInfoCore = {
       product,
@@ -226,6 +273,7 @@ export async function checkoutInfoForPriceWhere(
         core.NEXT_PUBLIC_APP_URL
       ),
       clientSecret,
+      customerSessionClientSecret,
       checkoutSession,
       feeCalculation,
       discount,
@@ -252,6 +300,7 @@ export async function checkoutInfoForPriceWhere(
         core.NEXT_PUBLIC_APP_URL
       ),
       clientSecret,
+      customerSessionClientSecret,
       readonlyCustomerEmail: maybeCustomer?.email,
       discount,
       feeCalculation,

@@ -324,6 +324,7 @@ export const createCheckoutSessionTransaction = async (
         product,
         organization,
         checkoutSession,
+        ...(customer ? { customer } : {}),
       })
     stripePaymentIntentId = stripePaymentIntent.id
   }
