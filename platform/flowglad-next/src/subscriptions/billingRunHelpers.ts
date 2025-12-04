@@ -685,19 +685,15 @@ export const executeBillingRun = async (
   const billingRun = await adminTransaction(({ transaction }) => {
     return selectBillingRunById(billingRunId, transaction)
   })
-
-  if (billingRun.isAdjustment) {
-    if (!adjustmentParams) {
-      throw new Error(
-        `executeBillingRun: Adjustment billing run ${billingRunId} requires adjustmentParams`
-      )
-    }
-  }
-
   if (billingRun.status !== BillingRunStatus.Scheduled) {
     return
   }
   try {
+    if (billingRun.isAdjustment && !adjustmentParams) {
+      throw new Error(
+        `executeBillingRun: Adjustment billing run ${billingRunId} requires adjustmentParams`
+      )
+    }
     const {
       invoice,
       payment,
