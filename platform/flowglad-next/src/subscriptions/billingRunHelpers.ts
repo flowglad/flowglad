@@ -929,11 +929,16 @@ export const executeBillingRun = async (
       error,
     })
     return adminTransaction(async ({ transaction }) => {
+      const isError = error instanceof Error
       return updateBillingRun(
         {
           id: billingRun.id,
           status: BillingRunStatus.Failed,
-          errorDetails: JSON.parse(JSON.stringify(error)),
+          errorDetails: {
+            message: isError ? error.message : String(error),
+            name: isError ? error.name : 'Error',
+            stack: isError ? error.stack : undefined,
+          },
         },
         transaction
       )

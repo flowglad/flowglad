@@ -1047,6 +1047,88 @@ describe('billingRunHelpers', async () => {
     ).resolves.toBeUndefined()
   })
 
+  describe('Adjustment Billing Run Tests', () => {
+    it('should throw an error when executing an adjustment billing run without adjustment params', async () => {
+      const adjustmentBillingRun = await setupBillingRun({
+        billingPeriodId: billingPeriod.id,
+        paymentMethodId: paymentMethod.id,
+        subscriptionId: subscription.id,
+        status: BillingRunStatus.Scheduled,
+        isAdjustment: true,
+      })
+
+      await executeBillingRun(adjustmentBillingRun.id)
+      const updatedBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+      )
+      expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+      expect(updatedBillingRun.errorDetails).toBeDefined()
+      expect(updatedBillingRun.errorDetails?.message).toContain(
+        `executeBillingRun: Adjustment billing run ${adjustmentBillingRun.id} requires adjustmentParams`
+      )
+    })
+
+    it('should succeed when executing an adjustment billing run with adjustment params', async () => {
+      const adjustmentBillingRun = await setupBillingRun({
+        billingPeriodId: billingPeriod.id,
+        paymentMethodId: paymentMethod.id,
+        subscriptionId: subscription.id,
+        status: BillingRunStatus.Scheduled,
+        isAdjustment: true,
+      })
+
+      const newSubscriptionItems = [
+        await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: staticPrice.id,
+          name: staticPrice.name ?? 'New Static Item',
+          quantity: 1,
+          unitPrice: staticPrice.unitPrice,
+          type: SubscriptionItemType.Static,
+        }),
+      ]
+
+      const adjustmentDate = new Date()
+
+      // Mock Stripe functions to ensure the billing run can complete successfully
+      const mockPaymentIntent = createMockPaymentIntentResponse({
+        amount: staticBillingPeriodItem.unitPrice,
+        customer: customer.stripeCustomerId!,
+        payment_method: paymentMethod.stripePaymentMethodId!,
+        metadata: {
+          billingRunId: adjustmentBillingRun.id,
+          type: 'billing_run',
+          billingPeriodId: billingPeriod.id,
+        },
+      })
+      const mockConfirmationResult = createMockConfirmationResult(
+        mockPaymentIntent.id,
+        { metadata: mockPaymentIntent.metadata }
+      )
+
+      vi.mocked(
+        createPaymentIntentForBillingRun
+      ).mockResolvedValueOnce(mockPaymentIntent)
+      vi.mocked(
+        confirmPaymentIntentForBillingRun
+      ).mockResolvedValueOnce(mockConfirmationResult)
+
+      await executeBillingRun(adjustmentBillingRun.id, {
+        newSubscriptionItems,
+        adjustmentDate,
+      })
+
+      const updatedBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+      )
+      expect(updatedBillingRun.status).toBe(
+        BillingRunStatus.Succeeded
+      )
+    })
+  })
+
   describe('Atomicity Tests for executeBillingRun', () => {
     const setupOverpaymentScenario = async () => {
       const invoice = await setupInvoice({
