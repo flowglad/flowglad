@@ -1,5 +1,16 @@
 # @flowglad/react
 
+## 0.15.0
+
+### Minor Changes
+
+- fe1e181: test 12
+
+### Patch Changes
+
+- Updated dependencies [fe1e181]
+  - @flowglad/shared@0.15.0
+
 ## 0.14.0
 
 ### Minor Changes
