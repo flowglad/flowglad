@@ -97,6 +97,8 @@ jobs:
         run: bun install --no-progress
       - name: Run build (all packages)
         run: bun run build
+      - name: Format packages
+        run: bunx @biomejs/biome format --write --config-path=biome.json packages/
       - name: Run linting and typechecking (all packages)
         run: bun run check
 
