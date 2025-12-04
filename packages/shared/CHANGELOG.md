@@ -1,5 +1,11 @@
 # @flowglad/shared
 
+## 0.15.0
+
+### Minor Changes
+
+- 8ca9de5: test 9
+
 ## 0.14.0
 
 ### Minor Changes
