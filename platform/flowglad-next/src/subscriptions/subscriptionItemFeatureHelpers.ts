@@ -122,12 +122,18 @@ const getFeaturesByPriceId = async (
 }
 
 export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
-  (
-    subscriptionItem: SubscriptionItem.Record,
-    feature: Feature.Record,
-    productFeature?: ProductFeature.Record,
+  (args: {
+    subscriptionItem: SubscriptionItem.Record
+    feature: Feature.Record
+    productFeature?: ProductFeature.Record
     manuallyCreated?: boolean
-  ): SubscriptionItemFeature.Insert => {
+  }): SubscriptionItemFeature.Insert => {
+    const {
+      subscriptionItem,
+      feature,
+      productFeature,
+      manuallyCreated,
+    } = args
     switch (feature.type) {
       case FeatureType.UsageCreditGrant:
         return {
@@ -221,9 +227,11 @@ export const createSubscriptionFeatureItems = async (
        */
       return featuresData.flatMap(({ feature, productFeature }) => {
         return subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-          item,
-          feature,
-          productFeature
+          {
+            subscriptionItem: item,
+            feature,
+            productFeature,
+          }
         )
       })
     })
@@ -432,12 +440,12 @@ export const addFeatureToSubscriptionItem = async (
   }
 
   const featureInsert =
-    subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
+    subscriptionItemFeatureInsertFromSubscriptionItemAndFeature({
       subscriptionItem,
       feature,
-      undefined,
-      true // manuallyCreated - this is a manual addition via API
-    )
+      productFeature: undefined,
+      manuallyCreated: true, // manuallyCreated - this is a manual addition via API
+    })
 
   let usageFeatureInsert: SubscriptionItemFeature.UsageCreditGrantInsert | null =
     null
