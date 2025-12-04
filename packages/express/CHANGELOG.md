@@ -1,5 +1,18 @@
 # @flowglad/express
 
+## 0.15.0
+
+### Minor Changes
+
+- fdab3bb: test 2
+
+### Patch Changes
+
+- Updated dependencies [fdab3bb]
+  - @flowglad/react@0.15.0
+  - @flowglad/server@0.15.0
+  - @flowglad/shared@0.15.0
+
 ## 0.14.0
 
 ### Minor Changes
