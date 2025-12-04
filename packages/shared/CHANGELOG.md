@@ -1,5 +1,11 @@
 # @flowglad/shared
 
+## 0.15.0
+
+### Minor Changes
+
+- fe1e181: test 12
+
 ## 0.14.0
 
 ### Minor Changes
