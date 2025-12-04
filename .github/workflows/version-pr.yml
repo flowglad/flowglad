@@ -15,7 +15,7 @@ on:
   # Trigger when code is pushed to main (e.g., after a PR with changesets is merged)
   push:
     branches:
-      - test-release-resolver-fix
+      - test-release-resolver-fix-3
   # Also allow manual triggering via GitHub Actions UI
   workflow_dispatch:
 
