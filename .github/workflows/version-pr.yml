@@ -15,7 +15,7 @@ on:
   # Trigger when code is pushed to main (e.g., after a PR with changesets is merged)
   push:
     branches:
-      - main
+      - test-release-resolver-fix
   # Also allow manual triggering via GitHub Actions UI
   workflow_dispatch:
 
@@ -63,8 +63,8 @@ jobs:
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
           version: bun run packages:version
-          commit: 'chore: version packages'
-          title: 'chore: version packages'
+          commit: 'test chore: version packages'
+          title: 'test chore: version packages'
           setupGitUser: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

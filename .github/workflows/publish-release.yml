@@ -15,7 +15,7 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - main
+      - test-release-resolver-fix
 
 permissions:
   contents: write
@@ -27,7 +27,7 @@ jobs:
     # - AND the PR title contains "chore: version packages" OR has "release" label
     # This ensures we only publish when the version PR is merged, not other PRs
     if: >
-      github.event.pull_request.merged == true && (contains(github.event.pull_request.title, 'chore: version packages') || contains(github.event.pull_request.labels.*.name, 'release'))
+      github.event.pull_request.merged == true && (contains(github.event.pull_request.title, 'test chore: version packages') || contains(github.event.pull_request.labels.*.name, 'release'))
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -65,37 +65,3 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: bun run packages:publish
-
-      # Extract version and changelog for the GitHub release
-      # Since all SDK packages are versioned in lockstep, we can read from any package
-      - name: Extract version and changelog
-        id: release_info
-        run: |
-          # Get version from any package (they're all the same after changesets versioning)
-          VERSION=$(find packages -name "package.json" -type f -not -path "*/node_modules/*" -exec grep -h '"version"' {} \; | head -1 | sed -E 's/.*"version":\s*"([^"]+)".*/\1/')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
-          # Get changelog from first package found (all CHANGELOGs are identical)
-          # Extract the latest version section (from first ## version header to next ##)
-          CHANGELOG_FILE=$(find packages -name "CHANGELOG.md" -type f | head -1)
-          if [ -n "$CHANGELOG_FILE" ]; then
-            # Extract the latest version section (from first ## to next ##)
-            CHANGELOG_BODY=$(awk '/^## / {if (p) exit; p=1} p' "$CHANGELOG_FILE" | sed '1d')
-            echo "changelog<<EOF" >> $GITHUB_OUTPUT
-            echo "$CHANGELOG_BODY" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          fi
-
-      # Create a GitHub release with the version tag and changelog content
-      # Tag format: v<version> (e.g., v0.13.0)
-      # Pinned to specific commit SHA for security (prevents supply-chain attacks)
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@26994186c0ac3ef5cae75ac16aa32e8153525f77 # v1
-        with:
-          tag_name: "v${{ steps.release_info.outputs.version }}"
-          name: "SDK Release v${{ steps.release_info.outputs.version }}"
-          body: ${{ steps.release_info.outputs.changelog }}
-          draft: false
-          prerelease: false
-          generate_release_notes: false
-
