@@ -55,6 +55,10 @@ export async function getClientSecretsForCheckoutSession(
   let clientSecret: string | null = null
   let customerSessionClientSecret: string | null = null
 
+  // Skip CustomerSession for AddPaymentMethod - we don't want to show saved cards
+  const shouldCreateCustomerSession =
+    checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
+
   if (checkoutSession.stripePaymentIntentId) {
     const paymentIntent = await getPaymentIntent(
       checkoutSession.stripePaymentIntentId
@@ -63,6 +67,7 @@ export async function getClientSecretsForCheckoutSession(
     // Only create CustomerSession if customer exists with stripeCustomerId
     // and the PaymentIntent already has the same customer set
     if (
+      shouldCreateCustomerSession &&
       customer?.stripeCustomerId &&
       paymentIntent.customer === customer.stripeCustomerId
     ) {
@@ -77,6 +82,7 @@ export async function getClientSecretsForCheckoutSession(
     // Only create CustomerSession if customer exists with stripeCustomerId
     // and the SetupIntent already has the same customer set
     if (
+      shouldCreateCustomerSession &&
       customer?.stripeCustomerId &&
       setupIntent.customer === customer.stripeCustomerId
     ) {
