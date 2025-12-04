@@ -1,5 +1,11 @@
 # @flowglad/types
 
+## 0.15.0
+
+### Minor Changes
+
+- 40d85fc: test 3
+
 ## 0.14.0
 
 ### Minor Changes

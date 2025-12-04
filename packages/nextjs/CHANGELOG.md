@@ -1,5 +1,18 @@
 # @flowglad/nextjs
 
+## 0.15.0
+
+### Minor Changes
+
+- 40d85fc: test 3
+
+### Patch Changes
+
+- Updated dependencies [40d85fc]
+  - @flowglad/react@0.15.0
+  - @flowglad/server@0.15.0
+  - @flowglad/shared@0.15.0
+
 ## 0.14.0
 
 ### Minor Changes
