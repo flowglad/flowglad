@@ -15,7 +15,7 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - test-release-resolver-fix-8
+      - test-release-resolver-fix-9
 
 permissions:
   contents: write
@@ -102,7 +102,7 @@ jobs:
           
           # Create PR using GitHub CLI
           gh pr create \
-            --base test-release-resolver-fix-8 \
+            --base test-release-resolver-fix-9 \
             --head $RESTORE_BRANCH \
             --title "chore: restore workspace dependencies" \
             --body "This PR restores \`workspace:*\` dependencies after publishing packages to npm."

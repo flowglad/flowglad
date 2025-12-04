@@ -15,7 +15,7 @@ on:
   # Trigger when code is pushed to main (e.g., after a PR with changesets is merged)
   push:
     branches:
-      - test-release-resolver-fix-8
+      - test-release-resolver-fix-9
   # Also allow manual triggering via GitHub Actions UI
   workflow_dispatch:
 
@@ -62,8 +62,7 @@ jobs:
       - name: Create Release Pull Request
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
-          version: |
-            bun run packages:version && bunx @biomejs/biome format --write packages/*/package.json
+          version: bun run packages:version
           commit: 'test chore: version packages'
           title: 'test chore: version packages'
           setupGitUser: false
