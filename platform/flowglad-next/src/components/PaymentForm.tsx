@@ -219,21 +219,21 @@ const PaymentForm = () => {
   const showDiscountCodeInput =
     flowType !== CheckoutFlowType.Invoice &&
     flowType !== CheckoutFlowType.AddPaymentMethod
-  // Determine if this is an Add Payment Method flow
-  const isAddPaymentMethodFlow =
+
+  // Determine if this is a SetupIntent flow (Subscription or AddPaymentMethod)
+  const isSetupIntentFlow =
+    flowType === CheckoutFlowType.Subscription ||
     flowType === CheckoutFlowType.AddPaymentMethod
   // Show consent checkbox when:
   // - CustomerSession exists (saved methods available)
   // - AND user is entering a new payment method (not using a saved one)
-  // - AND NOT an Add Payment Method flow (consent is implicit there)
-  // User can check it if adding a new payment method to save for future checkouts
-  // For SetupIntent flows (Subscription, AddPaymentMethod), method is already saved,
-  // but consent controls allow_redisplay for visibility in future PaymentElement sessions
-  // For PaymentIntent flows (SinglePayment, Invoice), consent controls setup_future_usage
+  // - AND NOT a SetupIntent flow (consent is implicit for SetupIntent flows)
+  // For SetupIntent flows (Subscription, AddPaymentMethod), allow_redisplay is always set to 'always'
+  // For PaymentIntent flows (SinglePayment), consent controls setup_future_usage
   const showSavePaymentMethodForFuture =
     Boolean(customerSessionClientSecret) &&
     !isUsingSavedPaymentMethod &&
-    !isAddPaymentMethodFlow
+    !isSetupIntentFlow
 
   // Force reflow when all embeds are ready to prevent iframe transparency issues
   useEffect(() => {
@@ -357,7 +357,7 @@ const PaymentForm = () => {
           flowType === CheckoutFlowType.Subscription ||
           flowType === CheckoutFlowType.AddPaymentMethod
 
-        // Build payment_method_data with billing details and allow_redisplay if user consented
+        // Build payment_method_data with billing details and allow_redisplay
         type PaymentMethodData =
           | {
               billing_details: { email: string; name?: string }
@@ -365,7 +365,8 @@ const PaymentForm = () => {
             }
           | undefined
 
-        // Always set allow_redisplay for AddPaymentMethod, otherwise check consent toggle
+        // For SetupIntent flows (Subscription, AddPaymentMethod), always set allow_redisplay
+        // For PaymentIntent flows (SinglePayment), only set if user consented via toggle
         const paymentMethodData: PaymentMethodData =
           readonlyCustomerEmail
             ? {
@@ -375,7 +376,7 @@ const PaymentForm = () => {
                   name:
                     checkoutSession.billingAddress?.name ?? undefined,
                 },
-                ...((isAddPaymentMethodFlow ||
+                ...((isSetupIntentFlow ||
                   savePaymentMethodForFuture) && {
                   allow_redisplay: 'always' as const,
                 }),
@@ -598,7 +599,7 @@ const PaymentForm = () => {
             <TotalBillingDetails />
           </div>
           {/* Auto Update Subscriptions */}
-          {isAddPaymentMethodFlow && (
+          {flowType === CheckoutFlowType.AddPaymentMethod && (
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <Switch
@@ -639,7 +640,7 @@ const PaymentForm = () => {
                 />
                 <Label
                   htmlFor="save-payment-method-for-future"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm text-gray-600 font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   Save this payment method for future checkouts
                 </Label>
