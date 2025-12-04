@@ -17,7 +17,10 @@ import type { Payment } from '@/db/schema/payments'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
-import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
+import {
+  selectBillingPeriods,
+  updateBillingPeriod,
+} from '@/db/tableMethods/billingPeriodMethods'
 import {
   safelyInsertBillingRun,
   selectBillingRunById,
@@ -44,6 +47,7 @@ import {
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   insertPayment,
+  selectPayments,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
@@ -667,6 +671,50 @@ type ExecuteBillingRunStepsResult = {
   totalAmountPaid: number
   payments: Payment.Record[]
   paymentIntent?: Stripe.Response<Stripe.PaymentIntent> | null
+}
+
+export const isFirstPayment = async (
+  subscription: Subscription.Record,
+  billingPeriod: BillingPeriod.Record,
+  transaction: DbTransaction
+): Promise<boolean> => {
+  const allSubscriptionBillingPeriods = await selectBillingPeriods(
+    { subscriptionId: subscription.id },
+    transaction
+  )
+  // Filter to periods with startDate < current billingPeriod.startDate
+  const previousPeriods = allSubscriptionBillingPeriods.filter(
+    (bp) => bp.startDate < billingPeriod.startDate
+  )
+  // Check if any previous period has a successful billing run with non-zero payment
+  for (const previousPeriod of previousPeriods) {
+    const billingRunsForPeriod = await selectBillingRuns(
+      {
+        billingPeriodId: previousPeriod.id,
+        status: BillingRunStatus.Succeeded,
+      },
+      transaction
+    )
+
+    // If there are successful billing runs, check if any have non-zero payments
+    if (billingRunsForPeriod.length > 0) {
+      const payments = await selectPayments(
+        { billingPeriodId: previousPeriod.id },
+        transaction
+      )
+
+      // Check if any payment has a non-zero amount
+      const hasNonZeroPayment = payments.some(
+        (payment) => payment.amount > 0
+      )
+      if (hasNonZeroPayment) {
+        return false
+      }
+    }
+  }
+
+  // No previous periods with non-zero successful payments found
+  return true
 }
 
 /**

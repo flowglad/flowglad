@@ -74,6 +74,7 @@ import {
 } from '@/types'
 import core from '@/utils/core'
 import { IntentMetadataType } from '@/utils/stripe'
+import { isFirstPayment } from './billingRunHelpers'
 import { createSubscriptionWorkflow } from './createSubscription/workflow'
 import { processPaymentIntentEventForBillingRun } from './processBillingRunPaymentIntents'
 
@@ -814,6 +815,132 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //     )
   //   })
   // })
+
+  it('should cancel subscription on first payment failure', async () => {
+    // Setup a fresh subscription with no previous payments
+    const testCustomer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const testPaymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: testCustomer.id,
+    })
+
+    const testSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: testCustomer.id,
+      priceId: price.id,
+      paymentMethodId: testPaymentMethod.id,
+    })
+
+    const testBillingPeriod = await setupBillingPeriod({
+      subscriptionId: testSubscription.id,
+      startDate: testSubscription.currentBillingPeriodStart!,
+      endDate: testSubscription.currentBillingPeriodEnd!,
+      status: BillingPeriodStatus.Active,
+    })
+
+    const testBillingRun = await setupBillingRun({
+      billingPeriodId: testBillingPeriod.id,
+      paymentMethodId: testPaymentMethod.id,
+      subscriptionId: testSubscription.id,
+      status: BillingRunStatus.Scheduled,
+    })
+
+    await setupBillingPeriodItem({
+      billingPeriodId: testBillingPeriod.id,
+      quantity: 1,
+      unitPrice: 100, // Non-zero amount
+    })
+
+    const testInvoice = await setupInvoice({
+      billingPeriodId: testBillingPeriod.id,
+      customerId: testCustomer.id,
+      organizationId: organization.id,
+      status: InvoiceStatus.Open,
+      priceId: price.id,
+      billingRunId: testBillingRun.id,
+    })
+
+    const stripePaymentIntentId = `pi_first_fail_${core.nanoid()}`
+    const stripeChargeId = `ch_first_fail_${core.nanoid()}`
+
+    await setupPayment({
+      stripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 100, // Non-zero amount
+      customerId: testCustomer.id,
+      organizationId: organization.id,
+      invoiceId: testInvoice.id,
+      stripePaymentIntentId,
+      billingPeriodId: testBillingPeriod.id,
+    })
+
+    // Verify isFirstPayment returns true before processing
+    await adminTransaction(async ({ transaction }) => {
+      const isFirst = await isFirstPayment(
+        testSubscription,
+        testBillingPeriod,
+        transaction
+      )
+      expect(isFirst).toBe(true)
+    })
+
+    // Process the failed payment intent
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const event = createMockPaymentIntentEventResponse(
+        'requires_payment_method',
+        {
+          id: stripePaymentIntentId,
+          status: 'requires_payment_method',
+          metadata: {
+            billingRunId: testBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: Date.now() / 1000,
+          livemode: true,
+        }
+      )
+      return await processPaymentIntentEventForBillingRun(
+        event,
+        transaction
+      )
+    })
+
+    // Verify subscription was canceled
+    const canceledSubscription = await adminTransaction(
+      async ({ transaction }) => {
+        return selectSubscriptionById(
+          testSubscription.id,
+          transaction
+        )
+      }
+    )
+
+    expect(canceledSubscription.status).toBe(
+      SubscriptionStatus.Canceled
+    )
+    expect(canceledSubscription.canceledAt).not.toBeNull()
+
+    // Verify no retry was scheduled (cancellation should abort scheduled runs)
+    const scheduledBillingRuns = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBillingRuns(
+          {
+            subscriptionId: testSubscription.id,
+            status: BillingRunStatus.Scheduled,
+          },
+          transaction
+        )
+      }
+    )
+    expect(scheduledBillingRuns.length).toBe(0)
+  })
 })
 
 describe('processPaymentIntentEventForBillingRun - usage credit grants', async () => {
@@ -1299,6 +1426,16 @@ describe('processPaymentIntentEventForBillingRun - usage credit grants', async (
       organizationId: orgForGrants.id,
       invoiceId: testInvoice.id,
       stripePaymentIntentId: firstStripePaymentIntentId,
+    })
+
+    // Verify isFirstPayment returns true before processing first payment
+    await adminTransaction(async ({ transaction }) => {
+      const isFirst = await isFirstPayment(
+        testSubscription,
+        testBillingPeriod,
+        transaction
+      )
+      expect(isFirst).toBe(true)
     })
 
     // 1. First payment succeeds - should grant credits and create transition

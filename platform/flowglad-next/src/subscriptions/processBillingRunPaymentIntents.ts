@@ -69,10 +69,12 @@ import {
 } from '@/utils/stripe'
 import {
   calculateFeeAndTotalAmountDueForBillingPeriod,
+  isFirstPayment,
   processNoMoreDueForBillingPeriod,
   processOutstandingBalanceForBillingPeriod,
   scheduleBillingRunRetry,
 } from './billingRunHelpers'
+import { cancelSubscriptionImmediately } from './cancelSubscription'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -401,19 +403,41 @@ export const processPaymentIntentEventForBillingRun = async (
     )
     await processSucceededNotifications(notificationParams)
   } else if (billingRunStatus === BillingRunStatus.Failed) {
-    const maybeRetry = await scheduleBillingRunRetry(
-      billingRun,
-      transaction
-    )
-    await processFailedNotifications({
-      ...notificationParams,
-      retryDate: maybeRetry?.scheduledFor,
-    })
-    await safelyUpdateSubscriptionStatus(
+    const firstPayment = await isFirstPayment(
       subscription,
-      SubscriptionStatus.PastDue,
+      billingPeriod,
       transaction
     )
+
+    if (firstPayment) {
+      // First payment failure - cancel subscription immediately
+      const {
+        result: canceledSubscription,
+        eventsToInsert: cancelEvents,
+      } = await cancelSubscriptionImmediately(
+        subscription,
+        transaction
+      )
+
+      if (cancelEvents && cancelEvents.length > 0) {
+        eventsToInsert.push(...cancelEvents)
+      }
+    } else {
+      // nth payment failures logic
+      const maybeRetry = await scheduleBillingRunRetry(
+        billingRun,
+        transaction
+      )
+      await processFailedNotifications({
+        ...notificationParams,
+        retryDate: maybeRetry?.scheduledFor,
+      })
+      await safelyUpdateSubscriptionStatus(
+        subscription,
+        SubscriptionStatus.PastDue,
+        transaction
+      )
+    }
   } else if (billingRunStatus === BillingRunStatus.Aborted) {
     await processAbortedNotifications(notificationParams)
     await safelyUpdateSubscriptionStatus(
