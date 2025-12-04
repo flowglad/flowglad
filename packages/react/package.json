@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@flowglad/node": "0.23.0",
-    "@flowglad/shared": "0.14.0",
+    "@flowglad/shared": "workspace:*",
     "@tanstack/react-query": "5.66.0",
     "clsx": "2.1.1",
     "date-fns": "4.1.0",
