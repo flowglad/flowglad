@@ -668,12 +668,13 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
   billingPeriods: BillingPeriod.Record[],
   transaction: DbTransaction
 ): Promise<void> => {
-  // Get payment method for billing run creation
-  const paymentMethod = subscription.defaultPaymentMethodId
-    ? await selectPaymentMethodById(
-        subscription.defaultPaymentMethodId,
-        transaction
-      )
+  // Get payment method for billing run creation (with fallback to backup)
+  const paymentMethodId =
+    subscription.defaultPaymentMethodId ??
+    subscription.backupPaymentMethodId
+
+  const paymentMethod = paymentMethodId
+    ? await selectPaymentMethodById(paymentMethodId, transaction)
     : null
 
   // Security check: For paid subscriptions, require payment method
