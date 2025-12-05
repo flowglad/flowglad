@@ -195,7 +195,6 @@ type CancelSubscriptionParams = {
   id: string
   cancellation:
     | { timing: 'at_end_of_current_billing_period' }
-    | { timing: 'at_future_date'; endDate: Date }
     | { timing: 'immediately' }
 }
 ```
