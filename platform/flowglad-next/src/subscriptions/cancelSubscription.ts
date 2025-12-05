@@ -40,6 +40,7 @@ import {
 import { idempotentSendCustomerSubscriptionCanceledNotification } from '@/trigger/notifications/send-customer-subscription-canceled-notification'
 import { idempotentSendCustomerSubscriptionCancellationScheduledNotification } from '@/trigger/notifications/send-customer-subscription-cancellation-scheduled-notification'
 import { idempotentSendOrganizationSubscriptionCanceledNotification } from '@/trigger/notifications/send-organization-subscription-canceled-notification'
+import { idempotentSendOrganizationSubscriptionCancellationScheduledNotification } from '@/trigger/notifications/send-organization-subscription-cancellation-scheduled-notification'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -380,6 +381,19 @@ export const cancelSubscriptionImmediately = async (
       }
     )
   }
+  try {
+    await idempotentSendOrganizationSubscriptionCanceledNotification(
+      updatedSubscription
+    )
+  } catch (error) {
+    console.error(
+      'Failed to send organization subscription canceled notification',
+      {
+        subscriptionId: updatedSubscription.id,
+        error,
+      }
+    )
+  }
   return {
     result: updatedSubscription,
     eventsToInsert: [
@@ -512,12 +526,13 @@ export const scheduleSubscriptionCancellation = async (
     updatedSubscription = result
   }
   try {
-    await idempotentSendOrganizationSubscriptionCanceledNotification(
-      updatedSubscription
+    await idempotentSendOrganizationSubscriptionCancellationScheduledNotification(
+      updatedSubscription,
+      endDate
     )
   } catch (error) {
     console.error(
-      'Failed to send organization subscription canceled notification',
+      'Failed to send organization subscription cancellation scheduled notification',
       {
         subscriptionId: updatedSubscription.id,
         error,

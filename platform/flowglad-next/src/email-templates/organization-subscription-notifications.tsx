@@ -29,6 +29,16 @@ export interface OrganizationSubscriptionCanceledNotificationEmailProps {
   livemode: boolean
 }
 
+export interface OrganizationSubscriptionCancellationScheduledNotificationEmailProps {
+  organizationName: string
+  subscriptionName: string
+  customerId: string
+  customerName: string
+  customerEmail: string
+  scheduledCancellationDate: Date
+  livemode: boolean
+}
+
 const detailsValue = {
   color: '#32325d',
   fontSize: '16px',
@@ -189,3 +199,99 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
     </EmailLayout>
   )
 }
+
+export const OrganizationSubscriptionCancellationScheduledNotificationEmail =
+  ({
+    organizationName,
+    subscriptionName,
+    customerId,
+    customerName,
+    customerEmail,
+    scheduledCancellationDate,
+    livemode,
+  }: OrganizationSubscriptionCancellationScheduledNotificationEmailProps) => {
+    return (
+      <EmailLayout
+        previewText={`Cancellation Scheduled: ${customerName} scheduled cancellation for ${subscriptionName}`}
+        variant="organization"
+      >
+        <TestModeBanner livemode={livemode} />
+        <Img
+          src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
+          width="540"
+          height="199"
+          alt="Flowglad Logo"
+          style={{ margin: '0 auto', marginBottom: '32px' }}
+        />
+        <Header
+          title="Subscription Cancellation Scheduled"
+          style={{ textAlign: 'center', fontWeight: 'normal' }}
+        />
+        <Paragraph
+          style={{
+            color: '#525f7f',
+            textAlign: 'center',
+            margin: 0,
+          }}
+        >
+          A customer has scheduled a cancellation for their
+          subscription to your {subscriptionName} plan.
+        </Paragraph>
+        <DetailSection>
+          <DetailItem
+            style={{ color: '#525f7f', marginBottom: '4px' }}
+          >
+            Customer Name
+          </DetailItem>
+          <Text style={detailsValue}>{customerName}</Text>
+          <DetailItem
+            style={{ color: '#525f7f', marginBottom: '4px' }}
+          >
+            Customer Email
+          </DetailItem>
+          <Text style={detailsValue}>{customerEmail}</Text>
+          <DetailItem
+            style={{ color: '#525f7f', marginBottom: '4px' }}
+          >
+            Subscription
+          </DetailItem>
+          <Text style={detailsValue}>{subscriptionName}</Text>
+          <DetailItem
+            style={{ color: '#525f7f', marginBottom: '4px' }}
+          >
+            Scheduled Cancellation Date
+          </DetailItem>
+          <Text style={detailsValue}>
+            {scheduledCancellationDate.toLocaleDateString()}
+          </Text>
+          <DetailItem
+            style={{ color: '#525f7f', marginBottom: '4px' }}
+          >
+            Status
+          </DetailItem>
+          <Text style={detailsValue}>
+            Active until cancellation date
+          </Text>
+        </DetailSection>
+        <Section
+          style={{ textAlign: 'center' as const, marginTop: '32px' }}
+        >
+          <EmailButton
+            href={`https://app.flowglad.com/customers/${customerId}`}
+          >
+            View Customer Profile
+          </EmailButton>
+        </Section>
+        <Paragraph
+          style={{
+            color: '#525f7f',
+            lineHeight: '20px',
+            textAlign: 'center',
+            marginTop: '24px',
+          }}
+        >
+          {`The subscription will remain active until the scheduled cancellation date. You can manage this customer's subscription through your dashboard.`}
+        </Paragraph>
+      </EmailLayout>
+    )
+  }
