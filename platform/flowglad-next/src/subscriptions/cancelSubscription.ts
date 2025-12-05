@@ -445,15 +445,6 @@ export const scheduleSubscriptionCancellation = async (
     }
     endDate = currentBillingPeriod.endDate
   } else if (
-    timing === SubscriptionCancellationArrangement.AtFutureDate
-  ) {
-    if (!cancellation.endDate) {
-      throw new Error(
-        'End date is required for future date cancellation'
-      )
-    }
-    endDate = cancellation.endDate
-  } else if (
     timing === SubscriptionCancellationArrangement.Immediately
   ) {
     endDate = Date.now()
@@ -478,12 +469,7 @@ export const scheduleSubscriptionCancellation = async (
       `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
     )
   }
-  // For AtEndOfCurrentBillingPeriod we set the scheduled end date; for AtFutureDate we keep it null per original logic.
-  const cancelScheduledAt =
-    timing ===
-    SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod
-      ? endDate
-      : undefined
+  const cancelScheduledAt = endDate
   if (!subscription.renews) {
     throw new Error(
       `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be cancelled (Should never hit this)`

@@ -6516,17 +6516,6 @@
                         "properties": {
                           "timing": {
                             "type": "string",
-                            "const": "at_future_date"
-                          },
-                          "endDate": { "type": "string" }
-                        },
-                        "required": ["timing", "endDate"]
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "timing": {
-                            "type": "string",
                             "const": "immediately"
                           }
                         },

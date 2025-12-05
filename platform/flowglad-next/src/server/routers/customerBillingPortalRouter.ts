@@ -257,17 +257,6 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
               'Immediate cancellation is not available through the customer billing portal',
           })
         }
-
-        if (
-          input.cancellation.timing ===
-          SubscriptionCancellationArrangement.AtFutureDate
-        ) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Future date cancellation is not available through the customer billing portal',
-          })
-        }
       },
       {
         apiKey: ctx.apiKey,

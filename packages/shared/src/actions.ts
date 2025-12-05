@@ -63,7 +63,6 @@ const subscriptionCancellationTiming: Record<
   SubscriptionCancellationArrangement
 > = {
   AtEndOfCurrentBillingPeriod: 'at_end_of_current_billing_period',
-  AtFutureDate: 'at_future_date',
   Immediately: 'immediately',
 }
 
@@ -72,10 +71,6 @@ const cancellationParametersSchema = z.discriminatedUnion('timing', [
     timing: z.literal(
       subscriptionCancellationTiming.AtEndOfCurrentBillingPeriod
     ),
-  }),
-  z.object({
-    timing: z.literal(subscriptionCancellationTiming.AtFutureDate),
-    endDate: z.date(),
   }),
   z.object({
     timing: z.literal(subscriptionCancellationTiming.Immediately),

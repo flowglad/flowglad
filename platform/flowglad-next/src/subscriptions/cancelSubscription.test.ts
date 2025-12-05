@@ -1236,85 +1236,6 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('throws when future-date timing omits an end date', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const subscription = await setupSubscription({
-          organizationId: organization.id,
-          customerId: customer.id,
-          paymentMethodId: paymentMethod.id,
-          priceId: price.id,
-        })
-        await setupBillingPeriod({
-          subscriptionId: subscription.id,
-          startDate: Date.now() - 60 * 60 * 1000,
-          endDate: Date.now() + 60 * 60 * 1000,
-        })
-        const params: ScheduleSubscriptionCancellationParams = {
-          id: subscription.id,
-          cancellation: {
-            timing: SubscriptionCancellationArrangement.AtFutureDate,
-            endDate: 0,
-          },
-        }
-
-        await expect(
-          scheduleSubscriptionCancellation(params, transaction)
-        ).rejects.toThrow(
-          'End date is required for future date cancellation'
-        )
-      })
-    })
-
-    it('should schedule cancellation at a specified future date', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
-        const futureCancellationDate = new Date(
-          now.getTime() + 2 * 60 * 60 * 1000
-        )
-        const subscription = await setupSubscription({
-          organizationId: organization.id,
-          customerId: customer.id,
-          paymentMethodId: paymentMethod.id,
-          priceId: price.id,
-        })
-        // Create a billing period that is active now.
-        await setupBillingPeriod({
-          subscriptionId: subscription.id,
-          startDate: now.getTime() - 60 * 60 * 1000,
-          endDate: now.getTime() + 3 * 60 * 60 * 1000,
-        })
-        // Create a future billing period.
-        const futureBP = await setupBillingPeriod({
-          subscriptionId: subscription.id,
-          startDate: now.getTime() + 4 * 60 * 60 * 1000,
-          endDate: now.getTime() + 5 * 60 * 60 * 1000,
-        })
-
-        const params: ScheduleSubscriptionCancellationParams = {
-          id: subscription.id,
-          cancellation: {
-            timing: SubscriptionCancellationArrangement.AtFutureDate,
-            endDate: futureCancellationDate.getTime(),
-          },
-        }
-        const updatedSubscription =
-          await scheduleSubscriptionCancellation(params, transaction)
-        expect(updatedSubscription.status).toBe(
-          SubscriptionStatus.CancellationScheduled
-        )
-        // For AtFutureDate, per our logic, cancelScheduledAt remains null.
-        expect(updatedSubscription.cancelScheduledAt).toBeNull()
-
-        const updatedFutureBP = await selectBillingPeriodById(
-          futureBP.id,
-          transaction
-        )
-        expect(updatedFutureBP.status).toBe(
-          BillingPeriodStatus.ScheduledToCancel
-        )
-      })
-    })
-
     it('should make no update if the subscription is already in a terminal state', async () => {
       await adminTransaction(async ({ transaction }) => {
         const subscription = await setupSubscription({
@@ -1322,6 +1243,12 @@ describe('Subscription Cancellation Test Suite', async () => {
           customerId: customer.id,
           paymentMethodId: paymentMethod.id,
           priceId: price.id,
+        })
+        // Create a billing period for AtEndOfCurrentBillingPeriod
+        await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: Date.now() - 60 * 60 * 1000,
+          endDate: Date.now() + 60 * 60 * 1000,
         })
         // Mark the subscription as terminal.
         await safelyUpdateSubscriptionStatus(
@@ -1332,8 +1259,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         const params: ScheduleSubscriptionCancellationParams = {
           id: subscription.id,
           cancellation: {
-            timing: SubscriptionCancellationArrangement.AtFutureDate,
-            endDate: Date.now() + 60 * 60 * 1000,
+            timing:
+              SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
         const result = await scheduleSubscriptionCancellation(
@@ -1392,37 +1319,6 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('should throw an error if the cancellation date is before the subscription start date', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const now = new Date()
-        const futureStart = new Date(now.getTime() + 60 * 60 * 1000)
-        const subscription = await setupSubscription({
-          organizationId: organization.id,
-          customerId: customer.id,
-          paymentMethodId: paymentMethod.id,
-          priceId: price.id,
-        })
-        // Create a billing period that starts in the future.
-        await setupBillingPeriod({
-          subscriptionId: subscription.id,
-          startDate: futureStart,
-          endDate: new Date(futureStart.getTime() + 60 * 60 * 1000),
-        })
-        const params: ScheduleSubscriptionCancellationParams = {
-          id: subscription.id,
-          cancellation: {
-            timing: SubscriptionCancellationArrangement.AtFutureDate,
-            endDate: Date.now(), // current time is before the billing period start
-          },
-        }
-        await expect(
-          scheduleSubscriptionCancellation(params, transaction)
-        ).rejects.toThrow(
-          /Cannot end a subscription before its start date/
-        )
-      })
-    })
-
     it('should handle boundary conditions for billing period dates correctly', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Use a fixed cancellation time.
@@ -1462,52 +1358,6 @@ describe('Subscription Cancellation Test Suite', async () => {
           BillingPeriodStatus.ScheduledToCancel
         )
         Date.now = originalDateNow
-      })
-    })
-
-    it('only marks billing periods that start after the cancellation date when scheduling a future date', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const now = Date.now()
-        const subscription = await setupSubscription({
-          organizationId: organization.id,
-          customerId: customer.id,
-          paymentMethodId: paymentMethod.id,
-          priceId: price.id,
-        })
-        const anchor = now + 2 * 60 * 60 * 1000
-        const equalStart = await setupBillingPeriod({
-          subscriptionId: subscription.id,
-          startDate: anchor,
-          endDate: anchor + 60 * 60 * 1000,
-        })
-        const lateStart = await setupBillingPeriod({
-          subscriptionId: subscription.id,
-          startDate: anchor + 2 * 60 * 60 * 1000,
-          endDate: anchor + 3 * 60 * 60 * 1000,
-        })
-        const params: ScheduleSubscriptionCancellationParams = {
-          id: subscription.id,
-          cancellation: {
-            timing: SubscriptionCancellationArrangement.AtFutureDate,
-            endDate: anchor,
-          },
-        }
-        await scheduleSubscriptionCancellation(params, transaction)
-
-        const unchanged = await selectBillingPeriodById(
-          equalStart.id,
-          transaction
-        )
-        const scheduled = await selectBillingPeriodById(
-          lateStart.id,
-          transaction
-        )
-        expect(unchanged.status).not.toBe(
-          BillingPeriodStatus.ScheduledToCancel
-        )
-        expect(scheduled.status).toBe(
-          BillingPeriodStatus.ScheduledToCancel
-        )
       })
     })
 
@@ -1733,8 +1583,7 @@ describe('Subscription Cancellation Test Suite', async () => {
               id: scheduledSubscription.id,
               cancellation: {
                 timing:
-                  SubscriptionCancellationArrangement.AtFutureDate,
-                endDate: now + 2 * 60 * 60 * 1000,
+                  SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
               },
             },
             transaction,
@@ -1751,9 +1600,10 @@ describe('Subscription Cancellation Test Suite', async () => {
           SubscriptionStatus.CancellationScheduled
         )
         expect(response.eventsToInsert).toHaveLength(0)
-        expect(
-          response.result.subscription.cancelScheduledAt
-        ).toBeNull()
+        // For AtEndOfCurrentBillingPeriod, cancelScheduledAt should be set to the billing period end
+        expect(response.result.subscription.cancelScheduledAt).toBe(
+          now + 60 * 60 * 1000
+        )
       })
     })
   })
