@@ -1,5 +1,5 @@
 {
-  "name": "nextjs-starter",
+  "name": "flowglad/playground-generation-based-subscription",
   "version": "1.0.0",
   "description": "Next.js starter template with BetterAuth and Flowglad",
   "private": true,
@@ -10,7 +10,6 @@
   "preinstall": "bunx --bun only-allow bun",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
