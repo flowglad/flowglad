@@ -1462,7 +1462,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
-        expect(updatedSubscription.cancelScheduledAt).toBeNull()
+        // For immediate timing, cancelScheduledAt is set to the current time
+        expect(updatedSubscription.cancelScheduledAt).not.toBeNull()
 
         const updatedFuturePeriod = await selectBillingPeriodById(
           futurePeriod.id,
