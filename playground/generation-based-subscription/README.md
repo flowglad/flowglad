@@ -26,7 +26,6 @@ This project demonstrates the "Generation-Based Subscription Template Pricing Mo
 - Node.js >= 18.18.0
 - Bun >= 1.3.1
 - PostgreSQL database
-- `yalc` (for linking local Flowglad packages) - Install globally with `npm install -g yalc` or `bun install -g yalc`
 
 ## Getting Started
 
@@ -58,25 +57,7 @@ Then navigate into this example directory:
 cd playground/generation-based-subscription
 ```
 
-### 3. Link Flowglad Packages
-
-This example project uses `yalc` to link local Flowglad packages for development. You must link the packages before running the project:
-
-```bash
-bun run link:packages
-```
-
-This command will:
-- Add Flowglad packages to yalc's local registry
-- Link them into this project's `node_modules`
-- Update dependencies
-
-**Note:** If you need to unlink packages later (e.g., to use published npm packages), run:
-```bash
-bun run unlink:packages
-```
-
-### 4. Set Up Environment Variables
+### 3. Set Up Environment Variables
 
 Copy the example environment file:
 
@@ -95,7 +76,7 @@ Fill in the required values in `.env.local`:
 - **`FLOWGLAD_SECRET_KEY`** - Secret key for Flowglad API calls
   - Get your secret key from: [https://flowglad.com](https://flowglad.com)
 
-### 5. Set Up Database
+### 4. Set Up Database
 
 Generate and run database migrations:
 
@@ -104,7 +85,7 @@ bun db:generate
 bun db:migrate
 ```
 
-### 6. Start Development Server
+### 5. Start Development Server
 
 ```bash
 bun dev
@@ -123,8 +104,6 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 - `bun db:generate` - Generate database migrations
 - `bun db:migrate` - Run database migrations
 - `bun db:studio` - Open Drizzle Studio (database GUI)
-- `bun link:packages` - Link local Flowglad packages using yalc (required before first run)
-- `bun unlink:packages` - Unlink Flowglad packages and restore to npm registry versions
 
 ## Project Structure
 
