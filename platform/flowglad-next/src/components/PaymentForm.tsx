@@ -365,23 +365,31 @@ const PaymentForm = () => {
             }
           | undefined
 
+        // EXPERIMENTAL: Fallback to checkoutSession.customerEmail to avoid a race condition
+        // where LinkAuthenticationElement might not be passing email correctly at the time
+        // of confirmSetup(). Stripe should automatically extract email from LinkAuthenticationElement,
+        // but this fallback ensures we explicitly pass it when available from either source.
+        const customerEmail =
+          readonlyCustomerEmail ||
+          checkoutSession.customerEmail ||
+          null
+
         // For SetupIntent flows (Subscription, AddPaymentMethod), always set allow_redisplay
         // For PaymentIntent flows (SinglePayment), only set if user consented via toggle
-        const paymentMethodData: PaymentMethodData =
-          readonlyCustomerEmail
-            ? {
-                billing_details: {
-                  email: readonlyCustomerEmail,
-                  // Name will be collected from AddressElement
-                  name:
-                    checkoutSession.billingAddress?.name ?? undefined,
-                },
-                ...((isSetupIntentFlow ||
-                  savePaymentMethodForFuture) && {
-                  allow_redisplay: 'always' as const,
-                }),
-              }
-            : undefined
+        const paymentMethodData: PaymentMethodData = customerEmail
+          ? {
+              billing_details: {
+                email: customerEmail,
+                // Name will be collected from AddressElement
+                name:
+                  checkoutSession.billingAddress?.name ?? undefined,
+              },
+              ...((isSetupIntentFlow ||
+                savePaymentMethodForFuture) && {
+                allow_redisplay: 'always' as const,
+              }),
+            }
+          : undefined
 
         let error: StripeError | undefined
         if (useConfirmSetup) {
