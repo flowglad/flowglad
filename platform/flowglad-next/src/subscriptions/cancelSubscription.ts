@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { Event } from '@/db/schema/events'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -641,8 +642,6 @@ export const cancelSubscriptionProcedureTransaction = async ({
 // Uncancel Subscription Functions
 // ============================================================================
 
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
-
 /**
  * Determines the previous subscription status to restore when uncanceling.
  * If the subscription has a trial end date in the future, it was likely Trialing.
@@ -669,24 +668,6 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
   billingPeriods: BillingPeriod.Record[],
   transaction: DbTransaction
 ): Promise<void> => {
-  // Security check: For paid subscriptions, require payment method
-  if (!subscription.isFreePlan) {
-    const paymentMethod = subscription.defaultPaymentMethodId
-      ? await selectPaymentMethodById(
-          subscription.defaultPaymentMethodId,
-          transaction
-        )
-      : null
-
-    if (!paymentMethod) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message:
-          'Cannot uncancel paid subscription without an active payment method. Please add a payment method first.',
-      })
-    }
-  }
-
   // Get payment method for billing run creation
   const paymentMethod = subscription.defaultPaymentMethodId
     ? await selectPaymentMethodById(
@@ -694,6 +675,15 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
         transaction
       )
     : null
+
+  // Security check: For paid subscriptions, require payment method
+  if (!subscription.isFreePlan && !paymentMethod) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message:
+        'Cannot uncancel paid subscription without an active payment method. Please add a payment method first.',
+    })
+  }
 
   if (!paymentMethod) {
     // Free subscription with no payment method - no billing runs needed
