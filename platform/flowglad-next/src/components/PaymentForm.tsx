@@ -427,7 +427,18 @@ const PaymentForm = () => {
           // This point will only be reached if there is an immediate error when
           // confirming the payment. Show error to your customer (for example, payment
           // details incomplete)
-          setErrorMessage(error?.message)
+          const errorMessage = error?.message || ''
+
+          if (
+            errorMessage.includes('fields.billing_details.email') &&
+            errorMessage.includes(
+              'confirmParams.payment_method_data.billing_details.email'
+            )
+          ) {
+            core.error(error)
+          }
+
+          setErrorMessage(errorMessage)
         } else {
           // Your customer will be redirected to your `return_url`. For some payment
           // methods like iDEAL, your customer will be redirected to an intermediate
