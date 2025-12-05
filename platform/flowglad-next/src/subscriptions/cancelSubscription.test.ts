@@ -1644,7 +1644,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           subscriptionCancellationNotifications,
           'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
         )
-        .mockResolvedValue(undefined as any)
+        .mockResolvedValue(undefined)
       try {
         await adminTransaction(async ({ transaction }) => {
           const subscription = await setupSubscription({
@@ -1861,7 +1861,10 @@ describe('Subscription Cancellation Test Suite', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Passing a null subscription should result in an error.
         await expect(
-          cancelSubscriptionImmediately(null as any, transaction)
+          cancelSubscriptionImmediately(
+            null as unknown as Subscription.Record,
+            transaction
+          )
         ).rejects.toThrow()
       })
     })
