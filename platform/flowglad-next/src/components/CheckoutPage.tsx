@@ -88,7 +88,13 @@ const CheckoutPage = ({
       <div className={outerWrapper}>
         <div className={checkoutContainer}>
           {/* Product Details Section */}
-          <div className={productSectionContainer}>
+          <div
+            className={productSectionContainer}
+            style={{
+              fontFamily:
+                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            }}
+          >
             <div className="w-full">
               <CheckoutDetails />
             </div>
