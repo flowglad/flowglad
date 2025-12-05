@@ -24,18 +24,14 @@ export const SubscribeButton = ({
         if (usePriceSlug) {
           createCheckoutSession({
             autoRedirect: true,
-            priceSlug:
-              catalog.products.find((product) => !product.default)
-                ?.defaultPrice.slug || '',
+            priceSlug: 'lol',
             successUrl: `${window.location.origin}/success`,
             cancelUrl: `${window.location.origin}/cancel`,
           })
         } else {
           createCheckoutSession({
             autoRedirect: true,
-            priceId:
-              catalog.products.find((product) => !product.default)
-                ?.defaultPrice.id || '',
+            priceId: 'price_rW8qaaECAjvrhWhPNbR8W',
             successUrl: `${window.location.origin}/success`,
             cancelUrl: `${window.location.origin}/cancel`,
           })
@@ -90,7 +86,7 @@ export const SubscriptionDemoCard = () => {
       </div>
     )
   }
-  const { customer, subscriptions } = billing
+  const { customer, subscriptions, pricingModel } = billing
   if (!customer) {
     return <div>No customer found</div>
   }
@@ -112,6 +108,10 @@ export const SubscriptionDemoCard = () => {
       </div>
       <div className="mb-3 text-gray-600 dark:text-gray-400">
         Status: {subscriptions[0]?.status}
+      </div>
+      <div className="mb-3 text-gray-600 dark:text-gray-400">
+        {' '}
+        Pricing Model Id: {pricingModel?.id}
       </div>
     </div>
   )

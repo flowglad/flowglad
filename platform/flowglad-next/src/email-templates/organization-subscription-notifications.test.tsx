@@ -104,17 +104,25 @@ describe('OrganizationSubscriptionCancellationScheduledNotificationEmail', () =>
   })
 
   it('includes customer profile link', () => {
-    const { container } = render(
+    const { getByRole } = render(
       <OrganizationSubscriptionCancellationScheduledNotificationEmail
         {...baseProps}
       />
     )
 
-    const link = container.querySelector(
-      `a[href="https://app.flowglad.com/customers/${baseProps.customerId}"]`
-    )
+    // IMPORTANT: Use getByRole instead of container.querySelector() to prevent CI/CD failures.
+    // querySelector() can return null if the element isn't found, and toBeInTheDocument() requires
+    // an HTMLElement. In CI/CD environments, timing differences or how @react-email/components
+    // renders can cause querySelector to return null even when the element exists, leading to
+    // "received value must be an HTMLElement or an SVGElement" errors. getByRole() properly
+    // waits for the element, throws helpful errors if not found, and returns an HTMLElement
+    // that works correctly with toBeInTheDocument().
+    const link = getByRole('link', { name: /View Customer Profile/i })
     expect(link).toBeInTheDocument()
-    expect(link?.textContent).toContain('View Customer Profile')
+    expect(link).toHaveAttribute(
+      'href',
+      `https://app.flowglad.com/customers/${baseProps.customerId}`
+    )
   })
 
   it('handles different customer names correctly', () => {
@@ -231,17 +239,25 @@ describe('OrganizationSubscriptionCanceledNotificationEmail', () => {
   })
 
   it('includes customer profile link', () => {
-    const { container } = render(
+    const { getByRole } = render(
       <OrganizationSubscriptionCanceledNotificationEmail
         {...baseProps}
       />
     )
 
-    const link = container.querySelector(
-      `a[href="https://app.flowglad.com/customers/${baseProps.customerId}"]`
-    )
+    // IMPORTANT: Use getByRole instead of container.querySelector() to prevent CI/CD failures.
+    // querySelector() can return null if the element isn't found, and toBeInTheDocument() requires
+    // an HTMLElement. In CI/CD environments, timing differences or how @react-email/components
+    // renders can cause querySelector to return null even when the element exists, leading to
+    // "received value must be an HTMLElement or an SVGElement" errors. getByRole() properly
+    // waits for the element, throws helpful errors if not found, and returns an HTMLElement
+    // that works correctly with toBeInTheDocument().
+    const link = getByRole('link', { name: /View Customer Profile/i })
     expect(link).toBeInTheDocument()
-    expect(link?.textContent).toContain('View Customer Profile')
+    expect(link).toHaveAttribute(
+      'href',
+      `https://app.flowglad.com/customers/${baseProps.customerId}`
+    )
   })
 
   it('handles different customer names correctly', () => {
