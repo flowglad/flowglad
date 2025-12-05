@@ -4,9 +4,8 @@ import Footer from '@/components/ui/Footer'
 import Navbar from '@/components/ui/Navbar'
 import { Toaster } from '@/components/ui/Toasts/toaster'
 import { getURL } from '@/utils/helpers'
-import { createClient } from '@/utils/supabase/server'
 import '@/styles/main.css'
-import { FlowgladProvider } from '@flowglad/nextjs'
+import { Providers } from '@/components/Providers'
 
 const title = 'Next.js Subscription Starter'
 const description = 'Brought to you by Vercel, Stripe, and Supabase.'
@@ -21,18 +20,11 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function RootLayout({
-  children,
-}: PropsWithChildren) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+export default function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="en">
       <body>
-        <FlowgladProvider
-          loadBilling={!!user}
+        <Providers
           requestConfig={{
             headers: {
               test: 'lol',
@@ -50,7 +42,7 @@ export default async function RootLayout({
           <Suspense>
             <Toaster />
           </Suspense>
-        </FlowgladProvider>
+        </Providers>
       </body>
     </html>
   )
