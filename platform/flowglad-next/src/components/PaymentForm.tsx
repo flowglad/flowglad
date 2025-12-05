@@ -173,6 +173,7 @@ const PaymentForm = () => {
     feeCalculation,
     readonlyCustomerEmail,
     isEligibleForTrial,
+    customerSessionClientSecret,
   } = checkoutPageContext
   const [emailEmbedReady, setEmailEmbedReady] = useState(true)
   const [paymentEmbedReady, setPaymentEmbedReady] = useState(false)
@@ -195,6 +196,10 @@ const PaymentForm = () => {
     string | undefined
   >(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [savePaymentMethodForFuture, setSavePaymentMethodForFuture] =
+    useState(false)
+  const [isUsingSavedPaymentMethod, setIsUsingSavedPaymentMethod] =
+    useState(false)
   const confirmCheckoutSession =
     trpc.checkoutSessions.public.confirm.useMutation()
 
@@ -214,8 +219,21 @@ const PaymentForm = () => {
   const showDiscountCodeInput =
     flowType !== CheckoutFlowType.Invoice &&
     flowType !== CheckoutFlowType.AddPaymentMethod
-  const showAutomaticallyUpdateCurrentSubscriptions =
+
+  // Determine if this is a SetupIntent flow (Subscription or AddPaymentMethod)
+  const isSetupIntentFlow =
+    flowType === CheckoutFlowType.Subscription ||
     flowType === CheckoutFlowType.AddPaymentMethod
+  // Show consent checkbox when:
+  // - CustomerSession exists (saved methods available)
+  // - AND user is entering a new payment method (not using a saved one)
+  // - AND NOT a SetupIntent flow (consent is implicit for SetupIntent flows)
+  // For SetupIntent flows (Subscription, AddPaymentMethod), allow_redisplay is always set to 'always'
+  // For PaymentIntent flows (SinglePayment), consent controls setup_future_usage
+  const showSavePaymentMethodForFuture =
+    Boolean(customerSessionClientSecret) &&
+    !isUsingSavedPaymentMethod &&
+    !isSetupIntentFlow
 
   // Force reflow when all embeds are ready to prevent iframe transparency issues
   useEffect(() => {
@@ -303,6 +321,7 @@ const PaymentForm = () => {
         try {
           await confirmCheckoutSession.mutateAsync({
             id: checkoutSession.id,
+            savePaymentMethodForFuture,
           })
         } catch (error: unknown) {
           setIsSubmitting(false)
@@ -337,6 +356,33 @@ const PaymentForm = () => {
         const useConfirmSetup =
           flowType === CheckoutFlowType.Subscription ||
           flowType === CheckoutFlowType.AddPaymentMethod
+
+        // Build payment_method_data with billing details and allow_redisplay
+        type PaymentMethodData =
+          | {
+              billing_details: { email: string; name?: string }
+              allow_redisplay?: 'always'
+            }
+          | undefined
+
+        // For SetupIntent flows (Subscription, AddPaymentMethod), always set allow_redisplay
+        // For PaymentIntent flows (SinglePayment), only set if user consented via toggle
+        const paymentMethodData: PaymentMethodData =
+          readonlyCustomerEmail
+            ? {
+                billing_details: {
+                  email: readonlyCustomerEmail,
+                  // Name will be collected from AddressElement
+                  name:
+                    checkoutSession.billingAddress?.name ?? undefined,
+                },
+                ...((isSetupIntentFlow ||
+                  savePaymentMethodForFuture) && {
+                  allow_redisplay: 'always' as const,
+                }),
+              }
+            : undefined
+
         let error: StripeError | undefined
         if (useConfirmSetup) {
           try {
@@ -345,15 +391,7 @@ const PaymentForm = () => {
                 elements,
                 confirmParams: {
                   return_url: redirectUrl,
-                  payment_method_data: readonlyCustomerEmail
-                    ? {
-                        billing_details: {
-                          email: readonlyCustomerEmail,
-                          // Name will be collected from AddressElement
-                          name: checkoutSession.billingAddress?.name,
-                        },
-                      }
-                    : undefined,
+                  payment_method_data: paymentMethodData,
                 },
               })
             error = confirmationError
@@ -372,15 +410,7 @@ const PaymentForm = () => {
                  * If we have a customer we want to use the customer email.
                  * Otherwise, we want to use the email collected from the email element.
                  */
-                payment_method_data: readonlyCustomerEmail
-                  ? {
-                      billing_details: {
-                        email: readonlyCustomerEmail,
-                        // Name will be collected from AddressElement
-                        name: checkoutSession.billingAddress?.name,
-                      },
-                    }
-                  : undefined,
+                payment_method_data: paymentMethodData,
               },
             })
           error = confirmationError
@@ -475,6 +505,18 @@ const PaymentForm = () => {
                 } as any,
               }}
               onChange={async (e) => {
+                // A saved payment method will have a payment_method object with an id
+                const isSavedPaymentMethod = Boolean(
+                  e.value?.payment_method?.id
+                )
+                setIsUsingSavedPaymentMethod(isSavedPaymentMethod)
+
+                // Reset consent toggle when switching to a saved payment method
+                // (it doesn't make sense to save a payment method that's already saved)
+                if (isSavedPaymentMethod) {
+                  setSavePaymentMethodForFuture(false)
+                }
+
                 if (
                   e.complete &&
                   checkoutSession.status ===
@@ -557,7 +599,7 @@ const PaymentForm = () => {
             <TotalBillingDetails />
           </div>
           {/* Auto Update Subscriptions */}
-          {showAutomaticallyUpdateCurrentSubscriptions && (
+          {flowType === CheckoutFlowType.AddPaymentMethod && (
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <Switch
@@ -580,6 +622,27 @@ const PaymentForm = () => {
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   Set as default method for existing subscriptions
+                </Label>
+              </div>
+            </div>
+          )}
+          {/* Save Payment Method for Future Checkouts */}
+          {showSavePaymentMethodForFuture && (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="save-payment-method-for-future"
+                  checked={savePaymentMethodForFuture}
+                  onCheckedChange={(checked) => {
+                    setSavePaymentMethodForFuture(checked)
+                  }}
+                  className="data-[state=checked]:bg-gray-900 data-[state=unchecked]:bg-gray-200 [&>span]:bg-white"
+                />
+                <Label
+                  htmlFor="save-payment-method-for-future"
+                  className="text-sm text-gray-600 font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Save this payment method for future checkouts
                 </Label>
               </div>
             </div>

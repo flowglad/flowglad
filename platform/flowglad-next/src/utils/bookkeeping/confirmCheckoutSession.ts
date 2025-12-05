@@ -26,13 +26,14 @@ import {
 import core from '@/utils/core'
 import {
   createStripeCustomer,
+  getPaymentIntent,
   getSetupIntent,
   updatePaymentIntent,
   updateSetupIntent,
 } from '@/utils/stripe'
 
 export const confirmCheckoutSessionTransaction = async (
-  input: { id: string },
+  input: { id: string; savePaymentMethodForFuture?: boolean },
   transaction: DbTransaction
 ): Promise<TransactionOutput<{ customer: Customer.Record }>> => {
   try {
@@ -193,13 +194,23 @@ export const confirmCheckoutSessionTransaction = async (
         finalizedFeeCalculation
       )
 
+      const paymentIntent = await getPaymentIntent(
+        checkoutSession.stripePaymentIntentId
+      )
+
       await updatePaymentIntent(
         checkoutSession.stripePaymentIntentId,
         {
-          customer: stripeCustomerId,
+          ...(paymentIntent.customer
+            ? {}
+            : { customer: stripeCustomerId }),
           amount: totalAmountDue,
           application_fee_amount:
             totalAmountDue > 0 ? finalFeeAmount : undefined,
+          // Set setup_future_usage if user consented to save payment method for future checkouts
+          ...(input.savePaymentMethodForFuture
+            ? { setup_future_usage: 'on_session' as const }
+            : {}),
         },
         checkoutSession.livemode
       )

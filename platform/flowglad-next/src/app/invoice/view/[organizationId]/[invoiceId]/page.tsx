@@ -90,6 +90,7 @@ const CustomerInvoiceOpenView = async (
     invoiceLineItems,
     feeCalculation: null,
     clientSecret,
+    customerSessionClientSecret: null,
     readonlyCustomerEmail: customer.email,
     redirectUrl: core.safeUrl(
       `/invoice/view/${organization.id}/${invoice.id}`,

@@ -14,8 +14,8 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
 } from '@/types'
+import { getClientSecretsForCheckoutSession } from '@/utils/checkoutHelpers'
 import core from '@/utils/core'
-import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
 
 const CheckoutSessionPage = async ({
   params,
@@ -58,18 +58,12 @@ const CheckoutSessionPage = async ({
       `/purchase/post-payment?setup_intent=${checkoutSession.stripeSetupIntentId}`
     )
   }
-  let clientSecret: string | null = null
-  if (checkoutSession.stripePaymentIntentId) {
-    const paymentIntent = await getPaymentIntent(
-      checkoutSession.stripePaymentIntentId
+  const { clientSecret, customerSessionClientSecret } =
+    await getClientSecretsForCheckoutSession(
+      checkoutSession,
+      customer
     )
-    clientSecret = paymentIntent.client_secret
-  } else if (checkoutSession.stripeSetupIntentId) {
-    const setupIntent = await getSetupIntent(
-      checkoutSession.stripeSetupIntentId
-    )
-    clientSecret = setupIntent.client_secret
-  } else {
+  if (!clientSecret) {
     throw new Error('No client secret found')
   }
 
@@ -83,6 +77,7 @@ const CheckoutSessionPage = async ({
     readonlyCustomerEmail: customer.email,
     feeCalculation: null,
     clientSecret,
+    customerSessionClientSecret,
     flowType: CheckoutFlowType.AddPaymentMethod,
   }
 

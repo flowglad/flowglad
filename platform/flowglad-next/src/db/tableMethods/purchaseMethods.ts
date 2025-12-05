@@ -183,6 +183,7 @@ const checkoutInfoCoreSchema = z.object({
   redirectUrl: z.string().url(),
   cancelUrl: z.string().url().nullish(),
   clientSecret: z.string().nullable(),
+  customerSessionClientSecret: z.string().nullable(),
   discount: discountClientSelectSchema.nullish(),
   /**
    * Only present when checkoutSession.customerId is not null

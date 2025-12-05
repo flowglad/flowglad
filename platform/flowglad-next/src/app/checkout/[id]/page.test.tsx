@@ -57,6 +57,10 @@ vi.mock('@/utils/checkoutHelpers', () => ({
     ],
     discount: null,
   })),
+  getClientSecretsForCheckoutSession: vi.fn(async () => ({
+    clientSecret: 'pi_secret_test',
+    customerSessionClientSecret: null,
+  })),
 }))
 
 describe('CheckoutSessionPage', () => {
