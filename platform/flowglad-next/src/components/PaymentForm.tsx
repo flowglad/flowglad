@@ -278,6 +278,31 @@ const PaymentForm = () => {
           return
         }
 
+        // Validate email before proceeding
+        // Fallback to checkoutSession.customerEmail is experimental to avoid edge case where
+        // anonymous checkout fails: customer created during confirmCheckoutSession but component
+        // state is stale (readonlyCustomerEmail still null), and LinkAuthenticationElement email
+        // not available to Stripe at confirmSetup() time. This should pass the email explicitly.
+        const customerEmail =
+          readonlyCustomerEmail?.trim() ||
+          checkoutSession.customerEmail?.trim()
+        if (!customerEmail) {
+          setEmailError('Please enter your email address')
+          setIsSubmitting(false)
+          return
+        }
+
+        // Validate email format
+        const emailValidation = z.email().safeParse(customerEmail)
+        if (!emailValidation.success) {
+          setEmailError('Please enter a valid email address')
+          setIsSubmitting(false)
+          return
+        }
+
+        // Clear any previous email errors
+        setEmailError(undefined)
+
         // Validate address before proceeding
         if (!checkoutSession.billingAddress) {
           setAddressError('Please fill in your billing address')
@@ -345,10 +370,10 @@ const PaymentForm = () => {
                 elements,
                 confirmParams: {
                   return_url: redirectUrl,
-                  payment_method_data: readonlyCustomerEmail
+                  payment_method_data: customerEmail
                     ? {
                         billing_details: {
-                          email: readonlyCustomerEmail,
+                          email: customerEmail,
                           // Name will be collected from AddressElement
                           name: checkoutSession.billingAddress?.name,
                         },
@@ -372,10 +397,10 @@ const PaymentForm = () => {
                  * If we have a customer we want to use the customer email.
                  * Otherwise, we want to use the email collected from the email element.
                  */
-                payment_method_data: readonlyCustomerEmail
+                payment_method_data: customerEmail
                   ? {
                       billing_details: {
-                        email: readonlyCustomerEmail,
+                        email: customerEmail,
                         // Name will be collected from AddressElement
                         name: checkoutSession.billingAddress?.name,
                       },
