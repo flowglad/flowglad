@@ -1141,16 +1141,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       stripeChargeId,
       status: PaymentStatus.Processing,
       amount: 500,
-      customerId: customer.id,
+      customerId: testCustomer.id,
       organizationId: organization.id,
       invoiceId: adjustmentInvoice.id,
       stripePaymentIntentId,
-      billingPeriodId: billingPeriod.id,
+      billingPeriodId: testBillingPeriod.id,
     })
 
     // Store initial state for comparison
     const initialInvoiceStatus = adjustmentInvoice.status
-    const initialSubscriptionStatus = subscription.status
+    const initialSubscriptionStatus = testSubscription.status
 
     const result = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
@@ -1162,7 +1162,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
             metadata: {
               billingRunId: adjustmentBillingRun.id,
               type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingPeriod.id,
+              billingPeriodId: testBillingPeriod.id,
             },
             latest_charge: stripeChargeId,
             livemode: true,
@@ -1188,7 +1188,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         transaction
       )
       const updatedSubscription = await selectSubscriptionById(
-        subscription.id,
+        testSubscription.id,
         transaction
       )
 
