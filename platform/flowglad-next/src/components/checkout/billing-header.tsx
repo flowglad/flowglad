@@ -122,6 +122,10 @@ export const BillingHeader = React.forwardRef<
             'text-[24px] font-medium leading-[32px]', // LS typography
             'text-foreground dark:text-white' // Adaptive color
           )}
+          style={{
+            fontFamily:
+              'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          }}
           data-testid="checkout-product-name"
         >
           <span>{product.name}</span>

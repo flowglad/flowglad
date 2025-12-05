@@ -83,6 +83,10 @@ function CheckoutForm() {
         'pt-0 pb-0', // Remove default padding
         'items-stretch lg:items-start' // Full width on mobile
       )}
+      style={{
+        fontFamily:
+          'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      }}
     >
       <Elements
         stripe={stripePromise}
@@ -142,7 +146,7 @@ function CheckoutForm() {
               // === TYPOGRAPHY VARIABLES ===
               // Currently using:
               fontFamily:
-                'SF Pro, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               fontSizeBase: '14px', // Base font size for all text
               fontLineHeight: '1.3', // Line height multiplier
 
