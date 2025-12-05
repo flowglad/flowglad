@@ -54,7 +54,7 @@ import {
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import type { DbTransaction } from '@/db/types'
-import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
+import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 import {
   BillingPeriodStatus,
@@ -930,7 +930,7 @@ export const executeBillingRun = async (
       confirmationResult.status === 'requires_payment_method'
     ) {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processPaymentIntentEventForBillingRun(
+        return await processOutcomeForBillingRun(
           confirmationResult,
           transaction
         )

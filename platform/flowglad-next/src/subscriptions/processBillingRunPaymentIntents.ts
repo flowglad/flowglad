@@ -21,6 +21,7 @@ import {
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import {
+  deleteInvoiceLineItems,
   selectInvoiceLineItems,
   selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
 } from '@/db/tableMethods/invoiceLineItemMethods'
@@ -202,7 +203,7 @@ const processAwaitingPaymentConfirmationNotifications = async (
   })
 }
 
-export const processPaymentIntentEventForBillingRun = async (
+export const processOutcomeForBillingRun = async (
   input: PaymentIntentForBillingRunInput,
   transaction: DbTransaction
 ): Promise<
@@ -306,6 +307,42 @@ export const processPaymentIntentEventForBillingRun = async (
     result: { payment },
     eventsToInsert: childeventsToInsert,
   } = await processPaymentIntentStatusUpdated(event, transaction)
+
+  /**
+   * If there is a payment failure and we are on an adjustment billing run
+   * then we should delete the evidence of an attempt to adjust from the invoice
+   * and early exit
+   */
+  const paymentFailed =
+    billingRunStatus === BillingRunStatus.Failed ||
+    billingRunStatus === BillingRunStatus.Aborted
+  if (billingRun.isAdjustment && paymentFailed) {
+    const invoiceLineItems = await selectInvoiceLineItems(
+      {
+        invoiceId: invoice.id,
+        billingRunId: billingRun.id,
+      },
+      transaction
+    )
+
+    if (invoiceLineItems.length > 0) {
+      await deleteInvoiceLineItems(
+        invoiceLineItems.map((item) => ({ id: item.id })),
+        transaction
+      )
+    }
+
+    return {
+      result: {
+        invoice,
+        invoiceLineItems: [],
+        billingRun,
+        payment,
+      },
+      ledgerCommands: [],
+      eventsToInsert: childeventsToInsert || [],
+    }
+  }
 
   const invoiceLineItems = await selectInvoiceLineItems(
     {
