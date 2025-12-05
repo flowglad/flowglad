@@ -20,31 +20,31 @@ export function PricingProducts() {
   const billing = useBilling()
 
   if (!billing.loaded) {
-    return <div>Loading pricing…</div>
+    return <div>Loading pricing...</div>
   }
 
   if (billing.errors || !billing.pricingModel) {
     return <div>Unable to load pricing data.</div>
   }
 
-const products = billing.pricingModel.products.map((product) => {
-  const defaultPrice = product.defaultPrice ?? product.prices[0] ?? null
+  const products = billing.pricingModel.products.map((product) => {
+    const defaultPrice = product.defaultPrice ?? product.prices[0] ?? null
 
-  return {
-    slug: product.slug,
-    name: product.name,
-    description: product.description,
-    defaultPrice,
-    features: product.features,
-  }
-})
+    return {
+      slug: product.slug,
+      name: product.name,
+      description: product.description,
+      defaultPrice,
+      features: product.features,
+    }
+  })
 
   return (
     <section>
       {products.map((product) => {
         const price = product.defaultPrice
         const priceLabel = price
-          ? `${price.name ?? product.name} – $${(price.unitPrice / 100).toFixed(2)}${
+          ? `${price.name ?? product.name} - $${(price.unitPrice / 100).toFixed(2)}${
               price.intervalUnit ? `/${price.intervalUnit}` : ''
             }`
           : 'Price not available'
