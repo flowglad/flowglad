@@ -557,7 +557,7 @@ type CancelSubscriptionProcedureParams =
  * - Calls `cancelSubscriptionImmediately` which emits a `SubscriptionCanceled` event
  * - Returns the canceled subscription with events to insert
  *
- * For scheduled cancellations (end of billing period or future date):
+ * For scheduled cancellations (end of billing period):
  * - Calls `scheduleSubscriptionCancellation` which schedules the cancellation
  * - Returns the scheduled subscription with no events (events emitted when cancellation executes)
  *
