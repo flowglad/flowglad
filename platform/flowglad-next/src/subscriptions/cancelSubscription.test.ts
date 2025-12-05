@@ -24,8 +24,14 @@ import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import { prices } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
-import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
-import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
+import {
+  selectBillingPeriodById,
+  updateBillingPeriod,
+} from '@/db/tableMethods/billingPeriodMethods'
+import {
+  selectBillingRunById,
+  selectBillingRuns,
+} from '@/db/tableMethods/billingRunMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { updateProduct } from '@/db/tableMethods/productMethods'
@@ -35,6 +41,7 @@ import {
   currentSubscriptionStatuses,
   safelyUpdateSubscriptionStatus,
   selectSubscriptions,
+  updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
   abortScheduledBillingRuns,
@@ -42,6 +49,8 @@ import {
   cancelSubscriptionProcedureTransaction,
   reassignDefaultSubscription,
   scheduleSubscriptionCancellation,
+  uncancelSubscription,
+  uncancelSubscriptionProcedureTransaction,
 } from '@/subscriptions/cancelSubscription'
 import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
 import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-cancellation-scheduled-notification'
@@ -2285,6 +2294,637 @@ describe('Subscription Cancellation Test Suite', async () => {
           })
         })
       ).rejects.toThrow(/Cannot cancel the default free plan/)
+    })
+  })
+
+  /* --------------------------------------------------------------------------
+     Uncancel Subscription Tests
+  --------------------------------------------------------------------------- */
+  describe('uncancelSubscription', () => {
+    it('should uncancel a subscription in CancellationScheduled status and revert to Active', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: Date.now() + 60 * 60 * 1000,
+        })
+
+        const { result: updatedSubscription } =
+          await uncancelSubscription(subscription, transaction)
+
+        expect(updatedSubscription.status).toBe(
+          SubscriptionStatus.Active
+        )
+        expect(updatedSubscription.cancelScheduledAt).toBeNull()
+      })
+    })
+
+    it('should uncancel a subscription with future trialEnd and revert to Trialing', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const futureTrialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days in future
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: Date.now() + 60 * 60 * 1000,
+          trialEnd: futureTrialEnd,
+        })
+
+        const { result: updatedSubscription } =
+          await uncancelSubscription(subscription, transaction)
+
+        expect(updatedSubscription.status).toBe(
+          SubscriptionStatus.Trialing
+        )
+        expect(updatedSubscription.cancelScheduledAt).toBeNull()
+      })
+    })
+
+    it('should silently succeed if subscription is not in CancellationScheduled status (idempotent)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.Active,
+        })
+
+        const { result: updatedSubscription } =
+          await uncancelSubscription(subscription, transaction)
+
+        expect(updatedSubscription.status).toBe(
+          SubscriptionStatus.Active
+        )
+        expect(updatedSubscription.id).toBe(subscription.id)
+      })
+    })
+
+    it('should silently succeed if subscription is in terminal state (idempotent)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.Canceled,
+        })
+
+        const { result: updatedSubscription } =
+          await uncancelSubscription(subscription, transaction)
+
+        expect(updatedSubscription.status).toBe(
+          SubscriptionStatus.Canceled
+        )
+        expect(updatedSubscription.id).toBe(subscription.id)
+      })
+    })
+
+    it('should revert billing periods from ScheduledToCancel to Upcoming', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Create a billing period marked as ScheduledToCancel
+        const futureBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        const updatedBP = await selectBillingPeriodById(
+          futureBP.id,
+          transaction
+        )
+        expect(updatedBP.status).toBe(BillingPeriodStatus.Upcoming)
+      })
+    })
+
+    it('should clear cancelScheduledAt when uncanceling', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        const { result: updatedSubscription } =
+          await uncancelSubscription(subscription, transaction)
+
+        expect(updatedSubscription.cancelScheduledAt).toBeNull()
+      })
+    })
+
+    it('should throw error for paid subscription without payment method (security)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        // Create subscription first, then clear payment method
+        const tempSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+          isFreePlan: false,
+        })
+
+        // Clear the payment method to simulate no payment method
+        const paidSubscription = await updateSubscription(
+          {
+            id: tempSubscription.id,
+            defaultPaymentMethodId: null,
+            renews: tempSubscription.renews,
+          },
+          transaction
+        )
+
+        // Create a billing period to trigger the reschedule logic
+        await setupBillingPeriod({
+          subscriptionId: paidSubscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        await expect(
+          uncancelSubscription(paidSubscription, transaction)
+        ).rejects.toThrow(
+          /Cannot uncancel paid subscription without an active payment method/
+        )
+      })
+    })
+
+    it('should succeed for free subscription without payment method', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        // Create free subscription first, then clear payment method
+        const tempSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+          isFreePlan: true,
+        })
+
+        // Clear the payment method to simulate no payment method
+        const freeSubscription = await updateSubscription(
+          {
+            id: tempSubscription.id,
+            defaultPaymentMethodId: null,
+            renews: tempSubscription.renews,
+          },
+          transaction
+        )
+
+        // Create a billing period marked as ScheduledToCancel
+        await setupBillingPeriod({
+          subscriptionId: freeSubscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        const { result: updatedSubscription } =
+          await uncancelSubscription(freeSubscription, transaction)
+
+        expect(updatedSubscription.status).toBe(
+          SubscriptionStatus.Active
+        )
+      })
+    })
+
+    it('should create NEW billing runs for periods with Aborted runs', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Create a future billing period
+        const futureBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        // Create an aborted billing run for the future period
+        await setupBillingRun({
+          billingPeriodId: futureBP.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Aborted,
+          scheduledFor: now + 3 * 60 * 60 * 1000,
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        // Check that a new billing run was created (should have 2 runs now)
+        const billingRuns = await selectBillingRuns(
+          { billingPeriodId: futureBP.id },
+          transaction
+        )
+
+        const scheduledRuns = billingRuns.filter(
+          (run) => run.status === BillingRunStatus.Scheduled
+        )
+        expect(scheduledRuns.length).toBe(1)
+      })
+    })
+
+    it('should leave Scheduled runs as-is (already valid)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Create a future billing period
+        const futureBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        // Create a scheduled billing run (should NOT be duplicated)
+        const existingRun = await setupBillingRun({
+          billingPeriodId: futureBP.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Scheduled,
+          scheduledFor: now + 3 * 60 * 60 * 1000,
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        // Check that no additional billing run was created
+        const billingRuns = await selectBillingRuns(
+          { billingPeriodId: futureBP.id },
+          transaction
+        )
+
+        expect(billingRuns.length).toBe(1)
+        expect(billingRuns[0].id).toBe(existingRun.id)
+      })
+    })
+
+    it('should skip terminal runs (Succeeded/Failed)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Create a billing period
+        const bp = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        // Create a succeeded billing run (should NOT create another run)
+        await setupBillingRun({
+          billingPeriodId: bp.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Succeeded,
+          scheduledFor: now - 30 * 60 * 1000, // in the past
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        // Check that no new billing run was created
+        const billingRuns = await selectBillingRuns(
+          { billingPeriodId: bp.id },
+          transaction
+        )
+
+        expect(billingRuns.length).toBe(1)
+        expect(billingRuns[0].status).toBe(BillingRunStatus.Succeeded)
+      })
+    })
+
+    it('should skip billing runs for trial periods', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Create a billing period first
+        const tempBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        // Update to be a trial period
+        const trialBP = await updateBillingPeriod(
+          { id: tempBP.id, trialPeriod: true },
+          transaction
+        )
+
+        await uncancelSubscription(subscription, transaction)
+
+        // Check that no billing run was created for the trial period
+        const billingRuns = await selectBillingRuns(
+          { billingPeriodId: trialBP.id },
+          transaction
+        )
+
+        expect(billingRuns.length).toBe(0)
+      })
+    })
+
+    it('should be idempotent - calling multiple times has no side effects', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        // Call uncancel twice
+        const { result: first } = await uncancelSubscription(
+          subscription,
+          transaction
+        )
+        const { result: second } = await uncancelSubscription(
+          first,
+          transaction
+        )
+
+        expect(first.status).toBe(SubscriptionStatus.Active)
+        expect(second.status).toBe(SubscriptionStatus.Active)
+        expect(second.id).toBe(first.id)
+      })
+    })
+
+    it('should handle subscription with runBillingAtPeriodStart = true', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        // Create subscription first
+        const tempSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Update to set runBillingAtPeriodStart = true
+        const subscription = await updateSubscription(
+          {
+            id: tempSubscription.id,
+            runBillingAtPeriodStart: true,
+            renews: tempSubscription.renews,
+          },
+          transaction
+        )
+
+        // Create a future billing period
+        const futureBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        // Check that a billing run was created scheduled at period start
+        const billingRuns = await selectBillingRuns(
+          { billingPeriodId: futureBP.id },
+          transaction
+        )
+
+        const scheduledRuns = billingRuns.filter(
+          (run) => run.status === BillingRunStatus.Scheduled
+        )
+        expect(scheduledRuns.length).toBe(1)
+        expect(scheduledRuns[0].scheduledFor).toBe(futureBP.startDate)
+      })
+    })
+
+    it('should handle subscription with runBillingAtPeriodStart = false', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        // Create subscription first
+        const tempSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Update to set runBillingAtPeriodStart = false
+        const subscription = await updateSubscription(
+          {
+            id: tempSubscription.id,
+            runBillingAtPeriodStart: false,
+            renews: tempSubscription.renews,
+          },
+          transaction
+        )
+
+        // Create a future billing period
+        const futureBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        // Check that a billing run was created scheduled at period end
+        const billingRuns = await selectBillingRuns(
+          { billingPeriodId: futureBP.id },
+          transaction
+        )
+
+        const scheduledRuns = billingRuns.filter(
+          (run) => run.status === BillingRunStatus.Scheduled
+        )
+        expect(scheduledRuns.length).toBe(1)
+        expect(scheduledRuns[0].scheduledFor).toBe(futureBP.endDate)
+      })
+    })
+
+    it('should only create billing runs for future dates', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Create a billing period that is in the past (should not get a billing run)
+        const pastBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now - 3 * 60 * 60 * 1000,
+          endDate: now - 2 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        // Check that no billing run was created for the past period
+        const billingRuns = await selectBillingRuns(
+          { billingPeriodId: pastBP.id },
+          transaction
+        )
+
+        expect(billingRuns.length).toBe(0)
+      })
+    })
+  })
+
+  /* --------------------------------------------------------------------------
+     uncancelSubscriptionProcedureTransaction Tests
+  --------------------------------------------------------------------------- */
+  describe('uncancelSubscriptionProcedureTransaction', () => {
+    it('should return the updated subscription when uncanceling', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now - 60 * 60 * 1000,
+          endDate: now + 60 * 60 * 1000,
+        })
+
+        const response =
+          await uncancelSubscriptionProcedureTransaction({
+            input: { id: subscription.id },
+            transaction,
+            ctx: { apiKey: undefined },
+            livemode: true,
+            userId: '1',
+            organizationId: organization.id,
+          })
+
+        expect(response.result.subscription.id).toBe(subscription.id)
+        expect(response.result.subscription.status).toBe(
+          SubscriptionStatus.Active
+        )
+        expect(response.result.subscription.current).toBe(true)
+        expect(response.eventsToInsert).toHaveLength(0)
+      })
+    })
+
+    it('should handle authentication correctly and return proper error for paid subscription without payment method', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        // Create subscription first
+        const tempSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+          isFreePlan: false,
+        })
+
+        // Clear the payment method to simulate no payment method
+        const paidSubscription = await updateSubscription(
+          {
+            id: tempSubscription.id,
+            defaultPaymentMethodId: null,
+            renews: tempSubscription.renews,
+          },
+          transaction
+        )
+
+        await setupBillingPeriod({
+          subscriptionId: paidSubscription.id,
+          startDate: now + 2 * 60 * 60 * 1000,
+          endDate: now + 3 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        await expect(
+          uncancelSubscriptionProcedureTransaction({
+            input: { id: paidSubscription.id },
+            transaction,
+            ctx: { apiKey: undefined },
+            livemode: true,
+            userId: '1',
+            organizationId: organization.id,
+          })
+        ).rejects.toThrow(
+          /Cannot uncancel paid subscription without an active payment method/
+        )
+      })
     })
   })
 })
