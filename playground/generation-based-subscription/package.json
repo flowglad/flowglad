@@ -1,5 +1,5 @@
 {
-  "name": "flowglad/playground-generation-based-subscription",
+  "name": "@flowglad/playground-generation-based-subscription",
   "version": "1.0.0",
   "description": "Next.js starter template with BetterAuth and Flowglad",
   "private": true,
