@@ -2415,6 +2415,36 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
+    it('should revert current billing period from ScheduledToCancel to Active', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const subscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Create a current billing period (already started) marked as ScheduledToCancel
+        const currentBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now - 60 * 60 * 1000, // Started 1 hour ago
+          endDate: now + 60 * 60 * 1000, // Ends 1 hour from now
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        const updatedBP = await selectBillingPeriodById(
+          currentBP.id,
+          transaction
+        )
+        expect(updatedBP.status).toBe(BillingPeriodStatus.Active)
+      })
+    })
+
     it('should clear cancelScheduledAt when uncanceling', async () => {
       await adminTransaction(async ({ transaction }) => {
         const now = Date.now()
@@ -2837,6 +2867,220 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
 
         expect(billingRuns.length).toBe(0)
+      })
+    })
+
+    it('should create billing run for current period when runBillingAtPeriodStart = false and period end is in future', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const tempSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Update subscription to have runBillingAtPeriodStart = false
+        const subscription = await updateSubscription(
+          {
+            id: tempSubscription.id,
+            runBillingAtPeriodStart: false,
+            renews: tempSubscription.renews,
+          },
+          transaction
+        )
+
+        // Create a current billing period (started, but ends in future)
+        const currentBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now - 60 * 60 * 1000, // Started 1 hour ago
+          endDate: now + 2 * 60 * 60 * 1000, // Ends 2 hours from now
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        // Create an aborted billing run (simulating what happens during cancellation)
+        await setupBillingRun({
+          billingPeriodId: currentBP.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Aborted,
+          scheduledFor: now + 2 * 60 * 60 * 1000, // Was scheduled for period end
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        // Check that a new billing run was created for the current period
+        const billingRuns = await selectBillingRuns(
+          { billingPeriodId: currentBP.id },
+          transaction
+        )
+
+        const scheduledRuns = billingRuns.filter(
+          (run) => run.status === BillingRunStatus.Scheduled
+        )
+        expect(scheduledRuns.length).toBe(1)
+        // Should be scheduled at period end since runBillingAtPeriodStart = false
+        expect(scheduledRuns[0].scheduledFor).toBe(currentBP.endDate)
+      })
+    })
+
+    it('should NOT create billing run for current period when runBillingAtPeriodStart = true (start date is in past)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const tempSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 60 * 60 * 1000,
+        })
+
+        // Update subscription to have runBillingAtPeriodStart = true
+        const subscription = await updateSubscription(
+          {
+            id: tempSubscription.id,
+            runBillingAtPeriodStart: true,
+            renews: tempSubscription.renews,
+          },
+          transaction
+        )
+
+        // Create a current billing period (started, so start date is in past)
+        const currentBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now - 60 * 60 * 1000, // Started 1 hour ago
+          endDate: now + 2 * 60 * 60 * 1000, // Ends 2 hours from now
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        // Create an aborted billing run
+        await setupBillingRun({
+          billingPeriodId: currentBP.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Aborted,
+          scheduledFor: now - 60 * 60 * 1000, // Was scheduled at period start (past)
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        // Check that NO new billing run was created (start date is in past)
+        const billingRuns = await selectBillingRuns(
+          { billingPeriodId: currentBP.id },
+          transaction
+        )
+
+        const scheduledRuns = billingRuns.filter(
+          (run) => run.status === BillingRunStatus.Scheduled
+        )
+        expect(scheduledRuns.length).toBe(0)
+      })
+    })
+
+    it('should handle both current and future billing periods correctly on uncancel', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const now = Date.now()
+        const tempSubscription = await setupSubscription({
+          organizationId: organization.id,
+          customerId: customer.id,
+          paymentMethodId: paymentMethod.id,
+          priceId: price.id,
+          status: SubscriptionStatus.CancellationScheduled,
+          cancelScheduledAt: now + 3 * 60 * 60 * 1000, // Cancel scheduled at end of current period
+        })
+
+        // Use runBillingAtPeriodStart = false (bill at period end)
+        const subscription = await updateSubscription(
+          {
+            id: tempSubscription.id,
+            runBillingAtPeriodStart: false,
+            renews: tempSubscription.renews,
+          },
+          transaction
+        )
+
+        // Create current billing period (Active -> ScheduledToCancel during cancellation)
+        const currentBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now - 60 * 60 * 1000, // Started 1 hour ago
+          endDate: now + 3 * 60 * 60 * 1000, // Ends 3 hours from now
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        // Create future billing period (Upcoming -> ScheduledToCancel during cancellation)
+        const futureBP = await setupBillingPeriod({
+          subscriptionId: subscription.id,
+          startDate: now + 3 * 60 * 60 * 1000, // Starts after current ends
+          endDate: now + 6 * 60 * 60 * 1000,
+          status: BillingPeriodStatus.ScheduledToCancel,
+        })
+
+        // Aborted billing run for current period
+        await setupBillingRun({
+          billingPeriodId: currentBP.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Aborted,
+          scheduledFor: now + 3 * 60 * 60 * 1000,
+        })
+
+        // Aborted billing run for future period
+        await setupBillingRun({
+          billingPeriodId: futureBP.id,
+          subscriptionId: subscription.id,
+          paymentMethodId: paymentMethod.id,
+          status: BillingRunStatus.Aborted,
+          scheduledFor: now + 6 * 60 * 60 * 1000,
+        })
+
+        await uncancelSubscription(subscription, transaction)
+
+        // Verify current billing period reverted to Active
+        const updatedCurrentBP = await selectBillingPeriodById(
+          currentBP.id,
+          transaction
+        )
+        expect(updatedCurrentBP.status).toBe(
+          BillingPeriodStatus.Active
+        )
+
+        // Verify future billing period reverted to Upcoming
+        const updatedFutureBP = await selectBillingPeriodById(
+          futureBP.id,
+          transaction
+        )
+        expect(updatedFutureBP.status).toBe(
+          BillingPeriodStatus.Upcoming
+        )
+
+        // Verify new billing run created for current period (end date in future)
+        const currentBPRuns = await selectBillingRuns(
+          { billingPeriodId: currentBP.id },
+          transaction
+        )
+        const currentScheduledRuns = currentBPRuns.filter(
+          (run) => run.status === BillingRunStatus.Scheduled
+        )
+        expect(currentScheduledRuns.length).toBe(1)
+        expect(currentScheduledRuns[0].scheduledFor).toBe(
+          currentBP.endDate
+        )
+
+        // Verify new billing run created for future period
+        const futureBPRuns = await selectBillingRuns(
+          { billingPeriodId: futureBP.id },
+          transaction
+        )
+        const futureScheduledRuns = futureBPRuns.filter(
+          (run) => run.status === BillingRunStatus.Scheduled
+        )
+        expect(futureScheduledRuns.length).toBe(1)
+        expect(futureScheduledRuns[0].scheduledFor).toBe(
+          futureBP.endDate
+        )
       })
     })
   })
