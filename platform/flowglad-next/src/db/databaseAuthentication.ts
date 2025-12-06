@@ -117,6 +117,19 @@ interface DatabaseAuthenticationInfo {
   jwtClaim: JWTClaim
 }
 
+/**
+ * Creates authentication info for a Secret API key.
+ *
+ * Sets `auth_type: 'api_key'` in JWT claims, which allows API keys to bypass
+ * the membership `focused` check in RLS policies. This is necessary because
+ * API keys are scoped to a specific organization and should work regardless
+ * of which organization the user has focused in the webapp.
+ *
+ * @param verifyKeyResult - The verified API key result containing:
+ *   - `userId`: The user who created/owns the API key (extracted from metadata)
+ *   - `ownerId`: The organization ID this API key belongs to
+ * @returns Database authentication info with JWT claims set for API key auth
+ */
 export async function dbAuthInfoForSecretApiKeyResult(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
@@ -270,6 +283,9 @@ export const dbInfoForCustomerBillingPortal = async ({
  * is present in the billing portal cookie state:
  * - If no customer organization ID: authenticates as merchant using focused membership
  * - If customer organization ID exists: authenticates as customer for billing portal
+ *
+ * Sets `auth_type: 'webapp'` in JWT claims, which means RLS policies will enforce
+ * the membership `focused` check (unlike API key auth which bypasses it).
  *
  * @param user - The Better Auth user making the request
  * @param __testOnlyOrganizationId - Optional test organization ID override
