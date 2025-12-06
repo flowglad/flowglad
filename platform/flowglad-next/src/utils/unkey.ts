@@ -3,7 +3,6 @@ import { Unkey, verifyKey } from '@unkey/api'
 import {
   type ApiKey,
   apiKeyMetadataSchema,
-  billingPortalApiKeyMetadataSchema,
   secretApiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'
 import type { Organization } from '@/db/schema/organizations'

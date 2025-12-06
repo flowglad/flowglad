@@ -78,37 +78,10 @@ describe('parseUnkeyMeta', () => {
     })
   })
 
-  it('should parse well-formed billing portal metadata', () => {
-    const rawMeta = {
-      type: FlowgladApiKeyType.BillingPortalToken,
-      stackAuthHostedBillingUserId: 'billing_123',
-      organizationId: 'org_456',
-    }
-    const result = parseUnkeyMeta(rawMeta)
-
-    expect(result).toEqual({
-      type: FlowgladApiKeyType.BillingPortalToken,
-      stackAuthHostedBillingUserId: 'billing_123',
-      organizationId: 'org_456',
-    })
-  })
-
   it('should throw error for malformed secret metadata with missing userId', () => {
     const rawMeta = {
       type: FlowgladApiKeyType.Secret,
       // Missing userId
-      organizationId: 'org_456',
-    }
-
-    expect(() => parseUnkeyMeta(rawMeta)).toThrow(
-      'Invalid unkey metadata'
-    )
-  })
-
-  it('should throw error for malformed billing portal metadata with missing stackAuthHostedBillingUserId', () => {
-    const rawMeta = {
-      type: FlowgladApiKeyType.BillingPortalToken,
-      // Missing stackAuthHostedBillingUserId
       organizationId: 'org_456',
     }
 
