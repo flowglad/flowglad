@@ -718,6 +718,21 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
     if (hasTerminalRun) continue
 
     // For Aborted runs or no runs: create a new billing run
+    // Note aborted runs should be those set from scheduleSubscriptionCancellation
+    // not from processPaymentIntentEventForBillingRun set from Stripe
+    const hasActiveOrStripeAbortedRun = existingRuns.some(
+      (run) =>
+        run.status === BillingRunStatus.InProgress ||
+        run.status === BillingRunStatus.AwaitingPaymentConfirmation ||
+        // Skip if aborted by Stripe (has payment intent event timestamp)
+        (run.status === BillingRunStatus.Aborted &&
+          run.lastPaymentIntentEventTimestamp !== null)
+    )
+
+    if (hasActiveOrStripeAbortedRun) {
+      continue
+    }
+
     const scheduledFor = subscription.runBillingAtPeriodStart
       ? billingPeriod.startDate
       : billingPeriod.endDate
