@@ -156,7 +156,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     // - returned.jwtClaim.user_metadata.id equals M2.userId
     // - returned.jwtClaim.organization_id equals M2.organizationId
     // - returned.jwtClaim.email equals WebUser.email
-    // - returned.jwtClaim.app_metadata.provider equals 'apiKey' (note: surprising, but current behavior)
+    // - returned.jwtClaim.app_metadata.provider equals 'webapp' for webapp auth
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id, // ensure we pass the betterAuthId used in beforeEach
       email: (webUser as any).email,
@@ -174,7 +174,7 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
       webMemB.organizationId
     )
     expect(result.jwtClaim.email).toEqual((webUser as any).email)
-    expect(result.jwtClaim.app_metadata.provider).toEqual('apiKey')
+    expect(result.jwtClaim.app_metadata.provider).toEqual('webapp')
   })
 
   it('should fall back to the first membership returned when none are focused', async () => {
@@ -547,11 +547,12 @@ describe('subtleties and invariants across flows', () => {
     expect((res.jwtClaim as any).organizationId).toBeUndefined()
   })
 
-  it('provider consistency: jwtClaim.app_metadata.provider is currently "apiKey" for webapp and Secret flows', async () => {
+  it('provider consistency: jwtClaim.app_metadata.provider reflects auth type ("webapp" vs "apiKey")', async () => {
     // setup:
     // - obtain results from webapp and Secret flows
     // expects:
-    // - jwtClaim.app_metadata.provider equals 'apiKey' in these cases (documenting current behavior)
+    // - jwtClaim.app_metadata.provider equals 'webapp' for webapp auth
+    // - jwtClaim.app_metadata.provider equals 'apiKey' for Secret API key auth
     const mockBetterAuthUser = {
       id: (webUser as any).betterAuthId ?? (webUser as any).id,
       email: (webUser as any).email,
@@ -572,7 +573,7 @@ describe('subtleties and invariants across flows', () => {
         organizationId: secretOrg.id,
       },
     } as any)
-    expect(webappRes.jwtClaim.app_metadata.provider).toEqual('apiKey')
+    expect(webappRes.jwtClaim.app_metadata.provider).toEqual('webapp')
     expect(secretRes.jwtClaim.app_metadata.provider).toEqual('apiKey')
   })
 
@@ -703,7 +704,7 @@ describe('Customer Role vs Merchant Role Authentication', () => {
 
       // Different providers
       expect(merchantResult.jwtClaim.app_metadata.provider).toBe(
-        'apiKey'
+        'webapp'
       )
       expect(customerResult.jwtClaim.app_metadata.provider).toBe(
         'customerBillingPortal'

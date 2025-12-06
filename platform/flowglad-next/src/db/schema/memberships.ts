@@ -51,7 +51,9 @@ export const memberships = pgTable(
           as: 'permissive',
           to: 'merchant',
           for: 'select',
-          using: sql`"user_id" = requesting_user_id() and "focused" = true and "organization_id" = current_organization_id()`,
+          // API keys bypass the focused check because they're scoped to a specific organization.
+          // Webapp auth requires focused=true to ensure users only see their active organization.
+          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND (current_auth_type() = 'api_key' OR "focused" = true)`,
         }
       ),
       // no livemode policy for memberships, because memberships are used to determine access to

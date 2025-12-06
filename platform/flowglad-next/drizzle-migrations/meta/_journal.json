@@ -1744,6 +1744,13 @@
       "when": 1764801388746,
       "tag": "0249_special_wiccan",
       "breakpoints": true
+    },
+    {
+      "idx": 250,
+      "version": "7",
+      "when": 1765036067018,
+      "tag": "0250_legal_human_torch",
+      "breakpoints": true
     }
   ]
 }
