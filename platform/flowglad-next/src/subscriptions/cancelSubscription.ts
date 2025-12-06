@@ -824,7 +824,7 @@ export const uncancelSubscription = async (
   }
 
   // Update subscription: clear cancelScheduledAt and revert status
-  let updatedSubscription = await updateSubscription(
+  const updatedSubscription = await updateSubscription(
     {
       id: subscription.id,
       cancelScheduledAt: null,
@@ -833,16 +833,6 @@ export const uncancelSubscription = async (
     },
     transaction
   )
-
-  // Use safelyUpdateSubscriptionStatus to ensure state machine compliance
-  const result = await safelyUpdateSubscriptionStatus(
-    updatedSubscription,
-    previousStatus,
-    transaction
-  )
-  if (result) {
-    updatedSubscription = result
-  }
 
   // Note: No events are emitted for uncancel
   return {
