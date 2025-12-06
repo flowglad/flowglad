@@ -3,7 +3,6 @@ import { Unkey, verifyKey } from '@unkey/api'
 import {
   type ApiKey,
   apiKeyMetadataSchema,
-  billingPortalApiKeyMetadataSchema,
   secretApiKeyMetadataSchema,
 } from '@/db/schema/apiKeys'
 import type { Organization } from '@/db/schema/organizations'
@@ -274,38 +273,32 @@ export const parseUnkeyMeta =
     if (!rawUnkeyMeta) {
       throw new Error('No unkey metadata provided')
     }
+
+    // First, try to parse with the schema directly
     const firstUnkeyMetaResult =
       apiKeyMetadataSchema.safeParse(rawUnkeyMeta)
     if (firstUnkeyMetaResult.success) {
       return firstUnkeyMetaResult.data
-    } else if (
-      !firstUnkeyMetaResult.success &&
-      firstUnkeyMetaResult.error.issues.some(
-        (issue) =>
-          issue.code === 'invalid_union' &&
-          issue.path[0] === 'type' &&
-          issue.path.length === 1
+    }
+
+    // @ts-expect-error object is not typed
+    const metaType = rawUnkeyMeta.type
+
+    // If there's an explicit type that's not Secret, reject it
+    if (metaType && metaType !== FlowgladApiKeyType.Secret) {
+      throw new Error(
+        `Invalid unkey metadata. Received metadata with type ${metaType} but expected type ${FlowgladApiKeyType.Secret}`
       )
-    ) {
-      // @ts-expect-error object is not typed
-      const metaType = rawUnkeyMeta.type
-      if (metaType && metaType !== FlowgladApiKeyType.Secret) {
-        throw new Error(
-          `Invalid unkey metadata. Received metadata with type ${metaType} but expected type ${FlowgladApiKeyType.Secret}`
-        )
-      }
-      const secondUnkeyMetaResult = apiKeyMetadataSchema.safeParse({
-        ...rawUnkeyMeta,
-        type: FlowgladApiKeyType.Secret,
-      })
-      if (!secondUnkeyMetaResult.success) {
-        throw new Error(
-          `Invalid unkey metadata: ${JSON.stringify(
-            secondUnkeyMetaResult.error.issues
-          )}`
-        )
-      }
+    }
+
+    // Try adding the Secret type for legacy keys that don't have a type field
+    const secondUnkeyMetaResult = apiKeyMetadataSchema.safeParse({
+      ...rawUnkeyMeta,
+      type: FlowgladApiKeyType.Secret,
+    })
+    if (secondUnkeyMetaResult.success) {
       return secondUnkeyMetaResult.data
     }
+
     throw new Error('Invalid unkey metadata')
   }
