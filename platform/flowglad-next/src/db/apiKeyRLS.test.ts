@@ -3,8 +3,6 @@
  *
  * These tests verify that API key authentication works correctly regardless of
  * membership focused state, while ensuring proper cross-organization isolation.
- *
- * FG-597: API keys don't work if you do not have the organization focused
  */
 import { sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -38,7 +36,7 @@ import {
 import { selectOrganizations } from './tableMethods/organizationMethods'
 import { selectProducts } from './tableMethods/productMethods'
 
-describe('API Key RLS - FG-597', () => {
+describe('API Key RLS', () => {
   // Test state
   let orgA: Organization.Record
   let orgB: Organization.Record
@@ -116,7 +114,7 @@ describe('API Key RLS - FG-597', () => {
       }
     )
 
-    // Update userA's membership in orgA to be unfocused (THE BUG SCENARIO)
+    // Update userA's membership in orgA to be unfocused
     await adminTransaction(async ({ transaction }) => {
       await updateMembership(
         {
@@ -167,9 +165,8 @@ describe('API Key RLS - FG-597', () => {
     })
   })
 
-  describe('Scenario 2: API Key with UNFOCUSED Membership (THE BUG FIX)', () => {
-    // This is the core bug scenario - userA has focused=false for orgA
-    // but should still be able to use orgA's API key
+  describe('Scenario 2: API Key with UNFOCUSED Membership', () => {
+    // userA has focused=false for orgA but should still be able to use orgA's API key
 
     it('should access organization record with unfocused membership', async () => {
       // Verify precondition: userA's membership in orgA is unfocused

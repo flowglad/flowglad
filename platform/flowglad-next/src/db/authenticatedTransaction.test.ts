@@ -533,14 +533,13 @@ describe('RLS Access Control with selectMemberships', () => {
       expect(result[0].focused).toBe(true)
     })
 
-    it('should return membership even when focused=false for API key auth (FG-597 fix)', async () => {
+    it('should return membership even when focused=false for API key auth', async () => {
       // setup:
       // - create new API key for testOrg2 but with userA (who has focused=false there)
       // - attempt to select memberships
 
       // expects:
       // - selectMemberships should return the membership because API key auth bypasses focused check
-      // - This is the FG-597 fix: API keys work regardless of focused state
       const testApiKey = await adminTransaction(
         async ({ transaction }) => {
           return insertApiKey(
@@ -582,7 +581,7 @@ describe('RLS Access Control with selectMemberships', () => {
         { apiKey: testApiKey.token }
       )
 
-      // FG-597: API key auth now bypasses focused=true requirement
+      // API key auth bypasses focused=true requirement
       // Should return the membership even with focused=false
       expect(result).toHaveLength(1)
       expect(result[0].organizationId).toBe(testOrg2.id)
@@ -1610,7 +1609,7 @@ describe('Second-order RLS defense in depth', () => {
 })
 
 describe('Edge cases and robustness for second-order RLS', () => {
-  it('API key always accesses its own org regardless of focused state (FG-597 fix)', async () => {
+  it('API key always accesses its own org regardless of focused state', async () => {
     const { organization: o1 } = await setupOrg()
     const { organization: o2 } = await setupOrg()
     const { user, apiKey } = await setupUserAndApiKey({
@@ -1645,7 +1644,7 @@ describe('Edge cases and robustness for second-order RLS', () => {
         )
     })
 
-    // FG-597: API key is tied to o1, so it should still access o1's products
+    // API key is tied to o1, so it should still access o1's products
     // even when the user's membership in o1 has focused=false
     const second = await authenticatedTransaction(
       async ({ transaction }) => selectProducts({}, transaction),
