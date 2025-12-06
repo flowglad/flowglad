@@ -166,6 +166,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageAfter: firstPage.endCursor!,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })
