@@ -1,12 +1,11 @@
 import type { Session } from '@supabase/supabase-js'
 import { verifyKey } from '@unkey/api'
 import type { User } from 'better-auth'
-import { and, asc, desc, eq, or, sql } from 'drizzle-orm'
+import { and, desc, eq, or } from 'drizzle-orm'
 import type { JwtPayload } from 'jsonwebtoken'
-import { headers } from 'next/headers'
 import { z } from 'zod'
 import { FlowgladApiKeyType } from '@/types'
-import { auth, getSession } from '@/utils/auth'
+import { getSession } from '@/utils/auth'
 import core from '@/utils/core'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { parseUnkeyMeta } from '@/utils/unkey'
@@ -27,6 +26,7 @@ export interface JWTClaim extends JwtPayload {
   email: string
   role: string
   organization_id: string
+  auth_type: 'api_key' | 'webapp'
 }
 
 interface KeyVerifyResult {
@@ -117,6 +117,19 @@ interface DatabaseAuthenticationInfo {
   jwtClaim: JWTClaim
 }
 
+/**
+ * Creates authentication info for a Secret API key.
+ *
+ * Sets `auth_type: 'api_key'` in JWT claims, which allows API keys to bypass
+ * the membership `focused` check in RLS policies. This is necessary because
+ * API keys are scoped to a specific organization and should work regardless
+ * of which organization the user has focused in the webapp.
+ *
+ * @param verifyKeyResult - The verified API key result containing:
+ *   - `userId`: The user who created/owns the API key (extracted from metadata)
+ *   - `ownerId`: The organization ID this API key belongs to
+ * @returns Database authentication info with JWT claims set for API key auth
+ */
 export async function dbAuthInfoForSecretApiKeyResult(
   verifyKeyResult: KeyVerifyResult
 ): Promise<DatabaseAuthenticationInfo> {
@@ -148,6 +161,7 @@ export async function dbAuthInfoForSecretApiKeyResult(
     email: 'apiKey@example.com',
     session_id: 'mock_session_123',
     organization_id: verifyKeyResult.ownerId,
+    auth_type: 'api_key',
     user_metadata: {
       id: userId,
       user_metadata: {},
@@ -241,6 +255,7 @@ export const dbInfoForCustomerBillingPortal = async ({
       sub: user.id,
       email: user.email!,
       organization_id: customer.organizationId,
+      auth_type: 'webapp',
       user_metadata: {
         id: user.id,
         user_metadata: {},
@@ -268,6 +283,9 @@ export const dbInfoForCustomerBillingPortal = async ({
  * is present in the billing portal cookie state:
  * - If no customer organization ID: authenticates as merchant using focused membership
  * - If customer organization ID exists: authenticates as customer for billing portal
+ *
+ * Sets `auth_type: 'webapp'` in JWT claims, which means RLS policies will enforce
+ * the membership `focused` check (unlike API key auth which bypasses it).
  *
  * @param user - The Better Auth user making the request
  * @param __testOnlyOrganizationId - Optional test organization ID override
@@ -298,10 +316,11 @@ export async function databaseAuthenticationInfoForWebappRequest(
       .limit(1)
     const userId = focusedMembership?.memberships.userId
     const livemode = focusedMembership?.memberships.livemode ?? false
-    const jwtClaim = {
+    const jwtClaim: JWTClaim = {
       role: 'merchant',
       sub: userId,
       email: user.email,
+      auth_type: 'webapp',
       user_metadata: {
         id: userId,
         user_metadata: {},
@@ -316,7 +335,7 @@ export async function databaseAuthenticationInfoForWebappRequest(
       },
       organization_id:
         focusedMembership?.memberships.organizationId ?? '',
-      app_metadata: { provider: 'apiKey' },
+      app_metadata: { provider: 'webapp' },
     }
     return {
       userId,
