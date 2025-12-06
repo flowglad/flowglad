@@ -27,6 +27,7 @@ export interface JWTClaim extends JwtPayload {
   email: string
   role: string
   organization_id: string
+  auth_type: 'api_key' | 'webapp'
 }
 
 interface KeyVerifyResult {
@@ -153,6 +154,7 @@ export async function dbAuthInfoForSecretApiKeyResult(
     email: 'apiKey@example.com',
     session_id: 'mock_session_123',
     organization_id: verifyKeyResult.ownerId,
+    auth_type: 'api_key',
     user_metadata: {
       id: userId,
       user_metadata: {},
@@ -238,6 +240,7 @@ export async function dbAuthInfoForBillingPortalApiKeyResult(
     role: 'merchant',
     sub: userId,
     email: 'apiKey@example.com',
+    auth_type: 'api_key',
     user_metadata: {
       id: userId,
       user_metadata: {},
@@ -334,6 +337,7 @@ export const dbInfoForCustomerBillingPortal = async ({
       sub: user.id,
       email: user.email!,
       organization_id: customer.organizationId,
+      auth_type: 'webapp',
       user_metadata: {
         id: user.id,
         user_metadata: {},
@@ -391,10 +395,11 @@ export async function databaseAuthenticationInfoForWebappRequest(
       .limit(1)
     const userId = focusedMembership?.memberships.userId
     const livemode = focusedMembership?.memberships.livemode ?? false
-    const jwtClaim = {
+    const jwtClaim: JWTClaim = {
       role: 'merchant',
       sub: userId,
       email: user.email,
+      auth_type: 'webapp',
       user_metadata: {
         id: userId,
         user_metadata: {},
@@ -409,7 +414,7 @@ export async function databaseAuthenticationInfoForWebappRequest(
       },
       organization_id:
         focusedMembership?.memberships.organizationId ?? '',
-      app_metadata: { provider: 'apiKey' },
+      app_metadata: { provider: 'webapp' },
     }
     return {
       userId,

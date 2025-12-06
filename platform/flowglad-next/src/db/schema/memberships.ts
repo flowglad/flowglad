@@ -51,7 +51,7 @@ export const memberships = pgTable(
           as: 'permissive',
           to: 'merchant',
           for: 'select',
-          using: sql`"user_id" = requesting_user_id() and "focused" = true and "organization_id" = current_organization_id()`,
+          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND (current_auth_type() = 'api_key' OR "focused" = true)`,
         }
       ),
       // no livemode policy for memberships, because memberships are used to determine access to
