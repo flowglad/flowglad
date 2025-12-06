@@ -228,6 +228,7 @@ const innerHandler = async (
           api_key_type: apiKeyType,
           body_size_bytes: requestBodySize,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         // Create a new context with our parent span
@@ -289,6 +290,7 @@ const innerHandler = async (
           route_pattern: routeKey,
           procedure: route.procedure,
           matching_duration_ms: routeMatchingDuration,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         // Extract parameters from URL with telemetry
@@ -615,6 +617,7 @@ const innerHandler = async (
           endpoint_category: endpointCategory,
           operation_type: operationType,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         return NextResponse.json(responseData)
@@ -644,6 +647,7 @@ const innerHandler = async (
           url: req.url,
           total_duration_ms: totalDuration,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         return NextResponse.json(
