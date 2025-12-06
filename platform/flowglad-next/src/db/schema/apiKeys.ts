@@ -22,7 +22,6 @@ import { FlowgladApiKeyType } from '@/types'
 
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
-import { zodEpochMs } from '../timestampMs'
 
 const TABLE_NAME = 'api_keys'
 
@@ -102,33 +101,6 @@ export const {
   },
 })
 
-const hostedBillingApiKeyColumns = {
-  type: z.literal(FlowgladApiKeyType.BillingPortalToken),
-  expiresAt: zodEpochMs,
-  stackAuthHostedBillingUserId: z.string(),
-}
-
-export const {
-  insert: hostedBillingPortalApiKeysInsertSchema,
-  select: hostedBillingPortalApiKeysSelectSchema,
-  update: hostedBillingPortalApiKeysUpdateSchema,
-  client: {
-    select: hostedBillingPortalApiKeysClientSelectSchema,
-    insert: hostedBillingPortalApiKeysClientInsertSchema,
-    update: hostedBillingPortalApiKeysClientUpdateSchema,
-  },
-} = buildSchemas(apiKeys, {
-  refine: {
-    ...columnRefinements,
-    ...hostedBillingApiKeyColumns,
-  },
-  client: {
-    hiddenColumns,
-    readOnlyColumns,
-  },
-  entityName: 'HostedBillingPortalApiKey',
-})
-
 // Secret API key schemas
 const secretApiKeyColumns = {
   type: z.literal(FlowgladApiKeyType.Secret),
@@ -159,19 +131,16 @@ export const {
 export const apiKeysInsertSchema = z.discriminatedUnion('type', [
   secretApiKeysInsertSchema,
   publishableApiKeysInsertSchema,
-  hostedBillingPortalApiKeysInsertSchema,
 ])
 
 export const apiKeysSelectSchema = z.discriminatedUnion('type', [
   secretApiKeysSelectSchema,
   publishableApiKeysSelectSchema,
-  hostedBillingPortalApiKeysSelectSchema,
 ])
 
 export const apiKeysUpdateSchema = z.discriminatedUnion('type', [
   secretApiKeysUpdateSchema,
   publishableApiKeysUpdateSchema,
-  hostedBillingPortalApiKeysUpdateSchema,
 ])
 
 /*
@@ -179,17 +148,13 @@ export const apiKeysUpdateSchema = z.discriminatedUnion('type', [
  */
 // Combined client discriminated union schemas
 export const apiKeysClientInsertSchema = z
-  .discriminatedUnion('type', [
-    secretApiKeysClientInsertSchema,
-    hostedBillingPortalApiKeysClientInsertSchema,
-  ])
+  .discriminatedUnion('type', [secretApiKeysClientInsertSchema])
   .meta({ id: 'ApiKeysClientInsertSchema' })
 
 export const apiKeysClientSelectSchema = z
   .discriminatedUnion('type', [
     secretApiKeysClientSelectSchema,
     publishableApiKeysClientSelectSchema,
-    hostedBillingPortalApiKeysClientSelectSchema,
   ])
   .meta({ id: 'ApiKeysClientSelectSchema' })
 
@@ -197,7 +162,6 @@ export const apiKeysClientUpdateSchema = z
   .discriminatedUnion('type', [
     secretApiKeysClientUpdateSchema,
     publishableApiKeysClientUpdateSchema,
-    hostedBillingPortalApiKeysClientUpdateSchema,
   ])
   .meta({ id: 'ApiKeysClientUpdateSchema' })
 
@@ -205,15 +169,8 @@ export const apiKeyClientWhereClauseSchema = z
   .union([
     secretApiKeysClientSelectSchema.partial(),
     publishableApiKeysClientSelectSchema.partial(),
-    hostedBillingPortalApiKeysClientSelectSchema.partial(),
   ])
   .meta({ id: 'ApiKeyClientWhereClauseSchema' })
-
-export const billingPortalApiKeyMetadataSchema = z.object({
-  type: z.literal(FlowgladApiKeyType.BillingPortalToken),
-  stackAuthHostedBillingUserId: z.string(),
-  organizationId: z.string().optional(),
-})
 
 export const secretApiKeyMetadataSchema = z.object({
   type: z.literal(FlowgladApiKeyType.Secret),
@@ -221,10 +178,7 @@ export const secretApiKeyMetadataSchema = z.object({
   organizationId: z.string().optional(),
 })
 
-export const apiKeyMetadataSchema = z.discriminatedUnion('type', [
-  secretApiKeyMetadataSchema,
-  billingPortalApiKeyMetadataSchema,
-])
+export const apiKeyMetadataSchema = secretApiKeyMetadataSchema
 
 export namespace ApiKey {
   // Base types
@@ -274,28 +228,6 @@ export namespace ApiKey {
     typeof publishableApiKeysClientSelectSchema
   >
 
-  // Billing Portal API Key types
-  export type BillingPortalInsert = z.infer<
-    typeof hostedBillingPortalApiKeysInsertSchema
-  >
-  export type BillingPortalUpdate = z.infer<
-    typeof hostedBillingPortalApiKeysUpdateSchema
-  >
-  export type BillingPortalRecord = z.infer<
-    typeof hostedBillingPortalApiKeysSelectSchema
-  >
-  export type BillingPortalMetadata = z.infer<
-    typeof billingPortalApiKeyMetadataSchema
-  >
-  export type BillingPortalClientInsert = z.infer<
-    typeof hostedBillingPortalApiKeysClientInsertSchema
-  >
-  export type BillingPortalClientUpdate = z.infer<
-    typeof hostedBillingPortalApiKeysClientUpdateSchema
-  >
-  export type BillingPortalClientRecord = z.infer<
-    typeof hostedBillingPortalApiKeysClientSelectSchema
-  >
   export type ApiKeyMetadata = z.infer<typeof apiKeyMetadataSchema>
   export type Where = SelectConditions<typeof apiKeys>
 }

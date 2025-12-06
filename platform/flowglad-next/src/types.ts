@@ -701,7 +701,6 @@ export type LoggerData = LogData & {
 export enum FlowgladApiKeyType {
   Publishable = 'publishable',
   Secret = 'secret',
-  BillingPortalToken = 'hosted_billing_portal',
 }
 
 export enum StripeConnectContractType {

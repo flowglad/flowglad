@@ -1,12 +1,11 @@
 import type { Session } from '@supabase/supabase-js'
 import { verifyKey } from '@unkey/api'
 import type { User } from 'better-auth'
-import { and, asc, desc, eq, or, sql } from 'drizzle-orm'
+import { and, desc, eq, or } from 'drizzle-orm'
 import type { JwtPayload } from 'jsonwebtoken'
-import { headers } from 'next/headers'
 import { z } from 'zod'
 import { FlowgladApiKeyType } from '@/types'
-import { auth, getSession } from '@/utils/auth'
+import { getSession } from '@/utils/auth'
 import core from '@/utils/core'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
 import { parseUnkeyMeta } from '@/utils/unkey'
@@ -39,17 +38,12 @@ interface KeyVerifyResult {
 }
 
 const userIdFromUnkeyMeta = (meta: ApiKey.ApiKeyMetadata) => {
-  switch (meta.type) {
-    case FlowgladApiKeyType.Secret:
-      return (meta as ApiKey.SecretMetadata).userId
-    case FlowgladApiKeyType.BillingPortalToken:
-      return (meta as ApiKey.BillingPortalMetadata)
-        .stackAuthHostedBillingUserId
-    default:
-      throw new Error(
-        `userIdFromUnkeyMeta: received invalid API key type`
-      )
+  if (meta.type !== FlowgladApiKeyType.Secret) {
+    throw new Error(
+      `userIdFromUnkeyMeta: received invalid API key type`
+    )
   }
+  return meta.userId
 }
 /**
  * Returns the userId of the user associated with the key, or undefined if the key is invalid.
@@ -168,95 +162,6 @@ export async function dbAuthInfoForSecretApiKeyResult(
       },
     },
     app_metadata: { provider: 'apiKey' },
-  }
-  return {
-    userId,
-    livemode,
-    jwtClaim,
-  }
-}
-
-export async function dbAuthInfoForBillingPortalApiKeyResult(
-  verifyKeyResult: KeyVerifyResult
-): Promise<DatabaseAuthenticationInfo> {
-  if (
-    verifyKeyResult.keyType !== FlowgladApiKeyType.BillingPortalToken
-  ) {
-    throw new Error(
-      `dbAuthInfoForBillingPortalApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
-    )
-  }
-  const livemode = verifyKeyResult.environment === 'live'
-  const billingMetadata =
-    verifyKeyResult.metadata as ApiKey.BillingPortalMetadata
-  if (!billingMetadata) {
-    throw new Error(
-      `dbAuthInfoForBillingPortalApiKey: received invalid API key metadata: ${verifyKeyResult.metadata}`
-    )
-  }
-  if (!billingMetadata.organizationId) {
-    throw new Error(
-      `dbAuthInfoForBillingPortalApiKey: received invalid API key metadata: ${verifyKeyResult.metadata}`
-    )
-  }
-  if (!billingMetadata.stackAuthHostedBillingUserId) {
-    throw new Error(
-      `dbAuthInfoForBillingPortalApiKey: received invalid API key metadata: ${verifyKeyResult.metadata}`
-    )
-  }
-  const [customer] = await db
-    .select()
-    .from(customers)
-    .where(
-      and(
-        eq(customers.organizationId, billingMetadata.organizationId),
-        eq(
-          customers.stackAuthHostedBillingUserId,
-          billingMetadata.stackAuthHostedBillingUserId
-        )
-      )
-    )
-  if (!customer) {
-    throw new Error(
-      `Billing Portal Authentication Error: No customer found with externalId ${verifyKeyResult.ownerId}.`
-    )
-  }
-  const membershipsForOrganization = await db
-    .select()
-    .from(memberships)
-    .innerJoin(users, eq(memberships.userId, users.id))
-    .where(
-      and(eq(memberships.organizationId, customer.organizationId))
-    )
-    .orderBy(asc(memberships.createdAt))
-
-  if (membershipsForOrganization.length === 0) {
-    throw new Error(
-      `Billing Portal Authentication Error: No memberships found for organization ${verifyKeyResult.ownerId}.`
-    )
-  }
-  const userId = membershipsForOrganization[0].users.id
-  const jwtClaim: JWTClaim = {
-    role: 'merchant',
-    sub: userId,
-    email: 'apiKey@example.com',
-    auth_type: 'api_key',
-    user_metadata: {
-      id: userId,
-      user_metadata: {},
-      aud: 'stub',
-      email: 'apiKey@example.com',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      role: 'merchant',
-      app_metadata: {
-        provider: 'apiKey',
-      },
-    },
-    organization_id: customer.organizationId,
-    app_metadata: {
-      provider: 'apiKey',
-    },
   }
   return {
     userId,
@@ -440,16 +345,12 @@ export async function databaseAuthenticationInfoForApiKeyResult(
   if (!verifyKeyResult.ownerId) {
     throw new Error('Invalid API key, no ownerId')
   }
-  switch (verifyKeyResult.keyType) {
-    case FlowgladApiKeyType.Secret:
-      return dbAuthInfoForSecretApiKeyResult(verifyKeyResult)
-    case FlowgladApiKeyType.BillingPortalToken:
-      return dbAuthInfoForBillingPortalApiKeyResult(verifyKeyResult)
-    default:
-      throw new Error(
-        `databaseAuthenticationInfoForApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
-      )
+  if (verifyKeyResult.keyType !== FlowgladApiKeyType.Secret) {
+    throw new Error(
+      `databaseAuthenticationInfoForApiKey: received invalid API key type: ${verifyKeyResult.keyType}`
+    )
   }
+  return dbAuthInfoForSecretApiKeyResult(verifyKeyResult)
 }
 
 export async function getDatabaseAuthenticationInfo(params: {
