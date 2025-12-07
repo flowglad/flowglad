@@ -34,3 +34,6 @@ yarn.lock
 pnpm-lock.yaml
 
 .workspace-deps-backup.json
+
+# Git worktrees
+.conductor
