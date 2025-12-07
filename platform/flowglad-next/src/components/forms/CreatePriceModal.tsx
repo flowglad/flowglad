@@ -25,6 +25,7 @@ const getDefaultValues = (
     productId: previousPrice.productId,
     isDefault: previousPrice.isDefault,
     unitPrice: previousPrice.unitPrice,
+    slug: previousPrice.slug,
     active: true,
   }
 
@@ -63,7 +64,7 @@ const getDefaultValues = (
         intervalCount: previousPrice.intervalCount,
         intervalUnit: previousPrice.intervalUnit,
         trialPeriodDays: previousPrice.trialPeriodDays,
-        usageEventsPerUnit: 0,
+        usageEventsPerUnit: previousPrice.usageEventsPerUnit,
         type: PriceType.Usage,
         usageMeterId: previousPrice.usageMeterId,
       },
