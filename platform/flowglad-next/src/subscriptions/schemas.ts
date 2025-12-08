@@ -136,3 +136,13 @@ export const scheduleSubscriptionCancellationSchema = z.object({
 export type ScheduleSubscriptionCancellationParams = z.infer<
   typeof scheduleSubscriptionCancellationSchema
 >
+
+export const uncancelSubscriptionSchema = z
+  .object({
+    id: z.string(),
+  })
+  .meta({ id: 'UncancelSubscriptionInput' })
+
+export type UncancelSubscriptionParams = z.infer<
+  typeof uncancelSubscriptionSchema
+>
