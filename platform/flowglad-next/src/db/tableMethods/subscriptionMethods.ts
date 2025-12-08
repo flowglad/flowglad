@@ -29,6 +29,7 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
+  type SelectConditions,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { CancellationReason, SubscriptionStatus } from '@/types'
@@ -53,6 +54,17 @@ const config: ORMMethodCreatorConfig<
   insertSchema: subscriptionsInsertSchema,
   updateSchema: subscriptionsUpdateSchema,
   tableName: 'subscriptions',
+}
+
+/**
+ * Extended filter type for subscriptions table that includes cross-table filters.
+ * The `productName` filter is not on the subscriptions table itself, but comes
+ * from the related products table via prices.
+ */
+type SubscriptionTableFilters = SelectConditions<
+  typeof subscriptions
+> & {
+  productName?: string
 }
 
 export const selectSubscriptionById = createSelectById(
@@ -247,37 +259,66 @@ export const selectSubscriptionsTableRowData =
         }
       })
     },
+    // searchableColumns: undefined (no direct column search)
     undefined,
+    /**
+     * Additional search clause handler for subscription table.
+     * Enables searching subscriptions by:
+     * - Exact subscription ID match
+     * - Customer name (case-insensitive partial match via ILIKE)
+     *
+     * @param searchQuery - The search query string from the user
+     * @returns SQL condition for OR-ing with other search filters, or undefined if query is empty
+     */
     ({ searchQuery }) => {
+      // Normalize the search query by trimming whitespace
       const trimmedQuery =
         typeof searchQuery === 'string'
           ? searchQuery.trim()
           : searchQuery
+
+      // Only apply search filter if query is non-empty
       return trimmedQuery && trimmedQuery !== ''
         ? or(
+            // Match subscriptions by exact ID
             eq(subscriptions.id, trimmedQuery),
+            // Match subscriptions where customer name contains the search query
+            // Uses EXISTS subquery to join with customers table
             sql`exists (
               select 1 from ${customers} c
               where c.id = ${subscriptions.customerId}
-                and c.name ilike ${`%${trimmedQuery}%`}
+                and c.name ilike '%' || ${trimmedQuery} || '%'
             )`
           )
         : undefined
     },
+    /**
+     * Additional filter clause handler for subscription table.
+     * Enables filtering subscriptions by product name (cross-table filter).
+     * The product name is not directly on the subscriptions table, but is
+     * accessed via the prices -> products relationship.
+     *
+     * @param filters - Filter object that may contain productName
+     * @returns SQL EXISTS subquery condition, or undefined if no product name filter
+     */
     async ({ filters }) => {
-      const productNameValue =
-        filters &&
-        typeof filters === 'object' &&
-        'productName' in filters
-          ? (filters as Record<string, unknown>).productName
-          : undefined
+      // Type cast to our extended filter type that includes productName
+      const typedFilters = filters as
+        | SubscriptionTableFilters
+        | undefined
+      const productNameValue = typedFilters?.productName
+
+      // Normalize product name by trimming whitespace
       const productName =
-        productNameValue && typeof productNameValue === 'string'
+        typeof productNameValue === 'string'
           ? productNameValue.trim()
           : undefined
 
+      // Return undefined (no filter) if product name is empty or not provided
       if (!productName || productName === '') return undefined
 
+      // Use EXISTS subquery to filter subscriptions by product name
+      // Joins prices -> products to access product name
       return sql`exists (
         select 1 from ${prices} p
         inner join ${products} pr on pr.id = p.product_id

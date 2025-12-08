@@ -927,8 +927,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           pageSize: 10,
           filters: {
             organizationId: testOrgId,
-            nameContains: 'Smith', // This is not a base table column, should be handled by additional filter
-          } as any,
+            nameContains: 'Smith', // This is not a base table column, handled by additional filter
+          } as Record<string, unknown>,
         },
         transaction,
       })
@@ -978,7 +978,7 @@ describe('createCursorPaginatedSelectFunction', () => {
             organizationId: testOrgId,
             nameContains: 'Brown', // Unknown to base table, handled by additional filter
             unknownField: 'should be ignored', // Should be ignored
-          } as any,
+          } as Record<string, unknown>,
         },
         transaction,
       })
@@ -1032,7 +1032,7 @@ describe('createCursorPaginatedSelectFunction', () => {
           filters: {
             organizationId: testOrgId,
             nameContains: 'Smith',
-          } as any,
+          } as Record<string, unknown>,
         },
         transaction,
       })
