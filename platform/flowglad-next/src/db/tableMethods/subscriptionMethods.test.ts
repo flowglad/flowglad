@@ -776,8 +776,9 @@ describe('selectSubscriptionsTableRowData', () => {
               pageSize: 10,
               filters: {
                 organizationId: organization.id,
+                // @ts-expect-error - Testing invalid input: productName should be string, not number
                 productName: 123, // Non-string value
-              } as Record<string, unknown>,
+              },
             },
             transaction,
           })

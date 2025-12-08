@@ -1540,7 +1540,7 @@ const buildWhereClauses = async <T extends PgTableWithId>(
  * @param filters - Raw filters object (may contain cross-table fields)
  * @returns Sanitized filters containing only base table columns, or undefined if no valid filters
  */
-const sanitizeBaseTableFilters = <T extends PgTableWithId>(
+export const sanitizeBaseTableFilters = <T extends PgTableWithId>(
   table: T,
   filters?: SelectConditions<T> | Record<string, unknown>
 ): SelectConditions<T> | undefined => {
