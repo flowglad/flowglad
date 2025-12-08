@@ -160,9 +160,7 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/test-id/adjust'
       )
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1) as any
-      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
       expect(result).toEqual({ id: 'test-id' })
     })
 
@@ -191,9 +189,7 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/test-id/cancel'
       )
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1) as any
-      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
       expect(result).toEqual({ id: 'test-id' })
     })
 
@@ -222,9 +218,7 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/test-id/uncancel'
       )
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1) as any
-      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
       expect(result).toEqual({ id: 'test-id' })
     })
   })
@@ -434,9 +428,7 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/subscription-adjust-123/adjust'
       )
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1) as any
-      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
 
       expect(result).toEqual({
         id: 'subscription-adjust-123',
@@ -452,9 +444,7 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/subscription-cancel-456/cancel'
       )
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1) as any
-      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
 
       expect(result).toEqual({
         id: 'subscription-cancel-456',
@@ -470,9 +460,7 @@ describe('subscriptionsRouteConfigs', () => {
       const fullMatch = routeConfig!.pattern.exec(
         'subscriptions/subscription-uncancel-789/uncancel'
       )
-      const result = routeConfig!.mapParams(
-        fullMatch!.slice(1) as any
-      )
+      const result = routeConfig!.mapParams(fullMatch!.slice(1))
 
       expect(result).toEqual({
         id: 'subscription-uncancel-789',
@@ -564,12 +552,9 @@ describe('subscriptionsRouteConfigs', () => {
               ? 'subscriptions/test-id/uncancel'
               : 'subscriptions/test-id/cancel'
           const fullMatch = config!.pattern.exec(path)
-          const result = config!.mapParams(
-            fullMatch!.slice(1) as any,
-            {
-              someData: 'value',
-            }
-          )
+          const result = config!.mapParams(fullMatch!.slice(1), {
+            someData: 'value',
+          })
           expect(result).toHaveProperty('id', 'test-id')
         } else {
           // Standard routes use sliced array
