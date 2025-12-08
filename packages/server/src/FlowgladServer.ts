@@ -1,155 +1,58 @@
+import { Flowglad as FlowgladNode } from '@flowglad/node'
 import {
+  type BillingWithChecks,
   type CancelSubscriptionParams,
+  type CreateActivateSubscriptionCheckoutSessionParams,
+  type CreateAddPaymentMethodCheckoutSessionParams,
+  type CreateProductCheckoutSessionParams,
   type CreateSubscriptionParams,
   type CreateUsageEventParams,
-  createUsageEventSchema,
   constructCheckFeatureAccess,
   constructCheckUsageBalance,
-  type CreateAddPaymentMethodCheckoutSessionParams,
-  type BillingWithChecks,
-  SubscriptionExperimentalFields,
-  constructGetProduct,
   constructGetPrice,
-  CreateActivateSubscriptionCheckoutSessionParams,
+  constructGetProduct,
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
+  createUsageEventSchema,
+  type SubscriptionExperimentalFields,
 } from '@flowglad/shared'
-import {
-  type ClerkFlowgladServerSessionParams,
-  type CoreCustomerUser,
-  type FlowgladServerSessionParams,
-  type NextjsAuthFlowgladServerSessionParams,
-  type SupabaseFlowgladServerSessionParams,
+import { getSessionFromParams } from './serverUtils'
+import type {
+  CoreCustomerUser,
+  FlowgladServerSessionParams,
 } from './types'
-import { z } from 'zod'
-import type { CreateProductCheckoutSessionParams } from '@flowglad/types'
-import { Flowglad as FlowgladNode } from '@flowglad/node'
-
-const getSessionFromNextAuth = async (
-  params: NextjsAuthFlowgladServerSessionParams
-) => {
-  let coreCustomerUser: CoreCustomerUser | null = null
-  const session = await params.nextAuth.auth()
-  if (session?.user) {
-    if (params.nextAuth.customerFromAuth) {
-      coreCustomerUser =
-        await params.nextAuth.customerFromAuth(session)
-    } else {
-      if (!session.user.email) {
-        throw new Error(
-          'FlowgladError: NextAuth session has no email. Please provide an extractUserIdFromSession function to extract the userId from the session, or include email on your sessions.'
-        )
-      }
-      coreCustomerUser = {
-        externalId: session.user.email,
-        name: session.user.name || '',
-        email: session.user.email || '',
-      }
-    }
-  }
-  return coreCustomerUser
-}
-
-const getSessionFromNextAuth4 = async (
-  params: NextjsAuthFlowgladServerSessionParams
-) => {
-  const session = await params.nextAuth.auth()
-  return session
-}
-
-const sessionFromSupabaseAuth = async (
-  params: SupabaseFlowgladServerSessionParams
-) => {
-  let coreCustomerUser: CoreCustomerUser | null = null
-  const {
-    data: { user },
-  } = await (await params.supabaseAuth.client()).auth.getUser()
-  if (user) {
-    coreCustomerUser = {
-      externalId: user.id,
-      name: user.user_metadata.name || '',
-      email: user.email || '',
-    }
-  }
-  return coreCustomerUser
-}
-
-const sessionFromClerkAuth = async (
-  params: ClerkFlowgladServerSessionParams
-) => {
-  let coreCustomerUser: CoreCustomerUser | null = null
-  const session = await params.clerk.currentUser()
-  if (params.clerk.customerFromCurrentUser && session) {
-    coreCustomerUser =
-      await params.clerk.customerFromCurrentUser(session)
-  } else if (session) {
-    coreCustomerUser = {
-      externalId: session.id,
-      name: session.firstName || '',
-      email: session.emailAddresses[0].emailAddress || '',
-    }
-  }
-  return coreCustomerUser
-}
-
-const getSessionFromParams = async (
-  params: FlowgladServerSessionParams
-) => {
-  let coreCustomerUser: CoreCustomerUser | null = null
-  const providerCount = [
-    'nextAuth' in params,
-    'supabaseAuth' in params,
-    'clerk' in params,
-  ].filter(Boolean).length
-  if (providerCount > 1) {
-    throw new Error(
-      'FlowgladError: Only one of nextAuth, supabaseAuth, or clerk may be defined at a time.'
-    )
-  }
-  if (params.getRequestingCustomer) {
-    coreCustomerUser = await params.getRequestingCustomer()
-  } else {
-    if ('nextAuth' in params) {
-      coreCustomerUser = await getSessionFromNextAuth(params)
-    } else if ('supabaseAuth' in params) {
-      coreCustomerUser = await sessionFromSupabaseAuth(params)
-    } else if ('clerk' in params) {
-      coreCustomerUser = await sessionFromClerkAuth(params)
-    }
-  }
-
-  const customerSchema = z.object({
-    externalId: z.string().min(1),
-    name: z.string(),
-    email: z.email(),
-  })
-  const parsedCustomer = customerSchema.safeParse(coreCustomerUser)
-  if (!parsedCustomer.success) {
-    throw new Error(
-      "Unable to derive requesting customer from session. Please check your flowgladServer constructor, in your server's flowglad.ts file. This is an issue with how your user's session data on the server is being mapped to Flowglad requesting customer input.\n\n" +
-        'Issues:\n' +
-        `${parsedCustomer.error.issues.map((issue) => `- ${issue.path}: ${issue.message}`).join(`\n`)}.\n\n` +
-        'Received input:\n' +
-        JSON.stringify(coreCustomerUser)
-    )
-  }
-  return parsedCustomer.data
-}
 
 export class FlowgladServer {
   private createHandlerParams: FlowgladServerSessionParams
   private flowgladNode: FlowgladNode
+  private scopedParams?: {
+    customerExternalId: string
+    getCustomerDetails: (customerExternalId: string) => Promise<{
+      name: string
+      email: string
+    }>
+  }
   constructor(createHandlerParams: FlowgladServerSessionParams) {
     this.createHandlerParams = createHandlerParams
     this.flowgladNode = new FlowgladNode({
       apiKey: createHandlerParams.apiKey,
       baseURL: createHandlerParams.baseURL,
     })
+    // Detect and store scoped server params
+    if ('customerExternalId' in createHandlerParams) {
+      this.scopedParams = {
+        customerExternalId: createHandlerParams.customerExternalId,
+        getCustomerDetails: createHandlerParams.getCustomerDetails,
+      }
+    }
   }
 
   public getRequestingCustomerId = async (): Promise<string> => {
-    if (this.createHandlerParams.getRequestingCustomer) {
+    if (
+      'getRequestingCustomer' in this.createHandlerParams &&
+      this.createHandlerParams.getRequestingCustomer
+    ) {
       const customer =
         await this.createHandlerParams.getRequestingCustomer()
       if (customer) {
@@ -157,7 +60,8 @@ export class FlowgladServer {
       }
     }
     const session = await getSessionFromParams(
-      this.createHandlerParams
+      this.createHandlerParams,
+      this.scopedParams?.customerExternalId
     )
     if (!session) {
       throw new Error('User not authenticated')
@@ -166,7 +70,10 @@ export class FlowgladServer {
   }
 
   public getSession = async (): Promise<CoreCustomerUser | null> => {
-    return getSessionFromParams(this.createHandlerParams)
+    return getSessionFromParams(
+      this.createHandlerParams,
+      this.scopedParams?.customerExternalId
+    )
   }
 
   public getBilling = async (): Promise<BillingWithChecks> => {
@@ -205,20 +112,36 @@ export class FlowgladServer {
     } catch (error) {
       const errorCode = (error as any)?.error?.code
       if (errorCode === 'NOT_FOUND') {
-        const session = await getSessionFromParams(
-          this.createHandlerParams
-        )
-        if (!session) {
-          throw new Error('User not authenticated')
+        if (this.scopedParams) {
+          const customerDetails =
+            await this.scopedParams.getCustomerDetails(
+              this.scopedParams.customerExternalId
+            )
+          const createResult = await this.createCustomer({
+            customer: {
+              email: customerDetails.email,
+              name: customerDetails.name,
+              externalId: this.scopedParams.customerExternalId,
+            },
+          })
+          customer = createResult.data.customer
+        } else {
+          const session = await getSessionFromParams(
+            this.createHandlerParams,
+            undefined
+          )
+          if (!session) {
+            throw new Error('User not authenticated')
+          }
+          const createResult = await this.createCustomer({
+            customer: {
+              email: session.email,
+              name: session.name,
+              externalId: session.externalId,
+            },
+          })
+          customer = createResult.data.customer
         }
-        const createResult = await this.createCustomer({
-          customer: {
-            email: session.email,
-            name: session.name,
-            externalId: session.externalId,
-          },
-        })
-        customer = createResult.data.customer
       } else {
         throw error
       }
@@ -232,7 +155,8 @@ export class FlowgladServer {
   public getCustomer =
     async (): Promise<FlowgladNode.Customers.CustomerRetrieveResponse> => {
       const session = await getSessionFromParams(
-        this.createHandlerParams
+        this.createHandlerParams,
+        this.scopedParams?.customerExternalId
       )
       if (!session) {
         throw new Error('User not authenticated')
@@ -250,7 +174,8 @@ export class FlowgladServer {
     params: CreateProductCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
     const session = await getSessionFromParams(
-      this.createHandlerParams
+      this.createHandlerParams,
+      this.scopedParams?.customerExternalId
     )
     if (!session) {
       throw new Error('User not authenticated')
@@ -289,7 +214,8 @@ export class FlowgladServer {
     params: FlowgladNode.Customers.CustomerUpdateParams
   ): Promise<FlowgladNode.Customers.CustomerUpdateResponse> => {
     const session = await getSessionFromParams(
-      this.createHandlerParams
+      this.createHandlerParams,
+      this.scopedParams?.customerExternalId
     )
     if (!session) {
       throw new Error('User not authenticated')
@@ -304,7 +230,8 @@ export class FlowgladServer {
     params: CreateAddPaymentMethodCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
     const session = await getSessionFromParams(
-      this.createHandlerParams
+      this.createHandlerParams,
+      this.scopedParams?.customerExternalId
     )
     if (!session) {
       throw new Error('User not authenticated')
@@ -324,7 +251,8 @@ export class FlowgladServer {
     params: CreateActivateSubscriptionCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
     const session = await getSessionFromParams(
-      this.createHandlerParams
+      this.createHandlerParams,
+      this.scopedParams?.customerExternalId
     )
     if (!session) {
       throw new Error('User not authenticated')
@@ -369,7 +297,7 @@ export class FlowgladServer {
       customerId: customer.id,
     }
     // const parsedParams = createSubscriptionSchema.parse(rawParams)
-    // @ts-ignore
+    // @ts-expect-error
     return this.flowgladNode.subscriptions.create(rawParams)
   }
 

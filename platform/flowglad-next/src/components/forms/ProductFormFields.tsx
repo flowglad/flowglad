@@ -1,34 +1,36 @@
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { useEffect } from 'react'
+import { useFormContext } from 'react-hook-form'
+import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
+
+import FileInput from '@/components/FileInput'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
+import PriceFormFields from '@/components/forms/PriceFormFields'
 import {
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
-
-import FileInput from '@/components/FileInput'
-import PriceFormFields from '@/components/forms/PriceFormFields'
-import { useFormContext } from 'react-hook-form'
-import { CreateProductSchema } from '@/db/schema/prices'
-import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import type { CreateProductSchema } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import { PriceType } from '@/types'
+import core from '@/utils/core'
 import StatusBadge from '../StatusBadge'
 import PricingModelSelect from './PricingModelSelect'
-import core from '@/utils/core'
 import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
-import { Product } from '@/db/schema/products'
-import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
-import { useEffect } from 'react'
-import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
-import { PriceType } from '@/types'
 
 export const ProductFormFields = ({
   editProduct = false,
+  hidePricingModelSelect = false,
 }: {
   editProduct?: boolean
+  hidePricingModelSelect?: boolean
 }) => {
   const form = useFormContext<CreateProductSchema>()
   const priceForm = usePriceFormContext()
@@ -138,7 +140,7 @@ export const ProductFormFields = ({
                 </FormItem>
               )}
             />
-            {!editProduct && (
+            {!editProduct && !hidePricingModelSelect && (
               <div className="w-full relative flex flex-col gap-3">
                 <PricingModelSelect
                   name="product.pricingModelId"

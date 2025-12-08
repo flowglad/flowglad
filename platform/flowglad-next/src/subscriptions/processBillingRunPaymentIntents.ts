@@ -1,69 +1,81 @@
-import { Invoice } from '@/db/schema/invoices'
+import type Stripe from 'stripe'
+import { adminTransaction } from '@/db/adminTransaction'
+import type {
+  BillingPeriodTransitionLedgerCommand,
+  LedgerCommand,
+  SettleInvoiceUsageCostsLedgerCommand,
+} from '@/db/ledgerManager/ledgerManagerTypes'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { Customer } from '@/db/schema/customers'
+import type { Event } from '@/db/schema/events'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { Payment } from '@/db/schema/payments'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { User } from '@/db/schema/users'
+import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
+import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import {
   selectBillingRunById,
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import {
+  deleteInvoiceLineItems,
+  selectInvoiceLineItems,
+  selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
+} from '@/db/tableMethods/invoiceLineItemMethods'
+import {
   safelyUpdateInvoiceStatus,
+  selectInvoiceById,
   selectInvoices,
   updateInvoice,
 } from '@/db/tableMethods/invoiceMethods'
 import {
+  aggregateOutstandingBalanceForUsageCosts,
+  selectLedgerEntries,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  safelyUpdateSubscriptionStatus,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
+import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
+import {
   BillingRunStatus,
+  FeatureType,
   InvoiceStatus,
   LedgerTransactionType,
   SubscriptionStatus,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import {
-  billingRunIntentMetadataSchema,
-  dateFromStripeTimestamp,
-  stripeIdFromObjectOrId,
-} from '@/utils/stripe'
-import Stripe from 'stripe'
-import {
-  calculateFeeAndTotalAmountDueForBillingPeriod,
-  processNoMoreDueForBillingPeriod,
-  processOutstandingBalanceForBillingPeriod,
-  scheduleBillingRunRetry,
-} from './billingRunHelpers'
-import { Customer } from '@/db/schema/customers'
-import { Organization } from '@/db/schema/organizations'
-import { Subscription } from '@/db/schema/subscriptions'
-import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
+import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
   sendOrganizationPaymentFailedNotificationEmail,
   sendOrganizationPaymentNotificationEmail,
   sendPaymentFailedEmail,
 } from '@/utils/email'
-import { Payment } from '@/db/schema/payments'
-import { User } from '@/db/schema/users'
-import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
+import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import {
-  selectInvoiceLineItems,
-  selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
-} from '@/db/tableMethods/invoiceLineItemMethods'
-import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
-import { adminTransaction } from '@/db/adminTransaction'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+  billingRunIntentMetadataSchema,
+  dateFromStripeTimestamp,
+  stripeIdFromObjectOrId,
+} from '@/utils/stripe'
 import {
-  safelyUpdateSubscriptionStatus,
-  updateSubscription,
-} from '@/db/tableMethods/subscriptionMethods'
-import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
-import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
-import {
-  aggregateOutstandingBalanceForUsageCosts,
-  selectLedgerEntries,
-} from '@/db/tableMethods/ledgerEntryMethods'
-import { selectPayments } from '@/db/tableMethods/paymentMethods'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
-import { Event } from '@/db/schema/events'
+  calculateFeeAndTotalAmountDueForBillingPeriod,
+  isFirstPayment,
+  processNoMoreDueForBillingPeriod,
+  processOutstandingBalanceForBillingPeriod,
+  scheduleBillingRunRetry,
+} from './billingRunHelpers'
+import { cancelSubscriptionImmediately } from './cancelSubscription'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -71,6 +83,10 @@ type PaymentIntentEvent =
   | Stripe.PaymentIntentCanceledEvent
   | Stripe.PaymentIntentProcessingEvent
   | Stripe.PaymentIntentRequiresActionEvent
+
+type PaymentIntentForBillingRunInput =
+  | PaymentIntentEvent
+  | Stripe.PaymentIntent
 
 const paymentIntentStatusToBillingRunStatus: Record<
   Stripe.PaymentIntent.Status,
@@ -83,20 +99,6 @@ const paymentIntentStatusToBillingRunStatus: Record<
   requires_confirmation: BillingRunStatus.InProgress,
   canceled: BillingRunStatus.Aborted,
   processing: BillingRunStatus.AwaitingPaymentConfirmation,
-}
-
-const billingRunStatusToInvoiceStatus: Record<
-  BillingRunStatus,
-  InvoiceStatus
-> = {
-  [BillingRunStatus.Succeeded]: InvoiceStatus.Paid,
-  [BillingRunStatus.Failed]: InvoiceStatus.Open,
-  [BillingRunStatus.Aborted]: InvoiceStatus.Open,
-  [BillingRunStatus.AwaitingPaymentConfirmation]:
-    InvoiceStatus.AwaitingPaymentConfirmation,
-  [BillingRunStatus.Scheduled]: InvoiceStatus.Open,
-  [BillingRunStatus.Abandoned]: InvoiceStatus.Open,
-  [BillingRunStatus.InProgress]: InvoiceStatus.Open,
 }
 
 interface BillingRunNotificationParams {
@@ -201,8 +203,8 @@ const processAwaitingPaymentConfirmationNotifications = async (
   })
 }
 
-export const processPaymentIntentEventForBillingRun = async (
-  event: PaymentIntentEvent,
+export const processOutcomeForBillingRun = async (
+  input: PaymentIntentForBillingRunInput,
   transaction: DbTransaction
 ): Promise<
   TransactionOutput<{
@@ -213,8 +215,11 @@ export const processPaymentIntentEventForBillingRun = async (
     processingSkipped?: boolean
   }>
 > => {
+  const event = 'type' in input ? input.data.object : input
+  const timestamp = 'type' in input ? input.created : event.created
+
   const metadata = billingRunIntentMetadataSchema.parse(
-    event.data.object.metadata
+    event.metadata
   )
 
   let billingRun = await selectBillingRunById(
@@ -222,7 +227,7 @@ export const processPaymentIntentEventForBillingRun = async (
     transaction
   )
 
-  const eventTimestamp = dateFromStripeTimestamp(event.created)
+  const eventTimestamp = dateFromStripeTimestamp(timestamp)
   const eventPrecedesLastPaymentIntentEvent =
     billingRun.lastPaymentIntentEventTimestamp &&
     billingRun.lastPaymentIntentEventTimestamp >=
@@ -243,10 +248,8 @@ export const processPaymentIntentEventForBillingRun = async (
       )
     const [payment] = await selectPayments(
       {
-        stripePaymentIntentId: event.data.object.id,
-        stripeChargeId: stripeIdFromObjectOrId(
-          event.data.object.latest_charge!
-        ),
+        stripePaymentIntentId: event.id,
+        stripeChargeId: stripeIdFromObjectOrId(event.latest_charge!),
       },
       transaction
     )
@@ -280,7 +283,7 @@ export const processPaymentIntentEventForBillingRun = async (
     )
 
   const billingRunStatus =
-    paymentIntentStatusToBillingRunStatus[event.data.object.status]
+    paymentIntentStatusToBillingRunStatus[event.status]
   billingRun = await updateBillingRun(
     {
       id: billingRun.id,
@@ -289,7 +292,6 @@ export const processPaymentIntentEventForBillingRun = async (
     },
     transaction
   )
-
   let [invoice] = await selectInvoices(
     {
       billingPeriodId: billingRun.billingPeriodId,
@@ -301,22 +303,46 @@ export const processPaymentIntentEventForBillingRun = async (
       `Invoice for billing period ${billingRun.billingPeriodId} not found.`
     )
   }
-
   const {
     result: { payment },
     eventsToInsert: childeventsToInsert,
-  } = await processPaymentIntentStatusUpdated(
-    event.data.object,
-    transaction
-  )
+  } = await processPaymentIntentStatusUpdated(event, transaction)
 
-  const invoiceStatus =
-    billingRunStatusToInvoiceStatus[billingRunStatus]
-  invoice = await safelyUpdateInvoiceStatus(
-    invoice,
-    invoiceStatus,
-    transaction
-  )
+  /**
+   * If there is a payment failure and we are on an adjustment billing run
+   * then we should delete the evidence of an attempt to adjust from the invoice
+   * and early exit
+   */
+  const paymentFailed =
+    billingRunStatus === BillingRunStatus.Failed ||
+    billingRunStatus === BillingRunStatus.Aborted
+  if (billingRun.isAdjustment && paymentFailed) {
+    const invoiceLineItems = await selectInvoiceLineItems(
+      {
+        invoiceId: invoice.id,
+        billingRunId: billingRun.id,
+      },
+      transaction
+    )
+
+    if (invoiceLineItems.length > 0) {
+      await deleteInvoiceLineItems(
+        invoiceLineItems.map((item) => ({ id: item.id })),
+        transaction
+      )
+    }
+
+    return {
+      result: {
+        invoice,
+        invoiceLineItems: [],
+        billingRun,
+        payment,
+      },
+      ledgerCommands: [],
+      eventsToInsert: childeventsToInsert || [],
+    }
+  }
 
   const invoiceLineItems = await selectInvoiceLineItems(
     {
@@ -372,9 +398,13 @@ export const processPaymentIntentEventForBillingRun = async (
   } else {
     await processOutstandingBalanceForBillingPeriod(
       billingPeriod,
+      invoice,
       transaction
     )
   }
+
+  // Re-Select Invoice after changes have been made
+  invoice = await selectInvoiceById(invoice.id, transaction)
 
   const usersAndMemberships =
     await selectMembershipsAndUsersByMembershipWhere(
@@ -410,19 +440,41 @@ export const processPaymentIntentEventForBillingRun = async (
     )
     await processSucceededNotifications(notificationParams)
   } else if (billingRunStatus === BillingRunStatus.Failed) {
-    const maybeRetry = await scheduleBillingRunRetry(
-      billingRun,
-      transaction
-    )
-    await processFailedNotifications({
-      ...notificationParams,
-      retryDate: maybeRetry?.scheduledFor,
-    })
-    await safelyUpdateSubscriptionStatus(
+    const firstPayment = await isFirstPayment(
       subscription,
-      SubscriptionStatus.PastDue,
       transaction
     )
+
+    // Do not cancel if first payment fails for free or default plans
+    if (firstPayment && !subscription.isFreePlan) {
+      // First payment failure - cancel subscription immediately
+      const {
+        result: canceledSubscription,
+        eventsToInsert: cancelEvents,
+      } = await cancelSubscriptionImmediately(
+        subscription,
+        transaction
+      )
+
+      if (cancelEvents && cancelEvents.length > 0) {
+        eventsToInsert.push(...cancelEvents)
+      }
+    } else {
+      // nth payment failures logic
+      const maybeRetry = await scheduleBillingRunRetry(
+        billingRun,
+        transaction
+      )
+      await processFailedNotifications({
+        ...notificationParams,
+        retryDate: maybeRetry?.scheduledFor,
+      })
+      await safelyUpdateSubscriptionStatus(
+        subscription,
+        SubscriptionStatus.PastDue,
+        transaction
+      )
+    }
   } else if (billingRunStatus === BillingRunStatus.Aborted) {
     await processAbortedNotifications(notificationParams)
     await safelyUpdateSubscriptionStatus(
@@ -451,21 +503,72 @@ export const processPaymentIntentEventForBillingRun = async (
     })
   }
 
-  const invoiceLedgerCommand:
-    | SettleInvoiceUsageCostsLedgerCommand
-    | undefined =
+  const ledgerCommands: LedgerCommand[] = []
+
+  if (
+    event.status === 'succeeded' &&
     invoice.status === InvoiceStatus.Paid
-      ? {
-          type: LedgerTransactionType.SettleInvoiceUsageCosts,
-          payload: {
-            invoice,
-            invoiceLineItems,
-          },
-          livemode: invoice.livemode,
-          organizationId: invoice.organizationId,
-          subscriptionId: invoice.subscriptionId!,
-        }
-      : undefined
+  ) {
+    const activeSubscriptionItems =
+      await selectCurrentlyActiveSubscriptionItems(
+        { subscriptionId: subscription.id },
+        billingPeriod.startDate,
+        transaction
+      )
+
+    const subscriptionItemFeatures =
+      await selectSubscriptionItemFeatures(
+        {
+          subscriptionItemId: activeSubscriptionItems.map(
+            (item) => item.id
+          ),
+          type: FeatureType.UsageCreditGrant,
+        },
+        transaction
+      )
+
+    // Find previous billing period (if any)
+    const allBillingPeriods = await selectBillingPeriods(
+      { subscriptionId: subscription.id },
+      transaction
+    )
+
+    // Find the billing period that comes before this one (by startDate)
+    const previousBillingPeriod =
+      allBillingPeriods
+        .filter((bp) => bp.startDate < billingPeriod.startDate)
+        .sort((a, b) => b.startDate - a.startDate)[0] || null
+
+    // Construct the billing period transition command
+    ledgerCommands.push({
+      type: LedgerTransactionType.BillingPeriodTransition,
+      organizationId: organization.id,
+      subscriptionId: subscription.id,
+      livemode: billingPeriod.livemode,
+      payload: {
+        type: 'standard',
+        subscription,
+        previousBillingPeriod,
+        newBillingPeriod: billingPeriod,
+        subscriptionFeatureItems: subscriptionItemFeatures.filter(
+          (item) => item.type === FeatureType.UsageCreditGrant
+        ),
+      },
+    } as BillingPeriodTransitionLedgerCommand)
+  }
+
+  if (invoice.status === InvoiceStatus.Paid) {
+    ledgerCommands.push({
+      type: LedgerTransactionType.SettleInvoiceUsageCosts,
+      payload: {
+        invoice,
+        invoiceLineItems,
+      },
+      livemode: invoice.livemode,
+      organizationId: invoice.organizationId,
+      subscriptionId: invoice.subscriptionId!,
+    } as SettleInvoiceUsageCostsLedgerCommand)
+  }
 
   return {
     result: {
@@ -474,7 +577,7 @@ export const processPaymentIntentEventForBillingRun = async (
       billingRun,
       payment,
     },
-    ledgerCommand: invoiceLedgerCommand,
+    ledgerCommands: ledgerCommands,
     eventsToInsert,
   }
 }

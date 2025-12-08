@@ -1,8 +1,8 @@
-import { task, idempotencyKeys } from '@trigger.dev/sdk'
+import { idempotencyKeys, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectSubscriptionsToBeCancelled } from '@/db/tableMethods/subscriptionMethods'
-import { attemptSubscriptionCancellationTask } from './attempt-subscription-cancellation'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import { attemptSubscriptionCancellationTask } from './attempt-subscription-cancellation'
 
 export const attemptCancelScheduledSubscriptionsTask = task({
   id: 'attempt-cancel-scheduled-subscriptions',

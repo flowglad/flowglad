@@ -1,52 +1,59 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import type Stripe from 'stripe'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PaymentMethodType,
-  PurchaseStatus,
-  FlowgladEventType,
-  PriceType,
-  IntervalUnit,
-} from '@/types'
-import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
-import { Customer } from '@/db/schema/customers'
-import {
+  setupCheckoutSession,
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
-  setupPurchase,
-  setupCheckoutSession,
   setupPrice,
+  setupPurchase,
 } from '@/../seedDatabase'
-import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Purchase } from '@/db/schema/purchases'
 import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
+import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
+import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
+import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
+import { createMockCustomer } from '@/test/helpers/stripeMocks'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  FlowgladEventType,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  PurchaseStatus,
+} from '@/types'
+import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
+import core from '@/utils/core'
 import {
   createStripeCustomer,
   getSetupIntent,
   updatePaymentIntent,
   updateSetupIntent,
 } from '@/utils/stripe'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { Purchase } from '@/db/schema/purchases'
-import core from '@/utils/core'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import Stripe from 'stripe'
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
-import { Organization } from '@/db/schema/organizations'
-import { Price } from '@/db/schema/prices'
-import { createMockCustomer } from '@/test/helpers/stripeMocks'
-import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
-import { adminTransaction } from '@/db/adminTransaction'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
-import { selectPricesProductsAndPricingModelsForOrganization } from '@/db/tableMethods/priceMethods'
 
 // Mock Stripe functions
 vi.mock('@/utils/stripe', () => ({
   createStripeCustomer: vi.fn(),
+  getPaymentIntent: vi.fn(async () => ({
+    id: 'pi_test',
+    object: 'payment_intent',
+    customer: null,
+  })),
   getSetupIntent: vi.fn(),
   updatePaymentIntent: vi.fn(),
   updateSetupIntent: vi.fn(),

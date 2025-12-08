@@ -1,53 +1,56 @@
-import { router } from '@/server/trpc'
-import { protectedProcedure } from '@/server/trpc'
+import { TRPCError } from '@trpc/server'
+import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  selectMembershipsAndUsersByMembershipWhere,
-  selectFocusedMembershipAndOrganization,
-  selectMembershipsTableRowData,
-  selectMembershipAndOrganizationsByBetterAuthUserId,
-  unfocusMembershipsForUser,
-} from '@/db/tableMethods/membershipMethods'
-import {
   membershipsClientSelectSchema,
   membershipsTableRowDataSchema,
 } from '@/db/schema/memberships'
-import { updateOrganization as updateOrganizationDB } from '@/db/tableMethods/organizationMethods'
-import { selectRevenueDataForOrganization } from '@/db/tableMethods/paymentMethods'
 import {
   createOrganizationSchema,
-  organizationsClientSelectSchema,
   editOrganizationSchema,
+  organizationsClientSelectSchema,
 } from '@/db/schema/organizations'
 import { getRevenueDataInputSchema } from '@/db/schema/payments'
-import { z } from 'zod'
-import { createOrganizationTransaction } from '@/utils/organizationHelpers'
-import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
-import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
 import {
-  calculateMRRByMonth,
-  calculateMRRBreakdown,
+  selectFocusedMembershipAndOrganization,
+  selectMembershipAndOrganizationsByBetterAuthUserId,
+  selectMembershipsAndOrganizationsByMembershipWhere,
+  selectMembershipsAndUsersByMembershipWhere,
+  selectMembershipsTableRowData,
+  unfocusMembershipsForUser,
+  updateMembership,
+} from '@/db/tableMethods/membershipMethods'
+import { updateOrganization as updateOrganizationDB } from '@/db/tableMethods/organizationMethods'
+import { selectRevenueDataForOrganization } from '@/db/tableMethods/paymentMethods'
+import { selectUsers } from '@/db/tableMethods/userMethods'
+import {
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+} from '@/db/tableUtils'
+import { requestStripeConnectOnboardingLink } from '@/server/mutations/requestStripeConnectOnboardingLink'
+import { protectedProcedure, router } from '@/server/trpc'
+import { RevenueChartIntervalUnit } from '@/types'
+import { getSession } from '@/utils/auth'
+import {
   calculateARR,
+  calculateMRRBreakdown,
+  calculateMRRByMonth,
 } from '@/utils/billing-dashboard/revenueCalculationHelpers'
 import {
   calculateActiveSubscribersByMonth,
   calculateSubscriberBreakdown,
   getCurrentActiveSubscribers,
 } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
-import { RevenueChartIntervalUnit } from '@/types'
+import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import {
-  selectMembershipsAndOrganizationsByMembershipWhere,
-  updateMembership,
-} from '@/db/tableMethods/membershipMethods'
-import { TRPCError } from '@trpc/server'
-import { createPaginatedTableRowInputSchema } from '@/db/tableUtils'
-import { createPaginatedTableRowOutputSchema } from '@/db/tableUtils'
-import { getSession } from '@/utils/auth'
-import { selectUsers } from '@/db/tableMethods/userMethods'
+  getOrganizationCodebaseMarkdown,
+  saveOrganizationCodebaseMarkdown,
+} from '@/utils/textContent'
+import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -316,10 +319,38 @@ const createOrganization = protectedProcedure
         transaction
       )
     })
-
+    if (input.codebaseMarkdown) {
+      await saveOrganizationCodebaseMarkdown({
+        organizationId: result.organization.id,
+        markdown: input.codebaseMarkdown,
+      })
+    }
     return {
       organization: result.organization,
     }
+  })
+
+const getCodebaseMarkdown = protectedProcedure
+  .output(z.string().nullable())
+  .query(async ({ ctx }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+
+    return getOrganizationCodebaseMarkdown(ctx.organizationId)
+  })
+
+const updateCodebaseMarkdown = protectedProcedure
+  .input(z.object({ markdown: z.string() }))
+  .mutation(async ({ ctx, input }) => {
+    if (!ctx.organizationId) {
+      throw new Error('organizationId is required')
+    }
+
+    await saveOrganizationCodebaseMarkdown({
+      organizationId: ctx.organizationId,
+      markdown: input.markdown,
+    })
   })
 
 const updateOrganization = protectedProcedure
@@ -419,6 +450,8 @@ export const organizationsRouter = router({
   updateFocusedMembership: updateFocusedMembership,
   getOrganizations: getOrganizations,
   inviteUser: inviteUserToOrganization,
+  getCodebaseMarkdown: getCodebaseMarkdown,
+  updateCodebaseMarkdown: updateCodebaseMarkdown,
   // Revenue is a sub-resource of organizations
   getRevenue: getRevenueData,
   // MRR-related endpoints for the billing dashboard

@@ -1,33 +1,33 @@
+import { TRPCError } from '@trpc/server'
+import type { z } from 'zod'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { customerBillingCreatePricedCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import { Price } from '@/db/schema/prices'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
-import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
-import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   safelyUpdatePaymentMethod,
   selectPaymentMethodById,
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  selectPriceById,
+  selectPriceBySlugAndCustomerId,
+} from '@/db/tableMethods/priceMethods'
+import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
+import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
+import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   isSubscriptionCurrent,
   safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
-  subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
+import type { DbTransaction } from '@/db/types'
+import type { RichSubscription } from '@/subscriptions/schemas'
 import { CheckoutSessionType, InvoiceStatus } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { Customer } from '@/db/schema/customers'
-import { TRPCError } from '@trpc/server'
-import {
-  CreateCheckoutSessionInput,
-  customerBillingCreatePricedCheckoutSessionSchema,
-} from '@/db/schema/checkoutSessions'
-import { Price } from '@/db/schema/prices'
-import { createCheckoutSessionTransaction } from './createCheckoutSession'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
-import { adminTransaction } from '@/db/adminTransaction'
 import { customerBillingPortalURL } from '@/utils/core'
-import { z } from 'zod'
+import { createCheckoutSessionTransaction } from './createCheckoutSession'
 
 export const customerBillingTransaction = async (
   params: {
@@ -71,6 +71,34 @@ export const customerBillingTransaction = async (
   const currentSubscriptions = subscriptions.filter((item) => {
     return isSubscriptionCurrent(item.status, item.cancellationReason)
   })
+
+  // Sort currentSubscriptions by createdAt descending (most recent first)
+  // If createdAt ties, use updatedAt as tiebreaker
+  // If updatedAt also ties, use id as final tiebreaker
+  const sortedCurrentSubscriptions = [...currentSubscriptions].sort(
+    (a, b) => {
+      const createdAtDiff = b.createdAt - a.createdAt
+      if (createdAtDiff !== 0) return createdAtDiff
+
+      const updatedAtDiff = b.updatedAt - a.updatedAt
+      if (updatedAtDiff !== 0) return updatedAtDiff
+
+      return a.id < b.id ? -1 : 1
+    }
+  )
+
+  // Extract the most recently created subscription
+  const currentSubscription: RichSubscription | undefined =
+    sortedCurrentSubscriptions[0]
+
+  // FIXME: Uncomment once we migrate all non-subscribed customers to subscriptions
+  // if (!currentSubscription) {
+  //   throw new TRPCError({
+  //     code: 'PRECONDITION_FAILED',
+  //     message: 'Customer has no current subscriptions',
+  //   })
+  // }
+
   return {
     customer,
     purchases,
@@ -79,6 +107,7 @@ export const customerBillingTransaction = async (
     pricingModel,
     subscriptions,
     currentSubscriptions,
+    currentSubscription,
   }
 }
 
@@ -135,12 +164,12 @@ export const customerBillingCreatePricedCheckoutSession = async ({
   customer,
 }: {
   checkoutSessionInput: z.infer<
-    typeof customerBillingCreatePricedCheckoutSessionSchema
+    typeof customerBillingCreatePricedCheckoutSessionInputSchema
   >
   customer: Customer.Record
 }) => {
   const checkoutSessionInputResult =
-    customerBillingCreatePricedCheckoutSessionSchema.safeParse(
+    customerBillingCreatePricedCheckoutSessionInputSchema.safeParse(
       rawCheckoutSessionInput
     )
   if (!checkoutSessionInputResult.success) {
@@ -173,23 +202,52 @@ export const customerBillingCreatePricedCheckoutSession = async ({
     })
   }
 
-  const price = await authenticatedTransaction(
-    async ({ transaction }) => {
-      return await selectPriceById(
-        checkoutSessionInput.priceId,
-        transaction
-      )
-    }
-  )
+  if (checkoutSessionInput.type === CheckoutSessionType.Product) {
+    // Resolve price ID from either priceId or priceSlug
+    let resolvedPriceId: string
 
-  if (!price) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message:
-        'Price ' +
-        checkoutSessionInput.priceId +
-        ' not found. Either it does not exist or you do not have access to it.',
-    })
+    if (checkoutSessionInput.priceId) {
+      resolvedPriceId = checkoutSessionInput.priceId
+    } else if (checkoutSessionInput.priceSlug) {
+      const priceFromSlug = await authenticatedTransaction(
+        async ({ transaction }) => {
+          return await selectPriceBySlugAndCustomerId(
+            {
+              slug: checkoutSessionInput.priceSlug!,
+              customerId: customer.id,
+            },
+            transaction
+          )
+        }
+      )
+      if (!priceFromSlug) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Price with slug "${checkoutSessionInput.priceSlug}" not found for customer's pricing model`,
+        })
+      }
+      resolvedPriceId = priceFromSlug.id
+    } else {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Either priceId or priceSlug must be provided',
+      })
+    }
+
+    const price = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return await selectPriceById(resolvedPriceId, transaction)
+      }
+    )
+    if (!price) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message:
+          'Price ' +
+          resolvedPriceId +
+          ' not found. Either it does not exist or you do not have access to it.',
+      })
+    }
   }
 
   const redirectUrl = customerBillingPortalURL({

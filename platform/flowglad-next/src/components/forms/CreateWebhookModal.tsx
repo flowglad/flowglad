@@ -1,14 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import FormModal from '@/components/forms/FormModal'
-import {
-  createWebhookInputSchema,
-  Webhook,
-} from '@/db/schema/webhooks'
-import WebhookFormFields from '@/components/forms/WebhookFormFields'
+import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import FormModal from '@/components/forms/FormModal'
+import WebhookFormFields from '@/components/forms/WebhookFormFields'
+import {
+  createWebhookInputSchema,
+  type Webhook,
+} from '@/db/schema/webhooks'
 
 interface CreateWebhookModalProps {
   isOpen: boolean
@@ -19,10 +20,21 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
   isOpen,
   setIsOpen,
 }) => {
-  const createWebhook = trpc.webhooks.create.useMutation()
   const [webhookSecret, setWebhookSecret] = useState<string | null>(
     null
   )
+  const createWebhook = trpc.webhooks.create.useMutation({
+    onSuccess: (result) => {
+      setWebhookSecret(result.secret)
+      toast.success('Webhook created successfully')
+    },
+    onError: (error) => {
+      toast.error(
+        'Failed to create webhook. Please check your settings and try again.'
+      )
+      console.error('Webhook creation error:', error)
+    },
+  })
   const webhookDefaultValues: Webhook.ClientInsert = {
     name: '',
     url: '',
@@ -43,8 +55,7 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
         webhook: webhookDefaultValues,
       }}
       onSubmit={async (data) => {
-        const result = await createWebhook.mutateAsync(data)
-        setWebhookSecret(result.secret)
+        await createWebhook.mutateAsync(data)
       }}
       hideFooter={webhookSecret ? true : false}
       autoClose={false}

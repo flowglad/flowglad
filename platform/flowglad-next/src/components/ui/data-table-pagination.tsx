@@ -1,11 +1,11 @@
-import React from 'react'
-import { Table } from '@tanstack/react-table'
+import type { Table } from '@tanstack/react-table'
 import {
   ChevronLeft,
   ChevronRight,
-  Loader2,
   Download,
+  Loader2,
 } from 'lucide-react'
+import React from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -57,8 +57,8 @@ export function DataTablePagination<TData>({
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <div className="text-muted-foreground flex-1 text-sm">
-        {totalRows} results
+      <div className="text-muted-foreground flex-1 text-sm font-mono">
+        {totalRows} {totalRows === 1 ? 'result' : 'results'}
       </div>
       {(showExportButton || !shouldHidePagination) && (
         <div className="flex items-center">

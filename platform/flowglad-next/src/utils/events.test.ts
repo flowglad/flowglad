@@ -1,38 +1,38 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  commitCustomerCreatedEvent,
-  commitCustomerUpdatedEvent,
-  commitPaymentSucceededEvent,
-  commitPaymentCanceledEvent,
-  commitPurchaseCompletedEvent,
-  commitSubscriptionCreatedEvent,
-  commitSubscriptionUpdatedEvent,
-  commitSubscriptionCancelledEvent,
-} from './events'
-import {
-  FlowgladEventType,
-  EventNoun,
-  PaymentStatus,
-  PriceType,
-  CurrencyCode,
-  IntervalUnit,
-  PaymentMethodType,
-} from '@/types'
-import { adminTransaction } from '@/db/adminTransaction'
-import { selectEvents } from '@/db/tableMethods/eventMethods'
-import {
-  setupOrg,
   setupCustomer,
-  setupPaymentMethod,
   setupInvoice,
+  setupOrg,
+  setupPaymentMethod,
   setupPrice,
+  setupPricingModel,
   setupProduct,
   setupPurchase,
   setupSubscription,
-  setupPricingModel,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { selectEvents } from '@/db/tableMethods/eventMethods'
 import { insertPayment } from '@/db/tableMethods/paymentMethods'
+import {
+  CurrencyCode,
+  EventNoun,
+  FlowgladEventType,
+  IntervalUnit,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+} from '@/types'
 import core from './core'
+import {
+  commitCustomerCreatedEvent,
+  commitCustomerUpdatedEvent,
+  commitPaymentCanceledEvent,
+  commitPaymentSucceededEvent,
+  commitPurchaseCompletedEvent,
+  commitSubscriptionCanceledEvent,
+  commitSubscriptionCreatedEvent,
+  commitSubscriptionUpdatedEvent,
+} from './events'
 
 describe('Webhook Event Payloads - Simple Real Tests', () => {
   it('should include customer.externalId in CustomerCreated event payload', async () => {
@@ -131,8 +131,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -221,8 +219,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -311,8 +307,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -374,8 +368,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -443,8 +435,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -488,7 +478,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
   })
 
-  it('should include customer.externalId in SubscriptionCancelled event payload', async () => {
+  it('should include customer.externalId in SubscriptionCanceled event payload', async () => {
     const orgData = await setupOrg()
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
@@ -512,8 +502,6 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       name: 'Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 5000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       isDefault: false,
       livemode: true,
     })
@@ -532,10 +520,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     await adminTransaction(async ({ transaction }) => {
-      await commitSubscriptionCancelledEvent(
-        subscription,
-        transaction
-      )
+      await commitSubscriptionCanceledEvent(subscription, transaction)
     })
 
     const events = await adminTransaction(async ({ transaction }) => {
@@ -546,7 +531,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     const subscriptionCancelledEvent = events.find(
-      (e) => e.type === FlowgladEventType.SubscriptionCancelled
+      (e) => e.type === FlowgladEventType.SubscriptionCanceled
     )
 
     expect(subscriptionCancelledEvent).toBeDefined()

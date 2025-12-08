@@ -1,26 +1,23 @@
 'use client'
-import React, { createContext, useContext } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
+import type { Flowglad } from '@flowglad/node'
 import {
-  FlowgladActionKey,
-  flowgladActionValidators,
+  type BillingWithChecks,
   type CancelSubscriptionParams,
   type CreateActivateSubscriptionCheckoutSessionParams,
   type CreateAddPaymentMethodCheckoutSessionParams,
+  type CreateProductCheckoutSessionParams,
+  type CustomerBillingDetails,
   constructCheckFeatureAccess,
   constructCheckUsageBalance,
-  type BillingWithChecks,
-  constructGetProduct,
   constructGetPrice,
+  constructGetProduct,
+  FlowgladActionKey,
+  flowgladActionValidators,
 } from '@flowglad/shared'
-import type { Flowglad } from '@flowglad/node'
-import { validateUrl } from './utils'
-import type {
-  CreateProductCheckoutSessionParams,
-  CustomerBillingDetails,
-} from '@flowglad/types'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import React, { createContext, useContext } from 'react'
 import { devError } from './lib/utils'
+import { validateUrl } from './utils'
 
 export type FrontendProductCreateCheckoutSessionParams =
   CreateProductCheckoutSessionParams & {
@@ -166,15 +163,18 @@ const constructCheckoutSessionCreator =
       mapPayload?.(params, basePayload) ??
       (basePayload as Record<string, unknown>)
 
-    const response = await axios.post(
-      `${flowgladRoute}/${actionKey}`,
-      payload,
-      { headers }
-    )
+    const response = await fetch(`${flowgladRoute}/${actionKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: JSON.stringify(payload),
+    })
     const json: {
       data: Flowglad.CheckoutSessions.CheckoutSessionCreateResponse
       error?: { code: string; json: Record<string, unknown> }
-    } = response.data
+    } = await response.json()
     const data = json.data
     if (json.error) {
       console.error(
@@ -205,15 +205,21 @@ const constructCancelSubscription =
     const { flowgladRoute, requestConfig, queryClient } =
       constructParams
     const headers = requestConfig?.headers
-    const response = await axios.post(
+    const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.CancelSubscription}`,
-      params,
-      { headers }
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify(params),
+      }
     )
     const json: {
       data: Flowglad.Subscriptions.SubscriptionCancelResponse
       error?: { code: string; json: Record<string, unknown> }
-    } = response.data
+    } = await response.json()
     const data = json.data
     if (json.error) {
       console.error(
@@ -238,6 +244,12 @@ const constructCancelSubscription =
 export interface RequestConfig {
   serverRoute?: string
   headers?: Record<string, string>
+  /**
+   * Custom fetch implementation for React Native compatibility.
+   * If not provided, falls back to global fetch.
+   * Required in React Native environments where global fetch may not be available.
+   */
+  fetch?: typeof fetch
 }
 
 interface CoreFlowgladContextProviderProps {
@@ -281,7 +293,19 @@ export const FlowgladContextProvider = (
       if (isDevMode) {
         return props.billingMocks
       }
-      const response = await fetch(
+      const requestConfig = (
+        props as CoreFlowgladContextProviderProps
+      ).requestConfig
+      // Use custom fetch if provided (for React Native), otherwise use global fetch
+      const fetchImpl =
+        requestConfig?.fetch ??
+        (typeof fetch !== 'undefined' ? fetch : undefined)
+      if (!fetchImpl) {
+        throw new Error(
+          'fetch is not available. In React Native environments, provide a fetch implementation via requestConfig.fetch'
+        )
+      }
+      const response = await fetchImpl(
         `${props.serverRoute ?? '/api/flowglad'}/${FlowgladActionKey.GetCustomerBilling}`,
         {
           method:
@@ -399,7 +423,6 @@ export const FlowgladContextProvider = (
   })
 
   let value: FlowgladContextValues
-
   if (!loadBilling) {
     value = {
       loaded: true,

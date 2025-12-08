@@ -1,13 +1,13 @@
-import { defineConfig } from '@trigger.dev/sdk'
-import { esbuildPlugin } from '@trigger.dev/build/extensions'
 import { sentryEsbuildPlugin } from '@sentry/esbuild-plugin'
 import * as Sentry from '@sentry/node'
-import { puppeteer } from '@trigger.dev/build/extensions/puppeteer'
+import { esbuildPlugin } from '@trigger.dev/build/extensions'
 import {
   additionalFiles,
   additionalPackages,
   syncVercelEnvVars,
 } from '@trigger.dev/build/extensions/core'
+import { puppeteer } from '@trigger.dev/build/extensions/puppeteer'
+import { defineConfig } from '@trigger.dev/sdk'
 
 export default defineConfig({
   project: 'proj_nrfpgtxovaftyxkxlako',
@@ -41,8 +41,8 @@ export default defineConfig({
       puppeteer(),
       esbuildPlugin(
         sentryEsbuildPlugin({
-          org: process.env.SENTRY_ORG as string,
-          project: process.env.SENTRY_PROJECT as string,
+          org: 'flowglad',
+          project: 'javascript-nextjs',
           authToken: process.env.SENTRY_AUTH_TOKEN,
         }),
         { placement: 'last', target: 'deploy' }

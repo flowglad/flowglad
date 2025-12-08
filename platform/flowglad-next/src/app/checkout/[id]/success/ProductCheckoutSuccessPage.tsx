@@ -1,8 +1,9 @@
-import { adminTransaction } from '@/db/adminTransaction'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { PriceType } from '@/types'
 import SuccessPageContainer from '@/components/SuccessPageContainer'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import { PriceType } from '@/types'
 import SubscriptionCheckoutSuccessPage from './SubscriptionCheckoutSuccessPage'
 
 interface ProductCheckoutSuccessPageProps {
@@ -12,12 +13,24 @@ interface ProductCheckoutSuccessPageProps {
 const ProductCheckoutSuccessPage = async ({
   product,
 }: ProductCheckoutSuccessPageProps) => {
+  // Get customer email from customer record (same source the email system uses)
+  let customerEmail: string | null = null
+  if (product.customerId) {
+    const customer = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomerById(product.customerId!, transaction)
+      }
+    )
+    customerEmail = customer?.email || null
+  }
+
   // If there's no priceId, just show a generic success message
   if (!product.priceId) {
     return (
       <SuccessPageContainer
         title="Product Purchase Successful"
         message="Thank you for purchase"
+        customerEmail={customerEmail}
       />
     )
   }
@@ -53,6 +66,7 @@ const ProductCheckoutSuccessPage = async ({
     <SuccessPageContainer
       title="Product Purchase Successful"
       message={`Thank you for purchasing from ${organization.name}. Your order has been processed successfully.`}
+      customerEmail={customerEmail}
     />
   )
 }

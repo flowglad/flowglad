@@ -1,0 +1,145 @@
+---
+title: "@flowglad/nextjs"
+description: "Official Next.js SDK for Flowglad with App Router and Pages Router support"
+---
+
+import NextjsSetup from '/snippets/setup-nextjs.mdx'
+
+<Info>
+  NPM Package: [@flowglad/nextjs](https://www.npmjs.com/package/@flowglad/nextjs)
+</Info>
+
+## Overview
+
+The Next.js SDK provides a complete integration for both App Router and Pages Router, including server-side utilities and client-side components.
+
+<NextjsSetup />
+
+## Key Features
+
+- **App Router Support**: First-class support for Next.js App Router with Server Components
+- **Pages Router Support**: Full compatibility with Pages Router
+- **Type-safe Route Handlers**: Automatic type inference for API routes
+- **Server-side Utilities**: Access billing data in Server Components and API routes
+- **Client Components**: Pre-built components for subscriptions and billing
+- **React Context**: Global billing state management
+
+## API Reference
+
+### Server Exports
+
+Import from `@flowglad/nextjs/server`:
+
+#### `FlowgladServer`
+
+The main server class for backend operations. See the [Server SDK documentation](/sdks/server) for full details.
+
+#### Route Handler
+
+Creates GET and POST handlers for App Router:
+
+```ts
+import { nextRouteHandler} from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  // derive customer external id from the request
+  getCustomerExternalId: async (req) => {
+    // for B2B apps, provide organization or team id instead
+    const user = await getUserForReq(req)
+    return user.id
+  },
+  // optional hooks for custom behavior
+  beforeRequest: async () => {
+    // side effect to run before the request is processed
+  },
+  afterRequest: async () => {
+    // side effect to run after the request is processed
+  },
+  onError: (error) => {
+    // handle errors
+  }
+})
+```
+
+### Client Exports
+
+You can import the following from `@flowglad/nextjs`:
+
+#### `FlowgladProvider`
+
+The main provider component. See the [React SDK documentation](/sdks/react) for full details on props and usage.
+
+#### `useBilling()`
+
+Access billing data and functions. See the [React SDK documentation](/sdks/react) for full API reference.
+
+## Server Setup
+
+```ts utils/flowglad.ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
+```
+
+```ts app/api/flowglad/[...path]/route.ts
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    // For B2C: return user.id (from your database)
+    // For B2B: return organization.id (from your database)
+    const userId = await getUserIdFromRequest(req)
+    if (!userId) {
+      throw new Error('User not authenticated')
+    }
+    return userId
+  },
+})
+```
+
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
+
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+
+Flowglad doesn't need to know how you authenticate—just provide the ID from your system that represents the customer entity which will be billed.
+</Note>
+
+## Complete Example
+
+For full working examples, check out our [example projects](https://github.com/flowglad/flowglad/tree/main/examples) with authentication and billing integration.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="React SDK" icon="react" href="/sdks/react">
+    Learn about React components and hooks
+  </Card>
+  <Card title="Server SDK" icon="server" href="/sdks/server">
+    Explore server-side capabilities
+  </Card>
+</CardGroup>
+

@@ -1,8 +1,13 @@
-import { protectedProcedure } from '@/server/trpc'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { adminTransaction } from '@/db/adminTransaction'
 import { z } from 'zod'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
+  inviteUserToOrganizationSchema,
+  type Membership,
+} from '@/db/schema/memberships'
+import type { Organization } from '@/db/schema/organizations'
+import {
+  insertMembership,
   selectFocusedMembershipAndOrganization,
   selectMemberships,
 } from '@/db/tableMethods/membershipMethods'
@@ -11,15 +16,10 @@ import {
   selectUserById,
   selectUsers,
 } from '@/db/tableMethods/userMethods'
-import { insertMembership } from '@/db/tableMethods/membershipMethods'
-import {
-  inviteUserToOrganizationSchema,
-  Membership,
-} from '@/db/schema/memberships'
-import { sendOrganizationInvitationEmail } from '@/utils/email'
-import { Organization } from '@/db/schema/organizations'
+import { protectedProcedure } from '@/server/trpc'
 import { auth } from '@/utils/auth'
 import core from '@/utils/core'
+import { sendOrganizationInvitationEmail } from '@/utils/email'
 
 export const innerInviteUserToOrganizationHandler = async (
   focusedMembership: {

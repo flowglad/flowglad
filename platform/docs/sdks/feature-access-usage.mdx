@@ -1,0 +1,196 @@
+---
+title: "Feature Access & Usage"
+description: "Check entitlements and usage balances with Flowglad"
+---
+
+## Overview
+
+Flowglad tracks feature entitlements and consumption so you can gate premium functionality or enforce [usage-based](/features/usage) plans. Use `checkFeatureAccess` for toggle features, or `checkUsageBalance` and `createUsageEvent` for usage-based features. Learn how to validate access before rendering protected experiences.
+
+### How to use
+- For `checkFeatureAccess` (available on client & server): provide the `featureSlug` to check for and optionally refine the result to a specific subscription by passing in a `subscriptionId` for `refinementParams`. Returns a boolean.
+- For `checkUsageBalance` (available on client & server): provide the `usageMeterSlug` to check for and optionally refine the result to a specific subscription by passing in a `subscriptionId` for `refinementParams`. Returns either `{ availableBalance: number }` or `null` if not found.
+- For `createUsageEvent` (server only): provide `{amount: number, priceSlug: string, subscriptionId: string, transactionId: string, properties?: Record<string, unknown>, usageDate?: number}`. The optional `properties` field is for usage meter of count distinct properties aggregation type. See [here](/api-reference/usage-events/create-usage-event#body-usage-event) for more details on the parameters.
+
+### What you can do
+
+- Query customer's feature access using the client or server SDK
+- Fetch usage balances for metered features and display remaining quota.
+- Combine entitlement checks with subscription state for robust authorization logic
+
+### Example: Feature Access Check
+
+<Tabs>
+  <Tab title="Client">
+
+  ```tsx
+  'use client'
+
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function FeatureAccessGate({
+    featureSlug,
+  }: {
+    featureSlug: string
+  }) {
+      const {
+        loaded,
+        errors,
+        checkFeatureAccess,
+      } = useBilling()
+
+      if (!loaded || !checkFeatureAccess) {
+        return <p>Loading billing state…</p>
+      }
+
+      if (errors) {
+        return <p>Unable to load billing data right now.</p>
+      }
+
+      return (
+        <div>
+          <h3>Feature Access</h3>
+          {checkFeatureAccess(featureSlug) ? (
+            <p>You can use this feature ✨</p>
+          ) : (
+            <p>You need to upgrade to unlock this feature.</p>
+          )}
+        </div>
+      )
+    }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import { NextResponse } from 'next/server'
+  import { flowglad } from '@/utils/flowglad'
+  
+  // How to use checkFeatureAccess on the backend:
+  export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url)
+    const featureSlug = searchParams.get('featureSlug') ?? 'ai-copilot'
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    const userId = await getUserIdFromRequest(request)
+
+    const billing = await flowglad(userId).getBilling()
+    const hasAccess = billing.checkFeatureAccess(featureSlug)
+
+    return NextResponse.json({ featureSlug, hasAccess })
+  }
+  ```
+  </Tab>
+</Tabs>
+
+
+### Example: Usage Balance Check
+
+<Tabs>
+  <Tab title="Client">
+
+  ```tsx
+  'use client'
+
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function UsageBalanceIndicator({
+    usageMeterSlug,
+  }: {
+    usageMeterSlug: string
+  }) {
+    const {
+      loaded,
+      errors,
+      checkUsageBalance,
+    } = useBilling()
+
+    if (!loaded || !checkUsageBalance) {
+      return <p>Loading usage…</p>
+    }
+
+    if (errors) {
+      return <p>Unable to load billing data right now.</p>
+    }
+
+    const usage = checkUsageBalance(usageMeterSlug)
+
+    return (
+      <div>
+        <h3>Usage Balance</h3>
+        <p>
+          Remaining:{' '}
+          {usage ? `${usage.availableBalance} credits` : 'No usage meter found'}
+        </p>
+      </div>
+    )
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import { NextResponse } from 'next/server'
+  import { flowglad } from '@/utils/flowglad'
+
+  export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url)
+    const usageMeterSlug = searchParams.get('usageMeterSlug') ?? 'api-calls'
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    const userId = await getUserIdFromRequest(request)
+
+    const billing = await flowglad(userId).getBilling()
+    const usage = billing.checkUsageBalance(usageMeterSlug)
+
+    return NextResponse.json({
+      usageMeterSlug,
+      remaining: usage?.availableBalance ?? null,
+    })
+  }
+  ```
+  </Tab>
+</Tabs>
+
+### Example: Recording Usage from the Server
+
+```ts
+import Fastify from 'fastify'
+import {
+  FlowgladServer,
+  type CreateUsageEventParams,
+} from '@flowglad/server'
+import { getSessionUser } from './auth'
+import { flowglad } from '@/utils/flowglad'
+
+const fastify = Fastify()
+
+fastify.post('/api/usage', async (request, reply) => {
+  const {
+    amount,
+    priceSlug,
+    subscriptionId,
+    transactionId,
+    usageDate,
+    properties,
+  } = request.body as CreateUsageEventParams
+  // Extract customerExternalId from your auth/session
+  // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+  const userId = await getUserIdFromRequest(request)
+
+  const usageEvent = await flowglad(userId).createUsageEvent({
+    amount,
+    priceSlug,
+    subscriptionId,
+    transactionId,
+    usageDate: usageDate ?? Date.now(),
+    properties,
+  })
+
+  reply.send({ usageEvent })
+})
+
+fastify.listen({ port: 3000 })
+```

@@ -1,36 +1,36 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  setupOrg,
   setupCustomer,
   setupInvoice,
+  setupOrg,
   setupPayment,
   setupPrice,
-  setupPurchase,
   setupProduct,
+  setupPurchase,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
 import {
-  PaymentStatus,
-  PaymentMethodType,
-  IntervalUnit,
-  RevenueChartIntervalUnit,
-  PriceType,
   CurrencyCode,
+  IntervalUnit,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+  RevenueChartIntervalUnit,
 } from '@/types'
 import { nanoid } from '@/utils/core'
+import type { Customer } from '../schema/customers'
+import type { Invoice } from '../schema/invoices'
+import type { Organization } from '../schema/organizations'
+import { type Payment, RevenueDataItem } from '../schema/payments'
+import type { Price } from '../schema/prices'
+import type { PricingModel } from '../schema/pricingModels'
+import type { Product } from '../schema/products'
 import {
   safelyUpdatePaymentForRefund,
   safelyUpdatePaymentStatus,
   selectPaymentById,
   selectRevenueDataForOrganization,
 } from './paymentMethods'
-import { Payment, RevenueDataItem } from '../schema/payments'
-import { Organization } from '../schema/organizations'
-import { Invoice } from '../schema/invoices'
-import { Customer } from '../schema/customers'
-import { Product } from '../schema/products'
-import { Price } from '../schema/prices'
-import { PricingModel } from '../schema/pricingModels'
 
 describe('paymentMethods.ts', () => {
   let organization: Organization.Record
@@ -549,8 +549,6 @@ describe('selectRevenueDataForOrganization', () => {
         livemode: true,
         isDefault: true,
         currency: CurrencyCode.USD,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
       })
       const priceB = await setupPrice({
         productId: productB.id,
@@ -560,8 +558,6 @@ describe('selectRevenueDataForOrganization', () => {
         livemode: true,
         isDefault: false,
         currency: CurrencyCode.USD,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
       })
 
       // Setup Purchases
@@ -765,8 +761,6 @@ describe('selectRevenueDataForOrganization', () => {
         livemode: true,
         isDefault: false,
         currency: CurrencyCode.USD,
-        intervalUnit: IntervalUnit.Day,
-        intervalCount: 1,
       })
 
       const purchaseB = await setupPurchase({

@@ -1,7 +1,7 @@
-import { TabsTrigger } from '@/components/ui/tabs'
-import { SubscriptionStatus } from '@/types'
-import { useSubscriptionCountsByStatusMap } from '../hooks/useSubscriptionCountsByStatusMap'
 import { sentenceCase } from 'change-case'
+import { TabsTrigger } from '@/components/ui/tabs'
+import type { SubscriptionStatus } from '@/types'
+import { useSubscriptionCountsByStatusMap } from '../hooks/useSubscriptionCountsByStatusMap'
 
 interface SubscriptionsTabProps {
   status: SubscriptionStatus | 'all'

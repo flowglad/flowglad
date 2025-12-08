@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import { ArrowLeft, Check, ChevronDown, Loader2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { IntervalUnit, PriceType } from '@/types'
 import type { PricingModelTemplate } from '@/types/pricingModelTemplates'
 import { formatCurrency } from '@/utils/pricingModelTemplates'
-import { IntervalUnit, PriceType } from '@/types'
 
 interface TemplatePreviewContentProps {
   template: PricingModelTemplate
   onBack: () => void
-  onConfirm: () => void
+  onConfirm: ({ isDefault }: { isDefault: boolean }) => void
   isCreating: boolean
 }
 
@@ -49,19 +50,29 @@ export function TemplatePreviewContent({
   const productGroups = useMemo((): ProductGroup[] => {
     const groupMap = new Map<string, ProductGroup>()
 
-    template.input.products.forEach((product) => {
-      const groupKey = product.displayGroup || product.product.slug
+    // Filter out hidden products. PriceType.Usage prices are required to create usage events
+    // even when overages aren't desired, so we hide them to avoid confusion
+    // in plans where the intent is to disallow overages.
+    template.input.products
+      .filter((product) => product.displayGroup !== 'hidden')
+      .forEach((product) => {
+        // Determine the grouping key: use displayGroup if set, otherwise fall back to product slug
+        const groupKey = product.displayGroup || product.product.slug
 
-      if (!groupMap.has(groupKey)) {
-        groupMap.set(groupKey, {
-          groupKey,
-          displayName: product.product.name,
-          products: [],
-        })
-      }
+        // Create a new group entry if this is the first product in this group
+        // The groupMap organizes products into display groups for the UI,
+        // allowing multiple products to be shown together under a single group header
+        if (!groupMap.has(groupKey)) {
+          groupMap.set(groupKey, {
+            groupKey,
+            displayName: product.product.name,
+            products: [],
+          })
+        }
 
-      groupMap.get(groupKey)!.products.push(product)
-    })
+        // Add the current product to its corresponding group
+        groupMap.get(groupKey)!.products.push(product)
+      })
 
     // Sort products within each group by displayOrder
     groupMap.forEach((group) => {
@@ -113,13 +124,15 @@ export function TemplatePreviewContent({
     return ''
   }
 
+  const [isDefault, setIsDefault] = useState(true)
+
   return (
     <div className="flex flex-col justify-between items-start max-h-[calc(90vh-2rem)] overflow-clip h-full isolate">
       {/* Top Section - Scrollable content */}
       <div className="flex flex-col gap-4 items-start w-full overflow-y-auto min-h-0 z-[2]">
         {/* Header */}
         <div className="flex flex-col gap-1.5 items-start px-3 pt-2 pb-0 w-full">
-          <h2 className="text-lg font-semibold" aria-hidden="true">
+          <h2 className="text-lg" aria-hidden="true">
             {template.metadata.title}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -149,7 +162,7 @@ export function TemplatePreviewContent({
                     <div className="flex items-center gap-2">
                       {/* Product Name */}
                       <div className="flex gap-2 items-center px-2 py-0">
-                        <h3 className="text-md font-semibold whitespace-nowrap">
+                        <h3 className="text-md font-semibold whitespace-nowrap font-sans">
                           {group.displayName}
                         </h3>
                       </div>
@@ -278,7 +291,24 @@ export function TemplatePreviewContent({
           </div>
         </div>
       </div>
-
+      <div className="flex items-center space-x-2 px-3 pt-4">
+        <Switch
+          id="is-default"
+          checked={isDefault}
+          onCheckedChange={setIsDefault}
+        />
+        <div className="grid gap-1.5 leading-none">
+          <label
+            htmlFor="is-default"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+          >
+            Default
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Make this the default pricing model for new customers.
+          </p>
+        </div>
+      </div>
       {/* Bottom Section - Footer */}
       <div className="flex flex-col items-start w-full shrink-0 z-[1]">
         {/* Action Buttons */}
@@ -292,7 +322,7 @@ export function TemplatePreviewContent({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={() => onConfirm({ isDefault })}
             disabled={isCreating}
             variant="default"
             className="rounded-[4px]"
@@ -305,7 +335,7 @@ export function TemplatePreviewContent({
             ) : (
               <>
                 <Check className="h-4 w-4 mr-2" />
-                Duplicate
+                Use Template
               </>
             )}
           </Button>

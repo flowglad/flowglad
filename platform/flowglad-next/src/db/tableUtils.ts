@@ -1,58 +1,58 @@
-import * as R from 'ramda'
+import { noCase, snakeCase } from 'change-case'
 import {
   and,
   asc,
+  count,
   desc,
   eq,
   gt,
-  inArray,
-  InferInsertModel,
-  InferSelectModel,
-  lt,
-  sql,
-  count,
-  SQL,
+  type InferInsertModel,
+  type InferSelectModel,
   ilike,
-  or,
+  inArray,
   isNull,
-  Table,
+  lt,
   ne,
+  or,
+  type SQL,
+  sql,
+  type Table,
 } from 'drizzle-orm'
-import { PgTimestampColumn } from './types'
-import { timestamptzMs } from './timestampMs'
-import core, { gitCommitId, IS_TEST } from '@/utils/core'
 import {
-  boolean,
-  integer,
-  pgEnum,
-  text,
-  IndexBuilderOn,
-  uniqueIndex,
-  index,
-  IndexColumn,
-  PgUpdateSetSource,
-  PgColumn,
-  pgPolicy,
   bigserial,
+  boolean,
+  type IndexBuilderOn,
+  type IndexColumn,
+  index,
+  integer,
+  type PgColumn,
+  type PgUpdateSetSource,
+  pgEnum,
+  pgPolicy,
   pgRole,
+  text,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import {
-  type DbTransaction,
-  type PgTableWithId,
-  type PgStringColumn,
-  type PgTableWithCreatedAtAndId,
+  type BuildRefine,
+  type BuildSchema,
+  createSelectSchema,
+  type NoUnknownKeys,
+} from 'drizzle-zod'
+import * as R from 'ramda'
+import { z } from 'zod'
+import type {
+  DbTransaction,
+  PgStringColumn,
+  PgTableWithCreatedAtAndId,
+  PgTableWithId,
   PgTableWithPosition,
 } from '@/db/types'
-import { CountryCode, TaxType, SupabasePayloadType } from '@/types'
-import { z } from 'zod'
-import {
-  BuildRefine,
-  BuildSchema,
-  createSelectSchema,
-  NoUnknownKeys,
-} from 'drizzle-zod'
-import { noCase, snakeCase } from 'change-case'
+import { CountryCode, SupabasePayloadType, TaxType } from '@/types'
+import core, { gitCommitId, IS_TEST } from '@/utils/core'
 import { countryCodeSchema } from './commonZodSchema'
+import { timestamptzMs } from './timestampMs'
+import type { PgTimestampColumn } from './types'
 
 export const merchantRole = pgRole('merchant', {
   createRole: false,
@@ -217,7 +217,7 @@ export const createInsertManyFunction = <
           for (const issue of error.issues) {
             const { path, message } = issue
             // Try to extract the problematic value and its type from the input
-            let value: unknown = undefined
+            let value: unknown
             let valueType: string = 'unknown'
             if (Array.isArray(insert)) {
               for (const item of insert) {
@@ -1865,7 +1865,7 @@ export const createCursorPaginatedSelectFunction = <
   }
 }
 
-export interface CreateSelectSchema<
+export type CreateSelectSchema<
   TCoerce extends
     | Partial<
         Record<
@@ -1875,15 +1875,13 @@ export interface CreateSelectSchema<
       >
     | true
     | undefined,
-> {
-  <
-    TTable extends Table,
-    TRefine extends BuildRefine<TTable['_']['columns'], TCoerce>,
-  >(
-    table: TTable,
-    refine?: NoUnknownKeys<TRefine, TTable['$inferSelect']>
-  ): BuildSchema<'select', TTable['_']['columns'], TRefine, TCoerce>
-}
+> = <
+  TTable extends Table,
+  TRefine extends BuildRefine<TTable['_']['columns'], TCoerce>,
+>(
+  table: TTable,
+  refine?: NoUnknownKeys<TRefine, TTable['$inferSelect']>
+) => BuildSchema<'select', TTable['_']['columns'], TRefine, TCoerce>
 
 export const TIMESTAMPTZ_MS = Symbol('timestamptzMs')
 

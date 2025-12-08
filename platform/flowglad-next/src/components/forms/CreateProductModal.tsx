@@ -1,17 +1,18 @@
 'use client'
-import { PriceType } from '@/types'
-import { ProductFormFields } from '@/components/forms/ProductFormFields'
-import { createProductFormSchema, Price } from '@/db/schema/prices'
-import {
-  CreateProductSchema,
-  createProductSchema,
-} from '@/db/schema/prices'
+import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
-import { toast } from 'sonner'
-import { Product } from '@/db/schema/products'
+import { ProductFormFields } from '@/components/forms/ProductFormFields'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import {
+  type CreateProductSchema,
+  createProductFormSchema,
+  createProductSchema,
+  type Price,
+} from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import { singlePaymentDummyPrice } from '@/stubs/priceStubs'
+import { PriceType } from '@/types'
 import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 
 export const defaultPrice: Price.ClientSinglePaymentInsert = {
@@ -38,6 +39,7 @@ export const CreateProductModal = ({
   onSubmitStart,
   onSubmitSuccess,
   defaultPricingModelId,
+  hidePricingModelSelect,
 }: {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
@@ -46,6 +48,7 @@ export const CreateProductModal = ({
   onSubmitSuccess?: () => void
   onSubmitError?: (error: Error) => void
   defaultPricingModelId: string
+  hidePricingModelSelect?: boolean
 }) => {
   const { organization } = useAuthenticatedContext()
   const createProduct = trpc.products.create.useMutation()
@@ -100,7 +103,9 @@ export const CreateProductModal = ({
       setIsOpen={setIsOpen}
       mode="drawer"
     >
-      <ProductFormFields />
+      <ProductFormFields
+        hidePricingModelSelect={hidePricingModelSelect}
+      />
     </FormModal>
   )
 }

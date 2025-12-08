@@ -1,18 +1,20 @@
 'use client'
 
-import * as React from 'react'
 import {
-  ColumnFiltersState,
-  ColumnSizingState,
-  SortingState,
-  VisibilityState,
+  type ColumnFiltersState,
+  type ColumnSizingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from '@tanstack/react-table'
+import type { ReactNode } from 'react'
+import * as React from 'react'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
 import {
   Table,
   TableBody,
@@ -21,21 +23,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { CurrencyCode } from '@/types'
 import { columns } from './columns'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { CurrencyCode } from '@/types'
 
 interface SubscriptionItemsDataTableProps {
   subscriptionItems: SubscriptionItem.ClientRecord[]
   currencyCode: CurrencyCode
   title?: string
+  toolbarContent?: ReactNode
 }
 
 export function SubscriptionItemsDataTable({
   subscriptionItems,
   currencyCode,
   title,
+  toolbarContent,
 }: SubscriptionItemsDataTableProps) {
   // Client-side features (Shadcn patterns)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -78,15 +81,12 @@ export function SubscriptionItemsDataTable({
       <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         {/* Title on the left (for detail pages) */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && (
-            <h3 className="text-lg font-semibold truncate">
-              {title}
-            </h3>
-          )}
+          {title && <h3 className="text-lg truncate">{title}</h3>}
         </div>
 
         {/* Controls on the right */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {toolbarContent}
           <DataTableViewOptions table={table} />
         </div>
       </div>

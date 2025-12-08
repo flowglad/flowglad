@@ -1,42 +1,45 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { and as drizzleAnd, eq, inArray, or, sql } from 'drizzle-orm'
+import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupCustomer,
+  setupOrg,
+  setupUserAndApiKey,
+} from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import type { ApiKey } from '@/db/schema/apiKeys'
+import { nulledPriceColumns, type Price } from '@/db/schema/prices'
+import { CurrencyCode, PriceType } from '@/types'
+import { core } from '@/utils/core'
+import {
+  type Customer,
+  customers,
+  customersInsertSchema,
+  customersSelectSchema,
+  customersUpdateSchema,
+} from './schema/customers'
+import {
+  type PricingModel,
+  pricingModels,
+} from './schema/pricingModels'
+import type { Product } from './schema/products'
 import {
   selectCustomersCursorPaginatedWithTableRowData,
   selectCustomersPaginated,
 } from './tableMethods/customerMethods'
-import {
-  setupOrg,
-  setupCustomer,
-  setupUserAndApiKey,
-} from '@/../seedDatabase'
-import { core } from '@/utils/core'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { nulledPriceColumns, Price } from '@/db/schema/prices'
-import { PriceType, CurrencyCode } from '@/types'
-import { eq, and as drizzleAnd, inArray, sql, or } from 'drizzle-orm'
-import { pgTable, text, integer, boolean } from 'drizzle-orm/pg-core'
-import { ApiKey } from '@/db/schema/apiKeys'
-import { PricingModel, pricingModels } from './schema/pricingModels'
-import { Product } from './schema/products'
+import { insertPrice, updatePrice } from './tableMethods/priceMethods'
 import {
   insertProduct,
   updateProduct,
 } from './tableMethods/productMethods'
-import { insertPrice, updatePrice } from './tableMethods/priceMethods'
 import {
+  createCursorPaginatedSelectFunction,
+  decodeCursor,
+  encodeCursor,
   metadataSchema,
   whereClauseFromObject,
-  encodeCursor,
-  decodeCursor,
 } from './tableUtils'
-import {
-  customers,
-  customersSelectSchema,
-  customersInsertSchema,
-  customersUpdateSchema,
-  Customer,
-} from './schema/customers'
-import { createCursorPaginatedSelectFunction } from './tableUtils'
 
 describe('createCursorPaginatedSelectFunction', () => {
   let organizationId: string
@@ -170,6 +173,9 @@ describe('createCursorPaginatedSelectFunction', () => {
           input: {
             pageSize: 5,
             pageAfter: firstPage.endCursor!,
+            filters: {
+              organizationId,
+            },
           },
           transaction,
         })

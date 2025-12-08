@@ -1,35 +1,41 @@
-import { router } from '../trpc'
+import { TRPCError } from '@trpc/server'
+import { z } from 'zod'
 import {
-  createUsageEventSchema,
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
+import {
   bulkInsertUsageEventsSchema,
-  usageEventPaginatedSelectSchema,
+  type UsageEvent,
   usageEventPaginatedListSchema,
+  usageEventPaginatedSelectSchema,
+  usageEventsClientSelectSchema,
   usageEventsPaginatedTableRowInputSchema,
   usageEventsPaginatedTableRowOutputSchema,
-  UsageEvent,
 } from '@/db/schema/usageEvents'
+import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
+import {
+  selectPriceBySlugAndCustomerId,
+  selectPrices,
+} from '@/db/tableMethods/priceMethods'
+import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import {
   bulkInsertOrDoNothingUsageEventsByTransactionId,
   selectUsageEventById,
   selectUsageEventsPaginated,
   selectUsageEventsTableRowData,
 } from '@/db/tableMethods/usageEventMethods'
-import { generateOpenApiMetas } from '@/utils/openapi'
-import { usageEventsClientSelectSchema } from '@/db/schema/usageEvents'
-
-import { protectedProcedure } from '@/server/trpc'
-import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedTransaction,
-  authenticatedProcedureTransaction,
-} from '@/db/authenticatedTransaction'
 import { idInputSchema } from '@/db/tableUtils'
-import { z } from 'zod'
-import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
-import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
+import { protectedProcedure } from '@/server/trpc'
 import { PriceType } from '@/types'
-import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
+import { generateOpenApiMetas } from '@/utils/openapi'
+import {
+  createUsageEventWithSlugSchema,
+  ingestAndProcessUsageEvent,
+  resolveUsageEventInput,
+} from '@/utils/usage/usageEventHelpers'
+import { router } from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'usageEvent',
@@ -40,13 +46,18 @@ export const usageEventsRouteConfigs = routeConfigs
 
 export const createUsageEvent = protectedProcedure
   .meta(openApiMetas.POST)
-  .input(createUsageEventSchema)
+  .input(createUsageEventWithSlugSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transaction }) => {
+        const resolvedInput = await resolveUsageEventInput(
+          input,
+          transaction
+        )
+
         return ingestAndProcessUsageEvent(
-          { input, livemode: ctx.livemode },
+          { input: resolvedInput, livemode: ctx.livemode },
           transaction
         )
       }
@@ -68,6 +79,16 @@ export const getUsageEvent = protectedProcedure
   })
 
 export const bulkInsertUsageEventsProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/usage-events/bulk',
+      summary: 'Bulk Insert Usage Events',
+      description:
+        'Create multiple usage events in a single request. Supports both priceId and priceSlug for each event.',
+      tags: ['Usage Events'],
+    },
+  })
   .input(bulkInsertUsageEventsSchema)
   .output(
     z.object({ usageEvents: z.array(usageEventsClientSelectSchema) })
@@ -113,9 +134,111 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
             subscription,
           ])
         )
+
+        // Batch resolve price slugs to price IDs
+        // First, collect all events that need slug resolution, grouped by customer
+        const eventsWithSlugs: Array<{
+          index: number
+          slug: string
+          customerId: string
+        }> = []
+
+        usageInsertsWithoutBillingPeriodId.forEach(
+          (usageEvent, index) => {
+            if (usageEvent.priceSlug) {
+              const subscription = subscriptionsMap.get(
+                usageEvent.subscriptionId
+              )
+              if (!subscription) {
+                throw new Error(
+                  `Subscription ${usageEvent.subscriptionId} not found for usage event at index ${index}`
+                )
+              }
+              eventsWithSlugs.push({
+                index,
+                slug: usageEvent.priceSlug,
+                customerId: subscription.customerId,
+              })
+            }
+          }
+        )
+
+        // Batch lookup prices by slug for each unique customer-slug combination
+        const slugToPriceIdMap = new Map<string, string>()
+
+        if (eventsWithSlugs.length > 0) {
+          // Group by customer and collect unique slugs per customer
+          const customerSlugsMap = new Map<string, Set<string>>()
+
+          eventsWithSlugs.forEach(({ customerId, slug }) => {
+            if (!customerSlugsMap.has(customerId)) {
+              customerSlugsMap.set(customerId, new Set())
+            }
+            customerSlugsMap.get(customerId)!.add(slug)
+          })
+
+          // Perform batch lookups for each customer
+          for (const [
+            customerId,
+            slugs,
+          ] of customerSlugsMap.entries()) {
+            for (const slug of slugs) {
+              const price = await selectPriceBySlugAndCustomerId(
+                { slug, customerId },
+                transaction
+              )
+
+              if (!price) {
+                throw new TRPCError({
+                  code: 'NOT_FOUND',
+                  message: `Price with slug ${slug} not found for customer's pricing model`,
+                })
+              }
+
+              // Create a composite key for customer-slug combination
+              const key = `${customerId}:${slug}`
+              slugToPriceIdMap.set(key, price.id)
+            }
+          }
+        }
+
+        // Resolve priceIds for all events (either already present or resolved from slug)
+        const resolvedUsageEvents =
+          usageInsertsWithoutBillingPeriodId.map(
+            (usageEvent, index) => {
+              let priceId = usageEvent.priceId
+
+              // If priceSlug is provided, resolve it
+              if (usageEvent.priceSlug) {
+                const subscription = subscriptionsMap.get(
+                  usageEvent.subscriptionId
+                )!
+                const key = `${subscription.customerId}:${usageEvent.priceSlug}`
+                priceId = slugToPriceIdMap.get(key)
+
+                if (!priceId) {
+                  throw new Error(
+                    `Failed to resolve price slug ${usageEvent.priceSlug} for event at index ${index}`
+                  )
+                }
+              }
+
+              if (!priceId) {
+                throw new Error(
+                  `No priceId or priceSlug provided for event at index ${index}`
+                )
+              }
+
+              return {
+                ...usageEvent,
+                priceId,
+              }
+            }
+          )
+
         const uniquePriceIds = [
           ...new Set(
-            usageInsertsWithoutBillingPeriodId.map(
+            resolvedUsageEvents.map(
               (usageEvent) => usageEvent.priceId
             )
           ),
@@ -139,20 +262,47 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
         })
 
         const usageInsertsWithBillingPeriodId: UsageEvent.Insert[] =
-          usageInsertsWithoutBillingPeriodId.map((usageEvent) => ({
-            ...usageEvent,
-            customerId: subscriptionsMap.get(
+          resolvedUsageEvents.map((usageEvent, index) => {
+            const subscription = subscriptionsMap.get(
               usageEvent.subscriptionId
-            )?.customerId!,
-            billingPeriodId: billingPeriodsMap.get(
+            )
+            if (!subscription) {
+              throw new Error(
+                `Subscription ${usageEvent.subscriptionId} not found for usage event at index ${index}`
+              )
+            }
+
+            const billingPeriod = billingPeriodsMap.get(
               usageEvent.subscriptionId
-            )?.id!,
-            usageMeterId: pricesMap.get(usageEvent.priceId)
-              ?.usageMeterId!,
-            usageDate: usageEvent.usageDate
-              ? usageEvent.usageDate
-              : Date.now(),
-          }))
+            )
+            if (!billingPeriod) {
+              throw new Error(
+                `Billing period not found for subscription ${usageEvent.subscriptionId} at index ${index}`
+              )
+            }
+
+            const price = pricesMap.get(usageEvent.priceId)
+            if (!price) {
+              throw new Error(
+                `Price ${usageEvent.priceId} not found for usage event at index ${index}`
+              )
+            }
+            if (!price.usageMeterId) {
+              throw new Error(
+                `Usage meter not found for price ${usageEvent.priceId} at index ${index}`
+              )
+            }
+
+            return {
+              ...usageEvent,
+              customerId: subscription.customerId,
+              billingPeriodId: billingPeriod.id,
+              usageMeterId: price.usageMeterId,
+              usageDate: usageEvent.usageDate
+                ? usageEvent.usageDate
+                : Date.now(),
+            }
+          })
         return await bulkInsertOrDoNothingUsageEventsByTransactionId(
           usageInsertsWithBillingPeriodId,
           transaction

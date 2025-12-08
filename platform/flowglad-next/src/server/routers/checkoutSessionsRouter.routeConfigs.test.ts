@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { checkoutSessionsRouteConfigs } from './checkoutSessionsRouter'
 import {
   findRouteConfigInArray,
@@ -305,6 +305,46 @@ describe('checkoutSessionsRouteConfigs', () => {
         'checkout-session_123-abc',
       ])
       expect(result2).toEqual({ id: 'checkout-session_123-abc' })
+    })
+  })
+
+  describe('Price slug support in request body', () => {
+    it('should accept priceSlug in POST /checkout-sessions request body', () => {
+      const routeConfig = findRouteConfig('POST /checkout-sessions')
+
+      expect(routeConfig).toBeDefined()
+
+      // Test with priceSlug instead of priceId
+      const testBodyWithPriceSlug = {
+        checkoutSession: {
+          type: 'product',
+          customerExternalId: 'cust_ext_123',
+          priceSlug: 'basic-plan',
+          successUrl: 'https://example.com/success',
+          cancelUrl: 'https://example.com/cancel',
+        },
+      }
+      const result = routeConfig!.mapParams([], testBodyWithPriceSlug)
+      expect(result).toEqual(testBodyWithPriceSlug)
+    })
+
+    it('should accept priceSlug in anonymous checkout request body', () => {
+      const routeConfig = findRouteConfig('POST /checkout-sessions')
+
+      expect(routeConfig).toBeDefined()
+
+      // Test anonymous checkout with priceSlug
+      const testBodyWithPriceSlug = {
+        checkoutSession: {
+          type: 'product',
+          anonymous: true,
+          priceSlug: 'basic-plan',
+          successUrl: 'https://example.com/success',
+          cancelUrl: 'https://example.com/cancel',
+        },
+      }
+      const result = routeConfig!.mapParams([], testBodyWithPriceSlug)
+      expect(result).toEqual(testBodyWithPriceSlug)
     })
   })
 

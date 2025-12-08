@@ -1,29 +1,31 @@
+import Stripe from 'stripe'
 import { z } from 'zod'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Country } from '@/db/schema/countries'
+import type { Customer } from '@/db/schema/customers'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type {
+  BillingAddress,
+  Organization,
+} from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
 import {
   BusinessOnboardingStatus,
   CountryCode,
   CurrencyCode,
-  Nullish,
+  type Nullish,
   PaymentMethodType,
   StripeConnectContractType,
 } from '@/types'
-import core from './core'
-import Stripe from 'stripe'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { Organization } from '@/db/schema/organizations'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { Invoice } from '@/db/schema/invoices'
-import { BillingAddress } from '@/db/schema/organizations'
-import { Purchase } from '@/db/schema/purchases'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
 import {
-  calculateTotalFeeAmount,
   calculateTotalDueAmount,
+  calculateTotalFeeAmount,
 } from '@/utils/bookkeeping/fees/common'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { Country } from '@/db/schema/countries'
-import { Customer } from '@/db/schema/customers'
+import core from './core'
 
 const DIGITAL_TAX_CODE = 'txcd_10000000'
 
@@ -303,6 +305,53 @@ export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
   return formatter.format(amount)
 }
 
+/**
+ * Returns currency symbol and formatted numeric value separately for a given amount.
+ * Uses Intl.NumberFormat.formatToParts() for reliable i18n support with multi-character
+ * currency symbols (e.g., CHF, SEK, CN¥, R$).
+ */
+export const getCurrencyParts = (
+  currency: CurrencyCode,
+  amount: number,
+  options?: { hideZeroCents?: boolean }
+): { symbol: string; value: string } => {
+  const adjustedAmount = isCurrencyZeroDecimal(currency)
+    ? amount
+    : amount / 100
+
+  // When hideZeroCents is true, only hide .00 for whole amounts
+  // (e.g., $40.00 → $40, but $39.50 stays $39.50, not $39.5)
+  const isWholeAmount = adjustedAmount % 1 === 0
+  const fractionDigits =
+    options?.hideZeroCents && isWholeAmount
+      ? { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+      : {}
+
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    ...fractionDigits,
+  })
+
+  const parts = formatter.formatToParts(adjustedAmount)
+  const symbol =
+    parts.find((p) => p.type === 'currency')?.value ?? '$'
+  const value = parts
+    .filter((p) =>
+      [
+        'minusSign',
+        'integer',
+        'group',
+        'decimal',
+        'fraction',
+      ].includes(p.type)
+    )
+    .map((p) => p.value)
+    .join('')
+
+  return { symbol, value }
+}
+
 // Constants for readability and maintainability
 const THRESHOLDS = {
   SMALL_AMOUNT: 100,
@@ -388,8 +437,7 @@ export const stripeCurrencyAmountToShortReadableCurrencyAmount = (
 
     // Check if rounding would result in >= 1000K, if so use M notation instead
     const roundedThousands =
-      Math.round(thousands * Math.pow(10, decimals)) /
-      Math.pow(10, decimals)
+      Math.round(thousands * 10 ** decimals) / 10 ** decimals
     if (roundedThousands >= THRESHOLDS.THOUSAND) {
       // Switch to M notation to avoid displaying "1000K" or higher
       const millions = actualAmount / THRESHOLDS.MILLION
@@ -788,6 +836,51 @@ export const createStripeCustomer = async (params: {
   })
 }
 
+/**
+ * Creates a Stripe CustomerSession for a customer to enable saved payment method features.
+ *
+ * CustomerSessions enable the PaymentElement to display saved payment methods and allow
+ * users to save new payment methods for future checkouts. This is used when a customer
+ * already exists with a Stripe customer ID and the PaymentIntent or SetupIntent is
+ * associated with that customer.
+ *
+ * @param customer - The customer record with stripeCustomerId set
+ * @returns The client_secret for the CustomerSession, which should be passed to the
+ *          PaymentElement's options.customerSessionClientSecret
+ * @throws {Error} If customer.stripeCustomerId is missing
+ * @throws {StripeError} If the Stripe API call fails
+ *
+ * @example
+ * ```typescript
+ * const customerSessionClientSecret = await createCustomerSessionForCheckout(customer)
+ * // Pass to PaymentElement:
+ * // <PaymentElement options={{ customerSessionClientSecret }} />
+ * ```
+ */
+export const createCustomerSessionForCheckout = async (
+  customer: Customer.Record
+): Promise<string> => {
+  if (!customer.stripeCustomerId) {
+    throw new Error(
+      'Missing stripeCustomerId for customer session creation'
+    )
+  }
+  const customerSession = await stripe(
+    customer.livemode
+  ).customerSessions.create({
+    customer: customer.stripeCustomerId,
+    components: {
+      payment_element: {
+        enabled: true,
+        features: {
+          payment_method_redisplay: 'enabled',
+        },
+      },
+    },
+  })
+  return customerSession.client_secret
+}
+
 export const createStripeTaxCalculationByPrice = async ({
   price,
   billingAddress,
@@ -984,9 +1077,15 @@ export const createPaymentIntentForCheckoutSession = async (params: {
   purchase?: Purchase.Record
   checkoutSession: CheckoutSession.Record
   feeCalculation?: FeeCalculation.Record
+  customer?: Customer.Record
 }) => {
-  const { price, organization, checkoutSession, feeCalculation } =
-    params
+  const {
+    price,
+    organization,
+    checkoutSession,
+    feeCalculation,
+    customer,
+  } = params
   const livemode = checkoutSession.livemode
   const transferData = stripeConnectTransferDataForOrganization({
     organization,
@@ -1013,6 +1112,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     application_fee_amount: livemode ? totalFeeAmount : undefined,
     ...transferData,
     metadata,
+    customer: customer?.stripeCustomerId ?? undefined,
   })
 }
 
@@ -1091,7 +1191,11 @@ export const updatePaymentIntent = async (
   paymentIntentId: string,
   params: Pick<
     Stripe.PaymentIntentUpdateParams,
-    'customer' | 'amount' | 'metadata' | 'application_fee_amount'
+    | 'customer'
+    | 'amount'
+    | 'metadata'
+    | 'application_fee_amount'
+    | 'setup_future_usage'
   >,
   livemode: boolean
 ) => {

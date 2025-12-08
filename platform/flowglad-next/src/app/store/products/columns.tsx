@@ -1,34 +1,34 @@
 'use client'
 
-import * as React from 'react'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import {
-  Image as ImageIcon,
-  Pencil,
-  Copy,
   Archive,
   ArchiveRestore,
+  Copy,
+  Image as ImageIcon,
+  Pencil,
   Plus,
 } from 'lucide-react'
+// Other imports
+import Image from 'next/image'
+import * as React from 'react'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
+import CreatePriceModal from '@/components/forms/CreatePriceModal'
+import DeleteProductModal from '@/components/forms/DeleteProductModal'
+import EditProductModal from '@/components/forms/EditProductModal'
+import PricingCellView from '@/components/PricingCellView'
+import StatusBadge from '@/components/StatusBadge'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
+  type ActionMenuItem,
   EnhancedDataTableActionsMenu,
-  ActionMenuItem,
 } from '@/components/ui/enhanced-data-table-actions-menu'
-// Other imports
-import Image from 'next/image'
-import StatusBadge from '@/components/StatusBadge'
-import PricingCellView from '@/components/PricingCellView'
-import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { PricingModel } from '@/db/schema/pricingModels'
-import DeleteProductModal from '@/components/forms/DeleteProductModal'
-import EditProductModal from '@/components/forms/EditProductModal'
-import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
-import CreatePriceModal from '@/components/forms/CreatePriceModal'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
 
 export interface ProductRow {
   prices: Price.ClientRecord[]
@@ -38,8 +38,10 @@ export interface ProductRow {
 
 function ProductActionsMenu({
   product,
+  prices,
 }: {
   product: Product.ClientRecord
+  prices: Price.ClientRecord[]
 }) {
   const [isArchiveOpen, setIsArchiveOpen] = React.useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false)
@@ -56,6 +58,9 @@ function ProductActionsMenu({
     text: purchaseLink,
   })
 
+  // Check if product has any usage type prices
+  const hasUsagePrice = prices.some((price) => price.type === 'usage')
+
   const actionItems: ActionMenuItem[] = [
     {
       label: 'Edit',
@@ -66,10 +71,12 @@ function ProductActionsMenu({
       label: 'Copy purchase link',
       icon: <Copy className="h-4 w-4" />,
       handler: copyPurchaseLinkHandler,
-      disabled: product.default,
+      disabled: product.default || hasUsagePrice,
       helperText: product.default
         ? 'Cannot copy checkout link for default products. Default products are automatically assigned to customers.'
-        : undefined,
+        : hasUsagePrice
+          ? 'Cannot copy checkout link for products with usage-based pricing.'
+          : undefined,
     },
     {
       label: product.active ? 'Deactivate' : 'Activate',
@@ -213,9 +220,10 @@ export const columns: ColumnDef<ProductRow>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const product = row.original.product
+      const prices = row.original.prices
       return (
         <div onClick={(e) => e.stopPropagation()}>
-          <ProductActionsMenu product={product} />
+          <ProductActionsMenu product={product} prices={prices} />
         </div>
       )
     },

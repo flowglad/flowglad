@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { createCheckoutSessionSchema } from '@/db/schema/checkoutSessions'
+import { createCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
 import { CheckoutSessionType } from '@/types'
 
 const successUrl = 'https://example.com/success'
@@ -10,7 +10,7 @@ const wrap = (checkoutSession: Record<string, unknown>) => ({
   checkoutSession,
 })
 
-describe('createCheckoutSessionSchema – product anonymous discriminator', () => {
+describe('createCheckoutSessionInputSchema – product anonymous discriminator', () => {
   it('parses known when anonymous is omitted and customerExternalId is provided', () => {
     const input = wrap({
       type: CheckoutSessionType.Product,
@@ -19,7 +19,7 @@ describe('createCheckoutSessionSchema – product anonymous discriminator', () =
       cancelUrl,
       customerExternalId: 'cust_ext_1',
     })
-    const result = createCheckoutSessionSchema.parse(input)
+    const result = createCheckoutSessionInputSchema.parse(input)
     expect(result.checkoutSession).toBeDefined()
   })
 
@@ -32,7 +32,7 @@ describe('createCheckoutSessionSchema – product anonymous discriminator', () =
       anonymous: false,
       customerExternalId: 'cust_ext_1',
     })
-    const result = createCheckoutSessionSchema.parse(input)
+    const result = createCheckoutSessionInputSchema.parse(input)
     expect(result.checkoutSession).toBeDefined()
   })
 
@@ -53,9 +53,9 @@ describe('createCheckoutSessionSchema – product anonymous discriminator', () =
       }),
     ]
     for (const input of inputs) {
-      expect(() => createCheckoutSessionSchema.parse(input)).toThrow(
-        z.ZodError
-      )
+      expect(() =>
+        createCheckoutSessionInputSchema.parse(input)
+      ).toThrow(z.ZodError)
     }
   })
 
@@ -68,7 +68,7 @@ describe('createCheckoutSessionSchema – product anonymous discriminator', () =
       anonymous: true,
       // no customerExternalId provided
     })
-    const result = createCheckoutSessionSchema.parse(input)
+    const result = createCheckoutSessionInputSchema.parse(input)
     expect(result.checkoutSession).toBeDefined()
   })
 
@@ -81,7 +81,7 @@ describe('createCheckoutSessionSchema – product anonymous discriminator', () =
       anonymous: true,
       customerExternalId: null,
     })
-    const result = createCheckoutSessionSchema.parse(input)
+    const result = createCheckoutSessionInputSchema.parse(input)
     expect(result.checkoutSession).toBeDefined()
   })
 
@@ -94,9 +94,9 @@ describe('createCheckoutSessionSchema – product anonymous discriminator', () =
       anonymous: true,
       customerExternalId: 'cust_ext_should_not_be_here',
     })
-    expect(() => createCheckoutSessionSchema.parse(input)).toThrow(
-      z.ZodError
-    )
+    expect(() =>
+      createCheckoutSessionInputSchema.parse(input)
+    ).toThrow(z.ZodError)
   })
 
   it('parses with quantity variants (omitted, 1, 3)', () => {
@@ -113,13 +113,13 @@ describe('createCheckoutSessionSchema – product anonymous discriminator', () =
       wrap({ ...base, quantity: 3 }),
     ]
     for (const input of inputs) {
-      const result = createCheckoutSessionSchema.parse(input)
+      const result = createCheckoutSessionInputSchema.parse(input)
       expect(result.checkoutSession).toBeDefined()
     }
   })
 })
 
-describe('createCheckoutSessionSchema – non-product shapes ignore anonymous', () => {
+describe('createCheckoutSessionInputSchema – non-product shapes ignore anonymous', () => {
   it('add_payment_method parses even if anonymous=true is present', () => {
     const input = wrap({
       type: CheckoutSessionType.AddPaymentMethod,
@@ -128,7 +128,7 @@ describe('createCheckoutSessionSchema – non-product shapes ignore anonymous', 
       customerExternalId: 'cust_ext_1',
       anonymous: true, // extra field; should be ignored by this shape
     })
-    const result = createCheckoutSessionSchema.parse(input)
+    const result = createCheckoutSessionInputSchema.parse(input)
     expect(result.checkoutSession).toBeDefined()
   })
 
@@ -138,11 +138,166 @@ describe('createCheckoutSessionSchema – non-product shapes ignore anonymous', 
       successUrl,
       cancelUrl,
       customerExternalId: 'cust_ext_1',
-      priceId: 'price_123',
       targetSubscriptionId: 'sub_123',
       anonymous: true, // extra field; should be ignored by this shape
     })
-    const result = createCheckoutSessionSchema.parse(input)
+    const result = createCheckoutSessionInputSchema.parse(input)
     expect(result.checkoutSession).toBeDefined()
+  })
+
+  it('activate_subscription allows priceId to be omitted', () => {
+    const input = wrap({
+      type: CheckoutSessionType.ActivateSubscription,
+      successUrl,
+      cancelUrl,
+      customerExternalId: 'cust_ext_1',
+      targetSubscriptionId: 'sub_123',
+    })
+    const result = createCheckoutSessionInputSchema.parse(input)
+    expect(result.checkoutSession.type).toBe(
+      CheckoutSessionType.ActivateSubscription
+    )
+  })
+})
+
+describe('createCheckoutSessionInputSchema – price slug support', () => {
+  describe('identified product checkout (anonymous=false)', () => {
+    it('accepts priceId', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceId: 'price_123',
+        successUrl,
+        cancelUrl,
+        customerExternalId: 'cust_ext_1',
+        anonymous: false,
+      })
+      const result = createCheckoutSessionInputSchema.parse(input)
+      expect(result.checkoutSession).toBeDefined()
+      if (
+        result.checkoutSession.type === CheckoutSessionType.Product
+      ) {
+        expect(result.checkoutSession.priceId).toBe('price_123')
+        expect(result.checkoutSession.priceSlug).toBeUndefined()
+      }
+    })
+
+    it('accepts priceSlug', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceSlug: 'basic-plan',
+        successUrl,
+        cancelUrl,
+        customerExternalId: 'cust_ext_1',
+        anonymous: false,
+      })
+      const result = createCheckoutSessionInputSchema.parse(input)
+      expect(result.checkoutSession).toBeDefined()
+      if (
+        result.checkoutSession.type === CheckoutSessionType.Product
+      ) {
+        expect(result.checkoutSession.priceSlug).toBe('basic-plan')
+        expect(result.checkoutSession.priceId).toBeUndefined()
+      }
+    })
+
+    it('should reject when both priceId and priceSlug are provided', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceId: 'price_123',
+        priceSlug: 'basic-plan',
+        successUrl,
+        cancelUrl,
+        customerExternalId: 'cust_ext_1',
+        anonymous: false,
+      })
+      expect(() =>
+        createCheckoutSessionInputSchema.parse(input)
+      ).toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
+
+    it('should reject when neither priceId nor priceSlug is provided', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        successUrl,
+        cancelUrl,
+        customerExternalId: 'cust_ext_1',
+        anonymous: false,
+      })
+      expect(() =>
+        createCheckoutSessionInputSchema.parse(input)
+      ).toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
+  })
+
+  describe('anonymous product checkout (anonymous=true)', () => {
+    it('accepts priceId', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceId: 'price_123',
+        successUrl,
+        cancelUrl,
+        anonymous: true,
+      })
+      const result = createCheckoutSessionInputSchema.parse(input)
+      expect(result.checkoutSession).toBeDefined()
+      if (
+        result.checkoutSession.type === CheckoutSessionType.Product
+      ) {
+        expect(result.checkoutSession.priceId).toBe('price_123')
+        expect(result.checkoutSession.priceSlug).toBeUndefined()
+      }
+    })
+
+    it('accepts priceSlug', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceSlug: 'basic-plan',
+        successUrl,
+        cancelUrl,
+        anonymous: true,
+      })
+      const result = createCheckoutSessionInputSchema.parse(input)
+      expect(result.checkoutSession).toBeDefined()
+      if (
+        result.checkoutSession.type === CheckoutSessionType.Product
+      ) {
+        expect(result.checkoutSession.priceSlug).toBe('basic-plan')
+        expect(result.checkoutSession.priceId).toBeUndefined()
+      }
+    })
+
+    it('should reject when both priceId and priceSlug are provided', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        priceId: 'price_123',
+        priceSlug: 'basic-plan',
+        successUrl,
+        cancelUrl,
+        anonymous: true,
+      })
+      expect(() =>
+        createCheckoutSessionInputSchema.parse(input)
+      ).toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
+
+    it('should reject when neither priceId nor priceSlug is provided', () => {
+      const input = wrap({
+        type: CheckoutSessionType.Product,
+        successUrl,
+        cancelUrl,
+        anonymous: true,
+      })
+      expect(() =>
+        createCheckoutSessionInputSchema.parse(input)
+      ).toThrow(
+        'Either priceId or priceSlug must be provided, but not both'
+      )
+    })
   })
 })

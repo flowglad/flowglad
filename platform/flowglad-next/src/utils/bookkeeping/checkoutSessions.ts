@@ -1,44 +1,67 @@
 // checkoutSessions.ts
+
+import type Stripe from 'stripe'
 import {
-  FeeCalculationType,
-  InvoiceStatus,
-  PaymentStatus,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PurchaseStatus,
-  PriceType,
-} from '@/types'
-import { DbTransaction } from '@/db/types'
-import {
-  createStripeCustomer,
-  stripeIdFromObjectOrId,
-  updatePaymentIntent,
-} from '@/utils/stripe'
-import { Purchase } from '@/db/schema/purchases'
-import { Event } from '@/db/schema/events'
-import {
-  selectPurchaseById,
-  updatePurchase,
-  upsertPurchaseById,
-} from '@/db/tableMethods/purchaseMethods'
-import {
-  EditCheckoutSessionInput,
-  feeReadyCheckoutSessionSelectSchema,
-  CheckoutSession,
+  type CheckoutSession,
   CreateCheckoutSessionInput,
   CreateCheckoutSessionObject,
+  type EditCheckoutSessionInput,
+  feeReadyCheckoutSessionSelectSchema,
 } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import type { Discount } from '@/db/schema/discounts'
+import type { Event } from '@/db/schema/events'
+import {
+  checkoutSessionFeeCalculationParametersChanged,
+  type FeeCalculation,
+} from '@/db/schema/feeCalculations'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Purchase } from '@/db/schema/purchases'
 import {
   insertCheckoutSession,
   selectCheckoutSessionById,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import {
+  insertCustomer,
+  selectCustomerById,
+  selectCustomers,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import {
-  FeeCalculation,
-  checkoutSessionFeeCalculationParametersChanged,
-} from '@/db/schema/feeCalculations'
+  selectDiscountRedemptions,
+  upsertDiscountRedemptionForPurchaseAndDiscount,
+} from '@/db/tableMethods/discountRedemptionMethods'
+import {
+  selectLatestFeeCalculation,
+  updateFeeCalculation,
+} from '@/db/tableMethods/feeCalculationMethods'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  safelyUpdateInvoiceStatus,
+  selectInvoiceById,
+} from '@/db/tableMethods/invoiceMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import {
+  selectPurchaseById,
+  updatePurchase,
+  upsertPurchaseById,
+} from '@/db/tableMethods/purchaseMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  FeeCalculationType,
+  InvoiceStatus,
+  PaymentStatus,
+  PriceType,
+  PurchaseStatus,
+} from '@/types'
+import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import {
   createCheckoutSessionFeeCalculation,
   createFeeCalculationForCheckoutSession,
@@ -49,34 +72,12 @@ import {
   calculateTotalFeeAmount,
 } from '@/utils/bookkeeping/fees/common'
 import {
-  selectDiscountRedemptions,
-  upsertDiscountRedemptionForPurchaseAndDiscount,
-} from '@/db/tableMethods/discountRedemptionMethods'
-import {
-  selectLatestFeeCalculation,
-  updateFeeCalculation,
-} from '@/db/tableMethods/feeCalculationMethods'
-import {
-  insertCustomer,
-  selectCustomers,
-  updateCustomer,
-} from '@/db/tableMethods/customerMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { Customer } from '@/db/schema/customers'
+  createStripeCustomer,
+  stripeIdFromObjectOrId,
+  updatePaymentIntent,
+} from '@/utils/stripe'
 import { core } from '../core'
-import { Discount } from '@/db/schema/discounts'
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
 import { createInitialInvoiceForPurchase } from './invoices'
-import { Invoice } from '@/db/schema/invoices'
-import Stripe from 'stripe'
-import {
-  safelyUpdateInvoiceStatus,
-  selectInvoiceById,
-} from '@/db/tableMethods/invoiceMethods'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import { selectPayments } from '@/db/tableMethods/paymentMethods'
-import { createCustomerBookkeeping } from '@/utils/bookkeeping'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
 
 export const editCheckoutSession = async (
   input: EditCheckoutSessionInput,
@@ -435,7 +436,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
 export const checkoutSessionStatusFromStripeCharge = (
   charge: Pick<Stripe.Charge, 'status'>
 ): CheckoutSessionStatus => {
-  let checkoutSessionStatus = CheckoutSessionStatus.Succeeded
+  const checkoutSessionStatus = CheckoutSessionStatus.Succeeded
   if (charge.status === 'pending') {
     return CheckoutSessionStatus.Pending
   } else if (charge.status !== 'succeeded') {

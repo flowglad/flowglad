@@ -1,49 +1,57 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { eq } from 'drizzle-orm'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
-  setupUserAndApiKey,
+  setupPrice,
   setupPricingModel,
+  setupProduct,
+  setupProductFeature,
   setupToggleFeature,
   setupUsageCreditGrantFeature,
   setupUsageMeter,
-  setupProduct,
-  setupPrice,
-  setupProductFeature,
+  setupUserAndApiKey,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import type { ApiKey } from '@/db/schema/apiKeys'
+import type { Feature } from '@/db/schema/features'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
 import {
-  clonePricingModelTransaction,
-  createProductTransaction,
-  editProduct,
-} from './pricingModel'
+  ProductFeature,
+  productFeatures,
+} from '@/db/schema/productFeatures'
+import type { Product } from '@/db/schema/products'
+import { UsageMeter } from '@/db/schema/usageMeters'
+import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import {
-  IntervalUnit,
-  PriceType,
-  CurrencyCode,
-  FeatureType,
-  FeatureUsageGrantFrequency,
-  DestinationEnvironment,
-} from '@/types'
-import { core } from '@/utils/core'
+  selectPriceById,
+  selectPrices,
+  selectPricesAndProductsByProductWhere,
+} from '@/db/tableMethods/priceMethods'
 import {
   selectPricingModelById,
   selectPricingModels,
 } from '@/db/tableMethods/pricingModelMethods'
-import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { Organization } from '@/db/schema/organizations'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { Feature } from '@/db/schema/features'
-import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
-import { ApiKey } from '@/db/schema/apiKeys'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { ProductFeature } from '@/db/schema/productFeatures'
-import { productFeatures } from '@/db/schema/productFeatures'
-import { eq } from 'drizzle-orm'
+import type { AuthenticatedTransactionParams } from '@/db/types'
+import {
+  CurrencyCode,
+  DestinationEnvironment,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  PriceType,
+} from '@/types'
+import { core } from '@/utils/core'
+import {
+  clonePricingModelTransaction,
+  createPriceTransaction,
+  createProductTransaction,
+  editProductTransaction,
+} from './pricingModel'
 
 describe('clonePricingModelTransaction', () => {
   let organization: Organization.Record
@@ -2021,6 +2029,248 @@ describe('clonePricingModelTransaction', () => {
   })
 })
 
+describe('createPriceTransaction', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let defaultProduct: Product.Record
+  let userId: string
+
+  beforeEach(async () => {
+    const orgSetup = await setupOrg()
+    organization = orgSetup.organization
+    pricingModel = orgSetup.pricingModel
+    defaultProduct = orgSetup.product
+    const userApiKey = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    userId = userApiKey.user.id
+  })
+
+  it('creates a price for a non-default product', async () => {
+    const nonDefaultProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Additional Product',
+      livemode: true,
+    })
+
+    const createdPrice = await adminTransaction(
+      async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Additional Product Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 2500,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: true,
+              slug: `additional-product-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      }
+    )
+
+    expect(createdPrice.productId).toBe(nonDefaultProduct.id)
+    expect(createdPrice.unitPrice).toBe(2500)
+    expect(createdPrice.currency).toBe(organization.defaultCurrency)
+  })
+
+  it('rejects creating additional prices for a default product', async () => {
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Disallowed Additional Price',
+              productId: defaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 3000,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: false,
+              slug: `disallowed-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      })
+    ).rejects.toThrow(
+      'Cannot create additional prices for the default plan'
+    )
+  })
+
+  it('allows creating an additional price with the same type', async () => {
+    const nonDefaultProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Additional Product',
+      livemode: true,
+    })
+    const firstPrice = await adminTransaction(
+      async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Initial Subscription Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 2500,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: true,
+              slug: `initial-subscription-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      }
+    )
+
+    expect(firstPrice.productId).toBe(nonDefaultProduct.id)
+    expect(firstPrice.unitPrice).toBe(2500)
+
+    const updatedUnitPrice = 3500
+    const updatedPrice = await adminTransaction(
+      async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Additional Subscription Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: updatedUnitPrice,
+              trialPeriodDays: 0,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: false,
+              slug: `additional-subscription-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      }
+    )
+
+    expect(updatedPrice.productId).toBe(nonDefaultProduct.id)
+    expect(updatedPrice.unitPrice).toBe(updatedUnitPrice)
+    expect(updatedPrice.currency).toBe(organization.defaultCurrency)
+    expect(updatedPrice.type).toBe(PriceType.Subscription)
+    expect(updatedPrice.isDefault).toBe(true) // newly created price is always set as the default
+    expect(updatedPrice.active).toBe(true)
+  })
+
+  it('rejects creating an additional price with a different type', async () => {
+    const nonDefaultProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Additional Product',
+      livemode: true,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const params: AuthenticatedTransactionParams = {
+        transaction,
+        livemode: true,
+        organizationId: organization.id,
+        userId,
+      }
+
+      return createPriceTransaction(
+        {
+          price: {
+            name: 'Initial Subscription Price',
+            productId: nonDefaultProduct.id,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            unitPrice: 2500,
+            trialPeriodDays: 0,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+            isDefault: true,
+            slug: `initial-subscription-price-${core.nanoid()}`,
+          },
+        },
+        params
+      )
+    })
+
+    await expect(
+      adminTransaction(async ({ transaction }) => {
+        const params: AuthenticatedTransactionParams = {
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        }
+
+        return createPriceTransaction(
+          {
+            price: {
+              name: 'Mismatched Type Price',
+              productId: nonDefaultProduct.id,
+              type: PriceType.SinglePayment,
+              unitPrice: 3500,
+              intervalUnit: null,
+              intervalCount: null,
+              trialPeriodDays: null,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+              isDefault: false,
+              slug: `mismatched-type-price-${core.nanoid()}`,
+            },
+          },
+          params
+        )
+      })
+    ).rejects.toThrow(
+      'Cannot create price of a different type than the existing prices for the product'
+    )
+  })
+})
+
 describe('createProductTransaction', () => {
   let organization: Organization.Record
   let sourcePricingModel: PricingModel.Record
@@ -2249,17 +2499,183 @@ describe('createProductTransaction', () => {
 
     expect(productFeatures).toHaveLength(0)
   })
+
+  it('should throw an error when creating a usage price with featureIds', async () => {
+    // Setup: Create a usage meter for the usage price
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: sourcePricingModel.id,
+      name: 'API Calls',
+      slug: 'api-calls',
+      livemode: false,
+    })
+
+    const featureIds = features.map((f) => f.id)
+
+    // Test: Attempting to create a usage price with featureIds should throw
+    await expect(
+      authenticatedTransaction(
+        async ({ transaction }) => {
+          return createProductTransaction(
+            {
+              product: {
+                name: 'Test Product Usage Price with Features',
+                description: 'Test Description',
+                active: true,
+                imageURL: null,
+                singularQuantityLabel: 'singular',
+                pluralQuantityLabel: 'plural',
+                pricingModelId: sourcePricingModel.id,
+                default: false,
+                slug: `flowglad-test-product-price+${core.nanoid()}`,
+              },
+              prices: [
+                {
+                  name: 'Usage Price',
+                  type: PriceType.Usage,
+                  intervalCount: 1,
+                  intervalUnit: IntervalUnit.Month,
+                  unitPrice: 100,
+                  trialPeriodDays: null,
+                  active: true,
+                  usageMeterId: usageMeter.id,
+                  usageEventsPerUnit: 1,
+                  isDefault: true,
+                  slug: `flowglad-test-usage-price+${core.nanoid()}`,
+                },
+              ],
+              featureIds, // This should cause an error
+            },
+            {
+              userId,
+              transaction,
+              livemode: org1ApiKey.livemode,
+              organizationId: organization.id,
+            }
+          )
+        },
+        {
+          apiKey: org1ApiKeyToken,
+        }
+      )
+    ).rejects.toThrow(
+      'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
+    )
+  })
+
+  it('should create a product with a usage price when there are no featureIds', async () => {
+    // Setup: Create a usage meter for the usage price
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: sourcePricingModel.id,
+      name: 'API Requests',
+      slug: 'api-requests',
+      livemode: false,
+    })
+
+    // Test: Create a usage price product without featureIds - should succeed
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return createProductTransaction(
+          {
+            product: {
+              name: 'API Usage Product',
+              description: 'Product with usage-based pricing',
+              active: true,
+              imageURL: null,
+              singularQuantityLabel: 'request',
+              pluralQuantityLabel: 'requests',
+              pricingModelId: sourcePricingModel.id,
+              default: false,
+              slug: `flowglad-usage-product+${core.nanoid()}`,
+            },
+            prices: [
+              {
+                name: 'Per-Request Pricing',
+                type: PriceType.Usage,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                unitPrice: 50,
+                trialPeriodDays: null,
+                active: true,
+                usageMeterId: usageMeter.id,
+                usageEventsPerUnit: 1,
+                isDefault: true,
+                slug: `flowglad-usage-price+${core.nanoid()}`,
+              },
+            ],
+            // featureIds intentionally omitted - should be allowed for usage prices
+          },
+          {
+            userId,
+            transaction,
+            livemode: org1ApiKey.livemode,
+            organizationId: organization.id,
+          }
+        )
+      },
+      {
+        apiKey: org1ApiKeyToken,
+      }
+    )
+
+    const { product, prices } = result
+    const price = prices[0]
+
+    // Verify product was created correctly
+    expect(product.name).toBe('API Usage Product')
+    expect(product.description).toBe(
+      'Product with usage-based pricing'
+    )
+    expect(product.active).toBe(true)
+    expect(product.singularQuantityLabel).toBe('request')
+    expect(product.pluralQuantityLabel).toBe('requests')
+
+    // Verify usage price was created correctly
+    expect(prices).toHaveLength(1)
+    expect(price.name).toBe('Per-Request Pricing')
+    expect(price.type).toBe(PriceType.Usage)
+    expect(price.usageMeterId).toBe(usageMeter.id)
+    expect(price.usageEventsPerUnit).toBe(1)
+    expect(price.unitPrice).toBe(50)
+    expect(price.isDefault).toBe(true)
+    expect(price.active).toBe(true)
+
+    // Verify no product features are associated (since featureIds was not provided)
+    const productFeatures = await adminTransaction(
+      async ({ transaction }) => {
+        return selectProductFeatures(
+          { productId: product.id },
+          transaction
+        )
+      }
+    )
+
+    expect(productFeatures).toHaveLength(0)
+  })
 })
 
-describe('editProduct', () => {
+describe('editProductTransaction - Feature Updates', () => {
   let organization: Organization.Record
   let product: Product.Record
   let features: Feature.Record[]
+  let userId: string
+  let apiKeyToken: string
 
   beforeEach(async () => {
     const orgSetup = await setupOrg()
     organization = orgSetup.organization
     product = orgSetup.product
+
+    const userApiKeyOrg = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    if (!userApiKeyOrg.apiKey.token) {
+      throw new Error('API key token not found after setup')
+    }
+    userId = userApiKeyOrg.user.id
+    apiKeyToken = userApiKeyOrg.apiKey.token
 
     const featureA = await setupToggleFeature({
       name: 'Feature A',
@@ -2284,15 +2700,18 @@ describe('editProduct', () => {
 
   it('should add features to a product', async () => {
     const featureIds = [features[0].id, features[1].id]
-    await adminTransaction(async ({ transaction }) => {
-      return editProduct(
-        {
-          product: { id: product.id, name: 'Updated Product' },
-          featureIds,
-        },
-        transaction
-      )
-    })
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return editProductTransaction(
+          {
+            product: { id: product.id, name: 'Updated Product' },
+            featureIds,
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
 
     const productFeatures = await adminTransaction(
       async ({ transaction }) => {
@@ -2311,26 +2730,32 @@ describe('editProduct', () => {
 
   it('should remove features from a product', async () => {
     // First, add features
-    await adminTransaction(async ({ transaction, livemode }) => {
-      await editProduct(
-        {
-          product: { id: product.id },
-          featureIds: [features[0].id, features[1].id],
-        },
-        transaction
-      )
-    })
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        await editProductTransaction(
+          {
+            product: { id: product.id },
+            featureIds: [features[0].id, features[1].id],
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
 
     // Then, remove one
-    await adminTransaction(async ({ transaction }) => {
-      await editProduct(
-        {
-          product: { id: product.id },
-          featureIds: [features[0].id],
-        },
-        transaction
-      )
-    })
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        await editProductTransaction(
+          {
+            product: { id: product.id },
+            featureIds: [features[0].id],
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
 
     const productFeatures = await adminTransaction(
       async ({ transaction }) => {
@@ -2352,25 +2777,31 @@ describe('editProduct', () => {
 
   it('should not change features if featureIds is not provided', async () => {
     // First, add features
-    await adminTransaction(async ({ transaction }) => {
-      await editProduct(
-        {
-          product: { id: product.id },
-          featureIds: [features[0].id, features[1].id],
-        },
-        transaction
-      )
-    })
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        await editProductTransaction(
+          {
+            product: { id: product.id },
+            featureIds: [features[0].id, features[1].id],
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
 
     // Then, edit product without featureIds
-    await adminTransaction(async ({ transaction }) => {
-      await editProduct(
-        {
-          product: { id: product.id, name: 'New Name' },
-        },
-        transaction
-      )
-    })
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        await editProductTransaction(
+          {
+            product: { id: product.id, name: 'New Name' },
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
 
     const productFeatures = await adminTransaction(
       async ({ transaction }) => {
@@ -2384,5 +2815,326 @@ describe('editProduct', () => {
     expect(
       productFeatures.filter((pf) => !pf.expiredAt)
     ).toHaveLength(2)
+  })
+})
+
+describe('editProductTransaction - Price Updates', () => {
+  let organizationId: string
+  let pricingModelId: string
+  let defaultProductId: string
+  let defaultPriceId: string
+  let regularProductId: string
+  let regularPriceId: string
+  let apiKeyToken: string
+  const livemode = true
+
+  beforeEach(async () => {
+    // Set up organization and pricing model with default product
+    const result = await setupOrg()
+
+    organizationId = result.organization.id
+    pricingModelId = result.pricingModel.id
+    defaultProductId = result.product.id
+    defaultPriceId = result.price.id
+
+    // Create a regular (non-default) product and price for testing
+    const regularSetup = await adminTransaction(
+      async ({ transaction }) => {
+        const product = await setupProduct({
+          organizationId,
+          livemode,
+          pricingModelId,
+          name: 'Regular Product',
+        })
+        const price = await setupPrice({
+          productId: product.id,
+          name: 'Regular Price',
+          livemode,
+          isDefault: true,
+          type: PriceType.Subscription,
+          unitPrice: 5000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+        })
+        return { product, price }
+      }
+    )
+
+    regularProductId = regularSetup.product.id
+    regularPriceId = regularSetup.price.id
+
+    // Set up API key for authenticated transaction
+    const { apiKey } = await setupUserAndApiKey({
+      organizationId,
+      livemode,
+    })
+    if (!apiKey.token) {
+      throw new Error('API key token not found')
+    }
+    apiKeyToken = apiKey.token
+  })
+
+  it('should silently ignore price updates when editing default products', async () => {
+    const currentPrice = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPriceById(defaultPriceId, transaction)
+      }
+    )
+    if (!currentPrice) {
+      throw new Error('Default price not found')
+    }
+
+    const initialPriceCount = await adminTransaction(
+      async ({ transaction }) => {
+        const prices = await selectPrices(
+          { productId: defaultProductId },
+          transaction
+        )
+        return prices.length
+      }
+    )
+
+    // Create a modified price by changing immutable fields from the existing price
+    const modifiedPrice: Price.ClientInsert = {
+      productId: defaultProductId,
+      type: PriceType.Subscription,
+      unitPrice: currentPrice.unitPrice + 1000, // Increment unit price (immutable field)
+      intervalUnit:
+        currentPrice.intervalUnit === IntervalUnit.Month
+          ? IntervalUnit.Year
+          : IntervalUnit.Month, // Change interval unit (immutable field)
+      intervalCount: currentPrice.intervalCount ?? 1,
+      isDefault: currentPrice.isDefault,
+      name: currentPrice.name ?? undefined,
+      trialPeriodDays: currentPrice.trialPeriodDays ?? undefined,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      active: currentPrice.active,
+    }
+
+    // Should succeed without error - price updates are silently ignored for default products
+    const result = await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return await editProductTransaction(
+          {
+            product: {
+              id: defaultProductId,
+              name: 'Updated Name',
+              active: true,
+              default: true,
+            },
+            price: modifiedPrice,
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
+
+    // Verify product was updated successfully
+    expect(result.name).toBe('Updated Name')
+    expect(result.default).toBe(true)
+
+    // Verify no new price was created - price updates are ignored for default products
+    const finalPriceCount = await adminTransaction(
+      async ({ transaction }) => {
+        const prices = await selectPrices(
+          { productId: defaultProductId },
+          transaction
+        )
+        return prices.length
+      }
+    )
+    expect(finalPriceCount).toBe(initialPriceCount)
+
+    // Verify the original price was not modified
+    const priceAfterUpdate = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPriceById(defaultPriceId, transaction)
+      }
+    )
+    expect(priceAfterUpdate?.unitPrice).toBe(currentPrice.unitPrice)
+    expect(priceAfterUpdate?.intervalUnit).toBe(
+      currentPrice.intervalUnit
+    )
+    expect(priceAfterUpdate?.id).toBe(currentPrice.id)
+    expect(priceAfterUpdate?.type).toBe(currentPrice.type)
+  })
+
+  it('should allow updating allowed fields on default products', async () => {
+    const result = await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return await editProductTransaction(
+          {
+            product: {
+              id: defaultProductId,
+              name: 'Updated Base Plan Name',
+              description: 'Updated description',
+              active: true,
+              default: true,
+            },
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
+
+    expect(result).toBeDefined()
+    expect(result.name).toBe('Updated Base Plan Name')
+    expect(result.description).toBe('Updated description')
+    expect(result.default).toBe(true)
+  })
+
+  it('should insert new price record when price immutable fields are updated on non-default products', async () => {
+    // Get initial price count
+    const initialPrices = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPrices(
+          { productId: regularProductId },
+          transaction
+        )
+      }
+    )
+    const initialPriceCount = initialPrices.length
+
+    // Get the current default price
+    const currentPrice = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPriceById(regularPriceId, transaction)
+      }
+    )
+    if (!currentPrice) {
+      throw new Error('Regular price not found')
+    }
+
+    // Create a modified price with changed immutable fields
+    const modifiedPrice: Price.ClientInsert = {
+      productId: regularProductId,
+      type: PriceType.Subscription,
+      unitPrice: currentPrice.unitPrice + 2000, // Change immutable field
+      intervalUnit:
+        currentPrice.intervalUnit === IntervalUnit.Month
+          ? IntervalUnit.Year
+          : IntervalUnit.Month, // Change immutable field
+      intervalCount: currentPrice.intervalCount ?? 1,
+      isDefault: currentPrice.isDefault,
+      name: currentPrice.name ?? undefined,
+      trialPeriodDays: currentPrice.trialPeriodDays ?? undefined,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      active: currentPrice.active,
+    }
+
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return await editProductTransaction(
+          {
+            product: {
+              id: regularProductId,
+              name: 'Updated Regular Product',
+              active: true,
+              default: false,
+            },
+            price: modifiedPrice,
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
+
+    // Verify a new price was inserted
+    const finalPrices = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPrices(
+          { productId: regularProductId },
+          transaction
+        )
+      }
+    )
+    const finalPriceCount = finalPrices.length
+
+    expect(finalPriceCount).toBe(initialPriceCount + 1)
+    expect(
+      finalPrices.some((p) => p.unitPrice === modifiedPrice.unitPrice)
+    ).toBe(true)
+    expect(
+      finalPrices.some(
+        (p) => p.intervalUnit === modifiedPrice.intervalUnit
+      )
+    ).toBe(true)
+  })
+
+  it('should not insert new price record when no important price fields are updated', async () => {
+    // Get initial price count
+    const initialPrices = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPrices(
+          { productId: regularProductId },
+          transaction
+        )
+      }
+    )
+    const initialPriceCount = initialPrices.length
+
+    // Get the current default price
+    const currentPrice = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPriceById(regularPriceId, transaction)
+      }
+    )
+
+    if (!currentPrice) {
+      throw new Error('Regular price not found')
+    }
+
+    // Create a modified price with only non-immutable fields changed
+    // (name, active, isDefault are not immutable)
+    const modifiedPrice: Price.ClientInsert = {
+      productId: regularProductId,
+      type: PriceType.Subscription,
+      unitPrice: currentPrice.unitPrice, // Same - immutable field unchanged
+      intervalUnit: currentPrice.intervalUnit ?? IntervalUnit.Month, // Same - immutable field unchanged
+      intervalCount: currentPrice.intervalCount ?? 1, // Same - immutable field unchanged
+      isDefault: currentPrice.isDefault,
+      name: currentPrice.name ?? null, // Same - non-immutable field
+      trialPeriodDays: currentPrice.trialPeriodDays ?? null,
+      usageEventsPerUnit: null,
+      usageMeterId: null,
+      active: currentPrice.active, // Same - non-immutable field
+      slug: currentPrice.slug ?? null, // Same - preserve slug
+    }
+
+    await authenticatedTransaction(
+      async ({ userId, transaction, livemode, organizationId }) => {
+        return await editProductTransaction(
+          {
+            product: {
+              id: regularProductId,
+              name: 'Updated Regular Product',
+              active: true,
+              default: false,
+            },
+            price: modifiedPrice,
+          },
+          { userId, transaction, livemode, organizationId }
+        )
+      },
+      { apiKey: apiKeyToken }
+    )
+
+    // Verify no new price was inserted
+    const finalPrices = await adminTransaction(
+      async ({ transaction }) => {
+        return await selectPrices(
+          { productId: regularProductId },
+          transaction
+        )
+      }
+    )
+    const finalPriceCount = finalPrices.length
+
+    expect(finalPriceCount).toBe(initialPriceCount)
   })
 })

@@ -1,32 +1,38 @@
+import { sql } from 'drizzle-orm'
+import {
+  boolean,
+  integer,
+  pgPolicy,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
-import { pgTable, integer, text, pgPolicy } from 'drizzle-orm/pg-core'
-import {
-  tableBase,
-  notNullStringForeignKey,
-  nullableStringForeignKey,
-  constructIndex,
-  constructUniqueIndex,
-  livemodePolicy,
-  pgEnumColumn,
-  SelectConditions,
-  hiddenColumnsForClientSchema as baseHiddenColumnsForClientSchema,
-  timestampWithTimezoneColumn,
-  ommittedColumnsForInsertSchema as baseOmittedColumnsForInsertSchema,
-  parentForeignKeyIntegrityCheckPolicy,
-  merchantPolicy,
-  enableCustomerReadPolicy,
-} from '@/db/tableUtils'
-import { subscriptionItems } from '@/db/schema/subscriptionItems'
+import { buildSchemas } from '@/db/createZodSchemas'
 import { features } from '@/db/schema/features'
 import { productFeatures } from '@/db/schema/productFeatures'
+import { subscriptionItems } from '@/db/schema/subscriptionItems'
 import { usageMeters } from '@/db/schema/usageMeters'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
-import core, { zodOptionalNullableString } from '@/utils/core'
-import { FeatureUsageGrantFrequency, FeatureType } from '@/types'
-import { sql } from 'drizzle-orm'
+import {
+  hiddenColumnsForClientSchema as baseHiddenColumnsForClientSchema,
+  ommittedColumnsForInsertSchema as baseOmittedColumnsForInsertSchema,
+  constructIndex,
+  constructUniqueIndex,
+  enableCustomerReadPolicy,
+  livemodePolicy,
+  merchantPolicy,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  parentForeignKeyIntegrityCheckPolicy,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
+  timestampWithTimezoneColumn,
+} from '@/db/tableUtils'
 import { zodEpochMs } from '@/db/timestampMs'
-import { buildSchemas } from '@/db/createZodSchemas'
+import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
+import core, { zodOptionalNullableString } from '@/utils/core'
 
 const TABLE_NAME = 'subscription_item_features'
 
@@ -61,6 +67,9 @@ export const subscriptionItemFeatures = pgTable(
     expiredAt: timestampWithTimezoneColumn('expired_at'),
     detachedAt: timestampWithTimezoneColumn('detached_at'),
     detachedReason: text('detached_reason'),
+    manuallyCreated: boolean('manually_created')
+      .notNull()
+      .default(false),
   },
   (table) => [
     constructIndex(TABLE_NAME, [table.subscriptionItemId]),
@@ -187,8 +196,10 @@ export const {
   select: usageCreditGrantSubscriptionItemFeatureSelectSchema,
   update: usageCreditGrantSubscriptionItemFeatureUpdateSchema,
   client: {
-    insert: usageCreditGrantSubscriptionItemFeatureClientInsertSchema,
-    select: usageCreditGrantSubscriptionItemFeatureClientSelectSchema,
+    insert:
+      baseUsageCreditGrantSubscriptionItemFeatureClientInsertSchema,
+    select:
+      baseUsageCreditGrantSubscriptionItemFeatureClientSelectSchema,
     update: usageCreditGrantSubscriptionItemFeatureClientUpdateSchema,
   },
 } = buildSchemas(subscriptionItemFeatures, {
@@ -246,6 +257,16 @@ export const toggleSubscriptionItemFeatureClientInsertSchema =
   baseToggleSubscriptionItemFeatureClientInsertSchema
     .extend(clientSelectWithFeatureFieldRefinements)
     .meta({ id: 'ToggleSubscriptionItemFeatureInsert' })
+
+export const usageCreditGrantSubscriptionItemFeatureClientSelectSchema =
+  baseUsageCreditGrantSubscriptionItemFeatureClientSelectSchema
+    .extend(clientSelectWithFeatureFieldRefinements)
+    .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureRecord' })
+
+export const usageCreditGrantSubscriptionItemFeatureClientInsertSchema =
+  baseUsageCreditGrantSubscriptionItemFeatureClientInsertSchema
+    .extend(clientSelectWithFeatureFieldRefinements)
+    .meta({ id: 'UsageCreditGrantSubscriptionItemFeatureInsert' })
 
 /*
  * Combined client-facing discriminated union schemas
@@ -360,4 +381,23 @@ export const expireSubscriptionItemFeatureInputSchema = z.object({
 
 export type DeactivateSubscriptionItemFeatureInput = z.infer<
   typeof expireSubscriptionItemFeatureInputSchema
+>
+
+export const addFeatureToSubscriptionInputSchema = z.object({
+  subscriptionItemId: z.string(),
+  featureId: z.string(),
+  grantCreditsImmediately: z.boolean().optional().default(false),
+})
+
+export type AddFeatureToSubscriptionInput = z.infer<
+  typeof addFeatureToSubscriptionInputSchema
+>
+
+export const removeFeatureFromSubscriptionInputSchema = z.object({
+  subscriptionItemId: z.string(),
+  featureId: z.string(),
+})
+
+export type RemoveFeatureFromSubscriptionInput = z.infer<
+  typeof removeFeatureFromSubscriptionInputSchema
 >

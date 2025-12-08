@@ -6,15 +6,15 @@ import * as React from 'react'
 import { forwardRef, useEffect } from 'react'
 
 import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
 import {
   Command,
   CommandGroup,
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { cn } from '@/lib/utils'
 import { FormDescription, FormMessage } from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 
 export interface Option {
   value: string
@@ -553,7 +553,7 @@ const MultipleSelector = React.forwardRef<
         >
           <div
             className={cn(
-              'flex items-center w-full rounded border border-input bg-card px-3 py-2 text-sm text-foreground transition-colors min-h-10 h-auto overflow-hidden',
+              'flex items-center w-full rounded border border-input bg-card px-3 py-2 text-sm text-foreground shadow-xs transition-colors min-h-10 h-auto overflow-hidden',
               {
                 'focus-within:outline-none focus-within:ring-2 focus-within:ring-foreground/20 focus-within:border-foreground cursor-text':
                   !disabled && !resolvedError,

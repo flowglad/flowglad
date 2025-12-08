@@ -1,13 +1,12 @@
-import { AdminTransactionParams } from '@/db/types'
-import db from './client'
 import { sql } from 'drizzle-orm'
+import type { AdminTransactionParams } from '@/db/types'
 import { isNil } from '@/utils/core'
-import { Event } from './schema/events'
-import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
-
-// New imports for ledger and transaction output types
-import { TransactionOutput } from './transactionEnhacementTypes'
+import db from './client'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
+import type { Event } from './schema/events'
+import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
+// New imports for ledger and transaction output types
+import type { TransactionOutput } from './transactionEnhacementTypes'
 
 interface AdminTransactionOptions {
   livemode?: boolean
@@ -46,8 +45,25 @@ export async function adminTransaction<T>(
 }
 
 /**
- * New comprehensive admin transaction handler.
- * Takes a function that returns TransactionOutput, and handles event logging and ledger commands.
+ * Executes a function within an admin database transaction and automatically processes
+ * events and ledger commands from the transaction output.
+ *
+ * @param fn - Function that receives admin transaction parameters and returns a TransactionOutput
+ *   containing the result, optional events to insert, and optional ledger commands to process
+ * @param options - Transaction options including livemode flag
+ * @returns Promise resolving to the result value from the transaction function
+ *
+ * @example
+ * ```ts
+ * const result = await comprehensiveAdminTransaction(async (params) => {
+ *   // ... perform operations ...
+ *   return {
+ *     result: someValue,
+ *     eventsToInsert: [event1, event2],
+ *     ledgerCommand: { type: 'credit', amount: 100 }
+ *   }
+ * })
+ * ```
  */
 export async function comprehensiveAdminTransaction<T>(
   fn: (
@@ -72,6 +88,17 @@ export async function comprehensiveAdminTransaction<T>(
 
     const output = await fn(paramsForFn)
 
+    // Validate that only one of ledgerCommand or ledgerCommands is provided
+    if (
+      output.ledgerCommand &&
+      output.ledgerCommands &&
+      output.ledgerCommands.length > 0
+    ) {
+      throw new Error(
+        'Cannot provide both ledgerCommand and ledgerCommands. Please provide only one.'
+      )
+    }
+
     // Process events if any
     if (output.eventsToInsert && output.eventsToInsert.length > 0) {
       await bulkInsertOrDoNothingEventsByHash(
@@ -80,9 +107,16 @@ export async function comprehensiveAdminTransaction<T>(
       )
     }
 
-    // Process ledger command if any
+    // Process ledger commands if any
     if (output.ledgerCommand) {
       await processLedgerCommand(output.ledgerCommand, transaction)
+    } else if (
+      output.ledgerCommands &&
+      output.ledgerCommands.length > 0
+    ) {
+      for (const command of output.ledgerCommands) {
+        await processLedgerCommand(command, transaction)
+      }
     }
 
     // No RESET ROLE typically needed here as admin role wasn't set via session context

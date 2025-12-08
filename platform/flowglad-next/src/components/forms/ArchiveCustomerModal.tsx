@@ -1,13 +1,13 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
 import { useRouter } from 'next/navigation'
+import { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
+import FormModal from '@/components/forms/FormModal'
 import {
-  Customer,
+  type Customer,
   editCustomerInputSchema,
 } from '@/db/schema/customers'
-import { z } from 'zod'
 
 interface ArchiveCustomerModalProps {
   trigger?: React.ReactNode

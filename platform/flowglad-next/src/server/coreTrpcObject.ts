@@ -1,12 +1,15 @@
 export const runtime = 'nodejs' // Force Node.js runtime
 
 import { initTRPC, TRPCError } from '@trpc/server'
-import { OpenApiMeta } from 'trpc-to-openapi'
 import superjson from 'superjson'
+import type { OpenApiMeta } from 'trpc-to-openapi'
 import { extractErrorDetails } from './trpcErrorHandler'
 
 export const t = initTRPC.meta<OpenApiMeta>().create({
   transformer: superjson,
+  jsonl: {
+    pingMs: 1000,
+  },
   errorFormatter({ shape, error }) {
     // Extract better error details from our enhanced errors
     const errorDetails = extractErrorDetails(error)

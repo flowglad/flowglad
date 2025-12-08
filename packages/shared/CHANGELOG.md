@@ -1,5 +1,78 @@
 # @flowglad/shared
 
+## 0.14.1
+
+### Patch Changes
+
+- 8a4fa8d: @flowglad/nextjs: bump peer dependency for next to support ^16.0.0
+
+## 0.14.0
+
+### Minor Changes
+
+- de55219: - bump @flowglad/node dependency to v0.23
+  - price slug support for create usage events & create subscription
+  - activate subscription checkout cleanup
+  - add test coverage to @flowglad/shared
+  - migrate types from @flowglad/types to @flowglad/shared
+  - deprecate @flowglad/types
+
+## 0.13.0
+
+### Minor Changes
+
+- Next.js route handler pattern, customerExternalId pattern with mandatory constructory
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/types@0.13.0
+
+## 0.12.4
+
+### Patch Changes
+
+- flowglad server with external id
+- cbf28e2: test
+- Updated dependencies
+- Updated dependencies [cbf28e2]
+  - @flowglad/types@0.12.4
+
+## 0.12.3
+
+### Patch Changes
+
+- nextjs types
+- Updated dependencies
+  - @flowglad/types@0.12.3
+
+## 0.12.2
+
+### Patch Changes
+
+- types
+- types
+- Updated dependencies
+- Updated dependencies
+  - @flowglad/types@0.12.2
+
+## 0.12.1
+
+### Patch Changes
+
+- workspaces fix
+
+## 0.12.0
+
+### Minor Changes
+
+- Support priceSlug in createCheckoutSession
+
+### Patch Changes
+
+- Updated dependencies
+  - @flowglad/types@0.12.0
+
 ## 0.11.0
 
 ### Minor Changes

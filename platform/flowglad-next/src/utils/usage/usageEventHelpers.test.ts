@@ -1,46 +1,49 @@
-import { describe, it, expect, beforeEach } from 'vitest'
 import * as core from 'nanoid'
-
-// Schema imports
-import { Organization } from '@/db/schema/organizations'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Price } from '@/db/schema/prices'
-import { Subscription } from '@/db/schema/subscriptions'
-import { CreateUsageEventInput } from '@/db/schema/usageEvents'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { LedgerEntry } from '@/db/schema/ledgerEntries'
-import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
-
+import { beforeEach, describe, expect, it } from 'vitest'
 // Setup helpers from seedDatabase.ts
 import {
-  setupOrg,
+  setupBillingPeriod,
   setupCustomer,
+  setupLedgerAccount,
+  setupOrg,
   setupPaymentMethod,
   setupPrice,
+  setupPricingModel,
+  setupProduct,
   setupSubscription,
-  setupBillingPeriod,
   setupUsageMeter,
-  setupLedgerAccount,
 } from '@/../seedDatabase'
-import {
-  PriceType,
-  LedgerTransactionInitiatingSourceType,
-  IntervalUnit,
-  CurrencyCode,
-  UsageMeterAggregationType,
-} from '@/types'
-
-// Function to test
-import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { Customer } from '@/db/schema/customers'
+import type { LedgerAccount } from '@/db/schema/ledgerAccounts'
+import type { LedgerEntry } from '@/db/schema/ledgerEntries'
+import type { LedgerTransaction } from '@/db/schema/ledgerTransactions'
+// Schema imports
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { CreateUsageEventInput } from '@/db/schema/usageEvents'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
-import { LedgerAccount } from '@/db/schema/ledgerAccounts'
 import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  LedgerTransactionInitiatingSourceType,
+  PriceType,
+  UsageMeterAggregationType,
+} from '@/types'
+// Function to test
+import {
+  createUsageEventWithSlugSchema,
+  ingestAndProcessUsageEvent,
+  resolveUsageEventInput,
+} from '@/utils/usage/usageEventHelpers'
 
 describe('usageEventHelpers', () => {
   let customer: Customer.Record
@@ -740,6 +743,255 @@ describe('usageEventHelpers', () => {
         }
       )
       expect(thirdLedgerTransactions.length).toBe(1)
+    })
+  })
+
+  describe('createUsageEventWithSlugSchema', () => {
+    const baseValidInput = {
+      subscriptionId: 'sub-123',
+      amount: 100,
+      transactionId: 'txn-123',
+    }
+
+    describe('valid inputs', () => {
+      it('should accept priceId only', () => {
+        const result = createUsageEventWithSlugSchema.parse({
+          usageEvent: {
+            ...baseValidInput,
+            priceId: 'price-123',
+          },
+        })
+        expect(result.usageEvent.priceId).toBe('price-123')
+        expect(result.usageEvent.priceSlug).toBeUndefined()
+      })
+
+      it('should accept priceSlug only', () => {
+        const result = createUsageEventWithSlugSchema.parse({
+          usageEvent: {
+            ...baseValidInput,
+            priceSlug: 'price-slug-123',
+          },
+        })
+        expect(result.usageEvent.priceSlug).toBe('price-slug-123')
+        expect(result.usageEvent.priceId).toBeUndefined()
+      })
+    })
+
+    describe('invalid inputs - mutual exclusivity', () => {
+      it('should reject when both priceId and priceSlug are provided', () => {
+        expect(() => {
+          createUsageEventWithSlugSchema.parse({
+            usageEvent: {
+              ...baseValidInput,
+              priceId: 'price-123',
+              priceSlug: 'price-slug-123',
+            },
+          })
+        }).toThrow(
+          'Either priceId or priceSlug must be provided, but not both'
+        )
+      })
+
+      it('should reject when neither priceId nor priceSlug is provided', () => {
+        expect(() => {
+          createUsageEventWithSlugSchema.parse({
+            usageEvent: {
+              ...baseValidInput,
+            },
+          })
+        }).toThrow(
+          'Either priceId or priceSlug must be provided, but not both'
+        )
+      })
+    })
+  })
+
+  describe('resolveUsageEventInput', () => {
+    it('should return input with priceId when priceId is provided', async () => {
+      const input = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id,
+          priceId: usagePrice.id,
+          amount: 100,
+          transactionId: `txn_resolve_${core.nanoid()}`,
+        },
+      }
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(input, transaction)
+        }
+      )
+
+      expect(result.usageEvent.priceId).toBe(usagePrice.id)
+      expect(result.usageEvent).not.toHaveProperty('priceSlug')
+    })
+
+    it('should resolve priceSlug to priceId when priceSlug is provided', async () => {
+      // First, we need to set up a price with a slug
+      const priceWithSlug = await adminTransaction(
+        async ({ transaction }) => {
+          const orgSetup = await setupOrg()
+          const testCustomer = await setupCustomer({
+            organizationId: orgSetup.organization.id,
+          })
+          const testPaymentMethod = await setupPaymentMethod({
+            organizationId: orgSetup.organization.id,
+            customerId: testCustomer.id,
+          })
+          const testUsageMeter = await setupUsageMeter({
+            organizationId: orgSetup.organization.id,
+            name: 'Test Usage Meter with Slug',
+            livemode: true,
+            pricingModelId: orgSetup.pricingModel.id,
+          })
+          const testPrice = await setupPrice({
+            productId: orgSetup.product.id,
+            name: 'Test Usage Price with Slug',
+            type: PriceType.Usage,
+            unitPrice: 10,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: testUsageMeter.id,
+            slug: 'test-usage-price-slug',
+          })
+          const testSubscription = await setupSubscription({
+            organizationId: orgSetup.organization.id,
+            customerId: testCustomer.id,
+            paymentMethodId: testPaymentMethod.id,
+            priceId: testPrice.id,
+          })
+          return { testPrice, testSubscription, testCustomer }
+        }
+      )
+
+      const input = {
+        usageEvent: {
+          subscriptionId: priceWithSlug.testSubscription.id,
+          priceSlug: 'test-usage-price-slug',
+          amount: 100,
+          transactionId: `txn_resolve_slug_${core.nanoid()}`,
+        },
+      }
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return resolveUsageEventInput(input, transaction)
+        }
+      )
+
+      expect(result.usageEvent.priceId).toBe(
+        priceWithSlug.testPrice.id
+      )
+      expect(result.usageEvent).not.toHaveProperty('priceSlug')
+    })
+
+    it('should throw NOT_FOUND error when priceSlug does not exist or belongs to different pricing model', async () => {
+      const inputNonExistent = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id,
+          priceSlug: 'non-existent-slug',
+          amount: 100,
+          transactionId: `txn_not_found_${core.nanoid()}`,
+        },
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return resolveUsageEventInput(inputNonExistent, transaction)
+        })
+      ).rejects.toThrow(
+        "Price with slug non-existent-slug not found for this customer's pricing model"
+      )
+
+      // Set up a second pricing model in the same organization with a price with a slug
+      await adminTransaction(async ({ transaction }) => {
+        // Create a second pricing model in the same organization
+        const secondPricingModel = await setupPricingModel({
+          organizationId: organization.id,
+          name: 'Second Pricing Model',
+          livemode: true,
+          isDefault: false,
+        })
+
+        // Create a product in the second pricing model
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          pricingModelId: secondPricingModel.id,
+          name: 'Second Product',
+          livemode: true,
+          active: true,
+        })
+
+        const secondUsageMeter = await setupUsageMeter({
+          organizationId: organization.id,
+          name: 'Second Usage Meter',
+          livemode: true,
+          pricingModelId: secondPricingModel.id,
+        })
+
+        // Create a price with a slug in the second pricing model
+        await setupPrice({
+          productId: secondProduct.id,
+          name: 'Second Usage Price',
+          type: PriceType.Usage,
+          unitPrice: 20,
+          intervalUnit: IntervalUnit.Day,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: false,
+          currency: CurrencyCode.USD,
+          usageMeterId: secondUsageMeter.id,
+          slug: 'other-pricing-model-price-slug',
+        })
+      })
+
+      // Try to use the slug from second pricing model's price with first customer's subscription
+      // This should fail because the slug belongs to a different pricing model
+      const inputDifferentPricingModel = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id, // First customer's subscription (default pricing model)
+          priceSlug: 'other-pricing-model-price-slug', // Slug from second pricing model's price
+          amount: 100,
+          transactionId: `txn_cross_pricing_model_${core.nanoid()}`,
+        },
+      }
+
+      // Should fail because the slug belongs to a different pricing model
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return resolveUsageEventInput(
+            inputDifferentPricingModel,
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        "Price with slug other-pricing-model-price-slug not found for this customer's pricing model"
+      )
+    })
+
+    it('should throw BAD_REQUEST error when neither priceId nor priceSlug is provided', async () => {
+      const inputWithoutPrice = {
+        usageEvent: {
+          subscriptionId: mainSubscription.id,
+          amount: 100,
+          transactionId: `txn_no_price_${core.nanoid()}`,
+        },
+      }
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return resolveUsageEventInput(
+            inputWithoutPrice,
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        'Either priceId or priceSlug must be provided'
+      )
     })
   })
 })

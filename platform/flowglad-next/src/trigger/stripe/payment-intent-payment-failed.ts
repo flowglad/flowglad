@@ -1,10 +1,10 @@
+import { logger, task } from '@trigger.dev/sdk'
+import type Stripe from 'stripe'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
-import { logger, task } from '@trigger.dev/sdk'
-import Stripe from 'stripe'
+import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 
 export const stripePaymentIntentPaymentFailedTask = task({
   id: 'stripe-payment-intent-payment-failed',
@@ -16,7 +16,7 @@ export const stripePaymentIntentPaymentFailedTask = task({
     if ('billingRunId' in metadata) {
       return comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return await processPaymentIntentEventForBillingRun(
+          return await processOutcomeForBillingRun(
             payload,
             transaction
           )

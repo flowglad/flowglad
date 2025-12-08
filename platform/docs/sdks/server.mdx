@@ -1,0 +1,478 @@
+---
+title: "@flowglad/server"
+description: "Core server-side SDK for Flowglad integration in Node.js applications"
+---
+
+import ServerSetup from '/snippets/setup-server.mdx'
+
+<Info>
+  NPM Package: [@flowglad/server](https://www.npmjs.com/package/@flowglad/server)
+</Info>
+
+## Overview
+
+The Server SDK is the core package for server-side Flowglad integration. It provides the `FlowgladServer` class that handles all billing operations, customer management, and API communication with Flowglad.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @flowglad/server
+```
+
+```bash yarn
+yarn add @flowglad/server
+```
+
+```bash bun
+bun add @flowglad/server
+```
+
+</CodeGroup>
+
+<ServerSetup />
+
+## Key Features
+
+- **Customer Management**: Find or create customers automatically
+- **Subscriptions**: Create, update, and cancel subscriptions
+- **Checkout Sessions**: Generate checkout URLs for payments
+- **Feature Access**: Check customer access to features
+- **Usage Tracking**: Record usage events and track usage credit grants in real time
+- **Invoices**: Retrieve and manage invoices
+- **Payment Methods**: Handle customer payment methods
+- **Pricing Model**: Access your pricing model with products, prices, and features
+
+## API Reference
+
+### Constructor
+
+```typescript
+new FlowgladServer(options: FlowgladServerOptions)
+```
+
+#### Options
+See [types.ts](https://github.com/flowglad/flowglad/blob/main/packages/server/src/types.ts) for more details.
+
+```typescript
+type FlowgladServerOptions = ScopedFlowgladServerParams
+
+interface ScopedFlowgladServerParams {
+  /**
+   * The customer ID from YOUR app's database (e.g., user.id or organization.id).
+   * This is NOT Flowglad's customer ID—Flowglad uses this external ID to identify
+   * and create customers in its system.
+   * 
+   * For B2C apps: Use your user.id
+   * For B2B apps: Use your organization.id or team.id
+   */
+  customerExternalId: string
+  baseURL?: string
+  apiKey?: string
+  /**
+   * Handler to retrieve customer details from your database.
+   *
+   * This function is called when attempting to create a customer record in Flowglad
+   * for a customer that doesn't yet exist. Implement this to fetch the customer's
+   * name and email from your database based on their customer ID.
+   *
+   * @param customerExternalId - The external customer ID from YOUR system (not Flowglad's)
+   * @returns Promise resolving to an object containing the customer's name and email
+   */
+  getCustomerDetails: (customerExternalId: string) => Promise<{
+    name: string
+    email: string
+  }>
+}
+```
+
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
+
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+</Note>
+
+### Customer Methods
+
+#### `findOrCreateCustomer()`
+
+Find an existing Flowglad customer associated with the current requesting customer (per your app's authentication) or create a new one if none is found.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const customer = await flowglad(userId).findOrCreateCustomer()
+```
+
+### Billing Methods
+
+#### `getBilling()`
+
+Get comprehensive billing information for the customer, including helper functions like `checkFeatureAccess`, `checkUsageBalance`, `getProduct`, and `getPrice`.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const billing = await flowglad(userId).getBilling()
+const hasPremium = billing.checkFeatureAccess('premium_feature')
+const invoiceCount = billing.invoices.length
+```
+
+#### `getPricingModel()`
+
+Get the default pricing model with products, prices, and features.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const pricingModel = await flowglad(userId).getPricingModel()
+// Returns products, prices, and features available for purchase
+```
+
+### Subscription Methods
+
+#### `createSubscription`
+
+Create a new subscription for the customer.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const subscription = await flowglad(userId).createSubscription({
+  priceSlug: 'pro_plan',
+  metadata: {
+    source: 'upgrade_flow',
+  },
+})
+```
+
+**Parameters:**
+
+```typescript
+type CreateSubscriptionParams = {
+  customerId: string
+  /**
+   * Must specify either priceSlug or priceId
+   * Slug is encouraged over Id
+   */
+  priceSlug?: string
+  priceId?: string
+  /**
+   * Quantity of the subscription items.
+   * @default 1
+   */
+  quantity?: number
+  startDate?: string
+  /**
+   * Epoch time in milliseconds of when the trial ends. If not provided, defaults to startDate + the associated price's trialPeriodDays
+   */
+  trialEnd?: number
+  metadata?: Record<string, unknown>
+  name?: string
+  backupPaymentMethodId?: string
+  defaultPaymentMethodId?: string
+  interval?: 'day' | 'week' | 'month' | 'year'
+  intervalCount?: number
+}
+```
+
+#### `cancelSubscription`
+
+Cancel an existing subscription.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const canceledSubscription = await flowglad(userId).cancelSubscription({
+  id: 'sub_123',
+  cancellation: {
+    timing: 'at_end_of_current_billing_period',
+  },
+})
+```
+
+**Parameters:**
+
+```typescript
+type CancelSubscriptionParams = {
+  id: string
+  cancellation:
+    | { timing: 'at_end_of_current_billing_period' }
+    | { timing: 'immediately' }
+}
+```
+
+### Checkout Methods
+
+#### `createCheckoutSession`
+
+Create a checkout session for payments.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const checkoutSession = await flowglad(userId).createCheckoutSession({
+  priceSlug: 'pro_plan',
+  successUrl: 'https://example.com/success',
+  cancelUrl: 'https://example.com/cancel',
+  quantity: 1,
+  outputMetadata: {
+    campaign: 'summer_sale',
+  },
+})
+
+// Redirect user to checkoutSession.url
+```
+
+**Parameters:**
+
+```typescript
+type CreateProductCheckoutSessionParams = {
+  /*
+   * Must specify either priceSlug or priceId
+   * Slug is encouraged over Id
+   */
+  priceSlug?: string
+  priceId?: string
+  successUrl: string
+  cancelUrl: string
+  quantity?: number
+  outputMetadata?: Record<string, string>
+  outputName?: string
+}
+```
+
+#### `createAddPaymentMethodCheckoutSession`
+
+Create a checkout session that collects a payment method for the current customer.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const session = await flowglad(userId).createAddPaymentMethodCheckoutSession({
+  successUrl: 'https://example.com/payment-methods/success',
+  cancelUrl: 'https://example.com/payment-methods/cancel',
+  targetSubscriptionId: 'sub_123', // optional
+})
+```
+
+#### `createActivateSubscriptionCheckoutSession`
+
+Create a checkout session that activates a provisioning or imported subscription.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const activationSession =
+  await flowglad(userId).createActivateSubscriptionCheckoutSession({
+    targetSubscriptionId: 'sub_123', // optional, attaches the paymentMethod to the subscription for future payments,
+    successUrl: 'https://example.com/subscriptions/success',
+    cancelUrl: 'https://example.com/subscriptions/cancel',
+  })
+```
+
+### Customer Updates
+
+#### `updateCustomer`
+
+Update the stored customer record in Flowglad.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+await flowglad(userId).updateCustomer({
+  customer: {
+    id: 'cust_abc',
+    name: 'New Name',
+    email: 'new-email@example.com',
+  },
+})
+```
+
+### Feature Access Methods
+
+#### `checkFeatureAccess`
+
+Check if the customer has access to a specific feature.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const billing = await flowglad(userId).getBilling()
+const hasAccess = billing.checkFeatureAccess('advanced_analytics')
+
+if (hasAccess) {
+  // Grant access to feature
+}
+```
+
+### Usage Tracking Methods
+
+#### `createUsageEvent`
+
+Record a usage event for metered billing.
+
+```typescript
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const usageEvent = await flowglad(userId).createUsageEvent({
+  amount: 125,
+  priceSlug: 'price_usage_meter',
+  subscriptionId: 'sub_123',
+  transactionId: 'txn_unique',
+  usageDate: Date.now(),
+  properties: {
+    endpoint: '/api/data',
+  },
+})
+```
+
+**Parameters:**
+
+```typescript
+type CreateUsageEventParams = 
+  {
+    amount: number
+    /**
+     * Must specify either priceSlug or priceId
+     * Slug is encouraged over Id
+     */
+    priceSlug?: string
+    priceId?: string
+    subscriptionId: string
+    transactionId: string
+    usageDate?: number
+    properties?: Record<string, unknown>
+  }
+```
+
+## Common Patterns
+
+### Feature Gating Middleware
+
+```typescript
+import { FlowgladServer } from '@flowglad/server'
+import { db } from './db'
+
+// Factory function to create scoped instance
+function getFlowgladServer(customerExternalId: string) {
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (id) => {
+      const user = await db.users.findOne({ id })
+      return { name: user.name, email: user.email }
+    },
+  })
+}
+
+export function requireFeature(featureSlug: string) {
+  return async (req, res, next) => {
+    try {
+      const userId = req.user?.id
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
+      const billing = await flowglad(userId).getBilling()
+      const hasAccess = billing.checkFeatureAccess(featureSlug)
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          error: 'Feature not available',
+          upgradeUrl: '/pricing',
+        })
+      }
+
+      next()
+    } catch (error) {
+      next(error)
+    }
+  }
+}
+
+// Usage
+app.get('/api/premium-endpoint', requireFeature('premium_feature'), (req, res) => {
+  res.json({ data: 'premium data' })
+})
+```
+
+### Usage Metering
+
+```typescript
+export async function trackAPIUsage(endpoint: string, customerExternalId: string) {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  await flowglad(customerExternalId).createUsageEvent({
+    priceSlug: 'price_usage_api_calls',
+    subscriptionId: 'sub_current',
+    amount: 1,
+    properties: {
+      endpoint,
+    },
+  })
+}
+
+// Usage
+app.get('/api/data', async (req, res) => {
+  await trackAPIUsage('/api/data')
+  res.json({ data: 'response' })
+})
+```
+
+### Customer Portal Generation
+
+```typescript
+export async function getCustomerPortalData(customerExternalId: string) {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  const billing = await flowglad(customerExternalId).getBilling()
+
+  return {
+    customer: billing.customer,
+    activeSubscriptions: billing.subscriptions.filter(
+      (s) => s.status === 'active'
+    ),
+    paymentMethods: billing.paymentMethods,
+    recentInvoices: billing.invoices.slice(0, 10),
+    features: billing.features,
+  }
+}
+```
+
+## Integration Examples
+
+### Basic Setup
+
+```typescript
+import { FlowgladServer } from '@flowglad/server'
+
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
+
+// Usage:
+// Pass YOUR app's user/organization ID, not Flowglad's customer ID
+const billing = await flowglad(userId).getBilling()
+```
+
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
+
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Next.js SDK" icon="react" href="/sdks/nextjs">
+    Use with Next.js applications
+  </Card>
+  <Card title="Express SDK" icon="node" href="/sdks/express">
+    Use with Express applications
+  </Card>
+</CardGroup>
+

@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import Page from './page'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  PriceType,
   CheckoutSessionStatus,
+  PriceType,
   SubscriptionStatus,
 } from '@/types'
 import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
+import Page from './page'
 
 // Mock next/navigation redirect
 const redirect = vi.fn()
@@ -56,6 +56,10 @@ vi.mock('@/utils/checkoutHelpers', () => ({
       { status: 'active', isFreePlan: true },
     ],
     discount: null,
+  })),
+  getClientSecretsForCheckoutSession: vi.fn(async () => ({
+    clientSecret: 'pi_secret_test',
+    customerSessionClientSecret: null,
   })),
 }))
 

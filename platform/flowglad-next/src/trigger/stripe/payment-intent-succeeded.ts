@@ -1,24 +1,20 @@
-import {
-  comprehensiveAdminTransaction,
-  eventfulAdminTransaction,
-} from '@/db/adminTransaction'
+import { logger, task } from '@trigger.dev/sdk'
+import type Stripe from 'stripe'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import type { Event } from '@/db/schema/events'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
-import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
-
-import { logger, task } from '@trigger.dev/sdk'
-import Stripe from 'stripe'
-import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
+import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
-import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
-import { Event } from '@/db/schema/events'
+import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 import { storeTelemetry } from '@/utils/redis'
+import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
+import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -33,14 +29,15 @@ export const stripePaymentIntentSucceededTask = task({
      * process it on own track, and then terminate
      */
     if ('billingRunId' in metadata) {
-      return comprehensiveAdminTransaction(
+      const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
-          return await processPaymentIntentEventForBillingRun(
+          return await processOutcomeForBillingRun(
             payload,
             transaction
           )
         }
       )
+      return result
     }
 
     const {
@@ -49,61 +46,72 @@ export const stripePaymentIntentSucceededTask = task({
       organization,
       customer,
       payment,
-    } = await eventfulAdminTransaction(async ({ transaction }) => {
-      const {
-        result: { payment },
-        eventsToInsert,
-      } = await processPaymentIntentStatusUpdated(
-        payload.data.object,
-        transaction
-      )
+    } = await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const paymentResult = await processPaymentIntentStatusUpdated(
+          payload.data.object,
+          transaction
+        )
+        const {
+          result: { payment },
+          eventsToInsert,
+          ledgerCommand,
+        } = paymentResult
 
-      const purchase = await selectPurchaseById(
-        payment.purchaseId!,
-        transaction
-      )
-
-      const [invoice] =
-        await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { id: payment.invoiceId },
+        const purchase = await selectPurchaseById(
+          payment.purchaseId!,
           transaction
         )
 
-      const [customer] = await selectCustomers(
-        {
-          id: purchase.customerId,
-        },
-        transaction
-      )
+        const [invoice] =
+          await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+            { id: payment.invoiceId },
+            transaction
+          )
 
-      const organization = await selectOrganizationById(
-        purchase.organizationId,
-        transaction
-      )
-
-      const membersForOrganization =
-        await selectMembershipsAndUsersByMembershipWhere(
-          { organizationId: organization.id },
+        const [customer] = await selectCustomers(
+          {
+            id: purchase.customerId,
+          },
           transaction
         )
 
-      await safelyIncrementDiscountRedemptionSubscriptionPayment(
-        payment,
-        transaction
-      )
-      const result = {
-        invoice: invoice.invoice,
-        invoiceLineItems: invoice.invoiceLineItems,
-        purchase,
-        organization,
-        customer,
-        membersForOrganization,
-        payment,
-      }
-      const eventInserts: Event.Insert[] = [...(eventsToInsert ?? [])]
+        const organization = await selectOrganizationById(
+          purchase.organizationId,
+          transaction
+        )
 
-      return [result, eventInserts]
-    }, {})
+        const membersForOrganization =
+          await selectMembershipsAndUsersByMembershipWhere(
+            { organizationId: organization.id },
+            transaction
+          )
+
+        await safelyIncrementDiscountRedemptionSubscriptionPayment(
+          payment,
+          transaction
+        )
+        const result = {
+          invoice: invoice.invoice,
+          invoiceLineItems: invoice.invoiceLineItems,
+          purchase,
+          organization,
+          customer,
+          membersForOrganization,
+          payment,
+        }
+        const eventInserts: Event.Insert[] = [
+          ...(eventsToInsert ?? []),
+        ]
+
+        return {
+          result,
+          eventsToInsert: eventInserts,
+          ledgerCommand,
+        }
+      },
+      {}
+    )
 
     /**
      * Generate the invoice PDF, which should be finalized now

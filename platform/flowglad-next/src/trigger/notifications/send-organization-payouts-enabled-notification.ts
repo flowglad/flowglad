@@ -1,15 +1,15 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { sendOrganizationPayoutsEnabledNotificationEmail } from '@/utils/email'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
+import { sendOrganizationPayoutsEnabledNotificationEmail } from '@/utils/email'
 
-export const sendOrganizationPayoutsEnabledNotificationTask = task({
+const sendOrganizationPayoutsEnabledNotificationTask = task({
   id: 'send-organization-payouts-enabled-notification',
   run: async (payload: { organizationId: string }, { ctx }) => {
     const { organizationId } = payload

@@ -1,43 +1,43 @@
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { Subscription } from '@/db/schema/subscriptions'
+import type { StandardBillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
+import {
+  bulkInsertBillingPeriodItems,
+  selectBillingPeriodItems,
+  selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId,
+} from '@/db/tableMethods/billingPeriodItemMethods'
 import {
   insertBillingPeriod,
   isBillingPeriodInTerminalState,
   safelyUpdateBillingPeriodStatus,
   selectBillingPeriods,
 } from '@/db/tableMethods/billingPeriodMethods'
-import {
-  BillingPeriodStatus,
-  FeatureType,
-  LedgerTransactionType,
-  SubscriptionStatus,
-} from '@/types'
-import { DbTransaction } from '@/db/types'
-import { generateNextBillingPeriod } from './billingIntervalHelpers'
-import {
-  bulkInsertBillingPeriodItems,
-  selectBillingPeriodItems,
-  selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId,
-} from '@/db/tableMethods/billingPeriodItemMethods'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   isSubscriptionInTerminalState,
   safelyUpdateSubscriptionStatus,
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { createBillingRun } from './billingRunHelpers'
-import type { BillingRun } from '@/db/schema/billingRuns'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
+import {
+  BillingPeriodStatus,
+  FeatureType,
+  LedgerTransactionType,
+  SubscriptionStatus,
+} from '@/types'
 import { core } from '@/utils/core'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { StandardBillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
+import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
 import { syncSubscriptionWithActiveItems } from './adjustSubscription'
+import { generateNextBillingPeriod } from './billingIntervalHelpers'
+import { createBillingRun } from './billingRunHelpers'
 
 interface CreateBillingPeriodParams {
   subscription: Subscription.StandardRecord
@@ -215,7 +215,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     )
   }
 
-  let updatedBillingPeriod = await attemptBillingPeriodClose(
+  const updatedBillingPeriod = await attemptBillingPeriodClose(
     currentBillingPeriod,
     transaction
   )

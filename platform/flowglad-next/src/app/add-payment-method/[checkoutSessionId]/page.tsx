@@ -1,21 +1,22 @@
-import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
-import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
-import {
-  CheckoutSessionStatus,
-  CheckoutFlowType,
-  CheckoutSessionType,
-} from '@/types'
-import core from '@/utils/core'
-import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
-import { notFound, redirect } from 'next/navigation'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import CheckoutForm from '@/components/CheckoutForm'
-import CheckoutPageProvider from '@/contexts/checkoutPageContext'
-import { LightThemeWrapper } from '@/components/LightThemeWrapper'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import { notFound, redirect } from 'next/navigation'
+import CheckoutForm from '@/components/CheckoutForm'
+import { LightThemeWrapper } from '@/components/LightThemeWrapper'
+import CheckoutPageProvider from '@/contexts/checkoutPageContext'
+import { adminTransaction } from '@/db/adminTransaction'
+import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import type { CheckoutInfoCore } from '@/db/tableMethods/purchaseMethods'
+import {
+  CheckoutFlowType,
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+} from '@/types'
+import { getClientSecretsForCheckoutSession } from '@/utils/checkoutHelpers'
+import core from '@/utils/core'
+
 const CheckoutSessionPage = async ({
   params,
 }: {
@@ -57,18 +58,12 @@ const CheckoutSessionPage = async ({
       `/purchase/post-payment?setup_intent=${checkoutSession.stripeSetupIntentId}`
     )
   }
-  let clientSecret: string | null = null
-  if (checkoutSession.stripePaymentIntentId) {
-    const paymentIntent = await getPaymentIntent(
-      checkoutSession.stripePaymentIntentId
+  const { clientSecret, customerSessionClientSecret } =
+    await getClientSecretsForCheckoutSession(
+      checkoutSession,
+      customer
     )
-    clientSecret = paymentIntent.client_secret
-  } else if (checkoutSession.stripeSetupIntentId) {
-    const setupIntent = await getSetupIntent(
-      checkoutSession.stripeSetupIntentId
-    )
-    clientSecret = setupIntent.client_secret
-  } else {
+  if (!clientSecret) {
     throw new Error('No client secret found')
   }
 
@@ -82,6 +77,7 @@ const CheckoutSessionPage = async ({
     readonlyCustomerEmail: customer.email,
     feeCalculation: null,
     clientSecret,
+    customerSessionClientSecret,
     flowType: CheckoutFlowType.AddPaymentMethod,
   }
 

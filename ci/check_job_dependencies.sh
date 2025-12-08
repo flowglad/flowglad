@@ -22,6 +22,19 @@ jobs=$(for i in $(find .github -iname '*.yaml' -or -iname '*.yml')
         continue
       fi
       
+      # Skip workflows that only run on PR closed/merged (post-merge workflows)
+      # These are not part of the PR review process and shouldn't be dependencies
+      # Check if types only contains "closed" and no other PR event types
+      if grep -qE 'types:\s*\[.*closed.*\]' "$i" 2>/dev/null
+      then
+        # Check if it also has other PR event types - if so, don't skip
+        if ! grep -qE 'types:\s*\[.*(opened|synchronize|labeled|unlabeled|edited|ready_for_review|locked|unlocked|reopened|assigned|unassigned|review_requested|review_request_removed|auto_merge_enabled|auto_merge_disabled|converted_to_draft)' "$i" 2>/dev/null
+        then
+          # Only has "closed" type, skip this workflow
+          continue
+        fi
+      fi
+      
       # This gets the list of jobs that all-jobs-succeed does not depend on.
       comm -23 \
         <(yq -r '.jobs | keys | .[]' "$i" | sort | uniq) \

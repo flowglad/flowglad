@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/nextjs",
-  "version": "0.11.0",
+  "version": "0.14.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -11,22 +11,20 @@
   "scripts": {
     "build": "tsup",
     "clean": "rm -rf dist",
-    "dev": "tsup --watch --onSuccess 'yalc push'",
-    "yalc:publish": "yalc publish && yalc link",
-    "check": "eslint --max-warnings=0 && tsc --noEmit",
+    "dev": "tsup --watch",
+    "check": "biome check . && tsc --noEmit",
     "build:declarations": "tsc -p tsconfig.declarations.json"
   },
   "dependencies": {
     "@flowglad/shared": "workspace:*",
     "@flowglad/react": "workspace:*",
     "@flowglad/server": "workspace:*",
-    "@flowglad/node": "0.22.0",
+    "@flowglad/node": "0.23.0",
     "@vercel/mcp-adapter": "0.11.1",
     "zod": "4.1.5"
   },
   "devDependencies": {
     "@types/react": "18.3.12",
-    "eslint": "8.57.0",
     "typescript": "5.8.2"
   },
   "exports": {
@@ -43,7 +41,7 @@
   },
   "peerDependencies": {
     "react": "^19.0.0 || ^18.0.0",
-    "next": "^14.0.3 || ^15.0.0"
+    "next": "^14.0.3 || ^15.0.0 || ^16.0.0"
   },
   "publishConfig": {
     "access": "public"

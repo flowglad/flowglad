@@ -1,11 +1,11 @@
 import Papa from 'papaparse'
+import type { Customer } from '@/db/schema/customers'
+import type { Price } from '@/db/schema/prices'
 import {
-  Purchase,
+  type Purchase,
   purchasesInsertSchema,
 } from '@/db/schema/purchases'
-import { Price } from '@/db/schema/prices'
 import { PriceType, PurchaseStatus } from '@/types'
-import { Customer } from '@/db/schema/customers'
 import core from './core'
 
 export const projectPriceFieldsOntoPurchaseFields = (

@@ -1,35 +1,27 @@
 'use client'
-import React from 'react'
+import type { CustomerBillingDetails } from '@flowglad/shared'
 import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
+import type React from 'react'
 import {
   FlowgladContextProvider,
-  RequestConfig,
+  type RequestConfig,
 } from './FlowgladContext'
 import { validateUrl } from './utils'
-import { FlowgladThemeProvider } from './FlowgladTheme'
-import { FlowgladThemeConfig } from './lib/themes'
-import { CustomerBillingDetails } from '@flowglad/types'
 
 const queryClient = new QueryClient()
-
-export interface Appearance {
-  darkMode?: boolean
-}
 
 export interface LoadedFlowgladProviderProps {
   children: React.ReactNode
   requestConfig?: RequestConfig
   serverRoute?: string
   loadBilling: boolean
-  theme?: FlowgladThemeConfig
 }
 
 interface DevModeFlowgladProviderProps {
   __devMode: true
-  theme?: FlowgladThemeConfig
   billingMocks: CustomerBillingDetails
   children: React.ReactNode
 }
@@ -52,7 +44,7 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
     )
   }
 
-  const { serverRoute, loadBilling, requestConfig, theme, children } =
+  const { serverRoute, loadBilling, requestConfig, children } =
     props as LoadedFlowgladProviderProps
   validateUrl(serverRoute, 'serverRoute', true)
   return (
@@ -62,9 +54,7 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
         loadBilling={loadBilling}
         requestConfig={requestConfig}
       >
-        <FlowgladThemeProvider theme={theme}>
-          {children}
-        </FlowgladThemeProvider>
+        {children}
       </FlowgladContextProvider>
     </QueryClientProvider>
   )

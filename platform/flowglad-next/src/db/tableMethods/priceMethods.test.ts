@@ -1,19 +1,29 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
-import { setupOrg, setupProduct, setupPrice } from '@/../seedDatabase'
-import { PriceType, IntervalUnit, CurrencyCode } from '@/types'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  setupCustomer,
+  setupOrg,
+  setupPrice,
+  setupPricingModel,
+  setupProduct,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
+import { core } from '@/utils/core'
+import type { Organization } from '../schema/organizations'
+import { nulledPriceColumns, type Price } from '../schema/prices'
+import type { Product } from '../schema/products'
+import { updateCustomer } from './customerMethods'
+import {
+  insertPrice,
   safelyInsertPrice,
   safelyUpdatePrice,
   selectPriceById,
+  selectPriceBySlugAndCustomerId,
+  selectPriceBySlugForDefaultPricingModel,
   selectPricesAndProductByProductId,
-  insertPrice,
   updatePrice,
 } from './priceMethods'
-import { nulledPriceColumns, Price } from '../schema/prices'
-import { Organization } from '../schema/organizations'
-import { Product } from '../schema/products'
-import { core } from '@/utils/core'
+import { updatePricingModel } from './pricingModelMethods'
 
 describe('priceMethods.ts', () => {
   let organization: Organization.Record
@@ -1074,6 +1084,464 @@ describe('priceMethods.ts', () => {
         )
         expect(updatedPrice.slug).toBe(slug)
         expect(updatedPrice.active).toBe(false)
+      })
+    })
+  })
+
+  describe('selectPriceBySlugAndCustomerId', () => {
+    let organization: Organization.Record
+    let product: Product.Record
+    let price: Price.Record
+    let customer: Awaited<ReturnType<typeof setupCustomer>>
+    let pricingModelId: string
+
+    beforeEach(async () => {
+      const setup = await setupOrg()
+      organization = setup.organization
+      pricingModelId = setup.pricingModel.id
+
+      // Setup product
+      product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        livemode: true,
+        pricingModelId: pricingModelId,
+      })
+
+      // Setup price with slug
+      price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+        slug: 'test-price-slug',
+      })
+
+      // Setup customer
+      customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+    })
+
+    it('should find price by slug for customer in default pricing model', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectPriceBySlugAndCustomerId(
+          {
+            slug: 'test-price-slug',
+            customerId: customer.id,
+          },
+          transaction
+        )
+
+        expect(result).not.toBeNull()
+        expect(result?.id).toBe(price.id)
+        expect(result?.slug).toBe('test-price-slug')
+        expect(result?.name).toBe('Test Price')
+      })
+    })
+
+    it('should return null when slug does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectPriceBySlugAndCustomerId(
+          {
+            slug: 'non-existent-slug',
+            customerId: customer.id,
+          },
+          transaction
+        )
+
+        expect(result).toBeNull()
+      })
+    })
+
+    it('should return null when price is inactive', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Deactivate the price
+        await updatePrice(
+          {
+            id: price.id,
+            active: false,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+
+        const result = await selectPriceBySlugAndCustomerId(
+          {
+            slug: 'test-price-slug',
+            customerId: customer.id,
+          },
+          transaction
+        )
+
+        expect(result).toBeNull()
+      })
+    })
+
+    it('should find price in customer-specific pricing model when set', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create a new pricing model
+        const customPricingModel = await setupPricingModel({
+          organizationId: organization.id,
+          name: 'Custom Pricing Model',
+          isDefault: false,
+        })
+
+        // Create a product and price in the custom pricing model
+        const customProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Custom Product',
+          livemode: true,
+          pricingModelId: customPricingModel.id,
+        })
+
+        const customPrice = await setupPrice({
+          productId: customProduct.id,
+          name: 'Custom Price',
+          type: PriceType.Subscription,
+          unitPrice: 2000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+          trialPeriodDays: 0,
+          currency: CurrencyCode.USD,
+          slug: 'custom-price-slug',
+        })
+
+        // Update customer to use custom pricing model
+        await updateCustomer(
+          {
+            id: customer.id,
+            pricingModelId: customPricingModel.id,
+          },
+          transaction
+        )
+
+        // Should find price in custom pricing model
+        const result = await selectPriceBySlugAndCustomerId(
+          {
+            slug: 'custom-price-slug',
+            customerId: customer.id,
+          },
+          transaction
+        )
+
+        expect(result).not.toBeNull()
+        expect(result?.id).toBe(customPrice.id)
+        expect(result?.slug).toBe('custom-price-slug')
+
+        // Should not find price from default pricing model
+        const defaultResult = await selectPriceBySlugAndCustomerId(
+          {
+            slug: 'test-price-slug',
+            customerId: customer.id,
+          },
+          transaction
+        )
+
+        expect(defaultResult).toBeNull()
+      })
+    })
+
+    it('should return active price when both active and inactive prices exist with same slug', async () => {
+      // NOTE: Database constraints prevent multiple ACTIVE prices with same slug,
+      // but allow multiple inactive prices and one active + multiple inactive with same slug
+      await adminTransaction(async ({ transaction }) => {
+        const slug = 'shared-slug'
+
+        // Update and deactivate the original price to use the shared slug
+        await updatePrice(
+          {
+            id: price.id,
+            active: false,
+            slug,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+
+        // Create a second product
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          livemode: true,
+          pricingModelId: pricingModelId,
+        })
+
+        // Create an active price with the same slug on the second product
+        // This is allowed because the original price is now inactive
+        const activePrice = await setupPrice({
+          productId: secondProduct.id,
+          name: 'Active Price',
+          type: PriceType.Subscription,
+          unitPrice: 1500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+          trialPeriodDays: 0,
+          currency: CurrencyCode.USD,
+          slug,
+        })
+
+        // Should return the active price, not the inactive one
+        const result = await selectPriceBySlugAndCustomerId(
+          {
+            slug,
+            customerId: customer.id,
+          },
+          transaction
+        )
+
+        expect(result).not.toBeNull()
+        expect(result?.id).toBe(activePrice.id)
+        expect(result?.active).toBe(true)
+      })
+    })
+  })
+
+  describe('selectPriceBySlugForDefaultPricingModel', () => {
+    let organization: Organization.Record
+    let product: Product.Record
+    let price: Price.Record
+    let pricingModelId: string
+
+    beforeEach(async () => {
+      const setup = await setupOrg()
+      organization = setup.organization
+      pricingModelId = setup.pricingModel.id
+
+      // Setup product
+      product = await setupProduct({
+        organizationId: organization.id,
+        name: 'Test Product',
+        livemode: true,
+        pricingModelId: pricingModelId,
+      })
+
+      // Setup price with slug
+      price = await setupPrice({
+        productId: product.id,
+        name: 'Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        trialPeriodDays: 0,
+        currency: CurrencyCode.USD,
+        slug: 'test-price-slug',
+      })
+    })
+
+    it('should find price by slug for organization in default pricing model', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectPriceBySlugForDefaultPricingModel(
+          {
+            slug: 'test-price-slug',
+            organizationId: organization.id,
+            livemode: true,
+          },
+          transaction
+        )
+
+        expect(result).not.toBeNull()
+        expect(result?.id).toBe(price.id)
+        expect(result?.slug).toBe('test-price-slug')
+        expect(result?.name).toBe('Test Price')
+      })
+    })
+
+    it('should return null when slug does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectPriceBySlugForDefaultPricingModel(
+          {
+            slug: 'non-existent-slug',
+            organizationId: organization.id,
+            livemode: true,
+          },
+          transaction
+        )
+
+        expect(result).toBeNull()
+      })
+    })
+
+    it('should return null when price is inactive', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Deactivate the price
+        await updatePrice(
+          {
+            id: price.id,
+            active: false,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+
+        const result = await selectPriceBySlugForDefaultPricingModel(
+          {
+            slug: 'test-price-slug',
+            organizationId: organization.id,
+            livemode: true,
+          },
+          transaction
+        )
+
+        expect(result).toBeNull()
+      })
+    })
+
+    it('should respect livemode parameter', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Should find livemode price when livemode is true
+        const livemodeResult =
+          await selectPriceBySlugForDefaultPricingModel(
+            {
+              slug: 'test-price-slug',
+              organizationId: organization.id,
+              livemode: true,
+            },
+            transaction
+          )
+
+        expect(livemodeResult).not.toBeNull()
+        expect(livemodeResult?.id).toBe(price.id)
+
+        // Should return null when searching in test mode (livemode: false)
+        // because there's no default test mode pricing model with this price
+        const testModeResult =
+          await selectPriceBySlugForDefaultPricingModel(
+            {
+              slug: 'test-price-slug',
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+
+        // The price exists but is in livemode, so searching with livemode: false should return null
+        expect(testModeResult).toBeNull()
+      })
+    })
+
+    it('should throw error when no default pricing model exists', async () => {
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          // Create a new organization without a default pricing model
+          const nonDefaultPricingModel = await setupPricingModel({
+            organizationId: organization.id,
+            name: 'Non-Default Pricing Model',
+            isDefault: false,
+          })
+
+          // Create a product in the non-default pricing model
+          const nonDefaultProduct = await setupProduct({
+            organizationId: organization.id,
+            name: 'Non-Default Product',
+            livemode: true,
+            pricingModelId: nonDefaultPricingModel.id,
+          })
+
+          const nonDefaultPrice = await setupPrice({
+            productId: nonDefaultProduct.id,
+            name: 'Non-Default Price',
+            type: PriceType.Subscription,
+            unitPrice: 3000,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: true,
+            trialPeriodDays: 0,
+            currency: CurrencyCode.USD,
+            slug: 'non-default-price-slug',
+          })
+
+          // Update the default pricing model to be non-default
+          // This simulates a state where there's no default pricing model
+          await updatePricingModel(
+            {
+              id: pricingModelId,
+              isDefault: false,
+            },
+            transaction
+          )
+
+          // This should throw an error because there's no default pricing model
+          await selectPriceBySlugForDefaultPricingModel(
+            {
+              slug: 'non-default-price-slug',
+              organizationId: organization.id,
+              livemode: true,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        /No default pricing model found for organization/
+      )
+    })
+
+    it('should return active price when both active and inactive prices exist with same slug', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const slug = 'shared-slug'
+
+        // Update and deactivate the original price to use the shared slug
+        await updatePrice(
+          {
+            id: price.id,
+            active: false,
+            slug,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+
+        // Create a second product
+        const secondProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Second Product',
+          livemode: true,
+          pricingModelId: pricingModelId,
+        })
+
+        // Create an active price with the same slug on the second product
+        // This is allowed because the original price is now inactive
+        const activePrice = await setupPrice({
+          productId: secondProduct.id,
+          name: 'Active Price',
+          type: PriceType.Subscription,
+          unitPrice: 1500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: true,
+          trialPeriodDays: 0,
+          currency: CurrencyCode.USD,
+          slug,
+        })
+
+        // Should return the active price, not the inactive one
+        const result = await selectPriceBySlugForDefaultPricingModel(
+          {
+            slug,
+            organizationId: organization.id,
+            livemode: true,
+          },
+          transaction
+        )
+
+        expect(result).not.toBeNull()
+        expect(result?.id).toBe(activePrice.id)
+        expect(result?.active).toBe(true)
       })
     })
   })

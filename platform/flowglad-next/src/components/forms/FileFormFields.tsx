@@ -1,15 +1,15 @@
 'use client'
 
 import { useFormContext } from 'react-hook-form'
-import { CreateFileInput } from '@/db/schema/files'
-import { Input } from '@/components/ui/input'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import type { CreateFileInput } from '@/db/schema/files'
 import FileInput from '../FileInput'
 
 export const FileFormFields = ({

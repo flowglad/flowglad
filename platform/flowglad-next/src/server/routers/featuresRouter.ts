@@ -1,33 +1,33 @@
-import { router } from '../trpc'
+import { z } from 'zod'
+import {
+  authenticatedProcedureTransaction,
+  authenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   createFeatureSchema,
   editFeatureSchema,
   featuresClientSelectSchema,
 } from '@/db/schema/features'
 import {
-  selectFeatureById,
-  updateFeature as updateFeatureDB,
+  featuresTableRowOutputSchema,
   insertFeature,
+  selectFeatureById,
+  selectFeatures,
   selectFeaturesPaginated,
   selectFeaturesTableRowData,
-  featuresTableRowOutputSchema,
-  selectFeatures,
+  updateFeatureTransaction,
 } from '@/db/tableMethods/featureMethods'
-import { generateOpenApiMetas } from '@/utils/openapi'
-import { protectedProcedure } from '@/server/trpc'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
-import {
-  idInputSchema,
-  createPaginatedSelectSchema,
-  createPaginatedListQuerySchema,
-  createPaginatedTableRowOutputSchema,
-  createPaginatedTableRowInputSchema,
-} from '@/db/tableUtils'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { z } from 'zod'
+import {
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  createPaginatedTableRowInputSchema,
+  createPaginatedTableRowOutputSchema,
+  idInputSchema,
+} from '@/db/tableUtils'
+import { protectedProcedure } from '@/server/trpc'
+import { generateOpenApiMetas } from '@/utils/openapi'
+import { router } from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'feature',
@@ -93,7 +93,7 @@ export const updateFeature = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, transaction }) => {
-        const feature = await updateFeatureDB(
+        const feature = await updateFeatureTransaction(
           {
             ...input.feature,
             id: input.id,

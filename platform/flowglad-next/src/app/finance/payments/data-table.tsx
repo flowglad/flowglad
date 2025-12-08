@@ -1,17 +1,22 @@
 'use client'
 
-import * as React from 'react'
 import {
-  ColumnFiltersState,
-  ColumnSizingState,
-  SortingState,
-  VisibilityState,
+  type ColumnFiltersState,
+  type ColumnSizingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from '@tanstack/react-table'
+import * as React from 'react'
+import { trpc } from '@/app/_trpc/client'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 import {
   Table,
   TableBody,
@@ -20,14 +25,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import type { Payment } from '@/db/schema/payments'
+import type { PaymentStatus } from '@/types'
 import { columns } from './columns'
-import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { trpc } from '@/app/_trpc/client'
-import { Payment } from '@/db/schema/payments'
-import { PaymentStatus } from '@/types'
 
 export interface PaymentsTableFilters {
   status?: PaymentStatus
@@ -43,6 +43,7 @@ interface PaymentsDataTableProps {
   filterOptions?: { value: string; label: string }[]
   activeFilter?: string
   onFilterChange?: (value: string) => void
+  hiddenColumns?: string[]
 }
 
 export function PaymentsDataTable({
@@ -51,6 +52,7 @@ export function PaymentsDataTable({
   filterOptions,
   activeFilter,
   onFilterChange,
+  hiddenColumns = [],
 }: PaymentsDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -85,7 +87,12 @@ export function PaymentsDataTable({
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>(() =>
+      hiddenColumns.reduce(
+        (acc, col) => ({ ...acc, [col]: false }),
+        {}
+      )
+    )
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 
@@ -141,11 +148,7 @@ export function PaymentsDataTable({
       <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         {/* Title and/or Filter buttons on the left */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && (
-            <h3 className="text-lg font-semibold truncate">
-              {title}
-            </h3>
-          )}
+          {title && <h3 className="text-lg truncate">{title}</h3>}
           {filterOptions && activeFilter && onFilterChange && (
             <FilterButtonGroup
               options={filterOptions}

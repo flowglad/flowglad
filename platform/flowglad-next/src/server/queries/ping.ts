@@ -1,5 +1,5 @@
-import { protectedProcedure } from '@/server/trpc'
 import { z } from 'zod'
+import { protectedProcedure } from '@/server/trpc'
 
 export const ping = protectedProcedure
   // .input(z.object({ productId: z.string() }))

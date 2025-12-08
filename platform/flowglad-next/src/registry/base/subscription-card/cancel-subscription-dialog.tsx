@@ -1,9 +1,7 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
 import { AlertTriangle } from 'lucide-react'
-import { CancelSubscriptionDialogProps } from './types'
-import { formatDate } from '@/registry/lib/date'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -12,12 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/registry/components/dialog'
+import { formatDate } from '@/registry/lib/date'
+import type { CancelSubscriptionDialogProps } from './types'
 
 export function CancelSubscriptionDialog({
   isOpen,
   onOpenChange,
   subscriptionId,
-  subscriptionName,
   currentPeriodEnd,
   onConfirm,
   loading = false,
@@ -37,7 +36,7 @@ export function CancelSubscriptionDialog({
 
         <div className="space-y-4">
           <div className="rounded-md bg-muted p-4">
-            <h4 className="text-sm font-medium text-foreground mb-2">
+            <h4 className="text-sm text-foreground mb-2">
               What happens when you cancel:
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">

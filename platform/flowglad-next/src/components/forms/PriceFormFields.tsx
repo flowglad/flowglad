@@ -1,7 +1,18 @@
 'use client'
+import React from 'react'
+import { useFormContext } from 'react-hook-form'
+import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
+import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import { CurrencyInput } from '@/components/ui/currency-input'
-import { IntervalUnit, PriceType } from '@/types'
-import { Switch } from '@/components/ui/switch'
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -9,31 +20,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
+  type CreateProductSchema,
   singlePaymentPriceDefaultColumns,
   subscriptionPriceDefaultColumns,
   usagePriceDefaultColumns,
 } from '@/db/schema/prices'
-import { Input } from '@/components/ui/input'
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form'
-import { useAuthenticatedContext } from '@/contexts/authContext'
-import UsageMetersSelect from './UsageMetersSelect'
-import { getPriceConstraints } from '@/utils/priceConstraints'
-import core from '@/utils/core'
-import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
-import { useFormContext } from 'react-hook-form'
-import { CreateProductSchema } from '@/db/schema/prices'
-import TrialFields from './PriceFormTrialFields'
-import { isCurrencyZeroDecimal } from '@/utils/stripe'
 import { currencyCharacter } from '@/registry/lib/currency'
-import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
+import { IntervalUnit, PriceType } from '@/types'
+import core from '@/utils/core'
+import { getPriceConstraints } from '@/utils/priceConstraints'
+import { isCurrencyZeroDecimal } from '@/utils/stripe'
+import TrialFields from './PriceFormTrialFields'
+import UsageMetersSelect from './UsageMetersSelect'
 
 const SubscriptionFields = ({
   defaultPriceLocked,
@@ -215,10 +216,12 @@ const UsageFields = ({
   defaultPriceLocked,
   edit,
   pricingModelId,
+  hideUsageMeter,
 }: {
   defaultPriceLocked: boolean
   edit?: boolean
   pricingModelId?: string
+  hideUsageMeter?: boolean
 }) => {
   const {
     control,
@@ -285,6 +288,7 @@ const UsageFields = ({
                       field.onChange(numValue)
                     }
                   }}
+                  disabled={defaultPriceLocked}
                 />
               </FormControl>
               <FormMessage />
@@ -292,12 +296,14 @@ const UsageFields = ({
           )}
         />
       </div>
-      <UsageMetersSelect
-        name="price.usageMeterId"
-        control={control}
-        disabled={edit}
-        pricingModelId={pricingModelId}
-      />
+      {!hideUsageMeter && (
+        <UsageMetersSelect
+          name="price.usageMeterId"
+          control={control}
+          disabled={edit}
+          pricingModelId={pricingModelId}
+        />
+      )}
     </div>
   )
 }
@@ -309,6 +315,10 @@ const PriceFormFields = ({
   isDefaultProductOverride,
   isDefaultPriceOverride,
   pricingModelId,
+  hideUsageMeter,
+  disablePriceType,
+  hidePriceName,
+  hidePriceType,
 }: {
   priceOnly?: boolean
   edit?: boolean
@@ -316,6 +326,10 @@ const PriceFormFields = ({
   isDefaultProductOverride?: boolean
   isDefaultPriceOverride?: boolean
   pricingModelId?: string
+  hideUsageMeter?: boolean
+  disablePriceType?: boolean
+  hidePriceName?: boolean
+  hidePriceType?: boolean
 }) => {
   const {
     control,
@@ -364,6 +378,7 @@ const PriceFormFields = ({
           defaultPriceLocked={defaultPriceLocked}
           edit={edit}
           pricingModelId={pricingModelId}
+          hideUsageMeter={hideUsageMeter}
         />
       )
       break
@@ -390,7 +405,7 @@ const PriceFormFields = ({
           maintain billing consistency.
         </p>
       )}
-      {priceOnly && (
+      {priceOnly && !hidePriceName && (
         <FormField
           control={control}
           name="price.name"
@@ -410,68 +425,72 @@ const PriceFormFields = ({
           )}
         />
       )}
-      <FormField
-        control={control}
-        name="price.type"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Price Type</FormLabel>
-            <FormControl>
-              <Select
-                value={
-                  isDefaultProduct
-                    ? (field.value ?? PriceType.Subscription)
-                    : field.value
-                }
-                onValueChange={(value) => {
-                  /**
-                   * When price type changes,
-                   * set default values for the new price type to ensure
-                   * that the price will parse correctly.
-                   */
-                  if (value === PriceType.Usage) {
-                    Object.entries(usagePriceDefaultColumns).forEach(
-                      assignPriceValueFromTuple
-                    )
+      {!hidePriceType && (
+        <FormField
+          control={control}
+          name="price.type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Price Type</FormLabel>
+              <FormControl>
+                <Select
+                  value={
+                    isDefaultProduct
+                      ? (field.value ?? PriceType.Subscription)
+                      : field.value
                   }
-                  if (value === PriceType.SinglePayment) {
-                    Object.entries(
-                      singlePaymentPriceDefaultColumns
-                    ).forEach(assignPriceValueFromTuple)
+                  onValueChange={(value) => {
+                    /**
+                     * When price type changes,
+                     * set default values for the new price type to ensure
+                     * that the price will parse correctly.
+                     */
+                    if (value === PriceType.Usage) {
+                      Object.entries(
+                        usagePriceDefaultColumns
+                      ).forEach(assignPriceValueFromTuple)
+                    }
+                    if (value === PriceType.SinglePayment) {
+                      Object.entries(
+                        singlePaymentPriceDefaultColumns
+                      ).forEach(assignPriceValueFromTuple)
+                    }
+                    if (value === PriceType.Subscription) {
+                      Object.entries(
+                        subscriptionPriceDefaultColumns
+                      ).forEach(assignPriceValueFromTuple)
+                    }
+                    field.onChange(value)
+                  }}
+                  disabled={
+                    edit || isDefaultLocked || disablePriceType
                   }
-                  if (value === PriceType.Subscription) {
-                    Object.entries(
-                      subscriptionPriceDefaultColumns
-                    ).forEach(assignPriceValueFromTuple)
-                  }
-                  field.onChange(value)
-                }}
-                disabled={edit || isDefaultLocked}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={PriceType.SinglePayment}>
-                    Single Payment
-                  </SelectItem>
-                  <SelectItem value={PriceType.Subscription}>
-                    Subscription
-                  </SelectItem>
-                  <SelectItem value={PriceType.Usage}>
-                    Usage
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </FormControl>
-            <FormDescription>
-              What type of payment the user will make. Cannot be
-              edited after creation.
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PriceType.SinglePayment}>
+                      Single Payment
+                    </SelectItem>
+                    <SelectItem value={PriceType.Subscription}>
+                      Subscription
+                    </SelectItem>
+                    <SelectItem value={PriceType.Usage}>
+                      Usage
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormDescription>
+                What type of payment the user will make. Cannot be
+                edited after creation.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
       {typeFields}
     </div>
   )

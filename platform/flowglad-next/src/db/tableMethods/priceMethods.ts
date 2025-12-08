@@ -1,33 +1,35 @@
+import { and, asc, desc, eq, type SQLWrapper } from 'drizzle-orm'
+import { z } from 'zod'
 import {
-  Price,
+  type Price,
+  type PricingModelWithProductsAndUsageMeters,
+  type ProductWithPrices,
   prices,
+  pricesClientSelectSchema,
   pricesInsertSchema,
   pricesSelectSchema,
   pricesUpdateSchema,
-  ProductWithPrices,
-  pricesTableRowDataSchema,
-  pricesClientSelectSchema,
 } from '@/db/schema/prices'
 import {
-  createSelectById,
-  createSelectFunction,
-  createInsertFunction,
-  ORMMethodCreatorConfig,
   createBulkInsertFunction,
-  createUpdateFunction,
-  whereClauseFromObject,
-  createPaginatedSelectFunction,
-  SelectConditions,
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  type ORMMethodCreatorConfig,
+  type SelectConditions,
+  whereClauseFromObject,
 } from '@/db/tableUtils'
-import { DbTransaction } from '@/db/types'
-import { and, asc, eq, SQLWrapper, desc } from 'drizzle-orm'
+import type { DbTransaction } from '@/db/types'
+import { PriceType } from '@/types'
 import {
-  Product,
-  products,
-  productsSelectSchema,
-} from '../schema/products'
+  type Feature,
+  features,
+  featuresSelectSchema,
+} from '../schema/features'
 import {
   organizations,
   organizationsSelectSchema,
@@ -36,15 +38,18 @@ import {
   pricingModels,
   pricingModelsSelectSchema,
 } from '../schema/pricingModels'
-import { PriceType } from '@/types'
-import { selectProducts } from './productMethods'
-import { z } from 'zod'
-import {
-  Feature,
-  features,
-  featuresSelectSchema,
-} from '../schema/features'
 import { productFeatures } from '../schema/productFeatures'
+import {
+  type Product,
+  products,
+  productsSelectSchema,
+} from '../schema/products'
+import { selectCustomerById } from './customerMethods'
+import {
+  selectPricingModelForCustomer,
+  selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
+} from './pricingModelMethods'
+import { selectProducts } from './productMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof prices,
@@ -313,6 +318,113 @@ export const selectPriceProductAndOrganizationByPriceWhere = async (
       result.organization
     ),
   }))
+}
+
+/**
+ * Selects a price by slug for a given customer.
+ * Price slugs are scoped to the customer's pricing model (customer.pricingModelId or default pricing model).
+ *
+ * Returns Price.ClientRecord (not Price.Record) because it uses data from selectPricingModelForCustomer
+ * which returns client records. The client record has all business logic fields but omits metadata fields
+ * (externalId, position, createdByCommit, updatedByCommit).
+ *
+ * @param params - Object containing slug and customerId
+ * @param transaction - Database transaction
+ * @returns The price client record if found, null otherwise
+ * @throws {Error} If the customer's pricing model cannot be found (e.g., no default pricing model exists for the organization)
+ */
+export const selectPriceBySlugAndCustomerId = async (
+  params: { slug: string; customerId: string },
+  transaction: DbTransaction
+): Promise<Price.ClientRecord | null> => {
+  // First, get the customer to determine their pricing model
+  const customer = await selectCustomerById(
+    params.customerId,
+    transaction
+  )
+
+  // Get the pricing model for the customer (includes products and prices)
+  // Note: selectPricingModelForCustomer already filters for active prices
+  const pricingModel = await selectPricingModelForCustomer(
+    customer,
+    transaction
+  )
+
+  // Search through all products in the pricing model to find a price with the matching slug
+  // Use find() for cleaner code - prices are already filtered to active ones
+  for (const product of pricingModel.products) {
+    const price = product.prices.find((p) => p.slug === params.slug)
+    if (price) {
+      // Return the price directly from the pricing model
+      // This avoids a redundant database call since we already have the price data
+      return price
+    }
+  }
+
+  return null
+}
+
+/**
+ * Select a price by slug and organizationId (uses the organization's default pricing model)
+ * This is used for anonymous checkout sessions where we don't have a customer
+ * Returns Price.ClientRecord (not Price.Record) because it uses data from selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere
+ */
+export const selectPriceBySlugForDefaultPricingModel = async (
+  params: { slug: string; organizationId: string; livemode: boolean },
+  transaction: DbTransaction
+): Promise<Price.ClientRecord | null> => {
+  // Get the organization's default pricing model
+  const [pricingModel] =
+    await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+      {
+        isDefault: true,
+        organizationId: params.organizationId,
+        livemode: params.livemode,
+      },
+      transaction
+    )
+
+  if (!pricingModel) {
+    throw new Error(
+      `No default pricing model found for organization ${params.organizationId}`
+    )
+  }
+
+  // Filter to active products and prices, similar to selectPricingModelForCustomer
+  const filteredProducts: PricingModelWithProductsAndUsageMeters['products'] =
+    pricingModel.products
+      .filter(
+        (
+          product: PricingModelWithProductsAndUsageMeters['products'][number]
+        ) => product.active
+      )
+      .map(
+        (
+          product: PricingModelWithProductsAndUsageMeters['products'][number]
+        ) => ({
+          ...product,
+          prices: product.prices.filter(
+            (price: Price.ClientRecord) => price.active
+          ),
+        })
+      )
+      .filter(
+        (
+          product: PricingModelWithProductsAndUsageMeters['products'][number]
+        ) => product.prices.length > 0
+      )
+
+  // Search through all products in the pricing model to find a price with the matching slug
+  for (const product of filteredProducts) {
+    const price = product.prices.find(
+      (p: Price.ClientRecord) => p.slug === params.slug
+    )
+    if (price) {
+      return price
+    }
+  }
+
+  return null
 }
 
 export const selectPricesPaginated = createPaginatedSelectFunction(

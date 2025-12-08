@@ -1,6 +1,10 @@
-import { expect, describe, it } from 'vitest'
-import { createFlowgladOpenApiDocument } from './swagger'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  PRICE_ID_DESCRIPTION,
+  PRICE_SLUG_DESCRIPTION,
+} from '@/db/schema/prices'
 import type { OpenAPIV3Document } from './swagger'
+import { createFlowgladOpenApiDocument } from './swagger'
 
 describe('Swagger Configuration', () => {
   const openApiDoc: OpenAPIV3Document =
@@ -263,6 +267,7 @@ describe('Swagger Configuration', () => {
       '/api/v1/payment-methods',
       '/api/v1/usage-meters',
       '/api/v1/usage-events',
+      '/api/v1/usage-events/bulk',
       '/api/v1/webhooks',
     ]
 
@@ -903,6 +908,272 @@ describe('Swagger Configuration', () => {
           )
         }
       )
+    })
+  })
+
+  // Type guards for OpenAPI types
+  // ReferenceObject has $ref, RequestBodyObject has content
+  function isRequestBodyObject(requestBody: unknown): requestBody is {
+    content: Record<string, { schema?: unknown }>
+  } {
+    return (
+      requestBody !== null &&
+      typeof requestBody === 'object' &&
+      'content' in requestBody &&
+      !('$ref' in requestBody)
+    )
+  }
+
+  // ReferenceObject has $ref, SchemaObject has properties
+  // This type guard narrows from SchemaObject | ReferenceObject to just SchemaObject
+  type SchemaObjectWithProperties = {
+    properties?: Record<
+      string,
+      { description?: string; type?: string }
+    >
+    required?: string[]
+  }
+  function isSchemaObject(
+    schema: unknown
+  ): schema is SchemaObjectWithProperties {
+    return (
+      schema !== null &&
+      typeof schema === 'object' &&
+      'properties' in schema &&
+      !('$ref' in schema)
+    )
+  }
+
+  describe('OpenAPI Spec - Customer External ID Support', () => {
+    describe('POST /subscriptions', () => {
+      const basePath = '/api/v1/subscriptions'
+      let schemaObject: SchemaObjectWithProperties | undefined
+
+      beforeEach(() => {
+        const subscriptionEndpoint = paths?.[basePath]?.post
+        const requestBody = subscriptionEndpoint?.requestBody
+        const rawSchema = isRequestBodyObject(requestBody)
+          ? requestBody.content?.['application/json']?.schema
+          : undefined
+        // Type guard to narrow from SchemaObject | ReferenceObject to SchemaObject
+        schemaObject =
+          rawSchema && isSchemaObject(rawSchema)
+            ? rawSchema
+            : undefined
+
+        expect(schemaObject).toBeDefined()
+        expect(schemaObject?.properties).toBeDefined()
+      })
+
+      it('should include customerId as optional with description', () => {
+        // Verify it's not in required array (it's optional)
+        const required = schemaObject?.required || []
+        expect(required).not.toContain('customerId')
+
+        // Verify exact description from implementation
+        const customerIdDesc =
+          schemaObject?.properties?.customerId?.description || ''
+        expect(customerIdDesc).toBe(
+          'The internal ID of the customer. If not provided, customerExternalId is required.'
+        )
+      })
+
+      it('should include customerExternalId as optional with description', () => {
+        // Verify it's not in required array (it's optional)
+        const required = schemaObject?.required || []
+        expect(required).not.toContain('customerExternalId')
+
+        // Verify exact description from implementation
+        const customerExternalIdDesc =
+          schemaObject?.properties?.customerExternalId?.description ||
+          ''
+        expect(customerExternalIdDesc).toBe(
+          'The external ID of the customer. If not provided, customerId is required.'
+        )
+      })
+    })
+  })
+
+  describe('OpenAPI Spec - Price Slug Support', () => {
+    describe('POST /subscriptions', () => {
+      const basePath = '/api/v1/subscriptions'
+      let schemaObject: SchemaObjectWithProperties | undefined
+
+      beforeEach(() => {
+        const subscriptionEndpoint = paths?.[basePath]?.post
+        const requestBody = subscriptionEndpoint?.requestBody
+        const rawSchema = isRequestBodyObject(requestBody)
+          ? requestBody.content?.['application/json']?.schema
+          : undefined
+        // Type guard to narrow from SchemaObject | ReferenceObject to SchemaObject
+        schemaObject =
+          rawSchema && isSchemaObject(rawSchema)
+            ? rawSchema
+            : undefined
+
+        expect(schemaObject?.properties).toBeDefined()
+      })
+
+      it('should include priceId as optional with description', () => {
+        // Verify it's not in required array (it's optional)
+        const required = schemaObject?.required || []
+        expect(required).not.toContain('priceId')
+
+        // Verify exact description from implementation
+        const priceIdDesc =
+          schemaObject?.properties?.priceId?.description || ''
+        expect(priceIdDesc).toBe(PRICE_ID_DESCRIPTION)
+      })
+
+      it('should include priceSlug as optional with description', () => {
+        // Verify it's not in required array (it's optional)
+        const required = schemaObject?.required || []
+        expect(required).not.toContain('priceSlug')
+
+        // Verify exact description from implementation
+        const priceSlugDesc =
+          schemaObject?.properties?.priceSlug?.description || ''
+        expect(priceSlugDesc).toBe(PRICE_SLUG_DESCRIPTION)
+      })
+    })
+
+    describe('POST /usage-events', () => {
+      const basePath = '/api/v1/usage-events'
+      let schemaObject: SchemaObjectWithProperties | undefined
+
+      beforeEach(() => {
+        const usageEventEndpoint = paths?.[basePath]?.post
+        const requestBody = usageEventEndpoint?.requestBody
+        const rawSchema = isRequestBodyObject(requestBody)
+          ? requestBody.content?.['application/json']?.schema
+          : undefined
+        // Type guard to narrow from SchemaObject | ReferenceObject to SchemaObject
+        schemaObject =
+          rawSchema && isSchemaObject(rawSchema)
+            ? rawSchema
+            : undefined
+
+        expect(schemaObject?.properties).toBeDefined()
+      })
+
+      it('should include priceId as optional with description in usageEvent', () => {
+        // Navigate to usageEvent.properties
+        const usageEventSchema = schemaObject?.properties
+          ?.usageEvent as SchemaObjectWithProperties
+        expect(usageEventSchema?.properties).toBeDefined()
+
+        // Verify it's not in required array (it's optional)
+        const required = usageEventSchema?.required || []
+        expect(required).not.toContain('priceId')
+
+        // Verify exact description from implementation
+        const priceIdDesc =
+          usageEventSchema?.properties?.priceId?.description || ''
+        expect(priceIdDesc).toBe(
+          'The internal ID of the price. If not provided, priceSlug is required.'
+        )
+      })
+
+      it('should include priceSlug as optional with description in usageEvent', () => {
+        // Navigate to usageEvent.properties
+        const usageEventSchema = schemaObject?.properties
+          ?.usageEvent as SchemaObjectWithProperties
+        expect(usageEventSchema?.properties).toBeDefined()
+
+        // Verify it's not in required array (it's optional)
+        const required = usageEventSchema?.required || []
+        expect(required).not.toContain('priceSlug')
+
+        // Verify exact description from implementation
+        const priceSlugDesc =
+          usageEventSchema?.properties?.priceSlug?.description || ''
+        expect(priceSlugDesc).toBe(
+          'The slug of the price. If not provided, priceId is required.'
+        )
+      })
+    })
+
+    describe('POST /usage-events/bulk', () => {
+      const basePath = '/api/v1/usage-events/bulk'
+      let schemaObject: SchemaObjectWithProperties | undefined
+      let usageEventsArrayItems:
+        | SchemaObjectWithProperties
+        | undefined
+
+      beforeEach(() => {
+        const bulkEndpoint = paths?.[basePath]?.post
+        const requestBody = bulkEndpoint?.requestBody
+        const rawSchema = isRequestBodyObject(requestBody)
+          ? requestBody.content?.['application/json']?.schema
+          : undefined
+        // Type guard to narrow from SchemaObject | ReferenceObject to SchemaObject
+        schemaObject =
+          rawSchema && isSchemaObject(rawSchema)
+            ? rawSchema
+            : undefined
+
+        expect(schemaObject?.properties).toBeDefined()
+
+        // Navigate to usageEvents array items
+        const usageEventsProperty = schemaObject?.properties
+          ?.usageEvents as any
+        expect(usageEventsProperty).toBeDefined()
+        expect(usageEventsProperty.type).toBe('array')
+        expect(usageEventsProperty.items).toBeDefined()
+
+        // Get the items schema for the array
+        usageEventsArrayItems = isSchemaObject(
+          usageEventsProperty.items
+        )
+          ? usageEventsProperty.items
+          : undefined
+
+        expect(usageEventsArrayItems?.properties).toBeDefined()
+      })
+
+      it('should include priceId as optional with description in array items', () => {
+        // Verify it's not in required array (it's optional)
+        const required = usageEventsArrayItems?.required || []
+        expect(required).not.toContain('priceId')
+
+        // Verify exact description from implementation
+        const priceIdDesc =
+          usageEventsArrayItems?.properties?.priceId?.description ||
+          ''
+        expect(priceIdDesc).toBe(
+          'The internal ID of the price. If not provided, priceSlug is required.'
+        )
+      })
+
+      it('should include priceSlug as optional with description in array items', () => {
+        // Verify it's not in required array (it's optional)
+        const required = usageEventsArrayItems?.required || []
+        expect(required).not.toContain('priceSlug')
+
+        // Verify exact description from implementation
+        const priceSlugDesc =
+          usageEventsArrayItems?.properties?.priceSlug?.description ||
+          ''
+        expect(priceSlugDesc).toBe(
+          'The slug of the price. If not provided, priceId is required.'
+        )
+      })
+
+      it('should have descriptions explaining mutual exclusivity', () => {
+        // Verify priceId description mentions the requirement
+        const priceIdDesc =
+          usageEventsArrayItems?.properties?.priceId?.description ||
+          ''
+        expect(priceIdDesc).toContain('If not provided')
+        expect(priceIdDesc).toContain('priceSlug is required')
+
+        // Verify priceSlug description mentions the requirement
+        const priceSlugDesc =
+          usageEventsArrayItems?.properties?.priceSlug?.description ||
+          ''
+        expect(priceSlugDesc).toContain('If not provided')
+        expect(priceSlugDesc).toContain('priceId is required')
+      })
     })
   })
 })

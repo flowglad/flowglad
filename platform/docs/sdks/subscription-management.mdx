@@ -1,0 +1,234 @@
+---
+title: "Subscription Management"
+description: "Manage subscription lifecycle events with Flowglad's SDKs"
+---
+
+## Overview
+
+Use Flowglad to create, update, and cancel [subscriptions](/features/subscriptions) across web and server experiences.
+
+## How to use
+### Create Subscriptions
+Subscriptions are most commonly created as part of the standard checkout flow with `createCheckoutSession` when the price type is `subscription`. The checkout session will collect payment details from the customer, even if the subscription includes a trial period, so a charge attempt will be made automatically when the customer's trial expires. 
+
+#### Free Trials
+You can create subscriptions with free trials with or without requiring a valid payment method up-front.
+
+If you prefer to start customers on free trials without asking for payment details, you can use flowgladServer's `createSubscription` method, passing in the `priceSlug` and other optional fields (see the create subscription API [body](/api-reference/subscriptions/create-subscription#body-customer-id) for more details on the parameters). 
+
+<Note>
+You do not need to include `customerId` when calling `createSubscription` with the `flowgladServer`, as the server client is already bound to the requesting customer scope.
+</Note>
+
+If you create a subscription without a payment method attached, you must collect a payment method from the customer before the trial period ends in order to activate the subscription. You can do this via the `createActivateSubscriptionCheckoutSession` method.
+
+If there is a payment method associated with a subscription on a free trial, Flowglad will attempt to charge the payment method when the trial ends. If the payment method fails, Flowglad will not activate the subscription.
+
+### Cancel Subscriptions
+You can cancel a subscription with `useBilling`'s `cancelSubscription` from client side or with `flowgladServer`'s `cancelSubscription` from server side. You provide the subscription `id` and specify the cancellation timing-- either `immediately` or `at_end_of_current_billing_period` (see the cancel subscription API [body](/api-reference/subscriptions/cancel-subscription#body-cancellation) for details).
+### What you can do
+
+- Allow customer to complete a subscription product checkout which will create a subscription automatically.
+- Create subscriptions server-side using the Flowglad Server SDK.
+- Trigger cancellations from server or client flows.
+- Check entitlements for feature access or usage credits based on customer subscription.
+
+### Example: Create subscription
+
+<Tabs>
+  <Tab title="Client">
+
+  ```tsx
+  'use client'
+
+  import { useState } from 'react'
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function StartTrialButton({
+    priceId,
+    successUrl,
+    cancelUrl,
+  }: {
+    priceId: string
+    successUrl: string
+    cancelUrl: string
+  }) {
+    const { createCheckoutSession } = useBilling()
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleClick = async () => {
+      setError(null)
+
+      if (!createCheckoutSession) {
+        setError('Checkout is not available right now.')
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        await createCheckoutSession({
+          priceId,
+          successUrl,
+          cancelUrl,
+          autoRedirect: true,
+        })
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to start the checkout session.'
+        )
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    return (
+      <>
+        <button onClick={handleClick} disabled={isLoading}>
+          {isLoading ? 'Redirecting…' : 'Start Trial'}
+        </button>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </>
+    )
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import { FlowgladServer } from '@flowglad/server'
+
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
+
+  export async function createSubscription(customerExternalId: string) {
+    // Pass YOUR app's user/organization ID, not Flowglad's customer ID
+    const response = await flowglad(customerExternalId).createSubscription({
+      priceSlug: 'pro_plan',
+      quantity: 1,
+      metadata: {
+        plan: 'pro',
+      },
+    })
+
+    return response.subscription
+  }
+  ```
+
+  </Tab>
+</Tabs>
+
+### Example: Cancel subscription
+
+<Tabs>
+  <Tab title="Client">
+
+  ```tsx
+  'use client'
+
+  import { useState } from 'react'
+  import { useBilling } from '@flowglad/nextjs'
+
+  export function CancelSubscriptionButton({
+    subscriptionId,
+  }: {
+    subscriptionId: string
+  }) {
+    const { cancelSubscription } = useBilling()
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleCancel = async () => {
+      setError(null)
+
+      if (!cancelSubscription) {
+        setError('Cancellation is not available right now.')
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        await cancelSubscription({
+          id: subscriptionId,
+          cancellation: {
+            timing: 'at_end_of_current_billing_period',
+          },
+        })
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to cancel subscription.'
+        )
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    return (
+      <>
+        <button onClick={handleCancel} disabled={isLoading}>
+          {isLoading ? 'Cancelling…' : 'Cancel Subscription'}
+        </button>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </>
+    )
+  }
+  ```
+
+  </Tab>
+  <Tab title="Server">
+
+  ```ts
+  import { FlowgladServer } from '@flowglad/server'
+  import { auth } from '@/lib/auth'
+/**
+* Note: this only demonstrates how to 
+* initiate subscription cancellation from your backend.
+* If you initiate the cancellation using `cancelSubscription`
+* from your frontend, your Flowglad route handler
+* will handle this automatically
+*/
+  const flowglad = (customerExternalId: string) => {
+    // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+    return new FlowgladServer({
+      customerExternalId,
+      getCustomerDetails: async (externalId) => {
+        const user = await db.users.findOne({ id: externalId })
+        return {
+          email: user.email,
+          name: user.name,
+        }
+      },
+    })
+  }
+
+  export async function cancelSubscription(subscriptionId: string, customerExternalId: string) {
+    // Pass YOUR app's user/organization ID, not Flowglad's customer ID
+    const response = await flowglad(customerExternalId).cancelSubscription({
+      id: subscriptionId,
+      cancellation: {
+        timing: 'at_end_of_current_billing_period',
+      },
+    })
+
+    return response.subscription
+  }
+  ```
+
+  </Tab>
+</Tabs>

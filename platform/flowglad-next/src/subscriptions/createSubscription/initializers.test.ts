@@ -1,25 +1,25 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  setupOrg,
   setupCustomer,
+  setupOrg,
   setupPaymentMethod,
-  setupUsageMeter,
   setupPrice,
   setupProduct,
+  setupUsageMeter,
 } from '@/../seedDatabase'
-import { insertSubscriptionAndItems } from './initializers'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
 import {
-  IntervalUnit,
-  SubscriptionStatus,
-  PriceType,
   CurrencyCode,
+  IntervalUnit,
+  PriceType,
+  SubscriptionStatus,
 } from '@/types'
-import { Price } from '@/db/schema/prices'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Customer } from '@/db/schema/customers'
-import { PricingModel } from '@/db/schema/pricingModels'
+import { insertSubscriptionAndItems } from './initializers'
 
 describe('insertSubscriptionAndItems', () => {
   let organization: Organization.Record
@@ -56,8 +56,6 @@ describe('insertSubscriptionAndItems', () => {
         unitPrice: 100,
         livemode: true,
         isDefault: false,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
       })
       // - Construct params for insertSubscriptionAndItems using this price.
       const params = {
@@ -91,8 +89,6 @@ describe('insertSubscriptionAndItems', () => {
         unitPrice: 500,
         livemode: true,
         isDefault: false,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
       })
 
       // - Create a payment method for testing
@@ -150,7 +146,7 @@ describe('insertSubscriptionAndItems', () => {
       // - Create a price with type PriceType.Usage and startsWithCreditTrial = true, associated with the usage meter.
       const creditTrialPrice = await setupPrice({
         productId: product.id,
-        type: PriceType.Subscription,
+        type: PriceType.Usage,
         name: 'Credit Trial Price',
         unitPrice: 0,
         livemode: true,

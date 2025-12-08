@@ -1,17 +1,17 @@
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { adminTransaction } from '@/db/adminTransaction'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
-  setupUserAndApiKey,
   setupPricingModel,
+  setupUserAndApiKey,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import type { PricingModel } from '@/db/schema/pricingModels'
 import {
   insertPricingModel,
-  updatePricingModel,
   selectPricingModelById,
+  updatePricingModel,
 } from '@/db/tableMethods/pricingModelMethods'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { describe, beforeEach, it, expect } from 'vitest'
 
 describe('Pricing Models RLS - Organization Policy', async () => {
   let org1Data: Awaited<ReturnType<typeof setupOrg>>

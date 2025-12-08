@@ -1,15 +1,17 @@
+import { notFound, redirect } from 'next/navigation'
+import { shouldBlockCheckout } from '@/app/checkout/guard'
 import CheckoutPage from '@/components/CheckoutPage'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
-  CheckoutInfoCore,
+  type CheckoutInfoCore,
   checkoutInfoSchema,
 } from '@/db/tableMethods/purchaseMethods'
-import { PriceType, CheckoutSessionStatus } from '@/types'
-import { shouldBlockCheckout } from '@/app/checkout/guard'
+import { CheckoutSessionStatus, PriceType } from '@/types'
+import {
+  checkoutInfoForCheckoutSession,
+  getClientSecretsForCheckoutSession,
+} from '@/utils/checkoutHelpers'
 import core from '@/utils/core'
-import { getPaymentIntent, getSetupIntent } from '@/utils/stripe'
-import { notFound, redirect } from 'next/navigation'
-import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 
 const CheckoutSessionPage = async ({
   params,
@@ -26,6 +28,7 @@ const CheckoutSessionPage = async ({
     maybeCustomer,
     maybeCurrentSubscriptions,
     discount,
+    isEligibleForTrial,
   } = await adminTransaction(async ({ transaction }) => {
     return checkoutInfoForCheckoutSession(id, transaction)
   })
@@ -59,7 +62,7 @@ const CheckoutSessionPage = async ({
     } else {
       return (
         <div className="flex flex-col items-center justify-center h-screen">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl">
             {`You already have an active subscription. Please reach out
             to us if you'd like to change your plan.`}
           </h1>
@@ -83,18 +86,12 @@ const CheckoutSessionPage = async ({
       )
     }
   }
-  let clientSecret: string | null = null
-  if (checkoutSession.stripePaymentIntentId) {
-    const paymentIntent = await getPaymentIntent(
-      checkoutSession.stripePaymentIntentId
+  const { clientSecret, customerSessionClientSecret } =
+    await getClientSecretsForCheckoutSession(
+      checkoutSession,
+      maybeCustomer
     )
-    clientSecret = paymentIntent.client_secret
-  } else if (checkoutSession.stripeSetupIntentId) {
-    const setupIntent = await getSetupIntent(
-      checkoutSession.stripeSetupIntentId
-    )
-    clientSecret = setupIntent.client_secret
-  } else {
+  if (!clientSecret) {
     throw new Error('No client secret found')
   }
 
@@ -112,11 +109,13 @@ const CheckoutSessionPage = async ({
     readonlyCustomerEmail: maybeCustomer?.email,
     feeCalculation,
     clientSecret,
+    customerSessionClientSecret,
     flowType:
       price.type === PriceType.Subscription ||
       price.type === PriceType.Usage
         ? 'subscription'
         : 'single_payment',
+    isEligibleForTrial,
   })
 
   return <CheckoutPage checkoutInfo={checkoutInfo} />

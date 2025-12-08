@@ -1,0 +1,113 @@
+---
+title: 'Integrate by Prompt'
+description: 'Integrate Flowglad using natural language'
+---
+
+<Info>
+  Before proceeding, make sure you've [created a Flowglad
+  account](https://app.flowglad.com/sign-up) and added your API keys
+  to your environment.
+</Info>
+
+## 1. Install The Flowglad Package
+
+<CodeGroup>
+
+```bash bun
+bun add @flowglad/nextjs
+```
+
+```bash yarn
+yarn add @flowglad/nextjs
+```
+
+```bash npm
+npm install @flowglad/nextjs
+```
+
+</CodeGroup>
+
+## 2. One Shot Integration
+
+Copy the the prompt below and execute it. For a conventional Next.js app, it should zero shot the integration.
+
+<Accordion title="Next.js">
+
+```mdx
+Please set up billing for our app according to the following instructions:
+
+1. Create a `flowglad.ts` file in /utils, that looks like this:
+
+`// utils/flowglad.ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
+`
+
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
+
+**B2C apps:** Use `user.id` as `customerExternalId`  
+**B2B apps:** Use `organization.id` or `team.id` as `customerExternalId`
+</Note>
+
+2. Create a route handler at `/api/flowglad/[...path]/route.ts`:
+
+`// /api/flowglad/[...path]/route.ts
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    // For B2C: return user.id (from your database)
+    // For B2B: return organization.id (from your database)
+    const userId = await getUserIdFromRequest(req)
+    if (!userId) {
+      throw new Error('User not authenticated')
+    }
+    return userId
+  },
+})
+`
+
+3. Add the following to the `app/layout.tsx` file. Preserve the existing layout JSX code. Just:
+
+- get the user via your auth system
+- mount the `FlowgladProvider` with the user
+- pass the user to the `FlowgladProvider`
+
+`
+// /app/layout.tsx
+// ... existing code ...
+// inside of the layout component:
+const user = await getCurrentUser() // your auth helper
+
+return (
+<FlowgladProvider loadBilling={!!user}>
+  {/* ... existing layout JSX ... */}
+  {children}
+  {/* ... existing layout JSX ... */}
+</FlowgladProvider>
+) `
+```
+
+</Accordion>

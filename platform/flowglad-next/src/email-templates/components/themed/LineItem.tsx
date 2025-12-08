@@ -1,7 +1,7 @@
 import { Column, Row, Section, Text } from '@react-email/components'
 import * as React from 'react'
+import type { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { CurrencyCode } from '@/types'
 
 const productDetails = {
   marginBottom: '30px',

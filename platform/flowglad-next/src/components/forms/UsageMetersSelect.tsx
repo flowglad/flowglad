@@ -1,9 +1,11 @@
-import { Control, useFormContext } from 'react-hook-form'
+import { useEffect } from 'react'
+import { type Control, useFormContext } from 'react-hook-form'
+import { useListUsageMetersQuery } from '@/app/hooks/useListUsageMetersQuery'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
 import {
@@ -13,9 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useListUsageMetersQuery } from '@/app/hooks/useListUsageMetersQuery'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useEffect } from 'react'
 
 interface UsageMetersSelectProps {
   name: string
@@ -35,7 +35,6 @@ const UsageMetersSelect = ({
   const form = useFormContext()
   const { watch, setValue } = form
   const usageMeterId = watch(name)
-
   // Validate and reset selection when filtered data changes
   useEffect(() => {
     // If no usage meters available, clear the selection

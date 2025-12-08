@@ -1,14 +1,14 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
+import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
-import {
-  createOrganizationSchema,
-  type CreateOrganizationInput,
-} from '@/db/schema/organizations'
+import FormModal from '@/components/forms/FormModal'
 import OrganizationFormFields from '@/components/forms/OrganizationFormFields'
 import { useAuthContext } from '@/contexts/authContext'
-import { useRouter } from 'next/navigation'
+import {
+  type CreateOrganizationInput,
+  createOrganizationSchema,
+} from '@/db/schema/organizations'
 
 interface CreateOrganizationModalProps {
   isOpen: boolean
@@ -48,6 +48,7 @@ const CreateOrganizationModal: React.FC<
       }}
       submitButtonText="Create Organization"
     >
+      {/* FIXME (FG-555): Readd OrganizationLogoInput to this page once we have a way to upload the logo during organization creation */}
       <OrganizationFormFields />
     </FormModal>
   )

@@ -1,18 +1,18 @@
-import { CurrencyCode } from '@/types'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { Img, Section } from '@react-email/components'
 import * as React from 'react'
+import type { CurrencyCode } from '@/types'
+import { emailBaseUrl } from '@/utils/core'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { EmailButton } from '../components/EmailButton'
+import TestModeBanner from '../components/TestBanner'
 import {
+  DetailItem,
+  DetailSection,
+  DetailValue,
   EmailLayout,
   Header,
   Paragraph,
-  DetailSection,
-  DetailItem,
-  DetailValue,
 } from '../components/themed'
-import { emailBaseUrl } from '@/utils/core'
-import TestModeBanner from '../components/TestBanner'
 
 export interface OrganizationPaymentNotificationEmailProps {
   organizationName: string

@@ -1,6 +1,6 @@
-import { updateOrganizationOnboardingStatus } from '@/utils/processStripeEvents'
 import { task } from '@trigger.dev/sdk'
-import Stripe from 'stripe'
+import type Stripe from 'stripe'
+import { updateOrganizationOnboardingStatus } from '@/utils/processStripeEvents'
 import { storeTelemetry } from '@/utils/redis'
 
 export const stripeAccountUpdatedTask = task({

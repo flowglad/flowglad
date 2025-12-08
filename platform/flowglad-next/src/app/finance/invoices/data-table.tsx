@@ -1,18 +1,23 @@
 'use client'
-import core from '@/utils/core'
-import * as React from 'react'
 import {
-  ColumnFiltersState,
-  ColumnSizingState,
-  SortingState,
-  VisibilityState,
+  type ColumnFiltersState,
+  type ColumnSizingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from '@tanstack/react-table'
+import { Plus } from 'lucide-react'
+import * as React from 'react'
+import { trpc } from '@/app/_trpc/client'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { Button } from '@/components/ui/button'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 import {
   Table,
   TableBody,
@@ -21,14 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
-import { columns, InvoiceTableRowData } from './columns'
-import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { trpc } from '@/app/_trpc/client'
-import { Plus } from 'lucide-react'
-import { InvoiceStatus } from '@/types'
+import type { InvoiceStatus } from '@/types'
+import core from '@/utils/core'
+import { columns, type InvoiceTableRowData } from './columns'
 
 export interface InvoicesTableFilters {
   status?: InvoiceStatus
@@ -43,6 +43,8 @@ interface InvoicesDataTableProps {
   filterOptions?: { value: string; label: string }[]
   activeFilter?: string
   onFilterChange?: (value: string) => void
+  hiddenColumns?: string[]
+  columnOrder?: string[]
 }
 
 export function InvoicesDataTable({
@@ -52,6 +54,8 @@ export function InvoicesDataTable({
   filterOptions,
   activeFilter,
   onFilterChange,
+  hiddenColumns = [],
+  columnOrder,
 }: InvoicesDataTableProps) {
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -86,7 +90,25 @@ export function InvoicesDataTable({
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>(() =>
+      hiddenColumns.reduce(
+        (acc, col) => ({ ...acc, [col]: false }),
+        {}
+      )
+    )
+
+  // Sync columnVisibility when hiddenColumns prop changes
+  const hiddenColumnsKey = JSON.stringify(hiddenColumns)
+  React.useEffect(() => {
+    setColumnVisibility(
+      hiddenColumns.reduce(
+        (acc, col) => ({ ...acc, [col]: false }),
+        {}
+      )
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hiddenColumnsKey])
+
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 
@@ -132,6 +154,7 @@ export function InvoicesDataTable({
       columnFilters,
       columnVisibility,
       columnSizing,
+      columnOrder,
       pagination: { pageIndex, pageSize: currentPageSize },
     },
   })
@@ -142,11 +165,7 @@ export function InvoicesDataTable({
       <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         {/* Title and/or Filter buttons on the left */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && (
-            <h3 className="text-lg font-semibold truncate">
-              {title}
-            </h3>
-          )}
+          {title && <h3 className="text-lg truncate">{title}</h3>}
           {filterOptions && activeFilter && onFilterChange && (
             <FilterButtonGroup
               options={filterOptions}

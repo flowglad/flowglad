@@ -1,14 +1,14 @@
-import React from 'react'
-import { Container, Head, Body, Html } from '@react-email/components'
+import { Body, Container, Head, Html } from '@react-email/components'
+import type React from 'react'
 import {
-  DocumentHeader,
-  DocumentDetails,
   BillingInfo,
-  PaymentInfo,
-  InvoiceLineItems,
-  InvoiceTotals,
+  DocumentDetails,
+  DocumentHeader,
   InvoiceFooter,
-  InvoiceTemplateProps,
+  InvoiceLineItems,
+  type InvoiceTemplateProps,
+  InvoiceTotals,
+  PaymentInfo,
 } from '@/pdf-generation/invoices'
 import { calculateInvoiceTotalsRaw } from '@/utils/discountHelpers'
 
@@ -39,7 +39,7 @@ export const ReceiptTemplate: React.FC<InvoiceTemplateProps> = ({
         <style>
           {`
               body { 
-                  font-family: 'Inter', sans-serif; 
+                  font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, sans-serif; 
                   color: #333; 
                   line-height: 1.4;
                   margin: 0;

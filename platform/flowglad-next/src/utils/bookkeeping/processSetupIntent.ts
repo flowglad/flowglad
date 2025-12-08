@@ -1,68 +1,61 @@
-import {
-  selectCustomerById,
-  updateCustomer,
-} from '@/db/tableMethods/customerMethods'
-import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PurchaseStatus,
-  SubscriptionStatus,
-  CancellationReason,
-  FlowgladEventType,
-  EventNoun,
-} from '@/types'
-import { DbTransaction } from '@/db/types'
-import {
-  StripeIntentMetadata,
-  stripeIntentMetadataSchema,
-  stripeIdFromObjectOrId,
-  IntentMetadataType,
-} from '@/utils/stripe'
-import { Purchase } from '@/db/schema/purchases'
 import Stripe from 'stripe'
-import {
-  selectPurchaseById,
-  updatePurchase,
-} from '@/db/tableMethods/purchaseMethods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Customer } from '@/db/schema/customers'
+import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import { Event } from '@/db/schema/events'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import { Purchase } from '@/db/schema/purchases'
+import { Subscription } from '@/db/schema/subscriptions'
 import {
   checkoutSessionIsInTerminalState,
   isCheckoutSessionSubscriptionCreating,
   selectCheckoutSessionById,
   updateCheckoutSession,
 } from '@/db/tableMethods/checkoutSessionMethods'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import { Price } from '@/db/schema/prices'
-import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
-import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
-import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
+import {
+  selectCustomerById,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
+import {
+  selectPurchaseById,
+  updatePurchase,
+} from '@/db/tableMethods/purchaseMethods'
+import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
   selectSubscriptionById,
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
 import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
-import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
-  cancelFreeSubscriptionForUpgrade,
-  linkUpgradedSubscriptions,
-} from '@/subscriptions/cancelFreeSubscriptionForUpgrade'
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  EventNoun,
+  FlowgladEventType,
+  PurchaseStatus,
+  SubscriptionStatus,
+} from '@/types'
 import {
-  constructPurchaseCompletedEventHash,
-  constructSubscriptionCreatedEventHash,
-} from '../eventHelpers'
-import { Event } from '@/db/schema/events'
+  IntentMetadataType,
+  StripeIntentMetadata,
+  stripeIdFromObjectOrId,
+  stripeIntentMetadataSchema,
+} from '@/utils/stripe'
+import { hasCustomerUsedTrial } from '../checkoutHelpers'
+import { constructPurchaseCompletedEventHash } from '../eventHelpers'
+import { paymentMethodForStripePaymentMethodId } from '../paymentMethodHelpers'
+import { processPurchaseBookkeepingForCheckoutSession } from './checkoutSessions'
 
 export const setupIntentStatusToCheckoutSessionStatus = (
   status: Stripe.SetupIntent.Status
@@ -467,74 +460,12 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       throw new Error('Price interval count is required')
     }
 
-    // Check for and cancel any free subscription before creating the new one
-    const canceledFreeSubscription =
-      await cancelFreeSubscriptionForUpgrade(customer.id, transaction)
-
-    const subscriptionsForCustomer = await selectSubscriptions(
-      {
-        customerId: customer.id,
-      },
+    const hasHadTrial = await hasCustomerUsedTrial(
+      customer.id,
       transaction
     )
 
-    // Check for existing active paid subscriptions to prevent duplicate paid subscriptions
-    // unless the organization allows multiple subscriptions per customer
-    const activePaidSubscriptions = subscriptionsForCustomer.filter(
-      (sub) =>
-        sub.status === SubscriptionStatus.Active &&
-        sub.isFreePlan === false &&
-        sub.cancellationReason !== CancellationReason.UpgradedToPaid
-    )
-
-    if (
-      activePaidSubscriptions.length > 0 &&
-      !organization.allowMultipleSubscriptionsPerCustomer
-    ) {
-      throw new Error(
-        `Customer ${customer.id} already has an active paid subscription. ` +
-          `Cannot create another paid subscription. ` +
-          `Existing subscription ID: ${activePaidSubscriptions[0].id}`
-      )
-    }
-    const hasHadTrial = subscriptionsForCustomer.some(
-      (subscription) => subscription.trialEnd
-    )
-
-    // Determine if we should preserve the billing cycle from the canceled free subscription
-    const preserveBillingCycle =
-      checkoutSession.preserveBillingCycleAnchor &&
-      !!canceledFreeSubscription
     const startDate = Date.now()
-
-    // Prepare billing cycle preservation parameters
-    let billingCycleAnchorDate: number | undefined
-    let preservedBillingPeriodEnd: number | undefined
-    let preservedBillingPeriodStart: number | undefined
-    let prorateFirstPeriod = false
-
-    if (preserveBillingCycle) {
-      billingCycleAnchorDate =
-        canceledFreeSubscription.billingCycleAnchorDate || startDate
-      preservedBillingPeriodEnd =
-        canceledFreeSubscription.currentBillingPeriodEnd || undefined
-      preservedBillingPeriodStart =
-        canceledFreeSubscription.currentBillingPeriodStart ||
-        undefined
-      prorateFirstPeriod = true
-
-      // Validate that we're not past the period end
-      if (
-        preservedBillingPeriodEnd &&
-        startDate > preservedBillingPeriodEnd
-      ) {
-        // If we're past the period, don't preserve (start a new cycle)
-        billingCycleAnchorDate = undefined
-        preservedBillingPeriodEnd = undefined
-        preservedBillingPeriodStart = undefined
-        prorateFirstPeriod = false
-      }
-    }
     const now = Date.now()
 
     const output = await createSubscriptionWorkflow(
@@ -556,17 +487,14 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
           trialPeriodDays: price.trialPeriodDays,
         }),
         startDate,
-        billingCycleAnchorDate,
-        preservedBillingPeriodEnd,
-        preservedBillingPeriodStart,
-        prorateFirstPeriod,
+        preserveBillingCycleAnchor:
+          checkoutSession.preserveBillingCycleAnchor ?? false,
         autoStart: true,
         quantity: checkoutSession.quantity,
         metadata: checkoutSession.outputMetadata ?? {},
         name: checkoutSession.outputName ?? undefined,
         product,
         livemode: checkoutSession.livemode,
-        previousSubscriptionId: canceledFreeSubscription?.id,
       },
       transaction
     )
@@ -576,46 +504,6 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       eventInserts.push(...output.eventsToInsert)
     }
 
-    // Link the old and new subscriptions if there was an upgrade
-    if (canceledFreeSubscription && output.result?.subscription) {
-      await linkUpgradedSubscriptions(
-        canceledFreeSubscription,
-        output.result.subscription.id,
-        transaction
-      )
-      // Add upgrade event to the events to log
-      const customer = await selectCustomerById(
-        output.result.subscription.customerId,
-        transaction
-      )
-
-      if (!customer) {
-        throw new Error(
-          `Customer not found for subscription ${output.result.subscription.id}`
-        )
-      }
-
-      eventInserts.push({
-        type: FlowgladEventType.SubscriptionCreated,
-        occurredAt: now,
-        organizationId: organization.id,
-        livemode: output.result.subscription.livemode,
-        metadata: {},
-        submittedAt: now,
-        processedAt: null,
-        hash: constructSubscriptionCreatedEventHash(
-          output.result.subscription
-        ),
-        payload: {
-          object: EventNoun.Subscription,
-          id: output.result.subscription.id,
-          customer: {
-            id: customer.id,
-            externalId: customer.externalId,
-          },
-        },
-      })
-    }
     const updatedPurchase = await updatePurchase(
       {
         id: purchase.id,

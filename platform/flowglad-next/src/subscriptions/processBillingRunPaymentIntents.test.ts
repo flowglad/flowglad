@@ -1,49 +1,93 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { BillingPeriodStatus } from '@/types'
+import Stripe from 'stripe'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
   setupBillingRun,
   setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
   setupInvoice,
+  setupInvoiceLineItem,
+  setupLedgerTransaction,
+  setupMemberships,
   setupOrg,
   setupPayment,
-  setupMemberships,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupProductFeature,
+  setupSubscription,
+  setupSubscriptionItem,
+  setupSubscriptionItemFeatureUsageCreditGrant,
+  setupUsageCreditGrantFeature,
+  setupUsageMeter,
 } from '@/../seedDatabase'
-
-import { adminTransaction } from '@/db/adminTransaction'
-import { processPaymentIntentEventForBillingRun } from './processBillingRunPaymentIntents'
 import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
+import { settleInvoiceUsageCostsLedgerCommandSchema } from '@/db/ledgerManager/ledgerManagerTypes'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { Customer } from '@/db/schema/customers'
+import { Invoice } from '@/db/schema/invoices'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
+import {
+  selectBillingRunById,
+  selectBillingRuns,
+  updateBillingRun,
+} from '@/db/tableMethods/billingRunMethods'
+import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  selectInvoiceById,
+  updateInvoice,
+} from '@/db/tableMethods/invoiceMethods'
+import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
+import {
+  aggregateBalanceForLedgerAccountFromEntries,
+  selectLedgerEntries,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
+import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
+import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import {
+  createMockPaymentIntent,
+  createMockPaymentIntentEventResponse,
+} from '@/test/helpers/stripeMocks'
+import {
+  BillingPeriodStatus,
   BillingRunStatus,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
   InvoiceStatus,
+  LedgerEntryType,
   LedgerTransactionType,
   PaymentStatus,
+  PriceType,
+  SubscriptionItemType,
   SubscriptionStatus,
+  UsageCreditStatus,
+  UsageCreditType,
 } from '@/types'
-import Stripe from 'stripe'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
-import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
-import { IntentMetadataType } from '@/utils/stripe'
 import core from '@/utils/core'
-import { settleInvoiceUsageCostsLedgerCommandSchema } from '@/db/ledgerManager/ledgerManagerTypes'
+import { IntentMetadataType } from '@/utils/stripe'
+import { isFirstPayment } from './billingRunHelpers'
+import { createSubscriptionWorkflow } from './createSubscription/workflow'
+import { processOutcomeForBillingRun } from './processBillingRunPaymentIntents'
 
 /**
- * In our tests we assume that getStripeCharge (used inside processPaymentIntentEventForBillingRun)
+ * In our tests we assume that getStripeCharge (used inside processOutcomeForBillingRun)
  * is configured (or stubbed in the test environment) so that when called with a known charge id,
  * it returns a charge object with a predictable amount (for example, 1000 for 'ch_success', 500 for 'ch_failed', etc.).
  */
-describe('processPaymentIntentEventForBillingRun integration tests', async () => {
-  const { organization, price } = await setupOrg()
+
+describe('processOutcomeForBillingRun integration tests', async () => {
+  const { organization, price, product } = await setupOrg()
   let customer: Customer.Record
   let paymentMethod: PaymentMethod.Record
   let billingPeriod: BillingPeriod.Record
@@ -120,25 +164,26 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
 
     await adminTransaction(async ({ transaction }) => {
-      const event: Stripe.PaymentIntentSucceededEvent = {
-        created: 1, // Earlier than the stored timestamp
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'succeeded',
-            metadata: {
-              billingRunId: newBillingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: newBillingRun.billingPeriodId,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: stripePaymentIntentId,
+          latest_charge: stripeChargeId,
+          metadata: {
+            billingRunId: newBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: newBillingRun.billingPeriodId,
           },
+          livemode: true,
         },
-      } as any
+        {
+          created: 1,
+          livemode: true,
+        }
+      )
 
       // The function should simply skip processing and return undefined.
-      const { result } = await processPaymentIntentEventForBillingRun(
+      const { result } = await processOutcomeForBillingRun(
         event,
         transaction
       )
@@ -177,28 +222,27 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       invoiceId: invoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const event: Stripe.PaymentIntentSucceededEvent = {
-        created: 3000,
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'succeeded',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingRun.billingPeriodId,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: stripePaymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: billingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: billingRun.billingPeriodId,
           },
+          latest_charge: stripeChargeId,
+          livemode: true,
         },
-      } as any
+        {
+          created: 3000,
+          livemode: true,
+        }
+      )
 
-      const { result, ledgerCommand } =
-        await processPaymentIntentEventForBillingRun(
-          event,
-          transaction
-        )
+      const { result, ledgerCommands } =
+        await processOutcomeForBillingRun(event, transaction)
 
       const updatedBillingRun = await selectBillingRunById(
         billingRun.id,
@@ -220,10 +264,15 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       expect(result?.billingRun.id).toBe(billingRun.id)
       expect(result?.invoice.id).toBe(invoice.id)
 
-      expect(ledgerCommand).toBeDefined()
+      expect(ledgerCommands).toBeDefined()
+      expect(ledgerCommands?.length).toBeGreaterThan(0)
       const invoiceLedgerCommand =
         settleInvoiceUsageCostsLedgerCommandSchema.parse(
-          ledgerCommand
+          ledgerCommands?.find(
+            (cmd) =>
+              cmd.type ===
+              LedgerTransactionType.SettleInvoiceUsageCosts
+          )
         )
       expect(invoiceLedgerCommand.type).toBe(
         LedgerTransactionType.SettleInvoiceUsageCosts
@@ -266,39 +315,36 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       invoiceId: invoice.id,
     })
 
-    const event: Stripe.PaymentIntentSucceededEvent = {
-      created: 3000,
-      data: {
-        object: {
-          id: stripePaymentIntentId,
-          status: 'succeeded',
-          metadata: {
-            billingRunId: billingRun.id,
-            type: IntentMetadataType.BillingRun,
-            billingPeriodId: billingRun.billingPeriodId,
-          },
-          latest_charge: stripeChargeId,
-          livemode: true,
+    const event = createMockPaymentIntentEventResponse(
+      'succeeded',
+      {
+        id: stripePaymentIntentId,
+        status: 'succeeded',
+        metadata: {
+          billingRunId: billingRun.id,
+          type: IntentMetadataType.BillingRun,
+          billingPeriodId: billingRun.billingPeriodId,
         },
+        latest_charge: stripeChargeId,
+        livemode: true,
       },
-    } as any
+      {
+        created: 3000,
+        livemode: true,
+      }
+    )
 
     await adminTransaction(async ({ transaction }) => {
-      const { ledgerCommand: firstLedgerCommand } =
-        await processPaymentIntentEventForBillingRun(
-          event,
-          transaction
-        )
+      const { ledgerCommands: firstLedgerCommands } =
+        await processOutcomeForBillingRun(event, transaction)
 
-      expect(firstLedgerCommand).toBeDefined()
+      expect(firstLedgerCommands).toBeDefined()
+      expect(firstLedgerCommands?.length).toBeGreaterThan(0)
 
-      const { ledgerCommand: secondLedgerCommand } =
-        await processPaymentIntentEventForBillingRun(
-          event,
-          transaction
-        )
+      const { ledgerCommands: secondLedgerCommands } =
+        await processOutcomeForBillingRun(event, transaction)
 
-      expect(secondLedgerCommand).toBeUndefined()
+      expect(secondLedgerCommands).toBeUndefined()
     })
   })
 
@@ -308,7 +354,7 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     const stripeChargeId = `ch_${Date.now()}___failed` + core.nanoid()
     const failedBillingRun = await setupBillingRun({
       stripePaymentIntentId,
-      lastPaymentIntentEventTimestamp: Date.now(),
+      lastPaymentIntentEventTimestamp: Math.floor(Date.now() / 1000),
       paymentMethodId: paymentMethod.id,
       billingPeriodId: billingPeriod.id,
       subscriptionId: subscription.id,
@@ -332,28 +378,27 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       invoiceId: failedInvoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const event: Stripe.PaymentIntentPaymentFailedEvent = {
-        created: Date.now() / 1000,
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'requires_payment_method',
-            metadata: {
-              billingRunId: failedBillingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: failedBillingRun.billingPeriodId,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'requires_payment_method',
+        {
+          id: stripePaymentIntentId,
+          status: 'requires_payment_method',
+          metadata: {
+            billingRunId: failedBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: failedBillingRun.billingPeriodId,
           },
+          latest_charge: stripeChargeId,
+          livemode: true,
         },
-      } as any
-
-      const { ledgerCommand } =
-        await processPaymentIntentEventForBillingRun(
-          event,
-          transaction
-        )
+        {
+          livemode: true,
+        }
+      )
+      const { ledgerCommands } = await processOutcomeForBillingRun(
+        event,
+        transaction
+      )
 
       const updatedBillingRun = await selectBillingRunById(
         failedBillingRun.id,
@@ -366,7 +411,8 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
 
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
       expect(updatedInvoice).toBeDefined()
-      expect(ledgerCommand).toBeUndefined()
+      expect(ledgerCommands).toBeDefined()
+      expect(ledgerCommands?.length).toBe(0)
     })
   })
 
@@ -412,28 +458,29 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
         billingRunId: billingRun.id,
       })
 
-      const event: Stripe.PaymentIntentCanceledEvent = {
-        created: 5000,
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'canceled',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingRun.billingPeriodId,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'canceled',
+        {
+          id: stripePaymentIntentId,
+          status: 'canceled',
+          metadata: {
+            billingRunId: billingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: billingRun.billingPeriodId,
           },
+          latest_charge: stripeChargeId,
+          livemode: true,
         },
-      } as any
+        {
+          created: 5000,
+          livemode: true,
+        }
+      )
 
-      const { ledgerCommand } =
-        await processPaymentIntentEventForBillingRun(
-          event,
-          transaction
-        )
+      const { ledgerCommands } = await processOutcomeForBillingRun(
+        event,
+        transaction
+      )
 
       const updatedBillingRun = await selectBillingRunById(
         billingRun.id,
@@ -458,7 +505,8 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       expect(updatedSubscription.status).toBe(
         SubscriptionStatus.PastDue
       )
-      expect(ledgerCommand).toBeUndefined()
+      expect(ledgerCommands).toBeDefined()
+      expect(ledgerCommands?.length).toBe(0)
     })
   })
 
@@ -489,28 +537,29 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       invoiceId: invoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const event: Stripe.PaymentIntentProcessingEvent = {
-        created: 6000,
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'processing',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingRun.billingPeriodId,
-            },
-            latest_charge: `ch_${billingRun.id}__processing`,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'processing',
+        {
+          id: stripePaymentIntentId,
+          status: 'processing',
+          metadata: {
+            billingRunId: billingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: billingRun.billingPeriodId,
           },
+          latest_charge: `ch_${billingRun.id}__processing`,
+          livemode: true,
         },
-      } as any
+        {
+          created: 6000,
+          livemode: true,
+        }
+      )
 
-      const { ledgerCommand } =
-        await processPaymentIntentEventForBillingRun(
-          event,
-          transaction
-        )
+      const { ledgerCommands } = await processOutcomeForBillingRun(
+        event,
+        transaction
+      )
 
       const updatedBillingRun = await selectBillingRunById(
         billingRun.id,
@@ -532,7 +581,8 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
         InvoiceStatus.AwaitingPaymentConfirmation
       )
       expect(updatedPayment.status).toBe(PaymentStatus.Processing)
-      expect(ledgerCommand).toBeUndefined()
+      expect(ledgerCommands).toBeDefined()
+      expect(ledgerCommands?.length).toBe(0)
     })
   })
 
@@ -576,28 +626,29 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
         billingRunId: billingRun.id,
       })
 
-      const event: Stripe.PaymentIntentRequiresActionEvent = {
-        created: 7000,
-        data: {
-          object: {
-            id: stripePaymentIntentId,
-            status: 'requires_action',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingPeriod.id,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'requires_action',
+        {
+          id: stripePaymentIntentId,
+          status: 'requires_action',
+          metadata: {
+            billingRunId: billingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: billingPeriod.id,
           },
+          latest_charge: stripeChargeId,
+          livemode: true,
         },
-      } as any
+        {
+          created: 7000,
+          livemode: true,
+        }
+      )
 
-      const { ledgerCommand } =
-        await processPaymentIntentEventForBillingRun(
-          event,
-          transaction
-        )
+      const { ledgerCommands } = await processOutcomeForBillingRun(
+        event,
+        transaction
+      )
 
       const updatedBillingRun = await selectBillingRunById(
         billingRun.id,
@@ -617,7 +668,8 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
       )
       expect(updatedInvoice.status).toBe(InvoiceStatus.Open)
       expect(updatedPayment.status).toBe(PaymentStatus.Processing)
-      expect(ledgerCommand).toBeUndefined()
+      expect(ledgerCommands).toBeDefined()
+      expect(ledgerCommands?.length).toBe(0)
     })
   })
 
@@ -633,25 +685,27 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
     })
     await adminTransaction(async ({ transaction }) => {
       // Do not seed any invoice for billingPeriodId 'bp_no_invoice'
-      const event: Stripe.PaymentIntentSucceededEvent = {
-        created: 8000,
-        data: {
-          object: {
-            id: paymentIntentId,
-            status: 'succeeded',
-            metadata: {
-              billingRunId: billingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: billingRun.billingPeriodId,
-            },
-            latest_charge: `ch_no_invoice_${billingRun.id}`,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: paymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: billingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: billingRun.billingPeriodId,
           },
+          latest_charge: `ch_no_invoice_${billingRun.id}`,
+          livemode: true,
         },
-      } as any
+        {
+          created: 8000,
+          livemode: true,
+        }
+      )
 
       await expect(
-        processPaymentIntentEventForBillingRun(event, transaction)
+        processOutcomeForBillingRun(event, transaction)
       ).rejects.toThrow(
         `Invoice for billing period ${billingRun.billingPeriodId} not found.`
       )
@@ -677,25 +731,27 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
         billingRunId: billingRun.id,
       })
 
-      const event: Stripe.PaymentIntentSucceededEvent = {
-        created: 9000,
-        data: {
-          object: {
-            id: 'pi_no_charge',
-            status: 'succeeded',
-            metadata: {
-              billingRunId: billingRun.id,
-              billingPeriodId: billingRun.billingPeriodId,
-              type: IntentMetadataType.BillingRun,
-            },
-            latest_charge: null,
-            livemode: true,
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: 'pi_no_charge',
+          status: 'succeeded',
+          metadata: {
+            billingRunId: billingRun.id,
+            billingPeriodId: billingRun.billingPeriodId,
+            type: IntentMetadataType.BillingRun,
           },
+          latest_charge: null,
+          livemode: true,
         },
-      } as any
+        {
+          created: 9000,
+          livemode: true,
+        }
+      )
 
       await expect(
-        processPaymentIntentEventForBillingRun(event, transaction)
+        processOutcomeForBillingRun(event, transaction)
       ).rejects.toThrow(
         /No latest charge found for payment intent pi_no_charge/
       )
@@ -742,10 +798,1059 @@ describe('processPaymentIntentEventForBillingRun integration tests', async () =>
   //     } as any
 
   //     await expect(
-  //       processPaymentIntentEventForBillingRun(event, transaction)
+  //       processOutcomeForBillingRun(event, transaction)
   //     ).rejects.toThrow(
   //       `Payment record not found for stripe charge ${event.data.object.latest_charge}`
   //     )
   //   })
   // })
+
+  it('should cancel subscription on first payment failure', async () => {
+    // Setup a fresh subscription with no previous payments
+    const testCustomer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const testPaymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: testCustomer.id,
+    })
+
+    const testSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: testCustomer.id,
+      priceId: price.id,
+      paymentMethodId: testPaymentMethod.id,
+    })
+
+    const testBillingPeriod = await setupBillingPeriod({
+      subscriptionId: testSubscription.id,
+      startDate: testSubscription.currentBillingPeriodStart!,
+      endDate: testSubscription.currentBillingPeriodEnd!,
+      status: BillingPeriodStatus.Active,
+    })
+
+    const testBillingRun = await setupBillingRun({
+      billingPeriodId: testBillingPeriod.id,
+      paymentMethodId: testPaymentMethod.id,
+      subscriptionId: testSubscription.id,
+      status: BillingRunStatus.Scheduled,
+    })
+
+    await setupBillingPeriodItem({
+      billingPeriodId: testBillingPeriod.id,
+      quantity: 1,
+      unitPrice: 100, // Non-zero amount
+    })
+
+    const testInvoice = await setupInvoice({
+      billingPeriodId: testBillingPeriod.id,
+      customerId: testCustomer.id,
+      organizationId: organization.id,
+      status: InvoiceStatus.Open,
+      priceId: price.id,
+      billingRunId: testBillingRun.id,
+    })
+
+    const stripePaymentIntentId = `pi_first_fail_${core.nanoid()}`
+    const stripeChargeId = `ch_first_fail_${core.nanoid()}`
+
+    await setupPayment({
+      stripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 100, // Non-zero amount
+      customerId: testCustomer.id,
+      organizationId: organization.id,
+      invoiceId: testInvoice.id,
+      stripePaymentIntentId,
+      billingPeriodId: testBillingPeriod.id,
+    })
+
+    // Verify isFirstPayment returns true before processing
+    await adminTransaction(async ({ transaction }) => {
+      const isFirst = await isFirstPayment(
+        testSubscription,
+        transaction
+      )
+      expect(isFirst).toBe(true)
+    })
+
+    // Process the failed payment intent
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const event = createMockPaymentIntentEventResponse(
+        'requires_payment_method',
+        {
+          id: stripePaymentIntentId,
+          status: 'requires_payment_method',
+          metadata: {
+            billingRunId: testBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: Date.now() / 1000,
+          livemode: true,
+        }
+      )
+      return await processOutcomeForBillingRun(event, transaction)
+    })
+
+    // Verify subscription was canceled
+    const canceledSubscription = await adminTransaction(
+      async ({ transaction }) => {
+        return selectSubscriptionById(
+          testSubscription.id,
+          transaction
+        )
+      }
+    )
+
+    expect(canceledSubscription.status).toBe(
+      SubscriptionStatus.Canceled
+    )
+    expect(canceledSubscription.canceledAt).not.toBeNull()
+
+    // Verify no retry was scheduled (cancellation should abort scheduled runs)
+    const scheduledBillingRuns = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBillingRuns(
+          {
+            subscriptionId: testSubscription.id,
+            status: BillingRunStatus.Scheduled,
+          },
+          transaction
+        )
+      }
+    )
+    expect(scheduledBillingRuns.length).toBe(0)
+  })
+
+  it('should NOT cancel free plan subscription on first payment failure', async () => {
+    // Setup a fresh free plan subscription with no previous payments
+    const testCustomer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const testPaymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: testCustomer.id,
+    })
+
+    // Create a free price for this test
+    const freeProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: product.pricingModelId,
+      name: 'Free Plan Product',
+      livemode: true,
+    })
+    const freePrice = await setupPrice({
+      productId: freeProduct.id,
+      name: 'Free Plan',
+      type: PriceType.Subscription,
+      unitPrice: 0, // Free plan
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      currency: organization.defaultCurrency,
+    })
+
+    const testSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: testCustomer.id,
+      priceId: freePrice.id,
+      paymentMethodId: testPaymentMethod.id,
+      isFreePlan: true, // Mark as free plan
+      status: SubscriptionStatus.Active,
+    })
+
+    const testBillingPeriod = await setupBillingPeriod({
+      subscriptionId: testSubscription.id,
+      startDate: testSubscription.currentBillingPeriodStart!,
+      endDate: testSubscription.currentBillingPeriodEnd!,
+      status: BillingPeriodStatus.Active,
+    })
+
+    const testBillingRun = await setupBillingRun({
+      billingPeriodId: testBillingPeriod.id,
+      paymentMethodId: testPaymentMethod.id,
+      subscriptionId: testSubscription.id,
+      status: BillingRunStatus.Scheduled,
+    })
+
+    // Create billing period item with usage charges (free plan with usage)
+    // This simulates a free base plan that has accumulated usage charges
+    await setupBillingPeriodItem({
+      billingPeriodId: testBillingPeriod.id,
+      quantity: 1,
+      unitPrice: 50, // Usage charges on free plan
+    })
+
+    const testInvoice = await setupInvoice({
+      billingPeriodId: testBillingPeriod.id,
+      customerId: testCustomer.id,
+      organizationId: organization.id,
+      status: InvoiceStatus.Open,
+      priceId: freePrice.id,
+      billingRunId: testBillingRun.id,
+    })
+
+    const stripePaymentIntentId = `pi_free_first_fail_${core.nanoid()}`
+    const stripeChargeId = `ch_free_first_fail_${core.nanoid()}`
+
+    await setupPayment({
+      stripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 50, // Usage charges amount
+      customerId: testCustomer.id,
+      organizationId: organization.id,
+      invoiceId: testInvoice.id,
+      stripePaymentIntentId,
+      billingPeriodId: testBillingPeriod.id,
+    })
+
+    // Verify isFirstPayment returns true before processing
+    await adminTransaction(async ({ transaction }) => {
+      const isFirst = await isFirstPayment(
+        testSubscription,
+        transaction
+      )
+      expect(isFirst).toBe(true)
+    })
+
+    // Process the failed payment intent
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const event = createMockPaymentIntentEventResponse(
+        'requires_payment_method',
+        {
+          id: stripePaymentIntentId,
+          status: 'requires_payment_method',
+          metadata: {
+            billingRunId: testBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: Date.now() / 1000,
+          livemode: true,
+        }
+      )
+      return await processOutcomeForBillingRun(event, transaction)
+    })
+
+    // Verify subscription was NOT canceled (unlike paid plans)
+    const updatedSubscription = await adminTransaction(
+      async ({ transaction }) => {
+        return selectSubscriptionById(
+          testSubscription.id,
+          transaction
+        )
+      }
+    )
+    expect(updatedSubscription.canceledAt).toBeNull()
+    // Verify subscription entered PastDue state (like nth payment failures)
+    expect(updatedSubscription.status).toBe(
+      SubscriptionStatus.PastDue
+    )
+
+    // Verify retry was scheduled (unlike paid plans which get canceled)
+    const scheduledBillingRuns = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBillingRuns(
+          {
+            subscriptionId: testSubscription.id,
+            status: BillingRunStatus.Scheduled,
+          },
+          transaction
+        )
+      }
+    )
+    expect(scheduledBillingRuns.length).toBeGreaterThan(0)
+  })
+
+  it('should fail silently for adjustment billing run payment failures - no retry, no state changes, invoice line items deleted', async () => {
+    // Setup fresh subscription for this test to avoid interference from existing scheduled runs
+    const testCustomer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const testPaymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: testCustomer.id,
+    })
+    const testSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: testCustomer.id,
+      priceId: price.id,
+      paymentMethodId: testPaymentMethod.id,
+    })
+    const testBillingPeriod = await setupBillingPeriod({
+      subscriptionId: testSubscription.id,
+      startDate: testSubscription.currentBillingPeriodStart!,
+      endDate: testSubscription.currentBillingPeriodEnd!,
+      status: BillingPeriodStatus.Active,
+    })
+
+    // Setup adjustment billing run
+    const adjustmentBillingRun = await setupBillingRun({
+      billingPeriodId: testBillingPeriod.id,
+      paymentMethodId: testPaymentMethod.id,
+      subscriptionId: testSubscription.id,
+      status: BillingRunStatus.Scheduled,
+      isAdjustment: true, // Mark as adjustment
+      livemode: true,
+    })
+
+    const adjustmentInvoice = await setupInvoice({
+      billingPeriodId: testBillingPeriod.id,
+      customerId: testCustomer.id,
+      organizationId: organization.id,
+      status: InvoiceStatus.Open,
+      priceId: price.id,
+      billingRunId: adjustmentBillingRun.id,
+    })
+
+    // Create invoice line items for the adjustment (simulating what executeBillingRun would create)
+    await setupInvoiceLineItem({
+      invoiceId: adjustmentInvoice.id,
+      priceId: price.id,
+      quantity: 1,
+      price: 500, // Adjustment amount
+      billingRunId: adjustmentBillingRun.id, // Link to adjustment billing run
+      livemode: true,
+    })
+
+    const stripePaymentIntentId = `pi_adjustment_fail_${core.nanoid()}`
+    const stripeChargeId = `ch_adjustment_fail_${core.nanoid()}`
+
+    // Update billing run with payment intent ID
+    await adminTransaction(async ({ transaction }) => {
+      await updateBillingRun(
+        {
+          id: adjustmentBillingRun.id,
+          stripePaymentIntentId,
+        },
+        transaction
+      )
+    })
+
+    await setupPayment({
+      stripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 500,
+      customerId: testCustomer.id,
+      organizationId: organization.id,
+      invoiceId: adjustmentInvoice.id,
+      stripePaymentIntentId,
+      billingPeriodId: testBillingPeriod.id,
+    })
+
+    // Store initial state for comparison
+    const initialInvoiceStatus = adjustmentInvoice.status
+    const initialSubscriptionStatus = testSubscription.status
+
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const event = createMockPaymentIntentEventResponse(
+          'requires_payment_method',
+          {
+            id: stripePaymentIntentId,
+            status: 'requires_payment_method',
+            metadata: {
+              billingRunId: adjustmentBillingRun.id,
+              type: IntentMetadataType.BillingRun,
+              billingPeriodId: testBillingPeriod.id,
+            },
+            latest_charge: stripeChargeId,
+            livemode: true,
+          },
+          {
+            created: Date.now() / 1000,
+            livemode: true,
+          }
+        )
+
+        return await processOutcomeForBillingRun(event, transaction)
+      }
+    )
+
+    // Assertions after transaction
+    await adminTransaction(async ({ transaction }) => {
+      const updatedBillingRun = await selectBillingRunById(
+        adjustmentBillingRun.id,
+        transaction
+      )
+      const updatedInvoice = await selectInvoiceById(
+        adjustmentInvoice.id,
+        transaction
+      )
+      const updatedSubscription = await selectSubscriptionById(
+        testSubscription.id,
+        transaction
+      )
+
+      const remainingLineItems = await selectInvoiceLineItems(
+        {
+          invoiceId: adjustmentInvoice.id,
+          billingRunId: adjustmentBillingRun.id,
+        },
+        transaction
+      )
+
+      // Billing Run Changes
+      expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+      expect(
+        updatedBillingRun.lastPaymentIntentEventTimestamp
+      ).toBeGreaterThan(0)
+
+      // Invoice Changes - line items should be deleted
+      expect(remainingLineItems.length).toBe(0)
+      expect(updatedInvoice.status).toBe(initialInvoiceStatus) // Status unchanged
+
+      // Subscription Status - should remain unchanged
+      expect(updatedSubscription.status).toBe(
+        initialSubscriptionStatus
+      )
+    })
+
+    // Return value should have empty invoice line items (deleted in early exit)
+    expect(result.invoiceLineItems.length).toBe(0)
+
+    // Verify no overages/ledger entries were created
+    await adminTransaction(async ({ transaction }) => {
+      const ledgerEntries = await selectLedgerEntries(
+        {
+          claimedByBillingRunId: adjustmentBillingRun.id,
+        },
+        transaction
+      )
+      expect(ledgerEntries.length).toBe(0)
+    })
+
+    // Verify no retry was scheduled
+    const scheduledRetries = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBillingRuns(
+          {
+            subscriptionId: testSubscription.id,
+            status: BillingRunStatus.Scheduled,
+          },
+          transaction
+        )
+      }
+    )
+    expect(scheduledRetries.length).toBe(0)
+  })
+})
+
+describe('processOutcomeForBillingRun - usage credit grants', async () => {
+  const { organization: orgForGrants, pricingModel } =
+    await setupOrg()
+
+  it('should grant a "Once" usage credit after payment confirmation', async () => {
+    // Create fresh product and price for this test to ensure isolation
+    const product = await setupProduct({
+      organizationId: orgForGrants.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product for Once Grant',
+      livemode: true,
+    })
+    const price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price for Once Grant',
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: true,
+    })
+
+    // Create fresh customer and payment method for this test
+    const testCustomer = await setupCustomer({
+      organizationId: orgForGrants.id,
+    })
+    const testPaymentMethod = await setupPaymentMethod({
+      organizationId: orgForGrants.id,
+      customerId: testCustomer.id,
+    })
+    // Setup
+    const grantAmount = 5000
+    const usageMeter = await setupUsageMeter({
+      organizationId: orgForGrants.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Meter for Once Grant',
+    })
+    const feature = await setupUsageCreditGrantFeature({
+      organizationId: orgForGrants.id,
+      name: 'One-time Credits',
+      usageMeterId: usageMeter.id,
+      renewalFrequency: FeatureUsageGrantFrequency.Once,
+      amount: grantAmount,
+      livemode: true,
+    })
+    await setupProductFeature({
+      organizationId: orgForGrants.id,
+      productId: product.id,
+      featureId: feature.id,
+      livemode: true,
+    })
+
+    // Create subscription with autoStart (creates billing run)
+    const workflowResult = await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_once_grant_${core.nanoid()}`
+        return await createSubscriptionWorkflow(
+          {
+            organization: orgForGrants,
+            product,
+            price: price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: testPaymentMethod,
+            customer: testCustomer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+    const testSubscription = workflowResult.subscription
+
+    // Get the billing run that was created
+    const billingRuns = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBillingRuns(
+          { subscriptionId: testSubscription.id },
+          transaction
+        )
+      }
+    )
+
+    expect(billingRuns.length).toBe(1)
+    const testBillingRun = billingRuns[0]
+    expect(testBillingRun.status).toBe(BillingRunStatus.Scheduled)
+
+    // Get the billing period
+    const testBillingPeriod = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBillingPeriodById(
+          testBillingRun.billingPeriodId,
+          transaction
+        )
+      }
+    )
+
+    // Create invoice and payment
+    const testInvoice = await setupInvoice({
+      billingPeriodId: testBillingPeriod.id,
+      customerId: testCustomer.id,
+      organizationId: orgForGrants.id,
+      status: InvoiceStatus.Open,
+      priceId: price.id,
+      billingRunId: testBillingRun.id,
+    })
+
+    const stripePaymentIntentId = `pi_once_grant_${core.nanoid()}`
+    const stripeChargeId = `ch_once_grant_${core.nanoid()}`
+
+    await setupPayment({
+      stripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 1000,
+      customerId: testCustomer.id,
+      organizationId: orgForGrants.id,
+      invoiceId: testInvoice.id,
+    })
+
+    // Process payment intent event (this should grant credits)
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: stripePaymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: testBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: 3000,
+          livemode: true,
+        }
+      )
+
+      return await processOutcomeForBillingRun(event, transaction)
+    })
+
+    // Assertions
+    await adminTransaction(async ({ transaction }) => {
+      const ledgerAccounts = await selectLedgerAccounts(
+        {
+          subscriptionId: testSubscription.id,
+          usageMeterId: usageMeter.id,
+        },
+        transaction
+      )
+      expect(ledgerAccounts.length).toBe(1)
+      const ledgerAccount = ledgerAccounts[0]
+
+      const usageCredits = await selectUsageCredits(
+        { subscriptionId: testSubscription.id },
+        transaction
+      )
+      expect(usageCredits.length).toBe(1)
+      const usageCredit = usageCredits[0]
+      expect(usageCredit.issuedAmount).toBe(grantAmount)
+      expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
+      expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
+      expect(usageCredit.expiresAt).toBeNull()
+      expect(usageCredit.paymentId).toBeNull()
+
+      // Remaining assertion is to checks for correct grant amount in the ledger
+      const balance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount.id },
+          'available',
+          transaction
+        )
+      expect(balance).toBe(grantAmount)
+    })
+  })
+
+  it('should grant an "EveryBillingPeriod" usage credit after payment confirmation', async () => {
+    // Create fresh product and price for this test to ensure isolation
+    const product = await setupProduct({
+      organizationId: orgForGrants.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product for Recurring Grant',
+      livemode: true,
+    })
+    const price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price for Recurring Grant',
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: true,
+    })
+
+    // Create fresh customer and payment method for this test
+    const testCustomer = await setupCustomer({
+      organizationId: orgForGrants.id,
+    })
+    const testPaymentMethod = await setupPaymentMethod({
+      organizationId: orgForGrants.id,
+      customerId: testCustomer.id,
+    })
+
+    // Setup
+    const grantAmount = 3000
+    const usageMeter = await setupUsageMeter({
+      organizationId: orgForGrants.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Meter for Recurring Grant',
+    })
+    const feature = await setupUsageCreditGrantFeature({
+      organizationId: orgForGrants.id,
+      name: 'Recurring Credits',
+      usageMeterId: usageMeter.id,
+      renewalFrequency: FeatureUsageGrantFrequency.EveryBillingPeriod,
+      amount: grantAmount,
+      livemode: true,
+      pricingModelId: pricingModel.id,
+    })
+    await setupProductFeature({
+      organizationId: orgForGrants.id,
+      productId: product.id,
+      featureId: feature.id,
+      livemode: true,
+    })
+
+    // Create subscription with autoStart (creates billing run)
+    const workflowResult = await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_recurring_grant_${core.nanoid()}`
+        return await createSubscriptionWorkflow(
+          {
+            organization: orgForGrants,
+            product,
+            price: price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: testPaymentMethod,
+            customer: testCustomer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+    const testSubscription = workflowResult.subscription
+
+    // Get the billing run that was created
+    const billingRuns = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBillingRuns(
+          { subscriptionId: testSubscription.id },
+          transaction
+        )
+      }
+    )
+
+    expect(billingRuns.length).toBe(1)
+    const testBillingRun = billingRuns[0]
+
+    // Get the billing period
+    const testBillingPeriod = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBillingPeriodById(
+          testBillingRun.billingPeriodId,
+          transaction
+        )
+      }
+    )
+
+    // Create invoice and payment
+    const testInvoice = await setupInvoice({
+      billingPeriodId: testBillingPeriod.id,
+      customerId: testCustomer.id,
+      organizationId: orgForGrants.id,
+      status: InvoiceStatus.Open,
+      priceId: price.id,
+      billingRunId: testBillingRun.id,
+    })
+
+    const stripePaymentIntentId = `pi_recurring_grant_${core.nanoid()}`
+    const stripeChargeId = `ch_recurring_grant_${core.nanoid()}`
+
+    await setupPayment({
+      stripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 1000,
+      customerId: testCustomer.id,
+      organizationId: orgForGrants.id,
+      invoiceId: testInvoice.id,
+    })
+
+    // Process payment intent event (this should grant credits)
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: stripePaymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: testBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: 3000,
+          livemode: true,
+        }
+      )
+
+      return await processOutcomeForBillingRun(event, transaction)
+    })
+
+    // Assertions: similar to "Once" grant, as the first grant is always issued.
+    await adminTransaction(async ({ transaction }) => {
+      const ledgerAccounts = await selectLedgerAccounts(
+        {
+          subscriptionId: testSubscription.id,
+          usageMeterId: usageMeter.id,
+        },
+        transaction
+      )
+      expect(ledgerAccounts.length).toBe(1)
+      const ledgerAccount = ledgerAccounts[0]
+
+      const usageCredits = await selectUsageCredits(
+        { subscriptionId: testSubscription.id },
+        transaction
+      )
+      expect(usageCredits.length).toBe(1)
+      const usageCredit = usageCredits[0]
+      expect(usageCredit.issuedAmount).toBe(grantAmount)
+      expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
+      expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
+      expect(usageCredit.expiresAt).toBe(
+        testSubscription.currentBillingPeriodEnd
+      )
+      expect(usageCredit.paymentId).toBeNull()
+
+      const balance =
+        await aggregateBalanceForLedgerAccountFromEntries(
+          { ledgerAccountId: ledgerAccount.id },
+          'available',
+          transaction
+        )
+      expect(balance).toBe(grantAmount)
+    })
+  })
+
+  it('should grant usage credits on first successful payment and not revoke them if subsequent payments fail', async () => {
+    const product = await setupProduct({
+      organizationId: orgForGrants.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Product for Idempotent Grant',
+      livemode: true,
+    })
+    const price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price for Idempotent Grant',
+      type: PriceType.Subscription,
+      unitPrice: 1000,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: true,
+    })
+
+    const testCustomer = await setupCustomer({
+      organizationId: orgForGrants.id,
+    })
+    const testPaymentMethod = await setupPaymentMethod({
+      organizationId: orgForGrants.id,
+      customerId: testCustomer.id,
+    })
+
+    const grantAmount = 5000
+    const usageMeter = await setupUsageMeter({
+      organizationId: orgForGrants.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Meter for Idempotent Grant',
+    })
+    const feature = await setupUsageCreditGrantFeature({
+      organizationId: orgForGrants.id,
+      name: 'One-time Credits',
+      usageMeterId: usageMeter.id,
+      renewalFrequency: FeatureUsageGrantFrequency.Once,
+      amount: grantAmount,
+      livemode: true,
+    })
+    await setupProductFeature({
+      organizationId: orgForGrants.id,
+      productId: product.id,
+      featureId: feature.id,
+      livemode: true,
+    })
+
+    const workflowResult = await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_idempotent_${core.nanoid()}`
+        return await createSubscriptionWorkflow(
+          {
+            organization: orgForGrants,
+            product,
+            price: price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: testPaymentMethod,
+            customer: testCustomer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          transaction
+        )
+      }
+    )
+    const testSubscription = workflowResult.subscription
+
+    const billingRuns = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBillingRuns(
+          { subscriptionId: testSubscription.id },
+          transaction
+        )
+      }
+    )
+
+    expect(billingRuns.length).toBe(1)
+    const testBillingRun = billingRuns[0]
+
+    const testBillingPeriod = await adminTransaction(
+      async ({ transaction }) => {
+        return selectBillingPeriodById(
+          testBillingRun.billingPeriodId,
+          transaction
+        )
+      }
+    )
+
+    // Create invoice and first payment
+    const testInvoice = await setupInvoice({
+      billingPeriodId: testBillingPeriod.id,
+      customerId: testCustomer.id,
+      organizationId: orgForGrants.id,
+      status: InvoiceStatus.Open,
+      priceId: price.id,
+      billingRunId: testBillingRun.id,
+    })
+
+    const firstStripePaymentIntentId = `pi_first_${core.nanoid()}`
+    const firstStripeChargeId = `ch_first_${core.nanoid()}`
+
+    await setupPayment({
+      stripeChargeId: firstStripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 1000,
+      customerId: testCustomer.id,
+      organizationId: orgForGrants.id,
+      invoiceId: testInvoice.id,
+      stripePaymentIntentId: firstStripePaymentIntentId,
+    })
+
+    // Verify isFirstPayment returns true before processing first payment
+    await adminTransaction(async ({ transaction }) => {
+      const isFirst = await isFirstPayment(
+        testSubscription,
+        transaction
+      )
+      expect(isFirst).toBe(true)
+    })
+
+    // 1. First payment succeeds - should grant credits and create transition
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const firstEvent = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: firstStripePaymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: testBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: firstStripeChargeId,
+          livemode: true,
+        },
+        {
+          created: 3000,
+          livemode: true,
+        }
+      )
+
+      return await processOutcomeForBillingRun(
+        firstEvent,
+        transaction
+      )
+    })
+
+    // Verify credits were granted after first payment
+    const creditsAfterFirst = await adminTransaction(
+      async ({ transaction }) => {
+        return selectUsageCredits(
+          { subscriptionId: testSubscription.id },
+          transaction
+        )
+      }
+    )
+    expect(creditsAfterFirst.length).toBe(1)
+    expect(creditsAfterFirst[0].issuedAmount).toBe(grantAmount)
+    expect(creditsAfterFirst[0].status).toBe(UsageCreditStatus.Posted)
+
+    // 2. Second payment fails - should NOT create new transition or revoke credits
+    const secondStripePaymentIntentId = `pi_second_${core.nanoid()}`
+    const secondStripeChargeId = `ch_second_${core.nanoid()}`
+
+    await setupPayment({
+      stripeChargeId: secondStripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 1000,
+      customerId: testCustomer.id,
+      organizationId: orgForGrants.id,
+      invoiceId: testInvoice.id,
+      stripePaymentIntentId: secondStripePaymentIntentId,
+    })
+
+    // 2. Second payment fails - should NOT create new transition or revoke credits
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const secondEvent = createMockPaymentIntentEventResponse(
+        'requires_payment_method',
+        {
+          id: secondStripePaymentIntentId,
+          status: 'requires_payment_method',
+          metadata: {
+            billingRunId: testBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: secondStripeChargeId,
+          livemode: true,
+        },
+        {
+          created: 4000,
+          livemode: true,
+        }
+      )
+
+      return await processOutcomeForBillingRun(
+        secondEvent,
+        transaction
+      )
+    })
+
+    // 3. Verify credits still exist (not revoked)
+    const creditsAfterSecond = await adminTransaction(
+      async ({ transaction }) => {
+        return selectUsageCredits(
+          { subscriptionId: testSubscription.id },
+          transaction
+        )
+      }
+    )
+    expect(creditsAfterSecond.length).toBe(1)
+    expect(creditsAfterSecond[0].issuedAmount).toBe(grantAmount)
+    expect(creditsAfterSecond[0].status).toBe(
+      UsageCreditStatus.Posted
+    )
+
+    // Verify no duplicate transition was created
+    const allTransitions = await adminTransaction(
+      async ({ transaction }) => {
+        return selectLedgerTransactions(
+          {
+            subscriptionId: testSubscription.id,
+            type: LedgerTransactionType.BillingPeriodTransition,
+            initiatingSourceId: testBillingPeriod.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    // Ensure correct Billing Period Transition Ledger Command was created
+    expect(allTransitions.length).toBe(1)
+    const transition = allTransitions[0]
+    expect(transition.type).toBe(
+      LedgerTransactionType.BillingPeriodTransition
+    )
+    expect(transition.initiatingSourceId).toBe(testBillingPeriod.id)
+    expect(transition.subscriptionId).toBe(testSubscription.id)
+  })
 })

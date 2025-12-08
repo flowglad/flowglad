@@ -1,12 +1,14 @@
-import { DbTransaction } from '@/db/types'
-import { SetupPricingModelInput } from './setupSchemas'
-import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
-import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
+import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
+import type { DbTransaction } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
-import { validateSetupPricingModelInput } from './setupSchemas'
+import {
+  type SetupPricingModelInput,
+  validateSetupPricingModelInput,
+} from './setupSchemas'
 
 /**
  * Fetches a pricing model and all its related records (usage meters, features, products, prices)
@@ -45,7 +47,7 @@ export async function getPricingModelSetupData(
 
   // Fetch all features for this pricing model
   const features = await selectFeatures(
-    { pricingModelId: pricingModel.id },
+    { pricingModelId: pricingModel.id, active: true },
     transaction
   )
 
@@ -72,13 +74,14 @@ export async function getPricingModelSetupData(
 
   // Fetch all product-feature relationships
   const productIds = productsWithPrices.map((p) => p.id)
-  const productFeaturesWithFeatures =
+  const productFeaturesWithFeatures = (
     productIds.length > 0
       ? await selectFeaturesByProductFeatureWhere(
           { productId: productIds },
           transaction
         )
       : []
+  ).filter(({ feature }) => feature.active)
 
   // Group product features by product ID
   const featureSlugsByProductId = new Map<string, string[]>()
@@ -141,61 +144,63 @@ export async function getPricingModelSetupData(
   // Transform products with prices (omit pricingModelId from product, productId from prices)
   const transformedProducts = productsWithPrices.map(
     ({ prices, ...product }) => {
-      const transformedPrices = prices.map((price) => {
-        // Base price fields common to all price types
-        const basePrice = {
-          name: price.name ?? undefined,
-          slug: price.slug ?? undefined,
-          unitPrice: price.unitPrice,
-          isDefault: price.isDefault,
-          active: price.active,
-        }
+      const transformedPrices = prices
+        .filter((price) => price.active && price.isDefault)
+        .map((price) => {
+          // Base price fields common to all price types
+          const basePrice = {
+            name: price.name ?? undefined,
+            slug: price.slug ?? undefined,
+            unitPrice: price.unitPrice,
+            isDefault: price.isDefault,
+            active: price.active,
+          }
 
-        if (price.type === PriceType.Usage) {
-          if (!price.usageMeterId) {
+          if (price.type === PriceType.Usage) {
+            if (!price.usageMeterId) {
+              throw new Error(
+                `Price ${price.id} is a Usage price but has no usageMeterId`
+              )
+            }
+            const usageMeterSlug = usageMeterIdToSlug.get(
+              price.usageMeterId
+            )
+            if (!usageMeterSlug) {
+              throw new Error(
+                `Usage meter with ID ${price.usageMeterId} not found`
+              )
+            }
+            return {
+              ...basePrice,
+              type: PriceType.Usage as const,
+              usageMeterSlug,
+              intervalCount: price.intervalCount!,
+              intervalUnit: price.intervalUnit!,
+              usageEventsPerUnit: price.usageEventsPerUnit!,
+              trialPeriodDays: null,
+            }
+          } else if (price.type === PriceType.Subscription) {
+            return {
+              ...basePrice,
+              type: PriceType.Subscription as const,
+              intervalCount: price.intervalCount!,
+              intervalUnit: price.intervalUnit!,
+              trialPeriodDays: price.trialPeriodDays ?? undefined,
+              usageMeterId: null,
+              usageEventsPerUnit: null,
+            }
+          } else if (price.type === PriceType.SinglePayment) {
+            return {
+              ...basePrice,
+              type: PriceType.SinglePayment as const,
+              trialPeriodDays: price.trialPeriodDays ?? undefined,
+            }
+          } else {
             throw new Error(
-              `Price ${price.id} is a Usage price but has no usageMeterId`
+              `Unknown price type: ${(price as any).type}`
             )
           }
-          const usageMeterSlug = usageMeterIdToSlug.get(
-            price.usageMeterId
-          )
-          if (!usageMeterSlug) {
-            throw new Error(
-              `Usage meter with ID ${price.usageMeterId} not found`
-            )
-          }
-          return {
-            ...basePrice,
-            type: PriceType.Usage as const,
-            usageMeterSlug,
-            intervalCount: price.intervalCount!,
-            intervalUnit: price.intervalUnit!,
-            usageEventsPerUnit: price.usageEventsPerUnit!,
-            trialPeriodDays: null,
-          }
-        } else if (price.type === PriceType.Subscription) {
-          return {
-            ...basePrice,
-            type: PriceType.Subscription as const,
-            intervalCount: price.intervalCount!,
-            intervalUnit: price.intervalUnit!,
-            trialPeriodDays: price.trialPeriodDays ?? undefined,
-            usageMeterId: null,
-            usageEventsPerUnit: null,
-          }
-        } else if (price.type === PriceType.SinglePayment) {
-          return {
-            ...basePrice,
-            type: PriceType.SinglePayment as const,
-            trialPeriodDays: price.trialPeriodDays ?? undefined,
-          }
-        } else {
-          throw new Error(
-            `Unknown price type: ${(price as any).type}`
-          )
-        }
-      })
+        })
 
       return {
         product: {

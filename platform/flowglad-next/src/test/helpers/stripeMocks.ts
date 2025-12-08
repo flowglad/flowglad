@@ -1,4 +1,4 @@
-import Stripe from 'stripe'
+import type Stripe from 'stripe'
 import core from '@/utils/core'
 
 /**
@@ -24,7 +24,8 @@ export const createMockPaymentIntentResponse = (
       billingPeriodId: `bp_${core.nanoid()}`,
     },
     object: 'payment_intent',
-    created: Date.now(),
+    // Stripe responds with timestamp in seconds
+    created: Math.floor(Date.now() / 1000),
     livemode: false,
     lastResponse: {
       headers: {},
@@ -56,7 +57,7 @@ export const createMockPaymentIntent = (
     capture_method: 'automatic',
     client_secret: `pi_secret_${id}`,
     confirmation_method: 'automatic',
-    created: 1234567890,
+    created: Math.floor(Date.now() / 1000),
     currency: 'usd',
     customer: null,
     description: null,
@@ -87,7 +88,8 @@ export const createMockPaymentIntent = (
 }
 
 export const createMockConfirmationResult = (
-  paymentIntentId: string
+  paymentIntentId: string,
+  overrides: Partial<Stripe.PaymentIntent> = {}
 ): Stripe.Response<Stripe.PaymentIntent> =>
   ({
     id: paymentIntentId,
@@ -100,13 +102,15 @@ export const createMockConfirmationResult = (
       status: 'succeeded',
     } as Stripe.Charge,
     object: 'payment_intent',
-    created: Date.now(),
+    // Stripe responds with timestamp in seconds
+    created: Math.floor(Date.now() / 1000),
     livemode: false,
     lastResponse: {
       headers: {},
       requestId: 'req_test_123',
       statusCode: 200,
     },
+    ...overrides,
   }) as Stripe.Response<Stripe.PaymentIntent>
 
 export const createMockStripeCharge = (
@@ -207,4 +211,83 @@ export const createMockCustomer = (
     },
     ...overrides,
   } as Stripe.Response<Stripe.Customer>
+}
+
+// Mock for a stripe payment intent which is basically just a wrapper
+// of a typical payment intent response with extra attributes
+export const createMockPaymentIntentEventResponse = (
+  status:
+    | 'succeeded'
+    | 'requires_payment_method'
+    | 'canceled'
+    | 'processing'
+    | 'requires_action',
+  paymentIntentOverrides: Partial<Stripe.PaymentIntent> = {},
+  eventOverrides: Partial<{
+    created: number
+    livemode: boolean
+    pending_webhooks: number
+    request: { id: string | null; idempotency_key: string | null }
+    data: { previous_attributes: Record<string, any> }
+  }> = {}
+):
+  | Stripe.PaymentIntentSucceededEvent
+  | Stripe.PaymentIntentPaymentFailedEvent
+  | Stripe.PaymentIntentCanceledEvent
+  | Stripe.PaymentIntentProcessingEvent
+  | Stripe.PaymentIntentRequiresActionEvent => {
+  // Map status to event type
+  let eventType: string
+  switch (status) {
+    case 'succeeded':
+      eventType = 'payment_intent.succeeded'
+      break
+    case 'requires_payment_method':
+      eventType = 'payment_intent.payment_failed'
+      break
+    case 'canceled':
+      eventType = 'payment_intent.canceled'
+      break
+    case 'processing':
+      eventType = 'payment_intent.processing'
+      break
+    case 'requires_action':
+      eventType = 'payment_intent.requires_action'
+      break
+    default:
+      eventType = 'payment_intent.requires_action'
+  }
+
+  const paymentIntent = createMockPaymentIntent({
+    status,
+    ...paymentIntentOverrides,
+  })
+
+  const event = {
+    created: eventOverrides.created ?? Math.floor(Date.now() / 1000),
+    type: eventType,
+    data: {
+      object: paymentIntent,
+      previous_attributes:
+        eventOverrides.data?.previous_attributes ?? {},
+    },
+    livemode: eventOverrides.livemode ?? false,
+    pending_webhooks: eventOverrides.pending_webhooks ?? 0,
+    request: eventOverrides.request ?? {
+      id: null,
+      idempotency_key: null,
+    },
+  }
+
+  if (status === 'succeeded') {
+    return event as Stripe.PaymentIntentSucceededEvent
+  } else if (status === 'requires_payment_method') {
+    return event as Stripe.PaymentIntentPaymentFailedEvent
+  } else if (status === 'canceled') {
+    return event as Stripe.PaymentIntentCanceledEvent
+  } else if (status === 'processing') {
+    return event as Stripe.PaymentIntentProcessingEvent
+  } else {
+    return event as Stripe.PaymentIntentRequiresActionEvent
+  }
 }

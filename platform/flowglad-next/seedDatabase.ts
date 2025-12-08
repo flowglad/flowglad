@@ -1,135 +1,140 @@
+import { snakeCase } from 'change-case'
+import { sql } from 'drizzle-orm'
 import * as R from 'ramda'
-import db from '@/db/client'
+import { nanoid, z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
+import db from '@/db/client'
+import { type ApiKey, apiKeys } from '@/db/schema/apiKeys'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { countries } from '@/db/schema/countries'
+import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import type { Discount } from '@/db/schema/discounts'
+import type { Feature } from '@/db/schema/features'
+import type { invoicesInsertSchema } from '@/db/schema/invoices'
+import {
+  type LedgerEntry,
+  ledgerEntries,
+  ledgerEntryNulledSourceIdColumns,
+} from '@/db/schema/ledgerEntries'
+import {
+  type LedgerTransaction,
+  ledgerTransactions,
+} from '@/db/schema/ledgerTransactions'
+import { memberships } from '@/db/schema/memberships'
+import type { BillingAddress } from '@/db/schema/organizations'
+import type { Payment } from '@/db/schema/payments'
+import { nulledPriceColumns, type Price } from '@/db/schema/prices'
+import type { ProductFeature } from '@/db/schema/productFeatures'
+import type { Purchase } from '@/db/schema/purchases'
+import type { Refund, refunds } from '@/db/schema/refunds'
+import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
+import type { Subscription } from '@/db/schema/subscriptions'
+import {
+  type UsageCreditApplication,
+  usageCreditApplications,
+} from '@/db/schema/usageCreditApplications'
+import type { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
+import {
+  type UsageCredit,
+  usageCredits,
+} from '@/db/schema/usageCredits'
+import { type UsageEvent, usageEvents } from '@/db/schema/usageEvents'
+import { users } from '@/db/schema/users'
+import { insertBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
+import {
+  insertBillingPeriod,
+  selectBillingPeriodById,
+} from '@/db/tableMethods/billingPeriodMethods'
+import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
+import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectCountries } from '@/db/tableMethods/countryMethods'
 import { insertCustomer } from '@/db/tableMethods/customerMethods'
+import { insertDiscount } from '@/db/tableMethods/discountMethods'
+import { insertDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
+import { insertFeature } from '@/db/tableMethods/featureMethods'
+import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
+import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
+import { insertInvoice } from '@/db/tableMethods/invoiceMethods'
+import { insertLedgerAccount } from '@/db/tableMethods/ledgerAccountMethods'
+import {
+  bulkInsertLedgerEntries,
+  insertLedgerEntry,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
+import { insertMembership } from '@/db/tableMethods/membershipMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
-import {
-  insertProduct,
-  selectProductById,
-} from '@/db/tableMethods/productMethods'
-import {
-  insertSubscription,
-  selectSubscriptionById,
-} from '@/db/tableMethods/subscriptionMethods'
+import { safelyInsertPaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
+import { insertPayment } from '@/db/tableMethods/paymentMethods'
 import {
   insertPrice,
   safelyInsertPrice,
   selectPriceById,
 } from '@/db/tableMethods/priceMethods'
-import { users } from '@/db/schema/users'
-import { ApiKey, apiKeys } from '@/db/schema/apiKeys'
-import { insertBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
-import { safelyInsertBillingRun } from '@/db/tableMethods/billingRunMethods'
-import { insertBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
-import { insertInvoice } from '@/db/tableMethods/invoiceMethods'
-import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
-import { invoicesInsertSchema } from '@/db/schema/invoices'
-import { nanoid, z } from 'zod'
 import {
-  PriceType,
-  IntervalUnit,
-  PaymentMethodType,
-  SubscriptionStatus,
-  BillingPeriodStatus,
-  BillingRunStatus,
-  InvoiceStatus,
-  InvoiceType,
-  PaymentStatus,
-  CurrencyCode,
-  CountryCode,
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  PurchaseStatus,
-  FlowgladApiKeyType,
-  DiscountAmountType,
-  DiscountDuration,
-  FeeCalculationType,
-  FeatureUsageGrantFrequency,
-  FeatureType,
-  LedgerEntryStatus,
-  LedgerEntryDirection,
-  LedgerEntryType,
-  LedgerTransactionType,
-  UsageCreditStatus,
-  UsageCreditSourceReferenceType,
-  RefundStatus,
-  UsageCreditApplicationStatus,
-  SubscriptionItemType,
-  StripeConnectContractType,
-  BusinessOnboardingStatus,
-  NormalBalanceType,
-  UsageMeterAggregationType,
-} from '@/types'
-import { core, isNil } from '@/utils/core'
-import { sql } from 'drizzle-orm'
-import { selectCountries } from '@/db/tableMethods/countryMethods'
-import { insertPayment } from '@/db/tableMethods/paymentMethods'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { insertUser } from '@/db/tableMethods/userMethods'
-import { insertMembership } from '@/db/tableMethods/membershipMethods'
-import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { insertPurchase } from '@/db/tableMethods/purchaseMethods'
-import { nulledPriceColumns, Price } from '@/db/schema/prices'
-import { Purchase } from '@/db/schema/purchases'
-import { projectPriceFieldsOntoPurchaseFields } from '@/utils/purchaseHelpers'
-import { insertInvoiceLineItem } from '@/db/tableMethods/invoiceLineItemMethods'
-import { Payment } from '@/db/schema/payments'
-import { safelyInsertPaymentMethod } from '@/db/tableMethods/paymentMethodMethods'
-import {
-  selectPricingModelById,
   insertPricingModel,
   selectDefaultPricingModel,
+  selectPricingModelById,
 } from '@/db/tableMethods/pricingModelMethods'
-import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { BillingAddress } from '@/db/schema/organizations'
-import { insertDiscount } from '@/db/tableMethods/discountMethods'
-import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
-import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
-import { memberships } from '@/db/schema/memberships'
-import { insertLedgerAccount } from '@/db/tableMethods/ledgerAccountMethods'
-import { Feature } from '@/db/schema/features'
-import { ProductFeature } from '@/db/schema/productFeatures'
-import { UsageEvent, usageEvents } from '@/db/schema/usageEvents'
 import {
-  LedgerTransaction,
-  ledgerTransactions,
-} from '@/db/schema/ledgerTransactions'
+  insertProduct,
+  selectProductById,
+} from '@/db/tableMethods/productMethods'
+import { insertPurchase } from '@/db/tableMethods/purchaseMethods'
+import { insertRefund } from '@/db/tableMethods/refundMethods'
+import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import {
-  ledgerEntries,
-  LedgerEntry,
-  ledgerEntryNulledSourceIdColumns,
-} from '@/db/schema/ledgerEntries'
-import { UsageCredit, usageCredits } from '@/db/schema/usageCredits'
-import {
-  UsageCreditApplication,
-  usageCreditApplications,
-} from '@/db/schema/usageCreditApplications'
-import { usageCreditBalanceAdjustments } from '@/db/schema/usageCreditBalanceAdjustments'
-import { Refund, refunds } from '@/db/schema/refunds'
-import { subscriptionMeterPeriodCalculations } from '@/db/schema/subscriptionMeterPeriodCalculations'
-import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
-import {
-  bulkInsertLedgerEntries,
-  insertLedgerEntry,
-} from '@/db/tableMethods/ledgerEntryMethods'
+  insertSubscription,
+  selectSubscriptionById,
+} from '@/db/tableMethods/subscriptionMethods'
+import { insertUsageCreditApplication } from '@/db/tableMethods/usageCreditApplicationMethods'
 import { insertUsageCredit } from '@/db/tableMethods/usageCreditMethods'
 import { insertUsageEvent } from '@/db/tableMethods/usageEventMethods'
-import { insertUsageCreditApplication } from '@/db/tableMethods/usageCreditApplicationMethods'
-import { insertRefund } from '@/db/tableMethods/refundMethods'
-import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import { insertSubscriptionItemFeature } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { insertFeature } from '@/db/tableMethods/featureMethods'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { Subscription } from '@/db/schema/subscriptions'
-import { snakeCase } from 'change-case'
-import { insertDiscountRedemption } from '@/db/tableMethods/discountRedemptionMethods'
-import { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import { Discount } from '@/db/schema/discounts'
+import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
+import { insertUser } from '@/db/tableMethods/userMethods'
+import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  BusinessOnboardingStatus,
+  type CheckoutSessionStatus,
+  CheckoutSessionType,
+  CountryCode,
+  CurrencyCode,
+  DiscountAmountType,
+  DiscountDuration,
+  FeatureType,
+  FeatureUsageGrantFrequency,
+  FeeCalculationType,
+  FlowgladApiKeyType,
+  IntervalUnit,
+  InvoiceStatus,
+  InvoiceType,
+  LedgerEntryDirection,
+  LedgerEntryStatus,
+  LedgerEntryType,
+  LedgerTransactionType,
+  NormalBalanceType,
+  PaymentMethodType,
+  type PaymentStatus,
+  PriceType,
+  PurchaseStatus,
+  RefundStatus,
+  StripeConnectContractType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+  UsageCreditApplicationStatus,
+  UsageCreditSourceReferenceType,
+  UsageCreditStatus,
+  type UsageMeterAggregationType,
+} from '@/types'
+import { core, isNil } from '@/utils/core'
+import { projectPriceFieldsOntoPurchaseFields } from '@/utils/purchaseHelpers'
 
 if (process.env.VERCEL_ENV === 'production') {
   throw new Error(
@@ -192,6 +197,7 @@ export const setupOrg = async (params?: {
       },
       transaction
     )
+
     // Create both live and testmode default pricing models
     const livePricingModel = await insertPricingModel(
       {
@@ -267,6 +273,7 @@ export const setupProduct = async ({
   pricingModelId,
   active = true,
   default: isDefault = false,
+  slug,
 }: {
   organizationId: string
   name: string
@@ -274,6 +281,7 @@ export const setupProduct = async ({
   pricingModelId: string
   active?: boolean
   default?: boolean
+  slug?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
     return await insertProduct(
@@ -289,7 +297,7 @@ export const setupProduct = async ({
         pricingModelId,
         externalId: null,
         default: isDefault,
-        slug: `flowglad-test-product-price+${core.nanoid()}`,
+        slug: slug ?? `flowglad-test-product-price+${core.nanoid()}`,
       },
       transaction
     )
@@ -579,6 +587,7 @@ export const setupBillingRun = async ({
   livemode = true,
   stripePaymentIntentId,
   lastPaymentIntentEventTimestamp,
+  isAdjustment = false,
 }: Partial<BillingRun.Insert> & {
   billingPeriodId: string
   paymentMethodId: string
@@ -595,6 +604,7 @@ export const setupBillingRun = async ({
         subscriptionId,
         stripePaymentIntentId,
         lastPaymentIntentEventTimestamp,
+        isAdjustment,
       },
       transaction
     )
@@ -838,37 +848,93 @@ export const setupInvoice = async ({
   })
 }
 
-export const setupPrice = async ({
-  productId,
-  name,
-  type,
-  unitPrice,
-  intervalUnit,
-  intervalCount,
-  livemode,
-  isDefault,
-  trialPeriodDays,
-  currency,
-  externalId,
-  active = true,
-  usageMeterId,
-  slug,
-}: {
-  productId: string
-  name: string
-  type: PriceType
-  unitPrice: number
-  intervalUnit?: IntervalUnit
-  intervalCount?: number
-  livemode: boolean
-  isDefault: boolean
-  usageMeterId?: string
-  currency?: CurrencyCode
-  externalId?: string
-  trialPeriodDays?: number
-  active?: boolean
-  slug?: string
-}): Promise<Price.Record> => {
+// Strict validation schemas for setupPrice to catch test data errors
+const baseSetupPriceSchema = z.object({
+  productId: z.string(),
+  name: z.string(),
+  unitPrice: z.number(),
+  livemode: z.boolean(),
+  isDefault: z.boolean(),
+  currency: z.nativeEnum(CurrencyCode).optional(),
+  externalId: z.string().optional(),
+  active: z.boolean().optional(),
+  slug: z.string().optional(),
+})
+
+const setupSinglePaymentPriceSchema = baseSetupPriceSchema.extend({
+  type: z.literal(PriceType.SinglePayment),
+  // These fields should NOT be present for SinglePayment prices
+  intervalUnit: z.never().optional(),
+  intervalCount: z.never().optional(),
+  trialPeriodDays: z.never().optional(),
+  usageMeterId: z.never().optional(),
+})
+
+const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
+  type: z.literal(PriceType.Subscription),
+  intervalUnit: z.nativeEnum(IntervalUnit).optional(),
+  intervalCount: z.number().optional(),
+  trialPeriodDays: z.number().optional(),
+  usageMeterId: z.never().optional(), // Subscriptions don't use usage meters
+})
+
+const setupUsagePriceSchema = baseSetupPriceSchema.extend({
+  type: z.literal(PriceType.Usage),
+  intervalUnit: z.nativeEnum(IntervalUnit).optional(),
+  intervalCount: z.number().optional(),
+  usageMeterId: z.string(), // Required for Usage prices
+  trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
+})
+
+const setupPriceInputSchema = z.discriminatedUnion('type', [
+  setupSinglePaymentPriceSchema,
+  setupSubscriptionPriceSchema,
+  setupUsagePriceSchema,
+])
+
+/**
+ * This schema is used to validate the input for the setupPrice function.
+ *
+ * prices.ts currently has a schema called pricesInsertSchema, which is similar to this but more permissive.
+ * We should consider making that schema more strict and using it here instead of creating this one.
+ */
+
+type SetupPriceInput = z.infer<typeof setupPriceInputSchema>
+
+export const setupPrice = async (
+  input: SetupPriceInput
+): Promise<Price.Record> => {
+  // Validate input to catch test data errors early
+  const validatedInput = setupPriceInputSchema.parse(input)
+
+  const {
+    productId,
+    name,
+    type,
+    unitPrice,
+    livemode,
+    isDefault,
+    currency,
+    externalId,
+    active = true,
+    slug,
+  } = validatedInput
+
+  const intervalUnit =
+    type !== PriceType.SinglePayment
+      ? validatedInput.intervalUnit
+      : undefined
+  const intervalCount =
+    type !== PriceType.SinglePayment
+      ? validatedInput.intervalCount
+      : undefined
+  const trialPeriodDays =
+    type === PriceType.Subscription
+      ? validatedInput.trialPeriodDays
+      : undefined
+  const usageMeterId =
+    type === PriceType.Usage ? validatedInput.usageMeterId : undefined
+
   return adminTransaction(async ({ transaction }) => {
     const basePrice = {
       ...nulledPriceColumns,
@@ -2352,6 +2418,7 @@ export const setupSubscriptionItemFeature = async (
         renewalFrequency:
           FeatureUsageGrantFrequency.EveryBillingPeriod,
         amount: params.amount ?? 1,
+        manuallyCreated: params.manuallyCreated ?? false,
         ...params,
       },
       transaction
@@ -2366,9 +2433,9 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
     featureId: string
     productFeatureId: string
   }
-): Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord> => {
+): Promise<SubscriptionItemFeature.UsageCreditGrantRecord> => {
   return adminTransaction(async ({ transaction }) => {
-    return insertSubscriptionItemFeature(
+    const result = await insertSubscriptionItemFeature(
       {
         livemode: true,
         type: FeatureType.UsageCreditGrant,
@@ -2378,7 +2445,11 @@ export const setupSubscriptionItemFeatureUsageCreditGrant = async (
         ...params,
       },
       transaction
-    ) as Promise<SubscriptionItemFeature.UsageCreditGrantClientRecord>
+    )
+    if (result.type !== FeatureType.UsageCreditGrant) {
+      throw new Error('Expected UsageCreditGrant feature')
+    }
+    return result
   })
 }
 
@@ -2431,17 +2502,21 @@ export const setupUsageLedgerScenario = async (params: {
     livemode,
     pricingModelId: pricingModel.id,
   })
+  // Build price params for Usage type, excluding incompatible fields from priceArgs
+  const { trialPeriodDays: _, ...compatiblePriceArgs } =
+    params.priceArgs ?? {}
   const price = await setupPrice({
     productId: product.id,
     name: 'Test Price',
-    type: PriceType.Usage,
     unitPrice: 1000,
-    intervalUnit: IntervalUnit.Month,
-    intervalCount: 1,
     livemode,
     isDefault: false,
+    ...compatiblePriceArgs,
+    // Override type-specific fields after spreading priceArgs
+    type: PriceType.Usage,
+    intervalUnit: IntervalUnit.Month,
+    intervalCount: 1,
     usageMeterId: usageMeter.id,
-    ...(params.priceArgs ?? {}),
   })
   const subscription = await setupSubscription({
     organizationId: organization.id,

@@ -1,24 +1,23 @@
+import { z } from 'zod'
+import { pricesClientSelectSchema } from '@/db/schema/prices'
+import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
 import {
+  staticSubscriptionItemClientSelectSchema,
+  subscriptionItemClientInsertSchema,
+  subscriptionItemClientSelectSchema,
   subscriptionItemsInsertSchema,
   subscriptionItemsSelectSchema,
-  subscriptionItemClientSelectSchema,
-  subscriptionItemClientInsertSchema,
-  staticSubscriptionItemClientSelectSchema,
 } from '@/db/schema/subscriptionItems'
 import {
   nonRenewingSubscriptionClientSelectSchema,
   standardSubscriptionClientSelectSchema,
   subscriptionClientSelectSchema,
 } from '@/db/schema/subscriptions'
-import { pricesClientSelectSchema } from '@/db/schema/prices'
+import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
 import {
   SubscriptionAdjustmentTiming,
   SubscriptionCancellationArrangement,
 } from '@/types'
-import { z } from 'zod'
-import { subscriptionItemFeaturesClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
-import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
-import { zodEpochMs } from '@/db/timestampMs'
 
 export const adjustSubscriptionImmediatelySchema = z
   .object({
@@ -120,14 +119,6 @@ export const subscriptionCancellationParametersSchema =
         ),
       })
       .meta({ id: 'CancelSubscriptionAtEndOfBillingPeriodInput' }),
-    z
-      .object({
-        timing: z.literal(
-          SubscriptionCancellationArrangement.AtFutureDate
-        ),
-        endDate: zodEpochMs,
-      })
-      .meta({ id: 'CancelSubscriptionAtFutureDateInput' }),
     z
       .object({
         timing: z.literal(

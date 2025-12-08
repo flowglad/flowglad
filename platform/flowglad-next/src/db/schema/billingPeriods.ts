@@ -1,24 +1,20 @@
-import * as R from 'ramda'
-import { pgTable, timestamp, boolean } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
-import {
-  tableBase,
-  notNullStringForeignKey,
-  constructIndex,
-  ommittedColumnsForInsertSchema,
-  pgEnumColumn,
-  livemodePolicy,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantPolicy,
-  timestampWithTimezoneColumn,
-  clientWriteOmitsConstructor,
-} from '@/db/tableUtils'
-import { subscriptions } from '@/db/schema/subscriptions'
-import core from '@/utils/core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
-import { BillingPeriodStatus } from '@/types'
 import { sql } from 'drizzle-orm'
+import { boolean, pgTable } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+import { subscriptions } from '@/db/schema/subscriptions'
+import {
+  constructIndex,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  notNullStringForeignKey,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
+  timestampWithTimezoneColumn,
+} from '@/db/tableUtils'
+import { BillingPeriodStatus } from '@/types'
+import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'billing_periods'
@@ -50,7 +46,7 @@ export const billingPeriods = pgTable(
         {
           as: 'permissive',
           to: 'all',
-          using: sql`"subscriptionId" in (select "id" from "Subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
+          using: sql`"subscription_id" in (select "id" from "subscriptions" where "organization_id" in (select "organization_id" from "memberships"))`,
         }
       ),
       livemodePolicy(TABLE_NAME),

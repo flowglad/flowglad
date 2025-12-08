@@ -1,28 +1,28 @@
+import { eq, inArray } from 'drizzle-orm'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  createUpsertFunction,
-  ORMMethodCreatorConfig,
-  createBulkUpsertFunction,
-  whereClauseFromObject,
-} from '@/db/tableUtils'
-import {
+  type SubscriptionItemFeature,
   subscriptionItemFeatures,
   subscriptionItemFeaturesInsertSchema,
   subscriptionItemFeaturesSelectSchema,
   subscriptionItemFeaturesUpdateSchema,
-  SubscriptionItemFeature,
 } from '@/db/schema/subscriptionItemFeatures'
-import { DbTransaction } from '@/db/types'
+import {
+  createBulkUpsertFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+  whereClauseFromObject,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import { features } from '../schema/features'
+import { productFeatures } from '../schema/productFeatures'
 import {
   SubscriptionItem,
   subscriptionItems,
 } from '../schema/subscriptionItems'
-import { eq, inArray } from 'drizzle-orm'
-import { productFeatures } from '../schema/productFeatures'
-import { features } from '../schema/features'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItemFeatures,
@@ -162,9 +162,9 @@ export const expireSubscriptionItemFeature = async (
   )
 }
 
-export const expireSubscriptionItemFeaturesForSubscriptionItem =
+export const expireSubscriptionItemFeaturesForSubscriptionItems =
   async (
-    subscriptionItemId: string,
+    subscriptionItemIds: string[],
     expiredAt: Date | number,
     transaction: DbTransaction
   ) => {
@@ -174,15 +174,13 @@ export const expireSubscriptionItemFeaturesForSubscriptionItem =
         expiredAt: new Date(expiredAt).getTime(),
       })
       .where(
-        eq(
+        inArray(
           subscriptionItemFeatures.subscriptionItemId,
-          subscriptionItemId
+          subscriptionItemIds
         )
       )
       .returning()
-    return result.map((row) =>
-      subscriptionItemFeaturesSelectSchema.parse(row)
-    )
+    return subscriptionItemFeaturesSelectSchema.array().parse(result)
   }
 
 /**

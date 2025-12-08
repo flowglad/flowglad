@@ -1,17 +1,17 @@
-import { LedgerTransactionType } from '@/types'
 import { z } from 'zod'
-import { usageEventsSelectSchema } from '@/db/schema/usageEvents'
-import { usageCreditApplicationsSelectSchema } from '@/db/schema/usageCreditApplications'
-import { paymentsSelectSchema } from '@/db/schema/payments'
-import { usageCreditsSelectSchema } from '@/db/schema/usageCredits'
-import { usageCreditBalanceAdjustmentsSelectSchema } from '@/db/schema/usageCreditBalanceAdjustments'
-import { refundsSelectSchema } from '@/db/schema/refunds'
-import { subscriptionMeterPeriodCalculationSelectSchema } from '@/db/schema/subscriptionMeterPeriodCalculations'
-import { usageCreditGrantSubscriptionItemFeatureClientSelectSchema } from '@/db/schema/subscriptionItemFeatures'
-import { subscriptionsSelectSchema } from '@/db/schema/subscriptions'
 import { billingPeriodsSelectSchema } from '@/db/schema/billingPeriods'
-import { LedgerEntry } from '@/db/schema/ledgerEntries'
-import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
+import type { LedgerEntry } from '@/db/schema/ledgerEntries'
+import type { LedgerTransaction } from '@/db/schema/ledgerTransactions'
+import { paymentsSelectSchema } from '@/db/schema/payments'
+import { refundsSelectSchema } from '@/db/schema/refunds'
+import { usageCreditGrantSubscriptionItemFeatureSelectSchema } from '@/db/schema/subscriptionItemFeatures'
+import { subscriptionMeterPeriodCalculationSelectSchema } from '@/db/schema/subscriptionMeterPeriodCalculations'
+import { subscriptionsSelectSchema } from '@/db/schema/subscriptions'
+import { usageCreditApplicationsSelectSchema } from '@/db/schema/usageCreditApplications'
+import { usageCreditBalanceAdjustmentsSelectSchema } from '@/db/schema/usageCreditBalanceAdjustments'
+import { usageCreditsSelectSchema } from '@/db/schema/usageCredits'
+import { usageEventsSelectSchema } from '@/db/schema/usageEvents'
+import { LedgerTransactionType } from '@/types'
 import { invoiceWithLineItemsSchema } from '../schema/invoiceLineItems'
 
 // Base fields for all ledger commands, primarily for the LedgerTransaction record
@@ -77,7 +77,7 @@ const standardBillingPeriodTransitionPayloadSchema = z.object({
     ),
   newBillingPeriod: billingPeriodsSelectSchema,
   subscriptionFeatureItems:
-    usageCreditGrantSubscriptionItemFeatureClientSelectSchema
+    usageCreditGrantSubscriptionItemFeatureSelectSchema
       .array()
       .describe(
         'The subscription feature items that were active during this billing run for the given subscription.'
@@ -155,7 +155,7 @@ export type CreditGrantExpiredLedgerCommand = z.infer<
   typeof creditGrantExpiredLedgerCommandSchema
 >
 
-enum PaymentRefundedLedgerCommandAdjustmentBehavior {
+export enum PaymentRefundedLedgerCommandAdjustmentBehavior {
   RevertAllCredits = 'revert_all_credits',
   RevertUnusedCredits = 'revert_unused_credits',
   PreserveCredits = 'preserve_credits',

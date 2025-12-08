@@ -1,33 +1,34 @@
-import * as R from 'ramda'
+import { sql } from 'drizzle-orm'
 import {
-  pgTable,
-  timestamp,
+  boolean,
   integer,
   jsonb,
+  pgTable,
   text,
+  timestamp,
 } from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import * as R from 'ramda'
 import { z } from 'zod'
+import { billingPeriods } from '@/db/schema/billingPeriods'
 import {
-  tableBase,
-  notNullStringForeignKey,
+  clientWriteOmitsConstructor,
   constructIndex,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  notNullStringForeignKey,
   ommittedColumnsForInsertSchema,
   pgEnumColumn,
-  livemodePolicy,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantPolicy,
+  type SelectConditions,
+  tableBase,
   timestampWithTimezoneColumn,
-  clientWriteOmitsConstructor,
 } from '@/db/tableUtils'
-import { billingPeriods } from '@/db/schema/billingPeriods'
-import core from '@/utils/core'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
 import { BillingRunStatus } from '@/types'
-import { sql } from 'drizzle-orm'
-import { subscriptions } from './subscriptions'
-import { paymentMethods } from './paymentMethods'
+import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
+import { paymentMethods } from './paymentMethods'
+import { subscriptions } from './subscriptions'
 
 const TABLE_NAME = 'billing_runs'
 
@@ -65,6 +66,7 @@ export const billingRuns = pgTable(
     lastPaymentIntentEventTimestamp: timestampWithTimezoneColumn(
       'last_stripe_payment_intent_event_timestamp'
     ),
+    isAdjustment: boolean('is_adjustment').notNull().default(false),
   },
   (table) => {
     return [

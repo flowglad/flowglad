@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/shared",
-  "version": "0.11.0",
+  "version": "0.14.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -10,10 +10,11 @@
   "scripts": {
     "build": "tsup",
     "clean": "rm -rf dist",
-    "dev": "tsup --watch --onSuccess 'yalc push'",
-    "check": "eslint --max-warnings=0 && tsc --noEmit",
+    "dev": "tsup --watch",
+    "check": "biome check . && tsc --noEmit",
     "build:declarations": "tsc -p tsconfig.declarations.json",
-    "yalc:publish": "yalc publish && yalc link"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "publishConfig": {
     "access": "public"
@@ -21,12 +22,11 @@
   "dependencies": {
     "zod": "4.1.5",
     "date-fns": "4.1.0",
-    "@flowglad/node": "0.22.0",
-    "@flowglad/types": "workspace:*"
+    "@flowglad/node": "0.23.0"
   },
   "devDependencies": {
-    "eslint": "8.57.0",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "vitest": "3.0.5"
   },
   "exports": {
     ".": {

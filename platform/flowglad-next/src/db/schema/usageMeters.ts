@@ -1,27 +1,28 @@
-import * as R from 'ramda'
-import { text, pgTable, pgPolicy } from 'drizzle-orm/pg-core'
-import { z } from 'zod'
 import { sql } from 'drizzle-orm'
-import {
-  tableBase,
-  notNullStringForeignKey,
-  constructIndex,
-  ommittedColumnsForInsertSchema,
-  livemodePolicy,
-  createPaginatedSelectSchema,
-  createPaginatedListQuerySchema,
-  pgEnumColumn,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  constructUniqueIndex,
-  merchantPolicy,
-  enableCustomerReadPolicy,
-  clientWriteOmitsConstructor,
-} from '@/db/tableUtils'
-import { organizations } from '@/db/schema/organizations'
+import { pgPolicy, pgTable, text } from 'drizzle-orm/pg-core'
+import * as R from 'ramda'
+import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
-import { UsageMeterAggregationType } from '@/types'
+import { organizations } from '@/db/schema/organizations'
+import { pricesClientInsertSchema } from '@/db/schema/prices'
 import { pricingModels } from '@/db/schema/pricingModels'
+import {
+  clientWriteOmitsConstructor,
+  constructIndex,
+  constructUniqueIndex,
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  notNullStringForeignKey,
+  ommittedColumnsForInsertSchema,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
+} from '@/db/tableUtils'
+import { PriceType, UsageMeterAggregationType } from '@/types'
 import core from '@/utils/core'
 
 const TABLE_NAME = 'usage_meters'
@@ -156,12 +157,31 @@ export namespace UsageMeter {
   export type Where = SelectConditions<typeof usageMeters>
 }
 
+// Schema for price fields in usage meter forms
+const usageMeterPriceFieldsSchema = z
+  .object({
+    type: z.nativeEnum(PriceType).optional(),
+    unitPrice: z.number().optional(),
+    usageEventsPerUnit: z.number().optional(),
+  })
+  .optional()
+
 export const createUsageMeterSchema = z.object({
   usageMeter: usageMetersClientInsertSchema,
+  price: usageMeterPriceFieldsSchema,
 })
+
+export const createUsageMeterFormSchema =
+  createUsageMeterSchema.extend({
+    __rawPriceString: z.string(),
+  })
 
 export type CreateUsageMeterInput = z.infer<
   typeof createUsageMeterSchema
+>
+
+export type CreateUsageMeterFormInput = z.infer<
+  typeof createUsageMeterFormSchema
 >
 
 export const editUsageMeterSchema = z.object({

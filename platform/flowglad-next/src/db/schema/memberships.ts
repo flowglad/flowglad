@@ -1,21 +1,21 @@
-import * as R from 'ramda'
+import { sql } from 'drizzle-orm'
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
+import * as R from 'ramda'
+import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
+import { organizations } from '@/db/schema/organizations'
+import { users, usersSelectSchema } from '@/db/schema/users'
 import {
-  notNullStringForeignKey,
+  clientWriteOmitsConstructor,
   constructIndex,
   constructUniqueIndex,
-  tableBase,
-  newBaseZodSelectSchemaColumns,
-  SelectConditions,
   hiddenColumnsForClientSchema,
   merchantPolicy,
-  clientWriteOmitsConstructor,
+  newBaseZodSelectSchemaColumns,
+  notNullStringForeignKey,
+  type SelectConditions,
+  tableBase,
 } from '@/db/tableUtils'
-import { users, usersSelectSchema } from '@/db/schema/users'
-import { organizations } from '@/db/schema/organizations'
-import { z } from 'zod'
-import { sql } from 'drizzle-orm'
 
 const MEMBERSHIPS_TABLE_NAME = 'memberships'
 
@@ -51,7 +51,9 @@ export const memberships = pgTable(
           as: 'permissive',
           to: 'merchant',
           for: 'select',
-          using: sql`"user_id" = requesting_user_id() and "focused" = true and "organization_id" = current_organization_id()`,
+          // API keys bypass the focused check because they're scoped to a specific organization.
+          // Webapp auth requires focused=true to ensure users only see their active organization.
+          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND (current_auth_type() = 'api_key' OR "focused" = true)`,
         }
       ),
       // no livemode policy for memberships, because memberships are used to determine access to

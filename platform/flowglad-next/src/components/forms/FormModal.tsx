@@ -1,10 +1,10 @@
 'use client'
 import {
-  useForm,
+  type DefaultValues,
+  type FieldValues,
   FormProvider,
-  FieldValues,
-  DefaultValues,
-  UseFormReturn,
+  type UseFormReturn,
+  useForm,
 } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,12 +20,11 @@ export interface ModalInterfaceProps {
   isOpen: boolean
   setIsOpen: (open: boolean) => void
 }
-import { useRouter } from 'next/navigation'
-import { z } from 'zod'
+
 import { zodResolver } from '@hookform/resolvers/zod'
-import { cn } from '@/lib/utils'
-import core from '@/utils/core'
-import { useEffect, useId, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useId, useState } from 'react'
+import type { z } from 'zod'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
   Drawer,
@@ -33,6 +32,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import { cn } from '@/lib/utils'
+import core from '@/utils/core'
 
 const useShouldRenderContent = ({
   isOpen,
@@ -83,6 +84,10 @@ interface FormModalProps<T extends FieldValues>
    * Override the default submit button text, which is "Submit"
    */
   submitButtonText?: string
+  /**
+   * Override the default cancel button text, which is "Cancel"
+   */
+  cancelButtonText?: string
   /**
    * Whether the modal should auto-close after submitting. Defaults to true.
    */
@@ -239,6 +244,7 @@ const FormModal = <T extends FieldValues>({
   wide,
   extraWide,
   submitButtonText,
+  cancelButtonText,
   autoClose = true,
   hideFooter = false,
   mode = 'modal',
@@ -247,7 +253,43 @@ const FormModal = <T extends FieldValues>({
   const id = useId()
   const router = useRouter()
   const form = useForm<T>({
-    resolver: zodResolver(formSchema),
+    resolver: async (data, context, options) => {
+      try {
+        return await zodResolver(formSchema)(data, context, options)
+      } catch (error) {
+        // Catch any errors thrown by zodResolver
+        // This prevents unhandled errors from escaping to React's error boundary
+        console.error('Form validation error:', error)
+        const fieldErrors: Record<string, any> = {}
+        if (error && typeof error === 'object' && 'issues' in error) {
+          const zodError = error as any
+          zodError.issues?.forEach((issue: any) => {
+            const path = issue.path.join('.')
+            if (path) {
+              fieldErrors[path] = {
+                type: 'manual',
+                message: issue.message,
+              }
+            }
+          })
+        }
+        return {
+          values: {},
+          errors:
+            Object.keys(fieldErrors).length > 0
+              ? fieldErrors
+              : {
+                  root: {
+                    type: 'manual',
+                    message:
+                      error instanceof Error
+                        ? error.message
+                        : 'Validation failed',
+                  },
+                },
+        }
+      }
+    },
     defaultValues,
   })
   const {
@@ -281,7 +323,7 @@ const FormModal = <T extends FieldValues>({
           setIsOpen(false)
         }}
       >
-        Cancel
+        {cancelButtonText ?? 'Cancel'}
       </Button>
       <Button
         variant="default"

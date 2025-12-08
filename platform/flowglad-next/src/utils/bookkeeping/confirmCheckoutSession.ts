@@ -1,3 +1,8 @@
+import type { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import { feeReadyCheckoutSessionSelectSchema } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Event } from '@/db/schema/events'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import {
   selectCheckoutSessionById,
   updateCheckoutSession,
@@ -6,33 +11,29 @@ import {
   selectCustomerById,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
-import {
-  createStripeCustomer,
-  getSetupIntent,
-  updatePaymentIntent,
-  updateSetupIntent,
-} from '@/utils/stripe'
-import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
-import { Customer } from '@/db/schema/customers'
-import { selectPurchaseAndCustomersByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
-import core from '@/utils/core'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
+import { selectPurchaseAndCustomersByPurchaseWhere } from '@/db/tableMethods/purchaseMethods'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import type { DbTransaction } from '@/db/types'
+import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
+import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { createFeeCalculationForCheckoutSession } from '@/utils/bookkeeping/fees/checkoutSession'
-import { feeReadyCheckoutSessionSelectSchema } from '@/db/schema/checkoutSessions'
 import {
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
   finalizeFeeCalculation,
 } from '@/utils/bookkeeping/fees/common'
-import { DbTransaction } from '@/db/types'
-import { createCustomerBookkeeping } from '@/utils/bookkeeping'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import { Event } from '@/db/schema/events'
-import { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import core from '@/utils/core'
+import {
+  createStripeCustomer,
+  getPaymentIntent,
+  getSetupIntent,
+  updatePaymentIntent,
+  updateSetupIntent,
+} from '@/utils/stripe'
 
 export const confirmCheckoutSessionTransaction = async (
-  input: { id: string },
+  input: { id: string; savePaymentMethodForFuture?: boolean },
   transaction: DbTransaction
 ): Promise<TransactionOutput<{ customer: Customer.Record }>> => {
   try {
@@ -70,7 +71,7 @@ export const confirmCheckoutSessionTransaction = async (
 
     let customer: Customer.Record | null = null
     let customerEvents: Event.Insert[] = []
-    let customerLedgerCommand: LedgerCommand | undefined = undefined
+    let customerLedgerCommand: LedgerCommand | undefined
 
     if (checkoutSession.customerId) {
       // Find customer
@@ -193,13 +194,23 @@ export const confirmCheckoutSessionTransaction = async (
         finalizedFeeCalculation
       )
 
+      const paymentIntent = await getPaymentIntent(
+        checkoutSession.stripePaymentIntentId
+      )
+
       await updatePaymentIntent(
         checkoutSession.stripePaymentIntentId,
         {
-          customer: stripeCustomerId,
+          ...(paymentIntent.customer
+            ? {}
+            : { customer: stripeCustomerId }),
           amount: totalAmountDue,
           application_fee_amount:
             totalAmountDue > 0 ? finalFeeAmount : undefined,
+          // Set setup_future_usage if user consented to save payment method for future checkouts
+          ...(input.savePaymentMethodForFuture
+            ? { setup_future_usage: 'on_session' as const }
+            : {}),
         },
         checkoutSession.livemode
       )

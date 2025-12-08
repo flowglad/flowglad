@@ -1,41 +1,50 @@
-import core from '@/utils/core'
+import type {
+  CheckoutSession,
+  CreateCheckoutSessionInput,
+  CreateCheckoutSessionObject,
+} from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import {
+  insertCheckoutSession,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
+import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import {
+  selectPriceBySlugAndCustomerId,
+  selectPriceBySlugForDefaultPricingModel,
+  selectPriceProductAndOrganizationByPriceWhere,
+} from '@/db/tableMethods/priceMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import type { DbTransaction } from '@/db/types'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   PriceType,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
+import core from '@/utils/core'
 import {
   createPaymentIntentForCheckoutSession,
   createSetupIntentForCheckoutSession,
 } from '@/utils/stripe'
-import {
-  CheckoutSession,
-  CreateCheckoutSessionInput,
-  CreateCheckoutSessionObject,
-} from '@/db/schema/checkoutSessions'
-import {
-  insertCheckoutSession,
-  updateCheckoutSession,
-} from '@/db/tableMethods/checkoutSessionMethods'
-import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
-import { Customer } from '@/db/schema/customers'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
 
-const checkoutSessionInsertFromInput = ({
+export const checkoutSessionInsertFromInput = ({
   checkoutSessionInput,
   customer,
   organizationId,
   livemode,
+  activateSubscriptionPriceId,
+  resolvedPriceId,
 }: {
   checkoutSessionInput: CreateCheckoutSessionObject
   customer: Customer.Record | null
   organizationId: string
   livemode: boolean
+  activateSubscriptionPriceId?: string | null
+  resolvedPriceId?: string
 }): CheckoutSession.Insert => {
   const coreFields: Pick<
     CheckoutSession.Insert,
@@ -73,7 +82,7 @@ const checkoutSessionInsertFromInput = ({
       automaticallyUpdateSubscriptions: null,
       type: CheckoutSessionType.Product,
       invoiceId: null,
-      priceId: checkoutSessionInput.priceId,
+      priceId: resolvedPriceId ?? checkoutSessionInput.priceId!,
       targetSubscriptionId: null,
       customerId: isAnonymous ? null : customer!.id,
       customerEmail: isAnonymous ? null : customer!.email,
@@ -108,9 +117,14 @@ const checkoutSessionInsertFromInput = ({
         'Customer is required for activate subscription checkout sessions'
       )
     }
+    if (!activateSubscriptionPriceId) {
+      throw new Error(
+        'Activate subscription checkout sessions require a price derived from the target subscription'
+      )
+    }
     return {
       ...coreFields,
-      priceId: checkoutSessionInput.priceId,
+      priceId: activateSubscriptionPriceId,
       type: CheckoutSessionType.ActivateSubscription,
       targetSubscriptionId: checkoutSessionInput.targetSubscriptionId,
       purchaseId: null,
@@ -158,10 +172,64 @@ export const createCheckoutSessionTransaction = async (
   let price: Price.Record | null = null
   let product: Product.Record | null = null
   let organization: Organization.Record | null = null
+  let activateSubscriptionPriceId: string | null = null
+  let resolvedPriceId: string | undefined
+
   if (checkoutSessionInput.type === CheckoutSessionType.Product) {
+    // Resolve price ID from either priceId or priceSlug
+    if (
+      'priceSlug' in checkoutSessionInput &&
+      checkoutSessionInput.priceSlug
+    ) {
+      const isAnonymous =
+        'anonymous' in checkoutSessionInput &&
+        checkoutSessionInput.anonymous === true
+
+      if (isAnonymous) {
+        // Anonymous checkout: use organization's default pricing model
+        const priceFromSlug =
+          await selectPriceBySlugForDefaultPricingModel(
+            {
+              slug: checkoutSessionInput.priceSlug,
+              organizationId,
+              livemode,
+            },
+            transaction
+          )
+        if (!priceFromSlug) {
+          throw new Error(
+            `Price with slug "${checkoutSessionInput.priceSlug}" not found in organization's default pricing model`
+          )
+        }
+        resolvedPriceId = priceFromSlug.id
+      } else {
+        // Identified customer: use customer's pricing model
+        if (!customer) {
+          throw new Error(
+            'Customer is required to resolve price slug for identified checkout sessions'
+          )
+        }
+        const priceFromSlug = await selectPriceBySlugAndCustomerId(
+          {
+            slug: checkoutSessionInput.priceSlug,
+            customerId: customer.id,
+          },
+          transaction
+        )
+        if (!priceFromSlug) {
+          throw new Error(
+            `Price with slug "${checkoutSessionInput.priceSlug}" not found for customer's pricing model`
+          )
+        }
+        resolvedPriceId = priceFromSlug.id
+      }
+    } else if (checkoutSessionInput.priceId) {
+      resolvedPriceId = checkoutSessionInput.priceId
+    }
+
     const [result] =
       await selectPriceProductAndOrganizationByPriceWhere(
-        { id: checkoutSessionInput.priceId },
+        { id: resolvedPriceId! },
         transaction
       )
     price = result.price
@@ -184,6 +252,41 @@ export const createCheckoutSessionTransaction = async (
       organizationId,
       transaction
     )
+    if (
+      checkoutSessionInput.type ===
+      CheckoutSessionType.ActivateSubscription
+    ) {
+      const targetSubscription = await selectSubscriptionById(
+        checkoutSessionInput.targetSubscriptionId,
+        transaction
+      ).catch((error) => {
+        throw new Error(
+          `Target subscription ${checkoutSessionInput.targetSubscriptionId} not found`,
+          { cause: error }
+        )
+      })
+      if (!customer) {
+        throw new Error(
+          'Customer is required for activate subscription checkout sessions'
+        )
+      }
+      if (targetSubscription.organizationId !== organizationId) {
+        throw new Error(
+          `Target subscription ${targetSubscription.id} does not belong to organization ${organizationId}`
+        )
+      }
+      if (targetSubscription.customerId !== customer.id) {
+        throw new Error(
+          `Target subscription ${targetSubscription.id} does not belong to customer ${customer.id}`
+        )
+      }
+      if (!targetSubscription.priceId) {
+        throw new Error(
+          `Target subscription ${targetSubscription.id} does not have an associated price`
+        )
+      }
+      activateSubscriptionPriceId = targetSubscription.priceId
+    }
   }
 
   const checkoutSession = await insertCheckoutSession(
@@ -192,6 +295,8 @@ export const createCheckoutSessionTransaction = async (
       customer,
       organizationId,
       livemode,
+      activateSubscriptionPriceId,
+      resolvedPriceId,
     }),
     transaction
   )
@@ -219,6 +324,7 @@ export const createCheckoutSessionTransaction = async (
         product,
         organization,
         checkoutSession,
+        ...(customer ? { customer } : {}),
       })
     stripePaymentIntentId = stripePaymentIntent.id
   }

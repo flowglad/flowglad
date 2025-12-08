@@ -1,21 +1,21 @@
-import { Customer } from '@/db/schema/customers'
-import { Purchase } from '@/db/schema/purchases'
-import { Payment } from '@/db/schema/payments'
-import { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
-import { UsageEvent } from '@/db/schema/usageEvents'
-import { PurchasesDataTable } from './purchases/data-table'
-import { UsageEventsDataTable } from './usage-events/data-table'
 import { InvoicesDataTable } from '@/app/finance/invoices/data-table'
-import core from '@/utils/core'
-import { CurrencyCode, PaymentStatus } from '@/types'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
 // import { Plus } from 'lucide-react'
 // import CreateInvoiceModal from '@/components/forms/CreateInvoiceModal'
 // import { useState } from 'react'
 import { PaymentsDataTable } from '@/app/finance/payments/data-table'
-import { DetailLabel } from '@/components/DetailLabel'
+import { SubscriptionsDataTable } from '@/app/finance/subscriptions/data-table'
 import CopyableTextTableCell from '@/components/CopyableTextTableCell'
+import { DetailLabel } from '@/components/DetailLabel'
+import type { Customer } from '@/db/schema/customers'
+import type { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
+import type { Payment } from '@/db/schema/payments'
+import type { Purchase } from '@/db/schema/purchases'
+import type { UsageEvent } from '@/db/schema/usageEvents'
+import { CurrencyCode, PaymentStatus } from '@/types'
+import core from '@/utils/core'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { PurchasesDataTable } from './purchases/data-table'
+import { UsageEventsDataTable } from './usage-events/data-table'
 
 const CustomerDetailsSection = ({
   customer,
@@ -78,8 +78,18 @@ const CustomerDetailsSection = ({
             }
           />
           <DetailLabel
-            label="Customer Since"
-            value={core.formatDate(customer.createdAt)}
+            label="Pricing Model ID"
+            value={
+              customer.pricingModelId ? (
+                <CopyableTextTableCell
+                  copyText={customer.pricingModelId}
+                >
+                  {customer.pricingModelId}
+                </CopyableTextTableCell>
+              ) : (
+                '-'
+              )
+            }
           />
           <DetailLabel
             label="Portal URL"
@@ -94,6 +104,10 @@ const CustomerDetailsSection = ({
           />
         </div>
         <div className="flex flex-col gap-4">
+          <DetailLabel
+            label="Customer Since"
+            value={core.formatDate(customer.createdAt)}
+          />
           <DetailLabel
             label="Total Spend"
             value={stripeCurrencyAmountToHumanReadableCurrencyAmount(

@@ -1,16 +1,19 @@
 'use client'
-
+import { Copy } from 'lucide-react'
+import type { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
-import { CreateOrganizationInput } from '@/db/schema/organizations'
-import { Input } from '@/components/ui/input'
+import { trpc } from '@/app/_trpc/client'
+import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import { CursorLogo } from '@/components/icons/CursorLogo'
 import {
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -18,12 +21,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { trpc } from '@/app/_trpc/client'
-import FileInput from '@/components/FileInput'
+import type { CreateOrganizationInput } from '@/db/schema/organizations'
+import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
+import { cursorDeepLink } from '@/utils/cursor'
+import {
+  REFERRAL_OPTIONS,
+  type ReferralOption,
+} from '@/utils/referrals'
+import { Button } from '../ui/button'
+import { Textarea } from '../ui/textarea'
 
-const OrganizationFormFields: React.FC = () => {
+const OrganizationFormFields = ({
+  setReferralSource,
+  referralSource,
+}: {
+  setReferralSource?: ReturnType<
+    typeof useState<ReferralOption | undefined>
+  >[1]
+  referralSource?: ReferralOption
+}) => {
   const form = useFormContext<CreateOrganizationInput>()
   const { data: countries } = trpc.countries.list.useQuery()
+  const copyPromptHandler = useCopyTextHandler({
+    text: analyzeCodebasePrompt,
+  })
 
   const countryOptions =
     countries?.countries
@@ -48,43 +69,6 @@ const OrganizationFormFields: React.FC = () => {
           </FormItem>
         )}
       />
-      <FormField
-        control={form.control}
-        name="organization.logoURL"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Company logo</FormLabel>
-            <FormControl>
-              <FileInput
-                directory="organizations"
-                singleOnly
-                id="organization-logo-upload"
-                fileTypes={[
-                  'png',
-                  'jpeg',
-                  'jpg',
-                  'gif',
-                  'webp',
-                  'svg',
-                  'avif',
-                ]}
-                initialURL={field.value ?? undefined}
-                onUploadComplete={({ publicURL }) =>
-                  field.onChange(publicURL)
-                }
-                onUploadDeleted={() => field.onChange(undefined)}
-                hint="Recommended square image. Max size 2MB."
-              />
-            </FormControl>
-            <FormDescription>
-              This logo appears in your dashboard navigation and
-              customer-facing invoices.
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
       <FormField
         control={form.control}
         name="organization.countryId"
@@ -118,6 +102,78 @@ const OrganizationFormFields: React.FC = () => {
           </FormItem>
         )}
       />
+      <FormField
+        control={form.control}
+        name="codebaseMarkdown"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Codebase Overview</FormLabel>
+            <div className="text-sm text-muted-foreground !mt-0 pb-1 max-w-[300px]">
+              Quickly integrate by copying and pasting prompts about
+              your codebase.
+            </div>
+            <FormControl>
+              <Textarea
+                {...field}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                placeholder="Paste codebase analysis here..."
+              />
+            </FormControl>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={copyPromptHandler}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Copy Prompt
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  window.open(
+                    cursorDeepLink(analyzeCodebasePrompt),
+                    '_blank',
+                    'noopener,noreferrer'
+                  )
+                }}
+              >
+                Open in
+                <CursorLogo />
+              </Button>
+            </div>
+          </FormItem>
+        )}
+      />
+      {setReferralSource && (
+        <FormItem>
+          <FormLabel>How did you hear about us?</FormLabel>
+          <FormControl>
+            <Select
+              value={referralSource}
+              onValueChange={(val: string) =>
+                setReferralSource(val as ReferralOption)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select an option" />
+              </SelectTrigger>
+              <SelectContent>
+                {REFERRAL_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormControl>
+        </FormItem>
+      )}
+      {/* FIXME (FG-555): Readd logo upload field once we have a way to upload the logo during organization creation */}
     </div>
   )
 }

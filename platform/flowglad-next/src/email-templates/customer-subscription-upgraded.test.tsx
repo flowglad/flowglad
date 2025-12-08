@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
-import { CustomerSubscriptionUpgradedEmail } from './customer-subscription-upgraded'
+import { describe, expect, it } from 'vitest'
 import { CurrencyCode, IntervalUnit } from '@/types'
 import core from '@/utils/core'
+import { CustomerSubscriptionUpgradedEmail } from './customer-subscription-upgraded'
 
 describe('CustomerSubscriptionUpgradedEmail', () => {
   const baseProps = {
@@ -21,6 +21,11 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     interval: IntervalUnit.Month,
     nextBillingDate: new Date('2025-02-15'),
     paymentMethodLast4: '1234',
+  }
+  const trialingProps = {
+    ...baseProps,
+    nextBillingDate: new Date('2025-01-15'),
+    trialing: true,
   }
 
   it('renders upgrade-specific subject line', () => {
@@ -76,16 +81,32 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     expect(previousPlan.parentElement).toBe(newPlan.parentElement)
   })
 
-  it('includes upgrade date as first charge date', () => {
+  it('includes next charge date if not trialing', () => {
     const { getByTestId } = render(
       <CustomerSubscriptionUpgradedEmail {...baseProps} />
     )
 
     // Date formatting may vary based on locale/timezone
     const dateElement = getByTestId('first-charge-date')
-    expect(dateElement.textContent).toContain('First charge:')
-    // Check that it contains the year at least
+    expect(dateElement.textContent).toContain('Next charge:')
     expect(dateElement.textContent).toContain('2025')
+    expect(dateElement.textContent).toContain(
+      core.formatDate(baseProps.nextBillingDate)
+    )
+  })
+
+  it('includes first charge date if trialing', () => {
+    const { getByTestId } = render(
+      <CustomerSubscriptionUpgradedEmail {...trialingProps} />
+    )
+
+    // Date formatting may vary based on locale/timezone
+    const dateElement = getByTestId('first-charge-date')
+    expect(dateElement.textContent).toContain('First charge:')
+    expect(dateElement.textContent).toContain('2025')
+    expect(dateElement.textContent).toContain(
+      core.formatDate(trialingProps.nextBillingDate)
+    )
   })
 
   it('formats pricing for monthly subscriptions', () => {
@@ -215,9 +236,26 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     ).toBeInTheDocument()
   })
 
-  it('includes first charge information in body text', () => {
+  it('includes next charge information in body text if not trialing', () => {
     const { getByText } = render(
       <CustomerSubscriptionUpgradedEmail {...baseProps} />
+    )
+
+    // Check for the charge text - the date formatting may vary
+    const chargeText = getByText((content, element) => {
+      return (
+        element?.tagName === 'P' &&
+        content.includes(
+          'Your next charge of $49.00 will be processed'
+        )
+      )
+    })
+    expect(chargeText).toBeInTheDocument()
+  })
+
+  it('includes first charge information in body text if trialing', () => {
+    const { getByText } = render(
+      <CustomerSubscriptionUpgradedEmail {...trialingProps} />
     )
 
     // Check for the charge text - the date formatting may vary
@@ -247,7 +285,7 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
       return (
         element?.tagName === 'P' &&
         content.includes(
-          'Your first charge of $49.00 will be processed'
+          'Your next charge of $49.00 will be processed'
         )
       )
     })

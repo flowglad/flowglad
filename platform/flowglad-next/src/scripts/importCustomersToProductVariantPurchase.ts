@@ -3,18 +3,18 @@ run the following in the terminal
 NODE_ENV=production bunx tsx src/scripts/importCustomersToProductPricePurchase.ts
 */
 
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import runScript from './scriptRunner'
-import { selectCustomersByOrganizationIdAndEmails } from '@/db/tableMethods/customerMethods'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import fs from 'fs/promises'
+import path from 'path'
 import { purchasesInsertSchema } from '@/db/schema/purchases'
+import { selectCustomersByOrganizationIdAndEmails } from '@/db/tableMethods/customerMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { bulkInsertPurchases } from '@/db/tableMethods/purchaseMethods'
 import {
   createManualPurchaseInsert,
   customerInsertsFromCSV,
 } from '@/utils/purchaseHelpers'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
-import { bulkInsertPurchases } from '@/db/tableMethods/purchaseMethods'
-import path from 'path'
-import fs from 'fs/promises'
+import runScript from './scriptRunner'
 
 const ORGANIZATION_ID = 'org_RwGO71TWVQLbIT14cjnHh'
 const VARIANT_ID = 'vrnt_sK7IPE2t8ptpFVZz4Yx2m'

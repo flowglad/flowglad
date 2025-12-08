@@ -1,18 +1,18 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
-import {
-  selectUsageMeterById,
-  insertUsageMeter,
-  updateUsageMeter,
-  selectUsageMeters,
-  selectUsageMetersPaginated,
-  selectUsageMetersCursorPaginated,
-} from './usageMeterMethods'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
   setupPricingModel,
   setupUsageMeter,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import {
+  insertUsageMeter,
+  selectUsageMeterById,
+  selectUsageMeters,
+  selectUsageMetersCursorPaginated,
+  selectUsageMetersPaginated,
+  updateUsageMeter,
+} from './usageMeterMethods'
 
 describe('usageMeterMethods', () => {
   let organizationId: string

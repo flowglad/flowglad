@@ -1,81 +1,80 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  CheckoutSessionStatus,
-  CheckoutSessionType,
-  CurrencyCode,
-  InvoiceStatus,
-  PaymentStatus,
-  PurchaseStatus,
-  FlowgladEventType,
-  EventNoun,
-  PaymentMethodType,
-  PriceType,
-  IntervalUnit,
-  FeatureType,
-  LedgerTransactionType,
-  UsageCreditStatus,
-  UsageCreditSourceReferenceType,
-} from '@/types'
-import {
-  chargeStatusToPaymentStatus,
-  updatePaymentToReflectLatestChargeStatus,
-  upsertPaymentForStripeCharge,
-  processPaymentIntentStatusUpdated,
-  ledgerCommandForPaymentSucceeded,
-} from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
-import { Payment } from '@/db/schema/payments'
-import { Purchase } from '@/db/schema/purchases'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Organization } from '@/db/schema/organizations'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingRun,
+  setupCheckoutSession,
   setupCustomer,
   setupFeeCalculation,
+  setupInvoice,
   setupOrg,
   setupPayment,
   setupPaymentMethod,
+  setupPrice,
   setupPurchase,
   setupSubscription,
-  setupCheckoutSession,
-  setupInvoice,
-  setupPrice,
   setupTestFeaturesAndProductFeatures,
 } from '@/../seedDatabase'
-import { Customer } from '@/db/schema/customers'
-import { Invoice } from '@/db/schema/invoices'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import {
-  selectPurchaseById,
-  updatePurchase,
-} from '@/db/tableMethods/purchaseMethods'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Payment } from '@/db/schema/payments'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
+import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
+import { selectEvents } from '@/db/tableMethods/eventMethods'
 import {
   safelyUpdateInvoiceStatus,
   selectInvoiceById,
 } from '@/db/tableMethods/invoiceMethods'
 import {
-  IntentMetadataType,
-  StripeIntentMetadata,
-  getStripeCharge,
-} from '../stripe'
-import core from '../core'
-import { vi } from 'vitest'
-import { selectEvents } from '@/db/tableMethods/eventMethods'
+  selectPurchaseById,
+  updatePurchase,
+} from '@/db/tableMethods/purchaseMethods'
 import {
   selectUsageCreditById,
   selectUsageCredits,
 } from '@/db/tableMethods/usageCreditMethods'
-import { updateCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 import {
-  createMockStripeCharge,
   createMockPaymentIntent,
+  createMockStripeCharge,
 } from '@/test/helpers/stripeMocks'
+import {
+  CheckoutSessionStatus,
+  CheckoutSessionType,
+  CurrencyCode,
+  EventNoun,
+  FeatureType,
+  FlowgladEventType,
+  IntervalUnit,
+  InvoiceStatus,
+  LedgerTransactionType,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+  PurchaseStatus,
+  UsageCreditSourceReferenceType,
+  UsageCreditStatus,
+} from '@/types'
+import {
+  chargeStatusToPaymentStatus,
+  ledgerCommandForPaymentSucceeded,
+  processPaymentIntentStatusUpdated,
+  updatePaymentToReflectLatestChargeStatus,
+  upsertPaymentForStripeCharge,
+} from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import core from '../core'
+import {
+  getStripeCharge,
+  IntentMetadataType,
+  type StripeIntentMetadata,
+} from '../stripe'
 
 // Mock getStripeCharge
 vi.mock('../stripe', async () => {
@@ -132,8 +131,6 @@ describe('ledgerCommandForPaymentSucceeded', () => {
       name: 'Single Payment Test Price',
       type: PriceType.SinglePayment,
       unitPrice: 2000,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
       livemode: true,
       isDefault: false,
       currency: organization.defaultCurrency,
@@ -1583,17 +1580,16 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const paymentIntent: any = {
+      const paymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
-        object: 'payment_intent',
         amount: 1000,
         amount_capturable: 0,
         amount_received: 1000,
         currency: 'usd',
-        status: 'succeeded' as const,
+        status: 'succeeded',
         latest_charge: chargeId,
         metadata,
-      }
+      })
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -1728,17 +1724,16 @@ describe('Process payment intent status updated', async () => {
         billingPeriodId: billingPeriod.id,
         type: IntentMetadataType.BillingRun,
       }
-      const paymentIntent: any = {
+      const paymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
-        object: 'payment_intent',
         amount: 1000,
         amount_capturable: 0,
         amount_received: 1000,
         currency: 'usd',
-        status: 'succeeded' as const,
+        status: 'succeeded',
         latest_charge: chargeId,
         metadata: brMetadata,
-      }
+      })
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -1814,17 +1809,17 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const paymentIntent: any = {
+
+      const paymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
-        object: 'payment_intent',
         amount: 1000,
         amount_capturable: 1000,
         amount_received: 0,
         currency: 'usd',
-        status: 'processing' as const,
+        status: 'processing',
         latest_charge: chargeId,
         metadata: processingMetadata,
-      }
+      })
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -1898,17 +1893,17 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const paymentIntent: any = {
+
+      const paymentIntent = createMockPaymentIntent({
         id: paymentIntentId,
-        object: 'payment_intent',
         amount: 1000,
         amount_capturable: 0,
         amount_received: 1000,
         currency: 'usd',
-        status: 'succeeded' as const,
+        status: 'succeeded',
         latest_charge: chargeId,
         metadata: successMetadata,
-      }
+      })
 
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
@@ -2326,6 +2321,235 @@ describe('Process payment intent status updated', async () => {
         EventNoun.Customer
       )
       expect(customerCreatedEvent?.payload.customer).toBeDefined()
+    })
+  })
+
+  describe('processPaymentIntentStatusUpdated - Checkout Session Payments with Ledger Commands', () => {
+    let organization: Organization.Record
+    let product: Product.Record
+    let singlePaymentPrice: Price.Record
+    let customer: Customer.Record
+    let paymentMethod: PaymentMethod.Record
+    let subscription: import('@/db/schema/subscriptions').Subscription.Record
+
+    beforeEach(async () => {
+      const orgData = await setupOrg()
+      organization = orgData.organization
+      product = orgData.product
+
+      customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+
+      paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+
+      subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: orgData.price.id,
+      })
+
+      singlePaymentPrice = await setupPrice({
+        productId: product.id,
+        name: 'Single Payment Test Price',
+        type: PriceType.SinglePayment,
+        unitPrice: 2000,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+      })
+    })
+
+    it('should create CreditGrantRecognized ledger command for succeeded checkout session payment', async () => {
+      await setupTestFeaturesAndProductFeatures({
+        organizationId: organization.id,
+        productId: product.id,
+        livemode: true,
+        featureSpecs: [
+          {
+            name: 'Grant A',
+            type: FeatureType.UsageCreditGrant,
+            amount: 777,
+            usageMeterName: 'UM-A',
+          },
+        ],
+      })
+
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: singlePaymentPrice.id,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: singlePaymentPrice.id,
+        livemode: true,
+      })
+
+      const chargeId = `ch_test_${core.nanoid()}`
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
+      const stripeCharge = createMockStripeCharge({
+        id: chargeId,
+        payment_intent: paymentIntentId,
+        amount: 2000,
+        status: 'succeeded',
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
+        } as any,
+        billing_details: { address: { country: 'US' } } as any,
+      })
+
+      vi.mocked(getStripeCharge).mockResolvedValue(stripeCharge)
+
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
+      const paymentIntent = createMockPaymentIntent({
+        id: paymentIntentId,
+        amount: 2000,
+        status: 'succeeded',
+        latest_charge: chargeId,
+        metadata,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.ledgerCommand).toBeDefined()
+      expect(result.ledgerCommand?.type).toBe(
+        LedgerTransactionType.CreditGrantRecognized
+      )
+      expect(result.result.payment.status).toBe(
+        PaymentStatus.Succeeded
+      )
+
+      const usageCredits = await adminTransaction(
+        async ({ transaction }) =>
+          selectUsageCredits(
+            { paymentId: result.result.payment.id },
+            transaction
+          )
+      )
+      expect(usageCredits.length).toBe(1)
+      expect(usageCredits[0].issuedAmount).toBe(777)
+    })
+
+    it('should NOT create ledger command for checkout session payment when payment intent is canceled', async () => {
+      await setupTestFeaturesAndProductFeatures({
+        organizationId: organization.id,
+        productId: product.id,
+        livemode: true,
+        featureSpecs: [
+          {
+            name: 'Grant A',
+            type: FeatureType.UsageCreditGrant,
+            amount: 777,
+            usageMeterName: 'UM-A',
+          },
+        ],
+      })
+
+      // Create invoice upfront for Invoice type checkout session
+      const invoice = await setupInvoice({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: singlePaymentPrice.id,
+        status: InvoiceStatus.Open,
+        livemode: true,
+      })
+
+      const checkoutSession = await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: singlePaymentPrice.id,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Invoice,
+        quantity: 1,
+        livemode: true,
+        invoiceId: invoice.id,
+      })
+
+      await setupFeeCalculation({
+        checkoutSessionId: checkoutSession.id,
+        organizationId: organization.id,
+        priceId: singlePaymentPrice.id,
+        livemode: true,
+      })
+
+      const chargeId = `ch_test_${core.nanoid()}`
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
+      const stripeCharge = createMockStripeCharge({
+        id: chargeId,
+        payment_intent: paymentIntentId,
+        amount: 2000,
+        status: 'failed',
+        payment_method_details: {
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+          },
+        } as any,
+        billing_details: { address: { country: 'US' } } as any,
+      })
+
+      vi.mocked(getStripeCharge).mockResolvedValue(stripeCharge)
+
+      const metadata: StripeIntentMetadata = {
+        checkoutSessionId: checkoutSession.id,
+        type: IntentMetadataType.CheckoutSession,
+      }
+      const paymentIntent = createMockPaymentIntent({
+        id: paymentIntentId,
+        amount: 2000,
+        status: 'canceled',
+        latest_charge: chargeId,
+        metadata,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return await processPaymentIntentStatusUpdated(
+            paymentIntent,
+            transaction
+          )
+        }
+      )
+
+      expect(result.ledgerCommand).toBeUndefined()
+      expect(result.result.payment.status).toBe(PaymentStatus.Failed)
+
+      const usageCredits = await adminTransaction(
+        async ({ transaction }) =>
+          selectUsageCredits(
+            { paymentId: result.result.payment.id },
+            transaction
+          )
+      )
+      expect(usageCredits.length).toBe(0)
     })
   })
 })

@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/react",
-  "version": "0.11.0",
+  "version": "0.14.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -8,50 +8,28 @@
     "dist"
   ],
   "scripts": {
-    "build": "bun run build:css && tsup",
+    "build": "tsup",
     "clean": "rm -rf dist",
-    "dev": "tsup --watch --onSuccess 'yalc push'",
-    "check": "eslint --max-warnings=0 && tsc --noEmit",
-    "yalc:publish": "yalc publish && yalc link",
-    "build:declarations": "bun run build:css && tsc -p tsconfig.declarations.json",
-    "build:css": "tsx scripts/build-css.ts",
-    "pretest": "bun run build:css",
-    "test": "vitest --reporter=verbose"
+    "dev": "tsup --watch",
+    "check": "biome check . && tsc --noEmit",
+    "build:declarations": "tsc -p tsconfig.declarations.json"
   },
   "dependencies": {
-    "@flowglad/node": "0.22.0",
+    "@flowglad/node": "0.23.0",
     "@flowglad/shared": "workspace:*",
-    "@radix-ui/react-dialog": "^1.1.6",
-    "@radix-ui/react-slot": "^1.1.2",
-    "@radix-ui/react-tooltip": "^1.1.8",
     "@tanstack/react-query": "5.66.0",
-    "axios": "1.12.0",
-    "class-variance-authority": "^0.7.1",
     "clsx": "2.1.1",
-    "@adobe/css-tools": "4.4.2",
     "date-fns": "4.1.0",
-    "lucide-react": "0.479.0",
     "tailwind-merge": "3.0.2",
-    "tailwindcss-animate": "1.0.7",
     "zod": "4.1.5"
   },
   "devDependencies": {
-    "@flowglad/types": "workspace:*",
     "@types/autoprefixer": "^10.2.0",
     "@types/react": "18.3.12",
     "autoprefixer": "^10.4.18",
-    "eslint": "8.57.0",
-    "jsdom": "26.1.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "ts-node": "^10.9.2",
-    "typescript": "5.8.2",
-    "vitest": "3.0.5",
-    "@vitejs/plugin-react": "4.3.4",
-    "@testing-library/react": "16.3.0",
-    "@types/css": "0.0.38",
-    "@testing-library/dom": "10.4.0",
-    "@testing-library/jest-dom": "6.6.3"
+    "typescript": "5.8.2"
   },
   "exports": {
     ".": {

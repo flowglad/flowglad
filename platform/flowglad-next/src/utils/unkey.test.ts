@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import {
-  secretApiKeyInputToUnkeyInput,
-  StandardCreateApiKeyParams,
-  parseUnkeyMeta,
-} from './unkey'
+import type { ApiKey } from '@/db/schema/apiKeys'
+import type { Organization } from '@/db/schema/organizations'
 import { FlowgladApiKeyType } from '@/types'
-import { Organization } from '@/db/schema/organizations'
-import { ApiKey } from '@/db/schema/apiKeys'
+import {
+  parseUnkeyMeta,
+  type StandardCreateApiKeyParams,
+  secretApiKeyInputToUnkeyInput,
+} from './unkey'
 
 describe('secretApiKeyInputToUnkeyInput', () => {
   const mockOrganization: Pick<Organization.Record, 'id'> = {
@@ -78,37 +78,10 @@ describe('parseUnkeyMeta', () => {
     })
   })
 
-  it('should parse well-formed billing portal metadata', () => {
-    const rawMeta = {
-      type: FlowgladApiKeyType.BillingPortalToken,
-      stackAuthHostedBillingUserId: 'billing_123',
-      organizationId: 'org_456',
-    }
-    const result = parseUnkeyMeta(rawMeta)
-
-    expect(result).toEqual({
-      type: FlowgladApiKeyType.BillingPortalToken,
-      stackAuthHostedBillingUserId: 'billing_123',
-      organizationId: 'org_456',
-    })
-  })
-
   it('should throw error for malformed secret metadata with missing userId', () => {
     const rawMeta = {
       type: FlowgladApiKeyType.Secret,
       // Missing userId
-      organizationId: 'org_456',
-    }
-
-    expect(() => parseUnkeyMeta(rawMeta)).toThrow(
-      'Invalid unkey metadata'
-    )
-  })
-
-  it('should throw error for malformed billing portal metadata with missing stackAuthHostedBillingUserId', () => {
-    const rawMeta = {
-      type: FlowgladApiKeyType.BillingPortalToken,
-      // Missing stackAuthHostedBillingUserId
       organizationId: 'org_456',
     }
 

@@ -203,9 +203,7 @@ export default function PricingTableDemo() {
     <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold mb-4">
-            Pricing Table Component
-          </h1>
+          <h1 className="text-4xl mb-4">Pricing Table Component</h1>
           <p className="text-lg text-muted-foreground">
             A responsive pricing table component with multiple
             products and tiers

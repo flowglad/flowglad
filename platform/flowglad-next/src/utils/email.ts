@@ -1,33 +1,34 @@
+import { kebabCase } from 'change-case'
 import {
-  CreateEmailOptions,
-  CreateEmailRequestOptions,
+  type CreateEmailOptions,
+  type CreateEmailRequestOptions,
   Resend,
 } from 'resend'
-import core from './core'
-import { Invoice } from '@/db/schema/invoices'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
 import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'
-import { InvoiceReminderEmail } from '@/email-templates/invoice-reminder'
-import { InvoiceNotificationEmail } from '@/email-templates/invoice-notification'
-import {
-  OrganizationPaymentNotificationEmail,
-  OrganizationPaymentNotificationEmailProps,
-} from '@/email-templates/organization/organization-payment-succeeded'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from './stripe'
-import { CurrencyCode } from '@/types'
-import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase-access-session-token'
 import { PaymentFailedEmail } from '@/email-templates/customer-payment-failed'
-import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization/organization-payment-awaiting-confirmation'
-import { kebabCase } from 'change-case'
+import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
+import { InvoiceNotificationEmail } from '@/email-templates/invoice-notification'
+import { InvoiceReminderEmail } from '@/email-templates/invoice-reminder'
+import { CustomersCsvExportReadyEmail } from '@/email-templates/organization/customers-csv-export-ready'
 import { OrganizationInvitationEmail } from '@/email-templates/organization/organization-invitation'
+import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization/organization-payment-awaiting-confirmation'
 import {
   OrganizationPaymentFailedNotificationEmail,
-  OrganizationPaymentFailedNotificationEmailProps,
+  type OrganizationPaymentFailedNotificationEmailProps,
 } from '@/email-templates/organization/organization-payment-failed'
-import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
-import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
-import { PayoutNotificationEmail } from '@/email-templates/organization/payout-notification'
+import {
+  OrganizationPaymentNotificationEmail,
+  type OrganizationPaymentNotificationEmailProps,
+} from '@/email-templates/organization/organization-payment-succeeded'
 import { OrganizationPayoutsEnabledNotificationEmail } from '@/email-templates/organization/organization-payouts-enabled'
+import { OrganizationOnboardingCompletedNotificationEmail } from '@/email-templates/organization/payout-notification'
+import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase-access-session-token'
+import type { CurrencyCode } from '@/types'
+import core from './core'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from './stripe'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
@@ -51,6 +52,26 @@ const safeTo = (email: string) =>
     ? email
     : core.envVariable('DEV_EMAIL_REDIRECT') ||
       'agree.ahmed@flowglad.com'
+
+/**
+ * Formats an email subject line, prefixing with [TEST] if livemode is false.
+ *
+ * All email send functions that accept a `livemode` parameter must use this helper
+ * to format their subject line to ensure test mode emails are clearly identifiable.
+ *
+ * @param subject - The base subject line
+ * @param livemode - Whether this is a livemode (production) email
+ * @returns The formatted subject line with [TEST] prefix when livemode is false
+ */
+export const formatEmailSubject = (
+  subject: string,
+  livemode: boolean
+): string => {
+  if (livemode) {
+    return subject
+  }
+  return `[TEST] ${subject}`
+}
 
 export const sendReceiptEmail = async (params: {
   to: string[]
@@ -128,10 +149,13 @@ export const sendOrganizationPaymentNotificationEmail = async (
     from: `Flowglad <notifications@flowglad.com>`,
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
-    subject: `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
-      params.currency,
-      params.amount
-    )} from ${params.organizationName}!`,
+    subject: formatEmailSubject(
+      `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
+        params.currency,
+        params.amount
+      )} from ${params.organizationName}!`,
+      params.livemode
+    ),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -154,7 +178,7 @@ export const sendPurchaseAccessSessionTokenEmail = async (params: {
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     replyTo: params.replyTo ?? undefined,
-    subject: 'Your Order Link',
+    subject: formatEmailSubject('Your Order Link', params.livemode),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -199,7 +223,10 @@ export const sendPaymentFailedEmail = async (params: {
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
     replyTo: params.replyTo ?? undefined,
-    subject: 'Payment Unsuccessful',
+    subject: formatEmailSubject(
+      'Payment Unsuccessful',
+      params.livemode
+    ),
     react: await PaymentFailedEmail({
       invoiceNumber: params.invoiceNumber,
       orderDate: new Date(params.orderDate),
@@ -240,7 +267,10 @@ export const sendAwaitingPaymentConfirmationEmail = async ({
   return safeSend({
     from: 'notifications@flowglad.com',
     to: to.map(safeTo),
-    subject: 'Awaiting Payment Confirmation',
+    subject: formatEmailSubject(
+      'Awaiting Payment Confirmation',
+      livemode
+    ),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -289,7 +319,10 @@ export const sendInvoiceReminderEmail = async ({
     to: to.map(safeTo),
     cc: cc?.map(safeTo),
     replyTo: replyTo ?? undefined,
-    subject: `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`,
+    subject: formatEmailSubject(
+      `${organizationName} Invoice Reminder: #${invoice.invoiceNumber}`,
+      invoice.livemode
+    ),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -337,7 +370,10 @@ export const sendInvoiceNotificationEmail = async ({
     to: to.map(safeTo),
     cc: cc?.map(safeTo),
     replyTo: replyTo ?? undefined,
-    subject: `${organizationName} New Invoice: #${invoice.invoiceNumber}`,
+    subject: formatEmailSubject(
+      `${organizationName} New Invoice: #${invoice.invoiceNumber}`,
+      invoice.livemode
+    ),
     /**
      * NOTE: await needed to prevent
      * `Uncaught TypeError: reactDOMServer.renderToPipeableStream is not a function`
@@ -385,7 +421,10 @@ export const sendOrganizationPaymentFailedNotificationEmail = async (
     from: `Flowglad <notifications@flowglad.com>`,
     to: params.to.map(safeTo),
     bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
-    subject: `${params.organizationName} payment failed from ${params.customerName}`,
+    subject: formatEmailSubject(
+      `${params.organizationName} payment failed from ${params.customerName}`,
+      params.livemode
+    ),
     /**
      * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
      */
@@ -427,7 +466,10 @@ export const sendCustomerBillingPortalMagicLink = async ({
   return safeSend({
     from: 'notifications@flowglad.com',
     to: to.map(safeTo),
-    subject: `Sign in to your ${organizationName} billing portal`,
+    subject: formatEmailSubject(
+      `Sign in to your ${organizationName} billing portal`,
+      livemode
+    ),
     react: await CustomerBillingPortalMagicLinkEmail({
       email: to[0],
       url,
@@ -438,23 +480,24 @@ export const sendCustomerBillingPortalMagicLink = async ({
   })
 }
 
-export const sendPayoutNotificationEmail = async ({
-  to,
-  organizationName,
-}: {
-  to: string[]
-  organizationName: string
-}) => {
-  return safeSend({
-    from: 'Flowglad <notifications@flowglad.com>',
-    to: to.map(safeTo),
-    bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
-    subject: `Enable Payouts for ${organizationName}`,
-    react: await PayoutNotificationEmail({
-      organizationName,
-    }),
-  })
-}
+export const sendOrganizationOnboardingCompletedNotificationEmail =
+  async ({
+    to,
+    organizationName,
+  }: {
+    to: string[]
+    organizationName: string
+  }) => {
+    return safeSend({
+      from: 'Flowglad <notifications@flowglad.com>',
+      to: to.map(safeTo),
+      bcc: [core.envVariable('NOTIF_UAT_EMAIL')],
+      subject: `Enable Payouts for ${organizationName}`,
+      react: await OrganizationOnboardingCompletedNotificationEmail({
+        organizationName,
+      }),
+    })
+  }
 
 export const sendOrganizationPayoutsEnabledNotificationEmail =
   async ({
@@ -481,3 +524,37 @@ export const sendOrganizationPayoutsEnabledNotificationEmail =
       }),
     })
   }
+
+export const sendCustomersCsvExportReadyEmail = async ({
+  to,
+  organizationName,
+  csvContent,
+  filename,
+  livemode,
+}: {
+  to: string[]
+  organizationName: string
+  csvContent: string
+  filename: string
+  livemode: boolean
+}) => {
+  return safeSend({
+    from: 'Flowglad <notifications@flowglad.com>',
+    to: to.map(safeTo),
+    subject: formatEmailSubject(
+      'Your customers CSV export is ready',
+      livemode
+    ),
+    react: await CustomersCsvExportReadyEmail({
+      organizationName,
+      livemode,
+    }),
+    attachments: [
+      {
+        filename,
+        content: Buffer.from(csvContent, 'utf-8'),
+        contentType: 'text/csv',
+      },
+    ],
+  })
+}

@@ -1,0 +1,626 @@
+---
+title: "Examples & Code Samples"
+description: "Complete examples and common patterns for using Flowglad SDKs"
+---
+
+## Overview
+
+This page provides complete examples and common integration patterns for Flowglad SDKs. For full working applications, check out our [example projects](#example-projects).
+
+## Example Projects
+
+### Generation-based Subscription
+
+A Next.js app with authentication and billing interation, demonstrating a pricing model with subscription, single-payment, and usage.
+
+**Location:** [examples/generation-based-subscription](https://github.com/flowglad/flowglad/tree/main/examples/generation-based-subscription)
+
+**Features:**
+- Next.js App Router
+- BetterAuth authentication
+- FlowgladProvider setup
+- Pricing table
+- Feature-gated content
+- Usage-based billing for image generation
+- Subscription management
+
+**Key Files:**
+- `pricing.yaml` - Pricing model specification
+- `src/lib/flowglad.ts` - Flowglad server setup
+- `src/app/layout.tsx` - FlowgladProvider setup
+- `src/app/api/flowglad/[...path]/route.ts` - Flowglad routeHandler
+- `src/app/api/usage-events/route.ts` - Route for usage event creation
+- `src/components/pricing-cards-grid.tsx` - Pricing page with useBilling
+
+## Complete Integration Examples
+
+### Next.js Setup
+
+Full setup for a Next.js application:
+
+<CodeGroup>
+
+```ts utils/flowglad.ts
+import { FlowgladServer } from '@flowglad/nextjs/server'
+
+export const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
+```
+
+```ts app/api/flowglad/[...path]/route.ts
+import { nextRouteHandler } from '@flowglad/nextjs/server'
+import { flowglad } from '@/utils/flowglad'
+
+export const { GET, POST } = nextRouteHandler({
+  flowglad,
+  getCustomerExternalId: async (req) => {
+    // Extract customerExternalId from your auth/session
+    // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+    // For B2C: return user.id (from your database)
+    // For B2B: return organization.id (from your database)
+    const userId = await getUserIdFromRequest(req)
+    if (!userId) {
+      throw new Error('User not authenticated')
+    }
+    return userId
+  },
+})
+
+// Example: Better Auth
+// import { nextRouteHandler } from '@flowglad/nextjs/server'
+// import { flowglad } from '@/utils/flowglad'
+// import { auth } from '@/utils/auth'
+// import { headers } from 'next/headers'
+//
+// export const { GET, POST } = nextRouteHandler({
+//   flowglad,
+//   getCustomerExternalId: async (req) => {
+//     const session = await auth.api.getSession({
+//       headers: await headers(),
+//     })
+//     const userId = session?.user?.id
+//     if (!userId) {
+//       throw new Error('User not found')
+//     }
+//     return userId
+//   },
+// })
+```
+
+<Note>
+**Important:** `customerExternalId` is the ID from **your app's database** (e.g., `user.id` or `organization.id`), **not** Flowglad's customer ID.
+
+**B2C apps:** Pass `user.id` as `customerExternalId`  
+**B2B apps:** Pass `organization.id` or `team.id` as `customerExternalId`
+</Note>
+
+```tsx app/layout.tsx
+import { FlowgladProvider } from '@flowglad/nextjs'
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <FlowgladProvider loadBilling={true}>
+          {children}
+        </FlowgladProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+```tsx app/billing/page.tsx
+'use client'
+
+import { useBilling } from '@flowglad/nextjs'
+
+export default function BillingPage() {
+  const { currentSubscriptions, createCheckoutSession } = useBilling()
+
+  const activeSubscription = currentSubscriptions?.[0]
+
+  if (activeSubscription) {
+    return (
+      <div>
+        <h1>Current Subscription</h1>
+        <p>Status: {activeSubscription.status}</p>
+        <p>Renews: {new Date(activeSubscription.currentPeriodEnd).toLocaleDateString()}</p>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={() =>
+        createCheckoutSession({
+          // you can provide either priceSlug or priceId
+          priceSlug: 'price_premium_monthly',
+          successUrl: window.location.href,
+          cancelUrl: window.location.href,
+          autoRedirect: true,
+        })
+      }
+    >
+      Subscribe
+    </button>
+  )
+}
+```
+
+</CodeGroup>
+
+### React SPA with Node.js Backend
+
+Setup for a React application with a separate Node.js backend:
+
+<CodeGroup>
+
+```tsx Frontend: App.tsx
+import { FlowgladProvider } from '@flowglad/react'
+
+export default function App() {
+  const authToken = getAuthToken()
+  return (
+    <FlowgladProvider
+      loadBilling={!!authToken}
+      requestConfig={{
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }}
+    >
+      <Router>
+        {/* Your routes */}
+      </Router>
+    </FlowgladProvider>
+  )
+}
+```
+
+```tsx Frontend: BillingPage.tsx
+import { useBilling } from '@flowglad/react'
+
+export default function BillingPage() {
+  const { checkFeatureAccess, createCheckoutSession } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return <div>Loading...</div>
+  }
+
+  if (checkFeatureAccess('premium_feature')) {
+    return <PremiumContent />
+  }
+
+  return <UpgradePrompt onUpgrade={handleUpgrade} />
+}
+```
+
+```ts Backend: server.ts
+import express, { type Request } from 'express'
+import { FlowgladServer } from '@flowglad/server'
+import { createFlowgladExpressRouter } from '@flowglad/express'
+
+const app = express()
+
+const flowglad = (customerExternalId: string) => {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      // Fetch customer details from YOUR database using YOUR app's ID
+      const user = await db.users.findOne({ id: externalId })
+      if (!user) {
+        throw new Error('Customer not found')
+      }
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
+
++const flowgladServerConstructor = async (req: Request) => {
+  // Extract customerExternalId from your auth/session
+  // This should be YOUR app's user/organization ID, NOT Flowglad's customer ID
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  const user = await verifyToken(token)
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+  return flowglad(user.id)
+}
+
+app.use(
+  '/api/flowglad',
+  createFlowgladExpressRouter({ flowgladServerConstructor })
+)
+app.listen(3000)
+```
+
+</CodeGroup>
+
+## Common Patterns
+
+### Feature Gating
+
+<CodeGroup>
+
+```tsx React Component
+import { useBilling } from '@flowglad/react'
+
+export function FeatureGate({ 
+  featureSlug, 
+  fallback, 
+  children 
+}: {
+  featureSlug: string
+  fallback?: React.ReactNode
+  children: React.ReactNode
+}) {
+  const { checkFeatureAccess } = useBilling()
+
+  if (!checkFeatureAccess) {
+    return null
+  }
+
+  if (!checkFeatureAccess(featureSlug)) {
+    return fallback || <div>Upgrade to access this feature</div>
+  }
+
+  return <>{children}</>
+}
+
+// Usage
+<FeatureGate 
+  featureSlug="advanced_analytics"
+  fallback={<UpgradePrompt />}
+>
+  <AdvancedAnalytics />
+</FeatureGate>
+```
+
+```ts Server Middleware
+import { FlowgladServer } from '@flowglad/server'
+import { db } from './db'
+
+// Factory function to create scoped instance
+function flowglad(customerExternalId: string) {
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (id) => {
+      const user = await db.users.findOne({ id })
+      return { name: user.name, email: user.email }
+    },
+  })
+}
+
+export function requireFeature(featureSlug: string) {
+  return async (req, res, next) => {
+    try {
+      const userId = req.user?.id
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
+      const billing = await flowglad(userId).getBilling()
+      const hasAccess = billing.checkFeatureAccess(featureSlug)
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          error: 'Feature not available',
+          upgradeUrl: '/pricing',
+        })
+      }
+
+      next()
+    } catch (error) {
+      next(error)
+    }
+  }
+}
+
+// Usage
+app.get('/api/premium-data', requireFeature('premium_feature'), (req, res) => {
+  res.json({ data: 'premium data' })
+})
+```
+
+</CodeGroup>
+
+### Usage Metering
+
+```ts
+import { flowglad } from './flowglad'
+
+export async function trackAPICall(
+  endpoint: string,
+  customerExternalId: string,
+  quantity: number = 1
+) {
+  // customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+  await flowglad(customerExternalId).createUsageEvent({
+    subscriptionId: 'sub_123',
+    priceSlug: 'price_usage_meter',
+    amount: quantity,
+    transactionId: `${endpoint}:${Date.now()}`,
+    usageDate: Date.now(),
+    properties: {
+      endpoint,
+      requestedAt: new Date().toISOString(),
+    },
+  })
+}
+
+// Usage in API routes
+app.get('/api/data', async (req, res) => {
+  // Extract customerExternalId from your auth/session
+  const userId = await getUserIdFromRequest(req)
+  await trackAPICall('/api/data', userId)
+  
+  const data = await fetchData()
+  res.json(data)
+})
+```
+
+### Subscription Management
+
+<CodeGroup>
+
+```tsx Upgrade Button
+import { useBilling } from '@flowglad/react'
+import { useState } from 'react'
+
+export function UpgradeButton({ priceId }: { priceId: string }) {
+  const { createCheckoutSession } = useBilling()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleUpgrade = async () => {
+    setIsLoading(true)
+    try {
+      await createCheckoutSession({
+        priceId,
+        successUrl: `${window.location.origin}/billing/success`,
+        cancelUrl: window.location.href,
+        autoRedirect: true,
+      })
+    } catch (error) {
+      console.error('Upgrade failed:', error)
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <button onClick={handleUpgrade} disabled={isLoading}>
+      {isLoading ? 'Loading...' : 'Upgrade'}
+    </button>
+  )
+}
+```
+
+```tsx Cancel Subscription
+import { useBilling } from '@flowglad/react'
+
+export function CancelSubscriptionButton({ subscriptionId }: { subscriptionId: string }) {
+  const { cancelSubscription } = useBilling()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleCancel = async () => {
+    if (!confirm('Are you sure you want to cancel?')) {
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await cancelSubscription(subscriptionId)
+      alert('Subscription canceled successfully')
+    } catch (error) {
+      console.error('Cancelation failed:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <button onClick={handleCancel} disabled={isLoading}>
+      {isLoading ? 'Processing...' : 'Cancel Subscription'}
+    </button>
+  )
+}
+```
+
+</CodeGroup>
+
+### Pricing Table
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+interface Plan {
+  id: string
+  name: string
+  priceId: string
+  price: number
+  features: string[]
+}
+
+const plans: Plan[] = [
+  {
+    id: 'basic',
+    name: 'Basic',
+    priceId: 'price_basic',
+    price: 9.99,
+    features: ['Feature 1', 'Feature 2'],
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    priceId: 'price_premium',
+    price: 29.99,
+    features: ['All Basic features', 'Feature 3', 'Feature 4'],
+  },
+]
+
+export function PricingTable() {
+  const { subscriptions, createCheckoutSession } = useBilling()
+
+  const currentPlan = subscriptions?.find(s => s.status === 'active')
+
+  const handleSelectPlan = async (priceId: string) => {
+    await createCheckoutSession({
+      priceId,
+      successUrl: `${window.location.origin}/billing/success`,
+      cancelUrl: window.location.href,
+      autoRedirect: true,
+    })
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      {plans.map((plan) => (
+        <div key={plan.id} className="border rounded-lg p-6">
+          <h3>{plan.name}</h3>
+          <p className="text-2xl font-bold">${plan.price}/mo</p>
+          
+          <ul>
+            {plan.features.map((feature) => (
+              <li key={feature}>{feature}</li>
+            ))}
+          </ul>
+
+          <button
+            onClick={() => handleSelectPlan(plan.priceId)}
+            disabled={currentPlan?.priceId === plan.priceId}
+          >
+            {currentPlan?.priceId === plan.priceId ? 'Current Plan' : 'Select Plan'}
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+### Customer Portal
+
+```tsx
+import { useBilling } from '@flowglad/react'
+
+export function CustomerPortal() {
+  const { customer, subscriptions, paymentMethods, invoices } = useBilling()
+
+  if (!customer) {
+    return <div>Loading...</div>
+  }
+
+  return (
+    <div>
+      <section>
+        <h2>Account Information</h2>
+        <p>Name: {customer.name}</p>
+        <p>Email: {customer.email}</p>
+      </section>
+
+      <section>
+        <h2>Subscriptions</h2>
+        {subscriptions?.map((sub) => (
+          <div key={sub.id}>
+            <p>Status: {sub.status}</p>
+            <p>Renews: {new Date(sub.currentPeriodEnd).toLocaleDateString()}</p>
+          </div>
+        ))}
+      </section>
+
+      <section>
+        <h2>Payment Methods</h2>
+        {paymentMethods?.map((pm) => (
+          <div key={pm.id}>
+            <p>{pm.card?.brand} •••• {pm.card?.last4}</p>
+            {pm.isDefault && <span>Default</span>}
+          </div>
+        ))}
+      </section>
+
+      <section>
+        <h2>Recent Invoices</h2>
+        {invoices?.slice(0, 5).map((invoice) => (
+          <div key={invoice.id}>
+            <p>{new Date(invoice.createdAt).toLocaleDateString()}</p>
+            <p>${(invoice.amount / 100).toFixed(2)}</p>
+            <p>{invoice.status}</p>
+          </div>
+        ))}
+      </section>
+    </div>
+  )
+}
+```
+
+## Testing Examples
+
+### Mock Billing Context
+
+```tsx
+import { FlowgladProvider } from '@flowglad/react'
+
+const mockBillingData = {
+  customer: {
+    id: 'cus_test',
+    externalId: 'user_123',
+    name: 'Test User',
+    email: 'test@example.com',
+  },
+  subscriptions: [
+    {
+      id: 'sub_test',
+      status: 'active',
+      priceId: 'price_premium',
+    },
+  ],
+}
+
+export function TestWrapper({ children }) {
+  return (
+    <FlowgladProvider
+      loadBilling={false}
+      initialData={mockBillingData}
+    >
+      {children}
+    </FlowgladProvider>
+  )
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Next.js SDK" icon="react" href="/sdks/nextjs">
+    Get started with Next.js
+  </Card>
+  <Card title="Server SDK" icon="server" href="/sdks/server">
+    Explore server capabilities
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Follow the quickstart guide
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/introduction">
+    Browse the API documentation
+  </Card>
+</CardGroup>
+

@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils'
 import { MessageCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ChatMessageProps {
   message: string

@@ -1,18 +1,18 @@
+import type { Customer } from '@/db/schema/customers'
+import type { Event } from '@/db/schema/events'
+import type { Payment } from '@/db/schema/payments'
+import type { Purchase } from '@/db/schema/purchases'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import { upsertEventByHash } from '@/db/tableMethods/eventMethods'
+import type { DbTransaction } from '@/db/types'
 import {
-  EventNoun,
   EventCategory,
+  EventNoun,
   EventRetentionPolicy,
   FlowgladEventType,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { upsertEventByHash } from '@/db/tableMethods/eventMethods'
-import { Event } from '@/db/schema/events'
-import { Payment } from '@/db/schema/payments'
-import { Customer } from '@/db/schema/customers'
-import { Purchase } from '@/db/schema/purchases'
-import { Subscription } from '@/db/schema/subscriptions'
 import { hashData } from './backendCore'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 
 export interface CreateEventPayload {
   type: FlowgladEventType
@@ -289,7 +289,7 @@ export const commitSubscriptionUpdatedEvent = async (
   )
 }
 
-export const commitSubscriptionCancelledEvent = async (
+export const commitSubscriptionCanceledEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
@@ -306,7 +306,7 @@ export const commitSubscriptionCancelledEvent = async (
 
   return commitEvent(
     {
-      type: FlowgladEventType.SubscriptionCancelled,
+      type: FlowgladEventType.SubscriptionCanceled,
       eventCategory: EventCategory.Subscription,
       source: EventNoun.Subscription,
       payload: {

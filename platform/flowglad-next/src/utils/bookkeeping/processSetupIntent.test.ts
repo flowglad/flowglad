@@ -1,11 +1,47 @@
+import Stripe from 'stripe'
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  vi,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
 } from 'vitest'
+import {
+  setupBillingPeriod,
+  setupBillingRun,
+  setupCheckoutSession,
+  setupCustomer,
+  setupInvoice,
+  setupOrg,
+  setupPayment,
+  setupPaymentMethod,
+  setupPurchase,
+  setupSubscription,
+} from '@/../seedDatabase'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
+import type { CheckoutSession } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import { Invoice } from '@/db/schema/invoices'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Purchase } from '@/db/schema/purchases'
+import type { Subscription } from '@/db/schema/subscriptions'
+import {
+  safelyUpdateCheckoutSessionStatus,
+  selectCheckoutSessionById,
+} from '@/db/tableMethods/checkoutSessionMethods'
+import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import {
+  currentSubscriptionStatuses,
+  safelyUpdateSubscriptionStatus,
+  selectSubscriptionById,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
+import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -14,58 +50,22 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import {
-  setupIntentStatusToCheckoutSessionStatus,
+  type CoreSripeSetupIntent,
   calculateTrialEnd,
-  processSetupIntentSucceeded,
-  CoreSripeSetupIntent,
-  processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded,
+  checkoutSessionFromSetupIntent,
   createSubscriptionFromSetupIntentableCheckoutSession,
   processAddPaymentMethodSetupIntentSucceeded,
-  checkoutSessionFromSetupIntent,
+  processSetupIntentSucceeded,
+  processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded,
+  setupIntentStatusToCheckoutSessionStatus,
 } from '@/utils/bookkeeping/processSetupIntent'
-import { Purchase } from '@/db/schema/purchases'
-import {
-  setupBillingPeriod,
-  setupBillingRun,
-  setupCustomer,
-  setupInvoice,
-  setupOrg,
-  setupPayment,
-  setupPaymentMethod,
-  setupPurchase,
-  setupSubscription,
-  setupCheckoutSession,
-} from '@/../seedDatabase'
-import { Customer } from '@/db/schema/customers'
-import { Invoice } from '@/db/schema/invoices'
-import {
-  adminTransaction,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
-import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
-import {
-  safelyUpdateCheckoutSessionStatus,
-  selectCheckoutSessionById,
-} from '@/db/tableMethods/checkoutSessionMethods'
+import core from '../core'
 import {
   IntentMetadataType,
+  type StripeIntentMetadata,
   stripeIdFromObjectOrId,
-  StripeIntentMetadata,
 } from '../stripe'
-import core from '../core'
-import Stripe from 'stripe'
-import {
-  currentSubscriptionStatuses,
-  safelyUpdateSubscriptionStatus,
-  selectSubscriptionById,
-  updateSubscription,
-} from '@/db/tableMethods/subscriptionMethods'
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { CheckoutSession } from '@/db/schema/checkoutSessions'
-import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
-import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 
 // Helper functions to generate mock Stripe objects with random IDs
 const mockSucceededSetupIntent = ({

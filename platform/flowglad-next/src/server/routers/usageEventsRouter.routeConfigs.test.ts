@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest'
-import { usageEventsRouteConfigs } from './usageEventsRouter'
+import { describe, expect, it } from 'vitest'
 import {
   findRouteConfigInArray,
   getAllRouteKeysFromArray,
   validateRouteConfigStructure,
   validateStandardCrudMappings,
 } from './routeConfigs.test-utils'
+import { usageEventsRouteConfigs } from './usageEventsRouter'
 
 describe('usageEventsRouteConfigs', () => {
   // Helper function to find route config in the array
@@ -311,6 +311,26 @@ describe('usageEventsRouteConfigs', () => {
         'usage-events',
         'usageEvents'
       )
+    })
+  })
+
+  describe('POST /usage-events schema validation', () => {
+    it('should accept priceSlug in POST /usage-events request body', () => {
+      const routeConfig = findRouteConfig('POST /usage-events')
+
+      expect(routeConfig?.procedure).toBe('usageEvents.create')
+
+      // Test with priceSlug instead of priceId
+      const testBodyWithPriceSlug = {
+        usageEvent: {
+          subscriptionId: 'sub-123',
+          priceSlug: 'price-slug-456',
+          amount: 100,
+          transactionId: 'txn-123',
+        },
+      }
+      const result = routeConfig!.mapParams([], testBodyWithPriceSlug)
+      expect(result).toEqual(testBodyWithPriceSlug)
     })
   })
 })

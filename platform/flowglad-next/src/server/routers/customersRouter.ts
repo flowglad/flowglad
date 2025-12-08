@@ -1,57 +1,58 @@
-import { router } from '../trpc'
-import { protectedProcedure } from '@/server/trpc'
-import { errorHandlers } from '../trpcErrorHandler'
+import { TRPCError } from '@trpc/server'
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import { z } from 'zod'
 import {
-  selectCustomerById,
-  selectCustomers,
-  selectCustomersPaginated,
-  updateCustomer as updateCustomerDb,
-  selectCustomersCursorPaginatedWithTableRowData,
-  selectCustomerByExternalIdAndOrganizationId,
-} from '@/db/tableMethods/customerMethods'
-import {
-  customerClientSelectSchema,
-  editCustomerOutputSchema,
-  editCustomerInputSchema,
-  customersPaginatedSelectSchema,
-  customersPaginatedListSchema,
-  customersPaginatedTableRowOutputSchema,
-  customersPaginatedTableRowInputSchema,
   Customer,
+  customerClientSelectSchema,
+  customersPaginatedListSchema,
+  customersPaginatedSelectSchema,
+  customersPaginatedTableRowInputSchema,
+  customersPaginatedTableRowOutputSchema,
+  editCustomerInputSchema,
+  editCustomerOutputSchema,
 } from '@/db/schema/customers'
-import { TRPCError } from '@trpc/server'
-import { createCustomerBookkeeping } from '@/utils/bookkeeping'
-import { revalidatePath } from 'next/cache'
-import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
+import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
+import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
+import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import {
-  CreateCustomerOutputSchema,
+  type CreateCustomerOutputSchema,
   createCustomerOutputSchema,
   purchaseClientSelectSchema,
 } from '@/db/schema/purchases'
 import {
-  createGetOpenApiMeta,
-  generateOpenApiMetas,
-  trpcToRest,
-  RouteConfig,
-} from '@/utils/openapi'
-import { externalIdInputSchema } from '@/db/tableUtils'
-import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
-import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
-import { paymentMethodClientSelectSchema } from '@/db/schema/paymentMethods'
-import { invoiceWithLineItemsClientSchema } from '@/db/schema/invoiceLineItems'
-import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
-import { TransactionOutput } from '@/db/transactionEnhacementTypes'
+  selectCustomerByExternalIdAndOrganizationId,
+  selectCustomerById,
+  selectCustomers,
+  selectCustomersCursorPaginatedWithTableRowData,
+  selectCustomersPaginated,
+  updateCustomer as updateCustomerDb,
+} from '@/db/tableMethods/customerMethods'
+import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
+import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
+import { externalIdInputSchema } from '@/db/tableUtils'
+import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import { protectedProcedure } from '@/server/trpc'
+import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
+import { generateCsvExportTask } from '@/trigger/exports/generate-csv-export'
+import { createTriggerIdempotencyKey } from '@/utils/backendCore'
+import { createCustomerBookkeeping } from '@/utils/bookkeeping'
+import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import { organizationBillingPortalURL } from '@/utils/core'
 import { createCustomersCsv } from '@/utils/csv-export'
-import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
-import { CSV_EXPORT_LIMITS } from '@/constants/csv-export'
+import {
+  createGetOpenApiMeta,
+  generateOpenApiMetas,
+  type RouteConfig,
+  trpcToRest,
+} from '@/utils/openapi'
+import { router } from '../trpc'
+import { errorHandlers } from '../trpcErrorHandler'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'customer',
@@ -65,7 +66,7 @@ export const customerBillingRouteConfig: Record<string, RouteConfig> =
   {
     'GET /customers/:externalId/billing': {
       procedure: 'customers.getBilling',
-      pattern: new RegExp(`^customers\/([^\\/]+)\/billing$`),
+      pattern: /^customers\/([^\\/]+)\/billing$/,
       mapParams: (matches) => {
         return {
           externalId: matches[0],
@@ -288,6 +289,11 @@ export const getCustomerBilling = protectedProcedure
         .describe(
           'The current subscriptions for the customer. By default, customers can only have one active subscription at a time. This will only return multiple subscriptions if you have enabled multiple subscriptions per customer.'
         ),
+      currentSubscription: richSubscriptionClientSelectSchema
+        .optional()
+        .describe(
+          'The most recently created current subscription for the customer. If createdAt timestamps tie, the most recently updated subscription will be returned. If updatedAt also ties, subscription id is used as the final tiebreaker.'
+        ),
       catalog: pricingModelWithProductsAndUsageMetersSchema,
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
       billingPortalUrl: z
@@ -306,6 +312,7 @@ export const getCustomerBilling = protectedProcedure
       invoices,
       paymentMethods,
       currentSubscriptions,
+      currentSubscription,
       purchases,
       subscriptions,
     } = await authenticatedTransaction(
@@ -329,6 +336,11 @@ export const getCustomerBilling = protectedProcedure
       currentSubscriptions: currentSubscriptions.map((item) =>
         richSubscriptionClientSelectSchema.parse(item)
       ),
+      currentSubscription: currentSubscription
+        ? richSubscriptionClientSelectSchema.parse(
+            currentSubscription
+          )
+        : undefined,
       purchases,
       subscriptions,
       catalog: pricingModel,
@@ -378,14 +390,21 @@ const exportCsvProcedure = protectedProcedure
       csv: z.string().optional(),
       filename: z.string().optional(),
       totalCustomers: z.number(),
-      exceedsLimit: z.boolean(),
+      asyncExportStarted: z.boolean().optional(),
     })
   )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, organizationId }) => {
+      async ({
+        input,
+        transaction,
+        userId,
+        organizationId,
+        livemode,
+      }) => {
         const { filters, searchQuery } = input
-        const CUSTOMER_LIMIT = CSV_EXPORT_LIMITS.CUSTOMER_LIMIT
+        // Maximum number of customers that can be exported via CSV without async export
+        const CUSTOMER_LIMIT = 1000
         const PAGE_SIZE = 100
         if (!userId) {
           throw new TRPCError({
@@ -416,13 +435,26 @@ const exportCsvProcedure = protectedProcedure
 
         // Early return if over limit - no additional DB operations
         if (totalCustomers > CUSTOMER_LIMIT) {
+          await generateCsvExportTask.trigger(
+            {
+              userId,
+              organizationId,
+              filters,
+              searchQuery,
+              livemode,
+            },
+            {
+              idempotencyKey: await createTriggerIdempotencyKey(
+                `generate-csv-export-${organizationId}-${userId}-${Date.now()}`
+              ),
+            }
+          )
+
           return {
             totalCustomers,
-            exceedsLimit: true,
+            asyncExportStarted: true,
           }
         }
-
-        // Only if under limit, get user's organization and proceed with full export
         const focusedMembership =
           await selectFocusedMembershipAndOrganization(
             userId,
@@ -472,7 +504,7 @@ const exportCsvProcedure = protectedProcedure
           csv,
           filename,
           totalCustomers,
-          exceedsLimit: false,
+          asyncExportStarted: false,
         }
       }
     )

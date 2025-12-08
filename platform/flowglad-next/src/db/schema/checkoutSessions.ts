@@ -1,43 +1,43 @@
-import { z } from 'zod'
+import { sql } from 'drizzle-orm'
 import {
+  boolean,
+  integer,
   jsonb,
   pgTable,
   text,
-  integer,
-  boolean,
 } from 'drizzle-orm/pg-core'
-import {
-  tableBase,
-  pgEnumColumn,
-  constructIndex,
-  notNullStringForeignKey,
-  nullableStringForeignKey,
-  livemodePolicy,
-  createPaginatedSelectSchema,
-  createPaginatedListQuerySchema,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantPolicy,
-  customerPolicy,
-  timestampWithTimezoneColumn,
-  metadataSchema,
-} from '@/db/tableUtils'
+import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { billingAddressSchema } from '@/db/schema/organizations'
-import core from '@/utils/core'
-import { prices } from './prices'
 import {
-  PaymentMethodType,
+  constructIndex,
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  customerPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  metadataSchema,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
+  timestampWithTimezoneColumn,
+} from '@/db/tableUtils'
+import {
   CheckoutSessionStatus,
   CheckoutSessionType,
+  PaymentMethodType,
 } from '@/types'
-import { organizations } from './organizations'
-import { purchases } from './purchases'
-import { discounts } from './discounts'
-import { customers } from './customers'
-import { sql } from 'drizzle-orm'
-import { invoices } from './invoices'
+import core from '@/utils/core'
 import { zodEpochMs } from '../timestampMs'
+import { customers } from './customers'
+import { discounts } from './discounts'
+import { invoices } from './invoices'
+import { organizations } from './organizations'
+import { prices } from './prices'
+import { purchases } from './purchases'
 
 const TABLE_NAME = 'checkout_sessions'
 
@@ -391,14 +391,6 @@ export const checkoutSessionsUpdateSchema = z
   ])
   .describe(CHECKOUT_SESSIONS_BASE_DESCRIPTION)
 
-export const createCheckoutSessionInputSchema = z
-  .object({
-    checkoutSession: checkoutSessionsInsertSchema,
-  })
-  .meta({
-    id: 'CreateCheckoutSessionInputParams',
-  })
-
 // Client UPDATE schemas with metadata ids applied
 export const purchaseCheckoutSessionClientUpdateSchema =
   purchaseCheckoutSessionClientUpdateSchemaBase.meta({
@@ -667,7 +659,7 @@ export type GetIntentStatusInput = z.infer<
   typeof getIntentStatusInputSchema
 >
 
-const coreCheckoutSessionSchema = z.object({
+const coreCheckoutSessionInputSchema = z.object({
   customerExternalId: z
     .string()
     .describe(
@@ -692,41 +684,74 @@ const coreCheckoutSessionSchema = z.object({
     ),
 })
 
-export const identifiedProductCheckoutSessionSchema =
-  coreCheckoutSessionSchema
-    .extend({
-      type: z.literal(CheckoutSessionType.Product),
-      priceId: z
-        .string()
-        .describe('The ID of the price the customer shall purchase'),
-      quantity: z
-        .number()
-        .optional()
-        .describe(
-          'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
-        ),
-      anonymous: z.literal(false).optional(),
-      preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
-    })
+const identifiedProductCheckoutSessionInputSchemaBase =
+  coreCheckoutSessionInputSchema.extend({
+    type: z.literal(CheckoutSessionType.Product),
+    priceId: z
+      .string()
+      .optional()
+      .describe(
+        'The ID of the price the customer shall purchase. If not provided, priceSlug is required.'
+      ),
+    priceSlug: z
+      .string()
+      .optional()
+      .describe(
+        'The slug of the price the customer shall purchase. If not provided, priceId is required.'
+      ),
+    quantity: z
+      .number()
+      .optional()
+      .describe(
+        'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+      ),
+    anonymous: z.literal(false).optional(),
+    preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
+  })
+
+export const identifiedProductCheckoutSessionInputSchema =
+  identifiedProductCheckoutSessionInputSchemaBase
+    .refine(
+      (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
+      {
+        message:
+          'Either priceId or priceSlug must be provided, but not both',
+        path: ['priceId'],
+      }
+    )
     .meta({ id: 'IdentifiedProductCheckoutSessionInput' })
 
-export const anonymousProductCheckoutSessionSchema =
-  identifiedProductCheckoutSessionSchema
+export const anonymousProductCheckoutSessionInputSchema =
+  identifiedProductCheckoutSessionInputSchemaBase
     .extend({
       anonymous: z.literal(true),
       customerExternalId: z.null().optional(),
+      priceSlug: z
+        .string()
+        .optional()
+        .describe(
+          "The slug of the price the customer shall purchase from the organization's default pricing model. If not provided, priceId is required."
+        ),
     })
+    .refine(
+      (data) => (data.priceId ? !data.priceSlug : !!data.priceSlug),
+      {
+        message:
+          'Either priceId or priceSlug must be provided, but not both',
+        path: ['priceId'],
+      }
+    )
     .meta({ id: 'AnonymousProductCheckoutSessionInput' })
 
-export const productCheckoutSessionSchema = z
+export const productCheckoutSessionInputSchema = z
   .discriminatedUnion('anonymous', [
-    identifiedProductCheckoutSessionSchema,
-    anonymousProductCheckoutSessionSchema,
+    identifiedProductCheckoutSessionInputSchema,
+    anonymousProductCheckoutSessionInputSchema,
   ])
   .meta({ id: 'ProductCheckoutSessionInput' })
 
-export const addPaymentMethodCheckoutSessionSchema =
-  coreCheckoutSessionSchema
+export const addPaymentMethodCheckoutSessionInputSchema =
+  coreCheckoutSessionInputSchema
     .extend({
       type: z.literal(CheckoutSessionType.AddPaymentMethod),
       targetSubscriptionId: z
@@ -745,11 +770,10 @@ export const addPaymentMethodCheckoutSessionSchema =
     })
     .meta({ id: 'AddPaymentMethodCheckoutSessionInput' })
 
-export const activateSubscriptionCheckoutSessionSchema =
-  coreCheckoutSessionSchema
+export const activateSubscriptionCheckoutSessionInputSchema =
+  coreCheckoutSessionInputSchema
     .extend({
       type: z.literal(CheckoutSessionType.ActivateSubscription),
-      priceId: z.string(),
       targetSubscriptionId: z.string(),
       preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,
     })
@@ -759,33 +783,33 @@ export const activateSubscriptionCheckoutSessionSchema =
 
 const urlFields = { cancelUrl: true, successUrl: true } as const
 
-export const customerBillingIdentifiedProductCheckoutSessionSchema =
-  identifiedProductCheckoutSessionSchema.omit(urlFields)
+export const customerBillingIdentifiedProductCheckoutSessionInputSchema =
+  identifiedProductCheckoutSessionInputSchema.omit(urlFields)
 
-export const customerBillingAnonymousProductCheckoutSessionSchema =
-  anonymousProductCheckoutSessionSchema.omit(urlFields)
+export const customerBillingAnonymousProductCheckoutSessionInputSchema =
+  anonymousProductCheckoutSessionInputSchema.omit(urlFields)
 
-export const customerBillingProductCheckoutSessionSchema = z
+export const customerBillingProductCheckoutSessionInputSchema = z
   .discriminatedUnion('anonymous', [
-    customerBillingIdentifiedProductCheckoutSessionSchema,
-    customerBillingAnonymousProductCheckoutSessionSchema,
+    customerBillingIdentifiedProductCheckoutSessionInputSchema,
+    customerBillingAnonymousProductCheckoutSessionInputSchema,
   ])
   .meta({ id: 'CustomerBillingProductCheckoutSession' })
 
-export const customerBillingActivateSubscriptionCheckoutSessionSchema =
-  activateSubscriptionCheckoutSessionSchema.omit(urlFields)
+export const customerBillingActivateSubscriptionCheckoutSessionInputSchema =
+  activateSubscriptionCheckoutSessionInputSchema.omit(urlFields)
 
-export const customerBillingCreatePricedCheckoutSessionSchema =
+export const customerBillingCreatePricedCheckoutSessionInputSchema =
   z.discriminatedUnion('type', [
-    customerBillingProductCheckoutSessionSchema,
-    customerBillingActivateSubscriptionCheckoutSessionSchema,
+    customerBillingProductCheckoutSessionInputSchema,
+    customerBillingActivateSubscriptionCheckoutSessionInputSchema,
   ])
 
 const createCheckoutSessionObject = z
   .discriminatedUnion('type', [
-    productCheckoutSessionSchema,
-    activateSubscriptionCheckoutSessionSchema,
-    addPaymentMethodCheckoutSessionSchema,
+    productCheckoutSessionInputSchema,
+    activateSubscriptionCheckoutSessionInputSchema,
+    addPaymentMethodCheckoutSessionInputSchema,
   ])
   .meta({ id: 'CreateCheckoutSessionInput' })
 
@@ -800,7 +824,7 @@ export const singleCheckoutSessionOutputSchema = z.object({
     .describe('The URL to redirect to complete the purchase'),
 })
 
-export const createCheckoutSessionSchema = z
+export const createCheckoutSessionInputSchema = z
   /*
     If the session is Product and 'anonymous' is missing, set it to false
     before validating. This ensures the discriminated union on 'anonymous'
@@ -829,5 +853,5 @@ export const createCheckoutSessionSchema = z
   .describe('Use this schema for new checkout sessions.')
 
 export type CreateCheckoutSessionInput = z.infer<
-  typeof createCheckoutSessionSchema
+  typeof createCheckoutSessionInputSchema
 >

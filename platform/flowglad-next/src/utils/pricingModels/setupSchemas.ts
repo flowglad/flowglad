@@ -1,20 +1,20 @@
-import { pricingModelsClientInsertSchema } from '@/db/schema/pricingModels'
+import * as R from 'ramda'
+import { z } from 'zod'
 import {
   featuresClientInsertSchema,
   toggleFeatureClientInsertSchema,
   usageCreditGrantFeatureClientInsertSchema,
 } from '@/db/schema/features'
 import {
-  subscriptionPriceClientInsertSchema,
   singlePaymentPriceClientInsertSchema,
+  subscriptionPriceClientInsertSchema,
   usagePriceClientInsertSchema,
 } from '@/db/schema/prices'
+import { pricingModelsClientInsertSchema } from '@/db/schema/pricingModels'
 import { productsClientInsertSchema } from '@/db/schema/products'
 import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
-import { z } from 'zod'
+import { CurrencyCode, FeatureType, PriceType } from '@/types'
 import core from '../core'
-import * as R from 'ramda'
-import { FeatureType, PriceType, CurrencyCode } from '@/types'
 
 // Input validation schemas for security
 export const sanitizedStringSchema = z
@@ -167,7 +167,7 @@ export const validateSetupPricingModelInput = (
       for (const issue of result.error.issues) {
         const { path, message } = issue
         // Try to extract the problematic value and its type from the input
-        let value: unknown = undefined
+        let value: unknown
         let valueType: string = 'unknown'
         // The input to safeParse is `input`
         let current: any = input

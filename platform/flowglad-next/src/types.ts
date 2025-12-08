@@ -589,7 +589,7 @@ export enum FlowgladEventType {
   PaymentSucceeded = 'payment.succeeded',
   SubscriptionCreated = 'subscription.created',
   SubscriptionUpdated = 'subscription.updated',
-  SubscriptionCancelled = 'subscription.canceled',
+  SubscriptionCanceled = 'subscription.canceled',
 }
 
 export enum EventCategory {
@@ -701,7 +701,6 @@ export type LoggerData = LogData & {
 export enum FlowgladApiKeyType {
   Publishable = 'publishable',
   Secret = 'secret',
-  BillingPortalToken = 'hosted_billing_portal',
 }
 
 export enum StripeConnectContractType {
@@ -749,7 +748,6 @@ export enum InvoiceType {
 export enum SubscriptionCancellationArrangement {
   Immediately = 'immediately',
   AtEndOfCurrentBillingPeriod = 'at_end_of_current_billing_period',
-  AtFutureDate = 'at_future_date',
 }
 
 export enum SubscriptionCancellationRefundPolicy {
@@ -770,6 +768,9 @@ export enum CheckoutSessionType {
   Purchase = 'purchase',
   AddPaymentMethod = 'add_payment_method',
   ActivateSubscription = 'activate_subscription',
+  /**
+   * @deprecated
+   */
   Invoice = 'invoice',
 }
 

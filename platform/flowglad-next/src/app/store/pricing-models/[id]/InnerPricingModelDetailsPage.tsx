@@ -1,32 +1,43 @@
 'use client'
-import { Button } from '@/components/ui/button'
-import { ProductsDataTable } from '@/app/store/products/data-table'
-import { PricingModel } from '@/db/schema/pricingModels'
+import {
+  Copy,
+  Download,
+  Ellipsis,
+  Pencil,
+  Plus,
+  Sparkles,
+  Star,
+} from 'lucide-react'
 import { useState } from 'react'
-import InternalPageContainer from '@/components/InternalPageContainer'
-import Breadcrumb from '@/components/navigation/Breadcrumb'
-import { PageHeader } from '@/components/ui/page-header'
-import { Pencil, Plus, Ellipsis } from 'lucide-react'
-import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
+import { toast } from 'sonner'
+import { trpc } from '@/app/_trpc/client'
 import { CustomersDataTable } from '@/app/customers/data-table'
-import { TableHeader } from '@/components/ui/table-header'
 import { FeaturesDataTable } from '@/app/features/data-table'
-import CreateProductModal from '@/components/forms/CreateProductModal'
-import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
-import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
-import DefaultBadge from '@/components/DefaultBadge'
+import { ProductsDataTable } from '@/app/store/products/data-table'
 import { UsageMetersDataTable } from '@/app/store/usage-meters/data-table'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
+import DefaultBadge from '@/components/DefaultBadge'
+import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
+import CreateCustomerFormModal from '@/components/forms/CreateCustomerFormModal'
+import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
+import CreateProductModal from '@/components/forms/CreateProductModal'
+import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
+import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
+import SetPricingModelAsDefaultModal from '@/components/forms/SetPricingModelAsDefaultModal'
+import InternalPageContainer from '@/components/InternalPageContainer'
+import Breadcrumb from '@/components/navigation/Breadcrumb'
+import PopoverMenu, {
+  type PopoverMenuItem,
+} from '@/components/PopoverMenu'
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import PopoverMenu, {
-  PopoverMenuItem,
-} from '@/components/PopoverMenu'
-import { trpc } from '@/app/_trpc/client'
-import { toast } from 'sonner'
+import { TableHeader } from '@/components/ui/table-header'
+import type { PricingModel } from '@/db/schema/pricingModels'
 
 export type InnerPricingModelDetailsPageProps = {
   pricingModel: PricingModel.ClientRecord
@@ -36,12 +47,18 @@ function InnerPricingModelDetailsPage({
   pricingModel,
 }: InnerPricingModelDetailsPageProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isCloneOpen, setIsCloneOpen] = useState(false)
+  const [isSetDefaultOpen, setIsSetDefaultOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
     useState(false)
   const [isCreateCustomerModalOpen, setIsCreateCustomerModalOpen] =
     useState(false)
   const [isCreateFeatureModalOpen, setIsCreateFeatureModalOpen] =
     useState(false)
+  const [
+    isGetIntegrationGuideModalOpen,
+    setIsGetIntegrationGuideModalOpen,
+  ] = useState(false)
   const [
     isCreateUsageMeterModalOpen,
     setIsCreateUsageMeterModalOpen,
@@ -96,14 +113,34 @@ function InnerPricingModelDetailsPage({
       toast.success('Pricing model exported successfully')
     } else {
       toast.error('Failed to export pricing model')
+      console.error('Failed to export pricing model', result)
     }
   }
 
   const moreMenuItems: PopoverMenuItem[] = [
     {
-      label: 'Export',
+      label: 'Duplicate',
+      handler: () => setIsCloneOpen(true),
+      icon: <Copy className="h-4 w-4" />,
+    },
+    ...(!pricingModel.isDefault
+      ? [
+          {
+            label: 'Set Default',
+            handler: () => setIsSetDefaultOpen(true),
+            icon: <Star className="h-4 w-4" />,
+          },
+        ]
+      : []),
+    {
+      label: 'Export as YAML',
       handler: () => exportPricingModelHandler(),
-      helperText: 'Export pricing model as YAML file',
+      icon: <Download className="h-4 w-4" />,
+    },
+    {
+      label: 'Integrate via Prompt',
+      handler: () => setIsGetIntegrationGuideModalOpen(true),
+      icon: <Sparkles className="h-4 w-4" />,
     },
   ]
 
@@ -187,6 +224,7 @@ function InnerPricingModelDetailsPage({
         isOpen={isCreateProductModalOpen}
         setIsOpen={setIsCreateProductModalOpen}
         defaultPricingModelId={pricingModel.id}
+        hidePricingModelSelect={true}
       />
       <CreateCustomerFormModal
         isOpen={isCreateCustomerModalOpen}
@@ -201,6 +239,22 @@ function InnerPricingModelDetailsPage({
         isOpen={isCreateUsageMeterModalOpen}
         setIsOpen={setIsCreateUsageMeterModalOpen}
         defaultPricingModelId={pricingModel.id}
+        hidePricingModelSelect={true}
+      />
+      <PricingModelIntegrationGuideModal
+        isOpen={isGetIntegrationGuideModalOpen}
+        setIsOpen={setIsGetIntegrationGuideModalOpen}
+        pricingModelId={pricingModel.id}
+      />
+      <ClonePricingModelModal
+        isOpen={isCloneOpen}
+        setIsOpen={setIsCloneOpen}
+        pricingModel={pricingModel}
+      />
+      <SetPricingModelAsDefaultModal
+        isOpen={isSetDefaultOpen}
+        setIsOpen={setIsSetDefaultOpen}
+        pricingModel={pricingModel}
       />
     </InternalPageContainer>
   )

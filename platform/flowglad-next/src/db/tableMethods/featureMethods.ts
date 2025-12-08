@@ -1,27 +1,32 @@
+import { z } from 'zod'
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  createUpsertFunction,
-  ORMMethodCreatorConfig,
-  createPaginatedSelectFunction,
-  createCursorPaginatedSelectFunction,
-  createBulkInsertOrDoNothingFunction,
-  createBulkInsertFunction,
-} from '@/db/tableUtils'
-import {
+  type Feature,
   features,
+  featuresClientSelectSchema,
   featuresInsertSchema,
   featuresSelectSchema,
   featuresUpdateSchema,
-  featuresClientSelectSchema,
-  Feature,
 } from '@/db/schema/features'
-import { z } from 'zod'
+import {
+  createBulkInsertFunction,
+  createBulkInsertOrDoNothingFunction,
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
+  createPaginatedSelectFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
+import type { PricingModel } from '../schema/pricingModels'
 import { selectPricingModels } from './pricingModelMethods'
-import { PricingModel } from '../schema/pricingModels'
-import { DbTransaction } from '@/db/types'
+import {
+  expireProductFeaturesByFeatureId,
+  selectProductFeatures,
+  updateProductFeature,
+} from './productFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof features,
@@ -115,3 +120,85 @@ export const selectFeaturesTableRowData =
       }))
     }
   )
+
+/**
+ * Updates a feature and syncs its active state with related product features.
+ *
+ * When active changes to false:
+ * - Expires all productFeatures (prevents new subscriptions from getting the feature)
+ * - Detaches existing subscriptionItemFeatures from productFeatures (preserves customer access)
+ *
+ * When active changes to true:
+ * - Unexpires all productFeatures (allows new subscriptions to get the feature)
+ *
+ * Note: Existing customer subscriptionItemFeatures are never expired - customers
+ * retain access to features they already have, even if the feature is deactivated.
+ */
+export const updateFeatureTransaction = async (
+  featureUpdate: Feature.Update,
+  transaction: DbTransaction
+): Promise<Feature.Record> => {
+  // Step 1: Get the current feature state to detect changes
+  const oldFeature = await selectFeatureById(
+    featureUpdate.id,
+    transaction
+  )
+
+  // Step 2: Update the feature
+  const updatedFeature = await updateFeature(
+    featureUpdate,
+    transaction
+  )
+
+  // Step 3: Check if 'active' field changed
+  const activeChanged =
+    'active' in featureUpdate &&
+    featureUpdate.active !== oldFeature.active
+
+  if (activeChanged) {
+    const featureId = updatedFeature.id
+
+    // Get all productFeatures for this feature
+    const productFeaturesForFeature = await selectProductFeatures(
+      { featureId },
+      transaction
+    )
+
+    if (productFeaturesForFeature.length > 0) {
+      const productFeatureIds = productFeaturesForFeature.map(
+        (pf) => pf.id
+      )
+
+      if (featureUpdate.active === false) {
+        // Feature deactivated - expire product features
+        // This prevents NEW subscriptions from getting the feature
+        // Note: expireProductFeaturesByFeatureId also detaches existing subscriptionItemFeatures
+        await expireProductFeaturesByFeatureId(
+          productFeatureIds,
+          transaction
+        )
+      } else if (featureUpdate.active === true) {
+        // Feature reactivated - unexpire product features
+        // This allows NEW subscriptions to get the feature again
+        const expiredProductFeatures =
+          productFeaturesForFeature.filter(
+            (pf) => pf.expiredAt !== null
+          )
+
+        if (expiredProductFeatures.length > 0) {
+          // Unexpire by setting expiredAt to null
+          await Promise.all(
+            expiredProductFeatures.map((pf) =>
+              updateProductFeature(
+                { id: pf.id, expiredAt: null },
+                transaction
+              )
+            )
+          )
+        }
+      }
+    }
+  }
+
+  return updatedFeature
+}

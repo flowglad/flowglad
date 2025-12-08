@@ -1,22 +1,22 @@
 import {
-  createSelectById,
-  createInsertFunction,
-  createUpdateFunction,
-  createSelectFunction,
-  createUpsertFunction,
-  ORMMethodCreatorConfig,
-  createBulkInsertOrDoNothingFunction,
-} from '@/db/tableUtils'
-import {
-  LedgerAccount,
+  type LedgerAccount,
   ledgerAccounts,
   ledgerAccountsInsertSchema,
   ledgerAccountsSelectSchema,
   ledgerAccountsUpdateSchema,
 } from '@/db/schema/ledgerAccounts'
-import { DbTransaction } from '../types'
-import { selectSubscriptionById } from './subscriptionMethods'
+import {
+  createBulkInsertOrDoNothingFunction,
+  createInsertFunction,
+  createSelectById,
+  createSelectFunction,
+  createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
+} from '@/db/tableUtils'
 import { NormalBalanceType } from '@/types'
+import type { DbTransaction } from '../types'
+import { selectSubscriptionById } from './subscriptionMethods'
 
 const TABLE_NAME = 'ledger_accounts'
 

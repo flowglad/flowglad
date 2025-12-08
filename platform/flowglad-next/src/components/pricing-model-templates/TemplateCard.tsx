@@ -1,12 +1,12 @@
 'use client'
 
 import { ArrowRight } from 'lucide-react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import type {
   PricingModelTemplateMetadata,
   SvgLogo,
 } from '@/types/pricingModelTemplates'
-import Image from 'next/image'
 
 interface TemplateCardProps {
   metadata: PricingModelTemplateMetadata
@@ -37,9 +37,7 @@ export function TemplateCard({
           {/* Icon + Title */}
           <div className="flex flex-col gap-2.5 items-start w-full">
             <Icon className="h-5 text-foreground flex-shrink-0" />
-            <h3 className="text-lg font-semibold min-w-full w-min">
-              {title}
-            </h3>
+            <h3 className="text-lg min-w-full w-min">{title}</h3>
           </div>
 
           {/* Features List */}
@@ -76,10 +74,10 @@ export function TemplateCard({
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Button>
 
-          {/* Used By / Recommended */}
+          {/* Inspired By / Recommended */}
           <div className="flex gap-4 items-center px-4 py-0 w-full">
             <div className="flex gap-1 items-center">
-              {/* Show "recommended" if logo is empty, otherwise "used by" */}
+              {/* Show "recommended" if logo is empty, otherwise "inspired by" */}
               {typeof usedBy.logo === 'string' &&
               usedBy.logo === '' ? (
                 <span className="text-sm text-muted-foreground">
@@ -88,7 +86,7 @@ export function TemplateCard({
               ) : (
                 <>
                   <span className="text-sm text-muted-foreground">
-                    used by
+                    Inspired by
                   </span>
                   {isSvgLogo(usedBy.logo) ? (
                     <div className="flex gap-1 items-center">

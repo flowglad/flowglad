@@ -25,7 +25,6 @@ jobs:
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
         with:
           bun-version: '1.3.1'
-          cache: true
       - name: Install dependencies
         run: bun run install-packages --no-progress
       - name: Run linting and typechecking
@@ -47,7 +46,6 @@ jobs:
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
         with:
           bun-version: '1.3.1'
-          cache: true
       - name: Install dependencies
         run: bun run install-packages --no-progress
       - name: Generate OpenAPI documentation
@@ -72,7 +70,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56 # v5
         with:
-          context: ./platform/flowglad-next
+          context: .
+          file: ./platform/flowglad-next/Dockerfile
           load: true
           tags: flowglad-next:latest
       - name: Run Docker container
@@ -94,7 +93,6 @@ jobs:
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
         with:
           bun-version: '1.3.1'
-          cache: true
       - name: Install dependencies
         run: bun install --no-progress
       - name: Run build (all packages)
@@ -102,7 +100,7 @@ jobs:
       - name: Run linting and typechecking (all packages)
         run: bun run check
 
-  packages-react-tests:
+  packages-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -115,14 +113,17 @@ jobs:
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
         with:
           bun-version: '1.3.1'
-          cache: true
       - name: Install dependencies
         run: bun install --no-progress
-      - name: Run build
+      - name: Build packages
         run: bun run build
-      - name: Run tests
-        run: bun run test
-        working-directory: packages/react
+      - name: Run shared tests
+        run: cd packages/shared && bun run test
+      - name: Run server tests
+        env:
+          FLOWGLAD_SECRET_KEY: ${{ secrets.FLOWGLAD_SECRET_KEY }}
+          FLOWGLAD_BASE_URL: ${{ secrets.FLOWGLAD_BASE_URL }}
+        run: cd packages/server && bun run test
 
   check-todo:
     runs-on: ubuntu-latest
@@ -156,7 +157,7 @@ jobs:
       # https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks#handling-skipped-but-required-checks
       if: failure()
       runs-on: ubuntu-latest
-      needs: [flowglad-next-lint, openapi-check, flowglad-next-unit-tests, flowglad-next-integration-tests, packages-build-and-lint, packages-react-tests, check-todo, check-job-dependencies]
+      needs: [flowglad-next-lint, openapi-check, flowglad-next-unit-tests, flowglad-next-integration-tests, packages-build-and-lint, packages-test, check-todo, check-job-dependencies]
       steps:
         - name: Mark the job as failed
           run: exit 1

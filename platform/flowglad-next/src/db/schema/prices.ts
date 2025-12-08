@@ -1,51 +1,51 @@
-import * as R from 'ramda'
+import { ColumnBaseConfig, ColumnDataType, sql } from 'drizzle-orm'
 import {
+  boolean,
   integer,
+  PgColumn,
+  pgPolicy,
   pgTable,
   text,
-  boolean,
-  pgPolicy,
-  PgColumn,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
-import {
-  pgEnumColumn,
-  constructIndex,
-  constructUniqueIndex,
-  notNullStringForeignKey,
-  tableBase,
-  createSupabaseWebhookSchema,
-  livemodePolicy,
-  createPaginatedSelectSchema,
-  createPaginatedListQuerySchema,
-  nullableStringForeignKey,
-  SelectConditions,
-  ommittedColumnsForInsertSchema,
-  hiddenColumnsForClientSchema,
-  parentForeignKeyIntegrityCheckPolicy,
-  merchantPolicy,
-  enableCustomerReadPolicy,
-  clientWriteOmitsConstructor,
-} from '@/db/tableUtils'
+import * as R from 'ramda'
+import { z } from 'zod'
+import { buildSchemas } from '@/db/createZodSchemas'
 import {
   products,
   productsClientInsertSchema,
   productsClientSelectSchema,
   productsClientUpdateSchema,
 } from '@/db/schema/products'
-import core from '@/utils/core'
+import {
+  clientWriteOmitsConstructor,
+  constructIndex,
+  constructUniqueIndex,
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  createSupabaseWebhookSchema,
+  enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
+  notNullStringForeignKey,
+  nullableStringForeignKey,
+  ommittedColumnsForInsertSchema,
+  parentForeignKeyIntegrityCheckPolicy,
+  pgEnumColumn,
+  type SelectConditions,
+  tableBase,
+} from '@/db/tableUtils'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
-import { z } from 'zod'
-import { ColumnBaseConfig, ColumnDataType, sql } from 'drizzle-orm'
+import core from '@/utils/core'
+import { currencyCodeSchema } from '../commonZodSchema'
+import { featuresClientSelectSchema } from './features'
 import { pricingModelsClientSelectSchema } from './pricingModels'
 import {
   usageMeters,
   usageMetersClientSelectSchema,
 } from './usageMeters'
-import { currencyCodeSchema } from '../commonZodSchema'
-import { featuresClientSelectSchema } from './features'
-import { buildSchemas } from '@/db/createZodSchemas'
 
 const readOnlyColumns = {
   currency: true,
@@ -251,6 +251,13 @@ const PRICES_INSERT_SCHEMA_DESCRIPTION =
 
 const PRICES_UPDATE_SCHEMA_DESCRIPTION =
   'A price record, which describes a price for a product. Products can have multiple prices.'
+
+// Description constants for subscription creation input schema
+export const PRICE_ID_DESCRIPTION =
+  'The id of the price to subscribe to. If not provided, priceSlug is required. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals.'
+
+export const PRICE_SLUG_DESCRIPTION =
+  "The slug of the price to subscribe to. If not provided, priceId is required. Price slugs are scoped to the customer's pricing model. Used to determine whether the subscription is usage-based or not, and set other defaults such as trial period and billing intervals."
 
 // subtype schemas are built via buildSchemas below
 
@@ -553,7 +560,11 @@ export type CreateProductSchema = z.infer<typeof createProductSchema>
 
 export const editProductSchema = z.object({
   product: productsClientUpdateSchema,
-  price: pricesClientInsertSchema.optional(),
+  price: pricesClientInsertSchema
+    .optional()
+    .describe(
+      'The latest price fields. Ignored if the product is a default product for its pricing model.'
+    ),
   featureIds: z.array(z.string()).optional(),
   id: z.string(),
 })

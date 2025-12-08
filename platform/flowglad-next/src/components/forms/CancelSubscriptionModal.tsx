@@ -1,12 +1,12 @@
-import React from 'react'
-import FormModal from '@/components/forms/FormModal'
+import type React from 'react'
+import { trpc } from '@/app/_trpc/client'
 import CancelSubscriptionFormFields from '@/components/forms/CancelSubscriptionFormFields'
+import FormModal from '@/components/forms/FormModal'
 import {
-  scheduleSubscriptionCancellationSchema,
   type ScheduleSubscriptionCancellationParams,
+  scheduleSubscriptionCancellationSchema,
 } from '@/subscriptions/schemas'
 import { SubscriptionCancellationArrangement } from '@/types'
-import { trpc } from '@/app/_trpc/client'
 
 interface CancelSubscriptionModalProps {
   isOpen: boolean
@@ -47,6 +47,7 @@ const CancelSubscriptionModal: React.FC<
       defaultValues={defaultValues}
       onSubmit={onSubmit}
       submitButtonText="Cancel Subscription"
+      cancelButtonText="Go Back"
     >
       <CancelSubscriptionFormFields />
     </FormModal>

@@ -1,30 +1,56 @@
 'use client'
 
-import FormModal from '@/components/forms/FormModal'
-import { createUsageMeterSchema } from '@/db/schema/usageMeters'
-import UsageMeterFormFields from '@/components/forms/UsageMeterFormFields'
+import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
-import { UsageMeterAggregationType } from '@/types'
+import FormModal from '@/components/forms/FormModal'
+import PriceFormFields from '@/components/forms/PriceFormFields'
+import UsageMeterFormFields from '@/components/forms/UsageMeterFormFields'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import { createUsageMeterFormSchema } from '@/db/schema/usageMeters'
+import { PriceType, UsageMeterAggregationType } from '@/types'
+import {
+  isCurrencyZeroDecimal,
+  rawStringAmountToCountableCurrencyAmount,
+} from '@/utils/stripe'
 
 interface CreateUsageMeterModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
   defaultPricingModelId?: string
+  hidePricingModelSelect?: boolean
 }
 
 const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
   isOpen,
   setIsOpen,
   defaultPricingModelId,
+  hidePricingModelSelect,
 }) => {
-  const createUsageMeter = trpc.usageMeters.create.useMutation()
+  const createUsageMeter = trpc.usageMeters.create.useMutation({
+    onSuccess: () => {
+      toast.success('Usage meter created successfully')
+    },
+    onError: () => {
+      toast.error('Failed to create usage meter')
+    },
+  })
   const trpcContext = trpc.useContext()
+  const { organization } = useAuthenticatedContext()
+
+  if (!organization) {
+    return null
+  }
+
+  const zeroDecimal = isCurrencyZeroDecimal(
+    organization.defaultCurrency
+  )
+
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="Create Usage Meter"
-      formSchema={createUsageMeterSchema}
+      formSchema={createUsageMeterFormSchema}
       defaultValues={{
         usageMeter: {
           name: '',
@@ -32,13 +58,46 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
           pricingModelId: defaultPricingModelId || '',
           aggregationType: UsageMeterAggregationType.Sum,
         },
+        price: {
+          type: PriceType.Usage,
+          usageEventsPerUnit: 1,
+        },
+        __rawPriceString: zeroDecimal ? '0' : '0.00',
       }}
-      onSubmit={createUsageMeter.mutateAsync}
+      onSubmit={async (input) => {
+        await createUsageMeter.mutateAsync({
+          usageMeter: input.usageMeter,
+          price: {
+            ...input.price,
+            unitPrice: rawStringAmountToCountableCurrencyAmount(
+              organization!.defaultCurrency,
+              input.__rawPriceString!
+            ),
+          },
+        })
+      }}
       onSuccess={() => {
         trpcContext.usageMeters.list.invalidate()
       }}
     >
-      <UsageMeterFormFields />
+      <div className="space-y-6">
+        <UsageMeterFormFields
+          hidePricingModelSelect={hidePricingModelSelect}
+        />
+        <div className="border-t pt-6">
+          <h3 className="text-sm font-medium mb-4">
+            Price Configuration
+          </h3>
+          <PriceFormFields
+            priceOnly
+            pricingModelId={defaultPricingModelId}
+            hideUsageMeter={true}
+            hidePriceName={true}
+            hidePriceType={true}
+            disablePriceType={true}
+          />
+        </div>
+      </div>
     </FormModal>
   )
 }

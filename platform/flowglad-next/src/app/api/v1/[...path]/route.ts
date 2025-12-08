@@ -1,65 +1,65 @@
 import {
-  FetchCreateContextFn,
+  context,
+  SpanKind,
+  SpanStatusCode,
+  trace,
+} from '@opentelemetry/api'
+import * as Sentry from '@sentry/nextjs'
+import {
+  type FetchCreateContextFn,
   fetchRequestHandler,
 } from '@trpc/server/adapters/fetch'
-import { appRouter } from '@/server'
-import { createApiContext } from '@/server/trpcContext'
-import { NextRequestWithUnkeyContext } from '@unkey/nextjs'
-import { ApiEnvironment, FlowgladApiKeyType } from '@/types'
+import type { NextRequestWithUnkeyContext } from '@unkey/nextjs'
+import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { trpcToRest, RouteConfig } from '@/utils/openapi'
-import * as Sentry from '@sentry/nextjs'
+import { appRouter } from '@/server'
+import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
 import {
   customerBillingRouteConfig,
   customersRouteConfigs,
 } from '@/server/routers/customersRouter'
-import { productsRouteConfigs } from '@/server/routers/productsRouter'
-import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
-import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsRouter'
 import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
-import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
-import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
+import { featuresRouteConfigs } from '@/server/routers/featuresRouter'
 import { invoiceLineItemsRouteConfigs } from '@/server/routers/invoiceLineItemsRouter'
+import { invoicesRouteConfigs } from '@/server/routers/invoicesRouter'
 import { paymentMethodsRouteConfigs } from '@/server/routers/paymentMethodsRouter'
-import { purchasesRouteConfigs } from '@/server/routers/purchasesRouter'
-import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
-import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
-import { webhooksRouteConfigs } from '@/server/routers/webhooksRouter'
-import {
-  trace,
-  SpanStatusCode,
-  context,
-  SpanKind,
-} from '@opentelemetry/api'
-import { logger } from '@/utils/logger'
-import {
-  pricingModelsRouteConfigs,
-  getDefaultPricingModelRouteConfig,
-  setupPricingModelRouteConfig,
-} from '@/server/routers/pricingModelsRouter'
 import {
   paymentsRouteConfigs,
   refundPaymentRouteConfig,
 } from '@/server/routers/paymentsRouter'
-import core from '@/utils/core'
-import { parseUnkeyMeta, verifyApiKey } from '@/utils/unkey'
-import { featuresRouteConfigs } from '@/server/routers/featuresRouter'
-import { productFeaturesRouteConfigs } from '@/server/routers/productFeaturesRouter'
-import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
-import { headers } from 'next/headers'
+import { pricesRouteConfigs } from '@/server/routers/pricesRouter'
 import {
-  parsePaginationParams,
+  getDefaultPricingModelRouteConfig,
+  pricingModelsRouteConfigs,
+  setupPricingModelRouteConfig,
+} from '@/server/routers/pricingModelsRouter'
+import { productFeaturesRouteConfigs } from '@/server/routers/productFeaturesRouter'
+import { productsRouteConfigs } from '@/server/routers/productsRouter'
+import { purchasesRouteConfigs } from '@/server/routers/purchasesRouter'
+import { subscriptionItemFeaturesRouteConfigs } from '@/server/routers/subscriptionItemFeaturesRouter'
+import { subscriptionsRouteConfigs } from '@/server/routers/subscriptionsRouter'
+import { usageEventsRouteConfigs } from '@/server/routers/usageEventsRouter'
+import { usageMetersRouteConfigs } from '@/server/routers/usageMetersRouter'
+import { webhooksRouteConfigs } from '@/server/routers/webhooksRouter'
+import { createApiContext } from '@/server/trpcContext'
+import { type ApiEnvironment, FlowgladApiKeyType } from '@/types'
+import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
+import core from '@/utils/core'
+import { logger } from '@/utils/logger'
+import { type RouteConfig, trpcToRest } from '@/utils/openapi'
+import {
+  type PaginationParams,
   parseAndValidateCursor,
   parseAndValidateLegacyCursor,
-  type PaginationParams,
+  parsePaginationParams,
 } from '@/utils/pagination'
-import { searchParamsToObject } from '@/utils/url'
 import {
-  trackSecurityEvent,
-  trackFailedAuth,
   checkForExpiredKeyUsage,
+  trackFailedAuth,
+  trackSecurityEvent,
 } from '@/utils/securityTelemetry'
-import { getApiKeyHeader } from '@/utils/apiKeyHelpers'
+import { parseUnkeyMeta, verifyApiKey } from '@/utils/unkey'
+import { searchParamsToObject } from '@/utils/url'
 
 interface FlowgladRESTRouteContext {
   params: Promise<{ path: string[] }>
@@ -228,6 +228,7 @@ const innerHandler = async (
           api_key_type: apiKeyType,
           body_size_bytes: requestBodySize,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         // Create a new context with our parent span
@@ -289,6 +290,7 @@ const innerHandler = async (
           route_pattern: routeKey,
           procedure: route.procedure,
           matching_duration_ms: routeMatchingDuration,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         // Extract parameters from URL with telemetry
@@ -297,7 +299,7 @@ const innerHandler = async (
         const paramCount = matches.length
 
         // Get body for POST/PUT requests with parsing telemetry
-        let body = undefined
+        let body
         let inputParsingDuration = 0
 
         if (req.method === 'POST' || req.method === 'PUT') {
@@ -615,6 +617,7 @@ const innerHandler = async (
           endpoint_category: endpointCategory,
           operation_type: operationType,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         return NextResponse.json(responseData)
@@ -644,6 +647,7 @@ const innerHandler = async (
           url: req.url,
           total_duration_ms: totalDuration,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         return NextResponse.json(

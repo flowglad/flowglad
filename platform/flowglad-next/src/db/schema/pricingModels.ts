@@ -1,25 +1,25 @@
-import { text, pgTable, boolean } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod'
+import { organizations } from '@/db/schema/organizations'
 import {
-  ommittedColumnsForInsertSchema,
+  clientWriteOmitsConstructor,
   constructIndex,
-  tableBase,
+  createPaginatedListQuerySchema,
+  createPaginatedSelectSchema,
+  enableCustomerReadPolicy,
+  hiddenColumnsForClientSchema,
+  livemodePolicy,
+  merchantPolicy,
   newBaseZodSelectSchemaColumns,
   notNullStringForeignKey,
-  createPaginatedSelectSchema,
-  createPaginatedListQuerySchema,
-  livemodePolicy,
-  SelectConditions,
-  hiddenColumnsForClientSchema,
-  merchantPolicy,
-  enableCustomerReadPolicy,
-  clientWriteOmitsConstructor,
+  ommittedColumnsForInsertSchema,
+  type SelectConditions,
+  tableBase,
 } from '@/db/tableUtils'
-import { organizations } from '@/db/schema/organizations'
-import { sql } from 'drizzle-orm'
-import core from '@/utils/core'
 import { DestinationEnvironment, IntervalUnit } from '@/types'
+import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 
 const TABLE_NAME = 'pricing_models'
@@ -34,6 +34,7 @@ export const pricingModels = pgTable(
     ),
     isDefault: boolean('is_default').notNull().default(false),
     name: text('name').notNull(),
+    integrationGuideHash: text('integration_guide_hash'),
   },
   (table) => {
     return [
@@ -65,8 +66,9 @@ const readOnlyColumns = {
 } as const
 
 const hiddenColumns = {
+  integrationGuideHash: true,
   ...hiddenColumnsForClientSchema,
-}
+} as const
 
 export const {
   select: pricingModelsSelectSchema,

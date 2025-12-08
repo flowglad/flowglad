@@ -1,22 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupCustomer,
+  setupOrg,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupSubscription,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import { Customer } from '@/db/schema/customers'
+import { Organization } from '@/db/schema/organizations'
+import { PaymentMethod } from '@/db/schema/paymentMethods'
+import { Subscription } from '@/db/schema/subscriptions'
+import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import {
   selectDistinctSubscriptionProductNames,
   selectSubscriptionsTableRowData,
 } from './subscriptionMethods'
-import { adminTransaction } from '@/db/adminTransaction'
-import {
-  setupOrg,
-  setupCustomer,
-  setupProduct,
-  setupPrice,
-  setupSubscription,
-  setupPaymentMethod,
-} from '@/../seedDatabase'
-import { Organization } from '@/db/schema/organizations'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { PriceType, IntervalUnit, SubscriptionStatus } from '@/types'
-import { Subscription } from '@/db/schema/subscriptions'
 
 describe('selectDistinctSubscriptionProductNames', () => {
   let organization: Organization.Record

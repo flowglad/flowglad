@@ -1,7 +1,6 @@
-import { runAfterLast } from '../../scripts/runAfterLast'
-// @ts-ignore
-import { name, version } from './package.json'
 import { defineConfig, type Options } from 'tsup'
+import { runAfterLast } from '../../scripts/runAfterLast'
+import { name, version } from './package.json'
 
 export default defineConfig((overrideOptions) => {
   const isProd = overrideOptions.env?.NODE_ENV === 'production'

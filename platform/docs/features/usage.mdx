@@ -3,10 +3,6 @@ title: 'Usage Based Billing'
 description: 'Set up usage based pricing models effortlessly.'
 ---
 
-<Note>
-Usage is in a private, invite-only preview. Please reach out to the Flowglad team over [Discord](http://app.flowglad.com/invite-discord) to access it.
-</Note>
-
 Startups face unexpected setbacks when implementing usage based pricing. Flowglad has designed usage based pricing to abstract away as much complexity as possible.
 
 ##  The Usage Data Model
@@ -42,13 +38,12 @@ Here's how to get started with tracking and billing for usage:
 
 ### Step 1: Create a Usage Meter
 
-1.  Navigate to the "Usage Meters" section in your Flowglad dashboard.
-    <Note>This section is only visible if the "Usage" feature flag is enabled for your organization.</Note>
+1.  Navigate to the [Pricing Models](https://app.flowglad.com/store/pricing-models) page in your dashboard and select the pricing model you would like to create the usage meter in.
 2.  Click "Create Usage Meter."
 3.  Give your meter a descriptive `name` (e.g., "API Calls," "Active Users").
 4.  Select the `Aggregation Type`:
     *   `Sum`: To add up values from usage events.
-    *   `Count Distinct Properties`: To count unique property values. If you choose this, you'll also need to specify the `property_name` you'll be sending in your usage events (e.g., `userId`, `email`).
+    *   `Count Distinct Properties`: To count unique `property` values.
 5.  Save the meter. You'll need its `id` for the next step.
 
 ### Step 2: Create a Usage Price
@@ -57,19 +52,9 @@ Here's how to get started with tracking and billing for usage:
 2.  Within the Product, go to the "Prices" section and click "Create Price."
 3.  Set the `Type` to **"Usage"**.
 4.  Fill in the price details (name, unit price, currency, interval, etc.).
-5.  Crucially, select the `Usage Meter` you created in Step 1 from the `Usage Meter Id` dropdown. This links this price to that specific meter.
-6.  Save the price.
+5.  Crucially, select the `Usage Meter` you created in Step 1 from the `Usage Meter` dropdown. This links this price to that specific meter.
 
-### Step 3: Create a Usage Subscription
-
-Customers subscribe to this "Usage" `Price` just like any other Flowglad price. You can use:
-
-*   **Checkout Sessions**: Integrate Flowglad's checkout, and customers can select plans that include your new usage price.
-*   **Direct API Calls**: Create subscriptions directly via the API if you have a custom subscription flow.
-
-Once a customer is subscribed to a usage price, their `SubscriptionId` becomes key for reporting their usage.
-
-### Step 4: Report Usage Events
+### Step 3: Report Usage Events
 
 Reporting usage is done via API calls from your backend. This is to ensure data integrity and security, as you'll be verifying and sending financial data.
 
@@ -78,18 +63,25 @@ You'll use the `FlowgladServer.createUsageEvent` method. Here's a TypeScript exa
 ```typescript
 import { FlowgladServer } from '@flowglad/server'; // Adjust import based on your setup
 
-// Initialize FlowgladServer with your API key and any other necessary params
-// This might be done once in your server setup
-const flowglad = new FlowgladServer({
-  apiKey: process.env.FLOWGLAD_API_KEY!,
-  // other params like getRequestingCustomer if needed by your auth model
-});
+// Create a FlowgladServer factory function
+// customerExternalId is the ID from YOUR app's database, NOT Flowglad's customer ID
+const flowglad = (customerExternalId: string) => {
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      const user = await db.users.findOne({ id: externalId })
+      return {
+        email: user.email,
+        name: user.name,
+      }
+    },
+  })
+}
 
 export const reportUsage = async (data: {
   customerId: string;       // The Flowglad Customer ID
   subscriptionId: string;   // The ID of the usage subscription
-  priceId: string;          // The ID of the specific usage price
-  usageMeterId: string;     // The ID of the usage meter this event applies to
+  priceSlug: string;          // The slug of the specific usage price
   amount: number;           // The quantity of usage (for 'sum' aggregation)
   transactionId: string;    // A unique ID from your system to ensure idempotency
   usageDate?: Date;         // Optional: Defaults to now. Date usage occurred.
@@ -100,15 +92,14 @@ export const reportUsage = async (data: {
     const usageEventPayload = {
       customerId: data.customerId,
       subscriptionId: data.subscriptionId,
-      priceId: data.priceId,
-      usageMeterId: data.usageMeterId,
+      priceSlug: data.priceSlug,
       amount: data.amount,
       transactionId: data.transactionId,
       ...(data.usageDate && { usageDate: data.usageDate.getTime() }), // Send as milliseconds
       ...(data.properties && { properties: data.properties }),
     };
 
-    const result = await flowglad.createUsageEvent(usageEventPayload);
+    const result = await flowglad(data.customerId).createUsageEvent(usageEventPayload);
 
     console.log('Usage event created successfully:', result.usageEvent.id);
     return result.usageEvent;
@@ -137,8 +128,7 @@ reportUsage({
 
 *   `customerId`: The ID of the customer who incurred the usage.
 *   `subscriptionId`: The ID of their active usage subscription.
-*   `priceId`: The ID of the specific usage price associated with their subscription and this event.
-*   `usageMeterId`: The ID of the usage meter this event should be recorded against.
+*   `priceSlug`: The slug of the specific usage price associated with this event.
 *   `amount`: For `sum` aggregation, this is the quantity of usage (e.g., number of API calls, megabytes transferred). For `count_distinct_properties`, this is often `1`, as the uniqueness is determined by the `properties`.
 *   `transactionId`: **Crucial for idempotency.** This should be a unique ID generated by your system for each usage event. If Flowglad receives a `createUsageEvent` call with a `transactionId` it has already processed for that `usageMeterId`, it will not create a duplicate event.
 *   `usageDate` (optional): Timestamp (in milliseconds since epoch) of when the usage occurred. Defaults to the time of the API call. If usage occurs outside the current billing period, it will still be attached to the *current* open billing period for that subscription.

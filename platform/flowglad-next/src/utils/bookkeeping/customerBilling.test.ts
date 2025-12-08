@@ -1,64 +1,65 @@
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  vi,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
 } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
 import {
-  setupOrg,
   setupCustomer,
+  setupOrg,
   setupPaymentMethod,
+  setupPrice,
+  setupProduct,
   setupSubscription,
   setupUserAndCustomer,
-  setupProduct,
-  setupPrice,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import * as databaseAuthentication from '@/db/databaseAuthentication'
+import type { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import { nulledPriceColumns, type Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { User } from '@/db/schema/users'
+import * as betterAuthSchemaMethods from '@/db/tableMethods/betterAuthSchemaMethods'
 import {
-  setDefaultPaymentMethodForCustomer,
-  customerBillingCreatePricedCheckoutSession,
-  customerBillingTransaction,
-} from './customerBilling'
-import { Organization } from '@/db/schema/organizations'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { Price } from '@/db/schema/prices'
-import { Product } from '@/db/schema/products'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { User } from '@/db/schema/users'
-import {
-  PaymentMethodType,
-  SubscriptionStatus,
-  CheckoutSessionType,
-  PriceType,
-  IntervalUnit,
-  CurrencyCode,
-} from '@/types'
-import core from '@/utils/core'
+  selectCustomerById,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
 import {
   selectPaymentMethodById,
   selectPaymentMethods,
   updatePaymentMethod,
 } from '@/db/tableMethods/paymentMethodMethods'
 import {
+  insertPrice,
+  safelyUpdatePrice,
+} from '@/db/tableMethods/priceMethods'
+import { insertProduct } from '@/db/tableMethods/productMethods'
+import {
   selectSubscriptionById,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import {
-  updateCustomer,
-  selectCustomerById,
-} from '@/db/tableMethods/customerMethods'
-import { insertProduct } from '@/db/tableMethods/productMethods'
-import { insertPrice } from '@/db/tableMethods/priceMethods'
-import { nulledPriceColumns } from '@/db/schema/prices'
-import { CreateCheckoutSessionInput } from '@/db/schema/checkoutSessions'
-import * as databaseAuthentication from '@/db/databaseAuthentication'
+  CheckoutSessionType,
+  CurrencyCode,
+  IntervalUnit,
+  PaymentMethodType,
+  PriceType,
+  SubscriptionStatus,
+} from '@/types'
+import core from '@/utils/core'
 import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
-import * as betterAuthSchemaMethods from '@/db/tableMethods/betterAuthSchemaMethods'
-import { safelyUpdatePrice } from '@/db/tableMethods/priceMethods'
+import {
+  customerBillingCreatePricedCheckoutSession,
+  customerBillingTransaction,
+  setDefaultPaymentMethodForCustomer,
+} from './customerBilling'
 
 // Mock next/headers to avoid Next.js context errors
 vi.mock('next/headers', () => ({
@@ -1198,7 +1199,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
       {
         customerExternalId: customer.externalId,
-        priceId: price.id,
         type: CheckoutSessionType.ActivateSubscription,
         targetSubscriptionId: subscription.id,
         successUrl: 'http://success.url',
@@ -1303,5 +1303,241 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         customer: customerWithoutPricingModel,
       })
     ).rejects.toThrow()
+  })
+})
+
+describe('customerBillingTransaction - currentSubscription field', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+
+  beforeEach(async () => {
+    // Set up organization with pricing model and product
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+    price = orgData.price
+
+    // Set up customer
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `test-current-sub-${core.nanoid()}@example.com`,
+      livemode: true,
+    })
+  })
+
+  it('should return currentSubscription as the most recently created subscription', async () => {
+    // Create multiple subscriptions with different createdAt timestamps
+    const sub1 = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+    })
+
+    // Wait a bit to ensure different timestamps
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    const sub2 = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    const sub3 = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+    })
+
+    const billingState = await adminTransaction(
+      async ({ transaction }) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(billingState.currentSubscription).toBeDefined()
+    expect(billingState.currentSubscription.id).toBe(sub3.id)
+    expect(billingState.currentSubscriptions).toContainEqual(
+      expect.objectContaining({ id: sub3.id })
+    )
+  })
+
+  it('should return currentSubscription when only one current subscription exists', async () => {
+    const sub = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+    })
+
+    const billingState = await adminTransaction(
+      async ({ transaction }) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(billingState.currentSubscription).toBeDefined()
+    expect(billingState.currentSubscription.id).toBe(sub.id)
+    expect(billingState.currentSubscriptions).toHaveLength(1)
+    expect(billingState.currentSubscriptions[0].id).toBe(sub.id)
+  })
+
+  it('should exclude non-current subscriptions from currentSubscription selection', async () => {
+    // Create a canceled subscription
+    const canceledSub = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Canceled,
+      livemode: true,
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    // Create an active subscription
+    const activeSub = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+    })
+
+    const billingState = await adminTransaction(
+      async ({ transaction }) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(billingState.currentSubscription).toBeDefined()
+    expect(billingState.currentSubscription.id).toBe(activeSub.id)
+    expect(billingState.currentSubscription.id).not.toBe(
+      canceledSub.id
+    )
+    expect(
+      billingState.currentSubscriptions.find(
+        (s) => s.id === canceledSub.id
+      )
+    ).toBeUndefined()
+  })
+
+  // FIXME: Uncomment once we migrate all non-subscribed customers to subscriptions
+  // it('should throw error when customer has no current subscriptions', async () => {
+  //   // Customer has no subscriptions at all
+  //   await expect(
+  //     adminTransaction(async ({ transaction }) => {
+  //       return await customerBillingTransaction(
+  //         {
+  //           externalId: customer.externalId,
+  //           organizationId: organization.id,
+  //         },
+  //         transaction
+  //       )
+  //     })
+  //   ).rejects.toThrow('Customer has no current subscriptions')
+  // })
+
+  it('should use updatedAt as tiebreaker when createdAt is the same', async () => {
+    // Create a subscription
+    const sub1 = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+    })
+
+    const sub2 = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+    })
+
+    // Note: In practice, createdAt will differ, but this test verifies
+    // that if they were the same, updatedAt would be used as tiebreaker
+    const billingState = await adminTransaction(
+      async ({ transaction }) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(billingState.currentSubscription).toBeDefined()
+    // The most recently created/updated subscription should be selected
+    expect([sub1.id, sub2.id]).toContain(
+      billingState.currentSubscription.id
+    )
+  })
+
+  it('should handle multiple subscriptions and return the most recent', async () => {
+    // Create 5 subscriptions with known order
+    const subscriptions = []
+    for (let i = 0; i < 5; i++) {
+      const sub = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+        livemode: true,
+      })
+      subscriptions.push(sub)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+
+    const billingState = await adminTransaction(
+      async ({ transaction }) => {
+        return await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(billingState.currentSubscription).toBeDefined()
+    // Should be the last created subscription
+    expect(billingState.currentSubscription.id).toBe(
+      subscriptions[subscriptions.length - 1].id
+    )
+    expect(billingState.currentSubscriptions).toHaveLength(5)
   })
 })

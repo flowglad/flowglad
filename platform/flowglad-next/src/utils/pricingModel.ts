@@ -1,55 +1,171 @@
+import { TRPCError } from '@trpc/server'
 import omit from 'ramda/src/omit'
+import type { Feature } from '@/db/schema/features'
 import {
-  bulkInsertProducts,
-  insertProduct,
-  updateProduct,
-} from '@/db/tableMethods/productMethods'
+  type CreateProductPriceInput,
+  type Price,
+  type ProductWithPrices,
+  priceImmutableFields,
+  pricesInsertSchema,
+} from '@/db/schema/prices'
+import type { ClonePricingModelInput } from '@/db/schema/pricingModels'
+import type { ProductFeature } from '@/db/schema/productFeatures'
+import type { Product } from '@/db/schema/products'
+import type { UsageMeter } from '@/db/schema/usageMeters'
+import {
+  bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
+  selectFeatures,
+} from '@/db/tableMethods/featureMethods'
+import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   bulkInsertPrices,
   insertPrice,
+  safelyInsertPrice,
+  selectPrices,
   selectPricesAndProductsByProductWhere,
 } from '@/db/tableMethods/priceMethods'
-import {
-  AuthenticatedTransactionParams,
-  DbTransaction,
-} from '@/db/types'
-import {
-  CreateProductPriceInput,
-  Price,
-  pricesInsertSchema,
-  ProductWithPrices,
-} from '@/db/schema/prices'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
-import { Product } from '@/db/schema/products'
 import {
   insertPricingModel,
   selectPricingModelById,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from '@/db/tableMethods/pricingModelMethods'
-import { ClonePricingModelInput } from '@/db/schema/pricingModels'
 import {
-  syncProductFeatures,
-  selectProductFeatures,
   bulkInsertProductFeatures,
+  selectProductFeatures,
+  syncProductFeatures,
 } from '@/db/tableMethods/productFeatureMethods'
 import {
-  selectUsageMeters,
-  bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
-} from '@/db/tableMethods/usageMeterMethods'
+  bulkInsertProducts,
+  insertProduct,
+  selectProductById,
+  updateProduct,
+} from '@/db/tableMethods/productMethods'
 import {
-  selectFeatures,
-  bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
-} from '@/db/tableMethods/featureMethods'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { Feature } from '@/db/schema/features'
-import { ProductFeature } from '@/db/schema/productFeatures'
+  bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
+  selectUsageMeters,
+} from '@/db/tableMethods/usageMeterMethods'
+import type {
+  AuthenticatedTransactionParams,
+  DbTransaction,
+} from '@/db/types'
 import { DestinationEnvironment } from '@/types'
+import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
+
+const isPriceChanged = (
+  newPrice: Price.ClientInsert,
+  currentPrice: Price.ClientRecord | undefined
+): boolean => {
+  if (!currentPrice) {
+    return true
+  }
+  // Compare all immutable/create-only fields
+  const immutableFieldsChanged = priceImmutableFields.some(
+    (field) => {
+      const key = field as keyof Price.ClientInsert &
+        keyof Price.ClientRecord
+      return newPrice[key] !== currentPrice[key]
+    }
+  )
+  if (immutableFieldsChanged) {
+    return true
+  }
+  // Also check for changes in other important fields
+  const additionalFields: (keyof Price.ClientInsert &
+    keyof Price.ClientRecord)[] = [
+    'isDefault',
+    'name',
+    'active',
+    'slug',
+  ]
+  return additionalFields.some((field) => {
+    return newPrice[field] !== currentPrice[field]
+  })
+}
 
 export const createPrice = async (
   payload: Price.Insert,
   transaction: DbTransaction
 ) => {
   return insertPrice(payload, transaction)
+}
+
+export const createPriceTransaction = async (
+  payload: { price: Price.ClientInsert },
+  {
+    transaction,
+    livemode,
+    organizationId,
+  }: AuthenticatedTransactionParams
+) => {
+  const { price } = payload
+  if (!organizationId) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'organizationId is required to create a price',
+    })
+  }
+
+  // Get product to check if it's a default product
+  const product = await selectProductById(
+    price.productId,
+    transaction
+  )
+
+  // Get all prices for this product to validate constraints
+  const existingPrices = await selectPrices(
+    { productId: price.productId },
+    transaction
+  )
+
+  // Forbid creating additional prices for default products
+  if (product.default && existingPrices.length > 0) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Cannot create additional prices for the default plan',
+    })
+  }
+
+  // Validate that default prices on default products must have unitPrice = 0
+  if (price.isDefault && product.default && price.unitPrice !== 0) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message:
+        'Default prices on default products must have unitPrice = 0',
+    })
+  }
+
+  // Forbid creating price of a different type
+  if (
+    existingPrices.length > 0 &&
+    existingPrices.some(
+      (existingPrice) => existingPrice.type !== price.type
+    )
+  ) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message:
+        'Cannot create price of a different type than the existing prices for the product',
+    })
+  }
+
+  const organization = await selectOrganizationById(
+    organizationId,
+    transaction
+  )
+
+  // for now, created prices have default = true and active = true
+  const newPrice = await safelyInsertPrice(
+    {
+      ...price,
+      livemode: livemode ?? false,
+      currency: organization.defaultCurrency,
+      externalId: null,
+    },
+    transaction
+  )
+
+  return newPrice
 }
 
 export const createProductTransaction = async (
@@ -60,6 +176,18 @@ export const createProductTransaction = async (
   },
   { userId, transaction, livemode }: AuthenticatedTransactionParams
 ) => {
+  // Validate that usage prices are not created with featureIds
+  if (payload.featureIds && payload.featureIds.length > 0) {
+    const hasUsagePrice = payload.prices.some(
+      (price) => price.type === 'usage'
+    )
+    if (hasUsagePrice) {
+      throw new Error(
+        'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
+      )
+    }
+  }
+
   const [
     {
       organization: { id: organizationId, defaultCurrency },
@@ -119,22 +247,85 @@ export const createProductTransaction = async (
   }
 }
 
-export const editProduct = async (
-  payload: { product: Product.Update; featureIds?: string[] },
-  transaction: DbTransaction
+export const editProductTransaction = async (
+  payload: {
+    product: Product.Update
+    featureIds?: string[]
+    price?: Price.ClientInsert
+  },
+  {
+    transaction,
+    livemode,
+    organizationId,
+    userId,
+  }: AuthenticatedTransactionParams
 ) => {
-  const updatedProduct = await updateProduct(
-    payload.product,
+  const { product, featureIds, price } = payload
+
+  // Fetch the existing product to check if it's a default product
+  const existingProduct = await selectProductById(
+    product.id,
     transaction
   )
-  if (updatedProduct && payload.featureIds !== undefined) {
+  if (!existingProduct) {
+    throw new Error('Product not found')
+  }
+
+  // If default product, always force active=true on edit to auto-correct bad states
+  const isDefaultProduct = existingProduct.default
+  const enforcedProduct = isDefaultProduct
+    ? { ...product, active: true }
+    : product
+
+  // Validate that default products can only have certain fields updated
+  validateDefaultProductUpdate(enforcedProduct, existingProduct)
+
+  const updatedProduct = await updateProduct(
+    enforcedProduct,
+    transaction
+  )
+
+  if (!updatedProduct) {
+    throw new Error('Product not found or update failed')
+  }
+
+  if (featureIds !== undefined) {
     await syncProductFeatures(
       {
         product: updatedProduct,
-        desiredFeatureIds: payload.featureIds,
+        desiredFeatureIds: featureIds,
       },
       transaction
     )
+  }
+  /**
+   * Don't attempt to update prices for default products,
+   * quietly skip over it if it's a default product
+   */
+  if (price && !isDefaultProduct) {
+    // Forbid creating additional prices for default products
+    const existingPrices = await selectPrices(
+      { productId: product.id },
+      transaction
+    )
+    const currentPrice = existingPrices.find(
+      (p) => p.active && p.isDefault
+    )
+    if (isPriceChanged(price, currentPrice)) {
+      const organization = await selectOrganizationById(
+        organizationId,
+        transaction
+      )
+      await safelyInsertPrice(
+        {
+          ...price,
+          livemode,
+          currency: organization.defaultCurrency,
+          externalId: null,
+        },
+        transaction
+      )
+    }
   }
   return updatedProduct
 }

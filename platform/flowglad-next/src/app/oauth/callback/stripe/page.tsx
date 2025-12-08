@@ -1,9 +1,9 @@
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { adminTransaction } from '@/db/adminTransaction'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
-import { completeStripeOAuthFlow } from '@/utils/stripe'
 import { redirect } from 'next/navigation'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { completeStripeOAuthFlow } from '@/utils/stripe'
 
 export default async function StripeOAuthCallbackPage({
   searchParams,

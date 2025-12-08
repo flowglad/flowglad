@@ -5,7 +5,7 @@ import {
   Html,
   Preview,
 } from '@react-email/components'
-import * as React from 'react'
+import type * as React from 'react'
 
 const main = {
   backgroundColor: '#ffffff',

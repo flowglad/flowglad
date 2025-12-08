@@ -1,5 +1,5 @@
 import { Section } from '@react-email/components'
-import * as React from 'react'
+import type * as React from 'react'
 
 const sectionStyle = {
   margin: '30px 0',

@@ -1,5 +1,5 @@
-import { withSentryConfig } from '@sentry/nextjs'
 import { withLogtail } from '@logtail/next'
+import { withSentryConfig } from '@sentry/nextjs'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -7,14 +7,29 @@ const nextConfig = {
   // directory in order to run the server.
   output: 'standalone',
   outputFileTracingIncludes: {
+    // Include registry files
     registry: ['./src/registry/**/*'],
+    // Explicitly include undici and related packages in standalone output for all routes
+    // These are needed by @turbopuffer/turbopuffer and openai
+    '/**': [
+      './node_modules/undici/**/*',
+      './node_modules/@turbopuffer/turbopuffer/**/*',
+      './node_modules/openai/**/*',
+    ],
   },
   serverExternalPackages: [
+    'puppeteer',
     'puppeteer-core',
     '@sparticuz/chromium',
     '@aws-sdk/client-s3',
     '@aws-sdk/s3-request-presigner',
     'chromium-bidi',
+    'ws',
+    // Turbopuffer and OpenAI depend on undici, which needs to be externalized
+    // to avoid bundling issues in production (Vercel)
+    'undici',
+    '@turbopuffer/turbopuffer',
+    'openai',
   ],
   images: {
     remotePatterns: process.env.NEXT_PUBLIC_CDN_URL
@@ -60,6 +75,14 @@ const nextConfig = {
   },
   experimental: {
     webpackMemoryOptimizations: true,
+    turbo: {
+      rules: {
+        '*.md': {
+          loaders: ['raw-loader'],
+          as: '*.js',
+        },
+      },
+    },
   },
   webpack: (
     config,

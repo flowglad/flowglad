@@ -1,104 +1,139 @@
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
   vi,
 } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
 import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
   setupBillingPeriod,
-  setupBillingRun,
   setupBillingPeriodItem,
+  setupBillingRun,
+  setupCustomer,
+  setupDebitLedgerEntry,
   setupInvoice,
-  setupSubscription,
   setupLedgerAccount,
   setupLedgerTransaction,
-  setupDebitLedgerEntry,
+  setupOrg,
+  setupPayment,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupProductFeature,
+  setupSubscription,
+  setupSubscriptionItem,
+  setupUsageCreditGrantFeature,
   setupUsageEvent,
   setupUsageMeter,
-  setupPrice,
-  setupPayment,
   teardownOrg,
-  setupSubscriptionItem,
 } from '@/../seedDatabase'
 import {
-  calculateFeeAndTotalAmountDueForBillingPeriod,
-  processOutstandingBalanceForBillingPeriod,
-  processNoMoreDueForBillingPeriod,
-  executeBillingRunCalculationAndBookkeepingSteps,
-  executeBillingRun,
-  scheduleBillingRunRetry,
-  constructBillingRunRetryInsert,
-  createInvoiceInsertForBillingRun,
-  billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts,
-  tabulateOutstandingUsageCosts,
-  createBillingRun,
-} from './billingRunHelpers'
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import {
-  BillingPeriodStatus,
-  BillingRunStatus,
-  CurrencyCode,
-  InvoiceStatus,
-  InvoiceType,
-  PaymentMethodType,
-  SubscriptionItemType,
-  PriceType,
-  IntervalUnit,
-  SubscriptionStatus,
-  LedgerEntryStatus,
-  LedgerEntryType,
-  LedgerTransactionType,
-  PaymentStatus,
-} from '@/types'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Customer } from '@/db/schema/customers'
+  type OutstandingUsageCostAggregation,
+  settleInvoiceUsageCostsLedgerCommandSchema,
+} from '@/db/ledgerManager/ledgerManagerTypes'
+import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { Customer } from '@/db/schema/customers'
+import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
+import type { Invoice } from '@/db/schema/invoices'
+import type { LedgerAccount } from '@/db/schema/ledgerAccounts'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { UsageMeter } from '@/db/schema/usageMeters'
+import { updateBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
 import {
-  selectBillingRunById,
-  updateBillingRun,
+  selectBillingPeriodById,
+  updateBillingPeriod,
+} from '@/db/tableMethods/billingPeriodMethods'
+import {
   safelyInsertBillingRun,
+  selectBillingRunById,
+  selectBillingRuns,
+  updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
-import { Invoice } from '@/db/schema/invoices'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
+import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
+import {
+  selectInvoiceById,
+  selectInvoices,
+  updateInvoice,
+} from '@/db/tableMethods/invoiceMethods'
+import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
+import {
+  aggregateBalanceForLedgerAccountFromEntries,
+  selectLedgerEntries,
+} from '@/db/tableMethods/ledgerEntryMethods'
+import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMethods'
+import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import {
   safelyUpdatePaymentMethod,
   updatePaymentMethod,
 } from '@/db/tableMethods/paymentMethodMethods'
-import { insertInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
-import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
-import core from '@/utils/core'
-import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
-import { OutstandingUsageCostAggregation } from '@/db/ledgerManager/ledgerManagerTypes'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { PricingModel } from '@/db/schema/pricingModels'
-import { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import { updateBillingPeriodItem } from '@/db/tableMethods/billingPeriodItemMethods'
-import { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
-import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import {
-  createPaymentIntentForBillingRun,
+  selectCurrentlyActiveSubscriptionItems,
+  selectSubscriptionItems,
+  updateSubscriptionItem,
+} from '@/db/tableMethods/subscriptionItemMethods'
+import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
+import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
+import {
+  createMockConfirmationResult,
+  createMockPaymentIntent,
+  createMockPaymentIntentResponse,
+} from '@/test/helpers/stripeMocks'
+import {
+  BillingPeriodStatus,
+  BillingRunStatus,
+  CurrencyCode,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  InvoiceStatus,
+  InvoiceType,
+  LedgerEntryStatus,
+  LedgerEntryType,
+  LedgerTransactionType,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+  UsageCreditStatus,
+  UsageCreditType,
+} from '@/types'
+import core from '@/utils/core'
+import {
   confirmPaymentIntentForBillingRun,
+  createPaymentIntentForBillingRun,
+  IntentMetadataType,
   stripeIdFromObjectOrId,
 } from '@/utils/stripe'
 import {
-  createMockPaymentIntentResponse,
-  createMockConfirmationResult,
-} from '@/test/helpers/stripeMocks'
+  billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts,
+  calculateFeeAndTotalAmountDueForBillingPeriod,
+  constructBillingRunRetryInsert,
+  createBillingRun,
+  createInvoiceInsertForBillingRun,
+  executeBillingRun,
+  executeBillingRunCalculationAndBookkeepingSteps,
+  processNoMoreDueForBillingPeriod,
+  processOutstandingBalanceForBillingPeriod,
+  scheduleBillingRunRetry,
+  tabulateOutstandingUsageCosts,
+} from './billingRunHelpers'
+import { createSubscriptionWorkflow } from './createSubscription/workflow'
 
 // Mock Stripe functions
 vi.mock('@/utils/stripe', async (importOriginal) => {
@@ -239,13 +274,26 @@ describe('billingRunHelpers', async () => {
         ),
         status: BillingPeriodStatus.Active,
       })
+      let invoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        status: InvoiceStatus.Draft,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
       const updatedBillingPeriod = await adminTransaction(
         ({ transaction }) =>
           processOutstandingBalanceForBillingPeriod(
             billingPeriod,
+            invoice,
             transaction
           )
       )
+      invoice = await adminTransaction(({ transaction }) =>
+        selectInvoiceById(invoice.id, transaction)
+      )
+
+      expect(invoice.status).toBe(InvoiceStatus.Open)
       expect(updatedBillingPeriod.status).toBe(
         BillingPeriodStatus.PastDue
       )
@@ -812,14 +860,12 @@ describe('billingRunHelpers', async () => {
   describe('Billing Run Retry Logic', () => {
     it('should schedule billing run retries according to the defined schedule', async () => {
       const retryTimesInDays = [3, 5, 5]
-      let allBillingRunsForPeriod: BillingRun.Record[] = [billingRun]
+      let currentBillingRun: BillingRun.Record = billingRun
 
       for (let i = 0; i < retryTimesInDays.length; i++) {
         const daysToRetry = retryTimesInDays[i]
-        const retryInsert = constructBillingRunRetryInsert(
-          billingRun,
-          allBillingRunsForPeriod
-        )
+        const retryInsert =
+          constructBillingRunRetryInsert(currentBillingRun)
 
         expect(retryInsert).toBeDefined()
         const expectedRetryDate =
@@ -829,15 +875,16 @@ describe('billingRunHelpers', async () => {
           -3 // tolerance of 1 second
         )
 
-        // Add the new retry run to the list for the next iteration
-        allBillingRunsForPeriod.push({
-          ...billingRun,
+        // Use the retry run for the next iteration
+        currentBillingRun = {
+          ...currentBillingRun,
           ...(retryInsert as BillingRun.Insert),
           id: `retry-run-${i}`,
           createdAt: Date.now(),
           updatedAt: Date.now(),
           status: retryInsert!.status,
-        } as BillingRun.Record)
+          attemptNumber: retryInsert!.attemptNumber,
+        } as BillingRun.Record
       }
     })
 
@@ -998,6 +1045,88 @@ describe('billingRunHelpers', async () => {
     await expect(
       executeBillingRun(billingRun.id)
     ).resolves.toBeUndefined()
+  })
+
+  describe('Adjustment Billing Run Tests', () => {
+    it('should throw an error when executing an adjustment billing run without adjustment params', async () => {
+      const adjustmentBillingRun = await setupBillingRun({
+        billingPeriodId: billingPeriod.id,
+        paymentMethodId: paymentMethod.id,
+        subscriptionId: subscription.id,
+        status: BillingRunStatus.Scheduled,
+        isAdjustment: true,
+      })
+
+      await executeBillingRun(adjustmentBillingRun.id)
+      const updatedBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+      )
+      expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+      expect(updatedBillingRun.errorDetails).toBeDefined()
+      expect(updatedBillingRun.errorDetails?.message).toContain(
+        `executeBillingRun: Adjustment billing run ${adjustmentBillingRun.id} requires adjustmentParams`
+      )
+    })
+
+    it('should succeed when executing an adjustment billing run with adjustment params', async () => {
+      const adjustmentBillingRun = await setupBillingRun({
+        billingPeriodId: billingPeriod.id,
+        paymentMethodId: paymentMethod.id,
+        subscriptionId: subscription.id,
+        status: BillingRunStatus.Scheduled,
+        isAdjustment: true,
+      })
+
+      const newSubscriptionItems = [
+        await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: staticPrice.id,
+          name: staticPrice.name ?? 'New Static Item',
+          quantity: 1,
+          unitPrice: staticPrice.unitPrice,
+          type: SubscriptionItemType.Static,
+        }),
+      ]
+
+      const adjustmentDate = new Date()
+
+      // Mock Stripe functions to ensure the billing run can complete successfully
+      const mockPaymentIntent = createMockPaymentIntentResponse({
+        amount: staticBillingPeriodItem.unitPrice,
+        customer: customer.stripeCustomerId!,
+        payment_method: paymentMethod.stripePaymentMethodId!,
+        metadata: {
+          billingRunId: adjustmentBillingRun.id,
+          type: 'billing_run',
+          billingPeriodId: billingPeriod.id,
+        },
+      })
+      const mockConfirmationResult = createMockConfirmationResult(
+        mockPaymentIntent.id,
+        { metadata: mockPaymentIntent.metadata }
+      )
+
+      vi.mocked(
+        createPaymentIntentForBillingRun
+      ).mockResolvedValueOnce(mockPaymentIntent)
+      vi.mocked(
+        confirmPaymentIntentForBillingRun
+      ).mockResolvedValueOnce(mockConfirmationResult)
+
+      await executeBillingRun(adjustmentBillingRun.id, {
+        newSubscriptionItems,
+        adjustmentDate,
+      })
+
+      const updatedBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(adjustmentBillingRun.id, transaction)
+      )
+      expect(updatedBillingRun.status).toBe(
+        BillingRunStatus.Succeeded
+      )
+    })
   })
 
   describe('Atomicity Tests for executeBillingRun', () => {
@@ -1290,12 +1419,13 @@ describe('billingRunHelpers', async () => {
           payment_method: paymentMethod.stripePaymentMethodId!,
           metadata: {
             billingRunId: billingRun.id,
-            type: 'BillingRun',
+            type: 'billing_run',
             billingPeriodId: billingPeriod.id,
           },
         })
         const mockConfirmationResult = createMockConfirmationResult(
-          mockPaymentIntent.id
+          mockPaymentIntent.id,
+          { metadata: mockPaymentIntent.metadata }
         )
 
         vi.mocked(
@@ -1307,13 +1437,13 @@ describe('billingRunHelpers', async () => {
 
         await executeBillingRun(billingRun.id)
 
-        // Verify billing run is awaiting payment confirmation
+        // Verify billing run is Succeeded
         const updatedBillingRun = await adminTransaction(
           ({ transaction }) =>
             selectBillingRunById(billingRun.id, transaction)
         )
         expect(updatedBillingRun.status).toBe(
-          BillingRunStatus.AwaitingPaymentConfirmation
+          BillingRunStatus.Succeeded
         )
 
         // Verify payment record was created with correct properties
@@ -1336,7 +1466,7 @@ describe('billingRunHelpers', async () => {
               )
             : undefined,
           billingPeriodId: billingRun.billingPeriodId,
-          status: PaymentStatus.Processing,
+          status: PaymentStatus.Succeeded,
         })
 
         // Verify invoice was created/updated
@@ -1351,7 +1481,7 @@ describe('billingRunHelpers', async () => {
         )
         expect(invoice).toBeDefined()
         expect(invoice).toMatchObject({
-          status: InvoiceStatus.Open,
+          status: InvoiceStatus.Paid,
           customerId: customer.id,
           organizationId: organization.id,
         })
@@ -1381,6 +1511,152 @@ describe('billingRunHelpers', async () => {
           mockPaymentIntent.id,
           billingRun.livemode
         )
+      })
+      it('should grant usage credits when payment succeeds and invoice is marked as Paid', async () => {
+        // Setup: Create usage credit grant feature
+        const grantAmount = 5000
+        const feature = await setupUsageCreditGrantFeature({
+          organizationId: organization.id,
+          name: 'Test Usage Credit Grant',
+          usageMeterId: usageMeter.id,
+          renewalFrequency: FeatureUsageGrantFrequency.Once,
+          amount: grantAmount,
+          livemode: true,
+        })
+
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: feature.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          const activeSubscriptionItems =
+            await selectCurrentlyActiveSubscriptionItems(
+              { subscriptionId: subscription.id },
+              billingPeriod.startDate,
+              transaction
+            )
+
+          // If no items found, update the subscription item's addedDate to be <= billing period start
+          if (activeSubscriptionItems.length === 0) {
+            const allItems: SubscriptionItem.Record[] =
+              await selectSubscriptionItems(
+                {
+                  subscriptionId: subscription.id,
+                },
+                transaction
+              )
+
+            if (allItems.length > 0) {
+              // Update addedDate to be at or before billing period start
+              await updateSubscriptionItem(
+                {
+                  id: allItems[0].id,
+                  addedDate: billingPeriod.startDate,
+                  type: allItems[0].type,
+                },
+                transaction
+              )
+
+              // Re-query after update
+              const updatedItems =
+                await selectCurrentlyActiveSubscriptionItems(
+                  { subscriptionId: subscription.id },
+                  billingPeriod.startDate,
+                  transaction
+                )
+              await createSubscriptionFeatureItems(
+                updatedItems,
+                transaction
+              )
+              return
+            }
+          }
+
+          await createSubscriptionFeatureItems(
+            activeSubscriptionItems,
+            transaction
+          )
+        })
+
+        // Mock payment intent and confirmation with succeeded status
+        const mockPaymentIntent = createMockPaymentIntentResponse({
+          amount: staticBillingPeriodItem.unitPrice,
+          customer: customer.stripeCustomerId!,
+          payment_method: paymentMethod.stripePaymentMethodId!,
+          amount_received: staticBillingPeriodItem.unitPrice,
+          metadata: {
+            billingRunId: billingRun.id,
+            type: 'billing_run',
+            billingPeriodId: billingPeriod.id,
+          },
+        })
+
+        const mockConfirmationResult = createMockConfirmationResult(
+          mockPaymentIntent.id,
+          {
+            metadata: mockPaymentIntent.metadata,
+            amount_received: staticBillingPeriodItem.unitPrice,
+            status: 'succeeded',
+          }
+        )
+
+        vi.mocked(
+          createPaymentIntentForBillingRun
+        ).mockResolvedValueOnce(mockPaymentIntent)
+        vi.mocked(
+          confirmPaymentIntentForBillingRun
+        ).mockResolvedValueOnce(mockConfirmationResult)
+
+        // Execute billing run
+        await executeBillingRun(billingRun.id)
+
+        // Verify invoice is marked as Paid
+        const invoices = await adminTransaction(({ transaction }) =>
+          selectInvoices(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+        )
+        const invoice = invoices.find(
+          (inv) => inv.billingPeriodId === billingPeriod.id
+        )
+        expect(invoice).toBeDefined()
+        expect(invoice!.status).toBe(InvoiceStatus.Paid)
+
+        // Verify usage credits were granted
+        await adminTransaction(async ({ transaction }) => {
+          const ledgerAccounts = await selectLedgerAccounts(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+            },
+            transaction
+          )
+          expect(ledgerAccounts.length).toBe(1)
+          const ledgerAccount = ledgerAccounts[0]
+
+          const usageCredits = await selectUsageCredits(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          expect(usageCredits.length).toBe(1)
+          const usageCredit = usageCredits[0]
+          expect(usageCredit.issuedAmount).toBe(grantAmount)
+          expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
+          expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
+
+          // Verify correct grant amount in the ledger
+          const balance =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount.id },
+              'available',
+              transaction
+            )
+          expect(balance).toBe(grantAmount)
+        })
       })
     })
   })

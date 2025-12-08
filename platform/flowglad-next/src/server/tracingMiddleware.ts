@@ -1,9 +1,10 @@
 // trpc/tracingMiddleware.ts
+
+import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
 import { TRPCError } from '@trpc/server'
-import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api'
 import { logger } from '@/utils/logger'
-import { TRPCContext } from './trpcContext'
-import { FlowgladTRPC } from './coreTrpcObject'
+import type { FlowgladTRPC } from './coreTrpcObject'
+import type { TRPCContext } from './trpcContext'
 
 export function createTracingMiddleware() {
   const tracer = trace.getTracer('trpc-api')
@@ -63,7 +64,7 @@ export function createTracingMiddleware() {
               })
             }
             const service = apiKey ? 'api' : 'webapp'
-            // Log request start
+            // Log request start - pass span explicitly for trace context
             logger.info(
               `[${requestId}] 🟡 TRPC Request: ${type} ${path}`,
               {
@@ -80,6 +81,7 @@ export function createTracingMiddleware() {
                   : user
                     ? 'user'
                     : 'none',
+                span, // Pass span explicitly for trace correlation
               }
             )
 
@@ -101,6 +103,7 @@ export function createTracingMiddleware() {
                   type,
                   path,
                   duration_ms: duration,
+                  span, // Pass span explicitly for trace correlation
                 }
               )
 
@@ -170,6 +173,7 @@ export function createTracingMiddleware() {
                   error_code: errorCode,
                   duration_ms: duration,
                   organization_id: organizationId,
+                  span, // Pass span explicitly for trace correlation
                 }
               )
 

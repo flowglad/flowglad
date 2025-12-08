@@ -1,9 +1,12 @@
-import { adminTransaction } from '@/db/adminTransaction'
-import { Subscription } from '@/db/schema/subscriptions'
+import { logger, task } from '@trigger.dev/sdk'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { SubscriptionStatus } from '@/types'
-import { logger, task } from '@trigger.dev/sdk'
 import { storeTelemetry } from '@/utils/redis'
 
 export const attemptSubscriptionCancellationTask = task({
@@ -28,18 +31,8 @@ export const attemptSubscriptionCancellationTask = task({
         message: 'Subscription already ended',
       }
     }
-    const canceledSubscription = await adminTransaction(
+    const canceledSubscription = await comprehensiveAdminTransaction(
       async ({ transaction }) => {
-        if (
-          subscription.canceledAt &&
-          subscription.status !== SubscriptionStatus.Canceled
-        ) {
-          return safelyUpdateSubscriptionStatus(
-            subscription,
-            SubscriptionStatus.Canceled,
-            transaction
-          )
-        }
         return cancelSubscriptionImmediately(
           subscription,
           transaction

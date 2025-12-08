@@ -1,66 +1,62 @@
+import { and, eq, inArray } from 'drizzle-orm'
+import { z } from 'zod'
 import {
+  type Purchase,
+  purchaseClientInsertSchema,
   purchases,
   purchasesInsertSchema,
   purchasesSelectSchema,
+  purchasesTableRowDataSchema,
   purchasesUpdateSchema,
-  Purchase,
   singlePaymentPurchaseSelectSchema,
   subscriptionPurchaseSelectSchema,
-  purchaseClientInsertSchema,
-  purchasesTableRowDataSchema,
 } from '@/db/schema/purchases'
 import {
-  createUpsertFunction,
+  createCursorPaginatedSelectFunction,
+  createInsertFunction,
   createSelectById,
   createSelectFunction,
-  createInsertFunction,
-  ORMMethodCreatorConfig,
   createUpdateFunction,
+  createUpsertFunction,
+  type ORMMethodCreatorConfig,
   whereClauseFromObject,
-  createCursorPaginatedSelectFunction,
 } from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 import {
   CheckoutFlowType,
+  PaymentStatus,
   PriceType,
   PurchaseStatus,
-  PaymentStatus,
 } from '@/types'
-import { DbTransaction } from '@/db/types'
-import { and, eq, inArray } from 'drizzle-orm'
-import {
-  singlePaymentPriceSelectSchema,
-  subscriptionPriceSelectSchema,
-  prices,
-  pricesSelectSchema,
-  usagePriceSelectSchema,
-} from '../schema/prices'
+import { checkoutSessionClientSelectSchema } from '../schema/checkoutSessions'
 import {
   customerClientInsertSchema,
   customers,
   customersSelectSchema,
-  Customer,
 } from '../schema/customers'
+import { discountClientSelectSchema } from '../schema/discounts'
+import { featuresClientSelectSchema } from '../schema/features'
+import { customerFacingFeeCalculationSelectSchema } from '../schema/feeCalculations'
+import { invoiceLineItemsClientSelectSchema } from '../schema/invoiceLineItems'
+import { invoicesClientSelectSchema } from '../schema/invoices'
 import {
   organizations,
   organizationsSelectSchema,
 } from '../schema/organizations'
+import { payments, paymentsSelectSchema } from '../schema/payments'
 import {
+  prices,
+  pricesSelectSchema,
+  singlePaymentPriceSelectSchema,
+  subscriptionPriceSelectSchema,
+  usagePriceSelectSchema,
+} from '../schema/prices'
+import {
+  Product,
   products,
   productsSelectSchema,
-  Product,
 } from '../schema/products'
-import { z } from 'zod'
-import {
-  checkoutSessionClientSelectSchema,
-  checkoutSessionsSelectSchema,
-} from '../schema/checkoutSessions'
-import { payments, paymentsSelectSchema } from '../schema/payments'
-import { discountClientSelectSchema } from '../schema/discounts'
-import { customerFacingFeeCalculationSelectSchema } from '../schema/feeCalculations'
-import { ProperNoun } from '../schema/properNouns'
-import { invoicesClientSelectSchema } from '../schema/invoices'
-import { invoiceLineItemsClientSelectSchema } from '../schema/invoiceLineItems'
-import { featuresClientSelectSchema } from '../schema/features'
+import type { ProperNoun } from '../schema/properNouns'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,
@@ -187,12 +183,22 @@ const checkoutInfoCoreSchema = z.object({
   redirectUrl: z.string().url(),
   cancelUrl: z.string().url().nullish(),
   clientSecret: z.string().nullable(),
+  customerSessionClientSecret: z.string().nullable(),
   discount: discountClientSelectSchema.nullish(),
   /**
    * Only present when checkoutSession.customerId is not null
    */
   readonlyCustomerEmail: z.string().email().nullish(),
   feeCalculation: customerFacingFeeCalculationSelectSchema.nullable(),
+  /**
+   * Whether the customer is eligible for a trial period.
+   * This only checks customer eligibility (whether they've used a trial before),
+   * not whether the price has a trial period (that's in price.trialPeriodDays).
+   * true = customer hasn't used a trial before (or anonymous customer)
+   * false = customer has used a trial before
+   * undefined = not applicable (not subscription/usage price)
+   */
+  isEligibleForTrial: z.boolean().optional(),
 })
 
 const subscriptionCheckoutInfoSchema = checkoutInfoCoreSchema.extend({

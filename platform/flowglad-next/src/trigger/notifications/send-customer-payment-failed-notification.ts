@@ -1,24 +1,24 @@
-import {
-  selectOrganizationById,
-  selectOrganizationAndFirstMemberByOrganizationId,
-} from '@/db/tableMethods/organizationMethods'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import { adminTransaction } from '@/db/adminTransaction'
-import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
-import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
-import { sendPaymentFailedEmail } from '@/utils/email'
 import { logger, task } from '@trigger.dev/sdk'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Payment } from '@/db/schema/payments'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { generateInvoicePdfTask } from '../generate-invoice-pdf'
+import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
-import { Payment } from '@/db/schema/payments'
+import {
+  selectOrganizationAndFirstMemberByOrganizationId,
+  selectOrganizationById,
+} from '@/db/tableMethods/organizationMethods'
+import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import core from '@/utils/core'
+import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
+import { sendPaymentFailedEmail } from '@/utils/email'
+import { generateInvoicePdfTask } from '../generate-invoice-pdf'
 
-export const sendCustomerPaymentFailedNotificationTask = task({
+const sendCustomerPaymentFailedNotificationTask = task({
   id: 'send-customer-payment-failed-notification',
   run: async (payload: { paymentId: string }, { ctx }) => {
     const {

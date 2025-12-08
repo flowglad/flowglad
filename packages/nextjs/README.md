@@ -1,6 +1,6 @@
 # @flowglad/nextjs
 
-A Next.js integration package for FlowGlad, providing utilities and components for both client and server-side functionality.
+A Next.js integration package for Flowglad, providing utilities for both client and server-side functionality.
 
 ## Installation
 
@@ -15,7 +15,7 @@ bun add @flowglad/nextjs
 ## Requirements
 
 - React 18 or 19
-- Next.js 14 or 15
+- Next.js 14, 15, or 16
 
 ## Usage
 
@@ -61,10 +61,6 @@ export default function RootLayout({ children }) {
     <FlowgladProvider
       serverRoute="/api/flowglad" // Your Flowglad API route
       loadBilling={true} // Set to true to load billing data
-      theme={{
-        mode: 'system', // 'light' | 'dark' | 'system'
-        // Optional theme customization
-      }}
     >
       {children}
     </FlowgladProvider>

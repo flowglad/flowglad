@@ -1,6 +1,329 @@
 ---
 title: 'Webhooks'
-description: 'Receive notifications to your server endpoint when events happen in Flowglad.'
+description: 'Optional notifications you can subscribe to when billing events happen in Flowglad.'
 ---
 
-Coming soon... 
+<Note>
+By default, Flowglad acts as your product's source of truth for all billing data and feature access. You should only use it when another system must be told that a Flowglad billing event occurred.
+</Note>
+
+## When to use webhooks
+
+Usually you only need webhooks when you want to trigger a workflow in response to a billing-related event.
+
+- Starting or terminating background services in response to billing events, e.g. shutting down a VPS when a subscription cancels
+- Automated notifications
+
+You should **not** use webhooks to synchronize the following data:
+- What plan your customer has subscribed to
+- What features your customer gets based on their subscription
+- Whether your customer is subscribed to a paid plan
+- What usage credits your customer has access to
+
+For data like this, Flowglad serves as the source of truth for your product. Instead, you should rely on Flowglad's `useBilling`, `flowgladServer.getBilling`, or `customers/:externalId/billing` payload.
+This significantly reduces bugs related to synchronization of state between Flowglad (your payment processor), and your application. 
+
+## How deliveries work
+
+Flowglad records every billing-related change as an event, stores it durably, and then fans it out to each active webhook subscription that opted into that event type. Deliveries are sent separately in test and live mode, respect the `filterTypes` you set on the webhook, and are retried automatically whenever your endpoint responds with a non-2xx status.
+
+## Available events
+
+You can subscribe to any combination of the following event types:
+
+- `customer.created`
+- `customer.updated`
+- `purchase.completed`
+- `payment.failed`
+- `payment.succeeded`
+- `subscription.created`
+- `subscription.updated`
+- `subscription.canceled`
+
+Create different endpoints if you want to route subsets of events to different systems.
+
+## Payload structure
+
+The webhook payload includes:
+
+- `id`: the object's unique identifier
+- `object`: the object type (e.g., `"customer"`, `"payment"`, `"subscription"`)
+- Object-specific fields (e.g., `customer`, `status`, etc.)
+
+
+Example `payment.succeeded` delivery:
+
+```json
+{
+  "id": "pay_31n0b4p4",
+  "object": "payment",
+  "customer": {
+    "id": "cust_bc91m2vk",
+    "externalId": "user_42"
+  }
+}
+```
+
+## Delivery behavior
+
+- **At-least-once semantics**: duplicate deliveries can occur after retries. Use `eventId` (and, if desired, the combination of `eventType` + object ID) to ensure idempotent processing.
+- **Automatic retries**: Flowglad retries for several hours with exponential backoff whenever your endpoint returns a 3xx, 4xx, or 5xx response, or times out.
+- **Timeouts**: endpoints must respond within 10 seconds; otherwise the attempt is retried.
+- **Separate environments**: test-mode webhooks never receive live data. Publish a dedicated endpoint URL if you need to exercise both environments.
+
+## Managing webhooks
+
+### Dashboard
+
+1. Go to your organization's [Settings page](https://app.flowglad.com/settings).
+2. Select the **API** tab, and then **Create Webhook**.
+3. Provide a descriptive name, HTTPS URL, and the event types you want.
+4. Toggle the `Active` switch on or off to receive or pause deliveries.
+5. Copy the signing secret that appears after creation. If you misplace it, you can rotate or re-fetch the secret from the overflow menu.
+
+### API
+
+You can also retrieve and manage webhooks [via the API](https://docs.flowglad.com/api-reference/webhooks/get-webhook).
+
+## Secrets & verification
+
+Every webhook has a unique signing secret per environment. Flowglad sends three headers with every delivery:
+
+- `svix-id`: unique attempt identifier.
+- `svix-timestamp`: Unix timestamp (seconds) when the attempt started.
+- `svix-signature`: HMAC SHA-256 signature computed over `<id>.<timestamp>.<raw-body>` using your secret, base64 encoded. Format: `v1,<base64-signature>`.
+
+**Always verify webhook signatures before processing events.** This ensures the request came from Flowglad and hasn't been tampered with.
+
+### Verification using SDK (Recommended)
+
+Flowglad provides a `verifyWebhook` function in all server SDKs to simplify verification. The function automatically handles signature validation, timestamp checks, and returns the parsed payload.
+
+#### Next.js App Router
+
+```ts
+// app/api/webhook/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyWebhook, WebhookVerificationError } from '@flowglad/nextjs/server'
+
+export async function POST(request: NextRequest) {
+  try {
+    // Get raw body as string (use .text(), not .json())
+    const rawBody = await request.text()
+    
+    // Convert headers to plain object
+    const headers: Record<string, string> = {}
+    request.headers.forEach((value, key) => {
+      headers[key] = value
+    })
+    
+    const payload = verifyWebhook(
+      rawBody,
+      headers,
+      process.env.FLOWGLAD_WEBHOOK_SECRET!
+    )
+    
+    // Process verified payload...
+    console.log('Verified webhook:', payload)
+    
+    return NextResponse.json({ received: true })
+  } catch (err) {
+    if (err instanceof WebhookVerificationError) {
+      return NextResponse.json(
+        { error: 'Invalid webhook' },
+        { status: 400 }
+      )
+    }
+    throw err
+  }
+}
+```
+
+#### Next.js Pages Router
+
+```ts
+// pages/api/webhook.ts
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { verifyWebhook, WebhookVerificationError } from '@flowglad/nextjs/server'
+
+// Disable default body parser to get raw body
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+  
+  try {
+    // Get raw body as Buffer
+    const chunks: Buffer[] = []
+    for await (const chunk of req) {
+      chunks.push(chunk)
+    }
+    const rawBody = Buffer.concat(chunks)
+    
+    const payload = verifyWebhook(
+      rawBody,
+      req.headers,
+      process.env.FLOWGLAD_WEBHOOK_SECRET!
+    )
+    
+    // Process verified payload...
+    console.log('Verified webhook:', payload)
+    
+    res.status(200).json({ received: true })
+  } catch (err) {
+    if (err instanceof WebhookVerificationError) {
+      return res.status(400).json({ error: 'Invalid webhook' })
+    }
+    throw err
+  }
+}
+```
+
+#### Express.js
+
+Make sure to use `express.raw()` middleware for your webhook route. This preserves the raw request body, which is required for signature verification.
+
+```ts
+import express from 'express'
+import { verifyWebhook, WebhookVerificationError } from '@flowglad/express'
+
+const app = express()
+
+// Configure raw body parser for webhook route ONLY
+// This preserves the raw body needed for signature verification
+app.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    try {
+      // req.body is now a Buffer (raw body)
+      const payload = verifyWebhook(
+        req.body, // Buffer from express.raw()
+        req.headers,
+        process.env.FLOWGLAD_WEBHOOK_SECRET!
+      )
+      
+      // Process verified payload...
+      // payload is typed as 'unknown' - validate/type it based on your event structure
+      console.log('Verified webhook:', payload)
+      
+      res.status(200).json({ received: true })
+    } catch (err) {
+      if (err instanceof WebhookVerificationError) {
+        return res.status(400).json({ error: 'Invalid webhook' })
+      }
+      throw err
+    }
+  }
+)
+```
+
+#### Timestamp Validation
+
+By default, `verifyWebhook` validates that webhooks are no older than 5 minutes to prevent replay attacks. You can customize this:
+
+```ts
+// Custom tolerance (10 minutes)
+const payload = verifyWebhook(
+  rawBody,
+  headers,
+  process.env.FLOWGLAD_WEBHOOK_SECRET!,
+  600 // 10 minutes in seconds
+)
+
+// Disable timestamp validation (for testing only, not recommended for production)
+const payload = verifyWebhook(
+  rawBody,
+  headers,
+  process.env.FLOWGLAD_WEBHOOK_SECRET!,
+  null // Explicitly disable
+)
+```
+
+### Manual Verification (Without SDK)
+
+If you're not using a Flowglad SDK, you can verify webhooks manually. Here's how the signature verification works:
+
+```ts
+import crypto from 'crypto'
+import type { Request, Response } from 'express'
+
+const secret = process.env.FLOWGLAD_WEBHOOK_SECRET!
+
+export async function flowgladWebhookHandler(req: Request, res: Response) {
+  const id = req.header('svix-id')
+  const timestamp = req.header('svix-timestamp')
+  const signature = req.header('svix-signature')
+  let rawBody = req.rawBody
+  if (!rawBody) {
+    if (Buffer.isBuffer(req.body)) {
+      rawBody = req.body.toString('utf8')
+    } else if (typeof req.body === 'string') {
+      rawBody = req.body
+    } else {
+      rawBody = JSON.stringify(req.body)
+    }
+  }
+  
+  if (!id || !timestamp || !signature) {
+    return res.status(400).send('Missing signature headers')
+  }
+
+  // Extract secret key (strip whsec_ prefix and base64 decode)
+  // The secret format is whsec_<base64-encoded-key>, we need the decoded bytes for HMAC
+  const secretKey = Buffer.from(secret.split('_')[1], 'base64')
+
+  // Construct signed content: id.timestamp.body
+  const signedContent = `${id}.${timestamp}.${rawBody}`
+  
+  // Compute expected signature using the decoded secret key bytes
+  const expected = crypto
+    .createHmac('sha256', secretKey)
+    .update(signedContent)
+    .digest('base64')
+
+  // Extract signature from v1,<signature> format
+  const [version, sig] = signature.split(',')
+  if (version !== 'v1' || !sig) {
+    return res.status(400).send('Invalid signature format')
+  }
+  
+  // Use timing-safe comparison to prevent timing attacks
+  if (!crypto.timingSafeEqual(Buffer.from(sig, 'base64'), Buffer.from(expected, 'base64'))) {
+    return res.status(400).send('Invalid signature')
+  }
+
+  // Verify timestamp (optional but recommended)
+  const webhookTime = parseInt(timestamp, 10)
+  const currentTime = Math.floor(Date.now() / 1000)
+  const age = currentTime - webhookTime
+  
+  // Reject if older than 5 minutes
+  if (age > 300) {
+    return res.status(400).send('Webhook timestamp is too old')
+  }
+  
+  // Reject if timestamp is too far in future (clock skew protection)
+  if (webhookTime > currentTime + 60) {
+    return res.status(400).send('Webhook timestamp is too far in the future')
+  }
+
+  // Process verified payload here
+  res.status(204).end()
+}
+```
+
+<Note>
+You **must** use the raw request body when verifying webhooks, as even small changes will change the cryptographic signature. If you use a server framework that automatically parses JSON payloads, turn off this setting for your webhook route in order to access the raw request body.
+</Note>
+
+Rotate the secret anytime you suspect exposure; previously signed events remain valid because signatures are checked per attempt.

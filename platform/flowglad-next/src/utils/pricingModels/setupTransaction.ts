@@ -1,27 +1,26 @@
-import { bulkInsertProducts } from '@/db/tableMethods/productMethods'
+import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
+import type { Feature } from '@/db/schema/features'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { ProductFeature } from '@/db/schema/productFeatures'
+import type { Product } from '@/db/schema/products'
+import type { UsageMeter } from '@/db/schema/usageMeters'
+import { bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug } from '@/db/tableMethods/featureMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
-import { DbTransaction } from '@/db/types'
-import { Price } from '@/db/schema/prices'
-import { Product } from '@/db/schema/products'
 import { safelyInsertPricingModel } from '@/db/tableMethods/pricingModelMethods'
-import { PricingModel } from '@/db/schema/pricingModels'
 import { bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId } from '@/db/tableMethods/productFeatureMethods'
+import { bulkInsertProducts } from '@/db/tableMethods/productMethods'
+import { bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId } from '@/db/tableMethods/usageMeterMethods'
+import type { DbTransaction } from '@/db/types'
+import { FeatureType, IntervalUnit, PriceType } from '@/types'
+import { hashData } from '@/utils/backendCore'
+import { validateDefaultProductSchema } from '@/utils/defaultProductValidation'
 import {
-  SetupPricingModelInput,
-  SetupPricingModelProductInput,
+  type SetupPricingModelInput,
+  type SetupPricingModelProductInput,
   validateSetupPricingModelInput,
 } from '@/utils/pricingModels/setupSchemas'
-import { Feature } from '@/db/schema/features'
-import { bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId } from '@/db/tableMethods/usageMeterMethods'
-import { FeatureType, PriceType } from '@/types'
-import { bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug } from '@/db/tableMethods/featureMethods'
-import { hashData } from '@/utils/backendCore'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { ProductFeature } from '@/db/schema/productFeatures'
-import { validateDefaultProductSchema } from '@/utils/defaultProductValidation'
-import { IntervalUnit } from '@/types'
-import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
 
 export const externalIdFromProductData = (
   product: SetupPricingModelProductInput,
@@ -133,6 +132,7 @@ export const setupPricingModelTransaction = async (
           usageMeterId: usageMeter.id,
           amount: feature.amount,
           renewalFrequency: feature.renewalFrequency,
+          active: feature.active ?? true,
         }
       }
       return {
@@ -141,6 +141,11 @@ export const setupPricingModelTransaction = async (
         usageMeterId: null,
         amount: null,
         renewalFrequency: null,
+        // using provided feature.active here rather than always defaulting to true,
+        // since currently a feature marked as inactive in yaml will import and
+        // get set up as an active feature, which is not good behavior.
+        // with the new changes in setupHelpers.ts, we shouldn't get this situation anymore
+        active: feature.active ?? true,
       }
     }
   )

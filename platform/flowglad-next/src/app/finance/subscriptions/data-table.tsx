@@ -1,13 +1,32 @@
 'use client'
 
-import * as React from 'react'
 import {
-  ColumnSizingState,
-  VisibilityState,
+  type ColumnFiltersState,
+  type ColumnSizingState,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from '@tanstack/react-table'
+import { useRouter } from 'next/navigation'
+import * as React from 'react'
+import { trpc } from '@/app/_trpc/client'
+import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
+import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
+import { CollapsibleSearch } from '@/components/ui/collapsible-search'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -16,24 +35,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
-import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { FilterButtonGroup } from '@/components/ui/filter-button-group'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { SubscriptionStatus } from '@/types'
 import { columns } from './columns'
-import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
-import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
-import { trpc } from '@/app/_trpc/client'
-import { Subscription } from '@/db/schema/subscriptions'
-import { SubscriptionStatus } from '@/types'
-import { useRouter } from 'next/navigation'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { CollapsibleSearch } from '@/components/ui/collapsible-search'
 
 export interface SubscriptionsTableFilters {
   status?: SubscriptionStatus
@@ -166,11 +170,7 @@ export function SubscriptionsDataTable({
       <div className="flex flex-wrap items-center justify-between pt-4 pb-3 gap-4 min-w-0">
         {/* Title and/or Filter buttons on the left */}
         <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && (
-            <h3 className="text-lg font-semibold truncate">
-              {title}
-            </h3>
-          )}
+          {title && <h3 className="text-lg truncate">{title}</h3>}
           {filterOptions && activeFilter && onFilterChange && (
             <FilterButtonGroup
               options={filterOptions}

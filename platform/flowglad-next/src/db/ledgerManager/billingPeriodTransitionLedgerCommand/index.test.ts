@@ -1,80 +1,82 @@
+import { and, eq } from 'drizzle-orm'
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
   vi,
 } from 'vitest'
-import { processBillingPeriodTransitionLedgerCommand } from './index'
 import {
-  LedgerEntryType,
-  LedgerTransactionType,
-  SubscriptionStatus,
-  IntervalUnit,
-  BillingRunStatus,
-  FeatureUsageGrantFrequency,
-  UsageCreditStatus,
-  UsageCreditType,
-  LedgerEntryDirection,
-  UsageCreditSourceReferenceType,
-} from '@/types'
-import {
-  setupOrg,
-  setupCustomer,
-  setupPaymentMethod,
-  setupSubscription,
-  setupUsageMeter,
-  setupLedgerAccount,
   setupBillingPeriod,
-  teardownOrg,
   setupBillingRun,
-  setupSubscriptionItem,
-  setupUsageCreditGrantFeature,
+  setupCustomer,
+  setupLedgerAccount,
+  setupLedgerEntries,
+  setupLedgerTransaction,
+  setupOrg,
+  setupPaymentMethod,
   setupProductFeature,
+  setupSubscription,
+  setupSubscriptionItem,
   setupSubscriptionItemFeatureUsageCreditGrant,
   setupUsageCredit,
   setupUsageCreditApplication,
+  setupUsageCreditGrantFeature,
   setupUsageEvent,
-  setupLedgerEntries,
-  setupLedgerTransaction,
+  setupUsageMeter,
+  teardownOrg,
 } from '@/../seedDatabase'
-import { insertUsageCreditApplication } from '@/db/tableMethods/usageCreditApplicationMethods'
-import { Organization } from '@/db/schema/organizations'
-import { Product } from '@/db/schema/products'
-import { Price } from '@/db/schema/prices'
-import { Customer } from '@/db/schema/customers'
-import { PaymentMethod } from '@/db/schema/paymentMethods'
-import { Subscription } from '@/db/schema/subscriptions'
-import { UsageMeter } from '@/db/schema/usageMeters'
-import { BillingPeriod } from '@/db/schema/billingPeriods'
-import { PricingModel } from '@/db/schema/pricingModels'
 import { adminTransaction } from '@/db/adminTransaction'
-import { LedgerAccount } from '@/db/schema/ledgerAccounts'
-import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
-import { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
-import { BillingRun } from '@/db/schema/billingRuns'
-import { SubscriptionItem } from '@/db/schema/subscriptionItems'
-import { Feature } from '@/db/schema/features'
-import { ProductFeature } from '@/db/schema/productFeatures'
-import { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
-import { eq, and } from 'drizzle-orm'
 import db from '@/db/client'
-import { ledgerEntries as ledgerEntriesTable } from '@/db/schema/ledgerEntries'
-import { usageCredits, UsageCredit } from '@/db/schema/usageCredits'
-import { LedgerEntry } from '@/db/schema/ledgerEntries'
-import { selectUsageCreditById } from '@/db/tableMethods/usageCreditMethods'
+import type { BillingPeriodTransitionLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
+import type { BillingPeriod } from '@/db/schema/billingPeriods'
+import type { BillingRun } from '@/db/schema/billingRuns'
+import type { Customer } from '@/db/schema/customers'
+import type { Feature } from '@/db/schema/features'
+import {
+  type LedgerAccount,
+  ledgerAccounts,
+} from '@/db/schema/ledgerAccounts'
+import {
+  type LedgerEntry,
+  ledgerEntries as ledgerEntriesTable,
+} from '@/db/schema/ledgerEntries'
+import { LedgerTransaction } from '@/db/schema/ledgerTransactions'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { ProductFeature } from '@/db/schema/productFeatures'
+import type { Product } from '@/db/schema/products'
+import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { UsageCredit, usageCredits } from '@/db/schema/usageCredits'
+import type { UsageMeter } from '@/db/schema/usageMeters'
 import * as ledgerAccountMethods from '@/db/tableMethods/ledgerAccountMethods'
 import { selectLedgerAccounts } from '@/db/tableMethods/ledgerAccountMethods'
-import { ledgerAccounts } from '@/db/schema/ledgerAccounts'
-import { expireCreditsAtEndOfBillingPeriod } from './expireCreditsAtEndOfBillingPeriod'
-import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { aggregateAvailableBalanceForUsageCredit } from '@/db/tableMethods/ledgerEntryMethods'
+import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
+import { insertUsageCreditApplication } from '@/db/tableMethods/usageCreditApplicationMethods'
+import { selectUsageCreditById } from '@/db/tableMethods/usageCreditMethods'
 import {
-  UsageCreditApplicationStatus,
   BillingPeriodStatus,
+  BillingRunStatus,
+  FeatureUsageGrantFrequency,
+  IntervalUnit,
+  LedgerEntryDirection,
+  LedgerEntryType,
+  LedgerTransactionType,
+  SubscriptionStatus,
+  UsageCreditApplicationStatus,
+  UsageCreditSourceReferenceType,
+  UsageCreditStatus,
+  UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'
+import { expireCreditsAtEndOfBillingPeriod } from './expireCreditsAtEndOfBillingPeriod'
+import { processBillingPeriodTransitionLedgerCommand } from './index'
 
 describe('processBillingPeriodTransitionLedgerCommand', () => {
   let organization: Organization.Record
@@ -92,7 +94,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
   let billingRun: BillingRun.Record
   let feature: Feature.Record
   let productFeature: ProductFeature.Record
-  let subscriptionFeatureItem: SubscriptionItemFeature.UsageCreditGrantClientRecord
+  let subscriptionFeatureItem: SubscriptionItemFeature.UsageCreditGrantRecord
   let command: BillingPeriodTransitionLedgerCommand
 
   beforeEach(async () => {
@@ -630,8 +632,8 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
     let recurringFeature: Feature.Record
     let productFeatureOnce: ProductFeature.Record
     let productFeatureRecurring: ProductFeature.Record
-    let subscriptionItemFeatureOnce: SubscriptionItemFeature.UsageCreditGrantClientRecord
-    let subscriptionItemFeatureRecurring: SubscriptionItemFeature.UsageCreditGrantClientRecord
+    let subscriptionItemFeatureOnce: SubscriptionItemFeature.UsageCreditGrantRecord
+    let subscriptionItemFeatureRecurring: SubscriptionItemFeature.UsageCreditGrantRecord
     let nonRenewingCommand: BillingPeriodTransitionLedgerCommand
     let nonRenewingSubscriptionItem: SubscriptionItem.Record
     let ledgerAccountNonRenewing1: LedgerAccount.Record

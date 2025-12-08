@@ -1,32 +1,32 @@
 'use client'
 
 import * as React from 'react'
-import { cn } from '@/lib/utils'
-import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  CheckoutFlowType,
-  CurrencyCode,
-  Nullish,
-  PriceType,
-} from '@/types'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import {
-  calculateTotalDueAmount,
-  calculatePriceBaseAmount,
-  calculateDiscountAmount,
-  calculateInvoiceBaseAmount,
-} from '@/utils/bookkeeping/fees/common'
-import { Purchase } from '@/db/schema/purchases'
-import { FeeCalculation } from '@/db/schema/feeCalculations'
-import { Price } from '@/db/schema/prices'
-import { Discount } from '@/db/schema/discounts'
+import { useCheckoutPageContext } from '@/contexts/checkoutPageContext'
+import type { Discount } from '@/db/schema/discounts'
+import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import {
   ClientInvoiceWithLineItems,
-  InvoiceLineItem,
+  type InvoiceLineItem,
   InvoiceWithLineItems,
 } from '@/db/schema/invoiceLineItems'
-import { Invoice } from '@/db/schema/invoices'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Price } from '@/db/schema/prices'
+import type { Purchase } from '@/db/schema/purchases'
+import { cn } from '@/lib/utils'
+import {
+  CheckoutFlowType,
+  type CurrencyCode,
+  type Nullish,
+  PriceType,
+} from '@/types'
+import {
+  calculateDiscountAmount,
+  calculateInvoiceBaseAmount,
+  calculatePriceBaseAmount,
+  calculateTotalDueAmount,
+} from '@/utils/bookkeeping/fees/common'
+import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export interface TotalBillingDetailsProps
   extends React.HTMLAttributes<HTMLDivElement> {}
@@ -119,12 +119,12 @@ export const calculateTotalBillingDetails = (
           purchase,
         })
 
-  let subtotalAmount: number = baseAmount
-  let discountAmount: number = calculateDiscountAmount(
+  const subtotalAmount: number = baseAmount
+  const discountAmount: number = calculateDiscountAmount(
     baseAmount,
     discount
   )
-  let taxAmount: number | null = null
+  const taxAmount: number | null = null
   let totalDueAmount: number = subtotalAmount - (discountAmount ?? 0)
 
   if (price?.type === PriceType.Usage) {
@@ -208,7 +208,11 @@ export const TotalBillingDetails = React.forwardRef<
 
   let afterwardsTotal: number | null = null
   let afterwardsTotalLabel = ''
-  if (subscriptionDetails?.trialPeriodDays) {
+  // Only show trial UI if customer is eligible for trial AND price has trial period
+  if (
+    subscriptionDetails?.trialPeriodDays &&
+    checkoutPageContext.isEligibleForTrial
+  ) {
     afterwardsTotalLabel = 'Total After Trial'
     // Calculate the actual price after trial (with discount applied)
     const priceAfterTrial =
@@ -292,7 +296,8 @@ export const TotalBillingDetails = React.forwardRef<
                   ? ''
                   : stripeCurrencyAmountToHumanReadableCurrencyAmount(
                       currency,
-                      subscriptionDetails?.trialPeriodDays
+                      subscriptionDetails?.trialPeriodDays &&
+                        checkoutPageContext.isEligibleForTrial
                         ? 0
                         : finalTotalDueAmount
                     )}

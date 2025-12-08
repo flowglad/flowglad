@@ -1,34 +1,37 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminTransaction } from '@/db/adminTransaction'
-import db from '@/db/client'
-import { subscriptionItemFeatures } from '@/db/schema/subscriptionItemFeatures'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  selectSubscriptionItemFeatureById,
-  selectClientSubscriptionItemFeatureAndFeatureById,
-  insertSubscriptionItemFeature,
-  updateSubscriptionItemFeature,
-  selectSubscriptionItemFeatures,
-  selectSubscriptionItemFeaturesWithFeatureSlug,
-  upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
-  bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId,
-  expireSubscriptionItemFeature,
-  expireSubscriptionItemFeaturesForSubscriptionItem,
-  detachSubscriptionItemFeaturesFromProductFeature,
-} from './subscriptionItemFeatureMethods'
-import {
-  setupOrg,
   setupCustomer,
+  setupOrg,
   setupPaymentMethod,
   setupSubscription,
   setupSubscriptionItem,
   setupTestFeaturesAndProductFeatures,
   setupUsageMeter,
 } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import db from '@/db/client'
 import {
-  SubscriptionItemType,
+  type SubscriptionItemFeature,
+  subscriptionItemFeatures,
+} from '@/db/schema/subscriptionItemFeatures'
+import {
   FeatureType,
   FeatureUsageGrantFrequency,
+  SubscriptionItemType,
 } from '@/types'
+import {
+  bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId,
+  detachSubscriptionItemFeaturesFromProductFeature,
+  expireSubscriptionItemFeature,
+  expireSubscriptionItemFeaturesForSubscriptionItems,
+  insertSubscriptionItemFeature,
+  selectClientSubscriptionItemFeatureAndFeatureById,
+  selectSubscriptionItemFeatureById,
+  selectSubscriptionItemFeatures,
+  selectSubscriptionItemFeaturesWithFeatureSlug,
+  updateSubscriptionItemFeature,
+  upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId,
+} from './subscriptionItemFeatureMethods'
 
 describe('subscriptionItemFeatureMethods', () => {
   let organization: any
@@ -296,13 +299,13 @@ describe('subscriptionItemFeatureMethods', () => {
         )
         const date = new Date()
         const updated =
-          await expireSubscriptionItemFeaturesForSubscriptionItem(
-            subscriptionItem.id,
+          await expireSubscriptionItemFeaturesForSubscriptionItems(
+            [subscriptionItem.id],
             date,
             transaction
           )
         expect(updated.length).toBe(2)
-        updated.forEach((u) => {
+        updated.forEach((u: SubscriptionItemFeature.Record) => {
           expect(u.expiredAt).not.toBeNull()
           expect(u.expiredAt).toBe(date.getTime())
         })

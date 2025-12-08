@@ -1,20 +1,21 @@
-import core from '@/utils/core'
 import { logger, task } from '@trigger.dev/sdk'
+import { kebabCase } from 'change-case'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionUpgradedEmail } from '@/email-templates/customer-subscription-upgraded'
-import { safeSend } from '@/utils/email'
+import { SubscriptionStatus } from '@/types'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
-import { kebabCase } from 'change-case'
+import core from '@/utils/core'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 
-export const sendCustomerSubscriptionUpgradedNotificationTask = task({
+const sendCustomerSubscriptionUpgradedNotificationTask = task({
   id: 'send-customer-subscription-upgraded-notification',
   maxDuration: 60,
   queue: { concurrencyLimit: 10 },
@@ -110,31 +111,36 @@ export const sendCustomerSubscriptionUpgradedNotificationTask = task({
 
     // Calculate next billing date based on new subscription start and interval
     let nextBillingDate: Date | undefined
+    let trialing = false
     if (newPrice.intervalUnit) {
       nextBillingDate = new Date(newSubscription.createdAt!)
       const intervalCount = newPrice.intervalCount || 1
-
-      switch (newPrice.intervalUnit) {
-        case 'day':
-          nextBillingDate.setDate(
-            nextBillingDate.getDate() + intervalCount
-          )
-          break
-        case 'week':
-          nextBillingDate.setDate(
-            nextBillingDate.getDate() + intervalCount * 7
-          )
-          break
-        case 'month':
-          nextBillingDate.setMonth(
-            nextBillingDate.getMonth() + intervalCount
-          )
-          break
-        case 'year':
-          nextBillingDate.setFullYear(
-            nextBillingDate.getFullYear() + intervalCount
-          )
-          break
+      if (newSubscription.status === SubscriptionStatus.Trialing) {
+        nextBillingDate = new Date(newSubscription.trialEnd!)
+        trialing = true
+      } else {
+        switch (newPrice.intervalUnit) {
+          case 'day':
+            nextBillingDate.setDate(
+              nextBillingDate.getDate() + intervalCount
+            )
+            break
+          case 'week':
+            nextBillingDate.setDate(
+              nextBillingDate.getDate() + intervalCount * 7
+            )
+            break
+          case 'month':
+            nextBillingDate.setMonth(
+              nextBillingDate.getMonth() + intervalCount
+            )
+            break
+          case 'year':
+            nextBillingDate.setFullYear(
+              nextBillingDate.getFullYear() + intervalCount
+            )
+            break
+        }
       }
     }
     const notifUatEmail = core.envVariable('NOTIF_UAT_EMAIL')
@@ -142,7 +148,10 @@ export const sendCustomerSubscriptionUpgradedNotificationTask = task({
       from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
       bcc: notifUatEmail ? [notifUatEmail] : undefined,
       to: [customer.email],
-      subject: 'Payment method confirmed - Subscription upgraded',
+      subject: formatEmailSubject(
+        'Payment method confirmed - Subscription upgraded',
+        newSubscription.livemode
+      ),
       react: await CustomerSubscriptionUpgradedEmail({
         customerName: customer.name,
         organizationName: organization.name,
@@ -164,6 +173,7 @@ export const sendCustomerSubscriptionUpgradedNotificationTask = task({
         nextBillingDate: nextBillingDate || undefined,
         paymentMethodLast4: (paymentMethod?.paymentMethodData as any)
           ?.last4,
+        trialing,
       }),
     })
 

@@ -2,14 +2,31 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Flowglad Docs",
+  "contextual": {
+    "options": ["copy", "view", "mcp", "cursor"]
+  },
   "colors": {
-    "primary": "#1e90ff",
-    "light": "#1eeeff",
-    "dark": "#1e90ff"
+    "primary": "#DD7D29",
+    "light": "#FFC898",
+    "dark": "#BA702E"
+  },
+  "fonts": {
+    "heading": {
+      "family": "ABC Arizona",
+      "source": "/fonts/abc-arizona/ABCArizona-Medium.woff2",
+      "format": "woff2",
+      "weight": 500
+    },
+    "body": {
+      "family": "SF Pro",
+      "source": "/fonts/sf-pro/SF-Pro.woff2",
+      "format": "woff2",
+      "weight": 400
+    }
   },
   "integrations": {
     "posthog": {
-        "apiKey": "phc_NDDBDoAw8gMHPIhSfAvlBF6TdnRP2uqSAQ0eBSNXAKk"
+      "apiKey": "phc_NDDBDoAw8gMHPIhSfAvlBF6TdnRP2uqSAQ0eBSNXAKk"
     }
   },
   "favicon": "/favicon.svg",
@@ -22,16 +39,17 @@
             "group": "Get Started",
             "pages": [
               "quickstart",
-              "setup-by-prompt"
+              "integrate-by-prompt",
+              "integrate-by-http"
             ]
           },
           {
             "group": "Features",
             "pages": [
+              "features/pricing-models",
               "features/products",
               "features/prices",
               "features/discounts",
-              "features/pricing-models",
               "features/subscriptions",
               "features/checkout-sessions",
               "features/invoices",
@@ -41,11 +59,38 @@
           },
           {
             "group": "Concepts",
+            "pages": ["principles", "data-model", "countries"]
+          }
+        ]
+      },
+      {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "Overview",
             "pages": [
-              "principles",
-              "data-model",
-              "countries"
+              "sdks/introduction",
+              "sdks/setup",
+              "sdks/auth",
+              "sdks/pricing-models-products",
+              "sdks/checkout-sessions",
+              "sdks/feature-access-usage",
+              "sdks/customer-purchases",
+              "sdks/subscription-management"
             ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              "sdks/nextjs",
+              "sdks/react",
+              "sdks/server",
+              "sdks/express"
+            ]
+          },
+          {
+            "group": "Additional Resources",
+            "pages": ["sdks/examples"]
           }
         ]
       },
@@ -58,9 +103,7 @@
         "groups": [
           {
             "group": "API Documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
+            "pages": ["api-reference/introduction"]
           }
         ]
       }
@@ -81,8 +124,8 @@
   },
   "background": {
     "color": {
-      "light": "#ffffff",
-      "dark": "#1b1b1b"
+      "light": "#FBFAF4",
+      "dark": "#2D2A28"
     }
   },
   "navbar": {

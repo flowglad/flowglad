@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { SubscriptionCard } from './subscription-card'
-import { Subscription } from './types'
+import type { Subscription } from './types'
 
 const mockSubscriptions: Record<string, Subscription> = {
   active: {
@@ -160,7 +160,7 @@ export default function SubscriptionCardDemo() {
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">
+          <h1 className="text-3xl mb-2">
             Subscription Card Component
           </h1>
           <p className="text-muted-foreground">
@@ -172,9 +172,7 @@ export default function SubscriptionCardDemo() {
         <div className="grid gap-6 md:grid-cols-2">
           {/* Active Subscription */}
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">
-              Active Subscription
-            </h3>
+            <h3 className="text-lg">Active Subscription</h3>
             <SubscriptionCard
               subscription={mockSubscriptions.active}
               onCancel={handleCancel}
@@ -184,9 +182,7 @@ export default function SubscriptionCardDemo() {
 
           {/* Trial Subscription */}
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">
-              Trial Subscription
-            </h3>
+            <h3 className="text-lg">Trial Subscription</h3>
             <SubscriptionCard
               subscription={mockSubscriptions.trialing}
               onCancel={handleCancel}
@@ -196,9 +192,7 @@ export default function SubscriptionCardDemo() {
 
           {/* Past Due Subscription */}
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">
-              Past Due Subscription
-            </h3>
+            <h3 className="text-lg">Past Due Subscription</h3>
             <SubscriptionCard
               subscription={mockSubscriptions.pastDue}
               loading={loadingStates[mockSubscriptions.pastDue.id]}
@@ -207,9 +201,7 @@ export default function SubscriptionCardDemo() {
 
           {/* Canceling Subscription */}
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">
-              Scheduled for Cancellation
-            </h3>
+            <h3 className="text-lg">Scheduled for Cancellation</h3>
             <SubscriptionCard
               subscription={mockSubscriptions.canceling}
               loading={loadingStates[mockSubscriptions.canceling.id]}
@@ -219,9 +211,7 @@ export default function SubscriptionCardDemo() {
 
         {/* Multi-item Subscription (Full Width) */}
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold">
-            Multi-item Subscription
-          </h3>
+          <h3 className="text-lg">Multi-item Subscription</h3>
           <SubscriptionCard
             subscription={mockSubscriptions.multiItem}
             onCancel={handleCancel}
@@ -232,7 +222,7 @@ export default function SubscriptionCardDemo() {
 
         {/* Loading State */}
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold">Loading State</h3>
+          <h3 className="text-lg">Loading State</h3>
           <SubscriptionCard
             subscription={mockSubscriptions.active}
             loading={true}
@@ -242,9 +232,7 @@ export default function SubscriptionCardDemo() {
 
         {/* Minimal (No Actions) */}
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold">
-            Read-only (No Actions)
-          </h3>
+          <h3 className="text-lg">Read-only (No Actions)</h3>
           <SubscriptionCard
             subscription={mockSubscriptions.active}
             className="max-w-md"

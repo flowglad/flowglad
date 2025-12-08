@@ -1,7 +1,7 @@
-import { z } from 'zod'
+import type { FlowgladServer } from '@flowglad/server'
 import { createMcpHandler } from '@vercel/mcp-adapter'
-import { NextRequest } from 'next/server'
-import { FlowgladServer } from '@flowglad/server'
+import type { NextRequest } from 'next/server'
+import type { z } from 'zod'
 
 export type McpHandler = typeof createMcpHandler
 
@@ -58,8 +58,7 @@ export const toolWithFeatureAccessCheck = <T extends z.ZodRawShape>(
     }
     return await toolCallback(...args)
   }
-  // @ts-expect-error
-  return wrappedCallback
+  return wrappedCallback as ToolCallback
 }
 
 export const toolWithUsageBalanceCheck = <T extends z.ZodRawShape>(
