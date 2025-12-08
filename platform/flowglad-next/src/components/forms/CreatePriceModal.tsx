@@ -31,7 +31,7 @@ const getDefaultValues = (
 
   const __rawPriceString = countableCurrencyAmountToRawStringAmount(
     previousPrice.currency,
-    previousPrice.unitPrice!
+    previousPrice.unitPrice
   )
 
   if (previousPrice.type === PriceType.SinglePayment) {
