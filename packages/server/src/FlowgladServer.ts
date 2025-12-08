@@ -291,13 +291,16 @@ export class FlowgladServer {
   ): Promise<FlowgladNode.Subscriptions.SubscriptionCancelResponse> => {
     const { subscription } =
       await this.flowgladNode.subscriptions.retrieve(params.id)
-    if (subscription.status === 'canceled') {
-      throw new Error('Subscription is already canceled')
-    }
+
     const { customer } = await this.getCustomer()
     if (subscription.customerId !== customer.id) {
       throw new Error('Subscription is not owned by the current user')
     }
+
+    if (subscription.status === 'canceled') {
+      throw new Error('Subscription is already canceled')
+    }
+
     return this.flowgladNode.subscriptions.cancel(params.id, {
       cancellation:
         params.cancellation as FlowgladNode.Subscriptions.SubscriptionCancelParams['cancellation'],
@@ -310,15 +313,15 @@ export class FlowgladServer {
     const { subscription } =
       await this.flowgladNode.subscriptions.retrieve(params.id)
 
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+
     // Validation: Check if subscription is scheduled to cancel
     if (subscription.status !== 'cancellation_scheduled') {
       // Idempotent: silently succeed if not scheduled to cancel
       return { subscription }
-    }
-
-    const { customer } = await this.getCustomer()
-    if (subscription.customerId !== customer.id) {
-      throw new Error('Subscription is not owned by the current user')
     }
 
     return this.flowgladNode.subscriptions.uncancel(params.id)
