@@ -16,9 +16,7 @@
     "type-check": "tsc --noEmit",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
-    "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
-    "link:packages": "yalc add @flowglad/nextjs @flowglad/react @flowglad/server @flowglad/shared @flowglad/types && yalc update && bun install --force && yalc update",
-    "unlink:packages": "yalc remove --all && bun install"
+    "db:studio": "drizzle-kit studio --config=drizzle.config.ts"
   },
   "dependencies": {
     "@flowglad/nextjs": "workspace:*",
