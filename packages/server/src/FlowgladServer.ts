@@ -170,6 +170,12 @@ export class FlowgladServer {
     return await this.flowgladNode.customers.create(params)
   }
 
+  /**
+   * Create a checkout session.
+   * You can provide either `priceId` or `priceSlug` (but not both).
+   * @param params - Checkout session parameters. Must include either `priceId` or `priceSlug`, plus `successUrl` and `cancelUrl`.
+   * @returns The created checkout session with a URL for redirecting the customer.
+   */
   public createCheckoutSession = async (
     params: CreateProductCheckoutSessionParams
   ): Promise<FlowgladNode.CheckoutSessions.CheckoutSessionCreateResponse> => {
@@ -180,6 +186,10 @@ export class FlowgladServer {
     if (!session) {
       throw new Error('User not authenticated')
     }
+
+    // FIXME: We resolve priceSlug to priceId because @flowglad/node types (v0.23.0) don't include priceSlug yet.
+    // The API accepts priceSlug directly, but we can't pass it without a type assertion.
+    // Once @flowglad/node includes priceSlug, we can simplify this method.
     let priceId: string
     if (params.priceId) {
       priceId = params.priceId
@@ -187,14 +197,20 @@ export class FlowgladServer {
       const billing = await this.getBilling()
       const price = billing.getPrice(params.priceSlug)
       if (!price) {
-        throw new Error('Price not found')
+        throw new Error(
+          `Price with slug "${params.priceSlug}" not found in pricing model "${billing.pricingModel.name}"`
+        )
       }
       priceId = price.id
     } else {
       throw new Error('Price ID or price slug must be provided')
     }
+
+    // Remove priceSlug from params since we've converted it to priceId
+    // (destructuring handles it gracefully if priceSlug wasn't present)
+    const { priceSlug, ...paramsWithoutPriceSlug } = params
     const parsedParams = createProductCheckoutSessionSchema.parse({
-      ...params,
+      ...paramsWithoutPriceSlug,
       type: 'product',
       priceId,
       customerExternalId: session.externalId,

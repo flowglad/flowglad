@@ -2,6 +2,6 @@
 import { createAppRouterRouteHandler } from '@flowglad/nextjs/server'
 import { flowgladServer } from '@/lib/flowglad'
 
-const { GET, POST } = createAppRouterRouteHandler(flowgladServer)
+const createRouteHandler = createAppRouterRouteHandler(flowgladServer)
 
-export { GET, POST }
+export { createRouteHandler as GET, createRouteHandler as POST }
