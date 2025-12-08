@@ -188,40 +188,16 @@ export class FlowgladServer {
       throw new Error('User not authenticated')
     }
 
-    // FIXME: We resolve priceSlug to priceId because @flowglad/node types (v0.23.0) don't include priceSlug yet.
-    // The API accepts priceSlug directly, but we can't pass it without a type assertion.
-    // Once @flowglad/node includes priceSlug, we can simplify this method.
-    let priceId: string
-    if (params.priceId) {
-      priceId = params.priceId
-    } else if (params.priceSlug) {
-      const billing = await this.getBilling()
-      const price = billing.getPrice(params.priceSlug)
-      if (!price) {
-        throw new Error(
-          `Price with slug "${params.priceSlug}" not found in pricing model "${billing.pricingModel.name}"`
-        )
-      }
-      priceId = price.id
-    } else {
-      throw new Error('Price ID or price slug must be provided')
-    }
-
-    // Remove priceSlug from params since we've converted it to priceId
-    // (destructuring handles it gracefully if priceSlug wasn't present)
-    const { priceSlug, ...paramsWithoutPriceSlug } = params
     const parsedParams = createProductCheckoutSessionSchema.parse({
-      ...paramsWithoutPriceSlug,
+      ...params,
       type: 'product',
-      priceId,
       customerExternalId: session.externalId,
     })
+
     return this.flowgladNode.checkoutSessions.create({
       checkoutSession: {
         ...parsedParams,
-        // FIXME: need to hard code these to make types pass
         type: 'product',
-        priceId,
         customerExternalId: session.externalId,
       },
     })
