@@ -5,8 +5,8 @@ export type Subscription =
   | Flowglad.NonRenewingSubscriptionRecord
 
 export type SubscriptionItem =
-  | Flowglad.CustomerRetrieveBillingResponse.NonRenewingSubscriptionDetails.SubscriptionItem
-  | Flowglad.CustomerRetrieveBillingResponse.StandardSubscriptionDetails.SubscriptionItem
+  | Flowglad.NonRenewingSubscriptionDetails.SubscriptionItem
+  | Flowglad.StandardSubscriptionDetails.SubscriptionItem
 
 export type SubscriptionStatus =
   | Flowglad.StandardSubscriptionRecord['status']
@@ -19,5 +19,5 @@ export type SubscriptionDetails =
   Flowglad.CustomerRetrieveBillingResponse['subscriptions'][number]
 
 export type SubscriptionExperimentalFields =
-  | Flowglad.CustomerRetrieveBillingResponse.NonRenewingSubscriptionDetails.Experimental
-  | Flowglad.CustomerRetrieveBillingResponse.StandardSubscriptionDetails.Experimental
+  | Flowglad.NonRenewingSubscriptionDetails.Experimental
+  | Flowglad.StandardSubscriptionDetails.Experimental
