@@ -14,6 +14,7 @@ import { PaymentMethod } from '@/db/schema/paymentMethods'
 import { Subscription } from '@/db/schema/subscriptions'
 import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import {
+  type SubscriptionTableFilters,
   selectDistinctSubscriptionProductNames,
   selectSubscriptionsTableRowData,
 } from './subscriptionMethods'
@@ -542,7 +543,7 @@ describe('selectSubscriptionsTableRowData', () => {
             filters: {
               organizationId: organization.id,
               productName: 'Premium Plan',
-            } as Record<string, unknown>,
+            } as SubscriptionTableFilters,
           },
           transaction,
         })
@@ -563,7 +564,7 @@ describe('selectSubscriptionsTableRowData', () => {
             filters: {
               organizationId: organization.id,
               productName: 'Basic Plan',
-            } as Record<string, unknown>,
+            } as SubscriptionTableFilters,
           },
           transaction,
         })
@@ -581,7 +582,7 @@ describe('selectSubscriptionsTableRowData', () => {
             filters: {
               organizationId: organization.id,
               productName: '  Premium Plan  ',
-            } as Record<string, unknown>,
+            } as SubscriptionTableFilters,
           },
           transaction,
         })
@@ -599,7 +600,7 @@ describe('selectSubscriptionsTableRowData', () => {
             filters: {
               organizationId: organization.id,
               productName: '',
-            } as Record<string, unknown>,
+            } as SubscriptionTableFilters,
           },
           transaction,
         })
@@ -611,7 +612,7 @@ describe('selectSubscriptionsTableRowData', () => {
               filters: {
                 organizationId: organization.id,
                 productName: '   ',
-              } as Record<string, unknown>,
+              } as SubscriptionTableFilters,
             },
             transaction,
           })
@@ -645,7 +646,7 @@ describe('selectSubscriptionsTableRowData', () => {
             filters: {
               organizationId: organization.id,
               productName: 'Premium Plan',
-            } as Record<string, unknown>,
+            } as SubscriptionTableFilters,
           },
           transaction,
         })
@@ -693,7 +694,7 @@ describe('selectSubscriptionsTableRowData', () => {
             filters: {
               organizationId: organization.id,
               productName: 'Premium Plan',
-            } as Record<string, unknown>,
+            } as SubscriptionTableFilters,
           },
           transaction,
         })
@@ -712,7 +713,7 @@ describe('selectSubscriptionsTableRowData', () => {
             filters: {
               organizationId: organization.id,
               productName: 'Premium Plan',
-            } as Record<string, unknown>,
+            } as SubscriptionTableFilters,
           },
           transaction,
         })
@@ -729,7 +730,7 @@ describe('selectSubscriptionsTableRowData', () => {
             filters: {
               organizationId: organization.id,
               productName: 'Premium Plan',
-            } as Record<string, unknown>,
+            } as SubscriptionTableFilters,
           },
           transaction,
         })
@@ -795,7 +796,7 @@ describe('selectSubscriptionsTableRowData', () => {
               filters: {
                 organizationId: organization.id,
                 productName: 'Premium Plan',
-              } as Record<string, unknown>,
+              } as SubscriptionTableFilters,
             },
             transaction,
           })

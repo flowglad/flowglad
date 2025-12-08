@@ -61,7 +61,7 @@ const config: ORMMethodCreatorConfig<
  * The `productName` filter is not on the subscriptions table itself, but comes
  * from the related products table via prices.
  */
-type SubscriptionTableFilters = SelectConditions<
+export type SubscriptionTableFilters = SelectConditions<
   typeof subscriptions
 > & {
   productName?: string
