@@ -1,13 +1,9 @@
 'use client'
 
 import {
-  type ColumnFiltersState,
   type ColumnSizingState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type SortingState,
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
@@ -66,7 +62,7 @@ export function SubscriptionsDataTable({
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
   const { inputValue, setInputValue, searchQuery } =
-    useSearchDebounce(1000)
+    useSearchDebounce(300)
   const [selectedProduct, setSelectedProduct] = React.useState<
     string | undefined
   >(undefined)
@@ -97,10 +93,11 @@ export function SubscriptionsDataTable({
   const {
     data: allProductOptions,
     isLoading: isLoadingProductOptions,
-  } = trpc.subscriptions.getProductOptions.useQuery(
-    {},
-    { staleTime: 5 * 60 * 1000 }
-  )
+  } =
+    trpc.subscriptions.listDistinctSubscriptionProductNames.useQuery(
+      {},
+      { staleTime: 5 * 60 * 1000 }
+    )
 
   // Reset to first page when filters change
   // Use JSON.stringify to get stable comparison of filter object
@@ -185,7 +182,7 @@ export function SubscriptionsDataTable({
           <CollapsibleSearch
             value={inputValue}
             onChange={setInputValue}
-            placeholder="Search subscriptions..."
+            placeholder="Customer or sub_id..."
             isLoading={isFetching}
           />
           <Select

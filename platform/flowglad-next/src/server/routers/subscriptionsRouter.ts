@@ -625,22 +625,33 @@ const retryBillingRunProcedure = protectedProcedure
     }
   })
 
-const getProductOptionsProcedure = protectedProcedure
-  .input(z.object({}).optional())
-  .output(z.array(z.string()))
-  .query(async ({ ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, organizationId }) => {
-        return selectDistinctSubscriptionProductNames(
-          organizationId,
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-  })
+/**
+ * Retrieves all distinct product names from subscriptions within the authenticated organization.
+ *
+ * This procedure queries all subscriptions in the organization and returns a unique list
+ * of product names associated with those subscriptions. The result is scoped to the
+ * organization associated with the provided API key.
+ *
+ * @returns An array of unique product name strings. Returns an empty array if no
+ *          subscriptions exist or no distinct product names are found.
+ */
+const listDistinctSubscriptionProductNamesProcedure =
+  protectedProcedure
+    .input(z.object({}).optional())
+    .output(z.array(z.string()))
+    .query(async ({ ctx }) => {
+      return authenticatedTransaction(
+        async ({ transaction, organizationId }) => {
+          return selectDistinctSubscriptionProductNames(
+            organizationId,
+            transaction
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    })
 
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
@@ -652,6 +663,7 @@ export const subscriptionsRouter = router({
   retryBillingRunProcedure,
   getTableRows,
   updatePaymentMethod: updatePaymentMethodProcedure,
-  getProductOptions: getProductOptionsProcedure,
+  listDistinctSubscriptionProductNames:
+    listDistinctSubscriptionProductNamesProcedure,
   addFeatureToSubscription,
 })

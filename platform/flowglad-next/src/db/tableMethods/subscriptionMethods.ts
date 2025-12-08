@@ -2,7 +2,9 @@ import {
   and,
   count,
   eq,
+  exists,
   gte,
+  ilike,
   inArray,
   isNull,
   lte,
@@ -268,9 +270,15 @@ export const selectSubscriptionsTableRowData =
      * - Customer name (case-insensitive partial match via ILIKE)
      *
      * @param searchQuery - The search query string from the user
+     * @param transaction - Database transaction for building subqueries
      * @returns SQL condition for OR-ing with other search filters, or undefined if query is empty
      */
-    ({ searchQuery }) => {
+    ({ searchQuery, transaction }) => {
+      // FIXME: Consider using a JOIN in the main query builder instead of an EXISTS subquery.
+      // This would eliminate the need for the separate customer fetch in the enrichment function
+      // (lines 206-210), potentially improving performance by reducing from 2 queries to 1.
+      // This would require refactoring `createCursorPaginatedSelectFunction` to support joins
+      // in the main query.
       // Normalize the search query by trimming whitespace
       const trimmedQuery =
         typeof searchQuery === 'string'
@@ -278,19 +286,24 @@ export const selectSubscriptionsTableRowData =
           : searchQuery
 
       // Only apply search filter if query is non-empty
-      return trimmedQuery && trimmedQuery !== ''
-        ? or(
-            // Match subscriptions by exact ID
-            eq(subscriptions.id, trimmedQuery),
-            // Match subscriptions where customer name contains the search query
-            // Uses EXISTS subquery to join with customers table
-            sql`exists (
-              select 1 from ${customers} c
-              where c.id = ${subscriptions.customerId}
-                and c.name ilike '%' || ${trimmedQuery} || '%'
-            )`
+      if (!trimmedQuery) return undefined
+
+      const customerSubquery = transaction
+        .select({ id: sql`1` })
+        .from(customers)
+        .where(
+          and(
+            eq(customers.id, subscriptions.customerId),
+            ilike(customers.name, sql`'%' || ${trimmedQuery} || '%'`)
           )
-        : undefined
+        )
+
+      return or(
+        // Match subscriptions by exact ID
+        eq(subscriptions.id, trimmedQuery),
+        // Match subscriptions where customer name contains the search query
+        exists(customerSubquery)
+      )
     },
     /**
      * Additional filter clause handler for subscription table.
@@ -315,7 +328,7 @@ export const selectSubscriptionsTableRowData =
           : undefined
 
       // Return undefined (no filter) if product name is empty or not provided
-      if (!productName || productName === '') return undefined
+      if (!productName) return undefined
 
       // Use EXISTS subquery to filter subscriptions by product name
       // Joins prices -> products to access product name

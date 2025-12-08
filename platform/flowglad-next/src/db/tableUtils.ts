@@ -1467,7 +1467,7 @@ const constructSearchQueryClause = <T extends PgTableWithId>(
  * @param transaction - Database transaction
  * @returns Object containing individual clauses and combined whereClauses
  */
-const buildWhereClauses = async <T extends PgTableWithId>(
+export const buildWhereClauses = async <T extends PgTableWithId>(
   table: T,
   rawFilters:
     | SelectConditions<T>
