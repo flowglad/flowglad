@@ -10,7 +10,7 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { formatDate, isNil } from '@/utils/core'
-import { safeSend } from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 
 const sendOrganizationSubscriptionCancellationScheduledNotificationTask =
   task({
@@ -70,7 +70,10 @@ const sendOrganizationSubscriptionCancellationScheduledNotificationTask =
         to: usersAndMemberships
           .map(({ user }) => user.email)
           .filter((email) => !isNil(email)),
-        subject: `Cancellation Scheduled: ${customer.name} scheduled cancellation for ${subscriptionName} on ${formatDate(cancellationDate)}`,
+        subject: formatEmailSubject(
+          `Cancellation Scheduled: ${customer.name} scheduled cancellation for ${subscriptionName} on ${formatDate(cancellationDate)}`,
+          subscription.livemode
+        ),
         react:
           OrganizationSubscriptionCancellationScheduledNotificationEmail(
             {

@@ -10,7 +10,7 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
-import { safeSend } from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 
 interface PaymentFailedNotificationData {
   organizationId: string
@@ -70,7 +70,10 @@ const sendOrganizationPaymentFailedNotificationTask = task({
       to: usersAndMemberships
         .map(({ user }) => user.email)
         .filter((email) => !isNil(email)),
-      subject: `Payment Failed: ${customer.name} payment of ${paymentData.amount} ${paymentData.currency} failed`,
+      subject: formatEmailSubject(
+        `Payment Failed: ${customer.name} payment of ${paymentData.amount} ${paymentData.currency} failed`,
+        paymentData.livemode
+      ),
       react: OrganizationPaymentFailedNotificationEmail({
         organizationName: organization.name,
         amount: paymentData.amount,

@@ -10,7 +10,7 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
-import { safeSend } from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 
 const sendOrganizationSubscriptionCanceledNotificationTask = task({
   id: 'send-organization-subscription-canceled-notification',
@@ -62,7 +62,10 @@ const sendOrganizationSubscriptionCanceledNotificationTask = task({
       to: usersAndMemberships
         .map(({ user }) => user.email)
         .filter((email) => !isNil(email)),
-      subject: `Subscription Cancelled: ${customer.name} canceled ${subscription.name}`,
+      subject: formatEmailSubject(
+        `Subscription Cancelled: ${customer.name} canceled ${subscription.name}`,
+        subscription.livemode
+      ),
       react: OrganizationSubscriptionCanceledNotificationEmail({
         organizationName: organization.name,
         subscriptionName: subscription.name!,

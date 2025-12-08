@@ -9,7 +9,7 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { formatDate } from '@/utils/core'
-import { safeSend } from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 
 const sendCustomerSubscriptionCancellationScheduledNotificationTask =
   task({
@@ -94,7 +94,10 @@ const sendCustomerSubscriptionCancellationScheduledNotificationTask =
       await safeSend({
         from: 'Flowglad <notifications@flowglad.com>',
         to: customer.email,
-        subject: `Cancellation Scheduled: Your ${subscriptionName} subscription will be canceled on ${formatDate(cancellationDate)}`,
+        subject: formatEmailSubject(
+          `Cancellation Scheduled: Your ${subscriptionName} subscription will be canceled on ${formatDate(cancellationDate)}`,
+          subscription.livemode
+        ),
         react: CustomerSubscriptionCancellationScheduledEmail({
           customerName: customer.name,
           organizationName: organization.name,
