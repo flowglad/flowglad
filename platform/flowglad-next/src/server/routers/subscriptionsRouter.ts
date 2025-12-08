@@ -51,11 +51,15 @@ import {
   createBillingRunInsert,
   executeBillingRun,
 } from '@/subscriptions/billingRunHelpers'
-import { cancelSubscriptionProcedureTransaction } from '@/subscriptions/cancelSubscription'
+import {
+  cancelSubscriptionProcedureTransaction,
+  uncancelSubscriptionProcedureTransaction,
+} from '@/subscriptions/cancelSubscription'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
   adjustSubscriptionInputSchema,
   scheduleSubscriptionCancellationSchema,
+  uncancelSubscriptionSchema,
 } from '@/subscriptions/schemas'
 import {
   BillingPeriodStatus,
@@ -78,6 +82,9 @@ export const subscriptionsRouteConfigs = [
     routeParams: ['id'],
   }),
   trpcToRest('subscriptions.cancel', {
+    routeParams: ['id'],
+  }),
+  trpcToRest('subscriptions.uncancel', {
     routeParams: ['id'],
   }),
 ]
@@ -151,6 +158,30 @@ const cancelSubscriptionProcedure = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       cancelSubscriptionProcedureTransaction
+    )
+  )
+
+const uncancelSubscriptionProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/subscriptions/{id}/uncancel',
+      summary: 'Uncancel Subscription',
+      description:
+        'Reverses a scheduled subscription cancellation. The subscription must be in `cancellation_scheduled` status. This will restore the subscription to its previous status (typically `active` or `trialing`) and reschedule any billing runs that were aborted. For paid subscriptions, a valid payment method is required.',
+      tags: ['Subscriptions'],
+      protect: true,
+    },
+  })
+  .input(uncancelSubscriptionSchema)
+  .output(
+    z.object({
+      subscription: subscriptionClientSelectSchema,
+    })
+  )
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      uncancelSubscriptionProcedureTransaction
     )
   )
 
@@ -626,6 +657,7 @@ const retryBillingRunProcedure = protectedProcedure
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
   cancel: cancelSubscriptionProcedure,
+  uncancel: uncancelSubscriptionProcedure,
   list: listSubscriptionsProcedure,
   get: getSubscriptionProcedure,
   create: createSubscriptionProcedure,
