@@ -9,7 +9,10 @@ import {
   getCustomerBilling,
   updateCustomer,
 } from './customerHandlers'
-import { cancelSubscription } from './subscriptionHandlers'
+import {
+  cancelSubscription,
+  uncancelSubscription,
+} from './subscriptionHandlers'
 import type { SubRouteHandler } from './types'
 
 export const routeToHandlerMap: {
@@ -24,6 +27,7 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.CreateActivateSubscriptionCheckoutSession]:
     createActivateSubscriptionCheckoutSession,
   [FlowgladActionKey.CancelSubscription]: cancelSubscription,
+  [FlowgladActionKey.UncancelSubscription]: uncancelSubscription,
   [FlowgladActionKey.CreateSubscription]: async () => {
     return {
       data: {},

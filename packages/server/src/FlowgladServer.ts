@@ -16,6 +16,7 @@ import {
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
   type SubscriptionExperimentalFields,
+  type UncancelSubscriptionParams,
 } from '@flowglad/shared'
 import { getSessionFromParams } from './serverUtils'
 import type {
@@ -303,6 +304,26 @@ export class FlowgladServer {
     })
   }
 
+  public uncancelSubscription = async (
+    params: UncancelSubscriptionParams
+  ): Promise<FlowgladNode.Subscriptions.SubscriptionUncancelResponse> => {
+    const { subscription } =
+      await this.flowgladNode.subscriptions.retrieve(params.id)
+
+    // Validation: Check if subscription is scheduled to cancel
+    if (subscription.status !== 'cancellation_scheduled') {
+      // Idempotent: silently succeed if not scheduled to cancel
+      return { subscription }
+    }
+
+    const { customer } = await this.getCustomer()
+    if (subscription.customerId !== customer.id) {
+      throw new Error('Subscription is not owned by the current user')
+    }
+
+    return this.flowgladNode.subscriptions.uncancel(params.id)
+  }
+
   public createSubscription = async (
     params: Omit<CreateSubscriptionParams, 'customerId'>
   ): Promise<FlowgladNode.Subscriptions.SubscriptionCreateResponse> => {
@@ -313,7 +334,6 @@ export class FlowgladServer {
       customerId: customer.id,
     }
     // const parsedParams = createSubscriptionSchema.parse(rawParams)
-    // @ts-expect-error
     return this.flowgladNode.subscriptions.create(rawParams)
   }
 

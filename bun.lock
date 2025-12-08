@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@flowglad/javascript",
@@ -30,7 +29,7 @@
       "name": "@flowglad/express",
       "version": "0.14.1",
       "dependencies": {
-        "@flowglad/node": "0.23.0",
+        "@flowglad/node": "0.24.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -49,7 +48,7 @@
       "name": "@flowglad/nextjs",
       "version": "0.14.1",
       "dependencies": {
-        "@flowglad/node": "0.23.0",
+        "@flowglad/node": "0.24.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -69,7 +68,7 @@
       "name": "@flowglad/react",
       "version": "0.14.1",
       "dependencies": {
-        "@flowglad/node": "0.23.0",
+        "@flowglad/node": "0.24.0",
         "@flowglad/shared": "workspace:*",
         "@tanstack/react-query": "5.66.0",
         "clsx": "2.1.1",
@@ -93,7 +92,7 @@
       "name": "@flowglad/server",
       "version": "0.14.1",
       "dependencies": {
-        "@flowglad/node": "0.23.0",
+        "@flowglad/node": "0.24.0",
         "@flowglad/shared": "workspace:*",
         "zod": "4.1.5",
       },
@@ -108,7 +107,7 @@
       "name": "@flowglad/shared",
       "version": "0.14.1",
       "dependencies": {
-        "@flowglad/node": "0.23.0",
+        "@flowglad/node": "0.24.0",
         "date-fns": "4.1.0",
         "zod": "4.1.5",
       },
@@ -133,7 +132,7 @@
       "dependencies": {
         "@flowglad/express": "workspace:*",
         "@flowglad/nextjs": "workspace:*",
-        "@flowglad/node": "0.23.0",
+        "@flowglad/node": "0.24.0",
         "@flowglad/react": "workspace:*",
         "@flowglad/server": "workspace:*",
         "@flowglad/shared": "workspace:*",
@@ -364,7 +363,7 @@
 
     "@flowglad/nextjs": ["@flowglad/nextjs@workspace:packages/nextjs"],
 
-    "@flowglad/node": ["@flowglad/node@0.23.0", "", {}, "sha512-6R7Np06SI7mzeXPa6fEPhB1ctwLcSmRPpLxm5Uh3mbD+FxIs8kHgKMsxOoX4hUvyoPkMBSCgPCBiNfVPnysx0g=="],
+    "@flowglad/node": ["@flowglad/node@0.24.0", "", {}, "sha512-P5UhUaYNAGuCT9hLTQC34o+az4hsfMSuSGpYzg9bPQIrRnTkWvJfmyOmE+cGSlaGZCdLNnEwxCwDQr+lVeOyRw=="],
 
     "@flowglad/playground-express": ["@flowglad/playground-express@workspace:playground/express"],
 
@@ -2041,6 +2040,8 @@
     "@flowglad/react/tailwind-merge": ["tailwind-merge@3.0.2", "", {}, "sha512-l7z+OYZ7mu3DTqrL88RiKrKIqO3NcpEO8V/Od04bNpvk0kiIFndGEoqfuzvj4yuhRkHKjRkII2z+KS2HfPcSxw=="],
 
     "@flowglad/react/tailwindcss": ["tailwindcss@3.4.18", "", { "dependencies": { "@alloc/quick-lru": "^5.2.0", "arg": "^5.0.2", "chokidar": "^3.6.0", "didyoumean": "^1.2.2", "dlv": "^1.1.3", "fast-glob": "^3.3.2", "glob-parent": "^6.0.2", "is-glob": "^4.0.3", "jiti": "^1.21.7", "lilconfig": "^3.1.3", "micromatch": "^4.0.8", "normalize-path": "^3.0.0", "object-hash": "^3.0.0", "picocolors": "^1.1.1", "postcss": "^8.4.47", "postcss-import": "^15.1.0", "postcss-js": "^4.0.1", "postcss-load-config": "^4.0.2 || ^5.0 || ^6.0", "postcss-nested": "^6.2.0", "postcss-selector-parser": "^6.1.2", "resolve": "^1.22.8", "sucrase": "^3.35.0" }, "bin": { "tailwind": "lib/cli.js", "tailwindcss": "lib/cli.js" } }, "sha512-6A2rnmW5xZMdw11LYjhcI5846rt9pbLSabY5XPxo+XWdxwZaFEn47Go4NzFiHu9sNNmr/kXivP1vStfvMaK1GQ=="],
+
+    "@flowglad/types/@flowglad/node": ["@flowglad/node@0.23.0", "", {}, "sha512-6R7Np06SI7mzeXPa6fEPhB1ctwLcSmRPpLxm5Uh3mbD+FxIs8kHgKMsxOoX4hUvyoPkMBSCgPCBiNfVPnysx0g=="],
 
     "@jridgewell/gen-mapping/@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
