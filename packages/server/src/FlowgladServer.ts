@@ -283,6 +283,16 @@ export class FlowgladServer {
     })
   }
 
+  /**
+   * Uncancel a subscription that is scheduled for cancellation.
+   * 
+   * @param params - Parameters containing the subscription ID to uncancel
+   * @returns The uncanceled subscription
+   * @throws {Error} If the subscription is not owned by the authenticated customer
+   * 
+   * Note: This method is idempotent. If the subscription is not in 'cancellation_scheduled' 
+   * status, it returns the subscription without modification.
+   */
   public uncancelSubscription = async (
     params: UncancelSubscriptionParams
   ): Promise<FlowgladNode.Subscriptions.SubscriptionUncancelResponse> => {
