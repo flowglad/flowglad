@@ -112,7 +112,6 @@ const CreatePriceModal: React.FC<CreatePriceModalProps> = ({
         disablePriceType
         isDefaultProductOverride={isDefaultProduct}
         pricingModelId={pricingModelId}
-        hideUsageMeter
       />
     </FormModal>
   )
