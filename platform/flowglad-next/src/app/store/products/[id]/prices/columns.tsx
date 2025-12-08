@@ -55,19 +55,6 @@ const PriceTypeCellView = ({ type }: { type: PriceType }) => {
 
 export const columns: ColumnDef<PriceTableRowData>[] = [
   {
-    id: 'name',
-    accessorFn: (row) => row.price.name,
-    header: 'Price',
-    cell: ({ row }) => (
-      <div className="truncate" title={row.getValue('name')}>
-        {row.getValue('name')}
-      </div>
-    ),
-    size: 150,
-    minSize: 120,
-    maxSize: 200,
-  },
-  {
     id: 'type',
     accessorFn: (row) => row.price.type,
     header: 'Type',
@@ -124,28 +111,6 @@ export const columns: ColumnDef<PriceTableRowData>[] = [
     size: 180,
     minSize: 125,
     maxSize: 250,
-  },
-
-  {
-    id: 'isDefault',
-    accessorFn: (row) => row.price.isDefault,
-    header: 'Default',
-    cell: ({ row }) => {
-      const isDefault = row.getValue('isDefault') as boolean
-      return (
-        <div className="flex items-center gap-3">
-          <Checkbox
-            checked={isDefault}
-            aria-label="Default price"
-            className="cursor-default"
-            disabled
-          />
-        </div>
-      )
-    },
-    size: 90,
-    minSize: 80,
-    maxSize: 100,
   },
   {
     id: 'createdAt',

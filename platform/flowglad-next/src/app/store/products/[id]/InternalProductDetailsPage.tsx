@@ -122,15 +122,11 @@ function InternalProductDetailsPage(
               : () => setIsCreatePriceOpen(true)
           }
         />
-        {/* for now, only one active & default price per product, so we use editpricemodal instead */}
-        <EditPriceModal
+        <CreatePriceModal
           isOpen={isCreatePriceOpen}
           setIsOpen={setIsCreatePriceOpen}
-          price={
-            prices.find(
-              (p) => p.isDefault === true && p.active === true
-            )!
-          }
+          productId={product.id}
+          previousPrice={prices[prices.length - 1]}
         />
       </div>
       <EditProductModal

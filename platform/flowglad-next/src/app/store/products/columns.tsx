@@ -92,7 +92,7 @@ function ProductActionsMenu({
 
   if (product.active) {
     actionItems.push({
-      label: 'Create price',
+      label: 'New price',
       icon: <Plus className="h-4 w-4" />,
       handler: () => setIsCreatePriceOpen(true),
     })
@@ -115,6 +115,7 @@ function ProductActionsMenu({
         isOpen={isCreatePriceOpen}
         setIsOpen={setIsCreatePriceOpen}
         productId={product.id}
+        previousPrice={prices[prices.length - 1]}
       />
       <ArchiveProductModal
         isOpen={isArchiveOpen}
