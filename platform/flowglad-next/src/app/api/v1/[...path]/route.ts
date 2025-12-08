@@ -75,6 +75,41 @@ const parseErrorMessage = (rawMessage: string) => {
   return parsedMessage
 }
 
+/**
+ * Routes that allow empty request bodies.
+ * These routes don't require a JSON body and will accept requests with no content.
+ */
+export const emptyBodyAllowedRoutes = [
+  /^subscriptions\/[^/]+\/uncancel$/, // /subscriptions/{id}/uncancel
+  /^product-features\/[^/]+\/expire$/, // /product-features/{id}/expire
+]
+
+/**
+ * Check if a route path is whitelisted to allow empty request bodies
+ */
+export const isEmptyBodyAllowedForRoute = (path: string): boolean =>
+  emptyBodyAllowedRoutes.some((pattern) => pattern.test(path))
+
+/**
+ * Check if request body is actually empty based on content-length header
+ */
+export const isRequestBodyEmpty = (
+  contentLength: string | null
+): boolean => !contentLength || contentLength === '0'
+
+/**
+ * Determine if empty body should be allowed for this request
+ * Returns true only if BOTH conditions are met:
+ * 1. Route is whitelisted to allow empty bodies
+ * 2. Request body is actually empty (content-length is 0 or missing)
+ */
+export const shouldAllowEmptyBody = (
+  path: string,
+  contentLength: string | null
+): boolean =>
+  isEmptyBodyAllowedForRoute(path) &&
+  isRequestBodyEmpty(contentLength)
+
 const routeConfigs = [
   ...customersRouteConfigs,
   ...subscriptionsRouteConfigs,
@@ -314,35 +349,50 @@ const innerHandler = async (
             })
           } catch (error) {
             inputParsingDuration = Date.now() - bodyParsingStartTime
-            parentSpan.setStatus({
-              code: SpanStatusCode.ERROR,
-              message: 'Invalid JSON in request body',
-            })
-            parentSpan.setAttributes({
-              'error.type': 'VALIDATION_ERROR',
-              'error.category': 'VALIDATION_ERROR',
-              'error.message': 'Invalid JSON in request body',
-              'http.status_code': 400,
-              'input.parsing_duration_ms': inputParsingDuration,
-              'input.body_parsed': false,
-            })
+            const path = (await params).path.join('/')
+            const contentLength = req.headers.get('content-length')
 
-            logger.error(
-              `[${requestId}] Invalid JSON in request body`,
-              {
-                service: 'api',
-                apiEnvironment: req.unkey
-                  ?.environment as ApiEnvironment,
-                request_id: requestId,
-                error: error as Error,
-                parsing_duration_ms: inputParsingDuration,
-              }
-            )
+            if (shouldAllowEmptyBody(path, contentLength)) {
+              // Allow empty body for these specific routes
+              body = {}
 
-            return NextResponse.json(
-              { error: 'Invalid JSON in request body' },
-              { status: 400 }
-            )
+              parentSpan.setAttributes({
+                'input.parsing_duration_ms': inputParsingDuration,
+                'input.body_parsed': false,
+                'input.body_empty': true,
+                'input.empty_body_allowed': true,
+              })
+            } else {
+              parentSpan.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: 'Invalid JSON in request body',
+              })
+              parentSpan.setAttributes({
+                'error.type': 'VALIDATION_ERROR',
+                'error.category': 'VALIDATION_ERROR',
+                'error.message': 'Invalid JSON in request body',
+                'http.status_code': 400,
+                'input.parsing_duration_ms': inputParsingDuration,
+                'input.body_parsed': false,
+              })
+
+              logger.error(
+                `[${requestId}] Invalid JSON in request body`,
+                {
+                  service: 'api',
+                  apiEnvironment: req.unkey
+                    ?.environment as ApiEnvironment,
+                  request_id: requestId,
+                  error: error as Error,
+                  parsing_duration_ms: inputParsingDuration,
+                }
+              )
+
+              return NextResponse.json(
+                { error: 'Invalid JSON in request body' },
+                { status: 400 }
+              )
+            }
           }
         }
 
