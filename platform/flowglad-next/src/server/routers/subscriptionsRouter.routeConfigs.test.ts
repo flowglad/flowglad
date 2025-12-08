@@ -24,7 +24,6 @@ describe('subscriptionsRouteConfigs', () => {
     it('should map POST /subscriptions to subscriptions.create procedure', () => {
       const routeConfig = findRouteConfig('POST /subscriptions')
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.create')
       expect(routeConfig!.pattern.test('subscriptions')).toBe(true)
 
@@ -40,8 +39,6 @@ describe('subscriptionsRouteConfigs', () => {
 
     it('should accept customerExternalId in POST /subscriptions request body', () => {
       const routeConfig = findRouteConfig('POST /subscriptions')
-
-      expect(routeConfig).toBeDefined()
 
       // Test with customerExternalId instead of customerId
       const testBodyWithExternalId = {
@@ -74,7 +71,6 @@ describe('subscriptionsRouteConfigs', () => {
     it('should map PUT /subscriptions/:id to subscriptions.update procedure', () => {
       const routeConfig = findRouteConfig('PUT /subscriptions/:id')
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.update')
       expect(routeConfig!.pattern.test('subscriptions/test-id')).toBe(
         true
@@ -96,7 +92,6 @@ describe('subscriptionsRouteConfigs', () => {
     it('should map GET /subscriptions/:id to subscriptions.get procedure', () => {
       const routeConfig = findRouteConfig('GET /subscriptions/:id')
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.get')
       expect(routeConfig!.pattern.test('subscriptions/test-id')).toBe(
         true
@@ -110,7 +105,6 @@ describe('subscriptionsRouteConfigs', () => {
     it('should map GET /subscriptions to subscriptions.list procedure', () => {
       const routeConfig = findRouteConfig('GET /subscriptions')
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.list')
       expect(routeConfig!.pattern.test('subscriptions')).toBe(true)
 
@@ -122,7 +116,6 @@ describe('subscriptionsRouteConfigs', () => {
     it('should map DELETE /subscriptions/:id to subscriptions.delete procedure', () => {
       const routeConfig = findRouteConfig('DELETE /subscriptions/:id')
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.delete')
       expect(routeConfig!.pattern.test('subscriptions/test-id')).toBe(
         true
@@ -140,7 +133,6 @@ describe('subscriptionsRouteConfigs', () => {
         'POST /subscriptions/:id/adjust'
       )
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.adjust')
       expect(
         routeConfig!.pattern.test('subscriptions/test-id/adjust')
@@ -169,7 +161,6 @@ describe('subscriptionsRouteConfigs', () => {
         'POST /subscriptions/:id/cancel'
       )
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.cancel')
       expect(
         routeConfig!.pattern.test('subscriptions/test-id/cancel')
@@ -198,7 +189,6 @@ describe('subscriptionsRouteConfigs', () => {
         'POST /subscriptions/:id/uncancel'
       )
 
-      expect(routeConfig).toBeDefined()
       expect(routeConfig!.procedure).toBe('subscriptions.uncancel')
       expect(
         routeConfig!.pattern.test('subscriptions/test-id/uncancel')
@@ -634,7 +624,6 @@ describe('subscriptionsRouteConfigs', () => {
       customRoutes.forEach((route) => {
         expect(routeKeys).toContain(route)
         const config = findRouteConfig(route)
-        expect(config).toBeDefined()
         expect(config!.procedure).toMatch(
           /^subscriptions\.(adjust|cancel|uncancel)$/
         )
