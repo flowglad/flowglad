@@ -102,7 +102,26 @@ Flowglad offers flexibility in how subscriptions can be canceled.
 ### Methods for Cancellation
 
 1.  **Flowglad Dashboard:** Manually cancel subscriptions directly within the Flowglad UI.
-2.  **API:** Programmatically cancel subscriptions using the [API endpoint](/api-reference/subscriptions/cancel-subscription)
+2.  **API:** Programmatically cancel subscriptions using the [API endpoint](/api-reference/subscriptions/cancel-subscription) or SDK methods ([client](/sdks/react#cancelsubscription), [server](/sdks/server#cancelsubscription)).
 3.  **Customer Self-Service:** Allow customers to manage their own subscriptions.
     *   **Hosted Billing Portal:** (available for livemode customers only) A no-code option accessible via a unique URL for your organization. The `billingPortalUrl` is returned in customer billing details from `useBilling` or the [get billing details API](/api-reference/customer/get-billing-details). It can also be found in the customer details page in your Flowglad dashboard.
     *   **Headless Implementation:** Use the `useBilling()` hook's `cancelSubscription` function (ensure it's used within a `<FlowgladProvider>` context) to build a completely custom cancellation UI.
+
+## Uncanceling a Subscription
+
+If a subscription has been scheduled for cancellation (status `cancellation_scheduled`), you can reverse the cancellation before it takes effect. This restores the subscription to its previous state (either `active` or `trialing`) and ensures billing will continue as normal.
+
+### When Uncancel is Available
+
+Uncancel is available for subscriptions that have a **scheduled cancellation** (status `cancellation_scheduled`). This typically happens when you cancel a subscription with the "At End of Current Billing Period" option.
+Once a subscription is immediately canceled (status `canceled`), it cannot be uncanceled. A new subscription would need to be created.
+
+For paid subscriptions, a valid payment method must exist for the subscription. For free subscriptions, no payment method is required.
+
+### Methods for Uncanceling
+
+*   **[React SDK](/sdks/react#uncancelsubscription):** Use the `uncancelSubscription` method from the `useBilling()` hook for client-side implementation
+*   **[Server SDK](/sdks/server#uncancelsubscription):** Use the `uncancelSubscription` method from `FlowgladServer` for server-side implementation
+*   **[API](/api-reference/subscriptions/uncancel-subscription):** Make a POST request to `/api/v1/subscriptions/{id}/uncancel`
+
+See the SDK documentation for detailed code examples.
