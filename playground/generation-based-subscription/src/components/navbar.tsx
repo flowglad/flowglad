@@ -27,6 +27,10 @@ export function Navbar() {
   const billing = useBilling()
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
+  const [isUncancelling, setIsUncancelling] = useState(false)
+  const [uncancelError, setUncancelError] = useState<string | null>(
+    null
+  )
 
   if (!billing.loaded || !billing.loadBilling) {
     return null // or loading skeleton
@@ -88,6 +92,41 @@ export function Navbar() {
     }
   }
 
+  async function handleUncancelSubscription() {
+    const currentSubscription = billing.currentSubscriptions?.[0]
+    const subscriptionId = currentSubscription?.id
+
+    if (!subscriptionId || !billing.uncancelSubscription) {
+      return
+    }
+
+    // Confirm uncancellation
+    const confirmed = window.confirm(
+      'Are you sure you want to uncancel your membership? Your subscription will continue as normal.'
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setIsUncancelling(true)
+    setUncancelError(null)
+
+    try {
+      await billing.uncancelSubscription({
+        id: subscriptionId,
+      })
+    } catch (error) {
+      setUncancelError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to uncancel subscription. Please try again.'
+      )
+    } finally {
+      setIsUncancelling(false)
+    }
+  }
+
   if (!session?.user) {
     return null
   }
@@ -118,6 +157,13 @@ export function Navbar() {
         day: 'numeric',
       })
     : null
+
+  // Check if subscription is scheduled for cancellation in the future
+  const isScheduledForCancellation =
+    isCancelled &&
+    cancellationDate &&
+    currentSubscription?.cancelScheduledAt &&
+    currentSubscription.cancelScheduledAt > Date.now()
 
   return (
     <nav className="absolute top-0 right-0 flex justify-end items-center gap-4 p-4 z-50">
@@ -167,12 +213,43 @@ export function Navbar() {
                   </TooltipContent>
                 )}
               </Tooltip>
+              {isScheduledForCancellation && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="w-full">
+                      <DropdownMenuItem
+                        onSelect={handleUncancelSubscription}
+                        disabled={isUncancelling}
+                        className="text-green-600 hover:text-green-700"
+                      >
+                        {isUncancelling
+                          ? 'Uncancelling...'
+                          : 'Uncancel Subscription'}
+                      </DropdownMenuItem>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Reverse the scheduled cancellation on{' '}
+                      {cancellationDate}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {cancelError && (
                 <DropdownMenuItem
                   disabled
                   className="text-destructive text-xs"
                 >
                   {cancelError}
+                </DropdownMenuItem>
+              )}
+              {uncancelError && (
+                <DropdownMenuItem
+                  disabled
+                  className="text-destructive text-xs"
+                >
+                  {uncancelError}
                 </DropdownMenuItem>
               )}
             </>

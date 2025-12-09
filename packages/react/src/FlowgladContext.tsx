@@ -13,6 +13,7 @@ import {
   constructGetProduct,
   FlowgladActionKey,
   flowgladActionValidators,
+  type UncancelSubscriptionParams,
 } from '@flowglad/shared'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import React, { createContext, useContext } from 'react'
@@ -48,6 +49,11 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
   cancelSubscription: (params: CancelSubscriptionParams) => Promise<{
     subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
   }>
+  uncancelSubscription: (
+    params: UncancelSubscriptionParams
+  ) => Promise<{
+    subscription: Flowglad.Subscriptions.SubscriptionUncancelResponse
+  }>
   createCheckoutSession: (
     params: FrontendProductCreateCheckoutSessionParams
   ) => Promise<CreateCheckoutSessionResponse>
@@ -76,6 +82,7 @@ export interface NonPresentContextValues {
   paymentMethods: []
   purchases: []
   cancelSubscription: null
+  uncancelSubscription: null
   currentSubscriptions: []
 }
 
@@ -122,6 +129,7 @@ const notPresentContextValues: NonPresentContextValues = {
   paymentMethods: [],
   purchases: [],
   cancelSubscription: null,
+  uncancelSubscription: null,
   currentSubscriptions: [],
 }
 
@@ -228,6 +236,54 @@ const constructCancelSubscription =
       )
     } else {
       // Refetch customer billing after successful cancellation
+      await queryClient.invalidateQueries({
+        queryKey: [FlowgladActionKey.GetCustomerBilling],
+      })
+    }
+    return {
+      subscription: data,
+    }
+  }
+
+interface ConstructUncancelSubscriptionParams {
+  flowgladRoute: string
+  requestConfig?: RequestConfig
+  queryClient: ReturnType<typeof useQueryClient>
+}
+
+const constructUncancelSubscription =
+  (constructParams: ConstructUncancelSubscriptionParams) =>
+  async (
+    params: UncancelSubscriptionParams
+  ): Promise<{
+    subscription: Flowglad.Subscriptions.SubscriptionUncancelResponse
+  }> => {
+    const { flowgladRoute, requestConfig, queryClient } =
+      constructParams
+    const headers = requestConfig?.headers
+    const response = await fetch(
+      `${flowgladRoute}/${FlowgladActionKey.UncancelSubscription}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify(params),
+      }
+    )
+    const json: {
+      data: Flowglad.Subscriptions.SubscriptionUncancelResponse
+      error?: { code: string; json: Record<string, unknown> }
+    } = await response.json()
+    const data = json.data
+    if (json.error) {
+      console.error(
+        'FlowgladContext: Subscription uncancellation failed',
+        json
+      )
+    } else {
+      // Refetch customer billing after successful uncancellation
       await queryClient.invalidateQueries({
         queryKey: [FlowgladActionKey.GetCustomerBilling],
       })
@@ -361,6 +417,14 @@ export const FlowgladContextProvider = (
                 canceledAt: new Date().toISOString(),
               } as any,
             }),
+          uncancelSubscription: () =>
+            Promise.resolve({
+              subscription: {
+                id: 'sub_123',
+                status: 'active',
+                cancelScheduledAt: null,
+              } as any,
+            }),
           checkFeatureAccess,
           checkUsageBalance,
           getProduct,
@@ -422,6 +486,12 @@ export const FlowgladContextProvider = (
     queryClient,
   })
 
+  const uncancelSubscription = constructUncancelSubscription({
+    flowgladRoute: serverRoute,
+    requestConfig,
+    queryClient,
+  })
+
   let value: FlowgladContextValues
   if (!loadBilling) {
     value = {
@@ -455,6 +525,7 @@ export const FlowgladContextProvider = (
         createCheckoutSession,
         createAddPaymentMethodCheckoutSession,
         cancelSubscription,
+        uncancelSubscription,
         createActivateSubscriptionCheckoutSession,
         getProduct,
         getPrice,
