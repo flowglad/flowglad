@@ -19,6 +19,7 @@ import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { Button } from '@/components/ui/button'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options'
+import { FilterButtonGroup } from '@/components/ui/filter-button-group'
 import {
   Table,
   TableBody,
@@ -31,12 +32,16 @@ import { columns, type FeatureRow } from './columns'
 
 export interface FeaturesTableFilters {
   pricingModelId?: string
+  active?: boolean
 }
 
 interface FeaturesDataTableProps {
   filters?: FeaturesTableFilters
   title?: string
   onCreateFeature?: () => void
+  filterOptions?: { value: string; label: string }[]
+  activeFilter?: string
+  onFilterChange?: (value: string) => void
   buttonVariant?:
     | 'default'
     | 'outline'
@@ -50,6 +55,9 @@ export function FeaturesDataTable({
   filters = {},
   title,
   onCreateFeature,
+  filterOptions,
+  activeFilter,
+  onFilterChange,
   buttonVariant = 'default',
 }: FeaturesDataTableProps) {
   const router = useRouter()
@@ -137,21 +145,39 @@ export function FeaturesDataTable({
   return (
     <div className="w-full">
       {/* Enhanced toolbar */}
-      <div className="flex items-center justify-between pt-4 pb-3 gap-4 min-w-0">
-        {/* Title on the left (for detail pages) */}
-        <div className="flex items-center gap-4 min-w-0 flex-shrink overflow-hidden">
-          {title && <h3 className="text-lg truncate">{title}</h3>}
-        </div>
+      <div className="flex flex-col gap-3 pt-4 pb-2">
+        {/* Title row */}
+        {title && (
+          <div>
+            <h3 className="text-lg truncate">{title}</h3>
+          </div>
+        )}
+        {/* Filter buttons and controls row */}
+        <div className="flex items-center justify-between gap-4 min-w-0">
+          {/* Filter buttons on the left */}
+          <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
+            {filterOptions && activeFilter && onFilterChange && (
+              <FilterButtonGroup
+                options={filterOptions}
+                value={activeFilter}
+                onValueChange={onFilterChange}
+              />
+            )}
+          </div>
 
-        {/* Controls on the right */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <DataTableViewOptions table={table} />
-          {onCreateFeature && (
-            <Button onClick={onCreateFeature} variant={buttonVariant}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Feature
-            </Button>
-          )}
+          {/* Controls on the right */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <DataTableViewOptions table={table} />
+            {onCreateFeature && (
+              <Button
+                onClick={onCreateFeature}
+                variant={buttonVariant}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Feature
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
