@@ -2,24 +2,22 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
-  setupPurchase,
+  setupPricingModel,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  Customer,
-  customers,
-  InferredCustomerStatus,
-} from '@/db/schema/customers'
+import { Customer, customers } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { User } from '@/db/schema/users'
 import core from '@/utils/core'
 import {
   assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId,
+  type CustomersTableFilters,
   insertCustomer,
-  selectCustomerAndCustomerTableRows,
   selectCustomerById,
   selectCustomers,
+  selectCustomersCursorPaginatedWithTableRowData,
+  selectDistinctCustomerPricingModelNames,
   setUserIdForCustomerRecords,
   updateCustomer,
 } from './customerMethods'
@@ -1296,6 +1294,651 @@ describe('Customer uniqueness constraints', () => {
         }
       )
       expect(unchangedCustomer.stripeCustomerId).toBe(stripeId2)
+    })
+  })
+})
+
+describe('selectDistinctCustomerPricingModelNames', () => {
+  let organization: Organization.Record
+  let organization2: Organization.Record
+  let pricingModel: { id: string; name: string }
+  let pricingModel2: { id: string; name: string }
+  let pricingModel3: { id: string; name: string }
+  let customer: Customer.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+    })
+
+    // Setup second organization for isolation tests
+    const orgData2 = await setupOrg()
+    organization2 = orgData2.organization
+    pricingModel2 = orgData2.pricingModel
+  })
+
+  it('should return empty array when organization has no customers', async () => {
+    // Create a fresh organization without any customers
+    const freshOrgData = await setupOrg()
+    await adminTransaction(async ({ transaction }) => {
+      const result = await selectDistinctCustomerPricingModelNames(
+        freshOrgData.organization.id,
+        transaction
+      )
+      expect(result).toEqual([])
+    })
+  })
+
+  it('should return deduplicated, case-insensitively ordered pricing model names for the given organization', async () => {
+    // Create multiple pricing models with different names (including case variations)
+    pricingModel3 = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'zebra Pricing Model',
+      isDefault: false,
+    })
+
+    const pricingModel4 = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Apple Pricing Model',
+      isDefault: false,
+    })
+
+    const pricingModel5 = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Banana Pricing Model',
+      isDefault: false,
+    })
+
+    // Create customers with different pricing models - some with same pricing model to test deduplication
+    await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id, // Default pricing model
+    })
+
+    await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel3.id,
+    })
+
+    await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel4.id,
+    })
+
+    // Add another customer with pricingModel4 to verify deduplication
+    await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel4.id,
+    })
+
+    await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel5.id,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await selectDistinctCustomerPricingModelNames(
+        organization.id,
+        transaction
+      )
+      // Should be deduplicated (Apple appears only once despite 2 customers)
+      // Should be case-insensitively sorted (Apple, Banana, Flowglad Test Pricing Model, zebra)
+      expect(result.length).toBeGreaterThanOrEqual(4)
+      expect(result).toContain('Apple Pricing Model')
+      expect(result).toContain('Banana Pricing Model')
+      expect(result).toContain('zebra Pricing Model')
+      // Verify case-insensitive sorting
+      const appleIndex = result.indexOf('Apple Pricing Model')
+      const bananaIndex = result.indexOf('Banana Pricing Model')
+      const zebraIndex = result.indexOf('zebra Pricing Model')
+      expect(appleIndex).toBeLessThan(bananaIndex)
+      expect(bananaIndex).toBeLessThan(zebraIndex)
+    })
+  })
+
+  it('should only return pricing models for the given organization', async () => {
+    const pricingModelOrg1 = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Org1 Pricing Model',
+      isDefault: false,
+    })
+
+    const pricingModelOrg2 = await setupPricingModel({
+      organizationId: organization2.id,
+      name: 'Org2 Pricing Model',
+      isDefault: false,
+    })
+
+    await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModelOrg1.id,
+    })
+
+    await setupCustomer({
+      organizationId: organization2.id,
+      pricingModelId: pricingModelOrg2.id,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const result1 = await selectDistinctCustomerPricingModelNames(
+        organization.id,
+        transaction
+      )
+      expect(result1).toContain('Org1 Pricing Model')
+      expect(result1).not.toContain('Org2 Pricing Model')
+
+      const result2 = await selectDistinctCustomerPricingModelNames(
+        organization2.id,
+        transaction
+      )
+      expect(result2).toContain('Org2 Pricing Model')
+      expect(result2).not.toContain('Org1 Pricing Model')
+    })
+  })
+})
+
+describe('selectCustomersCursorPaginatedWithTableRowData', () => {
+  let organization: Organization.Record
+  let organization2: Organization.Record
+  let pricingModel: { id: string; name: string }
+  let pricingModel2: { id: string; name: string }
+  let pricingModel3: { id: string; name: string }
+  let customer1: Customer.Record
+  let customer2: Customer.Record
+  let customer3: Customer.Record
+  let customerOtherOrg: Customer.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+
+    // Setup customers with different names for search testing
+    customer1 = await setupCustomer({
+      organizationId: organization.id,
+      name: 'Alice Smith',
+      email: 'alice@example.com',
+      pricingModelId: pricingModel.id,
+    })
+
+    customer2 = await setupCustomer({
+      organizationId: organization.id,
+      name: 'Bob Jones',
+      email: 'bob@example.com',
+      pricingModelId: pricingModel.id,
+    })
+
+    customer3 = await setupCustomer({
+      organizationId: organization.id,
+      name: 'Charlie Brown',
+      email: 'charlie@example.com',
+      pricingModelId: pricingModel.id,
+    })
+
+    // Setup additional pricing models for filter testing
+    pricingModel2 = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Premium Plan',
+      isDefault: false,
+    })
+
+    pricingModel3 = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Basic Plan',
+      isDefault: false,
+    })
+
+    // Setup second organization for isolation tests
+    const orgData2 = await setupOrg()
+    organization2 = orgData2.organization
+
+    customerOtherOrg = await setupCustomer({
+      organizationId: organization2.id,
+      name: 'Alice Smith', // Same name as customer1 to test isolation
+      email: 'alice-other@example.com',
+      pricingModelId: orgData2.pricingModel.id,
+    })
+  })
+
+  describe('search functionality', () => {
+    it('should search by customer ID, email, or name (case-insensitive, trims whitespace)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Test customer ID search (exact match)
+        const resultById =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: customer1.id,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultById.items.length).toBe(1)
+        expect(resultById.items[0].customer.id).toBe(customer1.id)
+        expect(resultById.total).toBe(1)
+
+        // Test partial customer name search (case-insensitive)
+        const resultByName =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultByName.items.length).toBe(1)
+        expect(resultByName.items[0].customer.id).toBe(customer1.id)
+        expect(resultByName.items[0].customer.name).toBe(
+          'Alice Smith'
+        )
+
+        // Test partial email search (case-insensitive)
+        const resultByEmail =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'bob@example',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultByEmail.items.length).toBe(1)
+        expect(resultByEmail.items[0].customer.id).toBe(customer2.id)
+        expect(resultByEmail.items[0].customer.email).toBe(
+          'bob@example.com'
+        )
+
+        // Test case-insensitive search
+        const resultCaseInsensitive =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'CHARLIE',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultCaseInsensitive.items.length).toBe(1)
+        expect(resultCaseInsensitive.items[0].customer.name).toBe(
+          'Charlie Brown'
+        )
+
+        // Test that search works (whitespace trimming is handled by buildAdditionalSearchClause for ID search,
+        // but searchableColumns ILIKE search doesn't trim - this is expected behavior)
+        // Note: The ID search in buildAdditionalSearchClause trims, so searching by ID with whitespace works
+        const resultByIdWithWhitespace =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: `  ${customer1.id}  `,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultByIdWithWhitespace.items.length).toBe(1)
+        expect(resultByIdWithWhitespace.items[0].customer.id).toBe(
+          customer1.id
+        )
+      })
+    })
+
+    it('should ignore empty or undefined search queries', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const resultEmpty =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        const resultUndefined =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: undefined,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        // Empty and undefined should return all 3 customers
+        // Note: Whitespace-only queries (e.g., '   ') are not currently handled correctly
+        // because constructSearchQueryClause doesn't trim the searchQuery before using it.
+        // This is a known limitation that should be fixed in buildWhereClauses or constructSearchQueryClause.
+        expect(resultEmpty.items.length).toBe(3)
+        expect(resultEmpty.total).toBe(3)
+        expect(resultUndefined.items.length).toBe(3)
+        expect(resultUndefined.total).toBe(3)
+      })
+    })
+
+    it('should only return customers for the specified organization', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Search for "Alice" - should only return customer1, not customerOtherOrg
+        const result =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].customer.id).toBe(customer1.id)
+        expect(result.items[0].customer.organizationId).toBe(
+          organization.id
+        )
+        expect(result.total).toBe(1)
+      })
+    })
+  })
+
+  describe('pricingModelName filter functionality', () => {
+    it('should filter by pricing model name (exact match, trims whitespace)', async () => {
+      // Create customers with different pricing models
+      const customerPremium = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Premium Customer',
+        email: 'premium@example.com',
+        pricingModelId: pricingModel2.id, // Premium Plan
+      })
+
+      const customerBasic = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Basic Customer',
+        email: 'basic@example.com',
+        pricingModelId: pricingModel3.id, // Basic Plan
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Test Premium Plan filter
+        const resultPremium =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                pricingModelName: 'Premium Plan',
+              } as CustomersTableFilters,
+            },
+            transaction,
+          })
+
+        expect(resultPremium.items.length).toBe(1)
+        expect(resultPremium.items[0].customer.id).toBe(
+          customerPremium.id
+        )
+        expect(resultPremium.total).toBe(1)
+
+        // Test Basic Plan filter
+        const resultBasic =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                pricingModelName: 'Basic Plan',
+              } as CustomersTableFilters,
+            },
+            transaction,
+          })
+
+        expect(resultBasic.items.length).toBe(1)
+        expect(resultBasic.items[0].customer.id).toBe(
+          customerBasic.id
+        )
+        expect(resultBasic.total).toBe(1)
+
+        // Test whitespace trimming
+        const resultTrimmed =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                pricingModelName: '  Premium Plan  ',
+              } as CustomersTableFilters,
+            },
+            transaction,
+          })
+
+        expect(resultTrimmed.items.length).toBe(1)
+        expect(resultTrimmed.total).toBe(1)
+      })
+    })
+
+    it('should ignore empty or whitespace-only pricing model name filters', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const resultEmpty =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                pricingModelName: '',
+              } as CustomersTableFilters,
+            },
+            transaction,
+          })
+
+        const resultWhitespace =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                pricingModelName: '   ',
+              } as CustomersTableFilters,
+            },
+            transaction,
+          })
+
+        const resultNoFilter =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+              },
+            },
+            transaction,
+          })
+
+        // All should return all customers
+        expect(resultEmpty.items.length).toBe(3)
+        expect(resultEmpty.total).toBe(3)
+        expect(resultWhitespace.items.length).toBe(3)
+        expect(resultWhitespace.total).toBe(3)
+        expect(resultNoFilter.items.length).toBe(3)
+        expect(resultNoFilter.total).toBe(3)
+      })
+    })
+
+    it('should only return customers for the specified organization when filtering by pricing model name', async () => {
+      // Create pricing model in organization2 with same name
+      const pricingModelOrg2 = await setupPricingModel({
+        organizationId: organization2.id,
+        name: 'Premium Plan', // Same name as pricingModel2
+        isDefault: false,
+      })
+
+      const customerOrg2Premium = await setupCustomer({
+        organizationId: organization2.id,
+        name: 'Org2 Premium Customer',
+        email: 'org2premium@example.com',
+        pricingModelId: pricingModelOrg2.id,
+      })
+
+      const customerOrg1Premium = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Org1 Premium Customer',
+        email: 'org1premium@example.com',
+        pricingModelId: pricingModel2.id,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Filter by "Premium Plan" - should only return customers from organization, not organization2
+        const result =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                pricingModelName: 'Premium Plan',
+              } as CustomersTableFilters,
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(1)
+        result.items.forEach((item) => {
+          expect(item.customer.organizationId).toBe(organization.id)
+        })
+        expect(result.items[0].customer.id).toBe(
+          customerOrg1Premium.id
+        )
+        expect(result.total).toBe(1)
+      })
+    })
+  })
+
+  describe('combined search and filter functionality', () => {
+    it('should combine search query and pricing model name filter with AND semantics', async () => {
+      // Create customers with different pricing models and names
+      const customerPremiumAlice = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Alice Premium',
+        email: 'alice.premium@example.com',
+        pricingModelId: pricingModel2.id, // Premium Plan
+      })
+
+      const customerPremiumBob = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Bob Premium',
+        email: 'bob.premium@example.com',
+        pricingModelId: pricingModel2.id, // Premium Plan
+      })
+
+      const customerBasicAlice = await setupCustomer({
+        organizationId: organization.id,
+        name: 'Alice Basic',
+        email: 'alice.basic@example.com',
+        pricingModelId: pricingModel3.id, // Basic Plan
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Test search + filter combination - should only return Alice Premium
+        const result =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: {
+                organizationId: organization.id,
+                pricingModelName: 'Premium Plan',
+              } as CustomersTableFilters,
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].customer.id).toBe(
+          customerPremiumAlice.id
+        )
+        expect(result.items[0].customer.name).toBe('Alice Premium')
+        expect(result.total).toBe(1)
+
+        // Test pagination with search + filter
+        const page1 =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 1,
+              searchQuery: 'bob',
+              filters: {
+                organizationId: organization.id,
+                pricingModelName: 'Premium Plan',
+              } as CustomersTableFilters,
+            },
+            transaction,
+          })
+
+        expect(page1.items.length).toBe(1)
+        expect(page1.total).toBe(1) // Only customerPremiumBob matches
+        expect(page1.hasNextPage).toBe(false)
+      })
+    })
+  })
+
+  describe('edge cases and error handling', () => {
+    it('should handle invalid inputs gracefully and maintain correct total count', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Test null/undefined searchQuery
+        const resultUndefined =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: undefined,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultUndefined.items.length).toBe(3)
+        expect(resultUndefined.total).toBe(3)
+
+        // Test non-string pricingModelName
+        const resultInvalidPricingModel =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              filters: {
+                organizationId: organization.id,
+                // @ts-expect-error - Testing invalid input: pricingModelName should be string, not number
+                pricingModelName: 123, // Non-string value
+              },
+            },
+            transaction,
+          })
+        // Should ignore the invalid pricingModelName and return all customers
+        expect(resultInvalidPricingModel.items.length).toBe(3)
+        expect(resultInvalidPricingModel.total).toBe(3)
+
+        // Test total count accuracy with search + filter
+        const customerPremium = await setupCustomer({
+          organizationId: organization.id,
+          name: 'Premium Alice',
+          email: 'premium.alice@example.com',
+          pricingModelId: pricingModel2.id,
+        })
+
+        const resultWithFilters =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 1, // Small page size
+              searchQuery: 'alice',
+              filters: {
+                organizationId: organization.id,
+                pricingModelName: 'Premium Plan',
+              } as CustomersTableFilters,
+            },
+            transaction,
+          })
+
+        // Should return 1 item but total should be 1 (not items.length)
+        expect(resultWithFilters.items.length).toBe(1)
+        expect(resultWithFilters.total).toBe(1)
+        expect(resultWithFilters.hasNextPage).toBe(false)
+      })
     })
   })
 })

@@ -7,7 +7,6 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  Customer,
   customerClientSelectSchema,
   customersPaginatedListSchema,
   customersPaginatedSelectSchema,
@@ -30,6 +29,7 @@ import {
   selectCustomers,
   selectCustomersCursorPaginatedWithTableRowData,
   selectCustomersPaginated,
+  selectDistinctCustomerPricingModelNames,
   updateCustomer as updateCustomerDb,
 } from '@/db/tableMethods/customerMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
@@ -510,6 +510,28 @@ const exportCsvProcedure = protectedProcedure
     )
   )
 
+/**
+ * Fetches distinct pricing model names that have customers associated with them.
+ * Used to populate the pricing model filter dropdown in the customers table UI.
+ */
+const listDistinctCustomerPricingModelNamesProcedure =
+  protectedProcedure
+    .input(z.object({}).optional())
+    .output(z.array(z.string()))
+    .query(async ({ ctx }) => {
+      return authenticatedTransaction(
+        async ({ transaction, organizationId }) => {
+          return selectDistinctCustomerPricingModelNames(
+            organizationId,
+            transaction
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    })
+
 export const customersRouter = router({
   create: createCustomerProcedure,
   /**
@@ -522,4 +544,6 @@ export const customersRouter = router({
   list: listCustomersProcedure,
   getTableRows: getTableRowsProcedure,
   exportCsv: exportCsvProcedure,
+  listDistinctCustomerPricingModelNames:
+    listDistinctCustomerPricingModelNamesProcedure,
 })
