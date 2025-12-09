@@ -1,12 +1,4 @@
-import {
-  and,
-  desc,
-  eq,
-  exists,
-  inArray,
-  isNull,
-  sql,
-} from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import {
   type Customer,
@@ -19,7 +11,6 @@ import {
   customersUpdateSchema,
   InferredCustomerStatus,
 } from '@/db/schema/customers'
-import type { SelectConditions } from '@/db/tableUtils'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -40,7 +31,6 @@ import {
   organizationsSelectSchema,
 } from '../schema/organizations'
 import { payments } from '../schema/payments'
-import { pricingModels } from '../schema/pricingModels'
 import { purchases } from '../schema/purchases'
 
 const config: ORMMethodCreatorConfig<
@@ -349,17 +339,6 @@ export const mapCustomerEmailToStackAuthHostedBillingUserId = async (
   )?.stackAuthHostedBillingUserId
 }
 
-/**
- * Extended filter type for customers table that includes cross-table filters.
- * The `pricingModelName` filter is not on the customers table itself, but comes
- * from the related pricingModels table via customers.pricingModelId.
- */
-export type CustomersTableFilters = SelectConditions<
-  typeof customersTable
-> & {
-  pricingModelName?: string
-}
-
 export const selectCustomersCursorPaginatedWithTableRowData =
   createCursorPaginatedSelectFunction(
     customersTable,
@@ -455,41 +434,6 @@ export const selectCustomersCursorPaginatedWithTableRowData =
 
       // Match customers by exact ID (combined with base email/name via OR)
       return eq(customersTable.id, trimmedQuery)
-    },
-    /**
-     * Additional filter clause handler for customers table.
-     * Enables filtering customers by pricing model name (cross-table filter).
-     * The pricing model name is not directly on the customers table, but is
-     * accessed via customers.pricingModelId -> pricingModels.id.
-     *
-     * @param filters - Filter object that may contain pricingModelName
-     * @param transaction - Database transaction for building subqueries
-     * @returns SQL EXISTS subquery condition, or undefined if no pricing model name filter
-     */
-    async ({ filters, transaction }) => {
-      const typedFilters = filters as
-        | CustomersTableFilters
-        | undefined
-      const pricingModelNameValue = typedFilters?.pricingModelName
-
-      const pricingModelName =
-        typeof pricingModelNameValue === 'string'
-          ? pricingModelNameValue.trim()
-          : undefined
-
-      if (!pricingModelName) return undefined
-
-      const pricingModelSubquery = transaction // important to not await this, as we want a subquery not a result
-        .select({ id: sql`1` })
-        .from(pricingModels)
-        .where(
-          and(
-            eq(pricingModels.id, customersTable.pricingModelId),
-            eq(pricingModels.name, pricingModelName)
-          )
-        )
-
-      return exists(pricingModelSubquery)
     }
   )
 
@@ -541,36 +485,4 @@ export const setUserIdForCustomerRecords = async (
         eq(customersTable.livemode, true)
       )
     )
-}
-
-/**
- * Selects distinct pricing model names that have customers associated with them.
- * Used to populate the pricing model filter dropdown in the customers table UI.
- *
- * @param organizationId - The organization to query pricing models for
- * @param transaction - Database transaction
- * @returns Array of distinct pricing model names, sorted case-insensitively
- */
-export const selectDistinctCustomerPricingModelNames = async (
-  organizationId: string,
-  transaction: DbTransaction
-): Promise<string[]> => {
-  const rows = await transaction
-    .select({ name: pricingModels.name })
-    .from(customersTable)
-    .innerJoin(
-      pricingModels,
-      eq(pricingModels.id, customersTable.pricingModelId)
-    )
-    .where(eq(customersTable.organizationId, organizationId))
-    .groupBy(pricingModels.name)
-
-  const names = rows
-    .map((r) => r.name)
-    .filter((n): n is string => !!n && n.trim().length > 0)
-  // Sort case-insensitively for stable UI ordering
-  names.sort((a, b) =>
-    a.localeCompare(b, undefined, { sensitivity: 'base' })
-  )
-  return names
 }
