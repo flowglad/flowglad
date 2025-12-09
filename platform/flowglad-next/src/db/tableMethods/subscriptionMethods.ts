@@ -269,6 +269,12 @@ export const selectSubscriptionsTableRowData =
      * - Exact subscription ID match
      * - Customer name (case-insensitive partial match via ILIKE)
      *
+     * The `exists()` function wraps a subquery and returns a boolean condition:
+     * - Returns `true` if the subquery finds at least one matching row
+     * - Returns `false` if the subquery finds zero matching rows
+     * The database optimizes EXISTS subqueries to stop evaluating as soon as it finds
+     * the first matching row, making it efficient for existence checks without needing JOINs.
+     *
      * @param searchQuery - The search query string from the user
      * @param transaction - Database transaction for building subqueries
      * @returns SQL condition for OR-ing with other search filters, or undefined if query is empty
@@ -288,6 +294,9 @@ export const selectSubscriptionsTableRowData =
       // Only apply search filter if query is non-empty
       if (!trimmedQuery) return undefined
 
+      // IMPORTANT: Do NOT await this query. By not awaiting, we keep it as a query builder
+      // object that Drizzle can embed into the SQL as a subquery. If we await it, it would
+      // execute immediately and return data, which we can't use in the EXISTS clause.
       const customerSubquery = transaction
         .select({ id: sql`1` })
         .from(customers)
@@ -297,11 +306,14 @@ export const selectSubscriptionsTableRowData =
             ilike(customers.name, sql`'%' || ${trimmedQuery} || '%'`)
           )
         )
+        // LIMIT 1 is included for clarity - EXISTS automatically stops after finding the first matching row.
+        .limit(1)
 
       return or(
         // Match subscriptions by exact ID
         eq(subscriptions.id, trimmedQuery),
         // Match subscriptions where customer name contains the search query
+        // The exists() function checks if the customerSubquery returns at least one row
         exists(customerSubquery)
       )
     },
