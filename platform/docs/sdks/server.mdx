@@ -220,8 +220,8 @@ type UncancelSubscriptionParams = {
 
 **Behavior:**
 
-- If the subscription is not scheduled to cancel, the method will silently succeed without uncancelling (idempotent)
-- If the subscription is in a terminal state (e.g., `canceled`), the method will silently succeed without uncancelling
+- If the subscription is not scheduled to cancel, the method will silently succeed without uncanceling (idempotent)
+- If the subscription is in a terminal state (e.g., `canceled`), the method will silently succeed without uncanceling
 - Only subscriptions in `cancellation_scheduled` status will have their cancellation reversed
 - For paid subscriptions: throws error if no payment method exists
 

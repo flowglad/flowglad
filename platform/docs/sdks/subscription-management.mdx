@@ -35,7 +35,7 @@ If a subscription has been scheduled for cancellation (status `cancellation_sche
 - For paid subscriptions, a valid payment method must exist for the subscription. For free subscriptions, no payment method is required
 
 **Behavior:**
-- The operation is idempotent - calling it on a subscription that isn't scheduled for cancellation will silently succeed without uncancelling
+- The operation is idempotent - calling it on a subscription that isn't scheduled for cancellation will silently succeed without uncanceling
 - The subscription status reverts to `active` (or `trialing` if still in trial period)
 - Any billing runs that were aborted due to the cancellation are rescheduled
 
@@ -293,7 +293,7 @@ If a subscription has been scheduled for cancellation (status `cancellation_sche
     return (
       <>
         <button onClick={handleUncancel} disabled={isLoading}>
-          {isLoading ? 'Uncancelling...' : 'Keep My Subscription'}
+          {isLoading ? 'Uncanceling...' : 'Keep My Subscription'}
         </button>
         {error && <p className="text-sm text-destructive">{error}</p>}
       </>
