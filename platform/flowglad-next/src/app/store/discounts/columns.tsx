@@ -137,7 +137,7 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
   },
   {
     id: 'redemptions',
-    accessorFn: (row) => row.discountRedemptionsCount,
+    accessorFn: (row) => row.redemptionCount,
     header: 'Redemptions',
     cell: ({ row }) => <div>{row.getValue('redemptions') || 0}</div>,
     size: 100,
