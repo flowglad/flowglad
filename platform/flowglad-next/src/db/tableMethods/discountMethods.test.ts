@@ -1,9 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { setupOrg } from '@/../seedDatabase'
+import {
+  setupCustomer,
+  setupDiscount,
+  setupDiscountRedemption,
+  setupOrg,
+  setupPurchase,
+} from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
 import { DiscountAmountType, DiscountDuration } from '@/types'
-import { insertDiscount, selectDiscounts } from './discountMethods'
+import {
+  enrichDiscountsWithRedemptionCounts,
+  insertDiscount,
+  selectDiscounts,
+} from './discountMethods'
 
 describe('insertDiscount uniqueness constraints', () => {
   let organization1: Organization.Record
@@ -204,5 +214,104 @@ describe('insertDiscount uniqueness constraints', () => {
       }
     )
     expect(discounts.length).toBe(2)
+  })
+})
+
+describe('enrichDiscountsWithRedemptionCounts', () => {
+  let organization: Organization.Record
+  let price: Awaited<ReturnType<typeof setupOrg>>['price']
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    price = orgData.price
+  })
+
+  it('should add discountRedemptionsCount of 0 for discounts with no redemptions', async () => {
+    const discount = await setupDiscount({
+      organizationId: organization.id,
+      name: 'Test Discount',
+      code: 'TEST10',
+      amount: 10,
+      amountType: DiscountAmountType.Percent,
+      livemode: true,
+    })
+
+    const discounts = await adminTransaction(
+      async ({ transaction }) => {
+        const discountRecords = await selectDiscounts(
+          { id: discount.id },
+          transaction
+        )
+        return await enrichDiscountsWithRedemptionCounts(
+          discountRecords,
+          transaction
+        )
+      }
+    )
+
+    expect(discounts).toHaveLength(1)
+    expect(discounts[0].id).toBe(discount.id)
+    expect(discounts[0].discountRedemptionsCount).toBe(0)
+  })
+
+  it('should correctly count redemptions for a discount', async () => {
+    const discount = await setupDiscount({
+      organizationId: organization.id,
+      name: 'Test Discount',
+      code: 'TEST10',
+      amount: 10,
+      amountType: DiscountAmountType.Percent,
+      livemode: true,
+    })
+
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+
+    // Create 3 purchases and redemptions
+    const purchases = await Promise.all([
+      setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      }),
+      setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      }),
+      setupPurchase({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+      }),
+    ])
+
+    await Promise.all(
+      purchases.map((purchase) =>
+        setupDiscountRedemption({
+          discount,
+          purchaseId: purchase.id,
+        })
+      )
+    )
+
+    const enrichedDiscounts = await adminTransaction(
+      async ({ transaction }) => {
+        const discountRecords = await selectDiscounts(
+          { id: discount.id },
+          transaction
+        )
+        return await enrichDiscountsWithRedemptionCounts(
+          discountRecords,
+          transaction
+        )
+      }
+    )
+
+    expect(enrichedDiscounts).toHaveLength(1)
+    expect(enrichedDiscounts[0].id).toBe(discount.id)
+    expect(enrichedDiscounts[0].discountRedemptionsCount).toBe(3)
   })
 })
