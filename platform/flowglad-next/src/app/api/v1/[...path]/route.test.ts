@@ -104,7 +104,8 @@ describe('Empty Body Validation', () => {
     })
 
     it('should consider body empty when content-length is undefined', () => {
-      expect(isRequestBodyEmpty(undefined as any)).toBe(true)
+      // @ts-expect-error - Testing undefined input for runtime robustness
+      expect(isRequestBodyEmpty(undefined)).toBe(true)
     })
 
     it('should not consider body empty when content-length is greater than 0', () => {
