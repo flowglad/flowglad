@@ -2312,9 +2312,9 @@ describe('sanitizeBaseTableFilters', () => {
 
 describe('buildWhereClauses', () => {
   let organizationId: string
-  let customer1: Awaited<ReturnType<typeof setupCustomer>>
-  let customer2: Awaited<ReturnType<typeof setupCustomer>>
-  let customer3: Awaited<ReturnType<typeof setupCustomer>>
+  let customer1: Customer.Record
+  let customer2: Customer.Record
+  let customer3: Customer.Record
 
   beforeEach(async () => {
     const { organization } = await setupOrg()
@@ -2341,7 +2341,7 @@ describe('buildWhereClauses', () => {
   })
 
   it('should return undefined when no filters or search provided', async () => {
-    await adminTransaction(async ({ transaction: tx }) => {
+    await adminTransaction(async ({ transaction }) => {
       const result = await buildWhereClauses(
         customers,
         undefined,
@@ -2349,7 +2349,7 @@ describe('buildWhereClauses', () => {
         undefined,
         undefined,
         undefined,
-        tx
+        transaction
       )
 
       expect(result.whereClauses).toBeUndefined()
@@ -2357,7 +2357,7 @@ describe('buildWhereClauses', () => {
   })
 
   it('should filter by base table columns and sanitize cross-table fields', async () => {
-    await adminTransaction(async ({ transaction: tx }) => {
+    await adminTransaction(async ({ transaction }) => {
       const filters = {
         organizationId,
         livemode: true,
@@ -2372,10 +2372,10 @@ describe('buildWhereClauses', () => {
         undefined,
         undefined,
         undefined,
-        tx
+        transaction
       )
 
-      const results = await tx
+      const results = await transaction
         .select()
         .from(customers)
         .where(whereClauses)
@@ -2386,7 +2386,7 @@ describe('buildWhereClauses', () => {
   })
 
   it('should search across searchable columns', async () => {
-    await adminTransaction(async ({ transaction: tx }) => {
+    await adminTransaction(async ({ transaction }) => {
       const { whereClauses } = await buildWhereClauses(
         customers,
         { organizationId },
@@ -2394,10 +2394,10 @@ describe('buildWhereClauses', () => {
         [customers.email, customers.name],
         undefined,
         undefined,
-        tx
+        transaction
       )
 
-      const results = await tx
+      const results = await transaction
         .select()
         .from(customers)
         .where(whereClauses)
@@ -2408,7 +2408,7 @@ describe('buildWhereClauses', () => {
   })
 
   it('should combine base filters with additional filter clauses using AND', async () => {
-    await adminTransaction(async ({ transaction: tx }) => {
+    await adminTransaction(async ({ transaction }) => {
       const { whereClauses } = await buildWhereClauses(
         customers,
         { organizationId },
@@ -2416,10 +2416,10 @@ describe('buildWhereClauses', () => {
         undefined,
         async () => eq(customers.livemode, true),
         undefined,
-        tx
+        transaction
       )
 
-      const results = await tx
+      const results = await transaction
         .select()
         .from(customers)
         .where(whereClauses)
@@ -2430,7 +2430,7 @@ describe('buildWhereClauses', () => {
   })
 
   it('should combine base search with additional search using OR', async () => {
-    await adminTransaction(async ({ transaction: tx }) => {
+    await adminTransaction(async ({ transaction }) => {
       const { whereClauses } = await buildWhereClauses(
         customers,
         { organizationId },
@@ -2438,10 +2438,10 @@ describe('buildWhereClauses', () => {
         [customers.email],
         undefined,
         async () => sql`${customers.name} ILIKE ${'%bob%'}`,
-        tx
+        transaction
       )
 
-      const results = await tx
+      const results = await transaction
         .select()
         .from(customers)
         .where(whereClauses)
@@ -2452,7 +2452,7 @@ describe('buildWhereClauses', () => {
   })
 
   it('should combine all clauses with AND logic', async () => {
-    await adminTransaction(async ({ transaction: tx }) => {
+    await adminTransaction(async ({ transaction }) => {
       const { whereClauses } = await buildWhereClauses(
         customers,
         { organizationId, livemode: true },
@@ -2460,10 +2460,10 @@ describe('buildWhereClauses', () => {
         [customers.email],
         async () => sql`${customers.name} IS NOT NULL`,
         undefined,
-        tx
+        transaction
       )
 
-      const results = await tx
+      const results = await transaction
         .select()
         .from(customers)
         .where(whereClauses)
