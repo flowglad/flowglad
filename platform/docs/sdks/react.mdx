@@ -311,6 +311,74 @@ await cancelSubscription({
 })
 ```
 
+### uncancelSubscription
+
+Reverse a scheduled subscription cancellation. The subscription must be in `cancellation_scheduled` status. Automatically refreshes billing data on success.
+
+#### Parameters
+
+```typescript
+interface UncancelSubscriptionParams {
+  id: string
+}
+```
+
+#### Example
+
+```tsx
+import { useBilling } from '@flowglad/react'
+import { useState } from 'react'
+
+function SubscriptionManager() {
+  const { uncancelSubscription, currentSubscriptions } = useBilling()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  
+  const subscription = currentSubscriptions?.[0]
+  const isScheduledForCancellation = subscription?.status === 'cancellation_scheduled'
+  
+  const handleUncancel = async () => {
+    if (!subscription?.id) return
+    
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      await uncancelSubscription({ id: subscription.id })
+      // Billing data is automatically refreshed
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to uncancel subscription'
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  if (!isScheduledForCancellation) {
+    return null
+  }
+  
+  return (
+    <div>
+      <p>Your subscription is scheduled to cancel on {subscription.cancelScheduledAt}</p>
+      <button onClick={handleUncancel} disabled={isLoading}>
+        {isLoading ? 'Restoring...' : 'Keep My Subscription'}
+      </button>
+      {error && <p className="error">{error}</p>}
+    </div>
+  )
+}
+```
+
+**Behavior:**
+
+- Operation is idempotent. If the subscription is not scheduled to cancel, the method will silently succeed without uncancelling
+- For paid subscriptions: requires an active payment method for the subscription
+- Automatically refreshes billing data after success
+
 ### checkFeatureAccess
 
 Check if the current customer has access to a specific feature.
