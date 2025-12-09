@@ -7,7 +7,6 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  Customer,
   customerClientSelectSchema,
   customersPaginatedListSchema,
   customersPaginatedSelectSchema,
