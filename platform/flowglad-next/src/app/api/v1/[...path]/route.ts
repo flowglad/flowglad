@@ -60,6 +60,7 @@ import {
 } from '@/utils/securityTelemetry'
 import { parseUnkeyMeta, verifyApiKey } from '@/utils/unkey'
 import { searchParamsToObject } from '@/utils/url'
+import { shouldAllowEmptyBody } from '@/utils/validateRequest'
 
 interface FlowgladRESTRouteContext {
   params: Promise<{ path: string[] }>
@@ -314,35 +315,50 @@ const innerHandler = async (
             })
           } catch (error) {
             inputParsingDuration = Date.now() - bodyParsingStartTime
-            parentSpan.setStatus({
-              code: SpanStatusCode.ERROR,
-              message: 'Invalid JSON in request body',
-            })
-            parentSpan.setAttributes({
-              'error.type': 'VALIDATION_ERROR',
-              'error.category': 'VALIDATION_ERROR',
-              'error.message': 'Invalid JSON in request body',
-              'http.status_code': 400,
-              'input.parsing_duration_ms': inputParsingDuration,
-              'input.body_parsed': false,
-            })
+            const path = (await params).path.join('/')
+            const contentLength = req.headers.get('content-length')
 
-            logger.error(
-              `[${requestId}] Invalid JSON in request body`,
-              {
-                service: 'api',
-                apiEnvironment: req.unkey
-                  ?.environment as ApiEnvironment,
-                request_id: requestId,
-                error: error as Error,
-                parsing_duration_ms: inputParsingDuration,
-              }
-            )
+            if (shouldAllowEmptyBody(path, contentLength)) {
+              // Allow empty body for these specific routes
+              body = {}
 
-            return NextResponse.json(
-              { error: 'Invalid JSON in request body' },
-              { status: 400 }
-            )
+              parentSpan.setAttributes({
+                'input.parsing_duration_ms': inputParsingDuration,
+                'input.body_parsed': false,
+                'input.body_empty': true,
+                'input.empty_body_allowed': true,
+              })
+            } else {
+              parentSpan.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: 'Invalid JSON in request body',
+              })
+              parentSpan.setAttributes({
+                'error.type': 'VALIDATION_ERROR',
+                'error.category': 'VALIDATION_ERROR',
+                'error.message': 'Invalid JSON in request body',
+                'http.status_code': 400,
+                'input.parsing_duration_ms': inputParsingDuration,
+                'input.body_parsed': false,
+              })
+
+              logger.error(
+                `[${requestId}] Invalid JSON in request body`,
+                {
+                  service: 'api',
+                  apiEnvironment: req.unkey
+                    ?.environment as ApiEnvironment,
+                  request_id: requestId,
+                  error: error as Error,
+                  parsing_duration_ms: inputParsingDuration,
+                }
+              )
+
+              return NextResponse.json(
+                { error: 'Invalid JSON in request body' },
+                { status: 400 }
+              )
+            }
           }
         }
 
