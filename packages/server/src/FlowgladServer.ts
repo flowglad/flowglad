@@ -310,7 +310,10 @@ export class FlowgladServer {
       return { subscription }
     }
 
-    return this.flowgladNode.subscriptions.uncancel(params.id)
+    // Pass an empty body to ensure Content-Type: application/json is set
+    return this.flowgladNode.subscriptions.uncancel(params.id, {
+      body: {},
+    })
   }
 
   public createSubscription = async (
