@@ -1,5 +1,17 @@
 # @flowglad/react
 
+## 0.15.0
+
+### Minor Changes
+
+- 562490d: - add subscription uncancel
+  - bump @flowglad/node dependency to v0.24
+
+### Patch Changes
+
+- Updated dependencies [562490d]
+  - @flowglad/shared@0.15.0
+
 ## 0.14.1
 
 ### Patch Changes
