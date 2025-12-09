@@ -12,6 +12,7 @@ import { DiscountAmountType, DiscountDuration } from '@/types'
 import {
   enrichDiscountsWithRedemptionCounts,
   insertDiscount,
+  selectDiscountById,
   selectDiscounts,
 } from './discountMethods'
 
@@ -227,7 +228,7 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
     price = orgData.price
   })
 
-  it('should add discountRedemptionsCount of 0 for discounts with no redemptions', async () => {
+  it('should add redemptionCount of 0 for discounts with no redemptions', async () => {
     const discount = await setupDiscount({
       organizationId: organization.id,
       name: 'Test Discount',
@@ -239,12 +240,12 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
 
     const discounts = await adminTransaction(
       async ({ transaction }) => {
-        const discountRecords = await selectDiscounts(
-          { id: discount.id },
+        const discountRecord = await selectDiscountById(
+          discount.id,
           transaction
         )
         return await enrichDiscountsWithRedemptionCounts(
-          discountRecords,
+          [discountRecord],
           transaction
         )
       }
@@ -252,7 +253,7 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
 
     expect(discounts).toHaveLength(1)
     expect(discounts[0].id).toBe(discount.id)
-    expect(discounts[0].discountRedemptionsCount).toBe(0)
+    expect(discounts[0].redemptionCount).toBe(0)
   })
 
   it('should correctly count redemptions for a discount', async () => {
@@ -299,12 +300,12 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
 
     const enrichedDiscounts = await adminTransaction(
       async ({ transaction }) => {
-        const discountRecords = await selectDiscounts(
-          { id: discount.id },
+        const discountRecord = await selectDiscountById(
+          discount.id,
           transaction
         )
         return await enrichDiscountsWithRedemptionCounts(
-          discountRecords,
+          [discountRecord],
           transaction
         )
       }
@@ -312,6 +313,6 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
 
     expect(enrichedDiscounts).toHaveLength(1)
     expect(enrichedDiscounts[0].id).toBe(discount.id)
-    expect(enrichedDiscounts[0].discountRedemptionsCount).toBe(3)
+    expect(enrichedDiscounts[0].redemptionCount).toBe(3)
   })
 })

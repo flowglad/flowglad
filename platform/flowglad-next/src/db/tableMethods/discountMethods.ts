@@ -79,12 +79,11 @@ export const enrichDiscountsWithRedemptionCounts = async (
 
   return discounts.map((discount) => ({
     ...discount,
-    discountRedemptionsCount:
-      redemptionCountMap.get(discount.id) || 0,
+    redemptionCount: redemptionCountMap.get(discount.id) || 0,
   }))
 }
 
-// Keep existing enrichmentFunction for getTableRowsProcedure (returns { discount, discountRedemptionsCount })
+// Keep existing enrichmentFunction for getTableRowsProcedure (returns { discount, redemptionCount })
 const enrichmentFunction = async (
   data: z.infer<typeof discountsSelectSchema>[],
   transaction: DbTransaction
@@ -97,8 +96,7 @@ const enrichmentFunction = async (
 
   return data.map((discount) => ({
     discount,
-    discountRedemptionsCount:
-      redemptionCountMap.get(discount.id) || 0,
+    redemptionCount: redemptionCountMap.get(discount.id) || 0,
   }))
 }
 

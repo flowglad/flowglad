@@ -254,7 +254,7 @@ export const discountsPaginatedListSchema =
 export const discountWithRedemptionsSchema =
   discountClientSelectSchema.and(
     z.object({
-      discountRedemptionsCount: z.number(),
+      redemptionCount: z.number(),
     })
   )
 
@@ -263,7 +263,7 @@ export const discountsPaginatedListWithRedemptionsSchema =
 
 export const discountsTableRowDataSchema = z.object({
   discount: discountClientSelectSchema,
-  discountRedemptionsCount: z.number(),
+  redemptionCount: z.number(),
 })
 
 export namespace Discount {
