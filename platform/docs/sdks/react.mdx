@@ -363,7 +363,7 @@ function SubscriptionManager() {
   
   return (
     <div>
-      <p>Your subscription is scheduled to cancel on {subscription.cancelScheduledAt}</p>
+      <p>Your subscription is scheduled to cancel on {new Date(subscription.cancelScheduledAt).toLocaleDateString()}</p>
       <button onClick={handleUncancel} disabled={isLoading}>
         {isLoading ? 'Restoring...' : 'Keep My Subscription'}
       </button>
