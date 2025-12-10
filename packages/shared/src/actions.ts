@@ -45,7 +45,7 @@ export const createActivateSubscriptionCheckoutSessionSchema =
     targetSubscriptionId: z.string(),
   })
 
-export type CreateProductCheckoutSessionParams = z.infer<
+export type CreateProductCheckoutSessionParams = z.input<
   typeof createProductCheckoutSessionSchema
 >
 export type CreateAddPaymentMethodCheckoutSessionParams = z.infer<
