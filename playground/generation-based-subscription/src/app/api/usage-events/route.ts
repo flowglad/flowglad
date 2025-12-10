@@ -27,7 +27,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const parseResult = createUsageEventSchema.safeParse(body)
-    const session = await auth.api.getSession()
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    })
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
