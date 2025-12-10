@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 
 export const flowglad = (customerExternalId: string) => {
   return new FlowgladServer({
+    baseURL: 'http://localhost:3000',
     customerExternalId,
     getCustomerDetails: async (customerExternalId) => {
       const session = await auth.api.getSession({
