@@ -3,7 +3,7 @@ import type {
   Price,
   UsageMeter,
   Product,
-} from '@flowglad/shared'
+} from '@flowglad/nextjs'
 
 type UsageMeterSlug = 'fast_generations' | 'hd_video_minutes'
 
