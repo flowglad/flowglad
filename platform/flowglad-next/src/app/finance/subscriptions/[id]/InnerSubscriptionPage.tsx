@@ -28,8 +28,6 @@ import {
 } from '@/types'
 import core from '@/utils/core'
 import { getCurrencyParts } from '@/utils/stripe'
-import { InvoicesDataTable } from '../../invoices/data-table'
-import { PaymentsDataTable } from '../../payments/data-table'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
@@ -112,7 +110,7 @@ const InnerSubscriptionPage = ({
 
   return (
     <InnerPageContainerNew>
-      <div className="w-full relative flex flex-col justify-center gap-6 pb-6">
+      <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title="Subscription Details"
           breadcrumb="Subscriptions"
@@ -247,25 +245,6 @@ const InnerSubscriptionPage = ({
           subscriptionId={subscription.id}
           customerId={subscription.customerId}
           customerName={customer.name}
-        />
-        <InvoicesDataTable
-          title="Invoices"
-          filters={{ subscriptionId: subscription.id }}
-          hiddenColumns={['customerName']}
-          columnOrder={[
-            'total',
-            'invoiceNumber',
-            'status',
-            'dueDate',
-            'createdAt',
-            'invoiceId',
-            'actions',
-          ]}
-        />
-        <PaymentsDataTable
-          title="Payments"
-          filters={{ subscriptionId: subscription.id }}
-          hiddenColumns={['customerName']}
         />
       </div>
 

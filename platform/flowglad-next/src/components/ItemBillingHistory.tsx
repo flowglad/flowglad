@@ -146,7 +146,7 @@ const ItemBillingHistory = React.forwardRef<
             : undefined
         }
         className={cn(
-          'group flex items-center gap-3 py-2 px-3 rounded transition-colors',
+          'group flex items-center gap-3 py-2 px-3 rounded-[6px] transition-colors',
           isClickable && 'cursor-pointer',
           'hover:bg-accent/50',
           className

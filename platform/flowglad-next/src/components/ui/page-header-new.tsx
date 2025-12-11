@@ -92,8 +92,7 @@ export function PageHeaderNew({
       className={cn(
         'flex flex-col items-start justify-center w-full',
         'border-b border-border',
-        // TODO: Revert px-0 to px-4 once global page layout redesign is completed
-        'px-0 pt-4 pb-0',
+        'px-4 pt-4 pb-0',
         className
       )}
       style={{
