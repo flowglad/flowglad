@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/registry/components/dialog'
-import { formatDate } from '@/registry/lib/date'
 import type { UncancelSubscriptionDialogProps } from './types'
 
 export function UncancelSubscriptionDialog({
@@ -40,12 +39,6 @@ export function UncancelSubscriptionDialog({
               What happens when you uncancel:
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">
-              {currentPeriodEnd && (
-                <li>
-                  • Your subscription will continue as usual on{' '}
-                  {formatDate(currentPeriodEnd)}
-                </li>
-              )}
               <li>
                 • You will be charged normally when the current period
                 ends
