@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/registry/lib/cn'
 import { CancelSubscriptionDialog } from './cancel-subscription-dialog'
 import type { SubscriptionActionsProps } from './types'
+import { UncancelSubscriptionDialog } from './uncancel-subscription-dialog'
 
 export function SubscriptionActions({
   subscriptionId,
@@ -18,6 +19,7 @@ export function SubscriptionActions({
   className,
 }: SubscriptionActionsProps) {
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [showUncancelModal, setShowUncancelModal] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const handleCancel = async () => {
@@ -40,6 +42,7 @@ export function SubscriptionActions({
     setIsProcessing(true)
     try {
       await onUncancel(subscriptionId)
+      setShowUncancelModal(false)
     } catch (error) {
       console.error('Failed to uncancel subscription:', error)
     } finally {
@@ -56,11 +59,21 @@ export function SubscriptionActions({
         <Button
           variant="default"
           size="sm"
-          onClick={handleUncancel}
+          onClick={() => setShowUncancelModal(true)}
           disabled={loading || isProcessing}
         >
           Uncancel Subscription
         </Button>
+
+        <UncancelSubscriptionDialog
+          isOpen={showUncancelModal}
+          onOpenChange={setShowUncancelModal}
+          subscriptionId={subscriptionId}
+          subscriptionName={subscriptionName}
+          currentPeriodEnd={currentPeriodEnd}
+          onConfirm={handleUncancel}
+          loading={isProcessing}
+        />
       </div>
     )
   }

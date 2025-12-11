@@ -67,3 +67,13 @@ export interface CancelSubscriptionDialogProps {
   onConfirm: () => Promise<void>
   loading?: boolean
 }
+
+export interface UncancelSubscriptionDialogProps {
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
+  subscriptionId: string
+  subscriptionName: string
+  currentPeriodEnd?: Date
+  onConfirm: () => Promise<void>
+  loading?: boolean
+}
