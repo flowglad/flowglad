@@ -11,6 +11,7 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
+import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
@@ -41,6 +42,7 @@ interface PurchasesDataTableProps {
 export function PurchasesDataTable({
   filters = {},
 }: PurchasesDataTableProps) {
+  const router = useRouter()
   // Dynamic page size state (REQUIRED for server-side pagination)
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
@@ -169,7 +171,22 @@ export function PurchasesDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={isFetching ? 'opacity-50' : ''}
+                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
+                onClick={(e) => {
+                  // Only navigate if not clicking on interactive elements
+                  const target = e.target as HTMLElement
+                  if (
+                    target.closest('button') ||
+                    target.closest('[role="checkbox"]') ||
+                    target.closest('input[type="checkbox"]') ||
+                    target.closest('[data-radix-collection-item]')
+                  ) {
+                    return
+                  }
+                  router.push(
+                    `/finance/purchases/${row.original.purchase.id}`
+                  )
+                }}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>

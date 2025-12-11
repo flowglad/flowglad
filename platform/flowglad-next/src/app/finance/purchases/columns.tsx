@@ -53,9 +53,16 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
     maxSize: 400,
     cell: ({ row }) => {
       const name = row.getValue('name') as string
+      const purchaseId = row.original.purchase.id
       return (
-        <div className="truncate" title={name}>
-          {name}
+        <div onClick={(e) => e.stopPropagation()}>
+          <DataTableLinkableCell
+            href={`/finance/purchases/${purchaseId}`}
+          >
+            <div className="truncate" title={name}>
+              {name}
+            </div>
+          </DataTableLinkableCell>
         </div>
       )
     },
