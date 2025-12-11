@@ -28,8 +28,7 @@ const PurchaseStatusCell = ({
     badgeClassName = 'bg-muted text-muted-foreground'
     badgeLabel = 'Concluded'
   } else if (purchase.purchaseDate) {
-    badgeClassName =
-      'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+    badgeClassName = 'bg-jade-background text-jade-foreground'
     badgeLabel = 'Paid'
   } else {
     badgeClassName = 'bg-muted text-muted-foreground'

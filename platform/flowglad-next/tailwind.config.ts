@@ -78,6 +78,11 @@ const config: Config = {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+        jade: {
+          foreground: 'hsl(var(--jade-foreground))',
+          'muted-foreground': 'hsl(var(--jade-muted-foreground))',
+          background: 'hsl(var(--jade-background))',
+        },
       },
       boxShadow: {
         xs: '0 1px 2px 0 rgb(0 0 0 / 0.05)',

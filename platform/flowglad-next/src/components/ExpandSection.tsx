@@ -59,8 +59,7 @@ export function ExpandSection({
         <div
           className={cn(
             'box-border flex flex-col gap-2.5 items-start w-full',
-            // TODO: Revert px-0 to px-4 once global page layout redesign is completed
-            isExpanded ? 'pb-1 pt-4 px-0' : 'pt-4 px-0 pb-0'
+            isExpanded ? 'pb-1 pt-4 px-4' : 'pt-4 px-4 pb-0'
           )}
         >
           <CollapsibleTrigger asChild>
@@ -86,8 +85,7 @@ export function ExpandSection({
         <CollapsibleContent
           className={cn(
             'box-border flex flex-col gap-2 items-start pb-4 pt-0 w-full',
-            // TODO: Revert px-0 to px-4 once global page layout redesign is completed
-            contentPadding && 'px-0'
+            contentPadding && 'px-4'
           )}
         >
           {children}
