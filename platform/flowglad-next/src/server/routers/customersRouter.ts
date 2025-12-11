@@ -7,7 +7,6 @@ import {
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
-  Customer,
   customerClientSelectSchema,
   customersPaginatedListSchema,
   customersPaginatedSelectSchema,
@@ -33,6 +32,7 @@ import {
   updateCustomer as updateCustomerDb,
 } from '@/db/tableMethods/customerMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
+import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 import { externalIdInputSchema } from '@/db/tableUtils'
@@ -208,6 +208,37 @@ export const getCustomerById = protectedProcedure
           errorHandlers.customer.handle(error, {
             operation: 'get',
             id: input.id,
+          })
+          throw error
+        }
+      }
+    )
+  )
+
+export const getPricingModelForCustomer = protectedProcedure
+  .input(z.object({ customerId: z.string() }))
+  .output(
+    z.object({
+      pricingModel: pricingModelWithProductsAndUsageMetersSchema,
+    })
+  )
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, transaction }) => {
+        try {
+          const customer = await selectCustomerById(
+            input.customerId,
+            transaction
+          )
+          const pricingModel = await selectPricingModelForCustomer(
+            customer,
+            transaction
+          )
+          return { pricingModel }
+        } catch (error) {
+          errorHandlers.customer.handle(error, {
+            operation: 'getPricingModel',
+            id: input.customerId,
           })
           throw error
         }
@@ -519,6 +550,7 @@ export const customersRouter = router({
   getBilling: getCustomerBilling,
   get: getCustomer,
   internal__getById: getCustomerById,
+  getPricingModelForCustomer: getPricingModelForCustomer,
   list: listCustomersProcedure,
   getTableRows: getTableRowsProcedure,
   exportCsv: exportCsvProcedure,

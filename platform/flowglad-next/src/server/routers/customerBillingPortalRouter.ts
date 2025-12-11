@@ -28,10 +28,14 @@ import {
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
-import { scheduleSubscriptionCancellation } from '@/subscriptions/cancelSubscription'
+import {
+  scheduleSubscriptionCancellation,
+  uncancelSubscription,
+} from '@/subscriptions/cancelSubscription'
 import {
   richSubscriptionClientSelectSchema,
   subscriptionCancellationParametersSchema,
+  uncancelSubscriptionSchema,
 } from '@/subscriptions/schemas'
 import { SubscriptionCancellationArrangement } from '@/types'
 import { auth } from '@/utils/auth'
@@ -257,17 +261,6 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
               'Immediate cancellation is not available through the customer billing portal',
           })
         }
-
-        if (
-          input.cancellation.timing ===
-          SubscriptionCancellationArrangement.AtFutureDate
-        ) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Future date cancellation is not available through the customer billing portal',
-          })
-        }
       },
       {
         apiKey: ctx.apiKey,
@@ -290,6 +283,91 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
               current: isSubscriptionCurrent(
                 subscription.status,
                 subscription.cancellationReason
+              ),
+            },
+          },
+          eventsToInsert: [],
+        }
+      },
+      {
+        livemode,
+      }
+    )
+  })
+
+// uncancelSubscription procedure
+const uncancelSubscriptionProcedure = customerProtectedProcedure
+  .input(
+    z.object({
+      customerId: z.string().describe(CUSTOMER_ID_DESCRIPTION),
+      id: z.string().describe('The subscription ID to uncancel'),
+    })
+  )
+  .output(
+    z.object({
+      subscription: subscriptionClientSelectSchema,
+    })
+  )
+  .mutation(async ({ input, ctx }) => {
+    const { customer, livemode } = ctx
+
+    // First transaction: Validate uncancel is allowed (customer-scoped RLS)
+    await authenticatedTransaction(
+      async ({ transaction }) => {
+        // Verify the subscription belongs to the customer
+        const subscription = await selectSubscriptionById(
+          input.id,
+          transaction
+        )
+
+        if (subscription.customerId !== customer.id) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'You do not have permission to uncancel this subscription',
+          })
+        }
+
+        // Check subscription is in cancellation_scheduled status
+        if (subscription.status !== 'cancellation_scheduled') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Subscription must be in cancellation_scheduled status to uncancel',
+          })
+        }
+
+        // Check that cancellation is actually scheduled
+        if (!subscription.cancelScheduledAt) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'No cancellation scheduled for this subscription',
+          })
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+        customerId: customer.id,
+      }
+    )
+
+    // Second transaction: Actually perform the uncancel (admin-scoped, bypasses RLS)
+    return await comprehensiveAdminTransaction(
+      async ({ transaction }) => {
+        const subscription = await selectSubscriptionById(
+          input.id,
+          transaction
+        )
+        const { result: updatedSubscription } =
+          await uncancelSubscription(subscription, transaction)
+        return {
+          result: {
+            subscription: {
+              ...updatedSubscription,
+              current: isSubscriptionCurrent(
+                updatedSubscription.status,
+                updatedSubscription.cancellationReason
               ),
             },
           },
@@ -594,6 +672,7 @@ const createAddPaymentMethodCheckoutSessionProcedure =
 export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
   cancelSubscription: cancelSubscriptionProcedure,
+  uncancelSubscription: uncancelSubscriptionProcedure,
   requestMagicLink: requestMagicLinkProcedure,
   createAddPaymentMethodSession:
     createAddPaymentMethodSessionProcedure,

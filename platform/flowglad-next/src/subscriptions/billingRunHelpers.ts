@@ -15,9 +15,13 @@ import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Payment } from '@/db/schema/payments'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
-import { updateBillingPeriod } from '@/db/tableMethods/billingPeriodMethods'
+import {
+  selectBillingPeriods,
+  updateBillingPeriod,
+} from '@/db/tableMethods/billingPeriodMethods'
 import {
   safelyInsertBillingRun,
   selectBillingRunById,
@@ -44,12 +48,13 @@ import {
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   insertPayment,
+  selectPayments,
   updatePayment,
 } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import type { DbTransaction } from '@/db/types'
-import { processPaymentIntentEventForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
+import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { generateInvoicePdfTask } from '@/trigger/generate-invoice-pdf'
 import {
   BillingPeriodStatus,
@@ -669,12 +674,40 @@ type ExecuteBillingRunStepsResult = {
   paymentIntent?: Stripe.Response<Stripe.PaymentIntent> | null
 }
 
+export const isFirstPayment = async (
+  subscription: Subscription.Record,
+  transaction: DbTransaction
+): Promise<boolean> => {
+  // Get all successful, non-zero payments for this subscription
+  const payments = await selectPayments(
+    {
+      subscriptionId: subscription.id,
+      status: PaymentStatus.Succeeded,
+    },
+    transaction
+  )
+
+  // Check if any payment has a non-zero amount
+  const hasNonZeroPayment = payments.some(
+    (payment) => payment.amount > 0
+  )
+
+  // If no successful non-zero payments exist, this is the first payment
+  return !hasNonZeroPayment
+}
+
 /**
  * FIXME : support discount redemptions
  * @param billingRun
  * @param livemode
  */
-export const executeBillingRun = async (billingRunId: string) => {
+export const executeBillingRun = async (
+  billingRunId: string,
+  adjustmentParams?: {
+    newSubscriptionItems: SubscriptionItem.Record[]
+    adjustmentDate: Date | number
+  }
+) => {
   const billingRun = await adminTransaction(({ transaction }) => {
     return selectBillingRunById(billingRunId, transaction)
   })
@@ -682,6 +715,11 @@ export const executeBillingRun = async (billingRunId: string) => {
     return
   }
   try {
+    if (billingRun.isAdjustment && !adjustmentParams) {
+      throw new Error(
+        `executeBillingRun: Adjustment billing run ${billingRunId} requires adjustmentParams`
+      )
+    }
     const {
       invoice,
       payment,
@@ -892,7 +930,7 @@ export const executeBillingRun = async (billingRunId: string) => {
       confirmationResult.status === 'requires_payment_method'
     ) {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processPaymentIntentEventForBillingRun(
+        return await processOutcomeForBillingRun(
           confirmationResult,
           transaction
         )
@@ -917,11 +955,16 @@ export const executeBillingRun = async (billingRunId: string) => {
       error,
     })
     return adminTransaction(async ({ transaction }) => {
+      const isError = error instanceof Error
       return updateBillingRun(
         {
           id: billingRun.id,
           status: BillingRunStatus.Failed,
-          errorDetails: JSON.parse(JSON.stringify(error)),
+          errorDetails: {
+            message: isError ? error.message : String(error),
+            name: isError ? error.name : 'Error',
+            stack: isError ? error.stack : undefined,
+          },
         },
         transaction
       )

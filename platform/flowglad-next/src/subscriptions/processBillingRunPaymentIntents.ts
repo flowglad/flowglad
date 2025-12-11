@@ -21,6 +21,7 @@ import {
   updateBillingRun,
 } from '@/db/tableMethods/billingRunMethods'
 import {
+  deleteInvoiceLineItems,
   selectInvoiceLineItems,
   selectInvoiceLineItemsAndInvoicesByInvoiceWhere,
 } from '@/db/tableMethods/invoiceLineItemMethods'
@@ -69,10 +70,12 @@ import {
 } from '@/utils/stripe'
 import {
   calculateFeeAndTotalAmountDueForBillingPeriod,
+  isFirstPayment,
   processNoMoreDueForBillingPeriod,
   processOutstandingBalanceForBillingPeriod,
   scheduleBillingRunRetry,
 } from './billingRunHelpers'
+import { cancelSubscriptionImmediately } from './cancelSubscription'
 
 type PaymentIntentEvent =
   | Stripe.PaymentIntentSucceededEvent
@@ -200,7 +203,7 @@ const processAwaitingPaymentConfirmationNotifications = async (
   })
 }
 
-export const processPaymentIntentEventForBillingRun = async (
+export const processOutcomeForBillingRun = async (
   input: PaymentIntentForBillingRunInput,
   transaction: DbTransaction
 ): Promise<
@@ -305,6 +308,42 @@ export const processPaymentIntentEventForBillingRun = async (
     eventsToInsert: childeventsToInsert,
   } = await processPaymentIntentStatusUpdated(event, transaction)
 
+  /**
+   * If there is a payment failure and we are on an adjustment billing run
+   * then we should delete the evidence of an attempt to adjust from the invoice
+   * and early exit
+   */
+  const paymentFailed =
+    billingRunStatus === BillingRunStatus.Failed ||
+    billingRunStatus === BillingRunStatus.Aborted
+  if (billingRun.isAdjustment && paymentFailed) {
+    const invoiceLineItems = await selectInvoiceLineItems(
+      {
+        invoiceId: invoice.id,
+        billingRunId: billingRun.id,
+      },
+      transaction
+    )
+
+    if (invoiceLineItems.length > 0) {
+      await deleteInvoiceLineItems(
+        invoiceLineItems.map((item) => ({ id: item.id })),
+        transaction
+      )
+    }
+
+    return {
+      result: {
+        invoice,
+        invoiceLineItems: [],
+        billingRun,
+        payment,
+      },
+      ledgerCommands: [],
+      eventsToInsert: childeventsToInsert || [],
+    }
+  }
+
   const invoiceLineItems = await selectInvoiceLineItems(
     {
       invoiceId: invoice.id,
@@ -401,19 +440,41 @@ export const processPaymentIntentEventForBillingRun = async (
     )
     await processSucceededNotifications(notificationParams)
   } else if (billingRunStatus === BillingRunStatus.Failed) {
-    const maybeRetry = await scheduleBillingRunRetry(
-      billingRun,
-      transaction
-    )
-    await processFailedNotifications({
-      ...notificationParams,
-      retryDate: maybeRetry?.scheduledFor,
-    })
-    await safelyUpdateSubscriptionStatus(
+    const firstPayment = await isFirstPayment(
       subscription,
-      SubscriptionStatus.PastDue,
       transaction
     )
+
+    // Do not cancel if first payment fails for free or default plans
+    if (firstPayment && !subscription.isFreePlan) {
+      // First payment failure - cancel subscription immediately
+      const {
+        result: canceledSubscription,
+        eventsToInsert: cancelEvents,
+      } = await cancelSubscriptionImmediately(
+        subscription,
+        transaction
+      )
+
+      if (cancelEvents && cancelEvents.length > 0) {
+        eventsToInsert.push(...cancelEvents)
+      }
+    } else {
+      // nth payment failures logic
+      const maybeRetry = await scheduleBillingRunRetry(
+        billingRun,
+        transaction
+      )
+      await processFailedNotifications({
+        ...notificationParams,
+        retryDate: maybeRetry?.scheduledFor,
+      })
+      await safelyUpdateSubscriptionStatus(
+        subscription,
+        SubscriptionStatus.PastDue,
+        transaction
+      )
+    }
   } else if (billingRunStatus === BillingRunStatus.Aborted) {
     await processAbortedNotifications(notificationParams)
     await safelyUpdateSubscriptionStatus(

@@ -1,13 +1,9 @@
 'use client'
 
 import {
-  type ColumnFiltersState,
   type ColumnSizingState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type SortingState,
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
@@ -62,7 +58,7 @@ export function CustomersDataTable({
 
   // Server-side filtering (preserve enterprise architecture) - FIXED: Using stable debounced hook
   const { inputValue, setInputValue, searchQuery } =
-    useSearchDebounce(1000)
+    useSearchDebounce(300)
 
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
@@ -93,10 +89,13 @@ export function CustomersDataTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey])
 
-  // Client-side features (Shadcn patterns)
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] =
-    React.useState<ColumnFiltersState>([])
+  // Reset to first page when debounced search changes
+  React.useEffect(() => {
+    goToFirstPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
+  // Client-side sorting/filtering removed; handled server-side
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [columnSizing, setColumnSizing] =
@@ -113,12 +112,11 @@ export function CustomersDataTable({
       minSize: 50,
       maxSize: 500,
     },
+    enableSorting: false, // Disable header sorting UI/interactions
     manualPagination: true, // Server-side pagination
-    manualSorting: false, // Client-side sorting on current page
-    manualFiltering: false, // Client-side filtering on current page
+    manualSorting: true, // Disable client-side sorting
+    manualFiltering: true, // Disable client-side filtering
     pageCount: Math.ceil((data?.total || 0) / currentPageSize),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: (updater) => {
@@ -138,11 +136,7 @@ export function CustomersDataTable({
       }
     },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       columnSizing,
       pagination: { pageIndex, pageSize: currentPageSize },
@@ -206,7 +200,7 @@ export function CustomersDataTable({
           <CollapsibleSearch
             value={inputValue}
             onChange={setInputValue}
-            placeholder="Search customers..."
+            placeholder="Name, email, cust_id..."
             disabled={isLoading}
             isLoading={isFetching}
           />

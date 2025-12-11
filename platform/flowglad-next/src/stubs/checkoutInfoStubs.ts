@@ -49,6 +49,7 @@ const checkoutSession: CheckoutSession.Record = {
 const checkoutInfoDefaults = {
   redirectUrl: '',
   clientSecret: '',
+  customerSessionClientSecret: null,
   checkoutSession,
   totalDueAmount: 100,
   subtotalAmount: 100,

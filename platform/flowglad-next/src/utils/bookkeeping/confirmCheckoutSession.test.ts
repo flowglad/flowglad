@@ -49,6 +49,11 @@ import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
 // Mock Stripe functions
 vi.mock('@/utils/stripe', () => ({
   createStripeCustomer: vi.fn(),
+  getPaymentIntent: vi.fn(async () => ({
+    id: 'pi_test',
+    object: 'payment_intent',
+    customer: null,
+  })),
   getSetupIntent: vi.fn(),
   updatePaymentIntent: vi.fn(),
   updateSetupIntent: vi.fn(),

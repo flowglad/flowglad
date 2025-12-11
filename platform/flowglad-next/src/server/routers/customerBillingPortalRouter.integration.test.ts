@@ -450,29 +450,6 @@ describe('Customer Billing Portal Router', () => {
       )
     })
 
-    it('rejects future date cancellation (not available to customers)', async () => {
-      const ctx = createTestContext()
-      const input = {
-        customerId: customer.id,
-        id: subscription.id,
-        cancellation: {
-          timing: SubscriptionCancellationArrangement.AtFutureDate,
-          endDate: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
-        },
-      }
-
-      const error = await customerBillingPortalRouter
-        .createCaller(ctx)
-        .cancelSubscription(input)
-        .catch((e) => e)
-
-      expect(error).toBeInstanceOf(TRPCError)
-      expect(error.code).toBe('BAD_REQUEST')
-      expect(error.message).toContain(
-        'Future date cancellation is not available through the customer billing portal'
-      )
-    })
-
     it(
       'schedules subscription cancellation at period end',
       { timeout: 30000 },

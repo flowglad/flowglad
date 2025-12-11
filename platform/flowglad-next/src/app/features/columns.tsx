@@ -51,7 +51,7 @@ export const columns: ColumnDef<FeatureRow>[] = [
   {
     id: 'name',
     accessorFn: (row) => row.feature.name,
-    header: 'Name',
+    header: 'Feature',
     cell: ({ row }) => (
       <div className="truncate" title={row.getValue('name')}>
         {row.getValue('name')}
@@ -60,17 +60,6 @@ export const columns: ColumnDef<FeatureRow>[] = [
     size: 200,
     minSize: 140,
     maxSize: 300,
-  },
-  {
-    id: 'status',
-    accessorFn: (row) => row.feature.active,
-    header: 'Status',
-    cell: ({ row }) => (
-      <StatusBadge active={row.getValue('status')} />
-    ),
-    size: 110,
-    minSize: 105,
-    maxSize: 115,
   },
   {
     id: 'type',
@@ -93,6 +82,17 @@ export const columns: ColumnDef<FeatureRow>[] = [
     size: 150,
     minSize: 120,
     maxSize: 180,
+  },
+  {
+    id: 'status',
+    accessorFn: (row) => row.feature.active,
+    header: 'Status',
+    cell: ({ row }) => (
+      <StatusBadge active={row.getValue('status')} />
+    ),
+    size: 110,
+    minSize: 105,
+    maxSize: 115,
   },
   {
     id: 'slug',

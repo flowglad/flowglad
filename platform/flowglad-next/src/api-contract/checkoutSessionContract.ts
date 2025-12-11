@@ -9,14 +9,14 @@ const getCheckoutSessionResource = (
   return client.checkoutSessions.retrieve(id)
 }
 
-const createCheckoutSessionesource = (
+const createCheckoutSessionResource = (
   checkoutSession: FlowgladNode.CheckoutSessions.CheckoutSessionCreateParams,
   client: FlowgladNode
 ) => {
   return client.checkoutSessions.create(checkoutSession)
 }
 
-// const updateCheckoutSessionesource = (
+// const updateCheckoutSessionResource = (
 //   id: string,
 //   checkoutSession: FlowgladNode.CheckoutSessions.CheckoutSessionUpdateParams,
 //   client: FlowgladNode
@@ -24,9 +24,9 @@ const createCheckoutSessionesource = (
 //   return client.checkoutSessions.update(id, checkoutSession)
 // }
 
-const getCheckoutSessionListResource = (client: FlowgladNode) => {
-  return client.checkoutSessions.list()
-}
+// const getCheckoutSessionListResource = (client: FlowgladNode) => {
+//   return client.checkoutSessions.list()
+// }
 
 export const verifyCheckoutSessionContract = async (
   params: {
@@ -35,13 +35,38 @@ export const verifyCheckoutSessionContract = async (
   logger: StandardLogger
 ) => {
   const client = flowgladNode()
+
+  // Fetch products and prices separately
+  const products = await client.products.list()
   const prices = await client.prices.list()
-  logger.info(`Prices: ${prices.data.length}`)
-  const createdCheckoutSession = await createCheckoutSessionesource(
+  logger.info(
+    `Products: ${products.data.length}, Prices: ${prices.data.length}`
+  )
+
+  // Create a set of default product IDs
+  const defaultProductIds = new Set(
+    products.data.filter((p) => p.default).map((p) => p.id)
+  )
+
+  // Find a price that doesn't belong to a default product
+  const nonDefaultPrice = prices.data.find(
+    (price) =>
+      price.productId && !defaultProductIds.has(price.productId)
+  )
+
+  if (!nonDefaultPrice) {
+    throw new Error(
+      'No non-default product prices found. At least one price for a non-default product is required to create a checkout session.'
+    )
+  }
+
+  logger.info(`Using price: ${nonDefaultPrice.id}`)
+
+  const createdCheckoutSession = await createCheckoutSessionResource(
     {
       checkoutSession: {
         type: 'product',
-        priceId: prices.data[0].id,
+        priceId: nonDefaultPrice.id,
         quantity: 1,
         customerExternalId: params.customer.externalId,
         successUrl: 'https://example.com/success',
@@ -57,15 +82,15 @@ export const verifyCheckoutSessionContract = async (
   logger.info(
     `Created checkout session: ${createdCheckoutSession.checkoutSession.id}`
   )
-  const getCheckoutSessionesult = await getCheckoutSessionResource(
+  const getCheckoutSessionResult = await getCheckoutSessionResource(
     createdCheckoutSession.checkoutSession.id,
     client
   )
   logger.info(
-    `Got checkout session: ${getCheckoutSessionesult.checkoutSession.id}`
+    `Got checkout session: ${getCheckoutSessionResult.checkoutSession.id}`
   )
   return {
-    checkoutSession: getCheckoutSessionesult,
+    checkoutSession: getCheckoutSessionResult,
     createdCheckoutSession,
   }
 }

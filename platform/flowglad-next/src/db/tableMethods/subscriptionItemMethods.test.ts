@@ -424,9 +424,11 @@ describe('subscriptionItemMethods', async () => {
       await adminTransaction(async ({ transaction }) => {
         feature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            subscriptionItem,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
@@ -497,18 +499,22 @@ describe('subscriptionItemMethods', async () => {
         // Add features to item 1 (subscriptionItem)
         const item1Feature1 = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            subscriptionItem,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
 
         const item1Feature2 = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            subscriptionItem,
-            featureSetup[1].feature,
-            featureSetup[1].productFeature
+            {
+              subscriptionItem,
+              feature: featureSetup[1].feature,
+              productFeature: featureSetup[1].productFeature,
+            }
           ),
           transaction
         )
@@ -516,18 +522,22 @@ describe('subscriptionItemMethods', async () => {
         // Add features to item 2
         const item2Feature1 = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            item2,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem: item2,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
 
         const item2Feature2 = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            item2,
-            featureSetup[2].feature,
-            featureSetup[2].productFeature
+            {
+              subscriptionItem: item2,
+              feature: featureSetup[2].feature,
+              productFeature: featureSetup[2].productFeature,
+            }
           ),
           transaction
         )
@@ -535,9 +545,11 @@ describe('subscriptionItemMethods', async () => {
         // Add feature to item 3
         const item3Feature1 = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            item3,
-            featureSetup[1].feature,
-            featureSetup[1].productFeature
+            {
+              subscriptionItem: item3,
+              feature: featureSetup[1].feature,
+              productFeature: featureSetup[1].productFeature,
+            }
           ),
           transaction
         )
@@ -774,9 +786,11 @@ describe('subscriptionItemMethods', async () => {
         })
         const activeFeature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            activeItem,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem: activeItem,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
@@ -800,9 +814,11 @@ describe('subscriptionItemMethods', async () => {
         )
         const expiredFeature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            expiredItem,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem: expiredItem,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
@@ -879,9 +895,11 @@ describe('subscriptionItemMethods', async () => {
         // Create an unexpired feature for the active item (no expiredAt)
         const activeFeature = await insertSubscriptionItemFeature(
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            activeItem,
-            featureSetup[0].feature,
-            featureSetup[0].productFeature
+            {
+              subscriptionItem: activeItem,
+              feature: featureSetup[0].feature,
+              productFeature: featureSetup[0].productFeature,
+            }
           ),
           transaction
         )
@@ -890,9 +908,11 @@ describe('subscriptionItemMethods', async () => {
         const expiredFeature = await insertSubscriptionItemFeature(
           {
             ...subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-              activeItem,
-              featureSetup[1].feature,
-              featureSetup[1].productFeature
+              {
+                subscriptionItem: activeItem,
+                feature: featureSetup[1].feature,
+                productFeature: featureSetup[1].productFeature,
+              }
             ),
             expiredAt: pastDate, // Expired
           },

@@ -20,8 +20,8 @@
     "build": "bunx turbo run build --filter=!@flowglad/playground-*",
     "build:declarations": "bunx turbo run build:declarations",
     "packages:changeset": "changeset",
-    "packages:version": "changeset version && bunx @cjkihl/changeset-dep-resolver resolve",
-    "packages:publish": "bun run build:declarations && bun run build && bunx changeset publish && bunx @cjkihl/changeset-dep-resolver restore",
+    "packages:version": "changeset version && bunx @biomejs/biome format --write packages/*/package.json",
+    "packages:publish": "bunx @cjkihl/changeset-dep-resolver resolve && bun run build:declarations && bun run build && bunx changeset publish && bunx @cjkihl/changeset-dep-resolver restore && bunx @biomejs/biome format --write packages/*/package.json",
     "prepare": "husky"
   },
   "dependencies": {
@@ -36,8 +36,8 @@
     "@types/react-dom": "19.0.0",
     "conventional-changelog-cli": "^5.0.0",
     "husky": "^9.1.7",
-    "react": "19.1.2",
-    "react-dom": "19.1.2",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
     "tsup": "8.3.6",
     "turbo": "^2.4.4",
     "typescript": "5.8.2"

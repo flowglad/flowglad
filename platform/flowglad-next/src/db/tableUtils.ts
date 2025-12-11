@@ -1454,6 +1454,151 @@ const constructSearchQueryClause = <T extends PgTableWithId>(
   )
 }
 
+/**
+ * Builds WHERE clauses for cursor pagination queries.
+ * Handles base table filters, additional filters, and search queries.
+ *
+ * @param table - The base Drizzle table
+ * @param rawFilters - Raw filters from input (may contain cross-table fields)
+ * @param searchQuery - Optional search query string
+ * @param searchableColumns - Optional base-table columns for ILIKE search
+ * @param buildAdditionalFilterClause - Optional custom filter predicates
+ * @param buildAdditionalSearchClause - Optional custom search predicates
+ * @param transaction - Database transaction
+ * @returns Object containing individual clauses and combined whereClauses
+ */
+export const buildWhereClauses = async <T extends PgTableWithId>(
+  table: T,
+  rawFilters:
+    | SelectConditions<T>
+    | Record<string, unknown>
+    | undefined,
+  searchQuery: string | undefined,
+  searchableColumns: T['_']['columns'][string][] | undefined,
+  buildAdditionalFilterClause:
+    | ((args: {
+        filters?: SelectConditions<T> | Record<string, unknown>
+        transaction: DbTransaction
+      }) => Promise<SQL | undefined> | SQL | undefined)
+    | undefined,
+  buildAdditionalSearchClause:
+    | ((args: {
+        searchQuery: string
+        transaction: DbTransaction
+      }) => Promise<SQL | undefined> | SQL | undefined)
+    | undefined,
+  transaction: DbTransaction
+) => {
+  const sanitizedFilters = sanitizeBaseTableFilters(table, rawFilters)
+  const filterClause = sanitizedFilters
+    ? whereClauseFromObject(table, sanitizedFilters)
+    : undefined
+  const extraFilterClause = buildAdditionalFilterClause
+    ? await buildAdditionalFilterClause({
+        filters: rawFilters,
+        transaction,
+      })
+    : undefined
+  const baseSearchClause =
+    searchQuery && searchableColumns
+      ? constructSearchQueryClause(
+          table,
+          searchQuery,
+          searchableColumns
+        )
+      : undefined
+  const extraSearchClause =
+    searchQuery && buildAdditionalSearchClause
+      ? await buildAdditionalSearchClause({
+          searchQuery,
+          transaction,
+        })
+      : undefined
+  const searchQueryClause = baseSearchClause
+    ? extraSearchClause
+      ? or(baseSearchClause, extraSearchClause)
+      : baseSearchClause
+    : extraSearchClause
+  return {
+    filterClause,
+    extraFilterClause,
+    searchQueryClause,
+    whereClauses: and(
+      filterClause,
+      extraFilterClause,
+      searchQueryClause
+    ),
+  }
+}
+
+/**
+ * Sanitizes filter objects to only include keys that exist on the base table.
+ * This prevents errors when filters contain cross-table fields that should be
+ * handled by buildAdditionalFilterClause instead.
+ *
+ * @param table - The base Drizzle table
+ * @param filters - Raw filters object (may contain cross-table fields)
+ * @returns Sanitized filters containing only base table columns, or undefined if no valid filters
+ */
+export const sanitizeBaseTableFilters = <T extends PgTableWithId>(
+  table: T,
+  filters?: SelectConditions<T> | Record<string, unknown>
+): SelectConditions<T> | undefined => {
+  if (!filters) return undefined
+
+  const sanitized = Object.fromEntries(
+    Object.entries(filters).filter(([key]) =>
+      Object.prototype.hasOwnProperty.call(table, key)
+    )
+  )
+
+  return Object.keys(sanitized).length > 0
+    ? (sanitized as SelectConditions<T>)
+    : undefined
+}
+
+/**
+ * Creates a keyset (cursor) paginated selector for a base table with optional enrichment,
+ * free-text search, and structured filters (including cross-table filters).
+ *
+ * **Filtering (AND semantics):**
+ * - Base-table filters from `params.input.filters` are sanitized to known columns, then translated via `whereClauseFromObject`.
+ * - `buildAdditionalFilterClause` can add SQL conditions (joins/EXISTS to related tables). ANDed into final WHERE.
+ *
+ * **Searching (OR semantics):**
+ * - `searchableColumns` produces ILIKE search across base columns.
+ * - `buildAdditionalSearchClause` can add custom predicates (exact ID, EXISTS subqueries). ORed with base search.
+ *
+ * **Final WHERE:** `cursorComparison` AND base filters AND additional filters AND (base search OR additional search)
+ *
+ * **Pagination:** Keyset pagination by `createdAt` then `position`. Supports forward/backward, `goToFirst`, `goToLast`.
+ * `total` uses same filters/search for accurate counts.
+ *
+ * **Enrichment:** If provided, `enrichmentFunction` receives parsed base rows and transaction, returns items shaped for `dataSchema`.
+ *
+ * @param table - Base Drizzle table
+ * @param config - Method creator config with Zod schemas and table name
+ * @param dataSchema - Zod schema for each returned item
+ * @param enrichmentFunction - Optional function to enrich rows post-fetch
+ * @param searchableColumns - Optional base-table columns for ILIKE search
+ * @param buildAdditionalSearchClause - Optional custom search predicates (OR'ed with base search)
+ * @param buildAdditionalFilterClause - Optional custom filter predicates (AND'ed with base filters)
+ * @returns Function that accepts `{ pageAfter?, pageBefore?, pageSize?, filters?, searchQuery?, goToFirst?, goToLast? }`
+ *          and returns `{ items, startCursor, endCursor, hasNextPage, hasPreviousPage, total }`
+ *
+ * @example
+ * ```ts
+ * const selectInvoices = createCursorPaginatedSelectFunction(
+ *   invoices, config, invoicesTableRowSchema, enrichInvoices,
+ *   undefined, // searchableColumns
+ *   ({ searchQuery }) => searchQuery ? or(eq(invoices.id, searchQuery)) : undefined,
+ *   async ({ filters, transaction }) => {
+ *     const productName = (filters as any)?.productName;
+ *     return productName ? sql`exists (select 1 from prices p join products pr on pr.id = p.product_id where p.id = ${invoices.priceId} and pr.name = ${productName})` : undefined;
+ *   }
+ * );
+ * ```
+ */
 export const createCursorPaginatedSelectFunction = <
   T extends PgTableWithPosition,
   S extends ZodTableUnionOrType<InferSelectModel<T>>,
@@ -1468,7 +1613,15 @@ export const createCursorPaginatedSelectFunction = <
     data: z.infer<S>[],
     transaction: DbTransaction
   ) => Promise<z.infer<D>[]>,
-  searchableColumns?: T['_']['columns'][string][]
+  searchableColumns?: T['_']['columns'][string][],
+  buildAdditionalSearchClause?: (args: {
+    searchQuery: string
+    transaction: DbTransaction
+  }) => Promise<SQL | undefined> | SQL | undefined,
+  buildAdditionalFilterClause?: (args: {
+    filters?: SelectConditions<T> | Record<string, unknown>
+    transaction: DbTransaction
+  }) => Promise<SQL | undefined> | SQL | undefined
 ) => {
   const selectSchema = config.selectSchema
   return async function cursorPaginatedSelectFunction(
@@ -1495,19 +1648,15 @@ export const createCursorPaginatedSelectFunction = <
       if (goToFirst) {
         // Clear cursors and start from beginning
         const orderBy = [desc(table.createdAt), desc(table.position)]
-        const filterClause = params.input.filters
-          ? whereClauseFromObject(table, params.input.filters)
-          : undefined
-        const searchQuery = params.input.searchQuery
-        const searchQueryClause =
-          searchQuery && searchableColumns
-            ? constructSearchQueryClause(
-                table,
-                searchQuery,
-                searchableColumns
-              )
-            : undefined
-        const whereClauses = and(filterClause, searchQueryClause)
+        const { whereClauses } = await buildWhereClauses(
+          table,
+          params.input.filters,
+          params.input.searchQuery,
+          searchableColumns,
+          buildAdditionalFilterClause,
+          buildAdditionalSearchClause,
+          transaction
+        )
 
         const queryResult = await transaction
           .select()
@@ -1520,7 +1669,7 @@ export const createCursorPaginatedSelectFunction = <
           .select({ count: count() })
           .from(table as SelectTable)
           .$dynamic()
-          .where(and(filterClause, searchQueryClause))
+          .where(whereClauses)
 
         const data: z.infer<S>[] = queryResult
           .map((item) => selectSchema.parse(item))
@@ -1551,26 +1700,22 @@ export const createCursorPaginatedSelectFunction = <
       if (goToLast) {
         // Fetch the last page by ordering desc and taking the first pageSize items
         const orderBy = [desc(table.createdAt), desc(table.position)]
-        const filterClause = params.input.filters
-          ? whereClauseFromObject(table, params.input.filters)
-          : undefined
-        const searchQuery = params.input.searchQuery
-        const searchQueryClause =
-          searchQuery && searchableColumns
-            ? constructSearchQueryClause(
-                table,
-                searchQuery,
-                searchableColumns
-              )
-            : undefined
-        const whereClauses = and(filterClause, searchQueryClause)
+        const { whereClauses } = await buildWhereClauses(
+          table,
+          params.input.filters,
+          params.input.searchQuery,
+          searchableColumns,
+          buildAdditionalFilterClause,
+          buildAdditionalSearchClause,
+          transaction
+        )
 
         // Get total count first to calculate if we need a partial last page
         const total = await transaction
           .select({ count: count() })
           .from(table as SelectTable)
           .$dynamic()
-          .where(and(filterClause, searchQueryClause))
+          .where(whereClauses)
 
         const totalCount = total[0].count
         const lastPageSize = totalCount % pageSize || pageSize
@@ -1617,18 +1762,16 @@ export const createCursorPaginatedSelectFunction = <
       const orderBy = isForward
         ? [desc(table.createdAt), desc(table.position)]
         : [asc(table.createdAt), asc(table.position)]
-      const filterClause = params.input.filters
-        ? whereClauseFromObject(table, params.input.filters)
-        : undefined
-      const searchQuery = params.input.searchQuery
-      const searchQueryClause =
-        searchQuery && searchableColumns
-          ? constructSearchQueryClause(
-              table,
-              searchQuery,
-              searchableColumns
-            )
-          : undefined
+      const { filterClause, extraFilterClause, searchQueryClause } =
+        await buildWhereClauses(
+          table,
+          params.input.filters,
+          params.input.searchQuery,
+          searchableColumns,
+          buildAdditionalFilterClause,
+          buildAdditionalSearchClause,
+          transaction
+        )
       const whereClauses = and(
         await cursorComparison(
           table,
@@ -1640,6 +1783,7 @@ export const createCursorPaginatedSelectFunction = <
           transaction
         ),
         filterClause,
+        extraFilterClause,
         searchQueryClause
       )
 
@@ -1662,7 +1806,9 @@ export const createCursorPaginatedSelectFunction = <
         .select({ count: count() })
         .from(table as SelectTable)
         .$dynamic()
-        .where(and(filterClause, searchQueryClause))
+        .where(
+          and(filterClause, extraFilterClause, searchQueryClause)
+        )
 
       const data: z.infer<S>[] = queryResult
         .map((item) => selectSchema.parse(item))

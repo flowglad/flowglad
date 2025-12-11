@@ -190,27 +190,6 @@ describe('cancelSubscriptionSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('accepts at_future_date timing with endDate', () => {
-    const input = {
-      id: 'sub_123',
-      cancellation: {
-        timing: 'at_future_date',
-        endDate: new Date('2025-12-31'),
-      },
-    }
-    const result = cancelSubscriptionSchema.safeParse(input)
-    expect(result.success).toBe(true)
-  })
-
-  it('rejects at_future_date timing without endDate', () => {
-    const input = {
-      id: 'sub_123',
-      cancellation: { timing: 'at_future_date' },
-    }
-    const result = cancelSubscriptionSchema.safeParse(input)
-    expect(result.success).toBe(false)
-  })
-
   it('rejects invalid timing value', () => {
     const input = {
       id: 'sub_123',

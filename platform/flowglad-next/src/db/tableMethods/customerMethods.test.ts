@@ -2,24 +2,19 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
-  setupPurchase,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import {
-  Customer,
-  customers,
-  InferredCustomerStatus,
-} from '@/db/schema/customers'
+import { Customer, customers } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { User } from '@/db/schema/users'
 import core from '@/utils/core'
 import {
   assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId,
   insertCustomer,
-  selectCustomerAndCustomerTableRows,
   selectCustomerById,
   selectCustomers,
+  selectCustomersCursorPaginatedWithTableRowData,
   setUserIdForCustomerRecords,
   updateCustomer,
 } from './customerMethods'
@@ -1296,6 +1291,213 @@ describe('Customer uniqueness constraints', () => {
         }
       )
       expect(unchangedCustomer.stripeCustomerId).toBe(stripeId2)
+    })
+  })
+})
+
+describe('selectCustomersCursorPaginatedWithTableRowData', () => {
+  let organization: Organization.Record
+  let organization2: Organization.Record
+  let pricingModel: { id: string; name: string }
+  let customer1: Customer.Record
+  let customer2: Customer.Record
+  let customer3: Customer.Record
+  let customerOtherOrg: Customer.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+
+    // Setup customers with different names for search testing
+    customer1 = await setupCustomer({
+      organizationId: organization.id,
+      name: 'Alice Smith',
+      email: 'alice@example.com',
+      pricingModelId: pricingModel.id,
+    })
+
+    customer2 = await setupCustomer({
+      organizationId: organization.id,
+      name: 'Bob Jones',
+      email: 'bob@example.com',
+      pricingModelId: pricingModel.id,
+    })
+
+    customer3 = await setupCustomer({
+      organizationId: organization.id,
+      name: 'Charlie Brown',
+      email: 'charlie@example.com',
+      pricingModelId: pricingModel.id,
+    })
+
+    // Setup second organization for isolation tests
+    const orgData2 = await setupOrg()
+    organization2 = orgData2.organization
+
+    customerOtherOrg = await setupCustomer({
+      organizationId: organization2.id,
+      name: 'Alice Smith', // Same name as customer1 to test isolation
+      email: 'alice-other@example.com',
+      pricingModelId: orgData2.pricingModel.id,
+    })
+  })
+
+  describe('search functionality', () => {
+    it('should search by customer ID, email, or name (case-insensitive, trims whitespace)', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Test customer ID search (exact match)
+        const resultById =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: customer1.id,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultById.items.length).toBe(1)
+        expect(resultById.items[0].customer.id).toBe(customer1.id)
+        expect(resultById.total).toBe(1)
+
+        // Test partial customer name search (case-insensitive)
+        const resultByName =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultByName.items.length).toBe(1)
+        expect(resultByName.items[0].customer.id).toBe(customer1.id)
+        expect(resultByName.items[0].customer.name).toBe(
+          'Alice Smith'
+        )
+
+        // Test partial email search (case-insensitive)
+        const resultByEmail =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'bob@example',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultByEmail.items.length).toBe(1)
+        expect(resultByEmail.items[0].customer.id).toBe(customer2.id)
+        expect(resultByEmail.items[0].customer.email).toBe(
+          'bob@example.com'
+        )
+
+        // Test case-insensitive search
+        const resultCaseInsensitive =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'CHARLIE',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultCaseInsensitive.items.length).toBe(1)
+        expect(resultCaseInsensitive.items[0].customer.name).toBe(
+          'Charlie Brown'
+        )
+
+        // Test that search works (whitespace trimming is handled by buildAdditionalSearchClause for ID search,
+        // but searchableColumns ILIKE search doesn't trim - this is expected behavior)
+        // Note: The ID search in buildAdditionalSearchClause trims, so searching by ID with whitespace works
+        const resultByIdWithWhitespace =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: `  ${customer1.id}  `,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultByIdWithWhitespace.items.length).toBe(1)
+        expect(resultByIdWithWhitespace.items[0].customer.id).toBe(
+          customer1.id
+        )
+      })
+    })
+
+    it('should ignore empty or undefined search queries', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const resultEmpty =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: '',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        const resultUndefined =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: undefined,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        // Empty and undefined should return all 3 customers
+        // Note: Whitespace-only queries (e.g., '   ') are not currently handled correctly
+        // because constructSearchQueryClause doesn't trim the searchQuery before using it.
+        // This is a known limitation that should be fixed in buildWhereClauses or constructSearchQueryClause.
+        expect(resultEmpty.items.length).toBe(3)
+        expect(resultEmpty.total).toBe(3)
+        expect(resultUndefined.items.length).toBe(3)
+        expect(resultUndefined.total).toBe(3)
+      })
+    })
+
+    it('should only return customers for the specified organization', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Search for "Alice" - should only return customer1, not customerOtherOrg
+        const result =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: 'alice',
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+
+        expect(result.items.length).toBe(1)
+        expect(result.items[0].customer.id).toBe(customer1.id)
+        expect(result.items[0].customer.organizationId).toBe(
+          organization.id
+        )
+        expect(result.total).toBe(1)
+      })
+    })
+  })
+
+  describe('edge cases and error handling', () => {
+    it('should handle invalid inputs gracefully and maintain correct total count', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Test null/undefined searchQuery
+        const resultUndefined =
+          await selectCustomersCursorPaginatedWithTableRowData({
+            input: {
+              pageSize: 10,
+              searchQuery: undefined,
+              filters: { organizationId: organization.id },
+            },
+            transaction,
+          })
+        expect(resultUndefined.items.length).toBe(3)
+        expect(resultUndefined.total).toBe(3)
+      })
     })
   })
 })

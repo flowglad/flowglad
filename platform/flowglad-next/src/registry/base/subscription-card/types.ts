@@ -29,6 +29,7 @@ export interface Subscription {
 export interface SubscriptionCardProps {
   subscription: Subscription
   onCancel?: (subscriptionId: string) => Promise<void>
+  onUncancel?: (subscriptionId: string) => Promise<void>
   loading?: boolean
   className?: string
 }
@@ -52,11 +53,22 @@ export interface SubscriptionActionsProps {
   cancelAtPeriodEnd: boolean
   currentPeriodEnd?: Date
   onCancel?: (subscriptionId: string) => Promise<void>
+  onUncancel?: (subscriptionId: string) => Promise<void>
   loading?: boolean
   className?: string
 }
 
 export interface CancelSubscriptionDialogProps {
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
+  subscriptionId: string
+  subscriptionName: string
+  currentPeriodEnd?: Date
+  onConfirm: () => Promise<void>
+  loading?: boolean
+}
+
+export interface UncancelSubscriptionDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   subscriptionId: string

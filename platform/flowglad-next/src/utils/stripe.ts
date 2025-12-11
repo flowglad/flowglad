@@ -836,6 +836,51 @@ export const createStripeCustomer = async (params: {
   })
 }
 
+/**
+ * Creates a Stripe CustomerSession for a customer to enable saved payment method features.
+ *
+ * CustomerSessions enable the PaymentElement to display saved payment methods and allow
+ * users to save new payment methods for future checkouts. This is used when a customer
+ * already exists with a Stripe customer ID and the PaymentIntent or SetupIntent is
+ * associated with that customer.
+ *
+ * @param customer - The customer record with stripeCustomerId set
+ * @returns The client_secret for the CustomerSession, which should be passed to the
+ *          PaymentElement's options.customerSessionClientSecret
+ * @throws {Error} If customer.stripeCustomerId is missing
+ * @throws {StripeError} If the Stripe API call fails
+ *
+ * @example
+ * ```typescript
+ * const customerSessionClientSecret = await createCustomerSessionForCheckout(customer)
+ * // Pass to PaymentElement:
+ * // <PaymentElement options={{ customerSessionClientSecret }} />
+ * ```
+ */
+export const createCustomerSessionForCheckout = async (
+  customer: Customer.Record
+): Promise<string> => {
+  if (!customer.stripeCustomerId) {
+    throw new Error(
+      'Missing stripeCustomerId for customer session creation'
+    )
+  }
+  const customerSession = await stripe(
+    customer.livemode
+  ).customerSessions.create({
+    customer: customer.stripeCustomerId,
+    components: {
+      payment_element: {
+        enabled: true,
+        features: {
+          payment_method_redisplay: 'enabled',
+        },
+      },
+    },
+  })
+  return customerSession.client_secret
+}
+
 export const createStripeTaxCalculationByPrice = async ({
   price,
   billingAddress,
@@ -1032,9 +1077,15 @@ export const createPaymentIntentForCheckoutSession = async (params: {
   purchase?: Purchase.Record
   checkoutSession: CheckoutSession.Record
   feeCalculation?: FeeCalculation.Record
+  customer?: Customer.Record
 }) => {
-  const { price, organization, checkoutSession, feeCalculation } =
-    params
+  const {
+    price,
+    organization,
+    checkoutSession,
+    feeCalculation,
+    customer,
+  } = params
   const livemode = checkoutSession.livemode
   const transferData = stripeConnectTransferDataForOrganization({
     organization,
@@ -1061,6 +1112,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     application_fee_amount: livemode ? totalFeeAmount : undefined,
     ...transferData,
     metadata,
+    customer: customer?.stripeCustomerId ?? undefined,
   })
 }
 
@@ -1139,7 +1191,11 @@ export const updatePaymentIntent = async (
   paymentIntentId: string,
   params: Pick<
     Stripe.PaymentIntentUpdateParams,
-    'customer' | 'amount' | 'metadata' | 'application_fee_amount'
+    | 'customer'
+    | 'amount'
+    | 'metadata'
+    | 'application_fee_amount'
+    | 'setup_future_usage'
   >,
   livemode: boolean
 ) => {

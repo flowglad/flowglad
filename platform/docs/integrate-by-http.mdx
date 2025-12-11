@@ -126,6 +126,5 @@ Expose a single authenticated route such as `/api/flowglad/:subroute`. Each subr
 **POST /subscriptions/cancel**
 - expect `{ id, cancellation }` where `cancellation` is one of:
   - `{ timing: "at_end_of_current_billing_period" }`
-  - `{ timing: "at_future_date", endDate }`
   - `{ timing: "immediately" }`
 - fetch the subscription first and confirm that `subscription.customerId` matches the requesting customer's Flowglad id before calling [POST /subscriptions/:id/cancel](https://docs.flowglad.com/api-reference/subscriptions/cancel-subscription). If they do not match, return `403`.

@@ -99,6 +99,17 @@ function BillingPortalPage() {
       },
     })
 
+  // Uncancel subscription mutation
+  const uncancelSubscriptionMutation =
+    trpc.customerBillingPortal.uncancelSubscription.useMutation({
+      onSuccess: async () => {
+        // Invalidate and refetch billing data to get updated subscription state
+        await utils.customerBillingPortal.getBilling.invalidate({
+          customerId,
+        })
+      },
+    })
+
   // Create add payment method session mutation
   const createPaymentSessionMutation =
     trpc.customerBillingPortal.createAddPaymentMethodSession.useMutation(
@@ -127,6 +138,15 @@ function BillingPortalPage() {
         timing:
           SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
       },
+    })
+  }
+
+  const handleUncancelSubscription = async (
+    subscriptionId: string
+  ) => {
+    await uncancelSubscriptionMutation.mutateAsync({
+      customerId,
+      id: subscriptionId,
     })
   }
 
@@ -275,7 +295,15 @@ function BillingPortalPage() {
                       ? undefined
                       : handleCancelSubscription
                   }
-                  loading={cancelSubscriptionMutation.isPending}
+                  onUncancel={
+                    isDefaultPlanSubscription
+                      ? undefined
+                      : handleUncancelSubscription
+                  }
+                  loading={
+                    cancelSubscriptionMutation.isPending ||
+                    uncancelSubscriptionMutation.isPending
+                  }
                 />
               ) : (
                 <div className="text-center py-12 bg-muted/50 rounded-lg">

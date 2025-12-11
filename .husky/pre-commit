@@ -12,7 +12,7 @@ fi
  
 # Format staged TypeScript files with Biome (only staged .ts/.tsx files)
 STAGED_TS_FILES_NUL=$(mktemp)
-git diff --cached --name-only -z --diff-filter=ACMR -- '*.ts' '*.tsx' > "$STAGED_TS_FILES_NUL"
+git diff --cached --name-only -z --diff-filter=ACMR -- '*.ts' '*.tsx' '*.json' > "$STAGED_TS_FILES_NUL"
 
 if [ -s "$STAGED_TS_FILES_NUL" ]; then
   echo "🪄 Running Biome formatter on staged TypeScript files..."

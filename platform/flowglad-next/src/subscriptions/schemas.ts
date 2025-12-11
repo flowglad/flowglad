@@ -14,7 +14,6 @@ import {
   subscriptionClientSelectSchema,
 } from '@/db/schema/subscriptions'
 import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
-import { zodEpochMs } from '@/db/timestampMs'
 import {
   SubscriptionAdjustmentTiming,
   SubscriptionCancellationArrangement,
@@ -123,14 +122,6 @@ export const subscriptionCancellationParametersSchema =
     z
       .object({
         timing: z.literal(
-          SubscriptionCancellationArrangement.AtFutureDate
-        ),
-        endDate: zodEpochMs,
-      })
-      .meta({ id: 'CancelSubscriptionAtFutureDateInput' }),
-    z
-      .object({
-        timing: z.literal(
           SubscriptionCancellationArrangement.Immediately
         ),
       })
@@ -144,4 +135,14 @@ export const scheduleSubscriptionCancellationSchema = z.object({
 
 export type ScheduleSubscriptionCancellationParams = z.infer<
   typeof scheduleSubscriptionCancellationSchema
+>
+
+export const uncancelSubscriptionSchema = z
+  .object({
+    id: z.string(),
+  })
+  .meta({ id: 'UncancelSubscriptionInput' })
+
+export type UncancelSubscriptionParams = z.infer<
+  typeof uncancelSubscriptionSchema
 >

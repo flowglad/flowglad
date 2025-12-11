@@ -7,12 +7,15 @@ import {
   createDiscountInputSchema,
   discountClientSelectSchema,
   discountsPaginatedListSchema,
+  discountsPaginatedListWithRedemptionsSchema,
   discountsPaginatedSelectSchema,
   discountsTableRowDataSchema,
+  discountWithRedemptionsSchema,
   editDiscountInputSchema,
 } from '@/db/schema/discounts'
 import {
   deleteDiscount as deleteDiscountMethod,
+  enrichDiscountsWithRedemptionCounts,
   insertDiscount,
   selectDiscountById,
   selectDiscountsPaginated,
@@ -80,11 +83,22 @@ export const discountsRouteConfigs = {
 const listDiscountsProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(discountsPaginatedSelectSchema)
-  .output(discountsPaginatedListSchema)
+  .output(discountsPaginatedListWithRedemptionsSchema)
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        return selectDiscountsPaginated(input, transaction)
+        const result = await selectDiscountsPaginated(
+          input,
+          transaction
+        )
+        const enriched = await enrichDiscountsWithRedemptionCounts(
+          result.data,
+          transaction
+        )
+        return {
+          ...result,
+          data: enriched,
+        }
       },
       {
         apiKey: ctx.apiKey,
@@ -146,11 +160,19 @@ export const deleteDiscount = protectedProcedure
 export const getDiscount = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
-  .output(z.object({ discount: discountClientSelectSchema }))
+  .output(z.object({ discount: discountWithRedemptionsSchema }))
   .query(async ({ input, ctx }) => {
     const discount = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectDiscountById(input.id, transaction)
+        const discountRecord = await selectDiscountById(
+          input.id,
+          transaction
+        )
+        const [enriched] = await enrichDiscountsWithRedemptionCounts(
+          [discountRecord],
+          transaction
+        )
+        return enriched
       },
       { apiKey: ctx.apiKey }
     )

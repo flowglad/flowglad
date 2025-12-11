@@ -60,6 +60,7 @@ import {
 } from '@/utils/securityTelemetry'
 import { parseUnkeyMeta, verifyApiKey } from '@/utils/unkey'
 import { searchParamsToObject } from '@/utils/url'
+import { shouldAllowEmptyBody } from '@/utils/validateRequest'
 
 interface FlowgladRESTRouteContext {
   params: Promise<{ path: string[] }>
@@ -228,6 +229,7 @@ const innerHandler = async (
           api_key_type: apiKeyType,
           body_size_bytes: requestBodySize,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         // Create a new context with our parent span
@@ -289,6 +291,7 @@ const innerHandler = async (
           route_pattern: routeKey,
           procedure: route.procedure,
           matching_duration_ms: routeMatchingDuration,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         // Extract parameters from URL with telemetry
@@ -312,35 +315,50 @@ const innerHandler = async (
             })
           } catch (error) {
             inputParsingDuration = Date.now() - bodyParsingStartTime
-            parentSpan.setStatus({
-              code: SpanStatusCode.ERROR,
-              message: 'Invalid JSON in request body',
-            })
-            parentSpan.setAttributes({
-              'error.type': 'VALIDATION_ERROR',
-              'error.category': 'VALIDATION_ERROR',
-              'error.message': 'Invalid JSON in request body',
-              'http.status_code': 400,
-              'input.parsing_duration_ms': inputParsingDuration,
-              'input.body_parsed': false,
-            })
+            const path = (await params).path.join('/')
+            const contentLength = req.headers.get('content-length')
 
-            logger.error(
-              `[${requestId}] Invalid JSON in request body`,
-              {
-                service: 'api',
-                apiEnvironment: req.unkey
-                  ?.environment as ApiEnvironment,
-                request_id: requestId,
-                error: error as Error,
-                parsing_duration_ms: inputParsingDuration,
-              }
-            )
+            if (shouldAllowEmptyBody(path, contentLength)) {
+              // Allow empty body for these specific routes
+              body = {}
 
-            return NextResponse.json(
-              { error: 'Invalid JSON in request body' },
-              { status: 400 }
-            )
+              parentSpan.setAttributes({
+                'input.parsing_duration_ms': inputParsingDuration,
+                'input.body_parsed': false,
+                'input.body_empty': true,
+                'input.empty_body_allowed': true,
+              })
+            } else {
+              parentSpan.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: 'Invalid JSON in request body',
+              })
+              parentSpan.setAttributes({
+                'error.type': 'VALIDATION_ERROR',
+                'error.category': 'VALIDATION_ERROR',
+                'error.message': 'Invalid JSON in request body',
+                'http.status_code': 400,
+                'input.parsing_duration_ms': inputParsingDuration,
+                'input.body_parsed': false,
+              })
+
+              logger.error(
+                `[${requestId}] Invalid JSON in request body`,
+                {
+                  service: 'api',
+                  apiEnvironment: req.unkey
+                    ?.environment as ApiEnvironment,
+                  request_id: requestId,
+                  error: error as Error,
+                  parsing_duration_ms: inputParsingDuration,
+                }
+              )
+
+              return NextResponse.json(
+                { error: 'Invalid JSON in request body' },
+                { status: 400 }
+              )
+            }
           }
         }
 
@@ -615,6 +633,7 @@ const innerHandler = async (
           endpoint_category: endpointCategory,
           operation_type: operationType,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         return NextResponse.json(responseData)
@@ -644,6 +663,7 @@ const innerHandler = async (
           url: req.url,
           total_duration_ms: totalDuration,
           rest_sdk_version: sdkVersion,
+          span: parentSpan, // Pass span explicitly for trace correlation
         })
 
         return NextResponse.json(

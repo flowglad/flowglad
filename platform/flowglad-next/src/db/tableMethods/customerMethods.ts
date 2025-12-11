@@ -414,7 +414,27 @@ export const selectCustomersCursorPaginatedWithTableRowData =
       })
       return customersWithTableRowData
     },
-    [customersTable.email, customersTable.name]
+    // searchableColumns: email and name for partial ILIKE matches
+    [customersTable.email, customersTable.name],
+    /**
+     * Additional search clause handler for customers table.
+     * Enables searching customers by exact customer ID in addition to
+     * the base email/name partial matches from searchableColumns.
+     *
+     * @param searchQuery - The search query string from the user
+     * @returns SQL condition for OR-ing with base search, or undefined if query is empty
+     */
+    ({ searchQuery }) => {
+      const trimmedQuery =
+        typeof searchQuery === 'string'
+          ? searchQuery.trim()
+          : searchQuery
+
+      if (!trimmedQuery) return undefined
+
+      // Match customers by exact ID (combined with base email/name via OR)
+      return eq(customersTable.id, trimmedQuery)
+    }
   )
 
 export const selectCustomerAndOrganizationByCustomerWhere = async (

@@ -92,7 +92,7 @@ function ProductActionsMenu({
 
   if (product.active) {
     actionItems.push({
-      label: 'Create price',
+      label: 'New price',
       icon: <Plus className="h-4 w-4" />,
       handler: () => setIsCreatePriceOpen(true),
     })
@@ -115,6 +115,7 @@ function ProductActionsMenu({
         isOpen={isCreatePriceOpen}
         setIsOpen={setIsCreatePriceOpen}
         productId={product.id}
+        previousPrice={prices[prices.length - 1]}
       />
       <ArchiveProductModal
         isOpen={isArchiveOpen}
@@ -193,6 +194,21 @@ export const columns: ColumnDef<ProductRow>[] = [
     size: 110,
     minSize: 105,
     maxSize: 115,
+  },
+  {
+    id: 'slug',
+    accessorFn: (row) => row.product.slug,
+    header: 'Slug',
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <DataTableCopyableCell copyText={row.getValue('slug')}>
+          {row.getValue('slug')}
+        </DataTableCopyableCell>
+      </div>
+    ),
+    size: 150,
+    minSize: 120,
+    maxSize: 200,
   },
   {
     id: 'productId',

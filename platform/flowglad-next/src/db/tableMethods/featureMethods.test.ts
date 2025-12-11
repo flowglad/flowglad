@@ -310,9 +310,11 @@ describe('updateFeatureTransaction - active state synchronization', () => {
         // First create a subscriptionItemFeature
         const subscriptionItemFeatureInsert =
           subscriptionItemFeatureInsertFromSubscriptionItemAndFeature(
-            subscriptionItem,
-            feature,
-            productFeature
+            {
+              subscriptionItem,
+              feature,
+              productFeature,
+            }
           )
         const subscriptionItemFeature =
           await insertSubscriptionItemFeature(

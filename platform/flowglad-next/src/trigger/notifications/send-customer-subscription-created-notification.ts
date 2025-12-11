@@ -13,7 +13,7 @@ import {
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import core from '@/utils/core'
-import { safeSend } from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 
 const sendCustomerSubscriptionCreatedNotificationTask = task({
   id: 'send-customer-subscription-created-notification',
@@ -121,7 +121,10 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
       from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
       bcc: notifUatEmail ? [notifUatEmail] : undefined,
       to: [customer.email],
-      subject: 'Payment method confirmed - Subscription active',
+      subject: formatEmailSubject(
+        'Payment method confirmed - Subscription active',
+        subscription.livemode
+      ),
       react: await CustomerSubscriptionCreatedEmail({
         customerName: customer.name,
         organizationName: organization.name,

@@ -37,7 +37,13 @@ export const constructCheckFeatureAccess = (
     const experimental = subscription.experimental
     const featureItemsBySlug =
       experimental?.featureItems.reduce(
-        (acc, featureItem) => {
+        (
+          acc: Record<
+            string,
+            SubscriptionExperimentalFields['featureItems'][number]
+          >,
+          featureItem: SubscriptionExperimentalFields['featureItems'][number]
+        ) => {
           if (featureItem.type === 'toggle') {
             acc[featureItem.slug] = featureItem
           }
@@ -81,7 +87,10 @@ export const constructCheckUsageBalance = (
     const experimental = subscription.experimental
     const usageMeterBalancesBySlug =
       experimental?.usageMeterBalances.reduce(
-        (acc, usageMeterBalance) => {
+        (
+          acc: Record<string, UsageMeterBalance>,
+          usageMeterBalance: UsageMeterBalance
+        ) => {
           acc[usageMeterBalance.slug] = usageMeterBalance
           return acc
         },
