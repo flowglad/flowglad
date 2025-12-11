@@ -22,11 +22,7 @@ import type { PopoverMenuItem } from '@/components/PopoverMenu'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Payment } from '@/db/schema/payments'
 import { encodeCursor } from '@/db/tableUtils'
-import {
-  CurrencyCode,
-  PaymentMethodType,
-  PaymentStatus,
-} from '@/types'
+import { PaymentMethodType, PaymentStatus } from '@/types'
 import core from '@/utils/core'
 import { getCurrencyParts } from '@/utils/stripe'
 
@@ -94,134 +90,6 @@ const getPaymentMethodInfo = (
 
   return {}
 }
-
-// TODO: Remove this fake data - for testing purposes only
-const createFakePayment = (
-  id: string,
-  status: PaymentStatus,
-  hasBillingPeriod: boolean
-): Payment.ClientRecord =>
-  ({
-    id,
-    status,
-    amount: 9900,
-    currency: CurrencyCode.USD,
-    chargeDate: Date.now(),
-    customerId: 'fake-customer-id',
-    organizationId: 'fake-org-id',
-    paymentMethodId: null,
-    billingPeriodId: hasBillingPeriod
-      ? 'fake-billing-period-id'
-      : null,
-    refunded: status === PaymentStatus.Refunded,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    livemode: false,
-    invoiceId: 'fake-invoice-id',
-    stripePaymentIntentId: 'fake-stripe-payment-intent-id',
-    purchaseId: null,
-    subscriptionId: null,
-    description: null,
-    subtotal: 9900,
-    taxAmount: null,
-    paymentMethod: PaymentMethodType.Card,
-  }) as unknown as Payment.ClientRecord
-
-const FAKE_BILLING_HISTORY_DATA: BillingHistoryItemWithPayment[] = [
-  {
-    id: 'fake-payment-1',
-    date: 'Dec 11, 2024',
-    status: 'paid' as const,
-    paymentMethodBrand: 'visa',
-    paymentMethodLast4: '4242',
-    amount: '$99.00',
-    payment: createFakePayment(
-      'fake-payment-1',
-      PaymentStatus.Succeeded,
-      true
-    ),
-  },
-  {
-    id: 'fake-payment-2',
-    date: 'Nov 11, 2024',
-    status: 'paid' as const,
-    paymentMethodBrand: 'mastercard',
-    paymentMethodLast4: '5555',
-    amount: '$99.00',
-    payment: createFakePayment(
-      'fake-payment-2',
-      PaymentStatus.Succeeded,
-      true
-    ),
-  },
-  {
-    id: 'fake-payment-3',
-    date: 'Oct 11, 2024',
-    status: 'refunded' as const,
-    paymentMethodBrand: 'visa',
-    paymentMethodLast4: '4242',
-    amount: '$99.00',
-    payment: createFakePayment(
-      'fake-payment-3',
-      PaymentStatus.Refunded,
-      true
-    ),
-  },
-  {
-    id: 'fake-payment-4',
-    date: 'Sep 11, 2024',
-    status: 'paid' as const,
-    paymentMethodBrand: 'amex',
-    paymentMethodLast4: '1234',
-    amount: '$149.00',
-    payment: createFakePayment(
-      'fake-payment-4',
-      PaymentStatus.Succeeded,
-      true
-    ),
-  },
-  {
-    id: 'fake-payment-5',
-    date: 'Aug 11, 2024',
-    status: 'failed' as const,
-    paymentMethodBrand: 'visa',
-    paymentMethodLast4: '9999',
-    amount: '$99.00',
-    payment: createFakePayment(
-      'fake-payment-5',
-      PaymentStatus.Failed,
-      true
-    ),
-  },
-  {
-    id: 'fake-payment-6',
-    date: 'Jul 11, 2024',
-    status: 'pending' as const,
-    paymentMethodBrand: 'discover',
-    paymentMethodLast4: '6011',
-    amount: '$79.00',
-    payment: createFakePayment(
-      'fake-payment-6',
-      PaymentStatus.Processing,
-      true
-    ),
-  },
-  {
-    id: 'fake-payment-7',
-    date: 'Jun 11, 2024',
-    status: 'paid' as const,
-    paymentMethodBrand: undefined,
-    paymentMethodLast4: '8765',
-    amount: '$199.99',
-    payment: createFakePayment(
-      'fake-payment-7',
-      PaymentStatus.Succeeded,
-      false
-    ),
-  },
-]
-// Set this to true to use fake data for testing
-const USE_FAKE_DATA = true
 
 interface BillingHistoryItemWithPayment {
   id: string
@@ -383,10 +251,7 @@ export function BillingHistorySection({
           <div className="text-center py-4 text-muted-foreground text-sm">
             Loading billing history...
           </div>
-        ) : (USE_FAKE_DATA
-            ? FAKE_BILLING_HISTORY_DATA
-            : billingHistoryItems
-          ).length === 0 ? (
+        ) : billingHistoryItems.length === 0 ? (
           <div className="flex gap-3 items-start bg-accent rounded-sm px-4 py-3">
             <div className="pt-0.5 shrink-0">
               <CircleAlert className="size-4 text-foreground" />
@@ -409,10 +274,7 @@ export function BillingHistorySection({
             </div>
           </div>
         ) : (
-          (USE_FAKE_DATA
-            ? FAKE_BILLING_HISTORY_DATA
-            : billingHistoryItems
-          ).map((item) => (
+          billingHistoryItems.map((item) => (
             <BillingHistoryItem
               key={item.id}
               item={item}
