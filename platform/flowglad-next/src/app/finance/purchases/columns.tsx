@@ -55,15 +55,13 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
       const name = row.getValue('name') as string
       const purchaseId = row.original.purchase.id
       return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <DataTableLinkableCell
-            href={`/finance/purchases/${purchaseId}`}
-          >
-            <div className="truncate" title={name}>
-              {name}
-            </div>
-          </DataTableLinkableCell>
-        </div>
+        <DataTableLinkableCell
+          href={`/finance/purchases/${purchaseId}`}
+        >
+          <div className="truncate" title={name}>
+            {name}
+          </div>
+        </DataTableLinkableCell>
       )
     },
   },
@@ -81,13 +79,11 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
           ? original.customer.email
           : original.customer.name
       return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <DataTableLinkableCell
-            href={`/customers/${original.customer.id}`}
-          >
-            {displayName}
-          </DataTableLinkableCell>
-        </div>
+        <DataTableLinkableCell
+          href={`/customers/${original.customer.id}`}
+        >
+          {displayName}
+        </DataTableLinkableCell>
       )
     },
   },

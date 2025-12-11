@@ -3,9 +3,8 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { sentenceCase } from 'change-case'
 // Icons come next
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import * as React from 'react'
-import DeleteDiscountModal from '@/components/forms/DeleteDiscountModal'
 import EditDiscountModal from '@/components/forms/EditDiscountModal'
 import StatusBadge from '@/components/StatusBadge'
 // UI components last
@@ -94,15 +93,13 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
       const name = row.getValue('name') as string
       const discountId = row.original.discount.id
       return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <DataTableLinkableCell
-            href={`/finance/discounts/${discountId}`}
-          >
-            <div className="truncate" title={name}>
-              {name}
-            </div>
-          </DataTableLinkableCell>
-        </div>
+        <DataTableLinkableCell
+          href={`/finance/discounts/${discountId}`}
+        >
+          <div className="truncate" title={name}>
+            {name}
+          </div>
+        </DataTableLinkableCell>
       )
     },
     size: 150,
