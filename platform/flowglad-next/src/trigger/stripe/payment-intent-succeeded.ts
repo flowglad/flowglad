@@ -32,7 +32,7 @@ export const stripePaymentIntentSucceededTask = task({
       const result = await comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return await processOutcomeForBillingRun(
-            payload,
+            { input: payload },
             transaction
           )
         }
