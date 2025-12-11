@@ -7,7 +7,7 @@
     </picture>
   </a>
 
-  <h3 align="center">Flowglad</h3>
+  <h3 align="center">Flowglad Test</h3>
 
   <p align="center">
     Test line from Discord bot (again)
