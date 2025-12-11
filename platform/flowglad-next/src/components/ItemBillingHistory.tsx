@@ -193,7 +193,7 @@ const ItemBillingHistory = React.forwardRef<
           )}
           {paymentMethodLast4 && (
             <div className="flex items-center gap-0.5 text-sm font-normal text-foreground min-w-[65px] w-fit">
-              <span>****</span>
+              <span>••••</span>
               <span>{paymentMethodLast4}</span>
             </div>
           )}
@@ -214,7 +214,7 @@ const ItemBillingHistory = React.forwardRef<
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="data-[state=open]:bg-muted text-muted-foreground size-8"
+                    className="data-[state=open]:bg-muted text-muted-foreground size-6 border border-transparent hover:border-muted-foreground hover:shadow-xs"
                     size="icon"
                   >
                     <MoreHorizontal className="size-4" />
@@ -227,7 +227,7 @@ const ItemBillingHistory = React.forwardRef<
               </Popover>
             </div>
           ) : (
-            <div className="size-8" />
+            <div className="size-6" />
           )}
         </div>
       </div>

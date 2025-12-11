@@ -207,7 +207,10 @@ const InnerSubscriptionPage = ({
             href={`/customers/${customer.id}`}
           />
         </ExpandSection>
-        <ExpandSection title="Feature Access" defaultExpanded={false}>
+        <ExpandSection
+          title="Features Granted"
+          defaultExpanded={false}
+        >
           <div className="flex flex-col gap-1 px-3">
             {subscription.experimental?.featureItems?.map(
               (feature) => (

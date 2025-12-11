@@ -92,7 +92,7 @@ export function PageHeaderNew({
       className={cn(
         'flex flex-col items-start justify-center w-full',
         'border-b border-border',
-        'px-4 pt-4 pb-0',
+        'px-4 pt-20 pb-0',
         className
       )}
       style={{
