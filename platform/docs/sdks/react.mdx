@@ -97,7 +97,7 @@ interface BillingContext {
   
   // Subscriptions
   currentSubscription: Subscription // The most recently created current subscription for the customer
-  currentSubscriptions: Subscription[] // Subscriptions currently active or pending
+  currentSubscriptions: Subscription[] // Subscriptions currently active or pending. Length will always be 1 unless your organization settings allow for multiple subscriptions per customer.
   subscriptions: Subscription[] // All subscriptions for the customer
   
   // Purchases
