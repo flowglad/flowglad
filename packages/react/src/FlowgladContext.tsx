@@ -84,6 +84,7 @@ export interface NonPresentContextValues {
   cancelSubscription: null
   uncancelSubscription: null
   currentSubscriptions: []
+  currentSubscription: null
 }
 
 export interface NotLoadedFlowgladContextValues
@@ -131,6 +132,7 @@ const notPresentContextValues: NonPresentContextValues = {
   cancelSubscription: null,
   uncancelSubscription: null,
   currentSubscriptions: [],
+  currentSubscription: null,
 }
 
 const FlowgladContext = createContext<FlowgladContextValues>({
@@ -435,6 +437,7 @@ export const FlowgladContextProvider = (
           purchases: billingData.purchases,
           invoices: billingData.invoices,
           paymentMethods: billingData.paymentMethods,
+          currentSubscription: billingData.currentSubscription,
           currentSubscriptions: billingData.currentSubscriptions,
           catalog: billingData.catalog,
           billingPortalUrl: billingData.billingPortalUrl,
@@ -542,6 +545,7 @@ export const FlowgladContextProvider = (
         reload,
         invoices: billingData.invoices,
         paymentMethods: billingData.paymentMethods,
+        currentSubscription: billingData.currentSubscription,
         currentSubscriptions: billingData.currentSubscriptions,
         billingPortalUrl: billingData.billingPortalUrl,
         pricingModel: billingData.pricingModel,
