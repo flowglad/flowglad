@@ -10,7 +10,7 @@
   <h3 align="center">Flowglad</h3>
 
   <p align="center">
-    Test line from Discord bot.
+    Test line from Discord bot.2
     <br />
     <a href="https://flowglad.com"><strong>Get Started</strong></a>
     <br />
