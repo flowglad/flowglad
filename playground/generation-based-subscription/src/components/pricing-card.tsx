@@ -73,7 +73,6 @@ export function PricingCard({
         priceSlug: priceSlug,
         successUrl: `${window.location.origin}/`,
         cancelUrl: window.location.href,
-        quantity: 1,
         autoRedirect: true,
       })
     } catch (error) {
