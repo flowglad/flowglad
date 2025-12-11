@@ -168,7 +168,7 @@ export default function PricingModelFormFields({
                   Default pricing model
                 </label>
                 <p className="text-xs text-muted-foreground">
-                  This become the pricing model that automatically
+                  This becomes the pricing model that automatically
                   attaches to new customers.
                 </p>
               </div>
