@@ -10,7 +10,7 @@
   <h3 align="center">Flowglad</h3>
 
   <p align="center">
-    The easiest way to make internet money.
+    Test line from Discord bot.
     <br />
     <a href="https://flowglad.com"><strong>Get Started</strong></a>
     <br />
