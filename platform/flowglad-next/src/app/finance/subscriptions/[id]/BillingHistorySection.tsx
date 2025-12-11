@@ -3,7 +3,7 @@
 import {
   ChevronRight,
   CircleAlert,
-  FileText,
+  ReceiptText,
   Rewind,
   RotateCcw,
 } from 'lucide-react'
@@ -254,7 +254,7 @@ function BillingHistoryItem({
       const invoiceUrl = `${core.NEXT_PUBLIC_APP_URL}/invoice/view/${item.payment.organizationId}/${item.payment.invoiceId}`
       items.push({
         label: 'View Invoice',
-        icon: <FileText className="h-4 w-4" />,
+        icon: <ReceiptText className="h-4 w-4" />,
         handler: () => window.open(invoiceUrl, '_blank'),
       })
     }
