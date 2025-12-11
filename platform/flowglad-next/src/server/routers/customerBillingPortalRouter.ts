@@ -51,6 +51,7 @@ import {
   getCustomerBillingPortalOrganizationId,
   setCustomerBillingPortalOrganizationId,
 } from '@/utils/customerBillingPortalState'
+import { maskEmail } from '@/utils/emailHelpers'
 import {
   customerProtectedProcedure,
   protectedProcedure,
@@ -380,6 +381,219 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
     )
   })
 
+// sendOTPToCustomer procedure
+const sendOTPToCustomerProcedure = publicProcedure
+  .input(
+    z.object({
+      customerId: z.string().describe('The customer ID'),
+      organizationId: z.string().describe('The organization ID'),
+    })
+  )
+  .output(
+    z.object({
+      success: z.boolean(),
+      email: z
+        .string()
+        .optional()
+        .describe('Masked email for display'),
+    })
+  )
+  .mutation(async ({ input }) => {
+    const { customerId, organizationId } = input
+
+    try {
+      // 1. Verify organization exists
+      const organization = await adminTransaction(
+        async ({ transaction }) => {
+          return selectOrganizationById(organizationId, transaction)
+        }
+      )
+
+      if (!organization) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Organization not found',
+        })
+      }
+
+      // 2. Fetch customer by ID and verify belongs to organization
+      const customer = await adminTransaction(
+        async ({ transaction }) => {
+          const customers = await selectCustomers(
+            {
+              id: customerId,
+              organizationId,
+              livemode: true,
+            },
+            transaction
+          )
+
+          if (customers.length === 0) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'Customer not found',
+            })
+          }
+
+          return customers[0]
+        }
+      )
+
+      // 3. Set organization ID for billing portal session
+      await setCustomerBillingPortalOrganizationId(organizationId)
+
+      const email = customer.email
+
+      // 4. Check if customers exist and handle user creation/linking (similar to magic link flow)
+      await adminTransaction(async ({ transaction }) => {
+        // Find livemode customers by email and organizationId
+        const customers = await selectCustomers(
+          {
+            email,
+            organizationId,
+            livemode: true,
+          },
+          transaction
+        )
+
+        if (customers.length > 0) {
+          // Customer found - proceed with user account handling
+          const [user] = await selectUsers({ email }, transaction)
+
+          let userId: string
+
+          if (!user || !user.betterAuthId) {
+            // Create new user account for the customer
+            const result = await auth.api.createUser({
+              body: {
+                email,
+                password: core.nanoid(),
+                name: customers
+                  .map((customer) => customer.name)
+                  .join(' '),
+              },
+            })
+            const safelyCreatedUser =
+              await betterAuthUserToApplicationUser(result.user)
+            userId = safelyCreatedUser.id
+
+            // Link customers to the new user
+            await setUserIdForCustomerRecords(
+              { customerEmail: email, userId },
+              transaction
+            )
+          } else {
+            userId = user.id
+
+            // If some customers have no user id, set the user id for the customers
+            if (
+              customers.some((customer) => customer.userId === null)
+            ) {
+              await setUserIdForCustomerRecords(
+                { customerEmail: email, userId },
+                transaction
+              )
+            }
+          }
+
+          // Get better auth user for email verification status
+          if (user?.betterAuthId) {
+            await selectBetterAuthUserById(
+              user.betterAuthId,
+              transaction
+            )
+          }
+        }
+        // Always return success (even if no customer found) for security
+        return { success: true }
+      })
+
+      // 5. Send OTP using Better Auth
+      await auth.api.sendOtp({
+        body: { email },
+        headers: await headers(),
+      })
+
+      // 6. Return success with masked email
+      return {
+        success: true,
+        email: maskEmail(email),
+      }
+    } catch (error) {
+      console.error('sendOTPToCustomerProcedure error:', error)
+      if (!core.IS_PROD) {
+        throw error
+      }
+      // If organization not found, throw error
+      if (error instanceof TRPCError && error.code === 'NOT_FOUND') {
+        throw error
+      }
+      // For any other errors, quietly return success for security
+      return { success: true }
+    }
+  })
+
+// verifyOTPForCustomer procedure
+const verifyOTPForCustomerProcedure = publicProcedure
+  .input(
+    z.object({
+      customerId: z.string().describe('The customer ID'),
+      organizationId: z.string().describe('The organization ID'),
+      code: z.string().describe('The OTP code'),
+    })
+  )
+  .output(
+    z.object({
+      success: z.boolean(),
+    })
+  )
+  .mutation(async ({ input }) => {
+    const { customerId, organizationId, code } = input
+
+    // 1. Fetch customer by ID and verify belongs to organization
+    const customer = await adminTransaction(
+      async ({ transaction }) => {
+        const customers = await selectCustomers(
+          {
+            id: customerId,
+            organizationId,
+            livemode: true,
+          },
+          transaction
+        )
+
+        if (customers.length === 0) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Customer not found',
+          })
+        }
+
+        return customers[0]
+      }
+    )
+
+    // 2. Verify OTP with Better Auth
+    try {
+      await auth.api.verifyOtp({
+        body: {
+          email: customer.email,
+          code,
+        },
+        headers: await headers(),
+      })
+
+      // Session is automatically created by Better Auth
+      return { success: true }
+    } catch (error) {
+      console.error('verifyOTPForCustomerProcedure error:', error)
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Invalid or expired OTP code',
+      })
+    }
+  })
+
 // requestMagicLink procedure
 const requestMagicLinkProcedure = publicProcedure
   .input(
@@ -673,6 +887,8 @@ export const customerBillingPortalRouter = router({
   getBilling: getBillingProcedure,
   cancelSubscription: cancelSubscriptionProcedure,
   uncancelSubscription: uncancelSubscriptionProcedure,
+  sendOTPToCustomer: sendOTPToCustomerProcedure,
+  verifyOTPForCustomer: verifyOTPForCustomerProcedure,
   requestMagicLink: requestMagicLinkProcedure,
   createAddPaymentMethodSession:
     createAddPaymentMethodSessionProcedure,

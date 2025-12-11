@@ -7,6 +7,7 @@ import {
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import { CustomerBillingPortalMagicLinkEmail } from '@/email-templates/customer-billing-portal-magic-link'
+import { CustomerBillingPortalOTPEmail } from '@/email-templates/customer-billing-portal-otp'
 import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'
 import { PaymentFailedEmail } from '@/email-templates/customer-payment-failed'
 import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
@@ -476,6 +477,34 @@ export const sendCustomerBillingPortalMagicLink = async ({
       customerName,
       organizationName,
       livemode,
+    }),
+  })
+}
+
+export const sendCustomerBillingPortalOTP = async ({
+  to,
+  otpCode,
+  customerName,
+  organizationName,
+  livemode,
+}: {
+  to: string[]
+  otpCode: string
+  customerName?: string
+  organizationName: string
+  livemode: boolean
+}) => {
+  return safeSend({
+    from: 'notifications@flowglad.com',
+    to: to.map(safeTo),
+    subject: formatEmailSubject(
+      `Your verification code for ${organizationName}`,
+      livemode
+    ),
+    react: await CustomerBillingPortalOTPEmail({
+      otpCode,
+      customerName,
+      organizationName,
     }),
   })
 }

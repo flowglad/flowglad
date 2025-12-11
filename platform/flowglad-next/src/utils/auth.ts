@@ -107,6 +107,8 @@ export const auth = betterAuth({
       },
     }),
   ],
+  // OTP functionality is built into Better Auth core via auth.api.sendOtp() and auth.api.verifyOtp()
+  // No separate plugin configuration needed
   databaseHooks: {
     user: {
       create: {
