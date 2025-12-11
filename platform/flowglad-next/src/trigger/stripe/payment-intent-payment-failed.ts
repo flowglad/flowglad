@@ -17,7 +17,7 @@ export const stripePaymentIntentPaymentFailedTask = task({
       return comprehensiveAdminTransaction(
         async ({ transaction }) => {
           return await processOutcomeForBillingRun(
-            payload,
+            { input: payload },
             transaction
           )
         }

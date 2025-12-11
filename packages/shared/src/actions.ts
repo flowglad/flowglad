@@ -45,7 +45,11 @@ export const createActivateSubscriptionCheckoutSessionSchema =
     targetSubscriptionId: z.string(),
   })
 
-export type CreateProductCheckoutSessionParams = z.infer<
+/**
+ * Use z.input to get the type before any transformations (like default values) are applied by the schema.
+ * This keeps fields like `quantity` optional in the input type, even if the schema applies defaults.
+ */
+export type CreateProductCheckoutSessionParams = z.input<
   typeof createProductCheckoutSessionSchema
 >
 export type CreateAddPaymentMethodCheckoutSessionParams = z.infer<

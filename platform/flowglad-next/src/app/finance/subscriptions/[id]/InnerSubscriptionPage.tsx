@@ -15,7 +15,6 @@ import { useAuthContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
 import {
   getSubscriptionDateInfo,
   getSubscriptionStatusBadge,
@@ -27,7 +26,7 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
-import { getCurrencyParts } from '@/utils/stripe'
+import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
@@ -36,14 +35,12 @@ const InnerSubscriptionPage = ({
   subscription,
   defaultPaymentMethod,
   customer,
-  product,
   pricingModel,
   productNames,
 }: {
   subscription: RichSubscription
   defaultPaymentMethod: PaymentMethod.ClientRecord | null
   customer: Customer.Record
-  product: Product.Record | null
   pricingModel: PricingModel.Record | null
   productNames: Record<string, string>
 }) => {
@@ -80,28 +77,6 @@ const InnerSubscriptionPage = ({
 
   const handleCancel = () => {
     setIsCancelModalOpen(true)
-  }
-
-  /**
-   * Helper function to format the billing period for display
-   * Handles singular/plural forms and interval counts
-   */
-  const formatBillingPeriod = (
-    intervalUnit: string | null | undefined,
-    intervalCount: number | null | undefined
-  ): string => {
-    if (!intervalUnit) return 'one-time'
-
-    const count = intervalCount || 1
-    const unit = intervalUnit.toLowerCase()
-
-    // Handle singular vs plural
-    if (count === 1) {
-      return unit
-    }
-
-    // Handle plural forms
-    return `${count} ${unit}s`
   }
 
   if (!organization) {
