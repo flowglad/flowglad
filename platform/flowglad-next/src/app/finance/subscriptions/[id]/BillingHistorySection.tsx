@@ -19,6 +19,11 @@ import {
   ItemBillingHistory,
 } from '@/components/ItemBillingHistory'
 import type { PopoverMenuItem } from '@/components/PopoverMenu'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Payment } from '@/db/schema/payments'
 import { encodeCursor } from '@/db/tableUtils'
@@ -252,18 +257,14 @@ export function BillingHistorySection({
             Loading billing history...
           </div>
         ) : billingHistoryItems.length === 0 ? (
-          <div className="flex gap-3 items-start bg-accent rounded-sm px-4 py-3">
-            <div className="pt-0.5 shrink-0">
-              <CircleAlert className="size-4 text-foreground" />
-            </div>
-            <div className="flex flex-col gap-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">
-                No billing history yet
-              </p>
-              <p className="text-sm text-muted-foreground">
+          <Alert variant="secondary">
+            <CircleAlert className="size-4" />
+            <div className="flex flex-col gap-1 min-w-0 grow">
+              <AlertTitle>No billing history yet</AlertTitle>
+              <AlertDescription>
                 {customerName} hasn't made any payments for this
                 subscription yet.
-              </p>
+              </AlertDescription>
               <Link
                 href={`/customers/${customerId}?tab=payments`}
                 className="flex items-center text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
@@ -272,7 +273,7 @@ export function BillingHistorySection({
                 <ChevronRight className="size-4" />
               </Link>
             </div>
-          </div>
+          </Alert>
         ) : (
           billingHistoryItems.map((item) => (
             <BillingHistoryItem
