@@ -1,11 +1,9 @@
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
-import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
 import { selectUsageEvents } from '@/db/tableMethods/usageEventMethods'
 import InternalCustomerDetailsScreen from './InternalCustomerDetailsScreen'
 
@@ -19,14 +17,7 @@ const CustomerPage = async ({
   params: Promise<CustomerPageParams>
 }) => {
   const { id } = await params
-  const {
-    customer,
-    purchases,
-    invoices,
-    prices,
-    paymentsForCustomer,
-    usageEvents,
-  } = await authenticatedTransaction(
+  const result = await authenticatedTransaction(
     async ({ transaction, userId }) => {
       await selectMembershipAndOrganizations(
         {
@@ -37,46 +28,30 @@ const CustomerPage = async ({
       )
 
       // Then, use the organizationId to fetch customer
-      const [result] = await selectCustomerAndCustomerTableRows(
-        { id },
-        transaction
-      )
-      if (!result) {
-        return notFound()
+      const [customerResult] =
+        await selectCustomerAndCustomerTableRows({ id }, transaction)
+      if (!customerResult) {
+        return null
       }
-      const purchases = await selectPurchases(
-        {
-          customerId: result.customer.id,
-        },
-        transaction
-      )
-
-      const invoices =
-        await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { customerId: result.customer.id },
-          transaction
-        )
       const paymentsForCustomer = await selectPayments(
         {
-          customerId: result.customer.id,
+          customerId: customerResult.customer.id,
         },
         transaction
       )
       const prices = await selectPricesAndProductsForOrganization(
         {},
-        result.customer.organizationId,
+        customerResult.customer.organizationId,
         transaction
       )
       const usageEvents = await selectUsageEvents(
         {
-          customerId: result.customer.id,
+          customerId: customerResult.customer.id,
         },
         transaction
       )
       return {
-        customer: result.customer,
-        purchases,
-        invoices,
+        customer: customerResult.customer,
         prices,
         paymentsForCustomer,
         usageEvents,
@@ -84,15 +59,16 @@ const CustomerPage = async ({
     }
   )
 
-  if (!customer) {
+  if (!result) {
     notFound()
   }
+
+  const { customer, prices, paymentsForCustomer, usageEvents } =
+    result
 
   return (
     <InternalCustomerDetailsScreen
       customer={customer}
-      purchases={purchases}
-      invoices={invoices}
       prices={prices
         .filter(({ product }) => product.active)
         .map(({ price }) => price)}
