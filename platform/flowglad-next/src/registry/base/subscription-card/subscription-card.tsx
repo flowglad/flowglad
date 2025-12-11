@@ -16,6 +16,7 @@ import type { SubscriptionCardProps } from './types'
 export function SubscriptionCard({
   subscription,
   onCancel,
+  onUncancel,
   loading = false,
   className,
 }: SubscriptionCardProps) {
@@ -37,7 +38,7 @@ export function SubscriptionCard({
         <SubscriptionDetails subscription={subscription} />
       </CardContent>
 
-      {onCancel && (
+      {(onCancel || onUncancel) && (
         <CardFooter>
           <SubscriptionActions
             subscriptionId={subscription.id}
@@ -46,6 +47,7 @@ export function SubscriptionCard({
             cancelAtPeriodEnd={subscription.cancelAtPeriodEnd}
             currentPeriodEnd={subscription.currentPeriodEnd}
             onCancel={onCancel}
+            onUncancel={onUncancel}
             loading={loading}
             className="w-full justify-end"
           />
