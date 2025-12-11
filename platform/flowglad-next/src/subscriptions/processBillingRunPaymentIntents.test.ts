@@ -184,7 +184,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       // The function should simply skip processing and return undefined.
       const { result } = await processOutcomeForBillingRun(
-        event,
+        { input: event },
         transaction
       )
       expect(result?.processingSkipped).toBe(true)
@@ -242,7 +242,10 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       const { result, ledgerCommands } =
-        await processOutcomeForBillingRun(event, transaction)
+        await processOutcomeForBillingRun(
+          { input: event },
+          transaction
+        )
 
       const updatedBillingRun = await selectBillingRunById(
         billingRun.id,
@@ -336,13 +339,19 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     await adminTransaction(async ({ transaction }) => {
       const { ledgerCommands: firstLedgerCommands } =
-        await processOutcomeForBillingRun(event, transaction)
+        await processOutcomeForBillingRun(
+          { input: event },
+          transaction
+        )
 
       expect(firstLedgerCommands).toBeDefined()
       expect(firstLedgerCommands?.length).toBeGreaterThan(0)
 
       const { ledgerCommands: secondLedgerCommands } =
-        await processOutcomeForBillingRun(event, transaction)
+        await processOutcomeForBillingRun(
+          { input: event },
+          transaction
+        )
 
       expect(secondLedgerCommands).toBeUndefined()
     })
@@ -396,7 +405,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
       const { ledgerCommands } = await processOutcomeForBillingRun(
-        event,
+        { input: event },
         transaction
       )
 
@@ -478,7 +487,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       const { ledgerCommands } = await processOutcomeForBillingRun(
-        event,
+        { input: event },
         transaction
       )
 
@@ -557,7 +566,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       const { ledgerCommands } = await processOutcomeForBillingRun(
-        event,
+        { input: event },
         transaction
       )
 
@@ -646,7 +655,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       const { ledgerCommands } = await processOutcomeForBillingRun(
-        event,
+        { input: event },
         transaction
       )
 
@@ -705,7 +714,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       await expect(
-        processOutcomeForBillingRun(event, transaction)
+        processOutcomeForBillingRun({ input: event }, transaction)
       ).rejects.toThrow(
         `Invoice for billing period ${billingRun.billingPeriodId} not found.`
       )
@@ -751,7 +760,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       await expect(
-        processOutcomeForBillingRun(event, transaction)
+        processOutcomeForBillingRun({ input: event }, transaction)
       ).rejects.toThrow(
         /No latest charge found for payment intent pi_no_charge/
       )
@@ -798,7 +807,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
   //     } as any
 
   //     await expect(
-  //       processOutcomeForBillingRun(event, transaction)
+  //       processOutcomeForBillingRun(event, adjustmentParams, transaction)
   //     ).rejects.toThrow(
   //       `Payment record not found for stripe charge ${event.data.object.latest_charge}`
   //     )
@@ -894,7 +903,10 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           livemode: true,
         }
       )
-      return await processOutcomeForBillingRun(event, transaction)
+      return await processOutcomeForBillingRun(
+        { input: event },
+        transaction
+      )
     })
 
     // Verify subscription was canceled
@@ -1039,7 +1051,10 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           livemode: true,
         }
       )
-      return await processOutcomeForBillingRun(event, transaction)
+      return await processOutcomeForBillingRun(
+        { input: event },
+        transaction
+      )
     })
 
     // Verify subscription was NOT canceled (unlike paid plans)
@@ -1173,7 +1188,10 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           }
         )
 
-        return await processOutcomeForBillingRun(event, transaction)
+        return await processOutcomeForBillingRun(
+          { input: event },
+          transaction
+        )
       }
     )
 
@@ -1391,7 +1409,10 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(event, transaction)
+      return await processOutcomeForBillingRun(
+        { input: event },
+        transaction
+      )
     })
 
     // Assertions
@@ -1571,7 +1592,10 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(event, transaction)
+      return await processOutcomeForBillingRun(
+        { input: event },
+        transaction
+      )
     })
 
     // Assertions: similar to "Once" grant, as the first grant is always issued.
@@ -1756,7 +1780,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
       )
 
       return await processOutcomeForBillingRun(
-        firstEvent,
+        { input: firstEvent },
         transaction
       )
     })
@@ -1810,7 +1834,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
       )
 
       return await processOutcomeForBillingRun(
-        secondEvent,
+        { input: secondEvent },
         transaction
       )
     })

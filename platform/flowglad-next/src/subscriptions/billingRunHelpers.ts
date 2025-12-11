@@ -931,7 +931,10 @@ export const executeBillingRun = async (
     ) {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processOutcomeForBillingRun(
-          confirmationResult,
+          {
+            input: confirmationResult,
+            adjustmentParams: adjustmentParams,
+          },
           transaction
         )
       })
