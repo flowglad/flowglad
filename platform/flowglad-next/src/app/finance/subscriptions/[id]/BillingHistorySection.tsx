@@ -247,7 +247,8 @@ export function BillingHistorySection({
   }
 
   // Get the customer's first name for the link text
-  const customerFirstName = customerName.split(' ')[0]
+  const customerFirstName =
+    customerName.split(' ')[0] || customerName || 'this customer'
 
   return (
     <ExpandSection title="Billing History" defaultExpanded={false}>
