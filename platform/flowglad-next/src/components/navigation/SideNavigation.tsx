@@ -194,10 +194,6 @@ export const SideNavigation = () => {
       title: 'Pricing Models',
       url: '/store/pricing-models',
     },
-    {
-      title: 'Discounts',
-      url: '/store/discounts',
-    },
   ]
 
   const navigationSections: MainNavItem[] = [
@@ -218,6 +214,7 @@ export const SideNavigation = () => {
         { title: 'Subscriptions', url: '/finance/subscriptions' },
         { title: 'Invoices', url: '/finance/invoices' },
         { title: 'Purchases', url: '/finance/purchases' },
+        { title: 'Discounts', url: '/finance/discounts' },
       ],
     },
   ]

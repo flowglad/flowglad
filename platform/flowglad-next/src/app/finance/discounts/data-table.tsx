@@ -203,7 +203,22 @@ export function DiscountsDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={isFetching ? 'opacity-50' : ''}
+                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
+                onClick={(e) => {
+                  // Only navigate if not clicking on interactive elements
+                  const target = e.target as HTMLElement
+                  if (
+                    target.closest('button') ||
+                    target.closest('[role="checkbox"]') ||
+                    target.closest('input[type="checkbox"]') ||
+                    target.closest('[data-radix-collection-item]')
+                  ) {
+                    return
+                  }
+                  router.push(
+                    `/finance/discounts/${row.original.discount.id}`
+                  )
+                }}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
