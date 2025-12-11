@@ -238,7 +238,7 @@ function InnerFeatureDetailsPage({
         />
 
         {/* Content sections */}
-        <div className="flex flex-col gap-8 py-8 w-full">
+        <div className="flex flex-col gap-8 py-8 px-4 w-full">
           {/* Description - only show if provided */}
           {feature.description && (
             <ContentSection>
