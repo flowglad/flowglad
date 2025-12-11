@@ -196,6 +196,21 @@ export const columns: ColumnDef<ProductRow>[] = [
     maxSize: 115,
   },
   {
+    id: 'slug',
+    accessorFn: (row) => row.product.slug,
+    header: 'Slug',
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <DataTableCopyableCell copyText={row.getValue('slug')}>
+          {row.getValue('slug')}
+        </DataTableCopyableCell>
+      </div>
+    ),
+    size: 150,
+    minSize: 120,
+    maxSize: 200,
+  },
+  {
     id: 'productId',
     accessorFn: (row) => row.product.id,
     header: 'ID',

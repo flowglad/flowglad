@@ -123,6 +123,7 @@ export const getTableRows = protectedProcedure
     createPaginatedTableRowInputSchema(
       z.object({
         pricingModelId: z.string().optional(),
+        active: z.boolean().optional(),
       })
     )
   )

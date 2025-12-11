@@ -11,9 +11,12 @@ const StatusBadge = ({ active }: Props) => {
       <div className="w-20">
         <Badge
           variant="secondary"
-          className="w-full bg-green-100 text-green-800 text-xs"
+          className="w-full bg-jade-background text-jade-foreground text-xs"
         >
-          <Check className="w-3 h-3 mr-1" strokeWidth={2} />
+          <Check
+            className="w-3 h-3 mr-1 text-jade-foreground"
+            strokeWidth={2}
+          />
           Active
         </Badge>
       </div>

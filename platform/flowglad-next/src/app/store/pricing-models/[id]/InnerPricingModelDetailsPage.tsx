@@ -64,7 +64,9 @@ function InnerPricingModelDetailsPage({
     setIsCreateUsageMeterModalOpen,
   ] = useState(false)
   const [activeProductFilter, setActiveProductFilter] =
-    useState<string>('all')
+    useState<string>('active')
+  const [activeFeatureFilter, setActiveFeatureFilter] =
+    useState<string>('active')
   const {
     data: exportPricingModelData,
     refetch,
@@ -85,7 +87,26 @@ function InnerPricingModelDetailsPage({
     { value: 'inactive', label: 'Inactive' },
   ]
 
+  const featureFilterOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+  ]
+
   const getProductFilterForTab = (tab: string) => {
+    const baseFilter = { pricingModelId: pricingModel.id }
+
+    if (tab === 'all') {
+      return baseFilter
+    }
+
+    return {
+      ...baseFilter,
+      active: tab === 'active',
+    }
+  }
+
+  const getFeatureFilterForTab = (tab: string) => {
     const baseFilter = { pricingModelId: pricingModel.id }
 
     if (tab === 'all') {
@@ -189,7 +210,10 @@ function InnerPricingModelDetailsPage({
         <div className="flex flex-col gap-5">
           <FeaturesDataTable
             title="Features"
-            filters={{ pricingModelId: pricingModel.id }}
+            filters={getFeatureFilterForTab(activeFeatureFilter)}
+            filterOptions={featureFilterOptions}
+            activeFilter={activeFeatureFilter}
+            onFilterChange={setActiveFeatureFilter}
             onCreateFeature={() => setIsCreateFeatureModalOpen(true)}
             buttonVariant="outline"
           />

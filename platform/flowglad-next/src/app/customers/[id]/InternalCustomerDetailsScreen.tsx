@@ -15,23 +15,17 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import type { Customer } from '@/db/schema/customers'
-import type { InvoiceWithLineItems } from '@/db/schema/invoiceLineItems'
 import type { Payment } from '@/db/schema/payments'
 import type { Price } from '@/db/schema/prices'
-import type { Purchase } from '@/db/schema/purchases'
 import type { UsageEvent } from '@/db/schema/usageEvents'
 import { CustomerBillingSubPage } from './CustomerDetailsBillingTab'
 
 function InternalCustomerDetailsScreen({
   customer,
-  purchases,
-  invoices,
   payments,
   usageEvents,
 }: {
   customer: Customer.ClientRecord
-  purchases: Purchase.ClientRecord[]
-  invoices: InvoiceWithLineItems[]
   payments: Payment.ClientRecord[]
   prices: Price.ClientRecord[]
   usageEvents: UsageEvent.ClientRecord[]
@@ -82,8 +76,6 @@ function InternalCustomerDetailsScreen({
         <div className="pt-6">
           <CustomerBillingSubPage
             customer={customer}
-            purchases={purchases}
-            invoices={invoices}
             payments={payments}
             usageEvents={usageEvents}
           />
