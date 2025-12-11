@@ -352,6 +352,37 @@ export const getCurrencyParts = (
   return { symbol, value }
 }
 
+/**
+ * Formats the billing period for display.
+ * Handles singular/plural forms and interval counts.
+ *
+ * @param intervalUnit - The billing interval unit (e.g., 'month', 'year')
+ * @param intervalCount - The number of intervals (e.g., 1, 3, 6)
+ * @returns Formatted billing period string (e.g., 'month', '3 months', 'one-time')
+ *
+ * @example
+ * formatBillingPeriod('month', 1) // 'month'
+ * formatBillingPeriod('month', 3) // '3 months'
+ * formatBillingPeriod(null, null) // 'one-time'
+ */
+export const formatBillingPeriod = (
+  intervalUnit: string | null | undefined,
+  intervalCount: number | null | undefined
+): string => {
+  if (!intervalUnit) return 'one-time'
+
+  const count = intervalCount || 1
+  const unit = intervalUnit.toLowerCase()
+
+  // Handle singular vs plural
+  if (count === 1) {
+    return unit
+  }
+
+  // Handle plural forms
+  return `${count} ${unit}s`
+}
+
 // Constants for readability and maintainability
 const THRESHOLDS = {
   SMALL_AMOUNT: 100,
