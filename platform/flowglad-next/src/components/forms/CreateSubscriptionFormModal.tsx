@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModelWithProductsAndUsageMeters } from '@/db/schema/prices'
 import { encodeCursor } from '@/db/tableUtils'
@@ -96,6 +97,76 @@ const ProductSelector = ({
   )
 }
 
+const PaymentMethodLabel = ({
+  pm,
+}: {
+  pm: PaymentMethod.ClientRecord
+}) => {
+  const brand =
+    typeof pm.paymentMethodData.brand === 'string'
+      ? pm.paymentMethodData.brand
+      : undefined
+  const last4 =
+    typeof pm.paymentMethodData.last4 === 'string'
+      ? pm.paymentMethodData.last4
+      : undefined
+
+  if (pm.type === PaymentMethodType.Card && brand && last4) {
+    return (
+      <CardPaymentMethodLabel
+        brand={brand}
+        last4={last4}
+        isDefault={pm.default}
+      />
+    )
+  }
+
+  if (pm.type === PaymentMethodType.USBankAccount) {
+    return (
+      <div className="flex items-center gap-2">
+        <span>Bank Account</span>
+        <span className="text-muted-foreground">
+          •••• {last4 || ''}
+        </span>
+        {pm.default && (
+          <span className="text-xs text-muted-foreground">
+            (Default)
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span>{pm.type}</span>
+      {pm.default && (
+        <span className="text-xs text-muted-foreground">
+          (Default)
+        </span>
+      )}
+    </div>
+  )
+}
+
+const CustomerNameDisplay = ({
+  customerName,
+  className,
+}: {
+  customerName?: string
+  className?: string
+}) => {
+  if (!customerName) {
+    return null
+  }
+
+  return (
+    <p className={`text-sm text-muted-foreground ${className || ''}`}>
+      For customer &quot;{customerName}&quot;
+    </p>
+  )
+}
+
 const PaymentMethodSelector = ({
   paymentMethods,
 }: {
@@ -133,60 +204,28 @@ const PaymentMethodSelector = ({
           <FormLabel>Payment Method</FormLabel>
           <FormControl>
             <Select
-              value={field.value || 'none'}
+              value={
+                field.value ||
+                (paymentMethods.length === 0
+                  ? 'none'
+                  : paymentMethods[0]?.id || '')
+              }
               onValueChange={field.onChange}
+              disabled={paymentMethods.length === 0}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a payment method" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {paymentMethods.map((pm) => {
-                  const brand =
-                    typeof pm.paymentMethodData.brand === 'string'
-                      ? pm.paymentMethodData.brand
-                      : undefined
-                  const last4 =
-                    typeof pm.paymentMethodData.last4 === 'string'
-                      ? pm.paymentMethodData.last4
-                      : undefined
-
-                  return (
+                {paymentMethods.length === 0 ? (
+                  <SelectItem value="none">None</SelectItem>
+                ) : (
+                  paymentMethods.map((pm) => (
                     <SelectItem key={pm.id} value={pm.id}>
-                      {pm.type === PaymentMethodType.Card &&
-                      brand &&
-                      last4 ? (
-                        <CardPaymentMethodLabel
-                          brand={brand}
-                          last4={last4}
-                          isDefault={pm.default}
-                        />
-                      ) : pm.type ===
-                        PaymentMethodType.USBankAccount ? (
-                        <div className="flex items-center gap-2">
-                          <span>Bank Account</span>
-                          <span className="text-muted-foreground">
-                            •••• {last4 || ''}
-                          </span>
-                          {pm.default && (
-                            <span className="text-xs text-muted-foreground">
-                              (Default)
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span>{pm.type}</span>
-                          {pm.default && (
-                            <span className="text-xs text-muted-foreground">
-                              (Default)
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      <PaymentMethodLabel pm={pm} />
                     </SelectItem>
-                  )
-                })}
+                  ))
+                )}
               </SelectContent>
             </Select>
           </FormControl>
@@ -213,6 +252,13 @@ export function CreateSubscriptionFormModal({
   onSuccess,
 }: CreateSubscriptionFormModalProps) {
   const utils = trpc.useUtils()
+
+  // Fetch customer to get name for description
+  const { data: customerData } =
+    trpc.customers.internal__getById.useQuery(
+      { id: customerId },
+      { enabled: isOpen }
+    )
 
   // Fetch pricing model for customer
   const {
@@ -314,6 +360,9 @@ export function CreateSubscriptionFormModal({
         onSubmit={handleSubmit}
         autoClose={false}
       >
+        <CustomerNameDisplay
+          customerName={customerData?.customer?.name}
+        />
         <div className="text-sm text-destructive">
           Failed to load pricing model. Please try again.
         </div>
@@ -337,6 +386,10 @@ export function CreateSubscriptionFormModal({
         onSubmit={handleSubmit}
         autoClose={false}
       >
+        <CustomerNameDisplay
+          customerName={customerData?.customer?.name}
+          className="mb-2"
+        />
         <div className="text-sm text-muted-foreground">
           {pricingModelData?.pricingModel?.products.some(
             (p) => p.default
@@ -361,12 +414,19 @@ export function CreateSubscriptionFormModal({
       }
       autoClose={true}
     >
-      <CreateSubscriptionFormContent
-        isLoadingPricingModel={isLoadingPricingModel}
-        isLoadingPaymentMethods={isLoadingPaymentMethods}
-        availableProducts={availableProducts}
-        paymentMethods={paymentMethods}
-      />
+      <div>
+        <CustomerNameDisplay
+          customerName={customerData?.customer?.name}
+          className="mb-6"
+        />
+        <CreateSubscriptionFormContent
+          isLoadingPricingModel={isLoadingPricingModel}
+          isLoadingPaymentMethods={isLoadingPaymentMethods}
+          availableProducts={availableProducts}
+          paymentMethods={paymentMethods}
+          customerName={customerData?.customer?.name}
+        />
+      </div>
     </FormModal>
   )
 }
@@ -376,11 +436,13 @@ const CreateSubscriptionFormContent = ({
   isLoadingPaymentMethods,
   availableProducts,
   paymentMethods,
+  customerName,
 }: {
   isLoadingPricingModel: boolean
   isLoadingPaymentMethods: boolean
   availableProducts: PricingModelWithProductsAndUsageMeters['products']
   paymentMethods: PaymentMethod.ClientRecord[]
+  customerName?: string
 }) => {
   const form = useFormContext<CreateSubscriptionFormData>()
   // useWatch subscribes to the 'productId' field and returns its current value
@@ -391,17 +453,21 @@ const CreateSubscriptionFormContent = ({
   })
 
   // Find selected product from available products
-  const selectedProduct = useMemo(() => {
-    if (!selectedProductId) {
-      return null
-    }
-    return availableProducts.find((p) => p.id === selectedProductId)
-  }, [selectedProductId, availableProducts])
+  const selectedProduct = selectedProductId
+    ? (availableProducts.find((p) => p.id === selectedProductId) ??
+      null)
+    : null
 
   // Format price and billing period for selected product
-  const productCardData = useMemo(() => {
-    if (!selectedProduct) return null
+  let productCardData: {
+    productName: string
+    price: string
+    period: string
+    currencySymbol: string
+    trialPeriodDays: number | null
+  } | null = null
 
+  if (selectedProduct) {
     const price = selectedProduct.defaultPrice
     // Handle intervalUnit which might be IntervalUnit enum or string
     const intervalUnit =
@@ -417,37 +483,81 @@ const CreateSubscriptionFormContent = ({
 
     const period = formatBillingPeriod(intervalUnit, intervalCount)
 
-    return {
+    const trialPeriodDays = price.trialPeriodDays ?? null
+
+    productCardData = {
       productName: selectedProduct.name,
       price: priceValue,
       period,
       currencySymbol,
+      trialPeriodDays,
     }
-  }, [selectedProduct])
+  }
 
   return (
     <div className="flex flex-col gap-6">
       {isLoadingPricingModel || isLoadingPaymentMethods ? (
-        <div className="text-sm text-muted-foreground">
-          Loading products and payment methods...
-        </div>
+        <>
+          {/* Product Selector Skeleton */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Payment Method Selector Skeleton */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Info Card Skeleton */}
+          <div className="flex flex-col gap-3 px-3 py-2.5 bg-accent rounded-sm border border-border">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-5/6" />
+            </div>
+          </div>
+        </>
       ) : (
         <>
           <ProductSelector products={availableProducts} />
           <PaymentMethodSelector paymentMethods={paymentMethods} />
           {productCardData && (
-            <InfoCard
-              title="Subscription Details"
-              actionText="View Product Details"
-              actionHref={`/store/products/${selectedProductId}`}
-            >
-              <ul className="list-disc list-inside space-y-1">
-                <li>Name: {productCardData.productName}</li>
-                <li>
-                  Price: {productCardData.currencySymbol}
-                  {productCardData.price} / {productCardData.period}
-                </li>
-              </ul>
+            <InfoCard title="Subscription Details">
+              When you create this subscription,{' '}
+              {customerName ? (
+                <strong>"{customerName}"</strong>
+              ) : (
+                'the customer'
+              )}{' '}
+              will be subscribed to{' '}
+              <strong>{productCardData.productName}</strong> at a rate
+              of{' '}
+              <strong>
+                {productCardData.currencySymbol}
+                {productCardData.price}
+              </strong>{' '}
+              per {productCardData.period}.
+              {productCardData.trialPeriodDays &&
+                productCardData.trialPeriodDays > 0 && (
+                  <>
+                    {' '}
+                    The subscription includes a{' '}
+                    <strong>
+                      {productCardData.trialPeriodDays}{' '}
+                      {productCardData.trialPeriodDays === 1
+                        ? 'day'
+                        : 'days'}
+                    </strong>{' '}
+                    trial period.
+                  </>
+                )}{' '}
+              The subscription will begin immediately upon creation.
             </InfoCard>
           )}
         </>

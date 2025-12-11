@@ -310,6 +310,7 @@ export const stripeCurrencyAmountToHumanReadableCurrencyAmount = (
  * Uses Intl.NumberFormat.formatToParts() for reliable i18n support with multi-character
  * currency symbols (e.g., CHF, SEK, CN¥, R$).
  */
+// FIXME: This function is not Stripe-specific and should be moved to a more appropriate location
 export const getCurrencyParts = (
   currency: CurrencyCode,
   amount: number,
@@ -365,6 +366,7 @@ export const getCurrencyParts = (
  * formatBillingPeriod('month', 3) // '3 months'
  * formatBillingPeriod(null, null) // 'one-time'
  */
+// FIXME: This function is not Stripe-specific and should be moved to a more appropriate location
 export const formatBillingPeriod = (
   intervalUnit: string | null | undefined,
   intervalCount: number | null | undefined

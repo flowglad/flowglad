@@ -24,12 +24,12 @@ const CustomerDetailsSection = ({
   customer,
   payments,
   usageEvents,
-  defaultCurrency,
+  currency,
 }: {
   customer: Customer.ClientRecord
   payments: Payment.ClientRecord[]
   usageEvents: UsageEvent.ClientRecord[]
-  defaultCurrency: CurrencyCode
+  currency: CurrencyCode
 }) => {
   const billingPortalURL = core.customerBillingPortalURL({
     organizationId: customer.organizationId,
@@ -116,7 +116,7 @@ const CustomerDetailsSection = ({
           <DetailLabel
             label="Total Spend"
             value={stripeCurrencyAmountToHumanReadableCurrencyAmount(
-              defaultCurrency,
+              currency,
               payments
                 .filter(
                   (payment) =>
@@ -248,7 +248,7 @@ export const CustomerBillingSubPage = ({
             customer={customer}
             payments={payments}
             usageEvents={usageEvents}
-            defaultCurrency={organization.defaultCurrency}
+            currency={organization.defaultCurrency}
           />
           <div className="w-full flex flex-col gap-5 pb-20">
             <SubscriptionsDataTable
