@@ -356,7 +356,6 @@ export function HomeClient() {
         priceId: price.id,
         successUrl: window.location.href,
         cancelUrl: window.location.href,
-        quantity: 1,
         autoRedirect: true,
       })
     } catch (error) {
@@ -386,7 +385,6 @@ export function HomeClient() {
         priceId: price.id,
         successUrl: window.location.href,
         cancelUrl: window.location.href,
-        quantity: 1,
         autoRedirect: true,
       })
     } catch (error) {
