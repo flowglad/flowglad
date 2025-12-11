@@ -31,6 +31,7 @@ import { getCurrencyParts } from '@/utils/stripe'
 import { InvoicesDataTable } from '../../invoices/data-table'
 import { PaymentsDataTable } from '../../payments/data-table'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
+import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
 
 const InnerSubscriptionPage = ({
@@ -242,6 +243,11 @@ const InnerSubscriptionPage = ({
             )}
           </div>
         </ExpandSection>
+        <BillingHistorySection
+          subscriptionId={subscription.id}
+          customerId={subscription.customerId}
+          customerName={customer.name}
+        />
         <InvoicesDataTable
           title="Invoices"
           filters={{ subscriptionId: subscription.id }}
