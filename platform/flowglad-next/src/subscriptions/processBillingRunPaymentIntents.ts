@@ -12,6 +12,7 @@ import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { User } from '@/db/schema/users'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
@@ -84,10 +85,6 @@ type PaymentIntentEvent =
   | Stripe.PaymentIntentProcessingEvent
   | Stripe.PaymentIntentRequiresActionEvent
 
-type PaymentIntentForBillingRunInput =
-  | PaymentIntentEvent
-  | Stripe.PaymentIntent
-
 const paymentIntentStatusToBillingRunStatus: Record<
   Stripe.PaymentIntent.Status,
   BillingRunStatus
@@ -109,6 +106,14 @@ interface BillingRunNotificationParams {
   payment: Payment.Record
   organizationMemberUsers: User.Record[]
   invoiceLineItems: InvoiceLineItem.Record[]
+}
+
+interface ProcessOutcomeForBillingRunParams {
+  input: PaymentIntentEvent | Stripe.PaymentIntent
+  adjustmentParams?: {
+    newSubscriptionItems?: SubscriptionItem.Record[]
+    adjustmentDate?: Date | number
+  }
 }
 
 const processSucceededNotifications = async (
@@ -204,7 +209,7 @@ const processAwaitingPaymentConfirmationNotifications = async (
 }
 
 export const processOutcomeForBillingRun = async (
-  input: PaymentIntentForBillingRunInput,
+  params: ProcessOutcomeForBillingRunParams,
   transaction: DbTransaction
 ): Promise<
   TransactionOutput<{
@@ -215,6 +220,7 @@ export const processOutcomeForBillingRun = async (
     processingSkipped?: boolean
   }>
 > => {
+  const { input, adjustmentParams } = params
   const event = 'type' in input ? input.data.object : input
   const timestamp = 'type' in input ? input.created : event.created
 
