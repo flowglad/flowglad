@@ -71,7 +71,7 @@ const ItemFeature = React.forwardRef<
     const content = (
       <span
         className={cn(
-          'flex gap-1.5 shrink-0',
+          'flex gap-1.5 min-w-0',
           description ? 'items-start' : 'items-center'
         )}
       >
@@ -82,12 +82,12 @@ const ItemFeature = React.forwardRef<
           )}
           strokeWidth={2}
         />
-        <span className="flex flex-col">
-          <span className="font-sans font-medium text-sm leading-5 text-foreground">
+        <span className="flex flex-col min-w-0">
+          <span className="font-sans font-medium text-sm leading-5 text-foreground break-words">
             {children}
           </span>
           {description && (
-            <span className="font-sans font-normal text-sm leading-5 text-muted-foreground group-hover:text-foreground transition-colors">
+            <span className="font-sans font-normal text-sm leading-5 text-muted-foreground group-hover:text-foreground transition-colors break-words">
               {description}
             </span>
           )}
