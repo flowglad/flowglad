@@ -146,7 +146,7 @@ const ItemBillingHistory = React.forwardRef<
             : undefined
         }
         className={cn(
-          'group flex items-center gap-3 py-2 px-3 rounded-[6px] transition-colors',
+          'group flex items-center gap-3 py-2 px-3 rounded-[6px] transition-colors w-full',
           isClickable && 'cursor-pointer',
           'hover:bg-accent/50',
           className
@@ -184,8 +184,8 @@ const ItemBillingHistory = React.forwardRef<
           </Badge>
         </div>
 
-        {/* Payment method cell */}
-        <div className="flex items-center justify-end gap-1 flex-1 min-w-0">
+        {/* Payment method cell - hidden on mobile */}
+        <div className="hidden md:flex items-center justify-end gap-1 flex-1 min-w-0">
           {paymentMethodBrand && (
             <div className="shrink-0">
               <CardLogoBadge brand={paymentMethodBrand} />
@@ -200,7 +200,7 @@ const ItemBillingHistory = React.forwardRef<
         </div>
 
         {/* Amount cell */}
-        <div className="flex items-center justify-end shrink-0 w-[100px]">
+        <div className="flex items-center justify-end flex-1 md:max-w-24">
           <span className="font-sans font-normal text-sm leading-5 text-foreground whitespace-nowrap text-right">
             {amount}
           </span>
